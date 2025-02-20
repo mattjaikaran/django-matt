@@ -1,0 +1,12 @@
+[lint]
+select = ["E", "W", "F", "B"]
+
+# https://beta.ruff.rs/docs/configuration/
+# https://beta.ruff.rs/docs/rules/
+
+
+line-length = 100
+[format]
+quote-style = "single"
+indent-style = "tab"
+docstring-code-format = true
