@@ -7,6 +7,13 @@ and other framework features.
 
 from django_matt.utils.errors import ErrorHandler, ErrorMiddleware, ValidationErrorFormatter, error_handler
 from django_matt.utils.hot_reload import HotReloader, HotReloadMiddleware, start_hot_reloading, stop_hot_reloading
+from django_matt.utils.performance import (
+    APIBenchmark,
+    BenchmarkMiddleware,
+    FastJSONRenderer,
+    FastJsonResponse,
+    benchmark,
+)
 
 __all__ = [
     # Error handling
@@ -19,4 +26,10 @@ __all__ = [
     "HotReloadMiddleware",
     "start_hot_reloading",
     "stop_hot_reloading",
+    # Performance
+    "FastJSONRenderer",
+    "FastJsonResponse",
+    "APIBenchmark",
+    "BenchmarkMiddleware",
+    "benchmark",
 ]

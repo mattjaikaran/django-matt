@@ -3,6 +3,7 @@
 New Django API framework started Feb 2025.
 
 I want to build my own custom API framework for Django because I feel like it.
+
 v1 is just for me. not meant for mass adoption.
 
 Reasons: 

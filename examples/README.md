@@ -48,6 +48,25 @@ Shows how to use Django Matt's hot reloading feature:
 python examples/hot_reload_demo.py
 ```
 
+### 4. Performance Demo
+
+Demonstrates Django Matt's performance utilities:
+- Faster JSON rendering with orjson/ujson
+- API endpoint benchmarking
+- Performance metrics collection
+- Comparison between standard and optimized responses
+
+**Location:** `examples/performance_demo.py`
+
+**To run:**
+```bash
+# For best results, install orjson first
+pip install orjson
+
+# Then run the demo
+python examples/performance_demo.py
+```
+
 ## Prerequisites
 
 Before running the examples, make sure you have installed Django Matt and its dependencies:
@@ -58,6 +77,9 @@ pip install -e .
 
 # Or install required dependencies
 pip install django pydantic websockets
+
+# Optional dependencies for enhanced features
+pip install orjson  # For faster JSON rendering
 ```
 
 ## Usage Tips
