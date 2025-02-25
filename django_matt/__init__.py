@@ -13,11 +13,16 @@ from django_matt.core.controller import APIController, Controller, CRUDControlle
 from django_matt.core.router import APIRouter, delete, get, patch, post, put
 from django_matt.core.schema import Schema
 
+# Import utility components
+from django_matt.utils.errors import ErrorHandler, ErrorMiddleware, error_handler
+from django_matt.utils.hot_reload import HotReloadMiddleware, start_hot_reloading, stop_hot_reloading
+
 # Create a default router instance
 api = APIRouter()
 
 # Export commonly used components
 __all__ = [
+    # Core components
     "APIRouter",
     "Controller",
     "APIController",
@@ -29,4 +34,12 @@ __all__ = [
     "put",
     "patch",
     "delete",
+    # Error handling
+    "ErrorHandler",
+    "ErrorMiddleware",
+    "error_handler",
+    # Hot reloading
+    "HotReloadMiddleware",
+    "start_hot_reloading",
+    "stop_hot_reloading",
 ]
