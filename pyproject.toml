@@ -46,6 +46,23 @@ ml = [
     "numpy>=1.24.0",
     "pandas>=2.0.0",
 ]
+performance = [
+    "orjson>=3.9.0",
+    "ujson>=5.8.0",
+    "msgpack>=1.0.5",
+    "redis>=5.0.0",
+]
+all = [
+    "orjson>=3.9.0",
+    "ujson>=5.8.0",
+    "msgpack>=1.0.5",
+    "redis>=5.0.0",
+    "torch>=2.0.0",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "mkdocs>=1.4.0",
+    "mkdocs-material>=9.0.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/mattjaikaran/django-matt"

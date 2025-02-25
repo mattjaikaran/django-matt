@@ -1,3 +1,8 @@
+# Django Matt Framework
+
+A lightweight, high-performance Django extension for building modern APIs with minimal boilerplate.
+
+
 # Django Matt
 
 New Django API framework started Feb 2025.
@@ -62,6 +67,126 @@ Reasons:
     - Support for Railway
     - Support for Render
     - Support for AWS
+
+
+## Advanced Performance Features
+
+Django Matt includes several advanced performance features to help you build faster, more efficient APIs:
+
+### 1. Fast JSON Serialization
+
+Django Matt provides optimized JSON serialization using the fastest available JSON libraries:
+
+- **`FastJSONRenderer`**: Automatically uses the fastest available JSON library (orjson > ujson > json)
+- **`FastJsonResponse`**: Drop-in replacement for Django's JsonResponse with improved performance
+
+```python
+from django_matt import FastJsonResponse
+
+def my_view(request):
+    return FastJsonResponse({"data": my_data})
+```
+
+### 2. MessagePack Serialization
+
+For even faster serialization and smaller payload sizes, Django Matt supports MessagePack:
+
+- **`MessagePackRenderer`**: Efficient binary serialization with MessagePack
+- **`MessagePackResponse`**: HTTP response that renders content as MessagePack
+
+```python
+from django_matt import MessagePackResponse
+
+def my_view(request):
+    return MessagePackResponse({"data": my_data})
+```
+
+### 3. Streaming Responses
+
+For large datasets, Django Matt provides streaming response capabilities:
+
+- **`StreamingJsonResponse`**: Stream large JSON datasets without loading everything into memory
+- **`stream_json_list`**: Helper function to stream JSON lists efficiently
+
+```python
+from django_matt import StreamingJsonResponse, stream_json_list
+
+def my_view(request):
+    def items_generator():
+        for item in large_dataset:
+            yield item
+    
+    return StreamingJsonResponse(
+        streaming_content=stream_json_list(items_generator())
+    )
+```
+
+### 4. Caching Mechanisms
+
+Django Matt includes a powerful caching system for API responses:
+
+- **`CacheManager`**: Manage caching of API responses
+- **`cache_response`**: Decorator to cache entire responses
+- **`cache_result`**: Decorator to cache function results
+
+```python
+from django_matt import cache_manager
+
+@cache_manager.cache_response(timeout=60)  # Cache for 60 seconds
+def my_view(request):
+    # Expensive operation
+    return FastJsonResponse({"data": expensive_operation()})
+```
+
+### 5. Performance Benchmarking
+
+Django Matt provides tools to measure and optimize API performance:
+
+- **`APIBenchmark`**: Measure the performance of API endpoints
+- **`benchmark`**: Decorator to measure execution time
+- **`BenchmarkMiddleware`**: Middleware to automatically benchmark all requests
+
+```python
+from django_matt import benchmark
+
+@benchmark.measure('my_operation')
+def expensive_operation():
+    # Expensive operation
+    return result
+
+# Get benchmark results
+benchmark_results = benchmark.get_report()
+```
+
+## Example
+
+Check out the `examples/advanced_performance_demo.py` file for a complete example of these features in action.
+
+To run the example:
+
+```bash
+# Install required dependencies
+pip install django msgpack
+
+# Run the example
+python examples/advanced_performance_demo.py
+```
+
+Then open your browser at http://localhost:8000 to see the demo.
+
+## Installation
+
+```bash
+pip install django-matt
+```
+
+## Optional Dependencies
+
+For optimal performance, install these optional dependencies:
+
+```bash
+pip install orjson ujson msgpack redis
+```
 
 ## Features
 - [UV](https://docs.astral.sh/uv/) package manager
