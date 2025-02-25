@@ -1,0 +1,37 @@
+{
+  "projectContext": {
+    "include": [
+      "**/*.py",
+      "**/*.ts",
+      "**/*.md",
+      "pyproject.toml",
+      "uv.toml",
+      "pixi.toml",
+      "docs/**/*.md"
+    ],
+    "exclude": ["**/env", "**/node_modules", "**/migrations"],
+    "documentation": [
+      "https://docs.astral.sh/uv/docs/config",
+      "https://docs.astral.sh/uv/",
+      "https://pydantic.dev/",
+      "https://docs.djangoproject.com/en/5.0/",
+      "https://guides.rubyonrails.org/command_line.html",
+      "https://inertiajs.com",
+      "https://docs.djangoproject.com/en/5.0/topics/db/models/",
+      "https://docs.djangoproject.com/en/5.0/topics/db/models/#model-inheritance",
+      "https://docs.djangoproject.com/en/5.1/topics/class-based-views/mixins/",
+      "https://www.django-rest-framework.org/api-guide/generic-views/",
+      "https://ccbv.co.uk/",
+      "https://www.cdrf.co/"
+    ]
+  },
+  "aiSettings": {
+    "model": "claude-3-5-sonnet-20240620",
+    "frameworkContext": {
+      "django": true,
+      "pydantic": true,
+      "typescript": true,
+      "trpc": true
+    }
+  }
+}

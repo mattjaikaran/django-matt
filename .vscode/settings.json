@@ -1,27 +1,21 @@
 {
-  "[python]": {
-    "editor.tabSize": 4,
-    "editor.formatOnSave": true,
-    "editor.formatOnPaste": true,
-    "files.insertFinalNewline": true,
-    "editor.wordBasedSuggestions": "off",
-    "editor.defaultFormatter": "ms-python.black-formatter",
-  },
-  "[json]": {
-    "editor.tabSize": 4,
-    "editor.formatOnPaste": true,
-    "editor.formatOnSave": true,
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-  },
-  "[markdown]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode",
-  },
-  "[ruff]": {
-    "editor.defaultFormatter": "charliermarsh.ruff",
-    "editor.codeActionsOnSave": {
-      "source.fixAll": "explicit",
-      "source.organizeImports": "explicit"
+    "[python]": {
+        "editor.tabSize": 4,
+        "editor.formatOnSave": true,
+        "editor.formatOnPaste": true,
+        "files.insertFinalNewline": true,
+        "editor.wordBasedSuggestions": "off",
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+        },
+        "ruff.lint.args": ["--extend-select=UP"]
     },
-    "ruff.lint.args": ["--extend-select=UP"]
-  }
+    "[json]": {
+        "editor.tabSize": 4,
+        "editor.formatOnPaste": true,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    }
 }
