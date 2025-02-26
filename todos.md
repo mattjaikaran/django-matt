@@ -72,7 +72,7 @@ This document outlines the development plan for Django Matt, a custom Django API
   - [ ] Create controller generation
 - [ ] Implement enhanced startapp command
   - [ ] Add template selection (blog, forum, e-commerce, etc.)
-  - [ ] Create architecture setup questions
+- [ ] Create architecture setup questions
   - [ ] Implement B2B/B2C/other setup options
 - [ ] Add database tools
   - [ ] Create database seeding functionality

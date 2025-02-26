@@ -60,3 +60,5 @@
     - Like what kind of app is this? B2B, B2C, social media, forum, internal facing tool, blank starting with base User with the built in JWT auth credentials setup and magic link. 
         - If it were B2B, it would set up with Organizations interacting with other Organizations and Users being a part of that Org. Also have the option to ask if the Organization needs multiple teams? Do the teams need a hierarchy? Permissions? Or Users can do business with the selling Org. Questions like that pertinent to the foundation of the application architecture. 
     - Could be cool to have eventual support for NLP to generate the initial architecture. 
+        - Like support for building a crud app based on bullet points in regular words to scan the details/requirements and to be able to whip up what is needed. 
+        -  Could be used with/have support for Cursor IDE, LLMs/Local LLMs, open source/free gen AI tools etc.
