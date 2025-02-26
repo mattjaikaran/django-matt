@@ -36,6 +36,7 @@ This document outlines the development plan for Django Matt, a custom Django API
   - [x] Add error response formatting
   - [x] Implement detailed error messages with traceback formatting
   - [x] Add validation error formatting
+  - [x] Implement automatic error handling in controllers
 
 ## Authentication & Security
 
@@ -194,6 +195,7 @@ This document outlines the development plan for Django Matt, a custom Django API
 - Request validation and parsing
 - Response serialization
 - Advanced error handling with detailed error messages and traceback formatting
+- Automatic error handling in controllers (no need for try/except blocks)
 - Hot reloading system with file change detection and WebSocket browser refresh
 - Example Todo app demonstrating the framework's capabilities
 - Example applications for error handling and hot reloading

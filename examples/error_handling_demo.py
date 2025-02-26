@@ -1,141 +1,234 @@
 """
-Example demonstrating Django Matt's enhanced error handling.
+Error Handling Demo for Django Matt.
 
-This example shows how to use the error handling features of Django Matt
-to provide detailed error information and suggestions.
-
-To run this example:
-1. Install Django and Django Matt
-2. Run this script with Python
-
+This example demonstrates the automatic error handling in controllers.
 """
 
 import os
 import sys
-
-import django
-from django.conf import settings
-from django.core.wsgi import get_wsgi_application
-from django.http import HttpResponse, JsonResponse
-from django.urls import path
-from pydantic import Field, ValidationError
+from typing import Any
 
 # Add the parent directory to the path so we can import django_matt
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import django
+from django.conf import settings
+from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.urls import path
+
+from django_matt.core.controller import APIController
+from django_matt.core.errors import APIError, NotFoundAPIError, PermissionAPIError, ValidationAPIError
+from django_matt.core.router import Router, get
 
 # Configure Django settings
 if not settings.configured:
     settings.configure(
         DEBUG=True,
-        SECRET_KEY="django-matt-example",
+        SECRET_KEY="demo-secret-key",
         ROOT_URLCONF=__name__,
         MIDDLEWARE=[
             "django.middleware.common.CommonMiddleware",
-            "django_matt.utils.errors.ErrorMiddleware",
-        ],
-        INSTALLED_APPS=[
-            "django.contrib.contenttypes",
-            "django.contrib.auth",
-        ],
-        TEMPLATES=[
-            {
-                "BACKEND": "django.template.backends.django.DjangoTemplates",
-                "APP_DIRS": True,
-            }
+            "django_matt.core.errors.ErrorMiddleware",
         ],
     )
     django.setup()
 
-# Import Django Matt components
-from django_matt import APIRouter, error_handler
-from django_matt.core.schema import Schema
-
-
-# Define a schema for our example
-class UserSchema(Schema):
-    """User schema for demonstration."""
-
-    username: str = Field(..., min_length=3, max_length=50)
-    email: str = Field(..., regex=r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
-    age: int = Field(..., ge=18, le=120)
-
 
 # Create a router
-router = APIRouter()
+api = Router()
 
 
-# Example endpoint with error handling
-@router.post("api/users/")
-@error_handler
-async def create_user(request):
-    """Create a new user with error handling."""
-    try:
-        # Parse the request body
-        if not request.body:
-            raise ValueError("Request body is empty")
+# Create a controller with automatic error handling
+class ErrorDemoController(APIController):
+    """Demo controller for error handling."""
 
-        import json
+    prefix = "errors/"
 
-        data = json.loads(request.body)
+    @get("basic")
+    async def basic_error(self, request: HttpRequest) -> dict[str, Any]:
+        """Demonstrate a basic error."""
+        # This will raise a ZeroDivisionError
+        return {"result": 1 / 0}
 
-        # Validate the data against our schema
-        user = UserSchema(**data)
+    @get("not-found")
+    async def not_found_error(self, request: HttpRequest) -> dict[str, Any]:
+        """Demonstrate a not found error."""
+        # Raise a NotFoundAPIError
+        raise NotFoundAPIError(
+            message="Item not found",
+            resource_type="Item",
+            resource_id="123",
+        )
 
-        # Simulate a database operation
-        if user.username == "admin":
-            raise PermissionError("Cannot create user with username 'admin'")
+    @get("permission")
+    async def permission_error(self, request: HttpRequest) -> dict[str, Any]:
+        """Demonstrate a permission error."""
+        # Raise a PermissionAPIError
+        raise PermissionAPIError(
+            message="You don't have permission to access this resource",
+            required_permission="admin",
+        )
 
-        # Return the created user
-        return {"status": "success", "user": user.model_dump()}
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON in request body"}, status=400)
-    except ValidationError:
-        # The error_handler decorator will handle this
-        raise
+    @get("validation")
+    async def validation_error(self, request: HttpRequest) -> dict[str, Any]:
+        """Demonstrate a validation error."""
+        # Raise a ValidationAPIError
+        raise ValidationAPIError(
+            message="Validation failed",
+            errors=[
+                {"field": "name", "message": "Name is required"},
+                {"field": "email", "message": "Invalid email format"},
+            ],
+        )
+
+    @get("custom")
+    async def custom_error(self, request: HttpRequest) -> dict[str, Any]:
+        """Demonstrate a custom API error."""
+        # Raise a custom APIError
+        raise APIError(
+            message="Something went wrong",
+            status_code=400,
+            code="custom_error",
+            context={"additional_info": "This is a custom error"},
+        )
+
+    @get("key-error")
+    async def key_error(self, request: HttpRequest) -> dict[str, Any]:
+        """Demonstrate a KeyError."""
+        # This will raise a KeyError
+        data = {}
+        return {"result": data["non_existent_key"]}
+
+    @get("attribute-error")
+    async def attribute_error(self, request: HttpRequest) -> dict[str, Any]:
+        """Demonstrate an AttributeError."""
+        # This will raise an AttributeError
+        return {"result": request.non_existent_attribute}
+
+    @get("type-error")
+    async def type_error(self, request: HttpRequest) -> dict[str, Any]:
+        """Demonstrate a TypeError."""
+        # This will raise a TypeError
+        return {"result": "string" + 123}
+
+    @get("index-error")
+    async def index_error(self, request: HttpRequest) -> dict[str, Any]:
+        """Demonstrate an IndexError."""
+        # This will raise an IndexError
+        data = [1, 2, 3]
+        return {"result": data[10]}
+
+    @get("value-error")
+    async def value_error(self, request: HttpRequest) -> dict[str, Any]:
+        """Demonstrate a ValueError."""
+        # This will raise a ValueError
+        return {"result": int("not a number")}
 
 
-# Example endpoint that will cause a division by zero error
-@router.get("api/error-demo/")
-@error_handler
-async def error_demo(request):
-    """Demonstrate error handling with a deliberate error."""
-    # This will cause a division by zero error
-    result = 1 / 0
-    return {"result": result}
+# Create a controller with custom error handling
+class CustomErrorHandlingController(APIController):
+    """Demo controller with custom error handling."""
+
+    prefix = "custom-handling/"
+
+    def handle_exception(self, exc: Exception, request: HttpRequest = None) -> JsonResponse:
+        """Custom exception handler."""
+        # Handle ZeroDivisionError specially
+        if isinstance(exc, ZeroDivisionError):
+            return JsonResponse(
+                {
+                    "error": "Cannot divide by zero",
+                    "suggestion": "Try using a non-zero divisor",
+                },
+                status=400,
+            )
+
+        # Handle KeyError specially
+        if isinstance(exc, KeyError):
+            return JsonResponse(
+                {
+                    "error": f"Key '{exc.args[0]}' not found",
+                    "suggestion": "Check the available keys before accessing",
+                },
+                status=400,
+            )
+
+        # Fall back to default handling for other exceptions
+        return super().handle_exception(exc, request)
+
+    @get("zero-division")
+    async def zero_division(self, request: HttpRequest) -> dict[str, Any]:
+        """Demonstrate custom handling of ZeroDivisionError."""
+        return {"result": 1 / 0}
+
+    @get("key-error")
+    async def key_error(self, request: HttpRequest) -> dict[str, Any]:
+        """Demonstrate custom handling of KeyError."""
+        data = {}
+        return {"result": data["non_existent_key"]}
+
+    @get("other-error")
+    async def other_error(self, request: HttpRequest) -> dict[str, Any]:
+        """Demonstrate fallback to default handling."""
+        return {"result": "string" + 123}
 
 
-# Example endpoint that will cause a type error
-@router.get("api/type-error/")
-@error_handler
-async def type_error_demo(request):
-    """Demonstrate error handling with a type error."""
-    # This will cause a type error
-    result = "string" + 123
-    return {"result": result}
+# Create a controller with disabled error handling
+class DisabledErrorHandlingController(APIController):
+    """Demo controller with disabled error handling."""
+
+    prefix = "disabled-handling/"
+    auto_error_handling = False  # Disable automatic error handling
+
+    @get("manual-handling")
+    async def manual_handling(self, request: HttpRequest) -> dict[str, Any]:
+        """Demonstrate manual error handling."""
+        try:
+            result = 1 / 0
+            return {"result": result}
+        except Exception as e:
+            return JsonResponse(
+                {
+                    "error": "An error occurred",
+                    "message": str(e),
+                    "type": e.__class__.__name__,
+                },
+                status=500,
+            )
+
+    @get("no-handling")
+    async def no_handling(self, request: HttpRequest) -> dict[str, Any]:
+        """Demonstrate no error handling (will be caught by middleware)."""
+        return {"result": 1 / 0}
 
 
-# Example endpoint that will cause an attribute error
-@router.get("api/attribute-error/")
-@error_handler
-async def attribute_error_demo(request):
-    """Demonstrate error handling with an attribute error."""
-
-    # This will cause an attribute error
-    class Example:
-        pass
-
-    obj = Example()
-    result = obj.nonexistent_attribute
-    return {"result": result}
+# Register controllers
+api.include_controller(ErrorDemoController())
+api.include_controller(CustomErrorHandlingController())
+api.include_controller(DisabledErrorHandlingController())
 
 
-# Create URL patterns
-urlpatterns = router.get_urls()
+# Create a simple index view
+def index(request):
+    """Index view with links to error examples."""
+    links = [
+        {"url": "/api/errors/basic", "description": "Basic error (ZeroDivisionError)"},
+        {"url": "/api/errors/not-found", "description": "Not found error"},
+        {"url": "/api/errors/permission", "description": "Permission error"},
+        {"url": "/api/errors/validation", "description": "Validation error"},
+        {"url": "/api/errors/custom", "description": "Custom API error"},
+        {"url": "/api/errors/key-error", "description": "Key error"},
+        {"url": "/api/errors/attribute-error", "description": "Attribute error"},
+        {"url": "/api/errors/type-error", "description": "Type error"},
+        {"url": "/api/errors/index-error", "description": "Index error"},
+        {"url": "/api/errors/value-error", "description": "Value error"},
+        {"url": "/api/custom-handling/zero-division", "description": "Custom handling of ZeroDivisionError"},
+        {"url": "/api/custom-handling/key-error", "description": "Custom handling of KeyError"},
+        {"url": "/api/custom-handling/other-error", "description": "Fallback to default handling"},
+        {"url": "/api/disabled-handling/manual-handling", "description": "Manual error handling"},
+        {"url": "/api/disabled-handling/no-handling", "description": "No error handling (caught by middleware)"},
+    ]
 
-
-# Add a simple HTML page to test the error handling
-def index_view(request):
-    """Simple HTML page to test the error handling."""
     html = """
     <!DOCTYPE html>
     <html>
@@ -144,110 +237,43 @@ def index_view(request):
         <style>
             body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
             h1 { color: #333; }
-            .endpoint { background: #f5f5f5; padding: 15px; margin-bottom: 15px; border-radius: 5px; }
-            .endpoint h3 { margin-top: 0; }
-            button { background: #4CAF50; color: white; border: none; padding: 10px 15px; cursor: pointer; }
-            pre { background: #f9f9f9; padding: 10px; overflow: auto; }
-            #result { margin-top: 20px; }
+            ul { list-style-type: none; padding: 0; }
+            li { margin-bottom: 10px; }
+            a { color: #0066cc; text-decoration: none; }
+            a:hover { text-decoration: underline; }
+            .note { background-color: #f8f9fa; padding: 10px; border-left: 4px solid #0066cc; margin-bottom: 20px; }
         </style>
     </head>
     <body>
         <h1>Django Matt Error Handling Demo</h1>
-        
-        <div class="endpoint">
-            <h3>Create User (Validation Error)</h3>
-            <button onclick="testCreateUser()">Test</button>
-            <p>This will trigger a validation error.</p>
+        <div class="note">
+            <p>This demo shows how Django Matt's automatic error handling works in controllers.</p>
+            <p>Click on the links below to see different types of errors and how they are handled.</p>
         </div>
-        
-        <div class="endpoint">
-            <h3>Division by Zero Error</h3>
-            <button onclick="testDivisionByZero()">Test</button>
-            <p>This will trigger a division by zero error.</p>
-        </div>
-        
-        <div class="endpoint">
-            <h3>Type Error</h3>
-            <button onclick="testTypeError()">Test</button>
-            <p>This will trigger a type error.</p>
-        </div>
-        
-        <div class="endpoint">
-            <h3>Attribute Error</h3>
-            <button onclick="testAttributeError()">Test</button>
-            <p>This will trigger an attribute error.</p>
-        </div>
-        
-        <div id="result">
-            <h2>Response:</h2>
-            <pre id="response"></pre>
-        </div>
-        
-        <script>
-            async function testCreateUser() {
-                try {
-                    const response = await fetch('/api/users/', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            username: 'a',  // Too short
-                            email: 'invalid-email',  // Invalid email
-                            age: 10,  // Too young
-                        }),
-                    });
-                    
-                    const data = await response.json();
-                    document.getElementById('response').textContent = JSON.stringify(data, null, 2);
-                } catch (error) {
-                    document.getElementById('response').textContent = error.toString();
-                }
-            }
-            
-            async function testDivisionByZero() {
-                try {
-                    const response = await fetch('/api/error-demo/');
-                    const data = await response.json();
-                    document.getElementById('response').textContent = JSON.stringify(data, null, 2);
-                } catch (error) {
-                    document.getElementById('response').textContent = error.toString();
-                }
-            }
-            
-            async function testTypeError() {
-                try {
-                    const response = await fetch('/api/type-error/');
-                    const data = await response.json();
-                    document.getElementById('response').textContent = JSON.stringify(data, null, 2);
-                } catch (error) {
-                    document.getElementById('response').textContent = error.toString();
-                }
-            }
-            
-            async function testAttributeError() {
-                try {
-                    const response = await fetch('/api/attribute-error/');
-                    const data = await response.json();
-                    document.getElementById('response').textContent = JSON.stringify(data, null, 2);
-                } catch (error) {
-                    document.getElementById('response').textContent = error.toString();
-                }
-            }
-        </script>
+        <ul>
+    """
+
+    for link in links:
+        html += f'<li><a href="{link["url"]}">{link["description"]}</a></li>'
+
+    html += """
+        </ul>
     </body>
     </html>
     """
+
     return HttpResponse(html)
 
 
-urlpatterns.append(path("", index_view))
+# URL patterns
+urlpatterns = [
+    path("", index),
+    path("api/", api.urls),
+]
 
-# Run the application
+
+# Run the server
 if __name__ == "__main__":
     from django.core.management import execute_from_command_line
 
     execute_from_command_line(["manage.py", "runserver", "0.0.0.0:8000"])
-else:
-    # For WSGI servers
-    application = get_wsgi_application()
