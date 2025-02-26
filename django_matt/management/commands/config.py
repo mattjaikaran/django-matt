@@ -24,6 +24,12 @@ class Command(BaseCommand):
             default="all",
             help="Environment to initialize",
         )
+        init_parser.add_argument(
+            "--db",
+            choices=["postgres", "mysql", "sqlite"],
+            default="postgres",
+            help="Default database to use",
+        )
 
         # generate subcommand
         generate_parser = subparsers.add_parser("generate", help="Generate a settings.py file")
@@ -40,6 +46,12 @@ class Command(BaseCommand):
             help="Components to include in the settings",
         )
         generate_parser.add_argument("--output", default="settings.py", help="Output file path")
+        generate_parser.add_argument(
+            "--db",
+            choices=["postgres", "mysql", "sqlite"],
+            default="postgres",
+            help="Default database to use",
+        )
 
         # env subcommand
         env_parser = subparsers.add_parser("env", help="Generate a .env file")
@@ -50,6 +62,12 @@ class Command(BaseCommand):
             help="Environment to generate .env file for",
         )
         env_parser.add_argument("--output", default=".env", help="Output file path")
+        env_parser.add_argument(
+            "--db",
+            choices=["postgres", "mysql", "sqlite"],
+            default="postgres",
+            help="Default database to use",
+        )
 
     def handle(self, *args, **options):
         subcommand = options["subcommand"]
@@ -68,6 +86,7 @@ class Command(BaseCommand):
         """Initialize configuration files."""
         force = options["force"]
         env = options["env"]
+        db = options["db"]
 
         # Get the project directory
         project_dir = self.get_project_dir()
@@ -84,15 +103,15 @@ class Command(BaseCommand):
         )
 
         # Create the settings.py file
-        self.create_settings_file(project_dir, env, force)
+        self.create_settings_file(project_dir, env, force, db=db)
 
         # Create the .env file
         if env == "all" or env == "development":
-            self.create_env_file(project_dir, "development", force)
+            self.create_env_file(project_dir, "development", force, db=db)
         if env == "all" or env == "staging":
-            self.create_env_file(project_dir, "staging", force)
+            self.create_env_file(project_dir, "staging", force, db=db)
         if env == "all" or env == "production":
-            self.create_env_file(project_dir, "production", force)
+            self.create_env_file(project_dir, "production", force, db=db)
 
         self.stdout.write(self.style.SUCCESS("Configuration files initialized successfully"))
 
@@ -101,12 +120,13 @@ class Command(BaseCommand):
         env = options["env"]
         components = options["components"]
         output = options["output"]
+        db = options["db"]
 
         # Get the project directory
         project_dir = self.get_project_dir()
 
         # Create the settings.py file
-        self.create_settings_file(project_dir, env, True, output, components)
+        self.create_settings_file(project_dir, env, True, output, components, db=db)
 
         self.stdout.write(self.style.SUCCESS(f"Settings file generated successfully at {output}"))
 
@@ -114,12 +134,13 @@ class Command(BaseCommand):
         """Generate a .env file."""
         env = options["env"]
         output = options["output"]
+        db = options["db"]
 
         # Get the project directory
         project_dir = self.get_project_dir()
 
         # Create the .env file
-        self.create_env_file(project_dir, env, True, output)
+        self.create_env_file(project_dir, env, True, output, db=db)
 
         self.stdout.write(self.style.SUCCESS(f".env file generated successfully at {output}"))
 
@@ -152,6 +173,7 @@ class Command(BaseCommand):
         force: bool = False,
         output: str = "settings.py",
         components: list[str] = None,
+        db: str = "postgres",
     ) -> None:
         """Create a settings.py file."""
         if components is None:
@@ -162,9 +184,9 @@ class Command(BaseCommand):
 
         # Create the settings content
         if env == "all":
-            content = self.get_settings_content(project_name, "development", components)
+            content = self.get_settings_content(project_name, "development", components, db)
         else:
-            content = self.get_settings_content(project_name, env, components)
+            content = self.get_settings_content(project_name, env, components, db)
 
         # Create the settings.py file
         settings_path = project_dir / output
@@ -176,13 +198,14 @@ class Command(BaseCommand):
         env: str = "development",
         force: bool = False,
         output: str = None,
+        db: str = "postgres",
     ) -> None:
         """Create a .env file."""
         # Get the project name from the directory name
         project_name = project_dir.name.replace("-", "_").lower()
 
         # Create the .env content
-        content = self.get_env_content(project_name, env)
+        content = self.get_env_content(project_name, env, db)
 
         # Create the .env file
         if output is None:
@@ -199,7 +222,7 @@ class Command(BaseCommand):
         if env == "development" and not (project_dir / ".env.example").exists():
             self.create_file(project_dir / ".env.example", content, force)
 
-    def get_settings_content(self, project_name: str, env: str, components: list[str]) -> str:
+    def get_settings_content(self, project_name: str, env: str, components: list[str], db: str = "postgres") -> str:
         """Get the content for the settings.py file."""
         return f'''"""
 {project_name.replace("_", " ").title()} settings.
@@ -264,6 +287,9 @@ settings = configure(
         
         # Add your project's media files
         "MEDIA_ROOT": os.path.join(BASE_DIR, "{project_name}", "media"),
+        
+        # Database type
+        "DB_TYPE": "{db}",
     }},
     
     # Apply the settings to Django's settings module
@@ -282,9 +308,80 @@ if DEBUG:
     print(f"Running in {{ENVIRONMENT}} environment")
 '''
 
-    def get_env_content(self, project_name: str, env: str) -> str:
+    def get_env_content(self, project_name: str, env: str, db: str = "postgres") -> str:
         """Get the content for the .env file."""
         import secrets
+
+        db_settings = {
+            "postgres": {
+                "development": {
+                    "ENGINE": "django.db.backends.postgresql",
+                    "NAME": f"{project_name}_dev",
+                    "USER": "postgres",
+                    "PASSWORD": "",
+                    "HOST": "localhost",
+                    "PORT": "5432",
+                },
+                "staging": {
+                    "ENGINE": "django.db.backends.postgresql",
+                    "NAME": f"{project_name}_staging",
+                    "USER": project_name,
+                    "PASSWORD": "change_me",
+                    "HOST": "localhost",
+                    "PORT": "5432",
+                },
+                "production": {
+                    "ENGINE": "django.db.backends.postgresql",
+                    "NAME": project_name,
+                    "USER": project_name,
+                    "PASSWORD": "change_me",
+                    "HOST": "localhost",
+                    "PORT": "5432",
+                },
+            },
+            "mysql": {
+                "development": {
+                    "ENGINE": "django.db.backends.mysql",
+                    "NAME": f"{project_name}_dev",
+                    "USER": "root",
+                    "PASSWORD": "",
+                    "HOST": "localhost",
+                    "PORT": "3306",
+                },
+                "staging": {
+                    "ENGINE": "django.db.backends.mysql",
+                    "NAME": f"{project_name}_staging",
+                    "USER": project_name,
+                    "PASSWORD": "change_me",
+                    "HOST": "localhost",
+                    "PORT": "3306",
+                },
+                "production": {
+                    "ENGINE": "django.db.backends.mysql",
+                    "NAME": project_name,
+                    "USER": project_name,
+                    "PASSWORD": "change_me",
+                    "HOST": "localhost",
+                    "PORT": "3306",
+                },
+            },
+            "sqlite": {
+                "development": {
+                    "ENGINE": "django.db.backends.sqlite3",
+                    "NAME": "db.sqlite3",
+                },
+                "staging": {
+                    "ENGINE": "django.db.backends.sqlite3",
+                    "NAME": "db_staging.sqlite3",
+                },
+                "production": {
+                    "ENGINE": "django.db.backends.sqlite3",
+                    "NAME": "db_production.sqlite3",
+                },
+            },
+        }
+
+        db_config = db_settings.get(db, db_settings["postgres"]).get(env, db_settings["postgres"]["development"])
 
         if env == "development":
             return f"""# {project_name.replace("_", " ").title()} development environment variables
@@ -293,12 +390,13 @@ DJANGO_SECRET_KEY={secrets.token_hex(32)}
 ALLOWED_HOSTS=localhost,127.0.0.1,[::1]
 
 # Database settings
-DB_ENGINE=django.db.backends.sqlite3
-DB_NAME=db.sqlite3
-DB_USER=
-DB_PASSWORD=
-DB_HOST=
-DB_PORT=
+DB_TYPE={db}
+DB_ENGINE={db_config["ENGINE"]}
+DB_NAME={db_config["NAME"]}
+{"DB_USER=" + db_config.get("USER", "") if "USER" in db_config else ""}
+{"DB_PASSWORD=" + db_config.get("PASSWORD", "") if "PASSWORD" in db_config else ""}
+{"DB_HOST=" + db_config.get("HOST", "") if "HOST" in db_config else ""}
+{"DB_PORT=" + db_config.get("PORT", "") if "PORT" in db_config else ""}
 
 # Cache settings
 CACHE_BACKEND=django.core.cache.backends.locmem.LocMemCache
@@ -309,6 +407,10 @@ CACHE_TIMEOUT=300
 DJANGO_MATT_BENCHMARK_ENABLED=True
 DJANGO_MATT_CACHE_ENABLED=True
 DJANGO_MATT_CACHE_TIMEOUT=300
+
+# PostgreSQL specific settings
+DB_PGVECTOR_ENABLED=False
+DB_POOL_ENABLED=False
 """
         elif env == "staging":
             return f"""# {project_name.replace("_", " ").title()} staging environment variables
@@ -317,12 +419,13 @@ DJANGO_SECRET_KEY={secrets.token_hex(32)}
 ALLOWED_HOSTS=staging.example.com
 
 # Database settings
-DB_ENGINE=django.db.backends.postgresql
-DB_NAME={project_name}
-DB_USER={project_name}
-DB_PASSWORD=change_me
-DB_HOST=localhost
-DB_PORT=5432
+DB_TYPE={db}
+DB_ENGINE={db_config["ENGINE"]}
+DB_NAME={db_config["NAME"]}
+{"DB_USER=" + db_config.get("USER", "") if "USER" in db_config else ""}
+{"DB_PASSWORD=" + db_config.get("PASSWORD", "") if "PASSWORD" in db_config else ""}
+{"DB_HOST=" + db_config.get("HOST", "") if "HOST" in db_config else ""}
+{"DB_PORT=" + db_config.get("PORT", "") if "PORT" in db_config else ""}
 
 # Cache settings
 CACHE_BACKEND=django.core.cache.backends.redis.RedisCache
@@ -334,6 +437,10 @@ REDIS_URL=redis://localhost:6379/0
 DJANGO_MATT_BENCHMARK_ENABLED=True
 DJANGO_MATT_CACHE_ENABLED=True
 DJANGO_MATT_CACHE_TIMEOUT=300
+
+# PostgreSQL specific settings
+DB_PGVECTOR_ENABLED=False
+DB_POOL_ENABLED=False
 """
         elif env == "production":
             return f"""# {project_name.replace("_", " ").title()} production environment variables
@@ -342,12 +449,13 @@ DJANGO_SECRET_KEY={secrets.token_hex(32)}
 ALLOWED_HOSTS=example.com,www.example.com
 
 # Database settings
-DB_ENGINE=django.db.backends.postgresql
-DB_NAME={project_name}
-DB_USER={project_name}
-DB_PASSWORD=change_me
-DB_HOST=localhost
-DB_PORT=5432
+DB_TYPE={db}
+DB_ENGINE={db_config["ENGINE"]}
+DB_NAME={db_config["NAME"]}
+{"DB_USER=" + db_config.get("USER", "") if "USER" in db_config else ""}
+{"DB_PASSWORD=" + db_config.get("PASSWORD", "") if "PASSWORD" in db_config else ""}
+{"DB_HOST=" + db_config.get("HOST", "") if "HOST" in db_config else ""}
+{"DB_PORT=" + db_config.get("PORT", "") if "PORT" in db_config else ""}
 
 # Cache settings
 CACHE_BACKEND=django.core.cache.backends.redis.RedisCache
@@ -367,6 +475,13 @@ SECURE_HSTS_PRELOAD=True
 DJANGO_MATT_BENCHMARK_ENABLED=False
 DJANGO_MATT_CACHE_ENABLED=True
 DJANGO_MATT_CACHE_TIMEOUT=3600
+
+# PostgreSQL specific settings
+DB_PGVECTOR_ENABLED=False
+DB_POOL_ENABLED=True
+DB_POOL_MAX_CONNS=20
+DB_POOL_MIN_CONNS=5
+DB_POOL_MAX_IDLE=300
 
 # Email settings
 EMAIL_HOST=smtp.example.com

@@ -158,6 +158,149 @@ def expensive_operation():
 benchmark_results = benchmark.get_report()
 ```
 
+## Database Support
+
+Django Matt provides first-class support for PostgreSQL while also supporting MySQL and SQLite with easy configuration.
+
+### 1. PostgreSQL as Default
+
+PostgreSQL is the default database backend in Django Matt, offering robust features and performance:
+
+```python
+# PostgreSQL is configured by default
+settings = configure(
+    environment='development',
+    components=['database', 'cache', 'security', 'performance'],
+)
+```
+
+### 2. Vector Support with pgvector
+
+Django Matt includes built-in support for pgvector, enabling vector similarity search in PostgreSQL:
+
+```python
+from django.db import models
+from django_matt.db import VectorField, CosineDistance
+
+class Document(models.Model):
+    content = models.TextField()
+    embedding = VectorField(dimensions=1536)  # OpenAI embedding dimensions
+
+# Query by vector similarity
+query_embedding = get_embedding("What is Django Matt?")
+similar_docs = Document.objects.order_by(CosineDistance('embedding', query_embedding))[:10]
+```
+
+### 3. Easy Database Configuration
+
+Configure your database with environment variables or settings:
+
+```python
+# Environment variables
+DB_TYPE=postgres  # or mysql, sqlite
+DB_NAME=myproject
+DB_USER=postgres
+DB_PASSWORD=mypassword
+
+# Or in settings
+settings = configure(
+    extra_settings={
+        "DB_TYPE": "postgres",
+    }
+)
+```
+
+### 4. Multiple Database Support
+
+Django Matt supports multiple databases and database routers:
+
+```python
+# Configure multiple databases
+DB_MULTIPLE={"readonly": {"type": "postgres", "name": "readonly_db"}, "analytics": {"type": "mysql", "name": "analytics_db"}}
+
+# Configure database routers
+DB_ROUTERS=myapp.routers.PrimaryReplicaRouter,myapp.routers.AnalyticsRouter
+```
+
+For more information, see the [Database documentation](docs/database.md).
+
+## Configuration System
+
+Django Matt provides a more organized and flexible approach to Django settings management:
+
+### 1. Modular Settings Organization
+
+- **Separate settings by concern**: Database, cache, security, and performance settings are organized into separate modules
+- **Support for multiple environments**: Development, staging, and production environments have their own settings
+- **Component-based configuration**: Load only the components you need
+
+```python
+from django_matt.config import configure
+
+# Configure the application
+settings = configure(
+    environment='development',
+    components=['database', 'cache', 'security', 'performance'],
+    extra_settings={
+        'ROOT_URLCONF': 'myproject.urls',
+        'WSGI_APPLICATION': 'myproject.wsgi.application',
+    },
+)
+```
+
+### 2. Environment Variable Integration
+
+- **Load settings from environment variables**: Sensitive information is loaded from environment variables
+- **Environment-specific defaults**: Each environment has sensible defaults
+- **Utility functions**: Helper functions for working with environment variables
+
+```python
+from django_matt.config.utils import get_env_bool, get_env_list
+
+# Get a boolean value from an environment variable
+debug = get_env_bool('DEBUG', False)
+
+# Get a list value from an environment variable
+allowed_hosts = get_env_list('ALLOWED_HOSTS', ['localhost'], ',')
+```
+
+### 3. Configuration Management Command
+
+Django Matt includes a management command for working with configuration files:
+
+```bash
+# Initialize configuration files for your project
+python manage.py config init
+
+# Generate a settings.py file for a specific environment
+python manage.py config generate --env production
+
+# Generate a .env file for a specific environment
+python manage.py config env --env staging
+```
+
+For more information, see the [Configuration System documentation](docs/configuration_system.md).
+
+## Command-Line Tools
+
+Django Matt provides several command-line tools to help you manage your Django projects:
+
+### 1. Configuration Management
+
+```bash
+python manage.py config init      # Initialize configuration files
+python manage.py config generate  # Generate a settings.py file
+python manage.py config env       # Generate a .env file
+```
+
+### 2. Hot Reloading
+
+```bash
+python manage.py runserver_hot    # Run the development server with hot reloading
+```
+
+For more information, see the [CLI Tools documentation](docs/cli_tools.md).
+
 ## Example
 
 Check out the `examples/advanced_performance_demo.py` file for a complete example of these features in action.
@@ -185,7 +328,7 @@ pip install django-matt
 For optimal performance, install these optional dependencies:
 
 ```bash
-pip install orjson ujson msgpack redis
+pip install orjson ujson msgpack redis django-pgvector
 ```
 
 ## Features
@@ -207,10 +350,24 @@ pip install orjson ujson msgpack redis
     - OpenAPI and Swagger
 - Rate Limiting
 - Caching
+- Configuration System
+    - Modular settings organization
+    - Environment-specific settings
+    - Component-based configuration
+- Command-Line Tools
+    - Configuration management
+    - Hot reloading
+- Database Support
+    - First-class PostgreSQL support
+    - pgvector integration for vector similarity search
+    - Easy configuration for MySQL and SQLite
+    - Multiple database support
+    - Connection pooling
 
 ## Tech Stack
 
 - Python 3.10+
 - Django 5.1+
+- PostgreSQL (recommended)
 
 

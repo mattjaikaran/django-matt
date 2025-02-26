@@ -70,6 +70,20 @@ settings = {
         "BENCHMARK_ENABLED": False,
         "CACHE_ENABLED": True,
         "CACHE_TIMEOUT": 3600,  # 1 hour
+        "DB_TYPE": "postgres",  # Default to PostgreSQL
+    },
+    # Database settings for production
+    "DATABASES": {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("DB_NAME", "django_matt"),
+            "USER": os.environ.get("DB_USER", "django_matt"),
+            "PASSWORD": os.environ.get("DB_PASSWORD", ""),
+            "HOST": os.environ.get("DB_HOST", "localhost"),
+            "PORT": os.environ.get("DB_PORT", "5432"),
+            "CONN_MAX_AGE": int(os.environ.get("DB_CONN_MAX_AGE", 600)),
+            "OPTIONS": {},
+        }
     },
     # Password validation
     "AUTH_PASSWORD_VALIDATORS": [

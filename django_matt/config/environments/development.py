@@ -27,6 +27,18 @@ settings = {
     "DJANGO_MATT": {
         "BENCHMARK_ENABLED": True,
         "CACHE_ENABLED": True,
+        "DB_TYPE": "postgres",  # Default to PostgreSQL
+    },
+    # Database settings for development
+    "DATABASES": {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": "django_matt_dev",
+            "USER": "postgres",
+            "PASSWORD": "",
+            "HOST": "localhost",
+            "PORT": "5432",
+        }
     },
     # Disable password validation in development
     "AUTH_PASSWORD_VALIDATORS": [],
