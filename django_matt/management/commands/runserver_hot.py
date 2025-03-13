@@ -18,19 +18,41 @@ class Command(BaseCommand):
     help = "Runs the development server with hot reloading enabled"
 
     def add_arguments(self, parser):
-        parser.add_argument("addrport", nargs="?", default="8000", help="Optional port number, or ipaddr:port")
-        parser.add_argument("--noreload", action="store_true", dest="noreload", help="Disables hot reloading entirely")
         parser.add_argument(
-            "--nothreading", action="store_true", dest="nothreading", help="Tells Django to NOT use threading"
+            "addrport",
+            nargs="?",
+            default="8000",
+            help="Optional port number, or ipaddr:port",
         )
         parser.add_argument(
-            "--ipv6", "-6", action="store_true", dest="use_ipv6", help="Tells Django to use an IPv6 address"
+            "--noreload",
+            action="store_true",
+            dest="noreload",
+            help="Disables hot reloading entirely",
         )
         parser.add_argument(
-            "--websocket-host", default="localhost", help="Host for the WebSocket server (default: localhost)"
+            "--nothreading",
+            action="store_true",
+            dest="nothreading",
+            help="Tells Django to NOT use threading",
         )
         parser.add_argument(
-            "--websocket-port", type=int, default=35729, help="Port for the WebSocket server (default: 35729)"
+            "--ipv6",
+            "-6",
+            action="store_true",
+            dest="use_ipv6",
+            help="Tells Django to use an IPv6 address",
+        )
+        parser.add_argument(
+            "--websocket-host",
+            default="localhost",
+            help="Host for the WebSocket server (default: localhost)",
+        )
+        parser.add_argument(
+            "--websocket-port",
+            type=int,
+            default=35729,
+            help="Port for the WebSocket server (default: 35729)",
         )
 
     def handle(self, *args, **options):
@@ -44,7 +66,10 @@ class Command(BaseCommand):
             from django.core.management import call_command
 
             call_command(
-                "runserver", options["addrport"], use_threading=not options["nothreading"], use_ipv6=options["use_ipv6"]
+                "runserver",
+                options["addrport"],
+                use_threading=not options["nothreading"],
+                use_ipv6=options["use_ipv6"],
             )
             return
 
@@ -72,7 +97,9 @@ class Command(BaseCommand):
 
         # Run the hot reloader
         self.stdout.write(
-            self.style.SUCCESS(f"Starting development server with hot reloading at http://{addr}:{port}/")
+            self.style.SUCCESS(
+                f"Starting development server with hot reloading at http://{addr}:{port}/"
+            )
         )
         self.stdout.write(
             self.style.SUCCESS(

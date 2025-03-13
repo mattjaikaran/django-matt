@@ -57,7 +57,9 @@ class Command(BaseCommand):
         try:
             app_label, model_name = model_path.split(".")
         except ValueError:
-            raise CommandError("Model must be specified in the format app_name.ModelName")
+            raise CommandError(
+                "Model must be specified in the format app_name.ModelName"
+            )
 
         try:
             model = apps.get_model(app_label, model_name)
@@ -82,9 +84,15 @@ class Command(BaseCommand):
         if "controller" in components:
             self.generate_controller(model, output_dir, prefix, force)
 
-        self.stdout.write(self.style.SUCCESS(f"Successfully generated CRUD for {model_name} in {output_dir}"))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Successfully generated CRUD for {model_name} in {output_dir}"
+            )
+        )
 
-    def generate_schema(self, model: models.Model, output_dir: Path, force: bool) -> None:
+    def generate_schema(
+        self, model: models.Model, output_dir: Path, force: bool
+    ) -> None:
         """Generate Pydantic schemas for the model."""
         model_name = model.__name__
         schema_path = output_dir / "schemas.py"
@@ -116,7 +124,9 @@ class Command(BaseCommand):
             with open(schema_path, "a") as f:
                 f.write("\n\n" + schema_content)
 
-            self.stdout.write(self.style.SUCCESS(f"Appended schema for {model_name} to {schema_path}"))
+            self.stdout.write(
+                self.style.SUCCESS(f"Appended schema for {model_name} to {schema_path}")
+            )
         else:
             # Create new file or overwrite existing
             with open(schema_path, "w") as f:
@@ -129,9 +139,13 @@ class Command(BaseCommand):
                     )
                 f.write(schema_content)
 
-            self.stdout.write(self.style.SUCCESS(f"Created schema for {model_name} in {schema_path}"))
+            self.stdout.write(
+                self.style.SUCCESS(f"Created schema for {model_name} in {schema_path}")
+            )
 
-    def generate_controller(self, model: models.Model, output_dir: Path, prefix: str, force: bool) -> None:
+    def generate_controller(
+        self, model: models.Model, output_dir: Path, prefix: str, force: bool
+    ) -> None:
         """Generate a CRUD controller for the model."""
         model_name = model.__name__
         controller_path = output_dir / "controllers.py"
@@ -140,7 +154,9 @@ class Command(BaseCommand):
         controllers_exist = controller_path.exists()
 
         # Generate controller content
-        controller_content = self._generate_controller_content(model, prefix, controllers_exist)
+        controller_content = self._generate_controller_content(
+            model, prefix, controllers_exist
+        )
 
         # Write or append to controllers.py
         if controllers_exist and not force:
@@ -160,7 +176,11 @@ class Command(BaseCommand):
             with open(controller_path, "a") as f:
                 f.write("\n\n" + controller_content)
 
-            self.stdout.write(self.style.SUCCESS(f"Appended controller for {model_name} to {controller_path}"))
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Appended controller for {model_name} to {controller_path}"
+                )
+            )
         else:
             # Create new file or overwrite existing
             with open(controller_path, "w") as f:
@@ -176,7 +196,11 @@ class Command(BaseCommand):
                     )
                 f.write(controller_content)
 
-            self.stdout.write(self.style.SUCCESS(f"Created controller for {model_name} in {controller_path}"))
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Created controller for {model_name} in {controller_path}"
+                )
+            )
 
     def _get_model_fields(self, model: models.Model) -> list[dict[str, Any]]:
         """Get field information from a Django model."""
@@ -191,7 +215,9 @@ class Command(BaseCommand):
                 "name": field.name,
                 "type": self._get_python_type(field),
                 "required": not field.null and not field.blank,
-                "is_relation": isinstance(field, (ForeignKey, OneToOneField, ManyToManyField)),
+                "is_relation": isinstance(
+                    field, (ForeignKey, OneToOneField, ManyToManyField)
+                ),
                 "relation_type": self._get_relation_type(field),
                 "related_model": self._get_related_model(field),
             }
@@ -204,11 +230,15 @@ class Command(BaseCommand):
         """Convert Django field type to Python/Pydantic type."""
         if isinstance(field, models.CharField) or isinstance(field, models.TextField):
             return "str"
-        elif isinstance(field, models.IntegerField) or isinstance(field, models.AutoField):
+        elif isinstance(field, models.IntegerField) or isinstance(
+            field, models.AutoField
+        ):
             return "int"
         elif isinstance(field, models.BooleanField):
             return "bool"
-        elif isinstance(field, models.FloatField) or isinstance(field, models.DecimalField):
+        elif isinstance(field, models.FloatField) or isinstance(
+            field, models.DecimalField
+        ):
             return "float"
         elif isinstance(field, models.DateField):
             return "date"
@@ -243,7 +273,9 @@ class Command(BaseCommand):
             return field.related_model.__name__
         return None
 
-    def _generate_schema_content(self, model: models.Model, fields: list[dict[str, Any]], schemas_exist: bool) -> str:
+    def _generate_schema_content(
+        self, model: models.Model, fields: list[dict[str, Any]], schemas_exist: bool
+    ) -> str:
         """Generate Pydantic schema classes for a model."""
         model_name = model.__name__
 
@@ -283,9 +315,13 @@ class Command(BaseCommand):
         list_schema += f"    items: List[{model_name}]\n"
         list_schema += "    count: int"
 
-        return base_schema + "\n\n" + create_schema + "\n\n" + update_schema + list_schema
+        return (
+            base_schema + "\n\n" + create_schema + "\n\n" + update_schema + list_schema
+        )
 
-    def _generate_controller_content(self, model: models.Model, prefix: str, controllers_exist: bool) -> str:
+    def _generate_controller_content(
+        self, model: models.Model, prefix: str, controllers_exist: bool
+    ) -> str:
         """Generate a CRUD controller for a model."""
         model_name = model.__name__
 
@@ -306,9 +342,7 @@ class Command(BaseCommand):
 
         # GET one endpoint
         controller += f'    @get("{{id}}", response_model={model_name})\n'
-        controller += (
-            f"    async def get_{model_name.lower()}(self, request: HttpRequest, id: str) -> Dict[str, Any]:\n"
-        )
+        controller += f"    async def get_{model_name.lower()}(self, request: HttpRequest, id: str) -> Dict[str, Any]:\n"
         controller += f'        """Get a specific {model_name} by ID."""\n'
         controller += "        result = await self.retrieve(request, id)\n"
         controller += "        return result\n\n"
@@ -329,9 +363,7 @@ class Command(BaseCommand):
 
         # DELETE endpoint
         controller += '    @delete("{id}", status_code=204)\n'
-        controller += (
-            f"    async def delete_{model_name.lower()}(self, request: HttpRequest, id: str) -> Dict[str, Any]:\n"
-        )
+        controller += f"    async def delete_{model_name.lower()}(self, request: HttpRequest, id: str) -> Dict[str, Any]:\n"
         controller += f'        """Delete a {model_name}."""\n'
         controller += "        await self.delete(request, id)\n"
         controller += "        return {}"

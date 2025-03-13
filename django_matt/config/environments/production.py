@@ -9,7 +9,9 @@ import os
 # Production-specific settings
 settings = {
     "DEBUG": False,
-    "SECRET_KEY": os.environ.get("DJANGO_SECRET_KEY"),  # Must be set in environment variables
+    "SECRET_KEY": os.environ.get(
+        "DJANGO_SECRET_KEY"
+    ),  # Must be set in environment variables
     "ALLOWED_HOSTS": os.environ.get("ALLOWED_HOSTS", "").split(","),
     # Security settings
     "SECURE_HSTS_SECONDS": 31536000,  # 1 year

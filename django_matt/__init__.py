@@ -15,7 +15,11 @@ from django_matt.core.schema import Schema
 
 # Import utility components
 from django_matt.utils.errors import ErrorHandler, ErrorMiddleware, error_handler
-from django_matt.utils.hot_reload import HotReloadMiddleware, start_hot_reloading, stop_hot_reloading
+from django_matt.utils.hot_reload import (
+    HotReloadMiddleware,
+    start_hot_reloading,
+    stop_hot_reloading,
+)
 from django_matt.utils.performance import (
     BenchmarkMiddleware,
     FastJsonResponse,

@@ -16,8 +16,12 @@ class Command(BaseCommand):
         subparsers = parser.add_subparsers(dest="subcommand", help="Subcommand to run")
 
         # init subcommand
-        init_parser = subparsers.add_parser("init", help="Initialize configuration files")
-        init_parser.add_argument("--force", action="store_true", help="Overwrite existing files")
+        init_parser = subparsers.add_parser(
+            "init", help="Initialize configuration files"
+        )
+        init_parser.add_argument(
+            "--force", action="store_true", help="Overwrite existing files"
+        )
         init_parser.add_argument(
             "--env",
             choices=["development", "staging", "production", "all"],
@@ -32,7 +36,9 @@ class Command(BaseCommand):
         )
 
         # generate subcommand
-        generate_parser = subparsers.add_parser("generate", help="Generate a settings.py file")
+        generate_parser = subparsers.add_parser(
+            "generate", help="Generate a settings.py file"
+        )
         generate_parser.add_argument(
             "--env",
             choices=["development", "staging", "production"],
@@ -45,7 +51,9 @@ class Command(BaseCommand):
             default=["database", "cache", "security", "performance"],
             help="Components to include in the settings",
         )
-        generate_parser.add_argument("--output", default="settings.py", help="Output file path")
+        generate_parser.add_argument(
+            "--output", default="settings.py", help="Output file path"
+        )
         generate_parser.add_argument(
             "--db",
             choices=["postgres", "mysql", "sqlite"],
@@ -113,7 +121,9 @@ class Command(BaseCommand):
         if env == "all" or env == "production":
             self.create_env_file(project_dir, "production", force, db=db)
 
-        self.stdout.write(self.style.SUCCESS("Configuration files initialized successfully"))
+        self.stdout.write(
+            self.style.SUCCESS("Configuration files initialized successfully")
+        )
 
     def handle_generate(self, options):
         """Generate a settings.py file."""
@@ -128,7 +138,9 @@ class Command(BaseCommand):
         # Create the settings.py file
         self.create_settings_file(project_dir, env, True, output, components, db=db)
 
-        self.stdout.write(self.style.SUCCESS(f"Settings file generated successfully at {output}"))
+        self.stdout.write(
+            self.style.SUCCESS(f"Settings file generated successfully at {output}")
+        )
 
     def handle_env(self, options):
         """Generate a .env file."""
@@ -142,7 +154,9 @@ class Command(BaseCommand):
         # Create the .env file
         self.create_env_file(project_dir, env, True, output, db=db)
 
-        self.stdout.write(self.style.SUCCESS(f".env file generated successfully at {output}"))
+        self.stdout.write(
+            self.style.SUCCESS(f".env file generated successfully at {output}")
+        )
 
     def get_project_dir(self) -> Path:
         """Get the project directory."""
@@ -158,7 +172,9 @@ class Command(BaseCommand):
     def create_file(self, path: Path, content: str, force: bool = False) -> None:
         """Create a file with the given content."""
         if path.exists() and not force:
-            self.stdout.write(self.style.WARNING(f"File {path} already exists, skipping"))
+            self.stdout.write(
+                self.style.WARNING(f"File {path} already exists, skipping")
+            )
             return
 
         with open(path, "w") as f:
@@ -184,7 +200,9 @@ class Command(BaseCommand):
 
         # Create the settings content
         if env == "all":
-            content = self.get_settings_content(project_name, "development", components, db)
+            content = self.get_settings_content(
+                project_name, "development", components, db
+            )
         else:
             content = self.get_settings_content(project_name, env, components, db)
 
@@ -222,7 +240,9 @@ class Command(BaseCommand):
         if env == "development" and not (project_dir / ".env.example").exists():
             self.create_file(project_dir / ".env.example", content, force)
 
-    def get_settings_content(self, project_name: str, env: str, components: list[str], db: str = "postgres") -> str:
+    def get_settings_content(
+        self, project_name: str, env: str, components: list[str], db: str = "postgres"
+    ) -> str:
         """Get the content for the settings.py file."""
         return f'''"""
 {project_name.replace("_", " ").title()} settings.
@@ -381,7 +401,9 @@ if DEBUG:
             },
         }
 
-        db_config = db_settings.get(db, db_settings["postgres"]).get(env, db_settings["postgres"]["development"])
+        db_config = db_settings.get(db, db_settings["postgres"]).get(
+            env, db_settings["postgres"]["development"]
+        )
 
         if env == "development":
             return f"""# {project_name.replace("_", " ").title()} development environment variables

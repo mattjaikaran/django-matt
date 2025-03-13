@@ -135,7 +135,10 @@ async def msgpack_response(request):
     """Return a large dataset using MessagePackResponse."""
     if not HAS_MSGPACK:
         return JsonResponse(
-            {"error": 'MessagePack is not installed. Install it with "pip install msgpack".'}, status=500
+            {
+                "error": 'MessagePack is not installed. Install it with "pip install msgpack".'
+            },
+            status=500,
         )
 
     return MessagePackResponse(
@@ -209,7 +212,9 @@ async def cached_query(request):
         time.sleep(0.5)
 
         # Filter the dataset
-        result = [item for item in LARGE_DATASET if item["metadata"]["status"] == status]
+        result = [
+            item for item in LARGE_DATASET if item["metadata"]["status"] == status
+        ]
 
         # Cache the result for 60 seconds
         cache.set(cache_key, result, 60)
@@ -262,17 +267,21 @@ async def benchmark_formats(request):
                 "fast_json": {
                     "time_ms": fast_json_time,
                     "size_bytes": len(fast_json),
-                    "library": "orjson" if HAS_ORJSON else ("ujson" if HAS_UJSON else "json"),
+                    "library": (
+                        "orjson" if HAS_ORJSON else ("ujson" if HAS_UJSON else "json")
+                    ),
                 },
-                "msgpack": {
-                    "time_ms": msgpack_time,
-                    "size_bytes": msgpack_size,
-                    "available": HAS_MSGPACK,
-                }
-                if HAS_MSGPACK
-                else {
-                    "available": False,
-                },
+                "msgpack": (
+                    {
+                        "time_ms": msgpack_time,
+                        "size_bytes": msgpack_size,
+                        "available": HAS_MSGPACK,
+                    }
+                    if HAS_MSGPACK
+                    else {
+                        "available": False,
+                    }
+                ),
             }
         }
     )
@@ -510,7 +519,11 @@ def index_view(request):
         </script>
     </body>
     </html>
-    """ % ("Yes" if HAS_ORJSON else "No", "Yes" if HAS_UJSON else "No", "Yes" if HAS_MSGPACK else "No")
+    """ % (
+        "Yes" if HAS_ORJSON else "No",
+        "Yes" if HAS_UJSON else "No",
+        "Yes" if HAS_MSGPACK else "No",
+    )
 
     return HttpResponse(html)
 

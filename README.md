@@ -1,4 +1,4 @@
-# Django Matt Framework
+# Django Matt
 
 A lightweight, high-performance Django extension for building modern APIs with minimal boilerplate.
 
@@ -7,9 +7,44 @@ A lightweight, high-performance Django extension for building modern APIs with m
 
 New Django API framework started Feb 2025.
 
-I want to build my own custom API framework for Django because I feel like it.
+I want to build my own custom tool for Django because I feel like it.
 
-v1 is just for me. not meant for mass adoption.
+## Quick Start
+
+To create a new Django Matt API project, use the `startapi` command:
+
+```bash
+# Install django-matt
+pip install django-matt
+
+# Create a new project
+django-admin startapi myproject
+
+# Change to the project directory
+cd myproject
+
+# Run migrations
+python manage.py migrate
+
+# Start the development server with hot reloading
+python manage.py runserver_hot
+```
+
+The `startapi` command accepts the following options:
+
+- `--directory`: Directory to create the project in (default: current directory)
+- `--api-app`: Name of the API app to create (default: api)
+- `--db`: Default database to use (choices: postgres, mysql, sqlite)
+- `--with-example`: Include example models, schemas, and controllers
+- `--force`: Overwrite existing files
+
+## Features
+
+- **Hot Reloading**: Automatically reload your API when code changes
+- **CRUD Generation**: Generate CRUD operations for your models with a single command
+- **Configuration Management**: Easily manage different environments (development, staging, production)
+- **API Documentation**: Automatic OpenAPI documentation
+- **Performance Optimizations**: Built-in performance enhancements
 
 Reasons: 
 - I want to learn something new and do a project I've never done before. 
@@ -52,7 +87,6 @@ Reasons:
     - Multi tenant
 - LLM/AI IDE integration
     - Cursor context files
-    - I want others using this framework to have the best experience with LLM/AI IDE integration. 
 - tRPC like experience. 
     - I want to sync Pydantic models on the back end and TypeScript interfaces on the front end for end to end type safety.
     - I want to generate the TypeScript interfaces automatically from the Pydantic models.

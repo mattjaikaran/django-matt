@@ -73,7 +73,11 @@ def create_schema_from_model(
         fields[field.name] = (
             python_type,
             Field(
-                title=field.verbose_name.title() if field.verbose_name else field.name.replace("_", " ").title(),
+                title=(
+                    field.verbose_name.title()
+                    if field.verbose_name
+                    else field.name.replace("_", " ").title()
+                ),
                 description=field.help_text if field.help_text else None,
                 default=field.default if field.default != models.NOT_PROVIDED else ...,
             ),
@@ -207,7 +211,9 @@ class Schema(BaseModel):
         arbitrary_types_allowed = True
 
     @classmethod
-    def from_django_model(cls, model_class: type[models.Model], **kwargs) -> type["Schema"]:
+    def from_django_model(
+        cls, model_class: type[models.Model], **kwargs
+    ) -> type["Schema"]:
         """Create a schema from a Django model."""
         return create_schema_from_model(model_class, base_class=cls, **kwargs)
 

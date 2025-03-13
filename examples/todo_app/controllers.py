@@ -34,13 +34,17 @@ class TodoController(CRUDController):
         return result
 
     @post("", response_model=TodoSchema, status_code=201)
-    async def create_todo(self, request: HttpRequest, data: TodoCreate) -> dict[str, Any]:
+    async def create_todo(
+        self, request: HttpRequest, data: TodoCreate
+    ) -> dict[str, Any]:
         """Create a new todo item."""
         result = await self.create(request, data)
         return result
 
     @put("{id}", response_model=TodoSchema)
-    async def update_todo(self, request: HttpRequest, id: str, data: TodoUpdate) -> dict[str, Any]:
+    async def update_todo(
+        self, request: HttpRequest, id: str, data: TodoUpdate
+    ) -> dict[str, Any]:
         """Update an existing todo item."""
         todo_id = uuid.UUID(id)
         result = await self.update(request, todo_id, data)

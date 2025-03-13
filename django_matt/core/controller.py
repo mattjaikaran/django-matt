@@ -63,7 +63,9 @@ class Controller:
                         continue
 
                     # Check if the parameter is a Pydantic model
-                    if inspect.isclass(param_type) and issubclass(param_type, BaseModel):
+                    if inspect.isclass(param_type) and issubclass(
+                        param_type, BaseModel
+                    ):
                         try:
                             # Try to create the model from body data
                             model_instance = param_type(**body_data)
@@ -91,7 +93,9 @@ class Controller:
         This wraps all route methods with try/except blocks.
         """
         # Create an error handler instance
-        error_handler_instance = ErrorHandler(debug=True)  # TODO: Get debug from settings
+        error_handler_instance = ErrorHandler(
+            debug=True
+        )  # TODO: Get debug from settings
 
         for method_name in dir(self):
             if method_name.startswith("_"):
@@ -132,7 +136,9 @@ class APIController(Controller):
     Provides additional functionality for API-specific concerns.
     """
 
-    def handle_exception(self, exc: Exception, request: HttpRequest = None) -> JsonResponse:
+    def handle_exception(
+        self, exc: Exception, request: HttpRequest = None
+    ) -> JsonResponse:
         """
         Handle exceptions raised during request processing.
         Override this method to customize exception handling.
@@ -145,7 +151,9 @@ class APIController(Controller):
                 A JsonResponse with error details
         """
         # Create an error handler instance
-        error_handler_instance = ErrorHandler(debug=True)  # TODO: Get debug from settings
+        error_handler_instance = ErrorHandler(
+            debug=True
+        )  # TODO: Get debug from settings
 
         # Handle specific API exceptions
         if isinstance(exc, APIError):
@@ -170,7 +178,9 @@ class APIController(Controller):
 
         # Handle model DoesNotExist exceptions
         if hasattr(exc, "__class__") and exc.__class__.__name__ == "DoesNotExist":
-            model_name = exc.__class__.__module__.split(".")[-2]  # Get model name from module path
+            model_name = exc.__class__.__module__.split(".")[
+                -2
+            ]  # Get model name from module path
             return JsonResponse(
                 {
                     "detail": f"{model_name} not found",
@@ -225,7 +235,9 @@ class CRUDController(APIController):
             return self._model_to_dict(instance)
         except self.model.DoesNotExist:
             raise NotFoundAPIError(
-                message=f"{self.model.__name__} not found", resource_type=self.model.__name__, resource_id=str(id)
+                message=f"{self.model.__name__} not found",
+                resource_type=self.model.__name__,
+                resource_id=str(id),
             )
 
     async def create(self, request: HttpRequest, data: BaseModel) -> dict[str, Any]:
@@ -241,7 +253,9 @@ class CRUDController(APIController):
 
         return self._model_to_dict(instance)
 
-    async def update(self, request: HttpRequest, id: str, data: BaseModel) -> dict[str, Any]:
+    async def update(
+        self, request: HttpRequest, id: str, data: BaseModel
+    ) -> dict[str, Any]:
         """Update an existing instance of the model."""
         if not self.model:
             raise NotImplementedError("Model not specified")
@@ -261,7 +275,9 @@ class CRUDController(APIController):
             return self._model_to_dict(instance)
         except self.model.DoesNotExist:
             raise NotFoundAPIError(
-                message=f"{self.model.__name__} not found", resource_type=self.model.__name__, resource_id=str(id)
+                message=f"{self.model.__name__} not found",
+                resource_type=self.model.__name__,
+                resource_id=str(id),
             )
 
     async def delete(self, request: HttpRequest, id: str) -> dict[str, Any]:
@@ -275,7 +291,9 @@ class CRUDController(APIController):
             return {}
         except self.model.DoesNotExist:
             raise NotFoundAPIError(
-                message=f"{self.model.__name__} not found", resource_type=self.model.__name__, resource_id=str(id)
+                message=f"{self.model.__name__} not found",
+                resource_type=self.model.__name__,
+                resource_id=str(id),
             )
 
     def _model_to_dict(self, instance) -> dict[str, Any]:

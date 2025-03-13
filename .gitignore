@@ -1,0 +1,16 @@
+# Dependencies
+/.venv
+/node_modules
+/dist
+/build
+/coverage
+/logs
+
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.test.local

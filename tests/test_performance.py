@@ -117,7 +117,9 @@ class TestStreamingJsonResponse(TestCase):
             for i in range(5):
                 yield {"id": i, "name": f"Item {i}"}
 
-        response = StreamingJsonResponse(streaming_content=stream_json_list(items_generator()))
+        response = StreamingJsonResponse(
+            streaming_content=stream_json_list(items_generator())
+        )
 
         # Check content type
         self.assertEqual(response["Content-Type"], "application/json")
@@ -256,7 +258,9 @@ class TestBenchmarkMiddleware(TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        self.middleware = BenchmarkMiddleware(get_response=lambda request: JsonResponse({"data": "test"}))
+        self.middleware = BenchmarkMiddleware(
+            get_response=lambda request: JsonResponse({"data": "test"})
+        )
 
     def test_middleware_adds_timing_header(self):
         """Test that the middleware adds a timing header to the response."""

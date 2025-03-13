@@ -50,7 +50,9 @@ class APIExceptionMiddleware:
 
     def __init__(self, get_response):
         self.get_response = get_response
-        self.error_handler = ErrorHandler(debug=os.environ.get("DJANGO_DEBUG", "False").lower() == "true")
+        self.error_handler = ErrorHandler(
+            debug=os.environ.get("DJANGO_DEBUG", "False").lower() == "true"
+        )
 
     def __call__(self, request):
         return self.get_response(request)
@@ -68,7 +70,9 @@ class APIExceptionMiddleware:
         include_snippet = self.error_handler.debug
 
         # Return a JSON response with error details
-        return error_detail.to_response(include_traceback=include_traceback, include_snippet=include_snippet)
+        return error_detail.to_response(
+            include_traceback=include_traceback, include_snippet=include_snippet
+        )
 
 
 class JSONResponseMiddleware:

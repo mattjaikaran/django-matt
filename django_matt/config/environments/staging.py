@@ -9,7 +9,9 @@ import os
 # Staging-specific settings
 settings = {
     "DEBUG": False,
-    "SECRET_KEY": os.environ.get("DJANGO_SECRET_KEY"),  # Must be set in environment variables
+    "SECRET_KEY": os.environ.get(
+        "DJANGO_SECRET_KEY"
+    ),  # Must be set in environment variables
     "ALLOWED_HOSTS": os.environ.get("ALLOWED_HOSTS", "").split(","),
     # Security settings (less strict than production)
     "SECURE_SSL_REDIRECT": False,

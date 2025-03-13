@@ -17,7 +17,12 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.urls import path
 
 from django_matt.core.controller import APIController
-from django_matt.core.errors import APIError, NotFoundAPIError, PermissionAPIError, ValidationAPIError
+from django_matt.core.errors import (
+    APIError,
+    NotFoundAPIError,
+    PermissionAPIError,
+    ValidationAPIError,
+)
 from django_matt.core.router import Router, get
 
 # Configure Django settings
@@ -131,7 +136,9 @@ class CustomErrorHandlingController(APIController):
 
     prefix = "custom-handling/"
 
-    def handle_exception(self, exc: Exception, request: HttpRequest = None) -> JsonResponse:
+    def handle_exception(
+        self, exc: Exception, request: HttpRequest = None
+    ) -> JsonResponse:
         """Custom exception handler."""
         # Handle ZeroDivisionError specially
         if isinstance(exc, ZeroDivisionError):
@@ -222,11 +229,26 @@ def index(request):
         {"url": "/api/errors/type-error", "description": "Type error"},
         {"url": "/api/errors/index-error", "description": "Index error"},
         {"url": "/api/errors/value-error", "description": "Value error"},
-        {"url": "/api/custom-handling/zero-division", "description": "Custom handling of ZeroDivisionError"},
-        {"url": "/api/custom-handling/key-error", "description": "Custom handling of KeyError"},
-        {"url": "/api/custom-handling/other-error", "description": "Fallback to default handling"},
-        {"url": "/api/disabled-handling/manual-handling", "description": "Manual error handling"},
-        {"url": "/api/disabled-handling/no-handling", "description": "No error handling (caught by middleware)"},
+        {
+            "url": "/api/custom-handling/zero-division",
+            "description": "Custom handling of ZeroDivisionError",
+        },
+        {
+            "url": "/api/custom-handling/key-error",
+            "description": "Custom handling of KeyError",
+        },
+        {
+            "url": "/api/custom-handling/other-error",
+            "description": "Fallback to default handling",
+        },
+        {
+            "url": "/api/disabled-handling/manual-handling",
+            "description": "Manual error handling",
+        },
+        {
+            "url": "/api/disabled-handling/no-handling",
+            "description": "No error handling (caught by middleware)",
+        },
     ]
 
     html = """

@@ -29,25 +29,33 @@ except ImportError:
         """Placeholder for pgvector's VectorField."""
 
         def __init__(self, *args, **kwargs):
-            raise ImportError("pgvector is not installed. Install it with: pip install django-pgvector")
+            raise ImportError(
+                "pgvector is not installed. Install it with: pip install django-pgvector"
+            )
 
     class L2Distance:
         """Placeholder for pgvector's L2Distance."""
 
         def __init__(self, *args, **kwargs):
-            raise ImportError("pgvector is not installed. Install it with: pip install django-pgvector")
+            raise ImportError(
+                "pgvector is not installed. Install it with: pip install django-pgvector"
+            )
 
     class CosineDistance:
         """Placeholder for pgvector's CosineDistance."""
 
         def __init__(self, *args, **kwargs):
-            raise ImportError("pgvector is not installed. Install it with: pip install django-pgvector")
+            raise ImportError(
+                "pgvector is not installed. Install it with: pip install django-pgvector"
+            )
 
     class MaxInnerProduct:
         """Placeholder for pgvector's MaxInnerProduct."""
 
         def __init__(self, *args, **kwargs):
-            raise ImportError("pgvector is not installed. Install it with: pip install django-pgvector")
+            raise ImportError(
+                "pgvector is not installed. Install it with: pip install django-pgvector"
+            )
 
 
 def setup_pgvector():
@@ -95,21 +103,27 @@ def create_vector_index(model, field_name, index_type="ivfflat", lists=100):
 
     with connection.cursor() as cursor:
         if index_type == "ivfflat":
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 CREATE INDEX IF NOT EXISTS {table_name}_{field_name}_ivfflat_idx
                 ON {table_name} USING ivfflat ({field_name} vector_l2_ops)
                 WITH (lists = {lists});
-            """)
+            """
+            )
         elif index_type == "hnsw":
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 CREATE INDEX IF NOT EXISTS {table_name}_{field_name}_hnsw_idx
                 ON {table_name} USING hnsw ({field_name} vector_l2_ops);
-            """)
+            """
+            )
         else:
-            cursor.execute(f"""
+            cursor.execute(
+                f"""
                 CREATE INDEX IF NOT EXISTS {table_name}_{field_name}_idx
                 ON {table_name} USING btree ({field_name});
-            """)
+            """
+            )
 
 
 class VectorManager:
@@ -120,7 +134,9 @@ class VectorManager:
     """
 
     @staticmethod
-    def similarity_search(queryset, field_name, query_vector, distance_func="cosine", limit=10):
+    def similarity_search(
+        queryset, field_name, query_vector, distance_func="cosine", limit=10
+    ):
         """
         Perform a similarity search on a queryset.
 
@@ -135,7 +151,9 @@ class VectorManager:
             A queryset ordered by similarity
         """
         if not HAS_PGVECTOR:
-            raise ImportError("pgvector is not installed. Install it with: pip install django-pgvector")
+            raise ImportError(
+                "pgvector is not installed. Install it with: pip install django-pgvector"
+            )
 
         if distance_func == "cosine":
             distance = CosineDistance(field_name, query_vector)

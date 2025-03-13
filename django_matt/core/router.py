@@ -270,7 +270,9 @@ class APIRouter:
                                 body_data = json.loads(request.body)
                                 kwargs["body"] = body_data
                             except json.JSONDecodeError:
-                                return JsonResponse({"detail": "Invalid JSON"}, status=400)
+                                return JsonResponse(
+                                    {"detail": "Invalid JSON"}, status=400
+                                )
 
                         # Call the method
                         if inspect.iscoroutinefunction(method):

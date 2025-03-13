@@ -28,10 +28,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 example_module_path = os.path.join(os.path.dirname(__file__), "example_module.py")
 if not os.path.exists(example_module_path):
     with open(example_module_path, "w") as f:
-        f.write("""
+        f.write(
+            """
 def get_message():
     return "This is the original message. Edit this file to see hot reloading in action!"
-""")
+"""
+        )
 
 # Configure Django settings
 if not settings.configured:

@@ -46,7 +46,9 @@ class ErrorDetail:
         self.code_snippet = code_snippet
         self.timestamp = datetime.datetime.now().isoformat()
 
-    def to_dict(self, include_traceback: bool = False, include_snippet: bool = False) -> dict[str, Any]:
+    def to_dict(
+        self, include_traceback: bool = False, include_snippet: bool = False
+    ) -> dict[str, Any]:
         """Convert error details to a dictionary."""
         result = {
             "message": self.message,
@@ -73,14 +75,26 @@ class ErrorDetail:
 
         return result
 
-    def to_json(self, include_traceback: bool = False, include_snippet: bool = False) -> str:
+    def to_json(
+        self, include_traceback: bool = False, include_snippet: bool = False
+    ) -> str:
         """Convert error details to JSON."""
-        return json.dumps(self.to_dict(include_traceback=include_traceback, include_snippet=include_snippet), indent=2)
+        return json.dumps(
+            self.to_dict(
+                include_traceback=include_traceback, include_snippet=include_snippet
+            ),
+            indent=2,
+        )
 
-    def to_response(self, include_traceback: bool = False, include_snippet: bool = False) -> JsonResponse:
+    def to_response(
+        self, include_traceback: bool = False, include_snippet: bool = False
+    ) -> JsonResponse:
         """Convert error details to a JsonResponse."""
         return JsonResponse(
-            self.to_dict(include_traceback=include_traceback, include_snippet=include_snippet), status=self.status_code
+            self.to_dict(
+                include_traceback=include_traceback, include_snippet=include_snippet
+            ),
+            status=self.status_code,
         )
 
 
@@ -95,7 +109,9 @@ class ErrorHandler:
     def __init__(self, debug: bool = False):
         self.debug = debug
 
-    def capture_exception(self, exc: Exception, request: HttpRequest | None = None) -> ErrorDetail:
+    def capture_exception(
+        self, exc: Exception, request: HttpRequest | None = None
+    ) -> ErrorDetail:
         """
         Capture an exception and create detailed error information.
 
@@ -130,7 +146,9 @@ class ErrorHandler:
         # Format traceback
         traceback_str = None
         if self.debug:
-            traceback_str = "".join(traceback.format_exception(type(exc), exc, sys.exc_info()[2]))
+            traceback_str = "".join(
+                traceback.format_exception(type(exc), exc, sys.exc_info()[2])
+            )
 
         # Build context
         context = {}
@@ -167,7 +185,8 @@ class ErrorHandler:
 
         # Log the error
         logger.error(
-            f"Error: {error_type} - {message}", extra={"error_detail": error_detail.to_dict(include_traceback=True)}
+            f"Error: {error_type} - {message}",
+            extra={"error_detail": error_detail.to_dict(include_traceback=True)},
         )
 
         return error_detail
@@ -184,7 +203,11 @@ class ErrorHandler:
             return 403  # Forbidden
         elif isinstance(exc, FileNotFoundError):
             return 404  # Not Found
-        elif isinstance(exc, json.JSONDecodeError) or isinstance(exc, KeyError) or isinstance(exc, AttributeError):
+        elif (
+            isinstance(exc, json.JSONDecodeError)
+            or isinstance(exc, KeyError)
+            or isinstance(exc, AttributeError)
+        ):
             return 400  # Bad Request
         elif isinstance(exc, NotImplementedError):
             return 501  # Not Implemented
@@ -200,7 +223,9 @@ class ErrorHandler:
         # Generate a code based on the exception type
         return exc.__class__.__name__.lower()
 
-    def _get_code_snippet(self, path: str, line_number: int, context_lines: int = 5) -> list[str]:
+    def _get_code_snippet(
+        self, path: str, line_number: int, context_lines: int = 5
+    ) -> list[str]:
         """Get a code snippet around the error location."""
         try:
             if not os.path.exists(path):
@@ -212,7 +237,9 @@ class ErrorHandler:
             start_line = max(0, line_number - context_lines - 1)
             end_line = min(len(lines), line_number + context_lines)
 
-            return [f"{i + 1}: {lines[i].rstrip()}" for i in range(start_line, end_line)]
+            return [
+                f"{i + 1}: {lines[i].rstrip()}" for i in range(start_line, end_line)
+            ]
         except Exception:
             return None
 
@@ -280,7 +307,8 @@ class ValidationAPIError(APIError):
             status_code=status_code,
             code=code,
             context=context,
-            suggestion=suggestion or "Check the request data against the schema requirements.",
+            suggestion=suggestion
+            or "Check the request data against the schema requirements.",
         )
 
 
@@ -309,7 +337,8 @@ class NotFoundAPIError(APIError):
             status_code=status_code,
             code=code,
             context=context,
-            suggestion=suggestion or "Check that the resource exists and that you have the correct ID.",
+            suggestion=suggestion
+            or "Check that the resource exists and that you have the correct ID.",
         )
 
 
@@ -335,7 +364,8 @@ class PermissionAPIError(APIError):
             status_code=status_code,
             code=code,
             context=context,
-            suggestion=suggestion or "Ensure the user has the necessary permissions for this action.",
+            suggestion=suggestion
+            or "Ensure the user has the necessary permissions for this action.",
         )
 
 
@@ -348,7 +378,9 @@ class ErrorMiddleware:
 
     def __init__(self, get_response):
         self.get_response = get_response
-        self.error_handler = ErrorHandler(debug=os.environ.get("DJANGO_DEBUG", "False").lower() == "true")
+        self.error_handler = ErrorHandler(
+            debug=os.environ.get("DJANGO_DEBUG", "False").lower() == "true"
+        )
 
     def __call__(self, request):
         return self.get_response(request)
@@ -362,7 +394,9 @@ class ErrorMiddleware:
         include_snippet = self.error_handler.debug
 
         # Return a JSON response with error details
-        return error_detail.to_response(include_traceback=include_traceback, include_snippet=include_snippet)
+        return error_detail.to_response(
+            include_traceback=include_traceback, include_snippet=include_snippet
+        )
 
 
 # Helper functions for error handling
@@ -380,7 +414,9 @@ def handle_exceptions(func):
             else:
                 return func(request, *args, **kwargs)
         except Exception as exc:
-            error_handler = ErrorHandler(debug=os.environ.get("DJANGO_DEBUG", "False").lower() == "true")
+            error_handler = ErrorHandler(
+                debug=os.environ.get("DJANGO_DEBUG", "False").lower() == "true"
+            )
             error_detail = error_handler.capture_exception(exc, request)
 
             # Determine if we should include debug information
@@ -388,6 +424,8 @@ def handle_exceptions(func):
             include_snippet = error_handler.debug
 
             # Return a JSON response with error details
-            return error_detail.to_response(include_traceback=include_traceback, include_snippet=include_snippet)
+            return error_detail.to_response(
+                include_traceback=include_traceback, include_snippet=include_snippet
+            )
 
     return wrapper

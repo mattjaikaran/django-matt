@@ -43,7 +43,13 @@ class HotReloadEventHandler(FileSystemEventHandler):
             "env",
             ".env",
         }
-        self.ignored_files = ignored_files or {"*.pyc", "*.pyo", "*.pyd", "*.so", "*.dll"}
+        self.ignored_files = ignored_files or {
+            "*.pyc",
+            "*.pyo",
+            "*.pyd",
+            "*.so",
+            "*.dll",
+        }
         self.debounce_seconds = debounce_seconds
         self.last_event_time = 0
         self.pending_reload = False
@@ -84,7 +90,9 @@ class HotReloadEventHandler(FileSystemEventHandler):
             self.reload_timer.cancel()
 
         # Schedule a reload after the debounce period
-        self.reload_timer = threading.Timer(self.debounce_seconds, self._trigger_reload, args=[event])
+        self.reload_timer = threading.Timer(
+            self.debounce_seconds, self._trigger_reload, args=[event]
+        )
         self.reload_timer.daemon = True
         self.reload_timer.start()
 
@@ -146,7 +154,9 @@ class WebSocketServer:
             while self.running:
                 try:
                     client_socket, addr = self.server_socket.accept()
-                    client_thread = threading.Thread(target=self._handle_client, args=(client_socket, addr))
+                    client_thread = threading.Thread(
+                        target=self._handle_client, args=(client_socket, addr)
+                    )
                     client_thread.daemon = True
                     client_thread.start()
                 except TimeoutError:
@@ -234,7 +244,13 @@ class HotReloader:
             "env",
             ".env",
         }
-        self.ignored_files = ignored_files or {"*.pyc", "*.pyo", "*.pyd", "*.so", "*.dll"}
+        self.ignored_files = ignored_files or {
+            "*.pyc",
+            "*.pyo",
+            "*.pyd",
+            "*.so",
+            "*.dll",
+        }
         self.reload_delay = reload_delay
         self.use_websocket = use_websocket
         self.websocket_host = websocket_host
@@ -259,7 +275,9 @@ class HotReloader:
 
         # Start the WebSocket server if enabled
         if self.use_websocket:
-            self.websocket_server = WebSocketServer(host=self.websocket_host, port=self.websocket_port)
+            self.websocket_server = WebSocketServer(
+                host=self.websocket_host, port=self.websocket_port
+            )
             self.websocket_server.start()
 
         # Start the file system observer
@@ -322,7 +340,9 @@ class HotReloader:
 
         logger.info(f"Starting server: {' '.join(command)}")
 
-        self.server_process = subprocess.Popen(command, stdout=sys.stdout, stderr=sys.stderr, cwd=self.project_dir)
+        self.server_process = subprocess.Popen(
+            command, stdout=sys.stdout, stderr=sys.stderr, cwd=self.project_dir
+        )
 
     def _handle_reload(self, file_path: str):
         """Handle a file change event."""
@@ -457,7 +477,9 @@ def run_hot_reload(project_dir=None, server_command=None):
 
     # Configure logging
     logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", handlers=[logging.StreamHandler()]
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[logging.StreamHandler()],
     )
 
     # Start the hot reloader

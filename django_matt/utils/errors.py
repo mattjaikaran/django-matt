@@ -68,7 +68,9 @@ class ErrorHandler:
     """
 
     @staticmethod
-    def get_code_snippet(file_path: str, line_number: int, context_lines: int = 3) -> dict[int, str]:
+    def get_code_snippet(
+        file_path: str, line_number: int, context_lines: int = 3
+    ) -> dict[int, str]:
         """Get a code snippet around the error location."""
         if not os.path.exists(file_path):
             return {}
@@ -143,7 +145,9 @@ class ErrorHandler:
         exc_type, exc_value, exc_traceback = sys.exc_info()
 
         # Get the traceback as a string
-        traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+        traceback_str = "".join(
+            traceback.format_exception(exc_type, exc_value, exc_traceback)
+        )
 
         # Get the error type
         error_type = exc_type.__name__ if exc_type else "Unknown"
@@ -188,7 +192,9 @@ class ErrorHandler:
         )
 
     @classmethod
-    def format_response(cls, exception: Exception, include_traceback: bool = None) -> dict[str, Any]:
+    def format_response(
+        cls, exception: Exception, include_traceback: bool = None
+    ) -> dict[str, Any]:
         """Format an exception into a detailed error response."""
         # Determine whether to include traceback based on settings
         if include_traceback is None:
@@ -199,7 +205,10 @@ class ErrorHandler:
 
     @classmethod
     def json_response(
-        cls, exception: Exception, status_code: int = 500, include_traceback: bool = None
+        cls,
+        exception: Exception,
+        status_code: int = 500,
+        include_traceback: bool = None,
     ) -> JsonResponse:
         """Create a JSON response with detailed error information."""
         response_data = cls.format_response(exception, include_traceback)
@@ -270,9 +279,13 @@ class ValidationErrorFormatter:
                     f"The field '{formatted_error['path']}' is required but was not provided."
                 )
             elif error_type == "type_error":
-                formatted_error["friendly_message"] = f"The field '{formatted_error['path']}' has an incorrect type."
+                formatted_error["friendly_message"] = (
+                    f"The field '{formatted_error['path']}' has an incorrect type."
+                )
             elif error_type == "value_error":
-                formatted_error["friendly_message"] = f"The field '{formatted_error['path']}' has an invalid value."
+                formatted_error["friendly_message"] = (
+                    f"The field '{formatted_error['path']}' has an invalid value."
+                )
 
             formatted_errors.append(formatted_error)
 

@@ -122,7 +122,9 @@ async def simulated_query(request):
 
     # Filter the dataset based on a query parameter
     status = request.GET.get("status", "active")
-    filtered_data = [item for item in LARGE_DATASET if item["metadata"]["status"] == status]
+    filtered_data = [
+        item for item in LARGE_DATASET if item["metadata"]["status"] == status
+    ]
 
     return FastJsonResponse(
         {
@@ -313,7 +315,10 @@ def index_view(request):
         </script>
     </body>
     </html>
-    """ % ("Yes" if HAS_ORJSON else "No", "Yes" if HAS_UJSON else "No")
+    """ % (
+        "Yes" if HAS_ORJSON else "No",
+        "Yes" if HAS_UJSON else "No",
+    )
 
     return HttpResponse(html)
 

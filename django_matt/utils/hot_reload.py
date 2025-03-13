@@ -33,7 +33,10 @@ class FileChangeHandler(FileSystemEventHandler):
             # Debounce to prevent multiple reloads for the same file
             current_time = time.time()
             if event.src_path in self.last_reload_time:
-                if current_time - self.last_reload_time[event.src_path] < self.debounce_time:
+                if (
+                    current_time - self.last_reload_time[event.src_path]
+                    < self.debounce_time
+                ):
                     return
 
             self.last_reload_time[event.src_path] = current_time
@@ -98,7 +101,10 @@ class ModuleReloader:
                     with open(module.__file__) as f:
                         content = f.read()
                         # Simple check for imports (could be improved)
-                        if f"import {module_name}" in content or f"from {module_name}" in content:
+                        if (
+                            f"import {module_name}" in content
+                            or f"from {module_name}" in content
+                        ):
                             dependent_modules.append(name)
             except (OSError, UnicodeDecodeError):
                 continue
@@ -121,10 +127,14 @@ class ModuleReloader:
                 for dep_module_name in dependent_modules:
                     if dep_module_name in sys.modules:
                         try:
-                            logger.info(f"Reloading dependent module: {dep_module_name}")
+                            logger.info(
+                                f"Reloading dependent module: {dep_module_name}"
+                            )
                             importlib.reload(sys.modules[dep_module_name])
                         except Exception as e:
-                            logger.error(f"Error reloading dependent module {dep_module_name}: {str(e)}")
+                            logger.error(
+                                f"Error reloading dependent module {dep_module_name}: {str(e)}"
+                            )
 
                 # Call reload hooks
                 for hook in self.reload_hooks:
@@ -206,7 +216,11 @@ class HotReloadMiddleware:
         response = self.get_response(request)
 
         # Only modify HTML responses
-        if hasattr(response, "content_type") and response.content_type and "text/html" in response.content_type:
+        if (
+            hasattr(response, "content_type")
+            and response.content_type
+            and "text/html" in response.content_type
+        ):
             # Add the hot reload script to the response
             script = f"""
             <script>
@@ -359,7 +373,9 @@ class HotReloader:
 hot_reloader = None
 
 
-def start_hot_reloading(watch_paths: list[str] | None = None, websocket_port: int = 8001):
+def start_hot_reloading(
+    watch_paths: list[str] | None = None, websocket_port: int = 8001
+):
     """Start hot reloading for the Django application."""
     global hot_reloader
 

@@ -118,7 +118,9 @@ class MessagePackRenderer:
             MessagePack formatted bytes
         """
         if not HAS_MSGPACK:
-            raise ImportError("MessagePack is not installed. Install it with 'pip install msgpack'.")
+            raise ImportError(
+                "MessagePack is not installed. Install it with 'pip install msgpack'."
+            )
 
         return msgpack.packb(obj, **kwargs)
 
@@ -135,7 +137,9 @@ class MessagePackRenderer:
             A Python object
         """
         if not HAS_MSGPACK:
-            raise ImportError("MessagePack is not installed. Install it with 'pip install msgpack'.")
+            raise ImportError(
+                "MessagePack is not installed. Install it with 'pip install msgpack'."
+            )
 
         return msgpack.unpackb(s, **kwargs)
 
@@ -190,7 +194,9 @@ class MessagePackResponse(HttpResponse):
             **kwargs: Additional keyword arguments to pass to the HttpResponse
         """
         if not HAS_MSGPACK:
-            raise ImportError("MessagePack is not installed. Install it with 'pip install msgpack'.")
+            raise ImportError(
+                "MessagePack is not installed. Install it with 'pip install msgpack'."
+            )
 
         kwargs.setdefault("content_type", "application/x-msgpack")
         content = MessagePackRenderer.dumps(data)
@@ -214,7 +220,9 @@ class CacheManager:
         """
         self.cache = cache or django_cache
         self.enabled = getattr(settings, "DJANGO_MATT_CACHE_ENABLED", True)
-        self.default_timeout = getattr(settings, "DJANGO_MATT_CACHE_TIMEOUT", 300)  # 5 minutes
+        self.default_timeout = getattr(
+            settings, "DJANGO_MATT_CACHE_TIMEOUT", 300
+        )  # 5 minutes
 
     def _get_cache_key(self, prefix: str, *args, **kwargs) -> str:
         """
@@ -495,9 +503,15 @@ class APIBenchmark:
 
         self.measurements[name]["count"] += 1
         self.measurements[name]["total_time"] += duration
-        self.measurements[name]["min_time"] = min(self.measurements[name]["min_time"], duration)
-        self.measurements[name]["max_time"] = max(self.measurements[name]["max_time"], duration)
-        self.measurements[name]["avg_time"] = self.measurements[name]["total_time"] / self.measurements[name]["count"]
+        self.measurements[name]["min_time"] = min(
+            self.measurements[name]["min_time"], duration
+        )
+        self.measurements[name]["max_time"] = max(
+            self.measurements[name]["max_time"], duration
+        )
+        self.measurements[name]["avg_time"] = (
+            self.measurements[name]["total_time"] / self.measurements[name]["count"]
+        )
 
     def get_report(self) -> dict[str, Any]:
         """

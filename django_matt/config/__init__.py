@@ -60,12 +60,16 @@ class ConfigurationManager:
             return self._settings
 
         try:
-            env_module = importlib.import_module(f"django_matt.config.environments.{environment}")
+            env_module = importlib.import_module(
+                f"django_matt.config.environments.{environment}"
+            )
             env_settings = getattr(env_module, "settings", {})
             self._settings.update(env_settings)
             self._loaded_environments.add(environment)
         except ImportError:
-            raise ImportError(f"Could not import environment settings for '{environment}'")
+            raise ImportError(
+                f"Could not import environment settings for '{environment}'"
+            )
 
         return self._settings
 
@@ -86,7 +90,9 @@ class ConfigurationManager:
             return self._settings
 
         try:
-            component_module = importlib.import_module(f"django_matt.config.components.{component}")
+            component_module = importlib.import_module(
+                f"django_matt.config.components.{component}"
+            )
             component_settings = getattr(component_module, "settings", {})
             self._settings.update(component_settings)
             self._loaded_components.add(component)
