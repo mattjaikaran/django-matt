@@ -5,7 +5,7 @@ A lightweight, high-performance Django extension for building modern APIs with m
 
 # Django Matt
 
-New Django API framework started Feb 2025.
+Opinionated Django library started Feb 2025.
 
 I want to build my own custom tool for Django because I feel like it.
 
@@ -50,7 +50,7 @@ Reasons:
 - I want to learn something new and do a project I've never done before. 
     - This seems like a tough project but I'm looking forward to learning a lot.
 - Lots of new Rust based tooling and other tools to enhance Python frameworks.
-- I want to build a framework that has the things I need and use and find useful.
+- I want to build a library that has the things I need and use and find useful.
     - DX scripts to enhance productivity
     - Mixins to enhance functionality
     - CRUD generation to enhance productivity

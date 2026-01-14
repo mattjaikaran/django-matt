@@ -1,17 +1,17 @@
 # Django Matt - Framework Development Plan
 
 ## Overview
-This document outlines the development plan for Django Matt, a custom Django API framework that combines the best features of Django Rest Framework, Django Ninja, Django Ninja Extra, and other modern frameworks while adding custom DX tools and performance optimizations.
+This document outlines the development plan for Django Matt, a custom Django library that combines the best features of Django Rest Framework, Django Ninja, Django Ninja Extra, and other modern frameworks while adding custom DX tools and performance optimizations.
 
 ## Core Architecture & Foundation
 
-### Phase 1: Core Framework Setup
+### Phase 1: Core Setup
 - [x] Set up project structure
   - [x] Create core package structure
   - [x] Set up package management with UV and/or Pixi
   - [x] Configure Ruff for linting and formatting
   - [ ] Set up testing infrastructure
-- [x] Create base framework classes
+- [x] Create base classes
   - [x] Design API router system
   - [x] Implement class-based view support as first-class citizens
   - [x] Create Pydantic integration for schema validation
@@ -45,7 +45,7 @@ This document outlines the development plan for Django Matt, a custom Django API
 ## Authentication & Security
 
 ### Phase 3: Authentication System
-- [ ] Design authentication framework
+- [ ] Design authentication flow
   - [ ] Create base authentication classes
   - [ ] Implement JWT authentication
   - [ ] Add session-based authentication
@@ -191,7 +191,7 @@ This document outlines the development plan for Django Matt, a custom Django API
   - [ ] Create update mechanisms
 
 ## Completed Features
-- Core framework structure with proper Python packaging
+- Core structure with proper Python packaging
 - API router system with decorator-based routing
 - Class-based controllers with dependency injection
 - Pydantic schema integration with Django models
@@ -201,7 +201,7 @@ This document outlines the development plan for Django Matt, a custom Django API
 - Advanced error handling with detailed error messages and traceback formatting
 - Automatic error handling in controllers (no need for try/except blocks)
 - Hot reloading system with file change detection and WebSocket browser refresh
-- Example Todo app demonstrating the framework's capabilities
+- Example Todo app demonstrating features
 - Example applications for error handling and hot reloading
 - Performance optimization features including:
   - Fast JSON rendering with orjson/ujson
@@ -222,7 +222,7 @@ This document outlines the development plan for Django Matt, a custom Django API
   - Connection pooling
 
 ## Next Steps
-1. Complete remaining items in Phase 1: Core Framework Setup
+1. Complete remaining items in Phase 1: Core Setup
    - Set up testing infrastructure
    - Further optimize performance
 2. Complete remaining items in Phase 2: Request/Response Handling

@@ -26,12 +26,12 @@ django-matt consolidates features from multiple packages into one cohesive libra
 
 ### Phase 0: Core Enhancements
 
-- [ ] **0A** - OpenAPI schema generation + Swagger/ReDoc docs
+- [x] **0A** - OpenAPI schema generation + Swagger/ReDoc docs
   - Create `django_matt/openapi/` package
   - Add schema builder, docs views
   - Integrate with router
 
-- [ ] **0B** - Enhanced ModelSchema with model_validator
+- [x] **0B** - Enhanced ModelSchema with model_validator
   - Add `model_validator` decorator (from ninja-schema)
   - Add `from_orm()` method
   - Add `apply_to_model()` method
