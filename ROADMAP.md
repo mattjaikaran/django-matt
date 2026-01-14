@@ -81,7 +81,7 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - Build `/auth/logout` endpoint
   - Build `/auth/me` endpoint
 
-- [ ] **1E** - Multi-tenant support (B2B)
+- [x] **1E** - Multi-tenant support (B2B)
   - Add Organization model
   - Add Team model
   - Add Membership model with roles
