@@ -101,11 +101,11 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - Generate Zod validation schemas
   - Generate typed API client
 
-- [ ] **2B** - Swift generator
+- [x] **2B** - Swift generator
   - Pydantic schema to Swift Codable struct
   - Generate URLSession-based API client
 
-- [ ] **2C** - sync_types CLI command
+- [x] **2C** - sync_types CLI command
   - Create `sync_types` management command
   - Support `--target typescript` and `--target swift`
   - Support `--output` directory

@@ -50,6 +50,13 @@ from django_matt.typegen.api_client import (
     generate_api_client,
 )
 
+# Swift Generation
+from django_matt.typegen.swift import (
+    SwiftGenerator,
+    generate_swift,
+    pydantic_to_swift,
+)
+
 # Utilities
 from django_matt.typegen.utils import (
     get_type_name,
@@ -72,6 +79,10 @@ __all__ = [
     # API Client
     "APIClientGenerator",
     "generate_api_client",
+    # Swift
+    "SwiftGenerator",
+    "generate_swift",
+    "pydantic_to_swift",
     # Utilities
     "get_type_name",
     "python_type_to_typescript",
