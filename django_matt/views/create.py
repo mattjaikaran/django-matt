@@ -1,0 +1,57 @@
+"""
+CreateView for creating new resources.
+"""
+
+from typing import Any
+
+from django.db import models
+from django.http import HttpRequest
+
+from django_matt.views.base import APIView
+
+
+class CreateView(APIView):
+    """
+    View for creating a new resource.
+    
+    Example:
+        class UserViewSet(APIViewSet):
+            create_user = CreateView(
+                request_schema=UserCreateSchema,
+                response_schema=UserSchema,
+            )
+    """
+    
+    path: str = ""
+    methods: list[str] = ["POST"]
+    
+    async def handle(self, request: HttpRequest, **kwargs) -> dict[str, Any]:
+        """Handle POST request to create a resource."""
+        # Validate request body
+        data = self.validate_request(request)
+        
+        if data is None:
+            raise ValueError("Request body is required")
+        
+        # Get the model
+        model = self.get_model()
+        
+        # Create the instance
+        data_dict = data.model_dump(exclude_unset=True)
+        
+        # Allow ViewSet to customize creation
+        if self._viewset and hasattr(self._viewset, "perform_create"):
+            instance = await self._viewset.perform_create(data_dict, request)
+        else:
+            instance = model(**data_dict)
+            await self._save_instance(instance)
+        
+        # Serialize and return
+        return self.serialize(instance)
+    
+    async def _save_instance(self, instance: models.Model):
+        """Save the model instance."""
+        if hasattr(instance, "asave"):
+            await instance.asave()
+        else:
+            instance.save()

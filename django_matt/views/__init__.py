@@ -22,15 +22,11 @@ Example:
 """
 
 from django_matt.views.base import APIView
-from django_matt.views.crud import (
-    ListView,
-    CreateView,
-    ReadView,
-    RetrieveView,  # Alias for ReadView
-    UpdateView,
-    DeleteView,
-    PatchView,
-)
+from django_matt.views.list import ListView
+from django_matt.views.create import CreateView
+from django_matt.views.read import ReadView, RetrieveView
+from django_matt.views.update import UpdateView, PatchView
+from django_matt.views.delete import DeleteView
 from django_matt.views.viewset import APIViewSet, ViewSet
 
 __all__ = [

@@ -77,6 +77,34 @@ from django_matt.permissions import (
     allow_any,
 )
 
+# Import auth module (lazy import to handle optional PyJWT dependency)
+# Users should import from django_matt.auth for full auth functionality
+# Core decorators are re-exported here for convenience
+try:
+    from django_matt.auth import (
+        jwt_required,
+        jwt_optional,
+        requires_auth,
+        admin_required,
+        superuser_required,
+        with_roles,
+        with_permission,
+        create_token_pair,
+        JWTAuthenticationMiddleware,
+    )
+    _auth_available = True
+except ImportError:
+    _auth_available = False
+    # Define placeholder functions that raise helpful errors
+    def _auth_not_available(*args, **kwargs):
+        raise ImportError(
+            "Auth features require PyJWT. Install with: pip install 'django-matt[auth]'"
+        )
+    jwt_required = jwt_optional = requires_auth = _auth_not_available
+    admin_required = superuser_required = with_roles = _auth_not_available
+    with_permission = create_token_pair = _auth_not_available
+    JWTAuthenticationMiddleware = None
+
 # Create a default API instance
 api = MattAPI()
 
@@ -150,4 +178,14 @@ __all__ = [
     "requires_role",
     "authenticated",
     "allow_any",
+    # Auth (requires PyJWT - install with django-matt[auth])
+    "jwt_required",
+    "jwt_optional",
+    "requires_auth",
+    "admin_required",
+    "superuser_required",
+    "with_roles",
+    "with_permission",
+    "create_token_pair",
+    "JWTAuthenticationMiddleware",
 ]

@@ -24,6 +24,7 @@ from django_matt.permissions.base import (
     BasePermission,
     Permission,
     OperationPermission,
+    PermissionDenied,
 )
 from django_matt.permissions.common import (
     AllowAny,
@@ -34,6 +35,8 @@ from django_matt.permissions.common import (
     IsOwner,
     HasRole,
     HasPermission,
+    IsAuthenticatedOrReadOnly,
+    IsAdminOrReadOnly,
 )
 from django_matt.permissions.decorators import (
     requires_permission,
@@ -41,6 +44,8 @@ from django_matt.permissions.decorators import (
     requires_role,
     authenticated,
     allow_any,
+    with_permissions,
+    check_permissions,
 )
 
 __all__ = [
@@ -48,6 +53,7 @@ __all__ = [
     "BasePermission",
     "Permission",
     "OperationPermission",
+    "PermissionDenied",
     # Common permissions
     "AllowAny",
     "IsAuthenticated",
@@ -57,10 +63,14 @@ __all__ = [
     "IsOwner",
     "HasRole",
     "HasPermission",
+    "IsAuthenticatedOrReadOnly",
+    "IsAdminOrReadOnly",
     # Decorators
     "requires_permission",
     "requires_permissions",
     "requires_role",
     "authenticated",
     "allow_any",
+    "with_permissions",
+    "check_permissions",
 ]

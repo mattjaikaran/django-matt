@@ -37,13 +37,13 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - Add `apply_to_model()` method
   - Support `include`, `exclude`, `optional`, `depth` config
 
-- [ ] **0C** - Composable CRUD views
+- [x] **0C** - Composable CRUD views
   - Create `django_matt/views/` package
   - Add `ListView`, `CreateView`, `ReadView`, `UpdateView`, `DeleteView`
   - Add `APIViewSet` for grouping views
   - Support default request/response body inference
 
-- [ ] **0D** - Permission classes and RBAC decorators
+- [x] **0D** - Permission classes and RBAC decorators
   - Create `django_matt/permissions/` package
   - Add `IsAuthenticated`, `IsAdmin`, `AllowAny`
   - Add custom permission base class
@@ -51,24 +51,30 @@ django-matt consolidates features from multiple packages into one cohesive libra
 
 ### Phase 1: Authentication System
 
-- [ ] **1A** - JWT authentication backend
+- [x] **1A** - JWT authentication backend
   - Create `django_matt/auth/` package
   - Implement access/refresh token generation
   - Add token validation and refresh flow
   - Settings-based configuration
 
-- [ ] **1B** - Auth decorators and middleware
-  - Add `@authenticated` decorator
-  - Add `@requires_permission` decorator
-  - Create auth middleware
+- [x] **1B** - Auth decorators and middleware
+  - Add `@jwt_required`, `@jwt_optional` decorators
+  - Add `@with_roles`, `@with_permission` decorators
+  - Create JWT auth middleware
   - Integrate with controllers
 
-- [ ] **1C** - Magic link passwordless authentication
+- [x] **1B+** - RBAC with hierarchy support
+  - Role definitions with permission inheritance
+  - Priority-based role hierarchy
+  - `@requires_role_hierarchy` decorator
+  - Settings-based RBAC configuration
+
+- [x] **1C** - Magic link passwordless authentication
   - Add magic link token generation
   - Email-based verification flow
   - Token expiration handling
 
-- [ ] **1D** - Auth controllers
+- [x] **1D** - Auth controllers
   - Build `/auth/login` endpoint
   - Build `/auth/register` endpoint
   - Build `/auth/refresh` endpoint
@@ -151,7 +157,7 @@ django-matt consolidates features from multiple packages into one cohesive libra
 [project]
 requires-python = ">=3.13"
 dependencies = [
-    "django>=5.1",
+    "django>=5.2",
     "pydantic>=2.0.0",
     "typing-extensions>=4.0.0",
 ]
