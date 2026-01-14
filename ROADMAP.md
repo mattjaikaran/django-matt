@@ -113,7 +113,7 @@ django-matt consolidates features from multiple packages into one cohesive libra
 
 ### Phase 3: CLI Tools
 
-- [ ] **3A** - Enhanced startapi command
+- [x] **3A** - Enhanced startapi command
   - Add `--template` option (starter, b2b, b2c)
   - Add `--auth` option (jwt, magic-link, oauth)
   - Add `--frontend` option (none, react-vite, swift)
