@@ -122,7 +122,7 @@ django-matt consolidates features from multiple packages into one cohesive libra
 
 ### Phase 4: Testing Infrastructure
 
-- [ ] **4A** - Test utilities
+- [x] **4A** - Test utilities
   - Create `django_matt/testing/` package
   - Add `APITestClient` with auth helpers
   - Add base factory classes
