@@ -112,6 +112,22 @@ from django_matt.auth.controllers import (
     MinimalAuthController,
 )
 
+# Passkeys/WebAuthn
+from django_matt.auth.passkeys import (
+    PasskeyConfig,
+    passkey_config,
+    PasskeyController,
+    MinimalPasskeyController,
+    generate_registration_options,
+    verify_registration_response,
+    generate_authentication_options,
+    verify_authentication_response,
+    PasskeyError,
+    PasskeyRegistrationError,
+    PasskeyAuthenticationError,
+    PasskeyCredentialNotFoundError,
+)
+
 # Schemas
 from django_matt.auth.schemas import (
     TokenPayload,
@@ -193,6 +209,19 @@ __all__ = [
     "create_magic_link_url",
     "send_magic_link",
     "send_magic_link_async",
+    # Passkeys/WebAuthn
+    "PasskeyConfig",
+    "passkey_config",
+    "PasskeyController",
+    "MinimalPasskeyController",
+    "generate_registration_options",
+    "verify_registration_response",
+    "generate_authentication_options",
+    "verify_authentication_response",
+    "PasskeyError",
+    "PasskeyRegistrationError",
+    "PasskeyAuthenticationError",
+    "PasskeyCredentialNotFoundError",
     # Controllers
     "AuthController",
     "MinimalAuthController",
