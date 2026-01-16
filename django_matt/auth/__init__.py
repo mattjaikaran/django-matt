@@ -150,6 +150,23 @@ from django_matt.auth.oauth import (
     get_provider_instance,
 )
 
+# SSO (Enterprise)
+from django_matt.auth.sso import (
+    SSOConfig,
+    get_sso_config,
+    sso_config,
+    SSOController,
+    SSOProvider,
+    SSOUserInfo as SSOUserInfoType,
+    SSOError,
+    SSOConfigError,
+    SSOAuthenticationError,
+    SAMLProvider,
+    OIDCProvider,
+    get_provider_class,
+    get_provider_for_connection,
+)
+
 # Schemas
 from django_matt.auth.schemas import (
     TokenPayload,
@@ -266,6 +283,20 @@ __all__ = [
     "MicrosoftOAuthProvider",
     "get_provider",
     "get_provider_instance",
+    # SSO (Enterprise)
+    "SSOConfig",
+    "get_sso_config",
+    "sso_config",
+    "SSOController",
+    "SSOProvider",
+    "SSOUserInfoType",
+    "SSOError",
+    "SSOConfigError",
+    "SSOAuthenticationError",
+    "SAMLProvider",
+    "OIDCProvider",
+    "get_provider_class",
+    "get_provider_for_connection",
     # Schemas
     "TokenPayload",
     "TokenPair",
