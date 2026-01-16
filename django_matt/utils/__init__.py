@@ -24,13 +24,21 @@ from django_matt.utils.performance import (
     APIBenchmark,
     BenchmarkMiddleware,
     CacheManager,
+    DistributedCacheManager,
     FastJSONRenderer,
     FastJsonResponse,
     MessagePackRenderer,
     MessagePackResponse,
+    PerformanceSuggester,
+    QueryAnalyzer,
+    QueryLoggingMiddleware,
     StreamingJsonResponse,
     benchmark,
     cache_manager,
+    distributed_cache,
+    optimize_queryset,
+    performance_suggester,
+    query_analyzer,
     stream_json_list,
 )
 
@@ -45,18 +53,31 @@ __all__ = [
     "HotReloadMiddleware",
     "start_hot_reloading",
     "stop_hot_reloading",
-    # Performance
+    # Performance - Serialization
     "FastJSONRenderer",
     "FastJsonResponse",
     "MessagePackRenderer",
     "MessagePackResponse",
     "StreamingJsonResponse",
+    "stream_json_list",
+    # Performance - Benchmarking
     "APIBenchmark",
     "BenchmarkMiddleware",
-    "CacheManager",
     "benchmark",
+    # Performance - Caching
+    "CacheManager",
+    "DistributedCacheManager",
     "cache_manager",
-    "stream_json_list",
+    "distributed_cache",
+    # Performance - Query Optimization
+    "QueryAnalyzer",
+    "QueryLoggingMiddleware",
+    "query_analyzer",
+    "optimize_queryset",
+    # Performance - Suggestions
+    "PerformanceSuggester",
+    "performance_suggester",
+    # Performance - Flags
     "HAS_ORJSON",
     "HAS_UJSON",
     "HAS_MSGPACK",

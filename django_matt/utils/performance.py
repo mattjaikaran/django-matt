@@ -630,3 +630,725 @@ class BenchmarkMiddleware:
 
 # Import asyncio at the end to avoid circular imports
 import asyncio
+
+
+# =============================================================================
+# Distributed Caching Support
+# =============================================================================
+
+
+class DistributedCacheManager(CacheManager):
+    """
+    A cache manager that supports distributed caching with Redis cluster.
+
+    This class extends CacheManager to provide additional features for
+    distributed caching scenarios, including key namespacing, cache stampede
+    prevention, and cluster-aware operations.
+    """
+
+    def __init__(self, cache=None, namespace: str = "default"):
+        """
+        Initialize the distributed cache manager.
+
+        Args:
+            cache: The cache backend to use (defaults to Django's default cache)
+            namespace: A namespace prefix for all cache keys (useful for multi-tenant)
+        """
+        super().__init__(cache)
+        self.namespace = namespace
+        self.lock_timeout = getattr(settings, "DJANGO_MATT_CACHE_LOCK_TIMEOUT", 10)
+
+    def _get_cache_key(self, prefix: str, *args, **kwargs) -> str:
+        """Generate a namespaced cache key."""
+        base_key = super()._get_cache_key(prefix, *args, **kwargs)
+        return f"{self.namespace}:{base_key}"
+
+    def get_or_set(
+        self,
+        key: str,
+        default_func: Callable[[], Any],
+        timeout: int | None = None,
+        version: int | None = None,
+    ) -> Any:
+        """
+        Get a value from cache, or set it if not present.
+
+        This method provides cache stampede prevention by using a lock
+        to ensure only one process computes the value.
+
+        Args:
+            key: The cache key
+            default_func: A callable that returns the default value
+            timeout: Cache timeout in seconds
+            version: Optional cache version
+
+        Returns:
+            The cached or computed value
+        """
+        cache_key = f"{self.namespace}:{key}"
+        lock_key = f"{cache_key}:lock"
+
+        # Try to get from cache first
+        value = self.cache.get(cache_key, version=version)
+        if value is not None:
+            return value
+
+        # Try to acquire lock for computing value (stampede prevention)
+        lock_acquired = self.cache.add(lock_key, "1", self.lock_timeout)
+
+        if lock_acquired:
+            try:
+                # Double-check cache after acquiring lock
+                value = self.cache.get(cache_key, version=version)
+                if value is not None:
+                    return value
+
+                # Compute the value
+                value = default_func()
+                cache_timeout = timeout or self.default_timeout
+                self.cache.set(cache_key, value, cache_timeout, version=version)
+                return value
+            finally:
+                self.cache.delete(lock_key)
+        else:
+            # Another process is computing the value, wait and retry
+            import time
+
+            for _ in range(10):  # Max 10 retries
+                time.sleep(0.1)
+                value = self.cache.get(cache_key, version=version)
+                if value is not None:
+                    return value
+
+            # Fallback: compute anyway if still not available
+            return default_func()
+
+    async def aget_or_set(
+        self,
+        key: str,
+        default_func: Callable[[], Any],
+        timeout: int | None = None,
+        version: int | None = None,
+    ) -> Any:
+        """
+        Async version of get_or_set.
+
+        Args:
+            key: The cache key
+            default_func: An async callable that returns the default value
+            timeout: Cache timeout in seconds
+            version: Optional cache version
+
+        Returns:
+            The cached or computed value
+        """
+        cache_key = f"{self.namespace}:{key}"
+        lock_key = f"{cache_key}:lock"
+
+        # Try to get from cache first
+        value = self.cache.get(cache_key, version=version)
+        if value is not None:
+            return value
+
+        # Try to acquire lock
+        lock_acquired = self.cache.add(lock_key, "1", self.lock_timeout)
+
+        if lock_acquired:
+            try:
+                value = self.cache.get(cache_key, version=version)
+                if value is not None:
+                    return value
+
+                # Compute the value (support both sync and async)
+                if asyncio.iscoroutinefunction(default_func):
+                    value = await default_func()
+                else:
+                    value = default_func()
+
+                cache_timeout = timeout or self.default_timeout
+                self.cache.set(cache_key, value, cache_timeout, version=version)
+                return value
+            finally:
+                self.cache.delete(lock_key)
+        else:
+            for _ in range(10):
+                await asyncio.sleep(0.1)
+                value = self.cache.get(cache_key, version=version)
+                if value is not None:
+                    return value
+
+            if asyncio.iscoroutinefunction(default_func):
+                return await default_func()
+            return default_func()
+
+    def get_many(self, keys: list[str], version: int | None = None) -> dict[str, Any]:
+        """
+        Get multiple values from cache at once.
+
+        Args:
+            keys: List of cache keys
+            version: Optional cache version
+
+        Returns:
+            Dictionary of key-value pairs
+        """
+        namespaced_keys = [f"{self.namespace}:{k}" for k in keys]
+        result = self.cache.get_many(namespaced_keys, version=version)
+        # Remove namespace from keys in result
+        return {k.replace(f"{self.namespace}:", ""): v for k, v in result.items()}
+
+    def set_many(
+        self, mapping: dict[str, Any], timeout: int | None = None, version: int | None = None
+    ):
+        """
+        Set multiple values in cache at once.
+
+        Args:
+            mapping: Dictionary of key-value pairs
+            timeout: Cache timeout in seconds
+            version: Optional cache version
+        """
+        namespaced_mapping = {f"{self.namespace}:{k}": v for k, v in mapping.items()}
+        cache_timeout = timeout or self.default_timeout
+        self.cache.set_many(namespaced_mapping, cache_timeout, version=version)
+
+    def delete_many(self, keys: list[str], version: int | None = None):
+        """
+        Delete multiple values from cache at once.
+
+        Args:
+            keys: List of cache keys
+            version: Optional cache version
+        """
+        namespaced_keys = [f"{self.namespace}:{k}" for k in keys]
+        self.cache.delete_many(namespaced_keys, version=version)
+
+    def incr(self, key: str, delta: int = 1, version: int | None = None) -> int:
+        """
+        Increment a value in cache.
+
+        Args:
+            key: The cache key
+            delta: Amount to increment by
+            version: Optional cache version
+
+        Returns:
+            The new value
+        """
+        cache_key = f"{self.namespace}:{key}"
+        try:
+            return self.cache.incr(cache_key, delta, version=version)
+        except ValueError:
+            # Key doesn't exist, initialize it
+            self.cache.set(cache_key, delta, self.default_timeout, version=version)
+            return delta
+
+    def decr(self, key: str, delta: int = 1, version: int | None = None) -> int:
+        """
+        Decrement a value in cache.
+
+        Args:
+            key: The cache key
+            delta: Amount to decrement by
+            version: Optional cache version
+
+        Returns:
+            The new value
+        """
+        cache_key = f"{self.namespace}:{key}"
+        try:
+            return self.cache.decr(cache_key, delta, version=version)
+        except ValueError:
+            self.cache.set(cache_key, -delta, self.default_timeout, version=version)
+            return -delta
+
+    def touch(self, key: str, timeout: int | None = None, version: int | None = None) -> bool:
+        """
+        Update the timeout of a cached value without changing it.
+
+        Args:
+            key: The cache key
+            timeout: New timeout in seconds
+            version: Optional cache version
+
+        Returns:
+            True if successful, False otherwise
+        """
+        cache_key = f"{self.namespace}:{key}"
+        cache_timeout = timeout or self.default_timeout
+        return self.cache.touch(cache_key, cache_timeout, version=version)
+
+    def clear_namespace(self):
+        """
+        Clear all cached items in this namespace.
+
+        Note: This only works with cache backends that support pattern deletion.
+        """
+        self.invalidate_pattern(f"{self.namespace}:*")
+
+
+# =============================================================================
+# Query Optimization Utilities
+# =============================================================================
+
+
+class QueryAnalyzer:
+    """
+    Utilities for analyzing and optimizing Django ORM queries.
+
+    This class provides tools to detect N+1 queries, suggest prefetch_related
+    and select_related optimizations, and analyze query performance.
+    """
+
+    def __init__(self):
+        self.query_log: list[dict[str, Any]] = []
+        self.enabled = getattr(settings, "DJANGO_MATT_QUERY_ANALYSIS_ENABLED", False)
+
+    def analyze_queryset(self, queryset) -> dict[str, Any]:
+        """
+        Analyze a queryset and provide optimization suggestions.
+
+        Args:
+            queryset: A Django QuerySet to analyze
+
+        Returns:
+            Dictionary containing analysis results and suggestions
+        """
+        from django.db.models import ForeignKey, ManyToManyField, ManyToOneRel
+
+        model = queryset.model
+        meta = model._meta
+
+        # Get current optimizations
+        current_select_related = list(queryset.query.select_related.keys()) if queryset.query.select_related else []
+        current_prefetch_related = [p.prefetch_through if hasattr(p, 'prefetch_through') else str(p) for p in queryset._prefetch_related_lookups]
+
+        # Find all relations
+        foreign_keys = []
+        many_to_many = []
+        reverse_relations = []
+
+        for field in meta.get_fields():
+            if isinstance(field, ForeignKey):
+                foreign_keys.append(field.name)
+            elif isinstance(field, ManyToManyField):
+                many_to_many.append(field.name)
+            elif isinstance(field, ManyToOneRel):
+                reverse_relations.append(field.get_accessor_name())
+
+        # Generate suggestions
+        suggestions = []
+
+        # Suggest select_related for unoptimized foreign keys
+        missing_select = [fk for fk in foreign_keys if fk not in current_select_related]
+        if missing_select:
+            suggestions.append({
+                "type": "select_related",
+                "fields": missing_select,
+                "reason": "Foreign key fields not using select_related may cause N+1 queries",
+                "fix": f".select_related({', '.join(repr(f) for f in missing_select)})",
+            })
+
+        # Suggest prefetch_related for many-to-many
+        missing_prefetch_m2m = [m2m for m2m in many_to_many if m2m not in current_prefetch_related]
+        if missing_prefetch_m2m:
+            suggestions.append({
+                "type": "prefetch_related",
+                "fields": missing_prefetch_m2m,
+                "reason": "Many-to-many fields should use prefetch_related",
+                "fix": f".prefetch_related({', '.join(repr(f) for f in missing_prefetch_m2m)})",
+            })
+
+        # Suggest prefetch_related for reverse relations if commonly accessed
+        if reverse_relations:
+            suggestions.append({
+                "type": "prefetch_related",
+                "fields": reverse_relations,
+                "reason": "Reverse relations may benefit from prefetch_related if accessed",
+                "fix": f".prefetch_related({', '.join(repr(f) for f in reverse_relations)})",
+                "conditional": True,
+            })
+
+        return {
+            "model": model.__name__,
+            "current_optimizations": {
+                "select_related": current_select_related,
+                "prefetch_related": current_prefetch_related,
+            },
+            "relations": {
+                "foreign_keys": foreign_keys,
+                "many_to_many": many_to_many,
+                "reverse_relations": reverse_relations,
+            },
+            "suggestions": suggestions,
+            "query_count_estimate": self._estimate_query_count(
+                queryset, missing_select, missing_prefetch_m2m
+            ),
+        }
+
+    def _estimate_query_count(
+        self, queryset, missing_select: list, missing_prefetch: list
+    ) -> dict[str, int]:
+        """Estimate query counts with and without optimization."""
+        try:
+            count = queryset.count()
+        except Exception:
+            count = 100  # Default estimate
+
+        # Base query
+        queries_without_opt = 1
+
+        # Each missing select_related adds N queries (one per object)
+        if missing_select:
+            queries_without_opt += count * len(missing_select)
+
+        # Each missing prefetch_related adds N queries
+        if missing_prefetch:
+            queries_without_opt += count * len(missing_prefetch)
+
+        # With optimization: 1 base + 1 per prefetch
+        queries_with_opt = 1 + len(missing_prefetch)
+
+        return {
+            "without_optimization": queries_without_opt,
+            "with_optimization": queries_with_opt,
+            "potential_savings": queries_without_opt - queries_with_opt,
+        }
+
+    def log_query(self, sql: str, duration: float, params: tuple | None = None):
+        """
+        Log a query for analysis.
+
+        Args:
+            sql: The SQL query string
+            duration: Query execution time in seconds
+            params: Query parameters
+        """
+        if not self.enabled:
+            return
+
+        self.query_log.append({
+            "sql": sql,
+            "duration_ms": duration * 1000,
+            "params": params,
+            "timestamp": time.time(),
+        })
+
+    def get_slow_queries(self, threshold_ms: float = 100) -> list[dict[str, Any]]:
+        """
+        Get queries that exceeded the threshold.
+
+        Args:
+            threshold_ms: Threshold in milliseconds
+
+        Returns:
+            List of slow queries
+        """
+        return [q for q in self.query_log if q["duration_ms"] > threshold_ms]
+
+    def get_duplicate_queries(self) -> dict[str, int]:
+        """
+        Find duplicate queries (potential N+1 issues).
+
+        Returns:
+            Dictionary of query patterns and their counts
+        """
+        from collections import Counter
+
+        # Normalize queries by removing specific values
+        normalized = []
+        for q in self.query_log:
+            # Simple normalization - remove numbers and quoted strings
+            import re
+            sql = re.sub(r'\d+', '?', q["sql"])
+            sql = re.sub(r"'[^']*'", "'?'", sql)
+            normalized.append(sql)
+
+        counts = Counter(normalized)
+        return {sql: count for sql, count in counts.items() if count > 1}
+
+    def clear_log(self):
+        """Clear the query log."""
+        self.query_log = []
+
+    def get_report(self) -> dict[str, Any]:
+        """
+        Get a comprehensive query analysis report.
+
+        Returns:
+            Dictionary containing query analysis
+        """
+        if not self.query_log:
+            return {"total_queries": 0, "message": "No queries logged"}
+
+        durations = [q["duration_ms"] for q in self.query_log]
+        duplicates = self.get_duplicate_queries()
+
+        return {
+            "total_queries": len(self.query_log),
+            "total_time_ms": sum(durations),
+            "avg_time_ms": sum(durations) / len(durations),
+            "min_time_ms": min(durations),
+            "max_time_ms": max(durations),
+            "slow_queries": len(self.get_slow_queries()),
+            "duplicate_patterns": len(duplicates),
+            "potential_n_plus_1": sum(1 for count in duplicates.values() if count > 5),
+            "duplicates": duplicates,
+        }
+
+
+def optimize_queryset(queryset, include_reverse: bool = False):
+    """
+    Automatically optimize a queryset with select_related and prefetch_related.
+
+    Args:
+        queryset: A Django QuerySet to optimize
+        include_reverse: Whether to include reverse relations in prefetch
+
+    Returns:
+        The optimized queryset
+    """
+    from django.db.models import ForeignKey, ManyToManyField, ManyToOneRel
+
+    model = queryset.model
+    meta = model._meta
+
+    select_fields = []
+    prefetch_fields = []
+
+    for field in meta.get_fields():
+        if isinstance(field, ForeignKey):
+            select_fields.append(field.name)
+        elif isinstance(field, ManyToManyField):
+            prefetch_fields.append(field.name)
+        elif isinstance(field, ManyToOneRel) and include_reverse:
+            prefetch_fields.append(field.get_accessor_name())
+
+    if select_fields:
+        queryset = queryset.select_related(*select_fields)
+    if prefetch_fields:
+        queryset = queryset.prefetch_related(*prefetch_fields)
+
+    return queryset
+
+
+# =============================================================================
+# Performance Suggestions
+# =============================================================================
+
+
+class PerformanceSuggester:
+    """
+    Provides actionable performance suggestions based on runtime analysis.
+
+    This class monitors application behavior and provides specific
+    recommendations for improving performance.
+    """
+
+    def __init__(self):
+        self.observations: list[dict[str, Any]] = []
+        self.enabled = getattr(settings, "DJANGO_MATT_SUGGESTIONS_ENABLED", False)
+
+    def observe(self, category: str, data: dict[str, Any]):
+        """
+        Record an observation for analysis.
+
+        Args:
+            category: The category of observation (e.g., 'serialization', 'query', 'cache')
+            data: The observation data
+        """
+        if not self.enabled:
+            return
+
+        self.observations.append({
+            "category": category,
+            "data": data,
+            "timestamp": time.time(),
+        })
+
+    def get_suggestions(self) -> list[dict[str, Any]]:
+        """
+        Analyze observations and generate suggestions.
+
+        Returns:
+            List of actionable suggestions
+        """
+        suggestions = []
+
+        # Analyze serialization performance
+        serialization_obs = [o for o in self.observations if o["category"] == "serialization"]
+        if serialization_obs:
+            avg_size = sum(o["data"].get("size", 0) for o in serialization_obs) / len(serialization_obs)
+            avg_time = sum(o["data"].get("time_ms", 0) for o in serialization_obs) / len(serialization_obs)
+
+            if avg_size > 100000:  # > 100KB average
+                suggestions.append({
+                    "category": "serialization",
+                    "priority": "high",
+                    "title": "Large response payloads detected",
+                    "description": f"Average response size is {avg_size / 1000:.1f}KB",
+                    "recommendations": [
+                        "Use pagination to limit response size",
+                        "Consider using StreamingJsonResponse for large datasets",
+                        "Implement field selection to return only needed fields",
+                        "Use MessagePack for binary data transfer",
+                    ],
+                })
+
+            if avg_time > 50:  # > 50ms average
+                if not HAS_ORJSON:
+                    suggestions.append({
+                        "category": "serialization",
+                        "priority": "high",
+                        "title": "Slow JSON serialization",
+                        "description": f"Average serialization time is {avg_time:.1f}ms",
+                        "recommendations": [
+                            "Install orjson for 10x faster serialization: pip install orjson",
+                            "Or install ujson as alternative: pip install ujson",
+                        ],
+                    })
+
+        # Analyze query performance
+        query_obs = [o for o in self.observations if o["category"] == "query"]
+        if query_obs:
+            total_queries = sum(o["data"].get("count", 0) for o in query_obs)
+            avg_queries_per_request = total_queries / len(query_obs) if query_obs else 0
+
+            if avg_queries_per_request > 10:
+                suggestions.append({
+                    "category": "database",
+                    "priority": "high",
+                    "title": "High query count per request",
+                    "description": f"Average of {avg_queries_per_request:.1f} queries per request",
+                    "recommendations": [
+                        "Use select_related() for foreign key relationships",
+                        "Use prefetch_related() for many-to-many relationships",
+                        "Consider using optimize_queryset() helper",
+                        "Review for N+1 query patterns",
+                    ],
+                })
+
+        # Analyze cache usage
+        cache_obs = [o for o in self.observations if o["category"] == "cache"]
+        if cache_obs:
+            hits = sum(1 for o in cache_obs if o["data"].get("hit", False))
+            hit_rate = hits / len(cache_obs) if cache_obs else 0
+
+            if hit_rate < 0.5 and len(cache_obs) > 10:
+                suggestions.append({
+                    "category": "cache",
+                    "priority": "medium",
+                    "title": "Low cache hit rate",
+                    "description": f"Cache hit rate is {hit_rate * 100:.1f}%",
+                    "recommendations": [
+                        "Review cache key generation for consistency",
+                        "Consider increasing cache timeout",
+                        "Implement cache warming for frequently accessed data",
+                        "Use get_or_set() to prevent cache stampedes",
+                    ],
+                })
+
+        # Check for missing optimizations
+        if not HAS_ORJSON and not HAS_UJSON:
+            suggestions.append({
+                "category": "dependencies",
+                "priority": "medium",
+                "title": "No fast JSON library installed",
+                "description": "Using standard library json module",
+                "recommendations": [
+                    "Install orjson for best performance: pip install orjson",
+                    "Or install ujson: pip install ujson",
+                ],
+            })
+
+        if not HAS_MSGPACK:
+            suggestions.append({
+                "category": "dependencies",
+                "priority": "low",
+                "title": "MessagePack not available",
+                "description": "Binary serialization not available",
+                "recommendations": [
+                    "Install msgpack for binary serialization: pip install msgpack",
+                    "Useful for internal service communication",
+                ],
+            })
+
+        return suggestions
+
+    def clear(self):
+        """Clear all observations."""
+        self.observations = []
+
+    def get_summary(self) -> dict[str, Any]:
+        """
+        Get a summary of all observations and suggestions.
+
+        Returns:
+            Dictionary containing summary and suggestions
+        """
+        categories = {}
+        for obs in self.observations:
+            cat = obs["category"]
+            if cat not in categories:
+                categories[cat] = 0
+            categories[cat] += 1
+
+        return {
+            "total_observations": len(self.observations),
+            "categories": categories,
+            "suggestions": self.get_suggestions(),
+            "libraries": {
+                "orjson": HAS_ORJSON,
+                "ujson": HAS_UJSON,
+                "msgpack": HAS_MSGPACK,
+            },
+        }
+
+
+# Create singleton instances
+distributed_cache = DistributedCacheManager()
+query_analyzer = QueryAnalyzer()
+performance_suggester = PerformanceSuggester()
+
+
+class QueryLoggingMiddleware:
+    """
+    Middleware to log database queries for analysis.
+
+    This middleware captures all database queries made during a request
+    and logs them for performance analysis.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.enabled = getattr(settings, "DJANGO_MATT_QUERY_ANALYSIS_ENABLED", False)
+
+    def __call__(self, request):
+        if not self.enabled:
+            return self.get_response(request)
+
+        from django.db import connection
+
+        # Clear query log
+        query_analyzer.clear_log()
+
+        # Enable query logging
+        initial_queries = len(connection.queries)
+
+        response = self.get_response(request)
+
+        # Log queries
+        for query in connection.queries[initial_queries:]:
+            query_analyzer.log_query(
+                sql=query["sql"],
+                duration=float(query["time"]),
+            )
+
+        # Add query count to response headers
+        query_count = len(connection.queries) - initial_queries
+        response["X-Django-Matt-Query-Count"] = str(query_count)
+
+        # Log observation for suggestions
+        performance_suggester.observe("query", {"count": query_count})
+
+        return response
