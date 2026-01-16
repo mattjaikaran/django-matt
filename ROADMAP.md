@@ -145,9 +145,31 @@ django-matt consolidates features from multiple packages into one cohesive libra
 ## Stage 4: Advanced Features
 
 - [ ] OAuth providers (Google, GitHub, Apple)
-- [ ] Passkeys/WebAuthn support
+- [x] Passkeys/WebAuthn support
+  - Create `django_matt/auth/passkeys/` package
+  - Add WebAuthn registration and authentication
+  - Add passkey credential storage models
+  - Add Pydantic schemas for flows
+  - Add ready-to-use controllers
 - [ ] Subscriptions/billing (B2C)
 - [ ] Real-time WebSocket support
+
+### Phase 4B: Performance Enhancements (Complete)
+
+- [x] Distributed caching support
+  - Add `DistributedCacheManager` with Redis cluster support
+  - Add cache stampede prevention with locking
+  - Add bulk operations (get_many, set_many, delete_many)
+  - Add atomic increment/decrement operations
+- [x] Query optimization utilities
+  - Add `QueryAnalyzer` for N+1 detection
+  - Add `optimize_queryset()` helper function
+  - Add prefetch/select_related suggestions
+  - Add `QueryLoggingMiddleware`
+- [x] Performance suggestion system
+  - Add `PerformanceSuggester` class
+  - Add runtime analysis and recommendations
+  - Add dependency checks (orjson, msgpack, etc.)
 
 ---
 
