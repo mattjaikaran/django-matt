@@ -120,6 +120,15 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - Add `--docker` option
   - Generate Makefile
 
+- [x] **3B** - CRUD generator CLI
+  - Create `generate_crud` management command
+  - Generate Pydantic schemas from Django models
+  - Generate async controllers with CRUD operations
+  - Generate ViewSets with composable views
+  - Generate pytest-based test files
+  - Support `--permissions`, `--pagination`, `--soft-delete`
+  - Support `--dry-run` mode for preview
+
 ### Phase 4: Testing Infrastructure
 
 - [x] **4A** - Test utilities

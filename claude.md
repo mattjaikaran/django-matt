@@ -112,6 +112,13 @@ python manage.py config generate --env production
 python manage.py sync_types --target typescript --output frontend/types
 python manage.py sync_types --target swift --watch
 
+# Generate CRUD from Django models
+python manage.py generate_crud myapp.MyModel
+python manage.py generate_crud myapp.MyModel --output-dir ./api
+python manage.py generate_crud myapp.MyModel --components all --with-tests
+python manage.py generate_crud myapp.MyModel --permissions IsAuthenticated --soft-delete
+python manage.py generate_crud myapp.MyModel --dry-run  # Preview without writing
+
 # Hot reload development server
 python manage.py runserver_hot
 ```
@@ -153,13 +160,13 @@ python manage.py runserver_hot
 | Config system | Done | `config/` |
 | PostgreSQL + pgvector | Done | `db/` |
 | Testing utilities | Done | `testing/` |
+| CRUD generator CLI | Done | `management/commands/generate_crud.py` |
 
 ### In Progress / Next Up
 
 | Feature | Priority | Notes |
 |---------|----------|-------|
 | Subscriptions/billing (B2C) | High | Stripe integration |
-| CRUD generator CLI | Medium | Generate from models |
 | Content negotiation | Medium | Multiple response formats |
 | Real-time WebSockets | Medium | Beyond hot-reload |
 | HTMX integration | Low | View helpers |
