@@ -128,6 +128,28 @@ from django_matt.auth.passkeys import (
     PasskeyCredentialNotFoundError,
 )
 
+# OAuth (Social Login)
+from django_matt.auth.oauth import (
+    OAuthConfig,
+    OAuthProviderConfig,
+    get_oauth_config,
+    oauth_config,
+    OAuthController,
+    OAuthProvider,
+    OAuthUserInfo,
+    OAuthToken,
+    OAuthError,
+    OAuthConfigError,
+    OAuthAuthenticationError,
+    OAuthUserInfoError,
+    GoogleOAuthProvider,
+    GitHubOAuthProvider,
+    AppleOAuthProvider,
+    MicrosoftOAuthProvider,
+    get_provider,
+    get_provider_instance,
+)
+
 # Schemas
 from django_matt.auth.schemas import (
     TokenPayload,
@@ -225,6 +247,25 @@ __all__ = [
     # Controllers
     "AuthController",
     "MinimalAuthController",
+    # OAuth
+    "OAuthConfig",
+    "OAuthProviderConfig",
+    "get_oauth_config",
+    "oauth_config",
+    "OAuthController",
+    "OAuthProvider",
+    "OAuthUserInfo",
+    "OAuthToken",
+    "OAuthError",
+    "OAuthConfigError",
+    "OAuthAuthenticationError",
+    "OAuthUserInfoError",
+    "GoogleOAuthProvider",
+    "GitHubOAuthProvider",
+    "AppleOAuthProvider",
+    "MicrosoftOAuthProvider",
+    "get_provider",
+    "get_provider_instance",
     # Schemas
     "TokenPayload",
     "TokenPair",
