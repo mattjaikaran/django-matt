@@ -80,6 +80,19 @@ django_matt/
 - `generate_authentication_options()`, `verify_authentication_response()`
 - `PasskeyCredential` model for storing credentials
 
+### OAuth Social Login (`django_matt.auth.oauth`)
+- `OAuthController` - Full OAuth flow endpoints
+- Providers: `GoogleOAuthProvider`, `GitHubOAuthProvider`, `AppleOAuthProvider`, `MicrosoftOAuthProvider`
+- `OAuthConnection` model for storing user-provider links
+- Support for both redirect and SPA flows
+
+### Enterprise SSO (`django_matt.auth.sso`)
+- `SSOController` - Full SSO flow endpoints
+- `SAMLProvider` - SAML 2.0 authentication
+- `OIDCProvider` - OpenID Connect with PKCE
+- `SSOConnection` model for per-org configuration
+- Supports: Okta, Azure AD, Google Workspace, Auth0, OneLogin
+
 ### Testing (`django_matt.testing`)
 - `APITestClient`, `AsyncAPITestClient`
 - Factories: `UserFactory`, `OrganizationFactory`, `TeamFactory`
@@ -135,6 +148,8 @@ python manage.py runserver_hot
 | Query optimization | Done | `utils/performance.py` |
 | Performance suggestions | Done | `utils/performance.py` |
 | Passkeys/WebAuthn | Done | `auth/passkeys/` |
+| OAuth (Google, GitHub, Apple, Microsoft) | Done | `auth/oauth/` |
+| Enterprise SSO (SAML, OIDC) | Done | `auth/sso/` |
 | Config system | Done | `config/` |
 | PostgreSQL + pgvector | Done | `db/` |
 | Testing utilities | Done | `testing/` |
@@ -143,11 +158,10 @@ python manage.py runserver_hot
 
 | Feature | Priority | Notes |
 |---------|----------|-------|
-| OAuth providers (Google, GitHub, Apple) | High | Add to `auth/oauth/` |
-| Content negotiation | Medium | Multiple response formats |
+| Subscriptions/billing (B2C) | High | Stripe integration |
 | CRUD generator CLI | Medium | Generate from models |
-| Subscriptions/billing (B2C) | Medium | Stripe integration |
-| Real-time WebSockets | Low | Beyond hot-reload |
+| Content negotiation | Medium | Multiple response formats |
+| Real-time WebSockets | Medium | Beyond hot-reload |
 | HTMX integration | Low | View helpers |
 
 ### Template Repositories (Separate Repos - Not Started)

@@ -144,7 +144,21 @@ django-matt consolidates features from multiple packages into one cohesive libra
 
 ## Stage 4: Advanced Features
 
-- [ ] OAuth providers (Google, GitHub, Apple)
+- [x] OAuth providers (Google, GitHub, Apple, Microsoft)
+  - Create `django_matt/auth/oauth/` package
+  - Add Google, GitHub, Apple, Microsoft providers
+  - Add OAuthConnection model for storing provider links
+  - Add OAuthController with full endpoint support
+  - Support both redirect and SPA flows
+
+- [x] Enterprise SSO (SAML 2.0 and OIDC)
+  - Create `django_matt/auth/sso/` package
+  - Add SAML 2.0 provider (python3-saml)
+  - Add OIDC provider with PKCE and discovery
+  - Add per-organization SSO configuration
+  - Add SSOConnection and SSOUserLink models
+  - Support Okta, Azure AD, Google Workspace, Auth0, OneLogin
+
 - [x] Passkeys/WebAuthn support
   - Create `django_matt/auth/passkeys/` package
   - Add WebAuthn registration and authentication
