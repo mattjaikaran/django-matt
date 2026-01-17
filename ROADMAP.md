@@ -212,15 +212,34 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - Pre-signed upload/download URLs for all backends
   - `get_storage()` factory with settings-based configuration
 
-### Phase 6B: Background Tasks
-- [ ] **6B.1** - Task queue integration
-  - Celery support
-  - Dramatiq support
-  - Django-Q2 support
-- [ ] **6B.2** - Task decorators
-  - `@background_task`
-  - Retry policies
-  - Task scheduling
+### Phase 6B: Background Tasks ✅
+- [x] **6B.1** - Task queue integration
+  - `CeleryBackend` - Full Celery support with groups, chains, chords
+  - `DramatiqBackend` - Dramatiq with Redis/RabbitMQ brokers
+  - `DjangoQBackend` - Django-Q2 for database-backed queues
+  - `SyncBackend` - Synchronous execution for development/testing
+  - `get_backend()` factory with Django settings configuration
+- [x] **6B.2** - Task decorators
+  - `@task` - Register functions as background tasks
+  - `@shared_task` - Register without explicit app binding
+  - `@periodic_task` - Schedule tasks with crontab/interval
+  - `@schedule` - Decorator for scheduling configuration
+- [x] **6B.3** - Retry policies
+  - `RetryPolicy` base class
+  - `ExponentialBackoff` - Exponential delay increase
+  - `LinearBackoff` - Linear delay increase
+  - `FixedDelay` - Constant retry delay
+  - Configurable max retries, exceptions, jitter
+- [x] **6B.4** - Task primitives
+  - `Signature` - Callable task representation
+  - `group()` - Execute tasks in parallel
+  - `chain()` - Execute tasks sequentially (with result piping)
+  - `chord()` - Group + callback pattern
+  - `GroupResult` for aggregating results
+- [x] **6B.5** - Scheduling
+  - `crontab()` - Cron-style scheduling
+  - `every()` - Interval-based scheduling (seconds, minutes, hours, days)
+  - `Scheduler` class for managing periodic tasks
 
 ### Phase 6C: Audit & Logging
 - [ ] **6C.1** - Audit logging
