@@ -242,10 +242,18 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - `Scheduler` class for managing periodic tasks
 
 ### Phase 6C: Audit & Logging
-- [ ] **6C.1** - Audit logging
-  - Model change tracking
-  - User action logging
-  - IP/User-Agent tracking
+- [x] **6C.1** - Audit logging ✅
+  - `AuditLog` model with generic foreign key for any object
+  - `AuditableMixin` for automatic model change tracking (create, update, delete)
+  - `AuditableWithUserMixin` with created_by/updated_by fields
+  - `AuditMiddleware` for request context capture (IP, User-Agent)
+  - `@log_action` and `@audit_action` decorators for view logging
+  - `AuditLogContext` context manager for grouping operations
+  - Signals: `pre_audit`, `post_audit` for custom hooks
+  - Query utilities: `get_audit_history()`, `get_user_actions()`, `get_model_changes()`
+  - Security: `get_security_events()`, `get_failed_logins_by_ip()`
+  - Export: `export_audit_logs()` (JSON/CSV format)
+  - Cleanup: `cleanup_old_logs()` for log rotation
 - [x] **6C.2** - Soft delete ✅
   - `SoftDeleteMixin` for models with `deleted_at` field
   - `SoftDeleteWithUserMixin` for tracking who deleted records
