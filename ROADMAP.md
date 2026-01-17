@@ -2,6 +2,8 @@
 
 > A complete standalone meta-framework replacing Django Ninja and its ecosystem.
 
+⚠️ **Internal Tool** - This is currently a private/internal framework for personal development. Not yet published to PyPI.
+
 ## Overview
 
 django-matt consolidates features from multiple packages into one cohesive library:
@@ -9,138 +11,71 @@ django-matt consolidates features from multiple packages into one cohesive libra
 | Package | Feature | django-matt Module |
 |---------|---------|-------------------|
 | django-ninja | Core routing, OpenAPI | `django_matt.core` |
-| django-ninja-extra | Class controllers, permissions, DI | `django_matt.core.controller` |
+| django-ninja-extra | Class controllers, permissions, DI, throttling | `django_matt.core.controller` |
 | django-ninja-jwt | JWT authentication | `django_matt.auth` |
 | ninja-schema | ModelSchema for Django ORM | `django_matt.core.schema` |
 | django-ninja-crud | Composable CRUD views | `django_matt.views` |
 
-## Tooling Standards
+## Tooling Standards (2026)
 
-- **Python**: 3.13 with uv package manager
-- **Frontend**: bun package manager
+### Python
+- **Minimum**: Python 3.11
+- **Default**: Python 3.13
+- **Package Manager**: [uv](https://github.com/astral-sh/uv) (fast, Rust-based)
+- **Linter/Formatter**: [Ruff](https://github.com/astral-sh/ruff) (replaces flake8, black, isort)
+- **Type Checking**: pyright or mypy
+
+### Frontend
+- **Package Manager**: [Bun](https://bun.sh) (default), with npm/yarn/pnpm support
+- **Runtime**: Bun or Node.js 20+
+
+### Infrastructure
 - **Containers**: Docker + Docker Compose
+- **CI/CD**: GitHub Actions
+- **Testing**: pytest + pytest-django + pytest-asyncio
 
 ---
 
-## Stage 1: Core Framework (Replace Django Ninja)
+## Stage 1: Core Framework (Replace Django Ninja) ✅
 
-### Phase 0: Core Enhancements
+### Phase 1A: Core Enhancements
 
-- [x] **0A** - OpenAPI schema generation + Swagger/ReDoc docs
-  - Create `django_matt/openapi/` package
-  - Add schema builder, docs views
-  - Integrate with router
+- [x] **1A.1** - OpenAPI schema generation + Swagger/ReDoc docs
+- [x] **1A.2** - Enhanced ModelSchema with model_validator
+- [x] **1A.3** - Composable CRUD views
+- [x] **1A.4** - Permission classes and RBAC decorators
 
-- [x] **0B** - Enhanced ModelSchema with model_validator
-  - Add `model_validator` decorator (from ninja-schema)
-  - Add `from_orm()` method
-  - Add `apply_to_model()` method
-  - Support `include`, `exclude`, `optional`, `depth` config
+### Phase 1B: Authentication System
 
-- [x] **0C** - Composable CRUD views
-  - Create `django_matt/views/` package
-  - Add `ListView`, `CreateView`, `ReadView`, `UpdateView`, `DeleteView`
-  - Add `APIViewSet` for grouping views
-  - Support default request/response body inference
-
-- [x] **0D** - Permission classes and RBAC decorators
-  - Create `django_matt/permissions/` package
-  - Add `IsAuthenticated`, `IsAdmin`, `AllowAny`
-  - Add custom permission base class
-  - Integrate with controllers
-
-### Phase 1: Authentication System
-
-- [x] **1A** - JWT authentication backend
-  - Create `django_matt/auth/` package
-  - Implement access/refresh token generation
-  - Add token validation and refresh flow
-  - Settings-based configuration
-
-- [x] **1B** - Auth decorators and middleware
-  - Add `@jwt_required`, `@jwt_optional` decorators
-  - Add `@with_roles`, `@with_permission` decorators
-  - Create JWT auth middleware
-  - Integrate with controllers
-
-- [x] **1B+** - RBAC with hierarchy support
-  - Role definitions with permission inheritance
-  - Priority-based role hierarchy
-  - `@requires_role_hierarchy` decorator
-  - Settings-based RBAC configuration
-
-- [x] **1C** - Magic link passwordless authentication
-  - Add magic link token generation
-  - Email-based verification flow
-  - Token expiration handling
-
-- [x] **1D** - Auth controllers
-  - Build `/auth/login` endpoint
-  - Build `/auth/register` endpoint
-  - Build `/auth/refresh` endpoint
-  - Build `/auth/logout` endpoint
-  - Build `/auth/me` endpoint
-
-- [x] **1E** - Multi-tenant support (B2B)
-  - Add Organization model
-  - Add Team model
-  - Add Membership model with roles
-  - Add Invitation model
-  - Add tenant context middleware
+- [x] **1B.1** - JWT authentication backend
+- [x] **1B.2** - Auth decorators and middleware
+- [x] **1B.3** - RBAC with hierarchy support
+- [x] **1B.4** - Magic link passwordless authentication
+- [x] **1B.5** - Auth controllers (login, register, refresh, logout, me)
+- [x] **1B.6** - Multi-tenant support (B2B)
 
 ---
 
-## Stage 2: Developer Experience
+## Stage 2: Developer Experience ✅
 
-### Phase 2: Type Synchronization
+### Phase 2A: Type Synchronization
 
-- [x] **2A** - TypeScript generator
-  - Create `django_matt/typegen/` package
-  - Pydantic schema to TypeScript interface
-  - Django model to TypeScript interface
-  - Generate Zod validation schemas
-  - Generate typed API client
+- [x] **2A.1** - TypeScript generator (interfaces, Zod schemas, API client)
+- [x] **2A.2** - Swift generator (Codable structs, URLSession client)
+- [x] **2A.3** - sync_types CLI command
 
-- [x] **2B** - Swift generator
-  - Pydantic schema to Swift Codable struct
-  - Generate URLSession-based API client
+### Phase 2B: CLI Tools
 
-- [x] **2C** - sync_types CLI command
-  - Create `sync_types` management command
-  - Support `--target typescript` and `--target swift`
-  - Support `--output` directory
-  - Support `--watch` mode for development
+- [x] **2B.1** - Enhanced startapi command (templates, auth options, frontend)
+- [x] **2B.2** - CRUD generator CLI
 
-### Phase 3: CLI Tools
+### Phase 2C: Testing Infrastructure
 
-- [x] **3A** - Enhanced startapi command
-  - Add `--template` option (starter, b2b, b2c)
-  - Add `--auth` option (jwt, magic-link, oauth)
-  - Add `--frontend` option (none, react-vite, swift)
-  - Add `--docker` option
-  - Generate Makefile
-
-- [x] **3B** - CRUD generator CLI
-  - Create `generate_crud` management command
-  - Generate Pydantic schemas from Django models
-  - Generate async controllers with CRUD operations
-  - Generate ViewSets with composable views
-  - Generate pytest-based test files
-  - Support `--permissions`, `--pagination`, `--soft-delete`
-  - Support `--dry-run` mode for preview
-
-### Phase 4: Testing Infrastructure
-
-- [x] **4A** - Test utilities
-  - Create `django_matt/testing/` package
-  - Add `APITestClient` with auth helpers
-  - Add base factory classes
-  - Add pytest fixtures
-  - Add custom assertions
+- [x] **2C.1** - Test utilities (APITestClient, factories, fixtures)
 
 ---
 
-## Stage 3: Template Repositories (Separate Repos)
+## Stage 3: Template Repositories ✅
 
 - [x] **django-api-starter** - Minimal API with JWT, uv, Docker
 - [x] **react-vite-starter** - Minimal React Vite with bun, TanStack Router
@@ -151,72 +86,152 @@ django-matt consolidates features from multiple packages into one cohesive libra
 
 ---
 
-## Stage 4: Advanced Features
+## Stage 4: Advanced Features ✅
 
-- [x] OAuth providers (Google, GitHub, Apple, Microsoft)
-  - Create `django_matt/auth/oauth/` package
-  - Add Google, GitHub, Apple, Microsoft providers
-  - Add OAuthConnection model for storing provider links
-  - Add OAuthController with full endpoint support
-  - Support both redirect and SPA flows
+### Phase 4A: Authentication Providers
 
-- [x] Enterprise SSO (SAML 2.0 and OIDC)
-  - Create `django_matt/auth/sso/` package
-  - Add SAML 2.0 provider (python3-saml)
-  - Add OIDC provider with PKCE and discovery
-  - Add per-organization SSO configuration
-  - Add SSOConnection and SSOUserLink models
-  - Support Okta, Azure AD, Google Workspace, Auth0, OneLogin
+- [x] **4A.1** - OAuth providers (Google, GitHub, Apple, Microsoft)
+- [x] **4A.2** - Enterprise SSO (SAML 2.0 and OIDC)
+- [x] **4A.3** - Passkeys/WebAuthn support
 
-- [x] Passkeys/WebAuthn support
-  - Create `django_matt/auth/passkeys/` package
-  - Add WebAuthn registration and authentication
-  - Add passkey credential storage models
-  - Add Pydantic schemas for flows
-  - Add ready-to-use controllers
+### Phase 4B: Business Features
 
-- [x] Subscriptions/billing (B2C)
-  - Create `django_matt/billing/` package
-  - Add provider abstraction layer (BillingProvider)
-  - Add Stripe provider (full API support)
-  - Add PayPal provider (subscriptions, webhooks)
-  - Add Polar provider (Merchant of Record)
-  - Add Django models (Subscription, Invoice, etc.)
-  - Add Pydantic schemas for API
-  - Add BillingController and WebhookController
+- [x] **4B.1** - Subscriptions/billing (Stripe, PayPal, Polar)
+- [x] **4B.2** - Content negotiation (JSON, XML, CSV, YAML, MessagePack)
+- [x] **4B.3** - Real-time WebSocket support
 
-- [x] Content negotiation
-  - Create `django_matt/negotiation/` package
-  - Add renderers: JSON, XML, CSV, YAML, MessagePack, HTML
-  - Add parsers for request body parsing
-  - Add ContentNegotiator with Accept header, query param, suffix support
-  - Add ContentNegotiationMiddleware
-  - Add decorators: @renders, @render_as, @content_negotiated
+### Phase 4C: Performance
 
-- [x] Real-time WebSocket support
-  - Create `django_matt/websockets/` package
-  - Add consumer base classes (BaseConsumer, JsonConsumer, RoomConsumer)
-  - Add JWT and session authentication middleware
-  - Add room/group management with presence tracking
-  - Add WebSocketRouter for URL routing
-  - Add Pydantic schemas for messages
+- [x] **4C.1** - Distributed caching with Redis
+- [x] **4C.2** - Query optimization utilities (N+1 detection)
+- [x] **4C.3** - Performance suggestion system
 
-### Phase 4B: Performance Enhancements (Complete)
+---
 
-- [x] Distributed caching support
-  - Add `DistributedCacheManager` with Redis cluster support
-  - Add cache stampede prevention with locking
-  - Add bulk operations (get_many, set_many, delete_many)
-  - Add atomic increment/decrement operations
-- [x] Query optimization utilities
-  - Add `QueryAnalyzer` for N+1 detection
-  - Add `optimize_queryset()` helper function
-  - Add prefetch/select_related suggestions
-  - Add `QueryLoggingMiddleware`
-- [x] Performance suggestion system
-  - Add `PerformanceSuggester` class
-  - Add runtime analysis and recommendations
-  - Add dependency checks (orjson, msgpack, etc.)
+## Stage 5: Missing django-ninja-extra Features
+
+### Phase 5A: Throttling & Rate Limiting
+- [ ] **5A.1** - Throttle classes
+  - `AnonRateThrottle` - Rate limit anonymous users
+  - `UserRateThrottle` - Rate limit authenticated users
+  - `ScopedRateThrottle` - Different limits per endpoint
+- [ ] **5A.2** - Throttle backends
+  - In-memory (development)
+  - Redis (production)
+  - Custom backend support
+- [ ] **5A.3** - Decorators and middleware
+  - `@throttle(rate="100/hour")`
+  - Global throttle middleware
+  - Per-controller throttle settings
+
+### Phase 5B: API Versioning
+- [ ] **5B.1** - Versioning schemes
+  - URL path versioning (`/api/v1/`, `/api/v2/`)
+  - Header versioning (`Accept: application/vnd.api+json;version=1`)
+  - Query parameter versioning (`?version=1`)
+- [ ] **5B.2** - Version routing
+  - Automatic version detection
+  - Version-specific controllers
+  - Deprecation warnings
+
+### Phase 5C: Pagination & Filtering
+- [ ] **5C.1** - Pagination classes
+  - `PageNumberPagination`
+  - `LimitOffsetPagination`
+  - `CursorPagination`
+- [ ] **5C.2** - Filtering
+  - Query parameter filters
+  - Django ORM filter integration
+  - Custom filter backends
+- [ ] **5C.3** - Ordering/Sorting
+  - `?ordering=created_at,-name`
+  - Allowed fields configuration
+- [ ] **5C.4** - Search
+  - Full-text search integration
+  - Elasticsearch/Meilisearch support
+
+### Phase 5D: Dependency Injection
+- [ ] **5D.1** - DI container
+  - Service registration
+  - Scoped/singleton/transient lifetimes
+  - Auto-injection in controllers
+- [ ] **5D.2** - Built-in dependencies
+  - Request context
+  - Current user
+  - Current organization (multi-tenant)
+
+---
+
+## Stage 6: Additional Features
+
+### Phase 6A: File Handling
+- [ ] **6A.1** - File uploads
+  - Multipart form handling
+  - Size/type validation
+  - Async upload support
+- [ ] **6A.2** - Storage backends
+  - Local filesystem
+  - AWS S3 / Cloudflare R2
+  - Pre-signed URLs
+
+### Phase 6B: Background Tasks
+- [ ] **6B.1** - Task queue integration
+  - Celery support
+  - Dramatiq support
+  - Django-Q2 support
+- [ ] **6B.2** - Task decorators
+  - `@background_task`
+  - Retry policies
+  - Task scheduling
+
+### Phase 6C: Audit & Logging
+- [ ] **6C.1** - Audit logging
+  - Model change tracking
+  - User action logging
+  - IP/User-Agent tracking
+- [ ] **6C.2** - Soft delete
+  - `SoftDeleteMixin` for models
+  - Automatic filtering of deleted records
+  - Restore functionality
+
+### Phase 6D: Additional Auth
+- [ ] **6D.1** - API Key authentication
+  - Key generation and rotation
+  - Scoped permissions per key
+  - Rate limiting per key
+- [ ] **6D.2** - Session authentication
+  - Cookie-based sessions
+  - CSRF protection
+  - Session management endpoints
+
+---
+
+## Stage 7: Future Compatibility
+
+### Phase 7A: Django 6.0 Support
+- [ ] **7A.1** - Django 6.0 compatibility testing
+- [ ] **7A.2** - Update deprecated APIs
+- [ ] **7A.3** - CI/CD matrix testing (Django 5.2, 6.0)
+
+### Phase 7B: Python Version Support
+- [ ] **7B.1** - Python 3.11 minimum support
+- [ ] **7B.2** - Python 3.13 as default
+- [ ] **7B.3** - Python 3.14 readiness
+
+### Phase 7C: Modern Tooling
+- [ ] **7C.1** - uv package manager (all templates)
+- [ ] **7C.2** - Ruff linter/formatter
+- [ ] **7C.3** - Full type annotations (pyright strict)
+
+### Phase 7D: Documentation (Internal)
+- [ ] **7D.1** - MkDocs setup
+- [ ] **7D.2** - Core documentation
+- [ ] **7D.3** - API reference
+
+### Phase 7E: CI/CD
+- [ ] **7E.1** - GitHub Actions pipelines
+- [ ] **7E.2** - Template repository workflows
+- [ ] **7E.3** - Security scanning
 
 ---
 
@@ -224,7 +239,7 @@ django-matt consolidates features from multiple packages into one cohesive libra
 
 ```toml
 [project]
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "django>=5.2",
     "pydantic>=2.0.0",
@@ -238,14 +253,26 @@ oauth = ["authlib>=1.3.0"]
 passkeys = ["webauthn>=2.1.0"]
 typegen = ["jinja2>=3.1.0"]
 testing = ["factory-boy>=3.3.0", "faker>=24.0.0", "pytest>=8.0.0", "pytest-django>=4.8.0", "httpx>=0.27.0"]
-all = ["django-matt[full,auth,oauth,passkeys,typegen,testing]"]
+files = ["boto3>=1.34.0", "python-multipart>=0.0.9"]
+tasks = ["celery>=5.4.0", "redis>=5.0.0"]
+all = ["django-matt[full,auth,oauth,passkeys,typegen,testing,files,tasks]"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC"]
+
+[tool.uv]
+python = "3.13"
 ```
 
 ---
 
 ## Reference Projects
 
-- [django-ninja-extra](https://github.com/eadwinCode/django-ninja-extra) - Class controllers, permissions
+- [django-ninja-extra](https://github.com/eadwinCode/django-ninja-extra) - Class controllers, permissions, throttling
 - [django-ninja-jwt](https://github.com/eadwinCode/django-ninja-jwt) - JWT auth
 - [ninja-schema](https://github.com/eadwinCode/ninja-schema) - ModelSchema
 - [django-ninja-crud](https://github.com/hbakri/django-ninja-crud) - Composable CRUD views
