@@ -550,6 +550,221 @@ python = "3.13"
 
 ---
 
+## Stage 9: Deployment & DevOps
+
+> Goal: Easy deployment to popular cloud platforms with minimal configuration.
+
+### Phase 9A: Deployment CLI
+- [ ] **9A.1** - `deploy` management command
+  - Platform detection and configuration
+  - Environment variable management
+  - Database migration handling
+  - Static file collection
+- [ ] **9A.2** - Dockerfile generation
+  - Production-optimized Dockerfile
+  - Multi-stage builds
+  - Health check endpoints
+- [ ] **9A.3** - Docker Compose templates
+  - Development compose file
+  - Production compose with Nginx/Traefik
+
+### Phase 9B: Platform Providers
+- [ ] **9B.1** - Fly.io support
+  - `fly.toml` generation
+  - `python manage.py deploy --platform fly`
+  - Automatic secrets management
+  - PostgreSQL provisioning
+- [ ] **9B.2** - Railway support
+  - `railway.json` generation
+  - Environment sync
+  - Database provisioning
+- [ ] **9B.3** - Render support
+  - `render.yaml` generation
+  - Blueprint templates
+  - Managed PostgreSQL setup
+- [ ] **9B.4** - Digital Ocean App Platform
+  - `.do/app.yaml` generation
+  - Droplet deployment scripts
+  - Managed database integration
+- [ ] **9B.5** - AWS support
+  - ECS Fargate deployment
+  - Lambda + API Gateway (serverless)
+  - RDS PostgreSQL setup
+  - CloudFormation/CDK templates
+- [ ] **9B.6** - PlanetScale support
+  - Connection configuration
+  - Branch-based workflows
+  - Migration handling for serverless MySQL
+- [ ] **9B.7** - Hetzner support
+  - Hetzner Cloud server provisioning
+  - `hcloud` CLI integration
+  - Floating IP configuration
+  - Hetzner managed PostgreSQL
+  - Cost-effective EU hosting option
+
+### Phase 9C: Self-Hosted Options
+- [ ] **9C.1** - VPS deployment scripts
+  - Ubuntu/Debian setup scripts
+  - Nginx + Gunicorn/Uvicorn configuration
+  - SSL via Let's Encrypt (certbot)
+  - Systemd service files
+- [ ] **9C.2** - Docker self-hosted
+  - `docker-compose.prod.yml` with Traefik
+  - Automatic SSL with Traefik
+  - Redis + PostgreSQL containers
+  - Backup scripts
+- [ ] **9C.3** - Kubernetes self-hosted
+  - Helm chart generation
+  - K3s lightweight cluster support
+  - Ingress configuration
+  - Horizontal pod autoscaling
+
+### Phase 9D: Multi-Environment Configuration
+- [ ] **9D.1** - Environment structure
+  - `config/environments/development.py`
+  - `config/environments/production.py`
+  - `config/environments/staging.py` (optional)
+  - `config/environments/base.py` (shared settings)
+- [ ] **9D.2** - Environment CLI
+  - `python manage.py config init --environments dev,staging,prod`
+  - `python manage.py config switch staging`
+  - Auto-detect environment from `DJANGO_ENV` variable
+- [ ] **9D.3** - Environment-specific features
+  - Debug toolbar (dev only)
+  - Sentry/error tracking (staging/prod)
+  - Database connection pooling (prod)
+  - Cache backends per environment
+  - Logging levels per environment
+- [ ] **9D.4** - Environment templates
+  - `.env.development.example`
+  - `.env.staging.example`
+  - `.env.production.example`
+  - Validation of required vars per environment
+
+### Phase 9E: Production Utilities
+- [ ] **9E.1** - Health check endpoints
+  - `/health` - Basic liveness check
+  - `/health/ready` - Readiness with DB/cache checks
+  - `/health/live` - Kubernetes liveness probe
+- [ ] **9E.2** - Environment management
+  - Secrets loading from platform vaults
+  - Environment validation on startup
+  - Missing config warnings
+
+---
+
+## Stage 10: Machine Learning & AI
+
+> Goal: First-class ML/AI support for modern Django applications.
+
+### Phase 10A: ML Utilities
+- [ ] **10A.1** - Model serving utilities
+  - `MLModel` base class for inference
+  - Async inference support
+  - Batch prediction endpoints
+- [ ] **10A.2** - Vector storage integration
+  - pgvector utilities (already started in `db/`)
+  - Pinecone integration
+  - Weaviate integration
+  - Qdrant integration
+- [ ] **10A.3** - Embedding utilities
+  - OpenAI embeddings helper
+  - Sentence transformers integration
+  - Caching for embeddings
+
+### Phase 10B: LLM Integration (Cloud Providers)
+- [ ] **10B.1** - LLM client utilities
+  - OpenAI client wrapper
+  - Anthropic client wrapper
+  - Google Gemini client wrapper
+  - Unified interface for multiple providers
+- [ ] **10B.2** - RAG (Retrieval Augmented Generation)
+  - Document chunking utilities
+  - Vector search + LLM pipelines
+  - Conversation memory
+- [ ] **10B.3** - Structured output
+  - Pydantic model extraction from LLM responses
+  - JSON mode helpers
+  - Validation and retry logic
+
+### Phase 10C: Self-Hosted LLMs
+- [ ] **10C.1** - Ollama integration
+  - Ollama client wrapper
+  - Model management (pull, list, delete)
+  - Streaming responses
+  - Embeddings via Ollama
+- [ ] **10C.2** - vLLM integration
+  - vLLM server client
+  - OpenAI-compatible API support
+  - Batch inference
+- [ ] **10C.3** - llama.cpp integration
+  - Direct llama-cpp-python bindings
+  - GGUF model loading
+  - Quantization options
+- [ ] **10C.4** - LocalAI integration
+  - LocalAI client wrapper
+  - Drop-in OpenAI replacement
+  - Multiple model backends
+- [ ] **10C.5** - Self-hosted infrastructure
+  - Docker Compose for local LLM stack
+  - GPU passthrough configuration
+  - Model download/caching utilities
+  - Health checks for LLM services
+
+### Phase 10D: AI IDE Integration
+- [ ] **10D.1** - Context file generation
+  - Auto-generate `.cursorrules` / `CLAUDE.md`
+  - Project structure documentation
+  - API endpoint documentation for AI assistants
+- [ ] **10D.2** - Code generation prompts
+  - Model-to-code prompts
+  - Schema documentation for AI
+  - Example generation
+
+---
+
+## Stage 11: Frontend Integrations
+
+> Goal: Seamless integration with modern frontend frameworks.
+
+### Phase 11A: HTMX Integration
+- [ ] **11A.1** - HTMX view helpers
+  - `@htmx_view` decorator
+  - Partial template rendering
+  - Out-of-band swaps support
+- [ ] **11A.2** - HTMX response utilities
+  - `HtmxResponse` with triggers
+  - Push URL, redirect helpers
+  - Retarget/reswap utilities
+- [ ] **11A.3** - Component library
+  - Infinite scroll
+  - Search with debounce
+  - Modal dialogs
+  - Toast notifications
+
+### Phase 11B: InertiaJS Integration
+- [ ] **11B.1** - Inertia middleware
+  - Asset version handling
+  - Partial reload support
+- [ ] **11B.2** - Inertia responses
+  - `inertia()` response helper
+  - Shared data (auth, flash messages)
+  - Lazy loading props
+- [ ] **11B.3** - SSR support
+  - Node.js SSR server
+  - Vite integration
+
+### Phase 11C: Livewire-style Reactivity
+- [ ] **11C.1** - Reactive components
+  - Python component classes
+  - State management
+  - Action handling
+- [ ] **11C.2** - Real-time updates
+  - WebSocket integration
+  - Optimistic UI updates
+
+---
+
 ## Reference Projects
 
 - [django-ninja-extra](https://github.com/eadwinCode/django-ninja-extra) - Class controllers, permissions, throttling
