@@ -98,6 +98,13 @@ django_matt/
 - Factories: `UserFactory`, `OrganizationFactory`, `TeamFactory`
 - Assertions: `assert_status()`, `assert_json_equal()`, `assert_created()`
 
+### Billing (`django_matt.billing`)
+- `BillingController` - Full REST API for billing operations
+- `WebhookController` - Handles webhooks from all providers
+- Providers: `StripeProvider`, `PayPalProvider`, `PolarProvider`
+- Models: `BillingCustomer`, `Subscription`, `Invoice`, `BillingProduct`, `BillingPrice`
+- `get_provider()` - Factory function for provider instances
+
 ## CLI Commands
 
 ```bash
@@ -161,12 +168,12 @@ python manage.py runserver_hot
 | PostgreSQL + pgvector | Done | `db/` |
 | Testing utilities | Done | `testing/` |
 | CRUD generator CLI | Done | `management/commands/generate_crud.py` |
+| Billing (Stripe, PayPal, Polar) | Done | `billing/` |
 
 ### In Progress / Next Up
 
 | Feature | Priority | Notes |
 |---------|----------|-------|
-| Subscriptions/billing (B2C) | High | Stripe integration |
 | Content negotiation | Medium | Multiple response formats |
 | Real-time WebSockets | Medium | Beyond hot-reload |
 | HTMX integration | Low | View helpers |
@@ -280,6 +287,37 @@ print(analysis["suggestions"])  # Shows what's missing
 
 # Enable query logging middleware for N+1 detection
 # Add 'django_matt.utils.QueryLoggingMiddleware' to MIDDLEWARE
+```
+
+### Billing / Subscriptions
+
+```python
+from django_matt.billing import get_provider, BillingController, WebhookController
+
+# Register controllers
+api.register_controller(BillingController, prefix="/billing")
+api.register_controller(WebhookController, prefix="/billing/webhooks")
+
+# Or use providers directly
+provider = get_provider("stripe")  # or "paypal" or "polar"
+
+# Create checkout session
+checkout = await provider.create_checkout_session(
+    price_id="price_xxx",
+    success_url="https://example.com/success",
+    cancel_url="https://example.com/cancel",
+    customer_email="user@example.com",
+)
+
+# Manage subscriptions
+subscription = await provider.get_subscription("sub_xxx")
+await provider.cancel_subscription("sub_xxx", cancel_at_period_end=True)
+
+# Create billing portal for customer self-service (Stripe/Polar)
+portal_url = await provider.create_billing_portal_session(
+    customer_id="cus_xxx",
+    return_url="https://example.com/account",
+)
 ```
 
 ### Distributed Caching

@@ -105,6 +105,21 @@ except ImportError:
     with_permission = create_token_pair = _auth_not_available
     JWTAuthenticationMiddleware = None
 
+# Import billing module (lazy import to handle optional dependencies)
+# Users should import from django_matt.billing for full billing functionality
+try:
+    from django_matt.billing import (
+        BillingController,
+        WebhookController,
+        get_provider,
+        get_billing_config,
+    )
+    _billing_available = True
+except ImportError:
+    _billing_available = False
+    BillingController = WebhookController = None
+    get_provider = get_billing_config = None
+
 # Create a default API instance
 api = MattAPI()
 
@@ -188,4 +203,9 @@ __all__ = [
     "with_permission",
     "create_token_pair",
     "JWTAuthenticationMiddleware",
+    # Billing (requires stripe/httpx - install with django-matt[billing])
+    "BillingController",
+    "WebhookController",
+    "get_provider",
+    "get_billing_config",
 ]

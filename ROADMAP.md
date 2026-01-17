@@ -174,7 +174,17 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - Add passkey credential storage models
   - Add Pydantic schemas for flows
   - Add ready-to-use controllers
-- [ ] Subscriptions/billing (B2C)
+
+- [x] Subscriptions/billing (B2C)
+  - Create `django_matt/billing/` package
+  - Add provider abstraction layer (BillingProvider)
+  - Add Stripe provider (full API support)
+  - Add PayPal provider (subscriptions, webhooks)
+  - Add Polar provider (Merchant of Record)
+  - Add Django models (Subscription, Invoice, etc.)
+  - Add Pydantic schemas for API
+  - Add BillingController and WebhookController
+
 - [ ] Real-time WebSocket support
 
 ### Phase 4B: Performance Enhancements (Complete)
