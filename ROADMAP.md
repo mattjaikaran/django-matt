@@ -765,6 +765,196 @@ python = "3.13"
 
 ---
 
+## Stage 12: Backend-Served Component System
+
+> Goal: Serve UI components from the backend that render in any frontend framework, with built-in validation, theming, and customization. Inspired by FastUI, but framework-agnostic.
+
+### Phase 12A: Component Definition System
+- [ ] **12A.1** - Component schema DSL
+  - Pydantic models for component definitions
+  - Props, slots, events, validation rules
+  - JSON-serializable component trees
+  ```python
+  from django_matt.components import Form, TextField, EmailField, SubmitButton
+
+  login_form = Form(
+      id="login",
+      fields=[
+          EmailField(name="email", label="Email", required=True),
+          TextField(name="password", type="password", label="Password", required=True),
+      ],
+      submit=SubmitButton(label="Sign In"),
+      action="/api/auth/login",
+  )
+  ```
+- [ ] **12A.2** - Component registry
+  - Register custom components
+  - Extend built-in components
+  - Component versioning
+- [ ] **12A.3** - Validation integration
+  - Pydantic validation rules → frontend validation
+  - Server-side validation feedback
+  - Real-time validation via WebSocket
+
+### Phase 12B: Pre-built Component Library
+- [ ] **12B.1** - Authentication components
+  - `LoginForm` - Email/password with validation
+  - `RegisterForm` - Registration with password strength
+  - `ForgotPasswordForm` - Password reset flow
+  - `MagicLinkForm` - Passwordless login
+  - `OAuthButtons` - Social login buttons
+  - `PasskeyPrompt` - WebAuthn registration/login
+- [ ] **12B.2** - CRUD components
+  - `DataTable` - Sortable, filterable, paginated table
+  - `DetailView` - Model detail display
+  - `CreateForm` / `EditForm` - Auto-generated from schema
+  - `DeleteConfirm` - Confirmation dialog
+  - `SearchInput` - Debounced search with suggestions
+- [ ] **12B.3** - Layout components
+  - `Modal` / `Dialog` / `Drawer`
+  - `Tabs` / `Accordion`
+  - `Card` / `Panel`
+  - `Alert` / `Toast` / `Banner`
+  - `Pagination` / `InfiniteScroll`
+- [ ] **12B.4** - Input components
+  - Text, Number, Email, Password, URL
+  - Select, MultiSelect, Combobox
+  - Checkbox, Radio, Switch
+  - DatePicker, TimePicker, DateRangePicker
+  - FileUpload, ImageUpload
+  - RichTextEditor, MarkdownEditor
+
+### Phase 12C: Theming & Design System Integration
+- [ ] **12C.1** - Theme configuration
+  - CSS variables / design tokens
+  - Color schemes (light/dark mode)
+  - Typography, spacing, borders
+  ```python
+  theme = Theme(
+      primary="#3B82F6",
+      secondary="#10B981",
+      font_family="Inter, sans-serif",
+      border_radius="0.5rem",
+  )
+  ```
+- [ ] **12C.2** - Design system adapters
+  - shadcn/ui adapter (default)
+  - Tailwind CSS adapter
+  - Material UI adapter
+  - Chakra UI adapter
+  - Headless (unstyled) adapter
+- [ ] **12C.3** - Custom styling
+  - Class name overrides per component
+  - Style prop support
+  - CSS-in-JS compatible output
+
+### Phase 12D: Framework Renderers
+- [ ] **12D.1** - Web Components renderer (universal)
+  - Custom elements from component definitions
+  - Shadow DOM encapsulation
+  - Works with any framework or vanilla JS
+  - `<matt-login-form theme="dark"></matt-login-form>`
+- [ ] **12D.2** - React renderer
+  - Component tree → React JSX
+  - Hooks for state management
+  - React Query integration for data fetching
+- [ ] **12D.3** - Vue renderer
+  - Component tree → Vue SFCs
+  - Composition API support
+- [ ] **12D.4** - Svelte renderer
+  - Component tree → Svelte components
+  - Svelte 5 runes support
+- [ ] **12D.5** - Vanilla JS renderer
+  - Pure DOM manipulation
+  - No framework dependencies
+  - Progressive enhancement friendly
+
+### Phase 12E: Component Serving & API
+- [ ] **12E.1** - Component endpoints
+  - `GET /api/components/{name}` - Get component definition
+  - `GET /api/components/{name}/render` - Get rendered HTML/JSON
+  - `POST /api/components/{name}/validate` - Validate form data
+  - `POST /api/components/{name}/submit` - Handle form submission
+- [ ] **12E.2** - Component embedding
+  - Django template tags: `{% matt_component "login_form" %}`
+  - Script tag injection for SPAs
+  - iframe embedding option
+- [ ] **12E.3** - Component streaming
+  - Server-sent events for updates
+  - Partial component updates
+  - Optimistic UI patterns
+
+### Phase 12F: Developer Experience
+- [ ] **12F.1** - Component playground
+  - Live preview of components
+  - Props editor
+  - Theme switcher
+  - Code export (React, Vue, Svelte, HTML)
+- [ ] **12F.2** - CLI tools
+  - `python manage.py components list` - List available components
+  - `python manage.py components preview` - Launch playground
+  - `python manage.py components export --framework react` - Export to framework
+- [ ] **12F.3** - Documentation generation
+  - Auto-generate component docs
+  - Props table, examples, variants
+  - Storybook-compatible export
+
+### Example Usage
+
+```python
+# views.py
+from django_matt.components import serve_component, LoginForm, DataTable
+from django_matt.components.themes import ShadcnTheme
+
+@api.get("/components/login")
+def get_login_component(request):
+    return serve_component(
+        LoginForm(
+            action="/api/auth/login",
+            oauth_providers=["google", "github"],
+            show_magic_link=True,
+            show_passkeys=True,
+        ),
+        theme=ShadcnTheme(mode="dark"),
+        renderer="react",  # or "web-component", "vue", "svelte", "html"
+    )
+
+@api.get("/components/users-table")
+def get_users_table(request):
+    return serve_component(
+        DataTable(
+            model=User,
+            columns=["email", "name", "created_at", "is_active"],
+            sortable=True,
+            filterable=True,
+            actions=["edit", "delete"],
+        ),
+        theme=ShadcnTheme(),
+    )
+```
+
+```html
+<!-- In your frontend (any framework) -->
+<script src="/api/components/matt-components.js"></script>
+<matt-login-form
+  api-url="/api/auth/login"
+  theme="dark"
+  show-oauth="google,github">
+</matt-login-form>
+```
+
+```tsx
+// Or in React
+import { useComponent } from '@django-matt/react'
+
+function LoginPage() {
+  const LoginForm = useComponent('login')
+  return <LoginForm onSuccess={() => navigate('/dashboard')} />
+}
+```
+
+---
+
 ## Reference Projects
 
 - [django-ninja-extra](https://github.com/eadwinCode/django-ninja-extra) - Class controllers, permissions, throttling
