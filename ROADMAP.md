@@ -196,15 +196,21 @@ django-matt consolidates features from multiple packages into one cohesive libra
 
 ## Stage 6: Additional Features
 
-### Phase 6A: File Handling
-- [ ] **6A.1** - File uploads
-  - Multipart form handling
-  - Size/type validation
-  - Async upload support
-- [ ] **6A.2** - Storage backends
-  - Local filesystem
-  - AWS S3 / Cloudflare R2 / MinIO / Digital Ocean Spaces
-  - Pre-signed URLs
+### Phase 6A: File Handling ✅
+- [x] **6A.1** - File uploads
+  - `UploadedFile` class with streaming support
+  - `MultipartParser` for manual parsing
+  - `FileValidator` with size, type, and extension validation
+  - Pre-built validators: `images()`, `documents()`, `videos()`, `audio()`
+  - Async upload support throughout
+- [x] **6A.2** - Storage backends
+  - `LocalStorage` - Local filesystem with signed URL simulation
+  - `S3Storage` - AWS S3 with full async support
+  - `R2Storage` - Cloudflare R2
+  - `MinIOStorage` - Self-hosted MinIO
+  - `DOSpacesStorage` - DigitalOcean Spaces
+  - Pre-signed upload/download URLs for all backends
+  - `get_storage()` factory with settings-based configuration
 
 ### Phase 6B: Background Tasks
 - [ ] **6B.1** - Task queue integration
