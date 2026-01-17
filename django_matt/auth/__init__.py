@@ -167,6 +167,31 @@ from django_matt.auth.sso import (
     get_provider_for_connection,
 )
 
+# API Keys
+from django_matt.auth.api_keys import (
+    APIKeyConfig,
+    api_key_config,
+    APIKey,
+    APIKeyUsage,
+    PLAN_RATE_LIMITS,
+    generate_api_key,
+    hash_api_key,
+    get_api_key_from_request,
+    create_api_key,
+    acreate_api_key,
+    rotate_api_key,
+    arotate_api_key,
+    api_key_required,
+    api_key_optional,
+    requires_scope,
+    requires_live_key,
+    requires_plan,
+    APIKeyAuthenticationMiddleware,
+    APIKeyRateLimitMiddleware,
+    APIKeyUsageTrackingMiddleware,
+    APIKeyController,
+)
+
 # Schemas
 from django_matt.auth.schemas import (
     TokenPayload,
@@ -322,4 +347,26 @@ __all__ = [
     "APIKeyCreatedResponse",
     "MessageResponse",
     "ErrorResponse",
+    # API Keys (new module)
+    "APIKeyConfig",
+    "api_key_config",
+    "APIKey",
+    "APIKeyUsage",
+    "PLAN_RATE_LIMITS",
+    "generate_api_key",
+    "hash_api_key",
+    "get_api_key_from_request",
+    "create_api_key",
+    "acreate_api_key",
+    "rotate_api_key",
+    "arotate_api_key",
+    "api_key_required",
+    "api_key_optional",
+    "requires_scope",
+    "requires_live_key",
+    "requires_plan",
+    "APIKeyAuthenticationMiddleware",
+    "APIKeyRateLimitMiddleware",
+    "APIKeyUsageTrackingMiddleware",
+    "APIKeyController",
 ]

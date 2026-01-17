@@ -190,7 +190,7 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - Async upload support
 - [ ] **6A.2** - Storage backends
   - Local filesystem
-  - AWS S3 / Cloudflare R2
+  - AWS S3 / Cloudflare R2 / MinIO / Digital Ocean Spaces
   - Pre-signed URLs
 
 ### Phase 6B: Background Tasks
@@ -214,10 +214,16 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - Restore functionality
 
 ### Phase 6D: Additional Auth
-- [ ] **6D.1** - API Key authentication
-  - Key generation and rotation
-  - Scoped permissions per key
-  - Rate limiting per key
+- [x] **6D.1** - API Key authentication ✅
+  - `APIKey` model with live/test keys (like Stripe's `sk_live_` / `sk_test_`)
+  - `APIKeyUsage` model for hourly usage tracking and analytics
+  - Key generation, rotation, and secure hashing
+  - Scoped permissions (`requires_scope("write:posts")`)
+  - Plan-based rate limiting (free/starter/pro/enterprise tiers)
+  - IP allowlisting per key
+  - Decorators: `@api_key_required`, `@api_key_optional`, `@requires_scope`, `@requires_live_key`, `@requires_plan`
+  - Middleware: `APIKeyAuthenticationMiddleware`, `APIKeyRateLimitMiddleware`, `APIKeyUsageTrackingMiddleware`
+  - `APIKeyController` - Full CRUD, rotation, usage analytics, data export
 - [ ] **6D.2** - Session authentication
   - Cookie-based sessions
   - CSRF protection
