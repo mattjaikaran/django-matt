@@ -142,12 +142,12 @@ django-matt consolidates features from multiple packages into one cohesive libra
 
 ## Stage 3: Template Repositories (Separate Repos)
 
-- [ ] **django-api-starter** - Minimal API with JWT, uv, Docker
-- [ ] **react-vite-starter** - Minimal React Vite with bun
-- [ ] **django-api-b2b** - Organizations, teams, roles
-- [ ] **react-vite-b2b** - Org switcher, team management UI
-- [ ] **fullstack-b2b** - Monorepo with Docker orchestration
-- [ ] **swift-ios-starter** - SwiftUI + generated API client
+- [x] **django-api-starter** - Minimal API with JWT, uv, Docker
+- [x] **react-vite-starter** - Minimal React Vite with bun, TanStack Router
+- [x] **django-api-b2b** - Organizations, teams, roles
+- [x] **react-vite-b2b** - Org switcher, team management UI, TanStack Router
+- [x] **fullstack-b2b** - Monorepo with Docker orchestration
+- [x] **swift-ios-starter** - SwiftUI + generated API client (iOS 26)
 
 ---
 
