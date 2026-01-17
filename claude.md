@@ -112,6 +112,13 @@ django_matt/
 - Decorators: `@renders()`, `@render_as()`, `@content_negotiated`, `@with_template()`
 - `negotiate()`, `render()`, `render_format()` - Direct negotiation functions
 
+### WebSockets (`django_matt.websockets`)
+- Consumers: `BaseConsumer`, `JsonConsumer`, `AuthenticatedConsumer`, `RoomConsumer`
+- Auth: `JWTAuthMiddleware`, `SessionAuthMiddleware`, `AuthMiddlewareStack`
+- Groups: `broadcast()`, `send_to_user()`, `PresenceManager`
+- Routing: `WebSocketRouter`, `create_asgi_application()`
+- Schemas: `ChatMessage`, `NotificationMessage`, `PresenceMessage`, etc.
+
 ## CLI Commands
 
 ```bash

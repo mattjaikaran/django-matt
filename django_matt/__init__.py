@@ -132,6 +132,31 @@ from django_matt.negotiation import (
     negotiate,
 )
 
+# Import WebSocket module (lazy import to handle optional channels dependency)
+# Users should import from django_matt.websockets for full WebSocket functionality
+try:
+    from django_matt.websockets import (
+        BaseConsumer,
+        JsonConsumer,
+        AuthenticatedConsumer,
+        RoomConsumer,
+        JWTAuthMiddleware,
+        SessionAuthMiddleware,
+        AuthMiddlewareStack,
+        WebSocketRouter,
+        create_asgi_application,
+        broadcast,
+        send_to_user,
+        PresenceManager,
+    )
+    _websockets_available = True
+except ImportError:
+    _websockets_available = False
+    BaseConsumer = JsonConsumer = AuthenticatedConsumer = RoomConsumer = None
+    JWTAuthMiddleware = SessionAuthMiddleware = AuthMiddlewareStack = None
+    WebSocketRouter = create_asgi_application = None
+    broadcast = send_to_user = PresenceManager = None
+
 # Create a default API instance
 api = MattAPI()
 
@@ -229,4 +254,17 @@ __all__ = [
     "render",
     "render_format",
     "negotiate",
+    # WebSockets (requires channels - install with pip install channels channels-redis)
+    "BaseConsumer",
+    "JsonConsumer",
+    "AuthenticatedConsumer",
+    "RoomConsumer",
+    "JWTAuthMiddleware",
+    "SessionAuthMiddleware",
+    "AuthMiddlewareStack",
+    "WebSocketRouter",
+    "create_asgi_application",
+    "broadcast",
+    "send_to_user",
+    "PresenceManager",
 ]

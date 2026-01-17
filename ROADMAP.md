@@ -193,7 +193,13 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - Add ContentNegotiationMiddleware
   - Add decorators: @renders, @render_as, @content_negotiated
 
-- [ ] Real-time WebSocket support
+- [x] Real-time WebSocket support
+  - Create `django_matt/websockets/` package
+  - Add consumer base classes (BaseConsumer, JsonConsumer, RoomConsumer)
+  - Add JWT and session authentication middleware
+  - Add room/group management with presence tracking
+  - Add WebSocketRouter for URL routing
+  - Add Pydantic schemas for messages
 
 ### Phase 4B: Performance Enhancements (Complete)
 
