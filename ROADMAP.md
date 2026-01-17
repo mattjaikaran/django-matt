@@ -15,6 +15,8 @@ django-matt consolidates features from multiple packages into one cohesive libra
 | django-ninja-jwt | JWT authentication | `django_matt.auth` |
 | ninja-schema | ModelSchema for Django ORM | `django_matt.core.schema` |
 | django-ninja-crud | Composable CRUD views | `django_matt.views` |
+| (built-in) | Rate limiting & throttling | `django_matt.throttling` |
+| (built-in) | API versioning | `django_matt.versioning` |
 
 ## Tooling Standards (2026)
 
@@ -110,29 +112,41 @@ django-matt consolidates features from multiple packages into one cohesive libra
 
 ## Stage 5: Missing django-ninja-extra Features
 
-### Phase 5A: Throttling & Rate Limiting
-- [ ] **5A.1** - Throttle classes
+### Phase 5A: Throttling & Rate Limiting ✅
+- [x] **5A.1** - Throttle classes
   - `AnonRateThrottle` - Rate limit anonymous users
   - `UserRateThrottle` - Rate limit authenticated users
   - `ScopedRateThrottle` - Different limits per endpoint
-- [ ] **5A.2** - Throttle backends
+  - `BurstRateThrottle` - Short-term burst + sustained limits
+- [x] **5A.2** - Throttle backends
   - In-memory (development)
   - Redis (production)
+  - Django cache backend
   - Custom backend support
-- [ ] **5A.3** - Decorators and middleware
+- [x] **5A.3** - Decorators and middleware
   - `@throttle(rate="100/hour")`
-  - Global throttle middleware
-  - Per-controller throttle settings
+  - `@throttle_anon()` / `@throttle_user()`
+  - `ThrottleMiddleware` - Global throttling
+  - `PathSpecificThrottleMiddleware` - Path-based rates
+  - `ThrottlesMixin` - For class-based views
 
-### Phase 5B: API Versioning
-- [ ] **5B.1** - Versioning schemes
-  - URL path versioning (`/api/v1/`, `/api/v2/`)
-  - Header versioning (`Accept: application/vnd.api+json;version=1`)
-  - Query parameter versioning (`?version=1`)
-- [ ] **5B.2** - Version routing
-  - Automatic version detection
-  - Version-specific controllers
-  - Deprecation warnings
+### Phase 5B: API Versioning ✅
+- [x] **5B.1** - Versioning schemes
+  - `URLPathVersioning` - `/api/v1/`, `/api/v2/`
+  - `HeaderVersioning` - `X-API-Version: 2`
+  - `AcceptHeaderVersioning` - `Accept: application/json; version=2`
+  - `QueryParameterVersioning` - `?version=1`
+  - `HostNameVersioning` - `v1.api.example.com`
+  - `NamespaceVersioning` - URL namespace-based
+- [x] **5B.2** - Version routing
+  - `VersioningMiddleware` - Automatic version detection
+  - `VersionedRouter` - Version-specific endpoint groups
+  - `VersionedAPI` - Multi-version API management
+- [x] **5B.3** - Version decorators
+  - `@version("1", "2")` - Specify supported versions
+  - `@deprecated()` - Mark endpoints as deprecated
+  - `@min_version()` / `@max_version()` - Version constraints
+  - `VersionedMixin` - For class-based views
 
 ### Phase 5C: Pagination & Filtering
 - [ ] **5C.1** - Pagination classes
