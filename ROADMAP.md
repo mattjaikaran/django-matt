@@ -111,7 +111,7 @@ django-matt consolidates features from multiple packages into one cohesive libra
 
 ---
 
-## Stage 5: Missing django-ninja-extra Features
+## Stage 5: Missing django-ninja-extra Features ✅
 
 ### Phase 5A: Throttling & Rate Limiting ✅
 - [x] **5A.1** - Throttle classes
@@ -169,15 +169,28 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - `ElasticsearchEngine` - Elasticsearch integration
   - `MeilisearchEngine` - Meilisearch integration
 
-### Phase 5D: Dependency Injection
-- [ ] **5D.1** - DI container
-  - Service registration
-  - Scoped/singleton/transient lifetimes
-  - Auto-injection in controllers
-- [ ] **5D.2** - Built-in dependencies
-  - Request context
-  - Current user
-  - Current organization (multi-tenant)
+### Phase 5D: Dependency Injection ✅
+- [x] **5D.1** - DI container
+  - `Container` class with service registration
+  - `Singleton`, `Scoped`, `Transient` lifetimes
+  - Auto-injection in controllers via type hints
+  - `@injectable`, `@inject`, `@provides` decorators
+  - `Depends()` marker for explicit dependencies
+  - Circular dependency detection
+  - Factory function support
+- [x] **5D.2** - Built-in dependencies
+  - `CurrentRequest` - HTTP request access
+  - `CurrentUser` - Authenticated user (with optional flag)
+  - `CurrentOrg` / `CurrentTenant` - Multi-tenant organization
+  - `DBSession` - Database connection
+  - `Settings` - Django settings access
+  - `Cache` - Cache backend access
+  - `Logger` - Logging instance
+  - `Query`, `Header`, `Path` - Request parameter extraction
+- [x] **5D.3** - Middleware
+  - `DependencyInjectionMiddleware` - Request scope management
+  - `RequestScopeMiddleware` - Lightweight scope-only middleware
+  - Async variants for both middleware
 
 ---
 

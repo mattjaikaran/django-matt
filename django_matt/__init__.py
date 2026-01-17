@@ -157,6 +157,22 @@ from django_matt.filtering import (
     PostgresSearchBackend,
 )
 
+# Import dependency injection module
+from django_matt.di import (
+    Container,
+    container,
+    Singleton,
+    Scoped,
+    Transient,
+    Depends,
+    CurrentUser,
+    CurrentRequest,
+    CurrentOrg,
+    injectable,
+    inject,
+    DependencyInjectionMiddleware,
+)
+
 # Import WebSocket module (lazy import to handle optional channels dependency)
 # Users should import from django_matt.websockets for full WebSocket functionality
 try:
@@ -311,4 +327,17 @@ __all__ = [
     "DateTimeFilter",
     "InFilter",
     "PostgresSearchBackend",
+    # Dependency Injection
+    "Container",
+    "container",
+    "Singleton",
+    "Scoped",
+    "Transient",
+    "Depends",
+    "CurrentUser",
+    "CurrentRequest",
+    "CurrentOrg",
+    "injectable",
+    "inject",
+    "DependencyInjectionMiddleware",
 ]
