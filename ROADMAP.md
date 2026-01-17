@@ -149,21 +149,25 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - `@min_version()` / `@max_version()` - Version constraints
   - `VersionedMixin` - For class-based views
 
-### Phase 5C: Pagination & Filtering
-- [ ] **5C.1** - Pagination classes
-  - `PageNumberPagination`
-  - `LimitOffsetPagination`
-  - `CursorPagination`
-- [ ] **5C.2** - Filtering
-  - Query parameter filters
-  - Django ORM filter integration
-  - Custom filter backends
-- [ ] **5C.3** - Ordering/Sorting
-  - `?ordering=created_at,-name`
-  - Allowed fields configuration
-- [ ] **5C.4** - Search
-  - Full-text search integration
-  - Elasticsearch/Meilisearch support
+### Phase 5C: Pagination & Filtering ✅
+- [x] **5C.1** - Pagination classes
+  - `PageNumberPagination` - Standard page/page_size pagination
+  - `LimitOffsetPagination` - Offset-based pagination
+  - `CursorPagination` - Efficient cursor-based pagination for large datasets
+- [x] **5C.2** - Filtering
+  - `FilterSet` - Declarative filter definitions
+  - `DjangoFilterBackend` - Query parameter filters with ORM lookups
+  - Filter classes: `CharFilter`, `IntegerFilter`, `BooleanFilter`, `DateFilter`, etc.
+  - `InFilter`, `RangeFilter`, `MultipleChoiceFilter` for complex queries
+- [x] **5C.3** - Ordering/Sorting
+  - `OrderingBackend` - `?ordering=created_at,-name`
+  - `ordering_fields` configuration for allowed fields
+  - Default ordering support
+- [x] **5C.4** - Search
+  - `SearchBackend` - Basic search with field prefixes (`^`, `=`, `@`)
+  - `PostgresSearchBackend` - Full-text search with SearchVector/SearchRank
+  - `ElasticsearchEngine` - Elasticsearch integration
+  - `MeilisearchEngine` - Meilisearch integration
 
 ### Phase 5D: Dependency Injection
 - [ ] **5D.1** - DI container

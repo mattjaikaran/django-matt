@@ -132,6 +132,31 @@ from django_matt.negotiation import (
     negotiate,
 )
 
+# Import pagination module
+from django_matt.pagination import (
+    BasePagination,
+    PageNumberPagination,
+    LimitOffsetPagination,
+    CursorPagination,
+)
+
+# Import filtering module
+from django_matt.filtering import (
+    BaseFilterBackend,
+    DjangoFilterBackend,
+    SearchBackend,
+    OrderingBackend,
+    FilterSet,
+    Filter,
+    CharFilter,
+    IntegerFilter,
+    BooleanFilter,
+    DateFilter,
+    DateTimeFilter,
+    InFilter,
+    PostgresSearchBackend,
+)
+
 # Import WebSocket module (lazy import to handle optional channels dependency)
 # Users should import from django_matt.websockets for full WebSocket functionality
 try:
@@ -267,4 +292,23 @@ __all__ = [
     "broadcast",
     "send_to_user",
     "PresenceManager",
+    # Pagination
+    "BasePagination",
+    "PageNumberPagination",
+    "LimitOffsetPagination",
+    "CursorPagination",
+    # Filtering
+    "BaseFilterBackend",
+    "DjangoFilterBackend",
+    "SearchBackend",
+    "OrderingBackend",
+    "FilterSet",
+    "Filter",
+    "CharFilter",
+    "IntegerFilter",
+    "BooleanFilter",
+    "DateFilter",
+    "DateTimeFilter",
+    "InFilter",
+    "PostgresSearchBackend",
 ]
