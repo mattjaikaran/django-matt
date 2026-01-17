@@ -208,10 +208,14 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - Model change tracking
   - User action logging
   - IP/User-Agent tracking
-- [ ] **6C.2** - Soft delete
-  - `SoftDeleteMixin` for models
-  - Automatic filtering of deleted records
-  - Restore functionality
+- [x] **6C.2** - Soft delete ✅
+  - `SoftDeleteMixin` for models with `deleted_at` field
+  - `SoftDeleteWithUserMixin` for tracking who deleted records
+  - `SoftDeleteManager` with auto-filtering (excludes deleted by default)
+  - `SoftDeleteQuerySet` for chainable operations (`delete()`, `hard_delete()`, `restore()`)
+  - `with_deleted()` and `deleted_only()` query methods
+  - Cascade soft delete/restore utilities
+  - Async support (`adelete`, `arestore`, `ahard_delete`)
 
 ### Phase 6D: Additional Auth
 - [x] **6D.1** - API Key authentication ✅

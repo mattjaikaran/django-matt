@@ -12,6 +12,16 @@ from django.db import connection, connections
 from django.db.models import ExpressionWrapper, F, Func, Q, Value
 from django.db.models.functions import Cast, Coalesce
 
+# Import soft delete support
+from .soft_delete import (
+    SoftDeleteMixin,
+    SoftDeleteWithUserMixin,
+    SoftDeleteManager,
+    SoftDeleteQuerySet,
+    soft_delete_cascade,
+    restore_cascade,
+)
+
 # Import PostgreSQL support if available
 try:
     from .postgres import (
@@ -162,6 +172,13 @@ __all__ = [
     # PostgreSQL support
     "HAS_POSTGRES",
     "HAS_PGVECTOR",
+    # Soft delete
+    "SoftDeleteMixin",
+    "SoftDeleteWithUserMixin",
+    "SoftDeleteManager",
+    "SoftDeleteQuerySet",
+    "soft_delete_cascade",
+    "restore_cascade",
 ]
 
 # Add PostgreSQL-specific exports if available
