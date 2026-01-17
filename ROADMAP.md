@@ -17,6 +17,7 @@ django-matt consolidates features from multiple packages into one cohesive libra
 | django-ninja-crud | Composable CRUD views | `django_matt.views` |
 | (built-in) | Rate limiting & throttling | `django_matt.throttling` |
 | (built-in) | API versioning | `django_matt.versioning` |
+| (built-in) | Frontend codegen (React, Svelte, Solid) | `django_matt.codegen` |
 
 ## Tooling Standards (2026)
 
@@ -273,12 +274,143 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - Migrate existing code to Django hashers
   - Maintain backward compatibility with existing hashes
 
-### Phase 8C: Replace Jinja2 for Type Generation
-- [ ] **8C.1** - Built-in template engine for codegen
-  - Simple string-based templating
-  - Or use Django's template engine
-  - TypeScript/Swift template rendering
-- [ ] **8C.2** - Remove jinja2 dependency from typegen
+### Phase 8C: Universal Frontend Codegen Engine
+
+> Replace Jinja2 with a powerful multi-framework code generation system.
+> Generate full components, not just types.
+
+#### 8C.1 - Core Codegen Infrastructure
+- [ ] **8C.1.1** - AST-based code generation primitives
+  - Language-agnostic intermediate representation
+  - Pretty printing with configurable formatting
+  - Import management and deduplication
+- [ ] **8C.1.2** - Model introspection system
+  - Extract fields, types, relationships from Django models
+  - Map Django fields to frontend types
+  - Handle validators and constraints
+- [ ] **8C.1.3** - Template registry and plugin system
+  - Register generators per framework
+  - Customizable templates per project
+  - Override defaults easily
+
+#### 8C.2 - React Generator (Primary)
+- [ ] **8C.2.1** - TypeScript types and Zod schemas
+  - Interfaces from Django models
+  - Zod validation schemas
+  - API response types
+- [ ] **8C.2.2** - React Query / TanStack Query hooks
+  - `useUsers()`, `useUser(id)`, `useCreateUser()`
+  - Optimistic updates
+  - Infinite scroll queries
+- [ ] **8C.2.3** - Form components (shadcn/ui default)
+  - `<UserForm />` with validation
+  - Field components based on model field types
+  - react-hook-form integration
+- [ ] **8C.2.4** - List/Table components
+  - `<UserList />` with pagination
+  - `<UserTable />` with sorting, filtering
+  - shadcn/ui DataTable integration
+- [ ] **8C.2.5** - Detail/Show components
+  - `<UserDetail />` display component
+  - Loading and error states
+
+#### 8C.3 - Svelte Generator (Secondary)
+- [ ] **8C.3.1** - TypeScript types
+  - Same type generation as React
+- [ ] **8C.3.2** - Svelte stores and queries
+  - Writable stores for state
+  - TanStack Query Svelte or custom fetch
+- [ ] **8C.3.3** - Svelte components
+  - `UserForm.svelte`
+  - `UserList.svelte`
+  - `UserDetail.svelte`
+- [ ] **8C.3.4** - Svelte 5 runes support
+  - `$state`, `$derived`, `$effect`
+  - Modern Svelte patterns
+
+#### 8C.4 - SolidJS Generator (Tertiary)
+- [ ] **8C.4.1** - TypeScript types
+  - Same type generation
+- [ ] **8C.4.2** - Solid primitives
+  - `createSignal`, `createResource`
+  - `createStore` for complex state
+- [ ] **8C.4.3** - Solid components
+  - `UserForm.tsx` (Solid JSX)
+  - `UserList.tsx`
+  - `UserDetail.tsx`
+
+#### 8C.5 - CLI and Integration
+- [ ] **8C.5.1** - Enhanced `sync_types` command
+  ```bash
+  python manage.py sync_types --framework react --output ./src/generated
+  python manage.py sync_types --framework svelte --output ./src/lib/generated
+  python manage.py sync_types --framework solid --output ./src/generated
+  ```
+- [ ] **8C.5.2** - Watch mode for development
+  - Auto-regenerate on model changes
+  - HMR-friendly output
+- [ ] **8C.5.3** - Config file support
+  ```python
+  # django_matt_codegen.py
+  CODEGEN = {
+      "framework": "react",
+      "ui_library": "shadcn",  # or "tailwind", "headless", "none"
+      "output_dir": "./frontend/src/generated",
+      "models": ["users.User", "posts.Post"],
+  }
+  ```
+
+#### Generated Output Example (React + shadcn)
+
+```tsx
+// generated/users/types.ts
+export interface User {
+  id: number
+  email: string
+  firstName: string
+  lastName: string
+  createdAt: string
+}
+
+export const userSchema = z.object({
+  email: z.string().email(),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+})
+
+// generated/users/hooks.ts
+export function useUsers(params?: UserListParams) {
+  return useQuery({
+    queryKey: ['users', params],
+    queryFn: () => api.users.list(params),
+  })
+}
+
+export function useCreateUser() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: api.users.create,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  })
+}
+
+// generated/users/components/UserForm.tsx
+export function UserForm({ onSuccess }: UserFormProps) {
+  const form = useForm<UserInput>({ resolver: zodResolver(userSchema) })
+  const createUser = useCreateUser()
+
+  return (
+    <Form {...form}>
+      <FormField name="email" render={...} />
+      <FormField name="firstName" render={...} />
+      <FormField name="lastName" render={...} />
+      <Button type="submit" disabled={createUser.isPending}>
+        {createUser.isPending ? 'Creating...' : 'Create User'}
+      </Button>
+    </Form>
+  )
+}
+```
 
 ### Phase 8D: Replace factory-boy
 - [ ] **8D.1** - Built-in model factory system
@@ -306,10 +438,10 @@ django-matt consolidates features from multiple packages into one cohesive libra
 
 | Current Dep | Replacement | Complexity | Priority |
 |------------|-------------|------------|----------|
-| PyJWT | Built-in JWT | Medium | High |
+| PyJWT | Built-in JWT (symmetric + asymmetric) | Medium | High |
 | passlib | Django hashers | Low | High |
 | argon2-cffi | Django hashers | Low | High |
-| jinja2 | String templates | Low | Medium |
+| jinja2 | Universal Codegen Engine | High | High |
 | factory-boy | Built-in factories | Medium | Medium |
 | faker | Built-in generators | Medium | Low |
 | python-multipart | Built-in parser | High | Low |
