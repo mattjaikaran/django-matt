@@ -120,6 +120,18 @@ except ImportError:
     BillingController = WebhookController = None
     get_provider = get_billing_config = None
 
+# Import content negotiation module
+from django_matt.negotiation import (
+    ContentNegotiationMiddleware,
+    ContentNegotiator,
+    renders,
+    render_as,
+    content_negotiated,
+    render,
+    render_format,
+    negotiate,
+)
+
 # Create a default API instance
 api = MattAPI()
 
@@ -208,4 +220,13 @@ __all__ = [
     "WebhookController",
     "get_provider",
     "get_billing_config",
+    # Content negotiation
+    "ContentNegotiationMiddleware",
+    "ContentNegotiator",
+    "renders",
+    "render_as",
+    "content_negotiated",
+    "render",
+    "render_format",
+    "negotiate",
 ]

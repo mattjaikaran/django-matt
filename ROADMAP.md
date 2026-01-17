@@ -185,6 +185,14 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - Add Pydantic schemas for API
   - Add BillingController and WebhookController
 
+- [x] Content negotiation
+  - Create `django_matt/negotiation/` package
+  - Add renderers: JSON, XML, CSV, YAML, MessagePack, HTML
+  - Add parsers for request body parsing
+  - Add ContentNegotiator with Accept header, query param, suffix support
+  - Add ContentNegotiationMiddleware
+  - Add decorators: @renders, @render_as, @content_negotiated
+
 - [ ] Real-time WebSocket support
 
 ### Phase 4B: Performance Enhancements (Complete)

@@ -105,6 +105,13 @@ django_matt/
 - Models: `BillingCustomer`, `Subscription`, `Invoice`, `BillingProduct`, `BillingPrice`
 - `get_provider()` - Factory function for provider instances
 
+### Content Negotiation (`django_matt.negotiation`)
+- `ContentNegotiationMiddleware` - Automatic format negotiation
+- Renderers: `JSONRenderer`, `XMLRenderer`, `CSVRenderer`, `YAMLRenderer`, `MessagePackRenderer`, `HTMLRenderer`
+- Parsers: `JSONParser`, `XMLParser`, `YAMLParser`, `MessagePackParser`
+- Decorators: `@renders()`, `@render_as()`, `@content_negotiated`, `@with_template()`
+- `negotiate()`, `render()`, `render_format()` - Direct negotiation functions
+
 ## CLI Commands
 
 ```bash
@@ -169,12 +176,12 @@ python manage.py runserver_hot
 | Testing utilities | Done | `testing/` |
 | CRUD generator CLI | Done | `management/commands/generate_crud.py` |
 | Billing (Stripe, PayPal, Polar) | Done | `billing/` |
+| Content negotiation | Done | `negotiation/` |
 
 ### In Progress / Next Up
 
 | Feature | Priority | Notes |
 |---------|----------|-------|
-| Content negotiation | Medium | Multiple response formats |
 | Real-time WebSockets | Medium | Beyond hot-reload |
 | HTMX integration | Low | View helpers |
 
@@ -287,6 +294,44 @@ print(analysis["suggestions"])  # Shows what's missing
 
 # Enable query logging middleware for N+1 detection
 # Add 'django_matt.utils.QueryLoggingMiddleware' to MIDDLEWARE
+```
+
+### Content Negotiation
+
+```python
+from django_matt.negotiation import (
+    renders, render_as, content_negotiated, render, render_format,
+    ContentNegotiationMiddleware
+)
+
+# Add middleware for automatic negotiation
+MIDDLEWARE = [
+    ...
+    'django_matt.negotiation.ContentNegotiationMiddleware',
+]
+
+# Limit view to specific formats
+@api.get("/users")
+@renders("json", "xml", "csv")
+async def list_users(request):
+    return users  # Automatically rendered based on Accept header
+
+# Force specific format
+@api.get("/export")
+@render_as("csv")
+async def export_data(request):
+    return data  # Always returns CSV
+
+# Manual negotiation
+@api.get("/data")
+async def get_data(request):
+    data = {"users": users}
+    return render(request, data)  # Negotiates based on Accept header
+
+# Request formats via:
+# - Accept header: Accept: application/xml
+# - Query param: /users?format=xml
+# - URL suffix: /users.xml
 ```
 
 ### Billing / Subscriptions
