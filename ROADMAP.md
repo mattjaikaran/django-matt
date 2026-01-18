@@ -829,15 +829,16 @@ python = "3.13"
 - [ ] **10C.4** - LocalAI integration (future)
   - LocalAI client wrapper
 
-### Phase 10D: AI IDE Integration
-- [ ] **10D.1** - Context file generation
-  - Auto-generate `.cursorrules` / `CLAUDE.md`
-  - Project structure documentation
-  - API endpoint documentation for AI assistants
-- [ ] **10D.2** - Code generation prompts
-  - Model-to-code prompts
-  - Schema documentation for AI
-  - Example generation
+### Phase 10D: AI IDE Integration ✅
+- [x] **10D.1** - Context file generation
+  - `ClaudeMdGenerator` - auto-generates `CLAUDE.md`
+  - `CursorRulesGenerator` - auto-generates `.cursorrules`
+  - `ProjectIntrospector` - extracts models, views, URLs
+  - Project structure tree generation
+- [x] **10D.2** - Management command
+  - `python manage.py generate_ai_context`
+  - Options: `--output`, `--format`, `--dry-run`
+  - Supports: claude, cursor, or all formats
 
 ---
 
