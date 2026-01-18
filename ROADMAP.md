@@ -906,14 +906,30 @@ python = "3.13"
 | Streaming SSR | No | Yes |
 | Codegen integration | No | Yes |
 
-### Phase 11C: Livewire-style Reactivity
-- [ ] **11C.1** - Reactive components
-  - Python component classes
-  - State management
-  - Action handling
-- [ ] **11C.2** - Real-time updates
-  - WebSocket integration
-  - Optimistic UI updates
+### Phase 11C: Livewire-style Reactivity ✅
+- [x] **11C.1** - Reactive components
+  - `LiveComponent` base class with reactive state
+  - `ValidatedComponent` for forms with validation
+  - `@action`, `@computed`, `@watch` decorators
+  - Lifecycle hooks: `@on_mount`, `@on_hydrate`, `@on_dehydrate`
+  - Component registry for name-based lookup
+- [x] **11C.2** - State management
+  - `Snapshot` serialization with signed tokens
+  - `State` class with dirty tracking and diffing
+  - `StateManager` with memory/cache/database backends
+- [x] **11C.3** - Real-time updates
+  - `LivewireConsumer` for Django Channels WebSocket
+  - Connection manager for component subscriptions
+  - `broadcast_to()`, `broadcast_to_user()`, `broadcast_to_all()`
+- [x] **11C.4** - Client-side JavaScript
+  - `livewire.js` - handles wire: attribute bindings
+  - `wire:click`, `wire:submit`, `wire:model` support
+  - Debounced model updates, optimistic UI
+  - WebSocket mode for real-time updates
+- [x] **11C.5** - Template tags
+  - `{% livewire "component-name" prop=value %}`
+  - `{% livewire_scripts %}`, `{% livewire_styles %}`
+  - `{% wire_click %}`, `{% wire_model %}`, `{% wire_submit %}`
 
 ---
 
@@ -1038,20 +1054,23 @@ python = "3.13"
   - `create_from_dict(data)` - Create from dictionary
   - `create_from_json(json_str)` - Create from JSON string
 
-### Phase 12F: Developer Experience
-- [ ] **12F.1** - Component playground
-  - Live preview of components
-  - Props editor
-  - Theme switcher
-  - Code export (React, Vue, Svelte, HTML)
-- [ ] **12F.2** - CLI tools
-  - `python manage.py components list` - List available components
-  - `python manage.py components preview` - Launch playground
-  - `python manage.py components export --framework react` - Export to framework
-- [ ] **12F.3** - Documentation generation
-  - Auto-generate component docs
-  - Props table, examples, variants
-  - Storybook-compatible export
+### Phase 12F: Developer Experience ✅
+- [x] **12F.1** - Component playground
+  - `PlaygroundView` - Interactive web UI for testing
+  - Live props editor with type-aware inputs
+  - Theme switcher (light/dark, presets)
+  - Code export tabs (JSON, HTML, React)
+  - API endpoints for programmatic access
+- [x] **12F.2** - CLI tools
+  - `python manage.py components list` - List registered components
+  - `python manage.py components show <name>` - Show component details
+  - `python manage.py components preview <name>` - Preview output
+  - `python manage.py components export --framework react` - Export wrappers
+  - `python manage.py components docs` - Generate documentation
+- [x] **12F.3** - Documentation generation
+  - Markdown docs with props tables
+  - JSON schema export
+  - Per-component and index files
 
 ### Example Usage
 
