@@ -89,6 +89,13 @@ from django_matt.codegen.watcher import (
     get_module_file,
     reload_module,
 )
+from django_matt.codegen.config import (
+    CodegenConfig,
+    ModelConfig,
+    create_config_file,
+    find_project_root,
+    load_config,
+)
 
 __all__ = [
     # Core AST nodes
@@ -147,4 +154,10 @@ __all__ = [
     "HAS_WATCHDOG",
     "reload_module",
     "get_module_file",
+    # Configuration
+    "CodegenConfig",
+    "ModelConfig",
+    "load_config",
+    "create_config_file",
+    "find_project_root",
 ]

@@ -25,6 +25,15 @@ Usage:
 
     # Scan specific schema modules
     python manage.py sync_types --target typescript --modules myapp.schemas,otherapp.schemas
+
+    # Use config file (auto-discovers django_matt_codegen.py or pyproject.toml)
+    python manage.py sync_types --config
+
+    # Use specific config file
+    python manage.py sync_types --config path/to/config.py
+
+    # Use config with watch mode
+    python manage.py sync_types --config --watch
 """
 
 from __future__ import annotations
@@ -43,6 +52,14 @@ class Command(BaseCommand):
     help = "Generate TypeScript or Swift types from Pydantic schemas and Django models"
 
     def add_arguments(self, parser):
+        parser.add_argument(
+            "--config",
+            "-c",
+            nargs="?",
+            const=True,
+            default=False,
+            help="Use config file (django_matt_codegen.py or pyproject.toml). Optionally specify path.",
+        )
         parser.add_argument(
             "--target",
             "-t",
@@ -129,21 +146,61 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        target = options["target"]
-        output = options["output"]
-        apps = options["apps"]
-        modules = options["modules"]
-        include_models = options["models"]
-        watch = options["watch"]
-        watch_interval = options["watch_interval"]
-        watch_dirs = options["watch_dirs"]
-        debounce = options["debounce"]
-        force_polling = options["force_polling"]
-        clear_screen = options["clear_screen"]
-        camel_case = options["camel_case"]
-        base_url = options["base_url"]
-        include_react_query = options["include_react_query"]
-        include_swr = options["include_swr"]
+        config_option = options["config"]
+
+        # Load config if requested
+        if config_option:
+            config = self._load_config(config_option)
+            # Use config values as defaults, CLI options override
+            target = options["target"] if options["target"] != "typescript" else config.framework
+            output = options["output"] or config.output_dir
+            apps = options["apps"]  # CLI only
+            modules = options["modules"]  # CLI only
+            include_models = options["models"]
+            watch = options["watch"]
+            watch_interval = (
+                options["watch_interval"]
+                if options["watch_interval"] != 1.0
+                else config.poll_interval
+            )
+            watch_dirs = options["watch_dirs"] or (
+                ",".join(config.watch_dirs) if config.watch_dirs else None
+            )
+            debounce = (
+                options["debounce"] if options["debounce"] != 0.5 else config.debounce_delay
+            )
+            force_polling = options["force_polling"]
+            clear_screen = options["clear_screen"]
+            camel_case = options["camel_case"] or config.camel_case
+            base_url = options["base_url"] if options["base_url"] != "/api" else config.base_url
+            include_react_query = options["include_react_query"]
+            include_swr = options["include_swr"]
+
+            # Show config info
+            self.stdout.write(f"Using config: {config.framework} / {config.ui_library}")
+            self.stdout.write(f"Output: {output}")
+
+            # Derive modules from config models
+            if not apps and not modules and config.models:
+                model_configs = config.get_model_configs()
+                modules = ",".join(m.path.rsplit(".", 1)[0] for m in model_configs)
+                self.stdout.write(f"Scanning modules from config: {modules}")
+        else:
+            target = options["target"]
+            output = options["output"]
+            apps = options["apps"]
+            modules = options["modules"]
+            include_models = options["models"]
+            watch = options["watch"]
+            watch_interval = options["watch_interval"]
+            watch_dirs = options["watch_dirs"]
+            debounce = options["debounce"]
+            force_polling = options["force_polling"]
+            clear_screen = options["clear_screen"]
+            camel_case = options["camel_case"]
+            base_url = options["base_url"]
+            include_react_query = options["include_react_query"]
+            include_swr = options["include_swr"]
 
         # Normalize target
         if target == "ts":
@@ -456,6 +513,19 @@ class Command(BaseCommand):
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(code)
+
+    def _load_config(self, config_option: bool | str):
+        """Load configuration from file."""
+        from django_matt.codegen.config import load_config
+
+        if isinstance(config_option, str):
+            # Explicit config file path provided
+            config = load_config(config_file=config_option)
+        else:
+            # Auto-discover config
+            config = load_config()
+
+        return config
 
     def _watch_and_generate(
         self,

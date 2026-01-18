@@ -109,6 +109,75 @@ python manage.py sync_types --target typescript --modules myapp.schemas,otherapp
 python manage.py sync_types --target typescript --apps myapp --modules shared.types
 ```
 
+### Using Config File
+
+You can use a config file to store your code generation settings. Create one with `init_codegen`:
+
+```bash
+# Create default config file
+python manage.py init_codegen
+
+# Create with specific framework
+python manage.py init_codegen --framework svelte
+
+# Create with models from specific apps
+python manage.py init_codegen --apps users,posts
+
+# Add config to pyproject.toml instead
+python manage.py init_codegen --toml
+
+# Preview config without creating file
+python manage.py init_codegen --dry-run
+```
+
+Then use the config with sync_types:
+
+```bash
+# Use config file (auto-discovers django_matt_codegen.py or pyproject.toml)
+python manage.py sync_types --config
+
+# Use specific config file
+python manage.py sync_types --config path/to/custom_config.py
+
+# Use config with watch mode
+python manage.py sync_types --config --watch
+```
+
+Example `django_matt_codegen.py`:
+
+```python
+CODEGEN = {
+    "framework": "react",
+    "ui_library": "shadcn",
+    "output_dir": "./frontend/src/generated",
+    "models": [
+        "users.User",
+        {
+            "path": "posts.Post",
+            "exclude_fields": ["internal_notes"],
+            "generate_crud": True,
+        },
+    ],
+    "use_typescript": True,
+    "camel_case": True,
+    "generate_zod": True,
+    "base_url": "/api",
+}
+```
+
+Or in `pyproject.toml`:
+
+```toml
+[tool.django-matt.codegen]
+framework = "react"
+ui_library = "shadcn"
+output_dir = "./frontend/src/generated"
+models = ["users.User", "posts.Post"]
+use_typescript = true
+camel_case = true
+generate_zod = true
+```
+
 ## Watch Mode Details
 
 ### How It Works

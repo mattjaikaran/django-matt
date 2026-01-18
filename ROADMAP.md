@@ -490,16 +490,13 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - `DebouncedCallback` for handling rapid file changes
   - New options: `--watch-dirs`, `--debounce`, `--force-polling`, `--clear-screen`
   - Initial generation on watch start, statistics on exit
-- [ ] **8C.5.3** - Config file support (future)
-  ```python
-  # django_matt_codegen.py
-  CODEGEN = {
-      "framework": "react",
-      "ui_library": "shadcn",  # or "tailwind", "headless", "none"
-      "output_dir": "./frontend/src/generated",
-      "models": ["users.User", "posts.Post"],
-  }
-  ```
+- [x] **8C.5.3** - Config file support ✅
+  - `CodegenConfig` and `ModelConfig` dataclasses for configuration
+  - `load_config()` - auto-discovers from django_matt_codegen.py, Django settings, or pyproject.toml
+  - `create_config_file()` - generates config file template
+  - `init_codegen` management command to create config files
+  - Support for per-model configuration (exclude_fields, generate_crud, etc.)
+  - `sync_types --config` flag to use config file
 
 #### Generated Output Example (React + shadcn)
 
