@@ -6,6 +6,7 @@ suitable for chat apps, support systems, and in-app communication.
 """
 
 from django_matt.messaging.enums import (
+    AttachmentType,
     ConversationType,
     DeliveryStatus,
     MemberRole,
@@ -37,4 +38,5 @@ __all__ = [
     "MemberRole",
     "MessageType",
     "DeliveryStatus",
+    "AttachmentType",
 ]
