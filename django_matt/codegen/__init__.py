@@ -60,6 +60,23 @@ from django_matt.codegen.react import (
     generate_react_detail,
 )
 
+from django_matt.codegen.svelte import (
+    SvelteGenerator,
+    generate_svelte_stores,
+    generate_svelte5_stores,
+    generate_svelte_form,
+    generate_svelte_list,
+    generate_svelte_detail,
+)
+
+from django_matt.codegen.solid import (
+    SolidGenerator,
+    generate_solid_resource,
+    generate_solid_form,
+    generate_solid_list,
+    generate_solid_detail,
+)
+
 from django_matt.codegen.introspection import (
     ModelIntrospector,
     FieldInfo,
@@ -98,6 +115,19 @@ __all__ = [
     "generate_react_form",
     "generate_react_list",
     "generate_react_detail",
+    # Svelte generation
+    "SvelteGenerator",
+    "generate_svelte_stores",
+    "generate_svelte5_stores",
+    "generate_svelte_form",
+    "generate_svelte_list",
+    "generate_svelte_detail",
+    # SolidJS generation
+    "SolidGenerator",
+    "generate_solid_resource",
+    "generate_solid_form",
+    "generate_solid_list",
+    "generate_solid_detail",
     # Model introspection
     "ModelIntrospector",
     "FieldInfo",
