@@ -671,106 +671,102 @@ python = "3.13"
 
 ---
 
-## Stage 9: Deployment & DevOps
+## Stage 9: Deployment & DevOps ✅
 
 > Goal: Easy deployment to popular cloud platforms with minimal configuration.
 
-### Phase 9A: Deployment CLI
-- [ ] **9A.1** - `deploy` management command
+### Phase 9A: Deployment CLI ✅
+- [x] **9A.1** - `deploy` management command
   - Platform detection and configuration
   - Environment variable management
   - Database migration handling
   - Static file collection
-- [ ] **9A.2** - Dockerfile generation
+- [x] **9A.2** - Dockerfile generation
   - Production-optimized Dockerfile
   - Multi-stage builds
   - Health check endpoints
-- [ ] **9A.3** - Docker Compose templates
+- [x] **9A.3** - Docker Compose templates
   - Development compose file
-  - Production compose with Nginx/Traefik
+  - Production compose with Caddy/Nginx
 
-### Phase 9B: Platform Providers
-- [ ] **9B.1** - Fly.io support
+### Phase 9B: Platform Providers ✅
+- [x] **9B.1** - Fly.io support
   - `fly.toml` generation
   - `python manage.py deploy --platform fly`
   - Automatic secrets management
   - PostgreSQL provisioning
-- [ ] **9B.2** - Railway support
+- [x] **9B.2** - Railway support
   - `railway.json` generation
   - Environment sync
   - Database provisioning
-- [ ] **9B.3** - Render support
+- [x] **9B.3** - Render support
   - `render.yaml` generation
   - Blueprint templates
   - Managed PostgreSQL setup
-- [ ] **9B.4** - Digital Ocean App Platform
+- [x] **9B.4** - Digital Ocean App Platform
   - `.do/app.yaml` generation
-  - Droplet deployment scripts
+  - App Platform deployment
   - Managed database integration
-- [ ] **9B.5** - AWS support
+- [x] **9B.5** - AWS support
   - ECS Fargate deployment
-  - Lambda + API Gateway (serverless)
-  - RDS PostgreSQL setup
-  - CloudFormation/CDK templates
-- [ ] **9B.6** - PlanetScale support
+  - App Runner support
+  - ECR integration
+  - CloudWatch logging
+- [ ] **9B.6** - PlanetScale support (future)
   - Connection configuration
   - Branch-based workflows
   - Migration handling for serverless MySQL
-- [ ] **9B.7** - Hetzner support
+- [x] **9B.7** - Hetzner support
   - Hetzner Cloud server provisioning
   - `hcloud` CLI integration
-  - Floating IP configuration
-  - Hetzner managed PostgreSQL
-  - Cost-effective EU hosting option
+  - Docker Compose with Caddy SSL
+  - Self-hosted PostgreSQL/Redis
 
-### Phase 9C: Self-Hosted Options
-- [ ] **9C.1** - VPS deployment scripts
-  - Ubuntu/Debian setup scripts
-  - Nginx + Gunicorn/Uvicorn configuration
-  - SSL via Let's Encrypt (certbot)
-  - Systemd service files
-- [ ] **9C.2** - Docker self-hosted
-  - `docker-compose.prod.yml` with Traefik
-  - Automatic SSL with Traefik
+### Phase 9C: Self-Hosted Options ✅
+- [x] **9C.1** - Docker self-hosted
+  - `docker-compose.prod.yml` with Caddy/Nginx
+  - Automatic SSL with Caddy
   - Redis + PostgreSQL containers
-  - Backup scripts
-- [ ] **9C.3** - Kubernetes self-hosted
+  - Multi-service support (Celery workers)
+- [x] **9C.2** - DockerfileGenerator
+  - Production, development, multi-stage builds
+  - Health checks built-in
+  - Non-root user configuration
+- [ ] **9C.3** - Kubernetes self-hosted (future)
   - Helm chart generation
   - K3s lightweight cluster support
   - Ingress configuration
-  - Horizontal pod autoscaling
 
-### Phase 9D: Multi-Environment Configuration
-- [ ] **9D.1** - Environment structure
-  - `config/environments/development.py`
-  - `config/environments/production.py`
-  - `config/environments/staging.py` (optional)
-  - `config/environments/base.py` (shared settings)
-- [ ] **9D.2** - Environment CLI
-  - `python manage.py config init --environments dev,staging,prod`
-  - `python manage.py config switch staging`
-  - Auto-detect environment from `DJANGO_ENV` variable
-- [ ] **9D.3** - Environment-specific features
-  - Debug toolbar (dev only)
-  - Sentry/error tracking (staging/prod)
-  - Database connection pooling (prod)
+### Phase 9D: Multi-Environment Configuration ✅
+- [x] **9D.1** - Environment structure
+  - `EnvironmentConfig` for each environment
+  - Development, staging, production presets
+  - Custom environment support
+- [x] **9D.2** - Environment CLI
+  - `python manage.py deploy env init --domain example.com`
+  - `python manage.py deploy env list`
+  - `python manage.py deploy env validate`
+- [x] **9D.3** - Environment-specific features
+  - Debug settings per environment
+  - Security settings (SSL, HSTS, cookies)
   - Cache backends per environment
   - Logging levels per environment
-- [ ] **9D.4** - Environment templates
-  - `.env.development.example`
-  - `.env.staging.example`
-  - `.env.production.example`
-  - Validation of required vars per environment
+- [x] **9D.4** - Environment templates
+  - `.env.development` generation
+  - `.env.staging` generation
+  - `.env.production` generation
+  - Validation of settings per environment
 
-### Phase 9E: Production Utilities
-- [ ] **9E.1** - Health check endpoints
-  - `/health` - Basic liveness check
-  - `/health/ready` - Readiness with DB/cache checks
-  - `/health/live` - Kubernetes liveness probe
-- [ ] **9E.2** - Environment management
-  - Secrets loading from platform vaults
-  - Environment validation on startup
-  - Missing config warnings
+### Phase 9E: Production Utilities ✅
+- [x] **9E.1** - Health check endpoints
+  - `/health/` - Full health check (DB, cache, custom)
+  - `/ready/` - Kubernetes readiness probe
+  - `/live/` - Kubernetes liveness probe
+  - Custom health check decorator
+- [x] **9E.2** - Environment management
+  - `SecretManager` for secrets loading
+  - Environment validation
+  - `.env` file generation
 
 ---
 
