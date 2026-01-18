@@ -204,6 +204,7 @@ class APIKey(models.Model):
     objects = APIKeyManager()
 
     class Meta:
+        app_label = "django_matt"
         db_table = "django_matt_api_keys"
         verbose_name = "API Key"
         verbose_name_plural = "API Keys"
@@ -346,6 +347,7 @@ class APIKeyUsage(models.Model):
     )
 
     class Meta:
+        app_label = "django_matt"
         db_table = "django_matt_api_key_usage"
         verbose_name = "API Key Usage"
         verbose_name_plural = "API Key Usage"

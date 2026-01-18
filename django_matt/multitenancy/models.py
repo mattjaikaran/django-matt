@@ -115,6 +115,7 @@ class Organization(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
+        app_label = "django_matt"
         ordering = ["name"]
         verbose_name = "Organization"
         verbose_name_plural = "Organizations"
@@ -237,6 +238,7 @@ class Team(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
+        app_label = "django_matt"
         ordering = ["name"]
         verbose_name = "Team"
         verbose_name_plural = "Teams"
@@ -339,6 +341,7 @@ class Membership(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
+        app_label = "django_matt"
         ordering = ["-joined_at"]
         verbose_name = "Membership"
         verbose_name_plural = "Memberships"
@@ -419,6 +422,7 @@ class TeamMembership(models.Model):
     joined_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
+        app_label = "django_matt"
         ordering = ["-joined_at"]
         verbose_name = "Team Membership"
         verbose_name_plural = "Team Memberships"
@@ -514,6 +518,7 @@ class Invitation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
+        app_label = "django_matt"
         ordering = ["-created_at"]
         verbose_name = "Invitation"
         verbose_name_plural = "Invitations"

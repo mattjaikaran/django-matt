@@ -32,7 +32,11 @@ dependencies = [
     # Django 5.2: Python 3.10-3.13
     # Django 6.0: Python 3.12-3.14 (drops Python 3.10, 3.11)
     "django>=5.2.0",
+    "email-validator>=2.3.0",
     "pydantic>=2.0.0",
+    "pyyaml>=6.0.3",
+    "toml>=0.10.2",
+    "watchdog>=6.0.0",
 ]
 
 [project.optional-dependencies]

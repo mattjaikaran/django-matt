@@ -79,6 +79,7 @@ class OAuthConnection(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        app_label = "django_matt"
         db_table = "django_matt_oauth_connections"
         verbose_name = "OAuth Connection"
         verbose_name_plural = "OAuth Connections"

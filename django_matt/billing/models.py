@@ -47,6 +47,7 @@ class BillingCustomer(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        app_label = "django_matt"
         db_table = "billing_customer"
         verbose_name = "Billing Customer"
         verbose_name_plural = "Billing Customers"
@@ -99,6 +100,7 @@ class BillingProduct(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        app_label = "django_matt"
         db_table = "billing_product"
         verbose_name = "Billing Product"
         verbose_name_plural = "Billing Products"
@@ -165,6 +167,7 @@ class BillingPrice(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        app_label = "django_matt"
         db_table = "billing_price"
         verbose_name = "Billing Price"
         verbose_name_plural = "Billing Prices"
@@ -248,6 +251,7 @@ class Subscription(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        app_label = "django_matt"
         db_table = "billing_subscription"
         verbose_name = "Subscription"
         verbose_name_plural = "Subscriptions"
@@ -336,6 +340,7 @@ class Invoice(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        app_label = "django_matt"
         db_table = "billing_invoice"
         verbose_name = "Invoice"
         verbose_name_plural = "Invoices"
@@ -385,6 +390,7 @@ class WebhookEvent(models.Model):
     processed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
+        app_label = "django_matt"
         db_table = "billing_webhook_event"
         verbose_name = "Webhook Event"
         verbose_name_plural = "Webhook Events"
@@ -436,6 +442,7 @@ class UsageRecord(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        app_label = "django_matt"
         db_table = "billing_usage_record"
         verbose_name = "Usage Record"
         verbose_name_plural = "Usage Records"

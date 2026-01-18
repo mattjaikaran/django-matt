@@ -85,6 +85,7 @@ class PasskeyCredential(models.Model):
     last_used_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
+        app_label = "django_matt"
         db_table = "django_matt_passkey_credentials"
         verbose_name = "Passkey Credential"
         verbose_name_plural = "Passkey Credentials"
@@ -160,6 +161,7 @@ class PasskeyChallenge(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        app_label = "django_matt"
         db_table = "django_matt_passkey_challenges"
         verbose_name = "Passkey Challenge"
         verbose_name_plural = "Passkey Challenges"

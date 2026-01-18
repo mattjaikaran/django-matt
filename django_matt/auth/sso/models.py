@@ -195,6 +195,7 @@ class SSOConnection(models.Model):
     )
 
     class Meta:
+        app_label = "django_matt"
         db_table = "django_matt_sso_connections"
         verbose_name = "SSO Connection"
         verbose_name_plural = "SSO Connections"
@@ -283,6 +284,7 @@ class SSOUserLink(models.Model):
     last_login_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        app_label = "django_matt"
         db_table = "django_matt_sso_user_links"
         verbose_name = "SSO User Link"
         verbose_name_plural = "SSO User Links"

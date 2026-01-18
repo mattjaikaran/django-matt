@@ -153,6 +153,7 @@ class AuditLog(models.Model):
     objects = AuditLogManager()
 
     class Meta:
+        app_label = "django_matt"
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["content_type", "object_id"]),
