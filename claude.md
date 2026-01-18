@@ -174,18 +174,18 @@ python manage.py config generate --env production
 python manage.py sync_types --target typescript --output frontend/types
 python manage.py sync_types --target swift --watch
 
-# Generate CRUD from Django models
-python manage.py generate_crud myapp.MyModel
-python manage.py generate_crud myapp.MyModel --output-dir ./api
-python manage.py generate_crud myapp.MyModel --components all --with-tests
-python manage.py generate_crud myapp.MyModel --permissions IsAuthenticated --soft-delete
-python manage.py generate_crud myapp.MyModel --with-service  # Generate service layer
-python manage.py generate_crud myapp.MyModel --with-admin    # Generate Django Unfold admin
-python manage.py generate_crud myapp.MyModel --full          # All: controller, schema, service, admin, tests
-python manage.py generate_crud myapp.MyModel --dry-run       # Preview without writing
+# Development server (hot reload enabled by default)
+python manage.py runserver              # Hot reload enabled (default)
+python manage.py runserver --no-hot     # Standard Django behavior
+python manage.py runserver 8080         # Custom port with hot reload
 
-# Hot reload development server
-python manage.py runserver_hot
+# Generate CRUD from Django models (service layer included by default)
+python manage.py generate_crud myapp.MyModel              # Includes service layer by default
+python manage.py generate_crud myapp.MyModel --no-service # Skip service layer
+python manage.py generate_crud myapp.MyModel --with-admin # Add Django Unfold admin
+python manage.py generate_crud myapp.MyModel --full       # All: controller, schema, service, admin, tests
+python manage.py generate_crud myapp.MyModel --permissions IsAuthenticated --soft-delete
+python manage.py generate_crud myapp.MyModel --dry-run    # Preview without writing
 ```
 
 ## Development Progress
