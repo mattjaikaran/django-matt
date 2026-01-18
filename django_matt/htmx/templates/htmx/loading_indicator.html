@@ -1,0 +1,11 @@
+<div id="{{ id }}" class="htmx-indicator">
+    {% if spinner %}
+    <svg class="htmx-indicator-spinner" width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round">
+            <animate attributeName="stroke-dasharray" values="0 150;42 150;42 150;42 150" dur="1.5s" keyTimes="0;0.5;0.9;1" repeatCount="indefinite"/>
+            <animate attributeName="stroke-dashoffset" values="0;-16;-59;-59" dur="1.5s" keyTimes="0;0.5;0.9;1" repeatCount="indefinite"/>
+        </circle>
+    </svg>
+    {% endif %}
+    {% if text %}<span class="htmx-indicator-text">{{ text }}</span>{% endif %}
+</div>
