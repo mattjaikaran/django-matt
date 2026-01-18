@@ -357,6 +357,66 @@ class PermissionAPIError(APIError):
         )
 
 
+class AuthenticationAPIError(APIError):
+    """Error raised when authentication fails."""
+
+    def __init__(
+        self,
+        message: str = "Authentication required",
+        auth_type: str | None = None,
+        status_code: int = 401,
+        code: str = "authentication_required",
+        context: dict[str, Any] | None = None,
+        suggestion: str | None = None,
+    ):
+        context = context or {}
+        if auth_type:
+            context["auth_type"] = auth_type
+
+        super().__init__(
+            message=message,
+            status_code=status_code,
+            code=code,
+            context=context,
+            suggestion=suggestion or "Provide valid authentication credentials.",
+        )
+
+
+class RateLimitAPIError(APIError):
+    """Error raised when rate limit is exceeded."""
+
+    def __init__(
+        self,
+        message: str = "Rate limit exceeded",
+        retry_after: int | None = None,
+        limit: int | None = None,
+        remaining: int | None = None,
+        status_code: int = 429,
+        code: str = "rate_limit_exceeded",
+        context: dict[str, Any] | None = None,
+        suggestion: str | None = None,
+    ):
+        context = context or {}
+        if retry_after:
+            context["retry_after"] = retry_after
+        if limit:
+            context["limit"] = limit
+        if remaining is not None:
+            context["remaining"] = remaining
+
+        super().__init__(
+            message=message,
+            status_code=status_code,
+            code=code,
+            context=context,
+            suggestion=suggestion or f"Please wait {retry_after or 'some time'} seconds before retrying.",
+        )
+
+
+# Alias for backward compatibility
+PermissionDeniedAPIError = PermissionAPIError
+
+
 class ErrorMiddleware:
     """
     Middleware for handling exceptions in Django Matt.
