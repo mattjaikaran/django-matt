@@ -863,17 +863,46 @@ python = "3.13"
   - Modal dialogs
   - Toast notifications
 
-### Phase 11B: InertiaJS Integration
-- [ ] **11B.1** - Inertia middleware
-  - Asset version handling
-  - Partial reload support
-- [ ] **11B.2** - Inertia responses
-  - `inertia()` response helper
-  - Shared data (auth, flash messages)
-  - Lazy loading props
-- [ ] **11B.3** - SSR support
-  - Node.js SSR server
-  - Vite integration
+### Phase 11B: Django Matt Pages (Server-Driven SPA)
+
+> A modern alternative to Inertia.js with end-to-end type safety.
+> See [full design document](docs/design/pages-system.md).
+
+- [ ] **11B.1** - Core page system
+  - `PageResponse` class with script tag injection (not data attributes)
+  - `@page` decorator for simple page views
+  - `PageMiddleware` for request mode detection
+  - Asset versioning with manifest support
+- [ ] **11B.2** - Hybrid API/Page mode
+  - Same endpoint serves JSON API or page response
+  - Content negotiation integration
+  - `X-Page` header for SPA navigation
+  - Mobile apps can use same views as JSON API
+- [ ] **11B.3** - Type safety integration
+  - Props schemas with Pydantic
+  - Codegen generates TypeScript props interfaces
+  - Zod schemas for client-side validation
+  - Zero manual type maintenance
+- [ ] **11B.4** - Client adapters
+  - `@django-matt/react` - React adapter with hooks
+  - `@django-matt/svelte` - Svelte adapter with stores
+  - `@django-matt/solid` - SolidJS adapter with resources
+  - Link component, navigation, shared data
+- [ ] **11B.5** - Advanced features
+  - Streaming SSR (React 19 `renderToReadableStream`)
+  - Schema-driven form handling
+  - WebSocket live updates integration
+  - Progressive enhancement (no-JS fallback)
+  - Error boundaries and error pages
+
+**Key improvements over Inertia.js:**
+| Feature | Inertia.js | django_matt.pages |
+|---------|------------|-------------------|
+| Props delivery | `data-page` attr (slow) | `<script>` tag (fast) |
+| Type safety | Manual | Auto-generated |
+| Hybrid API | No | Yes |
+| Streaming SSR | No | Yes |
+| Codegen integration | No | Yes |
 
 ### Phase 11C: Livewire-style Reactivity
 - [ ] **11C.1** - Reactive components
