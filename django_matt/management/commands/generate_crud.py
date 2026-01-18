@@ -31,6 +31,7 @@ class Command(GeneratorCommand):
         super().add_arguments(parser)
         parser.add_argument(
             "model",
+            nargs="?",  # Optional when using wizard mode
             help="The model to generate CRUD for (format: app_name.ModelName)",
         )
         parser.add_argument(
@@ -97,7 +98,15 @@ class Command(GeneratorCommand):
         )
 
     def handle(self, *args, **options):
-        model_path = options["model"]
+        model_path = options.get("model")
+        wizard_mode = options.get("wizard", False)
+
+        # Run wizard if requested or if model not provided
+        if wizard_mode or not model_path:
+            model_path, options = self._run_wizard(options)
+            if not model_path:
+                return
+
         output_dir = options["output_dir"]
         prefix = options["prefix"]
         components = options["components"]
@@ -239,6 +248,123 @@ class Command(GeneratorCommand):
         if word.endswith(("s", "x", "z", "ch", "sh")):
             return word + "es"
         return word + "s"
+
+    def _run_wizard(self, options: dict) -> tuple[str | None, dict]:
+        """Run interactive wizard for CRUD generation."""
+        self.console.banner()
+        self.header("CRUD Generator Wizard", "Interactive setup for generating CRUD components")
+
+        # Get all available models
+        all_models = []
+        for app_config in apps.get_app_configs():
+            # Skip Django internal apps
+            if app_config.name.startswith("django."):
+                continue
+
+            for model in app_config.get_models():
+                model_path = f"{app_config.label}.{model.__name__}"
+                all_models.append(model_path)
+
+        if not all_models:
+            self.warning("No models found in your apps")
+            return None, options
+
+        # Step 1: Select model
+        self.console.step(1, "Select a model", total=4)
+        model_path = self.prompt_select(
+            "Which model do you want to generate CRUD for?",
+            choices=sorted(all_models),
+        )
+
+        if not model_path:
+            self.warning("No model selected")
+            return None, options
+
+        # Step 2: Select components
+        self.console.newline()
+        self.console.step(2, "Select components", total=4)
+        component_choices = [
+            {"name": "Controller (API endpoints)", "value": "controller", "checked": True},
+            {"name": "Schema (Pydantic models)", "value": "schema", "checked": True},
+            {"name": "Service layer (business logic)", "value": "service", "checked": True},
+            {"name": "Admin (Django Unfold)", "value": "admin", "checked": False},
+            {"name": "Tests", "value": "test", "checked": False},
+        ]
+
+        selected = self.prompt_multiselect(
+            "Which components do you want to generate?",
+            choices=[c["name"] for c in component_choices],
+            default=[c["name"] for c in component_choices if c.get("checked")],
+        )
+
+        if not selected:
+            self.warning("No components selected")
+            return None, options
+
+        # Map selections back to values
+        selected_values = []
+        for choice in component_choices:
+            if choice["name"] in selected:
+                selected_values.append(choice["value"])
+
+        # Update options based on selections
+        options["components"] = [
+            v for v in selected_values if v in ("controller", "schema", "test")
+        ]
+        options["no_service"] = "service" not in selected_values
+        options["with_admin"] = "admin" in selected_values
+        options["with_tests"] = "test" in selected_values
+
+        # Step 3: Configuration options
+        self.console.newline()
+        self.console.step(3, "Configure options", total=4)
+
+        # Permissions
+        perm_choice = self.prompt_select(
+            "What authentication should be required?",
+            choices=[
+                "None (public endpoints)",
+                "IsAuthenticated (any logged-in user)",
+                "IsAdmin (admin users only)",
+                "Custom (specify later)",
+            ],
+            default="IsAuthenticated (any logged-in user)",
+        )
+
+        if "IsAuthenticated" in perm_choice:
+            options["permissions"] = ["IsAuthenticated"]
+        elif "IsAdmin" in perm_choice:
+            options["permissions"] = ["IsAuthenticated", "IsAdmin"]
+        else:
+            options["permissions"] = []
+
+        # Soft delete
+        soft_delete = self.prompt_confirm(
+            "Use soft delete (mark as deleted instead of removing)?",
+            default=False,
+        )
+        options["soft_delete"] = soft_delete
+
+        # Step 4: Confirm
+        self.console.newline()
+        self.console.step(4, "Review and confirm", total=4)
+
+        self.section("Summary")
+        summary_data = [
+            {"Setting": "Model", "Value": model_path},
+            {"Setting": "Components", "Value": ", ".join(selected_values)},
+            {"Setting": "Permissions", "Value": ", ".join(options["permissions"]) or "None"},
+            {"Setting": "Soft Delete", "Value": "Yes" if soft_delete else "No"},
+        ]
+        self.table(summary_data)
+
+        self.console.newline()
+        if not self.prompt_confirm("Generate CRUD with these settings?", default=True):
+            self.info("Cancelled")
+            return None, options
+
+        self.console.newline()
+        return model_path, options
 
     def _get_model_fields(self, model: models.Model) -> list[dict[str, Any]]:
         """Get field information from a Django model."""
