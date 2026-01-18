@@ -66,6 +66,6 @@ uv add "django-matt[all]"
 !!! note "Django 6.0 Support"
     Django 6.0 requires Python 3.12+. If you need Python 3.11 support, use Django 5.2.
 
-## License
+## Status
 
-MIT License - see [LICENSE](https://github.com/mattjaikaran/django-matt/blob/main/LICENSE) for details.
+This is an internal/private framework for personal development. Not published to PyPI.

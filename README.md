@@ -1,407 +1,221 @@
 # Django Matt
 
-A lightweight, high-performance Django extension for building modern APIs with minimal boilerplate.
+A modern Django meta-framework for building production-ready APIs with minimal boilerplate.
 
+```mermaid
+graph LR
+    A[Django Matt] --> B[Core API]
+    A --> C[Authentication]
+    A --> D[Real-time]
+    A --> E[Billing]
+    A --> F[Deployment]
 
-# Django Matt
+    B --> B1[Controllers]
+    B --> B2[Schemas]
+    B --> B3[Views]
 
-Opinionated Django library started Feb 2025.
+    C --> C1[JWT]
+    C --> C2[OAuth]
+    C --> C3[Passkeys]
 
-I want to build my own custom tool for Django because I feel like it.
+    D --> D1[Messaging]
+    D --> D2[Notifications]
+    D --> D3[WebSockets]
+
+    E --> E1[Stripe]
+    E --> E2[Subscriptions]
+
+    F --> F1[Docker]
+    F --> F2[Fly.io]
+    F --> F3[AWS]
+```
+
+## Features at a Glance
+
+| Category | Features |
+|----------|----------|
+| **Core** | Async-first, Pydantic schemas, OpenAPI docs, CRUD views |
+| **Auth** | JWT, Sessions, API Keys, OAuth, Passkeys, SSO |
+| **Data** | PostgreSQL, pgvector, query optimization, caching |
+| **Real-time** | WebSockets, messaging, notifications, email |
+| **Billing** | Stripe, PayPal, Polar subscriptions |
+| **Frontend** | TypeScript codegen, React/Svelte/Solid components |
+| **DevOps** | Docker, Fly.io, Railway, Render, AWS deployment |
 
 ## Quick Start
 
-To create a new Django Matt API project, use the `startapi` command:
-
 ```bash
-# Install django-matt
+# Install
 pip install django-matt
 
-# Create a new project
-django-admin startapi myproject
+# Create project
+python manage.py startapi myproject
 
-# Change to the project directory
-cd myproject
-
-# Run migrations
-python manage.py migrate
-
-# Start the development server with hot reloading
+# Run with hot reload
 python manage.py runserver_hot
 ```
 
-The `startapi` command accepts the following options:
-
-- `--directory`: Directory to create the project in (default: current directory)
-- `--api-app`: Name of the API app to create (default: api)
-- `--db`: Default database to use (choices: postgres, mysql, sqlite)
-- `--with-example`: Include example models, schemas, and controllers
-- `--force`: Overwrite existing files
-
-## Features
-
-- **Hot Reloading**: Automatically reload your API when code changes
-- **CRUD Generation**: Generate CRUD operations for your models with a single command
-- **Configuration Management**: Easily manage different environments (development, staging, production)
-- **API Documentation**: Automatic OpenAPI documentation
-- **Performance Optimizations**: Built-in performance enhancements
-
-Reasons: 
-- I want to learn something new and do a project I've never done before. 
-    - This seems like a tough project but I'm looking forward to learning a lot.
-- Lots of new Rust based tooling and other tools to enhance Python frameworks.
-- I want to build a library that has the things I need and use and find useful.
-    - DX scripts to enhance productivity
-    - Mixins to enhance functionality
-    - CRUD generation to enhance productivity
-    - I want a config folder
-        - I want the config folder data to be used as a cleaner more organized way to manage the settings.py file
-        - I want to be able to have different settings for different environments.
-        - I want to be able to have different settings for different apps.
-    - I want a deployment folder
-    - I want a docs folder
-    - I want a machine learning folder
-    - I want a templates folder
-    - I want a tests folder
-    - I want a utils folder
-    - I want a views folder
-- I don't really enjoy how settings.py is used in Django. I want to try something different. 
-- Inspired by several frameworks and tools: 
-    - Django Rest Framework: mixins
-    - Django Ninja: fast, newer, easy, flexible, async supported, pydantic supported
-    - Django Ninja Extra: extra features to add class based views to Django Ninja
-    - FastAPI: fast, can be lightweight and simple or complex
-    - FastUI: React and FastAPI minimalistic full stack framework
-    - Ruby on Rails: CLI integration, crud generation
-        - https://guides.rubyonrails.org/command_line.html
-    - [InertiaJS](https://inertiajs.com/): build single page apps with Django
-- Built in Authentication and Permissions
-    - JWT
-    - Passwordless login
-        - Email 
-        - Magic Link
-        - Passkeys
-        - WebAuthn
-    - OAuth
-    - Social Auth
-    - Multi tenant
-- LLM/AI IDE integration
-    - Cursor context files
-- tRPC like experience. 
-    - I want to sync Pydantic models on the back end and TypeScript interfaces on the front end for end to end type safety.
-    - I want to generate the TypeScript interfaces automatically from the Pydantic models.
-        - The TypeScript interfaces should be able to be used in the front end
-        - There should be a conversion of types casing from Pydantic models to TypeScript interfaces
-            - ie: datimetime_created => datetimeCreated
-- I want some kind of easy deployment process. 
-    - Support for Docker
-    - Support for Digital Ocean
-    - Support for Fly.io
-    - Support for PlanetScale
-    - Support for Railway
-    - Support for Render
-    - Support for AWS
-
-
-## Advanced Performance Features
-
-Django Matt includes several advanced performance features to help you build faster, more efficient APIs:
-
-### 1. Fast JSON Serialization
-
-Django Matt provides optimized JSON serialization using the fastest available JSON libraries:
-
-- **`FastJSONRenderer`**: Automatically uses the fastest available JSON library (orjson > ujson > json)
-- **`FastJsonResponse`**: Drop-in replacement for Django's JsonResponse with improved performance
+## Basic API
 
 ```python
-from django_matt import FastJsonResponse
+from django_matt import MattAPI
+from django_matt.auth import jwt_required
 
-def my_view(request):
-    return FastJsonResponse({"data": my_data})
+api = MattAPI()
+
+@api.get("/hello")
+async def hello(request):
+    return {"message": "Hello, World!"}
+
+@api.get("/protected")
+@jwt_required
+async def protected(request):
+    return {"user": request.user.email}
 ```
 
-### 2. MessagePack Serialization
-
-For even faster serialization and smaller payload sizes, Django Matt supports MessagePack:
-
-- **`MessagePackRenderer`**: Efficient binary serialization with MessagePack
-- **`MessagePackResponse`**: HTTP response that renders content as MessagePack
+## CRUD Controller
 
 ```python
-from django_matt import MessagePackResponse
+from django_matt.core import CRUDController
 
-def my_view(request):
-    return MessagePackResponse({"data": my_data})
+@api.controller("/products", tags=["Products"])
+class ProductController(CRUDController):
+    model = Product
+    # Auto-generates: list, create, read, update, delete
 ```
 
-### 3. Streaming Responses
-
-For large datasets, Django Matt provides streaming response capabilities:
-
-- **`StreamingJsonResponse`**: Stream large JSON datasets without loading everything into memory
-- **`stream_json_list`**: Helper function to stream JSON lists efficiently
-
-```python
-from django_matt import StreamingJsonResponse, stream_json_list
-
-def my_view(request):
-    def items_generator():
-        for item in large_dataset:
-            yield item
-    
-    return StreamingJsonResponse(
-        streaming_content=stream_json_list(items_generator())
-    )
-```
-
-### 4. Caching Mechanisms
-
-Django Matt includes a powerful caching system for API responses:
-
-- **`CacheManager`**: Manage caching of API responses
-- **`cache_response`**: Decorator to cache entire responses
-- **`cache_result`**: Decorator to cache function results
-
-```python
-from django_matt import cache_manager
-
-@cache_manager.cache_response(timeout=60)  # Cache for 60 seconds
-def my_view(request):
-    # Expensive operation
-    return FastJsonResponse({"data": expensive_operation()})
-```
-
-### 5. Performance Benchmarking
-
-Django Matt provides tools to measure and optimize API performance:
-
-- **`APIBenchmark`**: Measure the performance of API endpoints
-- **`benchmark`**: Decorator to measure execution time
-- **`BenchmarkMiddleware`**: Middleware to automatically benchmark all requests
-
-```python
-from django_matt import benchmark
-
-@benchmark.measure('my_operation')
-def expensive_operation():
-    # Expensive operation
-    return result
-
-# Get benchmark results
-benchmark_results = benchmark.get_report()
-```
-
-## Database Support
-
-Django Matt provides first-class support for PostgreSQL while also supporting MySQL and SQLite with easy configuration.
-
-### 1. PostgreSQL as Default
-
-PostgreSQL is the default database backend in Django Matt, offering robust features and performance:
-
-```python
-# PostgreSQL is configured by default
-settings = configure(
-    environment='development',
-    components=['database', 'cache', 'security', 'performance'],
-)
-```
-
-### 2. Vector Support with pgvector
-
-Django Matt includes built-in support for pgvector, enabling vector similarity search in PostgreSQL:
-
-```python
-from django.db import models
-from django_matt.db import VectorField, CosineDistance
-
-class Document(models.Model):
-    content = models.TextField()
-    embedding = VectorField(dimensions=1536)  # OpenAI embedding dimensions
-
-# Query by vector similarity
-query_embedding = get_embedding("What is Django Matt?")
-similar_docs = Document.objects.order_by(CosineDistance('embedding', query_embedding))[:10]
-```
-
-### 3. Easy Database Configuration
-
-Configure your database with environment variables or settings:
-
-```python
-# Environment variables
-DB_TYPE=postgres  # or mysql, sqlite
-DB_NAME=myproject
-DB_USER=postgres
-DB_PASSWORD=mypassword
-
-# Or in settings
-settings = configure(
-    extra_settings={
-        "DB_TYPE": "postgres",
-    }
-)
-```
-
-### 4. Multiple Database Support
-
-Django Matt supports multiple databases and database routers:
-
-```python
-# Configure multiple databases
-DB_MULTIPLE={"readonly": {"type": "postgres", "name": "readonly_db"}, "analytics": {"type": "mysql", "name": "analytics_db"}}
-
-# Configure database routers
-DB_ROUTERS=myapp.routers.PrimaryReplicaRouter,myapp.routers.AnalyticsRouter
-```
-
-For more information, see the [Database documentation](docs/database.md).
-
-## Configuration System
-
-Django Matt provides a more organized and flexible approach to Django settings management:
-
-### 1. Modular Settings Organization
-
-- **Separate settings by concern**: Database, cache, security, and performance settings are organized into separate modules
-- **Support for multiple environments**: Development, staging, and production environments have their own settings
-- **Component-based configuration**: Load only the components you need
-
-```python
-from django_matt.config import configure
-
-# Configure the application
-settings = configure(
-    environment='development',
-    components=['database', 'cache', 'security', 'performance'],
-    extra_settings={
-        'ROOT_URLCONF': 'myproject.urls',
-        'WSGI_APPLICATION': 'myproject.wsgi.application',
-    },
-)
-```
-
-### 2. Environment Variable Integration
-
-- **Load settings from environment variables**: Sensitive information is loaded from environment variables
-- **Environment-specific defaults**: Each environment has sensible defaults
-- **Utility functions**: Helper functions for working with environment variables
-
-```python
-from django_matt.config.utils import get_env_bool, get_env_list
-
-# Get a boolean value from an environment variable
-debug = get_env_bool('DEBUG', False)
-
-# Get a list value from an environment variable
-allowed_hosts = get_env_list('ALLOWED_HOSTS', ['localhost'], ',')
-```
-
-### 3. Configuration Management Command
-
-Django Matt includes a management command for working with configuration files:
-
-```bash
-# Initialize configuration files for your project
-python manage.py config init
-
-# Generate a settings.py file for a specific environment
-python manage.py config generate --env production
-
-# Generate a .env file for a specific environment
-python manage.py config env --env staging
-```
-
-For more information, see the [Configuration System documentation](docs/configuration_system.md).
-
-## Command-Line Tools
-
-Django Matt provides several command-line tools to help you manage your Django projects:
-
-### 1. Configuration Management
-
-```bash
-python manage.py config init      # Initialize configuration files
-python manage.py config generate  # Generate a settings.py file
-python manage.py config env       # Generate a .env file
-```
-
-### 2. Hot Reloading
-
-```bash
-python manage.py runserver_hot    # Run the development server with hot reloading
-```
-
-For more information, see the [CLI Tools documentation](docs/cli_tools.md).
-
-## Example
-
-Check out the `examples/advanced_performance_demo.py` file for a complete example of these features in action.
-
-To run the example:
-
-```bash
-# Install required dependencies
-pip install django msgpack
-
-# Run the example
-python examples/advanced_performance_demo.py
-```
-
-Then open your browser at http://localhost:8000 to see the demo.
+## Module Overview
+
+### Core (`django_matt.core`)
+- **Router** - `@get`, `@post`, `@put`, `@patch`, `@delete` decorators
+- **Controller** - `APIController`, `CRUDController` with dependency injection
+- **Schema** - `ModelSchema`, Pydantic integration
+- **Errors** - `APIError`, typed error responses
+
+### Authentication (`django_matt.auth`)
+- **JWT** - Access/refresh tokens, `@jwt_required`
+- **Sessions** - Cookie-based auth, CSRF protection
+- **API Keys** - Scoped keys with rate limiting
+- **OAuth** - Google, GitHub, Apple, Microsoft
+- **Passkeys** - WebAuthn/FIDO2 passwordless
+- **SSO** - SAML 2.0, OpenID Connect
+
+### Messaging (`django_matt.messaging`)
+- **Conversations** - Direct, group, channels
+- **Messages** - Text, attachments, reactions
+- **Real-time** - WebSocket delivery, typing indicators
+- **Presence** - Online status, last seen
+
+### Notifications (`django_matt.notifications`)
+- **Channels** - In-app, email, push, SMS, webhooks
+- **Preferences** - Per-user, per-type settings
+- **Delivery** - Priority, quiet hours, retry
+
+### Email (`django_matt.email`)
+- **Providers** - SMTP, SES, SendGrid, Mailgun
+- **Templates** - Database-stored, versioned
+- **Tracking** - Opens, clicks, bounces
+
+### Billing (`django_matt.billing`)
+- **Providers** - Stripe, PayPal, Polar
+- **Subscriptions** - Plans, trials, upgrades
+- **Webhooks** - Event handling
+
+### Multi-tenancy (`django_matt.multitenancy`)
+- **Organizations** - B2B structure
+- **Teams** - Groups within orgs
+- **Memberships** - Roles, permissions
+
+### Components (`django_matt.components`)
+- **Forms** - Input fields, validation
+- **Layout** - Cards, modals, tables
+- **Theming** - CSS variables, dark mode
+
+### Type Generation (`django_matt.codegen`)
+- **TypeScript** - Types, Zod schemas
+- **React** - Hooks, components
+- **Svelte** - Stores, components
+- **Swift** - Codable structs
+
+### Deployment (`django_matt.deployment`)
+- **Platforms** - Fly.io, Railway, Render, AWS
+- **Docker** - Compose, production configs
+- **Health** - `/health/`, `/ready/`, `/live/`
+
+## Requirements
+
+- Python 3.11+
+- Django 5.2+
+- PostgreSQL (recommended)
 
 ## Installation
 
 ```bash
+# Core
 pip install django-matt
+
+# With all features
+pip install "django-matt[all]"
+
+# Specific features
+pip install "django-matt[auth,billing,messaging]"
 ```
 
-## Optional Dependencies
+## Documentation
 
-For optimal performance, install these optional dependencies:
+- [Architecture Overview](docs/architecture/overview.md)
+- [Getting Started](docs/getting-started/quickstart.md)
+- [Authentication](docs/auth/overview.md)
+- [Messaging](docs/messaging/overview.md)
+- [Notifications](docs/notifications/overview.md)
+- [Email](docs/email/overview.md)
+- [Deployment](docs/deployment/overview.md)
+- [Full API Reference](docs/api/)
+
+## CLI Commands
 
 ```bash
-pip install orjson ujson msgpack redis django-pgvector
+# Project scaffolding
+python manage.py startapi myproject --template b2b
+
+# CRUD generation
+python manage.py generate_crud myapp.MyModel --full
+
+# Type synchronization
+python manage.py sync_types --target typescript --output frontend/types
+
+# Deployment
+python manage.py deploy --platform fly
+
+# Development
+python manage.py runserver_hot
 ```
 
-## Features
-- [UV](https://docs.astral.sh/uv/) package manager
-- [Ruff](https://beta.ruff.rs/) for linting and formatting
-- Class based views first class support
-- CRUD generation
-    - Generate front end and back end code for CRUD operations
-- Generate Django models from Pydantic models
-- Authentication
-    - JWT
-    - Passwordless login
-        - Email 
-        - Magic Link
-        - Passkeys
-        - WebAuthn
-    - API Keys
-- Docs
-    - OpenAPI and Swagger
-- Rate Limiting
-- Caching
-- Configuration System
-    - Modular settings organization
-    - Environment-specific settings
-    - Component-based configuration
-- Command-Line Tools
-    - Configuration management
-    - Hot reloading
-- Database Support
-    - First-class PostgreSQL support
-    - pgvector integration for vector similarity search
-    - Easy configuration for MySQL and SQLite
-    - Multiple database support
-    - Connection pooling
+## Architecture
 
-## Tech Stack
+```
+django_matt/
+├── api.py              # MattAPI entry point
+├── core/               # Router, Controller, Schema
+├── auth/               # All authentication methods
+├── messaging/          # Real-time messaging
+├── notifications/      # Multi-channel notifications
+├── email/              # Email service
+├── billing/            # Subscription billing
+├── multitenancy/       # B2B organizations
+├── components/         # UI components
+├── codegen/            # Frontend code generation
+├── deployment/         # Platform deployments
+├── websockets/         # WebSocket support
+├── tasks/              # Background tasks
+├── files/              # File storage
+└── cli/                # CLI infrastructure
+```
 
-- Python 3.10+
-- Django 5.1+
-- PostgreSQL (recommended)
+## Status
 
+This is an internal/private framework for personal development. Not published to PyPI.
 
+## Contributing
+
+Internal use only. See [CONTRIBUTING.md](docs/contributing.md) for development guidelines.
