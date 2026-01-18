@@ -153,6 +153,14 @@ from django_matt.components.serving import (
     ComponentMiddleware,
 )
 
+# Playground
+from django_matt.components.playground import (
+    PlaygroundView,
+    playground_api_list,
+    playground_api_render,
+    playground_api_schema,
+)
+
 
 __all__ = [
     # Base
@@ -256,4 +264,9 @@ __all__ = [
     "create_from_dict",
     "create_from_json",
     "ComponentMiddleware",
+    # Playground
+    "PlaygroundView",
+    "playground_api_list",
+    "playground_api_render",
+    "playground_api_schema",
 ]
