@@ -132,6 +132,16 @@ Issues = "https://github.com/mattjaikaran/django-matt/issues"
 Changelog = "https://github.com/mattjaikaran/django-matt/blob/main/CHANGELOG.md"
 
 # =============================================================================
+# UV Dependency Groups (for uv sync --group)
+# =============================================================================
+[dependency-groups]
+docs = [
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.5.0",
+    "mkdocstrings[python]>=0.26.0",
+]
+
+# =============================================================================
 # Ruff Configuration (replaces black, isort, flake8)
 # =============================================================================
 [tool.ruff]

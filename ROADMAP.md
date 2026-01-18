@@ -109,6 +109,41 @@ django-matt consolidates features from multiple packages into one cohesive libra
 - [x] **4C.2** - Query optimization utilities (N+1 detection)
 - [x] **4C.3** - Performance suggestion system
 
+### Phase 4D: Database & Caching Enhancements ✅ (New - Jan 2026)
+
+- [x] **4D.1** - Async ORM support in CRUDController
+  - `aget()`, `acreate()`, `asave()`, `adelete()` for Django 4.1+
+  - Async iteration with `async for item in queryset`
+  - New methods: `bulk_create`, `bulk_update`, `exists`, `count`, `partial_update`
+- [x] **4D.2** - Automatic query optimization
+  - Auto-detect ForeignKey fields for `select_related`
+  - Auto-detect ManyToMany fields for `prefetch_related`
+  - Configurable: `auto_optimize`, `select_related_fields`, `prefetch_related_fields`
+  - `get_query_optimization_info()` for debugging
+- [x] **4D.3** - Django 5.2/6.0 connection pooling
+  - `CONN_HEALTH_CHECKS` for Django 5.1+
+  - psycopg3 pool options for Django 5.2+
+  - `configure_database()` convenience function
+  - Environment-based defaults (persistent in prod, 600s in dev)
+- [x] **4D.4** - Settings restructure
+  - `common.py` - Base settings for all environments
+  - `dev.py` - Development (debug, console email, relaxed security)
+  - `staging.py` - Staging (verbose logging, shorter HSTS)
+  - `prod.py` - Production (full security, Redis, connection pooling)
+  - `configure("dev"|"staging"|"prod")` function
+- [x] **4D.5** - Cache invalidation system
+  - `CacheInvalidationMixin` for automatic model cache invalidation
+  - Signal-based invalidation on save/delete/M2M changes
+  - `register_cache_invalidation()` for manual registration
+  - `@cached_view()` decorator with auto-invalidation
+  - Related object invalidation support
+- [x] **4D.6** - Redis cache configuration helpers
+  - `get_redis_cache_config()` - Standard Redis setup
+  - `get_redis_sentinel_config()` - High availability
+  - `get_redis_cluster_config()` - Horizontal scaling
+  - `configure_cache()` with auto-detection from environment
+  - Support for Memcached, file-based, and local memory backends
+
 ---
 
 ## Stage 5: Missing django-ninja-extra Features ✅

@@ -684,6 +684,13 @@ testing = [
     { name = "pytest-django" },
 ]
 
+[package.dev-dependencies]
+docs = [
+    { name = "mkdocs" },
+    { name = "mkdocs-material" },
+    { name = "mkdocstrings", extra = ["python"] },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "authlib", marker = "extra == 'oauth'", specifier = ">=1.3.0" },
@@ -723,6 +730,13 @@ requires-dist = [
     { name = "webauthn", marker = "extra == 'passkeys'", specifier = ">=2.1.0" },
 ]
 provides-extras = ["dev", "docs", "performance", "auth", "jwt-asymmetric", "oauth", "passkeys", "typegen", "files", "tasks", "billing", "testing", "full", "all"]
+
+[package.metadata.requires-dev]
+docs = [
+    { name = "mkdocs", specifier = ">=1.6.0" },
+    { name = "mkdocs-material", specifier = ">=9.5.0" },
+    { name = "mkdocstrings", extras = ["python"], specifier = ">=0.26.0" },
+]
 
 [[package]]
 name = "django-picklefield"
