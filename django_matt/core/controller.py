@@ -6,15 +6,26 @@ from functools import wraps
 from typing import TYPE_CHECKING, Any, get_type_hints
 
 import django
+from django.conf import settings
 
 if TYPE_CHECKING:
-    from pydantic import BaseModel as PydanticBaseModel
-from django.db.models import ForeignKey, ManyToManyField, ManyToOneRel, Prefetch
+    pass
+from django.db.models import ForeignKey, ManyToManyField, ManyToOneRel
 from django.http import HttpRequest, JsonResponse
 
 from pydantic import BaseModel, ValidationError
 
 from django_matt.core.errors import APIError, ErrorHandler, NotFoundAPIError
+
+
+def _get_error_config() -> dict[str, Any]:
+    """Get error handling configuration from settings."""
+    config = getattr(settings, "DJANGO_MATT_ERRORS", {})
+    return {
+        "debug": config.get("DEBUG", getattr(settings, "DEBUG", False)),
+        "include_traceback": config.get("INCLUDE_TRACEBACK", getattr(settings, "DEBUG", False)),
+        "include_snippet": config.get("INCLUDE_SNIPPET", getattr(settings, "DEBUG", False)),
+    }
 
 # Django version detection for compatibility
 DJANGO_VERSION = tuple(map(int, django.__version__.split(".")[:2]))
@@ -103,8 +114,9 @@ class Controller:
         Set up automatic error handling for controller methods.
         This wraps all route methods with try/except blocks.
         """
-        # Create an error handler instance
-        error_handler_instance = ErrorHandler(debug=True)  # TODO: Get debug from settings
+        # Get error configuration from settings
+        error_config = _get_error_config()
+        error_handler_instance = ErrorHandler(debug=error_config["debug"])
 
         for method_name in dir(self):
             if method_name.startswith("_"):
@@ -129,10 +141,11 @@ class Controller:
                         return self.handle_exception(e, request)
 
                     # Otherwise use the default error handler
+                    cfg = _get_error_config()
                     error_detail = error_handler_instance.capture_exception(e, request)
                     return error_detail.to_response(
-                        include_traceback=True,  # TODO: Get from settings
-                        include_snippet=True,  # TODO: Get from settings
+                        include_traceback=cfg["include_traceback"],
+                        include_snippet=cfg["include_snippet"],
                     )
 
             # Replace the method with the error-handling wrapper
@@ -157,8 +170,9 @@ class APIController(Controller):
         Returns:
                 A JsonResponse with error details
         """
-        # Create an error handler instance
-        error_handler_instance = ErrorHandler(debug=True)  # TODO: Get debug from settings
+        # Get error configuration from settings
+        error_config = _get_error_config()
+        error_handler_instance = ErrorHandler(debug=error_config["debug"])
 
         # Handle specific API exceptions
         if isinstance(exc, APIError):
@@ -195,8 +209,8 @@ class APIController(Controller):
         # Use the error handler for other exceptions
         error_detail = error_handler_instance.capture_exception(exc, request)
         return error_detail.to_response(
-            include_traceback=True,  # TODO: Get from settings
-            include_snippet=True,  # TODO: Get from settings
+            include_traceback=error_config["include_traceback"],
+            include_snippet=error_config["include_snippet"],
         )
 
 

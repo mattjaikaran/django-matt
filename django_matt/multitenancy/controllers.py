@@ -721,7 +721,10 @@ class InvitationController(APIController):
             invited_by=request.user,
         )
 
-        # TODO: Send invitation email
+        # Send invitation email
+        from django_matt.multitenancy.emails import send_invitation_email
+
+        send_invitation_email(invitation)
 
         return JsonResponse(
             InvitationResponse.model_validate(invitation).model_dump(mode="json"),
@@ -827,6 +830,9 @@ class InvitationController(APIController):
 
         invitation.resend()
 
-        # TODO: Send invitation email
+        # Send invitation email
+        from django_matt.multitenancy.emails import send_invitation_email
+
+        send_invitation_email(invitation)
 
         return JsonResponse(InvitationResponse.model_validate(invitation).model_dump(mode="json"))

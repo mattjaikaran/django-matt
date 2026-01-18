@@ -196,18 +196,92 @@ class AsyncPageMiddleware:
     """
     Async version of PageMiddleware.
 
+    Provides full async support for page request handling,
+    properly awaiting async get_response and all async operations.
+
     Add to MIDDLEWARE:
         'django_matt.pages.middleware.AsyncPageMiddleware',
     """
 
+    sync_capable = False
+    async_capable = True
+
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]):
         self.get_response = get_response
-        self._sync_middleware = PageMiddleware(get_response)
 
     async def __call__(self, request: HttpRequest) -> HttpResponse:
-        # For now, delegate to sync version
-        # TODO: Implement full async support
-        return self._sync_middleware(request)
+        # Detect and cache request mode
+        mode = get_request_mode(request)
+
+        # Check asset version for page requests
+        if mode == RequestMode.PAGE_XHR:
+            version_mismatch = await self._check_version_mismatch(request)
+            if version_mismatch:
+                return version_mismatch
+
+        # Process the request (await if async)
+        response = self.get_response(request)
+        if hasattr(response, "__await__"):
+            response = await response
+
+        # Handle PageResponse objects
+        from django_matt.pages.response import PageResponse
+
+        if isinstance(response, PageResponse):
+            response = response.render(request)
+
+        # Handle redirects for page requests
+        if mode == RequestMode.PAGE_XHR:
+            response = self._handle_page_redirect(request, response)
+
+        return response
+
+    async def _check_version_mismatch(self, request: HttpRequest) -> HttpResponse | None:
+        """
+        Check if the client's asset version matches the server's.
+
+        If there's a mismatch, return a 409 Conflict response telling
+        the client to do a full page reload.
+        """
+        from django_matt.pages.assets import get_asset_version
+
+        client_version = request.headers.get("X-Page-Version", "")
+        server_version = get_asset_version()
+
+        # Skip check if no version configured
+        if not server_version:
+            return None
+
+        # Skip check if client didn't send version
+        if not client_version:
+            return None
+
+        # Check for mismatch
+        if client_version != server_version:
+            response = HttpResponse(status=409)
+            response["X-Page-Location"] = request.get_full_path()
+            return response
+
+        return None
+
+    def _handle_page_redirect(self, request: HttpRequest, response: HttpResponse) -> HttpResponse:
+        """
+        Handle redirects for page requests.
+
+        For page XHR requests, we need to convert redirects to 303
+        and set the X-Page-Location header.
+        """
+        # Check if this is a redirect
+        if response.status_code in (301, 302, 307, 308):
+            location = response.get("Location", "")
+
+            if location:
+                # Convert to 303 See Other for page requests
+                # This ensures the browser does a GET request
+                response.status_code = 303
+                response["X-Page-Location"] = location
+
+        return response
 
 
 __all__ = [

@@ -30,6 +30,7 @@ from django_matt.auth.sso.schemas import (
 )
 from django_matt.core.errors import (
     NotFoundAPIError,
+    PermissionAPIError,
     ValidationAPIError,
 )
 
@@ -274,8 +275,17 @@ class SSOController:
         GET /sso/{org_id}/connection
         """
         from django_matt.auth.sso.models import SSOConnection
+        from django_matt.multitenancy import Organization, user_is_org_admin
 
-        # TODO: Check if user is admin of this organization
+        # Check if user is admin of this organization
+        organization = await _sync_to_async(Organization.objects.filter(id=org_id).first)()
+        if not organization:
+            raise NotFoundAPIError(f"Organization not found: {org_id}")
+
+        is_admin = await _sync_to_async(user_is_org_admin)(request.user, organization)
+        if not is_admin:
+            raise PermissionAPIError("Only organization admins can manage SSO settings")
+
         connection = await _sync_to_async(SSOConnection.get_for_organization)(org_id)
         if not connection:
             raise NotFoundAPIError(f"SSO not configured for organization: {org_id}")
