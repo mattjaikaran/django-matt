@@ -39,7 +39,7 @@
       "problemMatcher": []
     },
     "dev_server": {
-      "command": "uv run python manage.py runserver_hot",
+      "command": "uv run python manage.py runserver",
       "type": "shell",
       "group": "build",
       "isBackground": true,
