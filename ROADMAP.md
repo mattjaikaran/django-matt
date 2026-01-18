@@ -1124,6 +1124,28 @@ function LoginPage() {
 
 ---
 
+## Future Ideas
+
+> These are potential enhancements that could be added in future versions.
+
+### Performance Enhancements
+- [ ] Visual performance dashboard with charts and metrics
+- [ ] Rust-based components for critical performance paths
+- [ ] Framework comparison benchmarks (vs DRF, Django Ninja)
+
+### Frontend & Admin
+- [ ] Tailwind CSS integration helpers and component utilities
+- [ ] Django Unfold admin integration for modern admin UI
+- [ ] Astro framework support
+- [ ] Remix framework support
+
+### Distribution
+- [ ] PyPI package distribution helpers
+- [ ] Automated versioning and changelog generation
+- [ ] Plugin/extension system for community contributions
+
+---
+
 ## Reference Projects
 
 - [django-ninja-extra](https://github.com/eadwinCode/django-ninja-extra) - Class controllers, permissions, throttling
