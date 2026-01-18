@@ -1,0 +1,176 @@
+# MkDocs Configuration for django-matt
+# https://www.mkdocs.org/user-guide/configuration/
+
+site_name: django-matt
+site_description: A modern Django API framework with async support and developer experience tools
+site_author: Matt Jaikaran
+site_url: https://github.com/mattjaikaran/django-matt
+
+repo_name: mattjaikaran/django-matt
+repo_url: https://github.com/mattjaikaran/django-matt
+
+copyright: Copyright &copy; 2025 Matt Jaikaran
+
+theme:
+  name: material
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            docstring_style: google
+            merge_init_into_class: true
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/mattjaikaran/django-matt
+  generator: false
+
+watch:
+  - django_matt
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
+      - Configuration: getting-started/configuration.md
+  - Core Concepts:
+      - API & Routing: core/routing.md
+      - Controllers: core/controllers.md
+      - Schemas: core/schemas.md
+      - Error Handling: core/errors.md
+  - Authentication:
+      - Overview: auth/overview.md
+      - JWT: auth/jwt.md
+      - Session: auth/session.md
+      - API Keys: auth/api-keys.md
+      - OAuth: auth/oauth.md
+      - Passkeys: auth/passkeys.md
+      - SSO: auth/sso.md
+  - Features:
+      - CRUD Views: features/views.md
+      - Permissions: features/permissions.md
+      - Pagination & Filtering: features/pagination.md
+      - Rate Limiting: features/throttling.md
+      - API Versioning: features/versioning.md
+      - File Handling: features/files.md
+      - Background Tasks: features/tasks.md
+      - WebSockets: features/websockets.md
+  - Multi-Tenancy:
+      - Overview: multitenancy/overview.md
+      - Organizations: multitenancy/organizations.md
+      - Teams: multitenancy/teams.md
+  - Billing:
+      - Overview: billing/overview.md
+      - Stripe: billing/stripe.md
+      - PayPal: billing/paypal.md
+      - Polar: billing/polar.md
+  - Type Generation:
+      - TypeScript: typegen/typescript.md
+      - Swift: typegen/swift.md
+  - Performance:
+      - Caching: performance/caching.md
+      - Optimization: performance/optimization.md
+      - Serialization: performance/serialization.md
+  - Testing:
+      - Test Client: testing/client.md
+      - Factories: testing/factories.md
+      - Assertions: testing/assertions.md
+  - CLI Tools:
+      - startapi: cli/startapi.md
+      - generate_crud: cli/generate-crud.md
+      - sync_types: cli/sync-types.md
+  - API Reference:
+      - Core: api/core.md
+      - Auth: api/auth.md
+      - Views: api/views.md
+      - Permissions: api/permissions.md
+  - Contributing: contributing.md
+  - Changelog: changelog.md

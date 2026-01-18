@@ -7,100 +7,311 @@ name = "django-matt"
 version = "0.1.0"
 description = "A modern Django API framework with class-based views, async support, and developer experience tools"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
     { name = "Matt Jaikaran", email = "info@mattjaikaran.com" },
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Framework :: Django",
+    "Framework :: Django :: 5.2",
+    "Framework :: Django :: 6.0",
     "Intended Audience :: Developers",
-    # "License :: OSI Approved :: MIT License", # internal proprietary license not MIT
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Typing :: Typed",
 ]
 dependencies = [
+    # Django 5.2: Python 3.10-3.13
+    # Django 6.0: Python 3.12-3.14 (drops Python 3.10, 3.11)
     "django>=5.2.0",
     "pydantic>=2.0.0",
-    "typing-extensions>=4.0.0",
 ]
 
 [project.optional-dependencies]
+# Development tools
 dev = [
-    "ruff>=0.1.0",
-    "pytest>=7.0.0",
-    "pytest-django>=4.5.0",
-    "pytest-asyncio>=0.21.0",
-    "black>=23.0.0",
-    "isort>=5.12.0",
+    "ruff>=0.8.0",
+    "pytest>=8.0.0",
+    "pytest-django>=4.8.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=4.1.0",
     "httpx>=0.27.0",
+    "mypy>=1.11.0",
+    "django-stubs>=5.0.0",
 ]
+
+# Documentation
 docs = [
-    "mkdocs>=1.4.0",
-    "mkdocs-material>=9.0.0",
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.5.0",
+    "mkdocstrings[python]>=0.26.0",
 ]
-ml = [
-    "torch>=2.0.0",
-    "numpy>=1.24.0",
-    "pandas>=2.0.0",
-]
+
+# Performance optimizations
 performance = [
-    "orjson>=3.9.0",
-    "ujson>=5.8.0",
-    "msgpack>=1.0.5",
+    "orjson>=3.10.0",
+    "ujson>=5.10.0",
+    "msgpack>=1.0.8",
     "redis>=5.0.0",
 ]
+
 # Authentication - JWT, password hashing
 auth = [
     "PyJWT>=2.9.0",
     "passlib[bcrypt]>=1.7.4",
     "argon2-cffi>=23.1.0",
 ]
+
 # OAuth providers
 oauth = [
     "authlib>=1.3.0",
 ]
+
 # Passkeys/WebAuthn
 passkeys = [
     "webauthn>=2.1.0",
 ]
+
 # Type generation
 typegen = [
     "jinja2>=3.1.0",
 ]
+
+# File handling (S3, etc.)
+files = [
+    "boto3>=1.34.0",
+    "python-multipart>=0.0.9",
+]
+
+# Background tasks
+tasks = [
+    "celery>=5.4.0",
+    "dramatiq[redis]>=1.17.0",
+    "django-q2>=1.6.0",
+]
+
+# Billing providers
+billing = [
+    "stripe>=10.0.0",
+]
+
 # Testing utilities
 testing = [
     "factory-boy>=3.3.0",
-    "faker>=24.0.0",
+    "faker>=30.0.0",
     "pytest>=8.0.0",
     "pytest-django>=4.8.0",
     "pytest-asyncio>=0.24.0",
     "httpx>=0.27.0",
 ]
-# Full install with everything
+
+# Full install with common features
 full = [
-    "django-matt[auth,performance,typegen]",
+    "django-matt[auth,performance,typegen,files]",
 ]
+
+# Everything
 all = [
-    "django-matt[auth,oauth,passkeys,performance,typegen,testing,ml,docs]",
+    "django-matt[auth,oauth,passkeys,performance,typegen,testing,files,tasks,billing,docs]",
 ]
 
 [project.urls]
 Homepage = "https://github.com/mattjaikaran/django-matt"
+Documentation = "https://github.com/mattjaikaran/django-matt#readme"
 Issues = "https://github.com/mattjaikaran/django-matt/issues"
+Changelog = "https://github.com/mattjaikaran/django-matt/blob/main/CHANGELOG.md"
 
+# =============================================================================
+# Ruff Configuration (replaces black, isort, flake8)
+# =============================================================================
 [tool.ruff]
-target-version = "py310"
-line-length = 120
-select = ["E", "F", "B", "I", "N", "UP", "ANN", "C4", "SIM", "ARG", "ERA"]
-ignore = ["ANN101", "ANN102", "ANN401"]
+target-version = "py311"
+line-length = 100
+exclude = [
+    ".git",
+    ".github",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "migrations",
+    "node_modules",
+]
 
-[tool.ruff.isort]
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "SIM",    # flake8-simplify
+    "ASYNC",  # flake8-async
+    "S",      # flake8-bandit (security)
+    "DTZ",    # flake8-datetimez
+    "PIE",    # flake8-pie
+    "T20",    # flake8-print
+    "RET",    # flake8-return
+    "PTH",    # flake8-use-pathlib
+    "ERA",    # eradicate (commented-out code)
+    "PL",     # pylint
+    "PERF",   # perflint
+    "RUF",    # ruff-specific rules
+]
+ignore = [
+    "S101",    # assert used (OK in tests)
+    "S104",    # binding to all interfaces (OK for dev)
+    "S105",    # hardcoded password (false positives)
+    "S106",    # hardcoded password (false positives)
+    "PLR0913", # too many arguments
+    "PLR2004", # magic value comparison
+    "E501",    # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",    # assert OK in tests
+    "PLR2004", # magic values OK in tests
+    "T20",     # print OK in tests
+]
+"**/migrations/*.py" = [
+    "E501",    # migrations can have long lines
+]
+
+[tool.ruff.lint.isort]
 known-first-party = ["django_matt"]
+section-order = ["future", "standard-library", "django", "third-party", "first-party", "local-folder"]
 
+[tool.ruff.lint.isort.sections]
+django = ["django"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = true
+
+# =============================================================================
+# Pyright / Type Checking Configuration
+# =============================================================================
+[tool.pyright]
+pythonVersion = "3.11"
+pythonPlatform = "All"
+typeCheckingMode = "standard"
+include = ["django_matt"]
+exclude = [
+    "**/__pycache__",
+    "**/migrations",
+    ".venv",
+    "build",
+    "dist",
+]
+reportMissingImports = true
+reportMissingTypeStubs = false
+reportUnusedImport = true
+reportUnusedVariable = true
+reportDuplicateImport = true
+
+# =============================================================================
+# MyPy Configuration (alternative to pyright)
+# =============================================================================
+[tool.mypy]
+python_version = "3.11"
+plugins = ["mypy_django_plugin.main", "pydantic.mypy"]
+strict = false
+warn_return_any = true
+warn_unused_ignores = true
+show_error_codes = true
+exclude = [
+    "migrations/",
+    "build/",
+    "dist/",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "celery.*",
+    "dramatiq.*",
+    "django_q.*",
+    "boto3.*",
+    "botocore.*",
+    "authlib.*",
+    "webauthn.*",
+    "passlib.*",
+    "argon2.*",
+    "factory.*",
+    "faker.*",
+]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "tests.settings"
+
+# =============================================================================
+# Pytest Configuration
+# =============================================================================
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
-python_files = "test_*.py"
-testpaths = ["tests"] 
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+testpaths = ["tests"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "-ra",
+]
+asyncio_mode = "auto"
+markers = [
+    "slow: marks tests as slow",
+    "integration: marks tests as integration tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+# =============================================================================
+# Coverage Configuration
+# =============================================================================
+[tool.coverage.run]
+source = ["django_matt"]
+branch = true
+omit = [
+    "*/migrations/*",
+    "*/__pycache__/*",
+    "*/tests/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "if typing.TYPE_CHECKING:",
+    "@abstractmethod",
+    "@abc.abstractmethod",
+]
+show_missing = true
+precision = 2
+
+[tool.coverage.html]
+directory = "htmlcov"
