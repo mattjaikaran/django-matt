@@ -1198,6 +1198,32 @@ function LoginPage() {
   - Admin actions: `export_as_csv`, `export_as_json`, `soft_delete_selected`, etc.
   - `generate_admin` management command
   - `UnfoldConfig` and `configure_unfold()` for theme configuration
+- [x] Admin dashboard and page builder system ✅
+  - **Dashboard widgets** (`admin/widgets.py`):
+    - `StatWidget` - Statistics card with value, change indicator, icon
+    - `ActivityWidget` - Recent activity feed with timestamps
+    - `QuickActionsWidget` - Grid of action buttons
+    - `TableWidget` - Simple data tables
+    - `ProgressWidget` - Progress/goal indicators
+    - `model_stat_widget()` - Auto-generate stats from Django models
+  - **Chart components** (`admin/charts.py`):
+    - `ChartWidget` - Chart.js charts (line, bar, doughnut, pie, area, radar)
+    - `SparklineWidget` - Compact inline sparklines
+    - `model_time_series_chart()` - Auto-generate time series from models
+    - `model_distribution_chart()` - Auto-generate pie/doughnut from fields
+    - `comparison_chart()` - Multi-series comparison charts
+    - Unfold-compatible color palette with dark mode support
+  - **Dashboard builder** (`admin/dashboard.py`):
+    - `Dashboard` - Build dashboards with stats, charts, sections
+    - `DashboardSection` - Collapsible grid sections
+    - `DashboardAdminSite` - Custom AdminSite with dashboard support
+    - `auto_dashboard()` - Auto-generate dashboards from registered models
+  - **Page builder** (`admin/pages.py`):
+    - `AdminPage` - Custom admin pages with permission support
+    - `AdminPageGroup` - Group pages under common parent
+    - `AdminPageRegistry` - Decorator-based page registration
+    - `PageBuilderMixin` - Add custom pages to any AdminSite
+    - Templates extending Unfold's design system
 - [ ] Astro framework support
 - [ ] Remix framework support
 

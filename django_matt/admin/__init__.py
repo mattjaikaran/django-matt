@@ -53,10 +53,28 @@ from django_matt.admin.base import (
     MattTabularInline,
     register_admin,
 )
+from django_matt.admin.charts import (
+    CHART_COLORS,
+    PALETTE,
+    ChartDataset,
+    ChartWidget,
+    SparklineWidget,
+    comparison_chart,
+    model_distribution_chart,
+    model_time_series_chart,
+)
 from django_matt.admin.config import (
     UnfoldConfig,
     configure_unfold,
     get_unfold_settings,
+)
+from django_matt.admin.dashboard import (
+    Dashboard,
+    DashboardAdminSite,
+    DashboardSection,
+    auto_dashboard,
+    create_dashboard_template_file,
+    get_dashboard_index_template,
 )
 from django_matt.admin.filters import (
     BooleanFilter,
@@ -76,6 +94,23 @@ from django_matt.admin.mixins import (
     MultiTenantAdminMixin,
     ReadOnlyAdminMixin,
     SoftDeleteAdminMixin,
+)
+from django_matt.admin.pages import (
+    AdminPage,
+    AdminPageGroup,
+    AdminPageRegistry,
+    PageBuilderMixin,
+    create_page_template_file,
+    get_custom_page_template,
+    pages,
+)
+from django_matt.admin.widgets import (
+    ActivityWidget,
+    ProgressWidget,
+    QuickActionsWidget,
+    StatWidget,
+    TableWidget,
+    model_stat_widget,
 )
 
 __all__ = [
@@ -109,4 +144,35 @@ __all__ = [
     "UnfoldConfig",
     "configure_unfold",
     "get_unfold_settings",
+    # Widgets
+    "StatWidget",
+    "ActivityWidget",
+    "QuickActionsWidget",
+    "TableWidget",
+    "ProgressWidget",
+    "model_stat_widget",
+    # Charts
+    "ChartWidget",
+    "ChartDataset",
+    "SparklineWidget",
+    "model_time_series_chart",
+    "model_distribution_chart",
+    "comparison_chart",
+    "CHART_COLORS",
+    "PALETTE",
+    # Dashboard
+    "Dashboard",
+    "DashboardSection",
+    "DashboardAdminSite",
+    "auto_dashboard",
+    "get_dashboard_index_template",
+    "create_dashboard_template_file",
+    # Pages
+    "AdminPage",
+    "AdminPageGroup",
+    "AdminPageRegistry",
+    "pages",
+    "PageBuilderMixin",
+    "get_custom_page_template",
+    "create_page_template_file",
 ]
