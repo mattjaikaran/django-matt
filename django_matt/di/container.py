@@ -110,7 +110,7 @@ class Container:
     def __init__(self):
         self._services: dict[type, ServiceDescriptor] = {}
         self._singletons: dict[type, Any] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()  # Reentrant lock for nested resolution
         self._resolving: set[type] = set()  # For circular dependency detection
 
     def register(
@@ -220,36 +220,49 @@ class Container:
 
         descriptor = self._services[service_type]
 
-        # Handle singleton
+        # Handle singleton - return cached instance if exists
         if descriptor.lifetime == ServiceLifetime.SINGLETON:
             if service_type in self._singletons:
                 return self._singletons[service_type]
 
-            with self._lock:
-                # Double-check after acquiring lock
-                if service_type in self._singletons:
-                    return self._singletons[service_type]
-
-                instance = self._create_instance(descriptor)
-                self._singletons[service_type] = instance
-                return instance
-
-        # Handle scoped
+        # Handle scoped - return cached instance if in scope
         if descriptor.lifetime == ServiceLifetime.SCOPED:
             scoped = _scoped_instances.get()
-            if scoped is None:
-                # No scope, treat as transient
-                return self._create_instance(descriptor)
-
-            if service_type in scoped:
+            if scoped is not None and service_type in scoped:
                 return scoped[service_type]
 
-            instance = self._create_instance(descriptor)
-            scoped[service_type] = instance
-            return instance
+        # Track that we're resolving this service (for circular dependency detection)
+        self._resolving.add(service_type)
+        try:
+            # Handle singleton
+            if descriptor.lifetime == ServiceLifetime.SINGLETON:
+                with self._lock:
+                    # Double-check after acquiring lock
+                    if service_type in self._singletons:
+                        return self._singletons[service_type]
 
-        # Transient - always create new
-        return self._create_instance(descriptor)
+                    instance = self._create_instance(descriptor)
+                    self._singletons[service_type] = instance
+                    return instance
+
+            # Handle scoped
+            if descriptor.lifetime == ServiceLifetime.SCOPED:
+                scoped = _scoped_instances.get()
+                if scoped is None:
+                    # No scope, treat as transient
+                    return self._create_instance(descriptor)
+
+                if service_type in scoped:
+                    return scoped[service_type]
+
+                instance = self._create_instance(descriptor)
+                scoped[service_type] = instance
+                return instance
+
+            # Transient - always create new
+            return self._create_instance(descriptor)
+        finally:
+            self._resolving.discard(service_type)
 
     def _create_instance(self, descriptor: ServiceDescriptor) -> Any:
         """Create an instance based on the service descriptor."""
@@ -276,7 +289,10 @@ class Container:
         """Call a callable with its dependencies resolved."""
         # Get type hints for constructor/function
         try:
-            hints = get_type_hints(callable_obj)
+            if inspect.isclass(callable_obj):
+                hints = get_type_hints(callable_obj.__init__)
+            else:
+                hints = get_type_hints(callable_obj)
         except Exception:
             hints = {}
 
@@ -301,11 +317,7 @@ class Container:
 
             # Check if it's a registered service
             if param_type in self._services:
-                self._resolving.add(param_type)
-                try:
-                    kwargs[param_name] = self.resolve(param_type)
-                finally:
-                    self._resolving.discard(param_type)
+                kwargs[param_name] = self.resolve(param_type)
 
         return callable_obj(**kwargs)
 
