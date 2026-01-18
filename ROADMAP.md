@@ -1507,14 +1507,14 @@ function LoginPage() {
   - `python manage.py matt doctor` - Check project health
   - `python manage.py matt version` - Show version info
 - [x] **16D.2** - Development commands
-  - `python manage.py matt routes` - List all API routes (like Rails)
+  - `python manage.py matt routes` - List all API routes
   - `python manage.py matt models` - List all models with fields
-  - Enhanced shell with auto-imports (TODO)
-- [ ] **16D.3** - Scaffolding commands
-  - `python manage.py matt new controller <name>`
+- [x] **16D.3** - Scaffolding commands
+  - `python manage.py matt new controller <name>` (--crud for full CRUD)
   - `python manage.py matt new schema <name>`
   - `python manage.py matt new service <name>`
-  - `python manage.py matt new test <name>`
+  - `python manage.py matt new test <name>` (--type: controller/service/unit)
+  - Templates extracted to `django_matt/cli/templates/` module
 
 ### Phase 16E: CLI Architecture ✅
 - [x] **16E.1** - Command base classes
