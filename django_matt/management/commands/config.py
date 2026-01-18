@@ -6,13 +6,14 @@ This command provides utilities for managing Django Matt configuration files.
 
 from pathlib import Path
 
-from django.core.management.base import BaseCommand
+from django_matt.cli.base import InteractiveCommand
 
 
-class Command(BaseCommand):
+class Command(InteractiveCommand):
     help = "Manage Django Matt configuration files"
 
     def add_arguments(self, parser):
+        super().add_arguments(parser)
         subparsers = parser.add_subparsers(dest="subcommand", help="Subcommand to run")
 
         # init subcommand
@@ -69,10 +70,21 @@ class Command(BaseCommand):
             help="Default database to use",
         )
 
+        # edit subcommand (interactive editor)
+        edit_parser = subparsers.add_parser("edit", help="Interactive configuration editor")
+        edit_parser.add_argument("--output", default=".env", help="Output file path")
+        edit_parser.add_argument("--force", action="store_true", help="Overwrite existing files")
+        edit_parser.add_argument(
+            "--sections",
+            nargs="+",
+            choices=["general", "database", "cache", "security"],
+            help="Sections to configure (default: all)",
+        )
+
     def handle(self, *args, **options):
         subcommand = options["subcommand"]
         if not subcommand:
-            self.print_help("manage.py", "config")
+            self.show_help()
             return
 
         if subcommand == "init":
@@ -81,6 +93,24 @@ class Command(BaseCommand):
             self.handle_generate(options)
         elif subcommand == "env":
             self.handle_env(options)
+        elif subcommand == "edit":
+            self.handle_edit(options)
+
+    def show_help(self):
+        """Show rich help for the config command."""
+        self.console.banner()
+        self.console.header("Configuration Management")
+        self.console.command_group(
+            "Available Commands",
+            [
+                ("config init", "Initialize configuration files for your project"),
+                ("config generate", "Generate a settings.py file"),
+                ("config env", "Generate a .env file with environment variables"),
+                ("config edit", "Interactive configuration editor (wizard mode)"),
+            ],
+        )
+        self.console.newline()
+        self.console.muted("Run 'python manage.py config <command> --help' for more details")
 
     def handle_init(self, options):
         """Initialize configuration files."""
@@ -113,7 +143,7 @@ class Command(BaseCommand):
         if env == "all" or env == "production":
             self.create_env_file(project_dir, "production", force, db=db)
 
-        self.stdout.write(self.style.SUCCESS("Configuration files initialized successfully"))
+        self.console.success("Configuration files initialized successfully")
 
     def handle_generate(self, options):
         """Generate a settings.py file."""
@@ -128,7 +158,7 @@ class Command(BaseCommand):
         # Create the settings.py file
         self.create_settings_file(project_dir, env, True, output, components, db=db)
 
-        self.stdout.write(self.style.SUCCESS(f"Settings file generated successfully at {output}"))
+        self.console.success(f"Settings file generated at {output}")
 
     def handle_env(self, options):
         """Generate a .env file."""
@@ -142,7 +172,39 @@ class Command(BaseCommand):
         # Create the .env file
         self.create_env_file(project_dir, env, True, output, db=db)
 
-        self.stdout.write(self.style.SUCCESS(f".env file generated successfully at {output}"))
+        self.console.success(f".env file generated at {output}")
+
+    def handle_edit(self, options):
+        """Run the interactive configuration editor."""
+        from django_matt.cli.config import ConfigEditor
+
+        output = options["output"]
+        force = options.get("force", False)
+        sections = options.get("sections")
+
+        # Get the project directory
+        project_dir = self.get_project_dir()
+        output_path = project_dir / output
+
+        # Create and run the editor
+        editor = ConfigEditor(output_path=output_path)
+
+        if sections:
+            env_vars = editor.run(sections=sections)
+            if env_vars:
+                editor.show_summary(env_vars)
+                self.console.newline()
+
+                # Preview
+                content = editor.preview_env_file(env_vars)
+                self.console.code(content, language="bash", title=f"Preview: {output_path}")
+                self.console.newline()
+
+                if self.prompt_confirm("Write this configuration?", default=True):
+                    editor.write_env_file(env_vars, force=force)
+        else:
+            # Run full wizard
+            editor.run_full_wizard(force=force)
 
     def get_project_dir(self) -> Path:
         """Get the project directory."""
@@ -158,13 +220,13 @@ class Command(BaseCommand):
     def create_file(self, path: Path, content: str, force: bool = False) -> None:
         """Create a file with the given content."""
         if path.exists() and not force:
-            self.stdout.write(self.style.WARNING(f"File {path} already exists, skipping"))
+            self.console.file_skipped(path, "already exists")
             return
 
         with open(path, "w") as f:
             f.write(content)
 
-        self.stdout.write(self.style.SUCCESS(f"Created {path}"))
+        self.console.file_created(path)
 
     def create_settings_file(
         self,
