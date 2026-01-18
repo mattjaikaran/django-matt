@@ -1,13 +1,16 @@
 """
 Django Matt CRUD generator command.
 
-This command generates CRUD controllers, schemas, and tests for Django models.
+This command generates CRUD controllers, schemas, services, admin, and tests for Django models.
 
 Usage:
     python manage.py generate_crud myapp.MyModel
     python manage.py generate_crud myapp.MyModel --output-dir ./api
     python manage.py generate_crud myapp.MyModel --components all --with-tests
     python manage.py generate_crud myapp.MyModel --permissions IsAuthenticated
+    python manage.py generate_crud myapp.MyModel --with-service
+    python manage.py generate_crud myapp.MyModel --with-admin
+    python manage.py generate_crud myapp.MyModel --full  # All components including service and admin
 """
 
 from pathlib import Path
@@ -83,6 +86,21 @@ class Command(BaseCommand):
             action="store_true",
             help="Print generated code without writing files",
         )
+        parser.add_argument(
+            "--with-service",
+            action="store_true",
+            help="Generate a service layer for business logic",
+        )
+        parser.add_argument(
+            "--with-admin",
+            action="store_true",
+            help="Generate Django Unfold admin configuration",
+        )
+        parser.add_argument(
+            "--full",
+            action="store_true",
+            help="Generate all components: controller, schema, service, admin, tests",
+        )
 
     def handle(self, *args, **options):
         model_path = options["model"]
@@ -96,6 +114,15 @@ class Command(BaseCommand):
         filtering = options["filtering"]
         soft_delete = options["soft_delete"]
         dry_run = options["dry_run"]
+        with_service = options["with_service"]
+        with_admin = options["with_admin"]
+        full = options["full"]
+
+        # Handle --full flag
+        if full:
+            components = ["controller", "schema", "test"]
+            with_service = True
+            with_admin = True
 
         if "all" in components:
             components = ["controller", "schema", "test"]
@@ -138,6 +165,7 @@ class Command(BaseCommand):
             "pagination": pagination,
             "filtering": filtering,
             "soft_delete": soft_delete,
+            "with_service": with_service,
         }
 
         # Generate components
@@ -167,21 +195,48 @@ class Command(BaseCommand):
             else:
                 self._write_file(output_dir / "tests.py", content, model_name, force, "Test")
 
+        # Generate service layer
+        if with_service:
+            content = self._generate_service_content(context)
+            if dry_run:
+                self.stdout.write(self.style.NOTICE("\n=== services.py ==="))
+                self.stdout.write(content)
+            else:
+                self._write_file(output_dir / "services.py", content, model_name, force, "Service")
+
+        # Generate admin
+        if with_admin:
+            content = self._generate_admin_content(context)
+            if dry_run:
+                self.stdout.write(self.style.NOTICE("\n=== admin.py ==="))
+                self.stdout.write(content)
+            else:
+                self._write_file(output_dir / "admin.py", content, model_name, force, "Admin")
+
         if not dry_run:
             self.stdout.write(
                 self.style.SUCCESS(
                     f"\nSuccessfully generated CRUD for {model_name} in {output_dir}"
                 )
             )
-            self.stdout.write(
-                self.style.NOTICE(
-                    f"\nNext steps:\n"
-                    f"1. Review generated files in {output_dir}\n"
-                    f"2. Register controller in your API:\n"
-                    f"   from {app_label}.controllers import {model_name}Controller\n"
-                    f"   api.register_controller({model_name}Controller)\n"
+
+            # Build next steps message
+            next_steps = [
+                f"1. Review generated files in {output_dir}",
+                "2. Register controller in your API:",
+                f"   from {app_label}.controllers import {model_name}Controller",
+                f"   api.register_controller({model_name}Controller)",
+            ]
+
+            if with_service:
+                next_steps.append(f"3. Add your business logic in {output_dir}/services.py")
+
+            if with_admin:
+                next_steps.append(
+                    f"{'4' if with_service else '3'}. Admin is auto-registered via @register_admin decorator"
                 )
-            )
+
+            self.stdout.write(self.style.NOTICE("\nNext steps:\n" + "\n".join(next_steps) + "\n"))
 
     def _pluralize(self, word: str) -> str:
         """Simple pluralization."""
@@ -475,13 +530,15 @@ class Command(BaseCommand):
         permissions = context["permissions"]
         pagination = context["pagination"]
         soft_delete = context["soft_delete"]
+        with_service = context.get("with_service", False)
 
         lines = []
 
         # Imports
-        lines.append("from django.http import Http404")
-        lines.append("from django.db.models import Q")
-        lines.append("")
+        if not with_service:
+            lines.append("from django.http import Http404")
+            lines.append("from django.db.models import Q")
+            lines.append("")
         lines.append("from django_matt.core.controller import APIController")
         lines.append("from django_matt.core.router import get, post, put, patch, delete")
 
@@ -490,13 +547,18 @@ class Command(BaseCommand):
             lines.append(f"from django_matt.permissions import {perm_imports}")
 
         lines.append("")
-        lines.append(f"from .models import {model_name}")
+        if not with_service:
+            lines.append(f"from .models import {model_name}")
         lines.append("from .schemas import (")
         lines.append(f"    {model_name}Schema,")
         lines.append(f"    {model_name}CreateSchema,")
         lines.append(f"    {model_name}UpdateSchema,")
         lines.append(f"    {model_name}ListSchema,")
         lines.append(")")
+
+        if with_service:
+            lines.append(f"from .services import {model_name}Service")
+
         lines.append("")
         lines.append("")
 
@@ -512,6 +574,12 @@ class Command(BaseCommand):
 
         lines.append("")
 
+        # Add service initialization if using service layer
+        if with_service:
+            lines.append("    def __init__(self):")
+            lines.append(f"        self.service = {model_name}Service()")
+            lines.append("")
+
         # List endpoint
         lines.append('    @get("/")')
         lines.append(f"    async def list_{prefix}(")
@@ -523,41 +591,62 @@ class Command(BaseCommand):
         lines.append("        search: str | None = None,")
         lines.append(f"    ) -> {model_name}ListSchema:")
         lines.append(f'        """List all {model_name} objects."""')
-        lines.append(f"        queryset = {model_name}.objects.all()")
-        lines.append("")
-        lines.append("        # Apply search filter")
-        lines.append("        if search:")
-        lines.append("            queryset = queryset.filter(")
-        lines.append("                Q(id__icontains=search)  # Add more searchable fields")
-        lines.append("            )")
-        lines.append("")
 
-        if pagination:
-            lines.append("        # Get total count")
-            lines.append("        total = await queryset.acount()")
-            lines.append("")
-            lines.append("        # Apply pagination")
-            lines.append("        offset = (page - 1) * page_size")
-            lines.append(
-                "        items = [item async for item in queryset[offset:offset + page_size]]"
-            )
+        if with_service:
+            # Service-based implementation
+            lines.append("        items, total = await self.service.list(")
+            if pagination:
+                lines.append("            page=page,")
+                lines.append("            page_size=page_size,")
+            lines.append("            search=search,")
+            lines.append("        )")
             lines.append("")
             lines.append(f"        return {model_name}ListSchema(")
             lines.append(
                 f"            items=[{model_name}Schema.model_validate(item) for item in items],"
             )
             lines.append("            total=total,")
-            lines.append("            page=page,")
-            lines.append("            page_size=page_size,")
+            if pagination:
+                lines.append("            page=page,")
+                lines.append("            page_size=page_size,")
             lines.append("        )")
         else:
-            lines.append("        items = [item async for item in queryset]")
-            lines.append(f"        return {model_name}ListSchema(")
-            lines.append(
-                f"            items=[{model_name}Schema.model_validate(item) for item in items],"
-            )
-            lines.append("            total=len(items),")
-            lines.append("        )")
+            # Direct implementation
+            lines.append(f"        queryset = {model_name}.objects.all()")
+            lines.append("")
+            lines.append("        # Apply search filter")
+            lines.append("        if search:")
+            lines.append("            queryset = queryset.filter(")
+            lines.append("                Q(id__icontains=search)  # Add more searchable fields")
+            lines.append("            )")
+            lines.append("")
+
+            if pagination:
+                lines.append("        # Get total count")
+                lines.append("        total = await queryset.acount()")
+                lines.append("")
+                lines.append("        # Apply pagination")
+                lines.append("        offset = (page - 1) * page_size")
+                lines.append(
+                    "        items = [item async for item in queryset[offset:offset + page_size]]"
+                )
+                lines.append("")
+                lines.append(f"        return {model_name}ListSchema(")
+                lines.append(
+                    f"            items=[{model_name}Schema.model_validate(item) for item in items],"
+                )
+                lines.append("            total=total,")
+                lines.append("            page=page,")
+                lines.append("            page_size=page_size,")
+                lines.append("        )")
+            else:
+                lines.append("        items = [item async for item in queryset]")
+                lines.append(f"        return {model_name}ListSchema(")
+                lines.append(
+                    f"            items=[{model_name}Schema.model_validate(item) for item in items],"
+                )
+                lines.append("            total=len(items),")
+                lines.append("        )")
 
         lines.append("")
 
@@ -567,11 +656,17 @@ class Command(BaseCommand):
             f"    async def get_{model_name.lower()}(self, request, id: int) -> {model_name}Schema:"
         )
         lines.append(f'        """Get a single {model_name} by ID."""')
-        lines.append("        try:")
-        lines.append(f"            item = await {model_name}.objects.aget(pk=id)")
-        lines.append("        except {model_name}.DoesNotExist:")
-        lines.append(f'            raise Http404("{model_name} not found")')
-        lines.append(f"        return {model_name}Schema.model_validate(item)")
+
+        if with_service:
+            lines.append("        item = await self.service.get(id)")
+            lines.append(f"        return {model_name}Schema.model_validate(item)")
+        else:
+            lines.append("        try:")
+            lines.append(f"            item = await {model_name}.objects.aget(pk=id)")
+            lines.append(f"        except {model_name}.DoesNotExist:")
+            lines.append(f'            raise Http404("{model_name} not found")')
+            lines.append(f"        return {model_name}Schema.model_validate(item)")
+
         lines.append("")
 
         # Create endpoint
@@ -582,8 +677,14 @@ class Command(BaseCommand):
         lines.append(f"        data: {model_name}CreateSchema,")
         lines.append(f"    ) -> {model_name}Schema:")
         lines.append(f'        """Create a new {model_name}."""')
-        lines.append(f"        item = await {model_name}.objects.acreate(**data.model_dump())")
-        lines.append(f"        return {model_name}Schema.model_validate(item)")
+
+        if with_service:
+            lines.append("        item = await self.service.create(data, user=request.user)")
+            lines.append(f"        return {model_name}Schema.model_validate(item)")
+        else:
+            lines.append(f"        item = await {model_name}.objects.acreate(**data.model_dump())")
+            lines.append(f"        return {model_name}Schema.model_validate(item)")
+
         lines.append("")
 
         # Update endpoint (PUT - full update)
@@ -595,15 +696,21 @@ class Command(BaseCommand):
         lines.append(f"        data: {model_name}UpdateSchema,")
         lines.append(f"    ) -> {model_name}Schema:")
         lines.append(f'        """Update a {model_name} (full update)."""')
-        lines.append("        try:")
-        lines.append(f"            item = await {model_name}.objects.aget(pk=id)")
-        lines.append(f"        except {model_name}.DoesNotExist:")
-        lines.append(f'            raise Http404("{model_name} not found")')
-        lines.append("")
-        lines.append("        for key, value in data.model_dump(exclude_unset=True).items():")
-        lines.append("            setattr(item, key, value)")
-        lines.append("        await item.asave()")
-        lines.append(f"        return {model_name}Schema.model_validate(item)")
+
+        if with_service:
+            lines.append("        item = await self.service.update(id, data, partial=False)")
+            lines.append(f"        return {model_name}Schema.model_validate(item)")
+        else:
+            lines.append("        try:")
+            lines.append(f"            item = await {model_name}.objects.aget(pk=id)")
+            lines.append(f"        except {model_name}.DoesNotExist:")
+            lines.append(f'            raise Http404("{model_name} not found")')
+            lines.append("")
+            lines.append("        for key, value in data.model_dump(exclude_unset=True).items():")
+            lines.append("            setattr(item, key, value)")
+            lines.append("        await item.asave()")
+            lines.append(f"        return {model_name}Schema.model_validate(item)")
+
         lines.append("")
 
         # Patch endpoint (partial update)
@@ -615,36 +722,51 @@ class Command(BaseCommand):
         lines.append(f"        data: {model_name}UpdateSchema,")
         lines.append(f"    ) -> {model_name}Schema:")
         lines.append(f'        """Partially update a {model_name}."""')
-        lines.append("        try:")
-        lines.append(f"            item = await {model_name}.objects.aget(pk=id)")
-        lines.append(f"        except {model_name}.DoesNotExist:")
-        lines.append(f'            raise Http404("{model_name} not found")')
-        lines.append("")
-        lines.append("        for key, value in data.model_dump(exclude_unset=True).items():")
-        lines.append("            if value is not None:")
-        lines.append("                setattr(item, key, value)")
-        lines.append("        await item.asave()")
-        lines.append(f"        return {model_name}Schema.model_validate(item)")
+
+        if with_service:
+            lines.append("        item = await self.service.update(id, data, partial=True)")
+            lines.append(f"        return {model_name}Schema.model_validate(item)")
+        else:
+            lines.append("        try:")
+            lines.append(f"            item = await {model_name}.objects.aget(pk=id)")
+            lines.append(f"        except {model_name}.DoesNotExist:")
+            lines.append(f'            raise Http404("{model_name} not found")')
+            lines.append("")
+            lines.append("        for key, value in data.model_dump(exclude_unset=True).items():")
+            lines.append("            if value is not None:")
+            lines.append("                setattr(item, key, value)")
+            lines.append("        await item.asave()")
+            lines.append(f"        return {model_name}Schema.model_validate(item)")
+
         lines.append("")
 
         # Delete endpoint
         lines.append('    @delete("/{id}")')
         lines.append(f"    async def delete_{model_name.lower()}(self, request, id: int) -> dict:")
         lines.append(f'        """Delete a {model_name}."""')
-        lines.append("        try:")
-        lines.append(f"            item = await {model_name}.objects.aget(pk=id)")
-        lines.append(f"        except {model_name}.DoesNotExist:")
-        lines.append(f'            raise Http404("{model_name} not found")')
-        lines.append("")
 
-        if soft_delete:
-            lines.append("        # Soft delete")
-            lines.append("        item.is_deleted = True")
-            lines.append("        await item.asave()")
+        if with_service:
+            lines.append("        await self.service.delete(id)")
+            lines.append(
+                f'        return {{"success": True, "message": f"{model_name} {{id}} deleted"}}'
+            )
         else:
-            lines.append("        await item.adelete()")
+            lines.append("        try:")
+            lines.append(f"            item = await {model_name}.objects.aget(pk=id)")
+            lines.append(f"        except {model_name}.DoesNotExist:")
+            lines.append(f'            raise Http404("{model_name} not found")')
+            lines.append("")
 
-        lines.append('        return {"success": True, "message": f"{model_name} {id} deleted"}')
+            if soft_delete:
+                lines.append("        # Soft delete")
+                lines.append("        item.is_deleted = True")
+                lines.append("        await item.asave()")
+            else:
+                lines.append("        await item.adelete()")
+
+            lines.append(
+                f'        return {{"success": True, "message": f"{model_name} {{id}} deleted"}}'
+            )
 
         return "\n".join(lines)
 
@@ -750,5 +872,364 @@ class Command(BaseCommand):
         lines.append(f'        """Test 404 for non-existent {model_name}."""')
         lines.append('        response = await async_client.get(f"{self.base_url}/99999")')
         lines.append("        assert response.status_code == 404")
+
+        return "\n".join(lines)
+
+    def _generate_service_content(self, context: dict) -> str:
+        """Generate a service layer for business logic."""
+        model_name = context["model_name"]
+        app_label = context["app_label"]
+        soft_delete = context["soft_delete"]
+        fields = context["fields"]
+
+        lines = []
+
+        # Imports
+        lines.append('"""')
+        lines.append(f"Service layer for {model_name} business logic.")
+        lines.append("")
+        lines.append("This is where you write your business logic. Keep controllers thin -")
+        lines.append("they should only handle HTTP concerns and delegate to services.")
+        lines.append('"""')
+        lines.append("")
+        lines.append("from django.db import transaction")
+        lines.append("from django.http import Http404")
+        lines.append("")
+        lines.append(f"from .models import {model_name}")
+        lines.append(f"from .schemas import {model_name}CreateSchema, {model_name}UpdateSchema")
+        lines.append("")
+        lines.append("")
+
+        # Service class
+        lines.append(f"class {model_name}Service:")
+        lines.append('    """')
+        lines.append(f"    Service for {model_name} operations.")
+        lines.append("")
+        lines.append("    Add your business logic here:")
+        lines.append("    - Validation beyond schema validation")
+        lines.append("    - External service calls")
+        lines.append("    - Complex transactions")
+        lines.append("    - Event dispatching")
+        lines.append("    - Notifications")
+        lines.append('    """')
+        lines.append("")
+
+        # List method
+        lines.append("    async def list(")
+        lines.append("        self,")
+        lines.append("        page: int = 1,")
+        lines.append("        page_size: int = 20,")
+        lines.append("        search: str | None = None,")
+        lines.append("        **filters,")
+        lines.append(f"    ) -> tuple[list[{model_name}], int]:")
+        lines.append('        """')
+        lines.append(f"        List {model_name} objects with optional filtering.")
+        lines.append("")
+        lines.append("        Returns:")
+        lines.append("            Tuple of (items, total_count)")
+        lines.append('        """')
+        lines.append(f"        queryset = {model_name}.objects.all()")
+        lines.append("")
+        lines.append("        # TODO: Add your search logic")
+        lines.append("        # if search:")
+        lines.append("        #     queryset = queryset.filter(name__icontains=search)")
+        lines.append("")
+        lines.append("        # TODO: Add your filter logic")
+        lines.append("        # for key, value in filters.items():")
+        lines.append("        #     if value is not None:")
+        lines.append("        #         queryset = queryset.filter(**{key: value})")
+        lines.append("")
+        lines.append("        total = await queryset.acount()")
+        lines.append("        offset = (page - 1) * page_size")
+        lines.append("        items = [item async for item in queryset[offset:offset + page_size]]")
+        lines.append("")
+        lines.append("        return items, total")
+        lines.append("")
+
+        # Get method
+        lines.append(f"    async def get(self, id: int) -> {model_name}:")
+        lines.append(f'        """Get a single {model_name} by ID."""')
+        lines.append("        try:")
+        lines.append(f"            return await {model_name}.objects.aget(pk=id)")
+        lines.append(f"        except {model_name}.DoesNotExist:")
+        lines.append(f'            raise Http404(f"{model_name} {{id}} not found")')
+        lines.append("")
+
+        # Create method
+        lines.append("    async def create(")
+        lines.append("        self,")
+        lines.append(f"        data: {model_name}CreateSchema,")
+        lines.append("        user=None,  # Optional: for created_by tracking")
+        lines.append(f"    ) -> {model_name}:")
+        lines.append('        """')
+        lines.append(f"        Create a new {model_name}.")
+        lines.append("")
+        lines.append("        TODO: Add your business logic here:")
+        lines.append("        - Additional validation")
+        lines.append("        - Set default values")
+        lines.append("        - Send notifications")
+        lines.append("        - Dispatch events")
+        lines.append('        """')
+        lines.append("        create_data = data.model_dump()")
+        lines.append("")
+        lines.append("        # TODO: Add any computed fields or defaults")
+        lines.append("        # if user:")
+        lines.append("        #     create_data['created_by'] = user")
+        lines.append("")
+        lines.append(f"        item = await {model_name}.objects.acreate(**create_data)")
+        lines.append("")
+        lines.append("        # TODO: Post-creation logic")
+        lines.append("        # await self._send_created_notification(item)")
+        lines.append("        # await self._dispatch_created_event(item)")
+        lines.append("")
+        lines.append("        return item")
+        lines.append("")
+
+        # Update method
+        lines.append("    async def update(")
+        lines.append("        self,")
+        lines.append("        id: int,")
+        lines.append(f"        data: {model_name}UpdateSchema,")
+        lines.append("        partial: bool = False,")
+        lines.append(f"    ) -> {model_name}:")
+        lines.append('        """')
+        lines.append(f"        Update a {model_name}.")
+        lines.append("")
+        lines.append("        Args:")
+        lines.append("            id: The object ID")
+        lines.append("            data: Update data")
+        lines.append("            partial: If True, only update provided fields")
+        lines.append('        """')
+        lines.append("        item = await self.get(id)")
+        lines.append("")
+        lines.append("        # TODO: Add validation logic")
+        lines.append("        # await self._validate_update(item, data)")
+        lines.append("")
+        lines.append("        update_data = data.model_dump(exclude_unset=partial)")
+        lines.append("        for key, value in update_data.items():")
+        lines.append("            if not partial or value is not None:")
+        lines.append("                setattr(item, key, value)")
+        lines.append("")
+        lines.append("        await item.asave()")
+        lines.append("")
+        lines.append("        # TODO: Post-update logic")
+        lines.append("        # await self._dispatch_updated_event(item)")
+        lines.append("")
+        lines.append("        return item")
+        lines.append("")
+
+        # Delete method
+        lines.append("    async def delete(self, id: int) -> bool:")
+        lines.append('        """')
+        lines.append(f"        Delete a {model_name}.")
+        lines.append("")
+        lines.append("        TODO: Add your business logic here:")
+        lines.append("        - Check if deletion is allowed")
+        lines.append("        - Handle related objects")
+        lines.append("        - Send notifications")
+        lines.append('        """')
+        lines.append("        item = await self.get(id)")
+        lines.append("")
+        lines.append("        # TODO: Add pre-delete validation")
+        lines.append("        # if not await self._can_delete(item):")
+        lines.append('        #     raise ValidationError("Cannot delete this item")')
+        lines.append("")
+
+        if soft_delete:
+            lines.append("        # Soft delete")
+            lines.append("        item.is_deleted = True")
+            lines.append("        await item.asave()")
+        else:
+            lines.append("        await item.adelete()")
+
+        lines.append("")
+        lines.append("        # TODO: Post-delete logic")
+        lines.append("        # await self._dispatch_deleted_event(id)")
+        lines.append("")
+        lines.append("        return True")
+        lines.append("")
+
+        # Example custom methods
+        lines.append("    # =========================================")
+        lines.append("    # Add your custom business methods below")
+        lines.append("    # =========================================")
+        lines.append("")
+        lines.append(f"    # async def activate(self, id: int) -> {model_name}:")
+        lines.append(f'    #     """Example: Activate a {model_name}."""')
+        lines.append("    #     item = await self.get(id)")
+        lines.append("    #     item.is_active = True")
+        lines.append("    #     await item.asave()")
+        lines.append("    #     # Send activation email, dispatch event, etc.")
+        lines.append("    #     return item")
+        lines.append("")
+        lines.append(
+            f"    # async def bulk_create(self, items: list[{model_name}CreateSchema]) -> list[{model_name}]:"
+        )
+        lines.append(f'    #     """Example: Bulk create {model_name} objects."""')
+        lines.append("    #     async with transaction.atomic():")
+        lines.append(f"    #         return await {model_name}.objects.abulk_create([")
+        lines.append(f"    #             {model_name}(**item.model_dump()) for item in items")
+        lines.append("    #         ])")
+
+        return "\n".join(lines)
+
+    def _generate_admin_content(self, context: dict) -> str:
+        """Generate Django Unfold admin configuration."""
+        model_name = context["model_name"]
+        app_label = context["app_label"]
+        fields = context["fields"]
+        soft_delete = context["soft_delete"]
+
+        lines = []
+
+        # Imports
+        lines.append('"""')
+        lines.append(f"Django Unfold admin configuration for {model_name}.")
+        lines.append("")
+        lines.append("This admin is configured to work with Django Unfold's design system.")
+        lines.append("Make sure you have 'unfold' in INSTALLED_APPS before 'django.contrib.admin'.")
+        lines.append('"""')
+        lines.append("")
+        lines.append("from django.contrib import admin")
+        lines.append("")
+        lines.append("from django_matt.admin import (")
+        lines.append("    MattModelAdmin,")
+        lines.append("    register_admin,")
+
+        if soft_delete:
+            lines.append("    SoftDeleteAdminMixin,")
+
+        lines.append("    export_as_csv,")
+        lines.append("    export_as_json,")
+        lines.append(")")
+        lines.append("")
+        lines.append(f"from .models import {model_name}")
+        lines.append("")
+        lines.append("")
+
+        # Determine list_display, list_filter, search_fields from model fields
+        list_display = ["id"]
+        list_filter = []
+        search_fields = []
+        readonly_fields = []
+
+        for field in fields:
+            name = field["name"]
+            ftype = field["type"]
+
+            # Skip certain fields
+            if name in ("id", "pk"):
+                continue
+
+            # Add to list_display (limit to reasonable number)
+            if len(list_display) < 7:
+                if field["is_relation"] or ftype in (
+                    "str",
+                    "int",
+                    "float",
+                    "bool",
+                    "date",
+                    "datetime",
+                ):
+                    list_display.append(name)
+
+            # Add filterable fields
+            if (
+                ftype == "bool"
+                or field["is_relation"]
+                or (ftype in ("date", "datetime") and len(list_filter) < 5)
+            ):
+                list_filter.append(name)
+
+            # Add searchable fields
+            if ftype == "str" and not field["is_relation"]:
+                search_fields.append(name)
+
+            # Auto timestamps are readonly
+            if name in ("created_at", "updated_at", "created", "modified"):
+                readonly_fields.append(name)
+
+        # Build admin class
+        if soft_delete:
+            lines.append(f"@register_admin({model_name})")
+            lines.append(f"class {model_name}Admin(SoftDeleteAdminMixin, MattModelAdmin):")
+        else:
+            lines.append(f"@register_admin({model_name})")
+            lines.append(f"class {model_name}Admin(MattModelAdmin):")
+
+        lines.append(f'    """Admin configuration for {model_name}."""')
+        lines.append("")
+
+        # List display
+        list_display_str = ", ".join(f'"{f}"' for f in list_display)
+        lines.append(f"    list_display = [{list_display_str}]")
+
+        # List filter
+        if list_filter:
+            list_filter_str = ", ".join(f'"{f}"' for f in list_filter)
+            lines.append(f"    list_filter = [{list_filter_str}]")
+
+        # Search fields
+        if search_fields:
+            search_fields_str = ", ".join(f'"{f}"' for f in search_fields)
+            lines.append(f"    search_fields = [{search_fields_str}]")
+
+        # Readonly fields
+        if readonly_fields:
+            readonly_fields_str = ", ".join(f'"{f}"' for f in readonly_fields)
+            lines.append(f"    readonly_fields = [{readonly_fields_str}]")
+
+        # Ordering
+        lines.append('    ordering = ["-id"]')
+
+        # Pagination
+        lines.append("    list_per_page = 25")
+
+        lines.append("")
+
+        # Actions
+        lines.append("    # Export actions")
+        lines.append("    actions = [export_as_csv, export_as_json]")
+        lines.append("")
+
+        # Fieldsets - organize fields into logical groups
+        lines.append("    # Uncomment and customize fieldsets for better organization")
+        lines.append("    # fieldsets = (")
+        lines.append("    #     (None, {")
+        lines.append('    #         "fields": ("field1", "field2"),')
+        lines.append("    #     }),")
+        lines.append('    #     ("Details", {')
+        lines.append('    #         "fields": ("field3", "field4"),')
+        lines.append('    #         "classes": ("collapse",),  # Collapsible section')
+        lines.append("    #     }),")
+
+        if readonly_fields:
+            lines.append('    #     ("Timestamps", {')
+            readonly_str = ", ".join(f'"{f}"' for f in readonly_fields)
+            lines.append(f'    #         "fields": ({readonly_str},),')
+            lines.append('    #         "classes": ("collapse",),')
+            lines.append("    #     }),")
+
+        lines.append("    # )")
+        lines.append("")
+
+        # Custom methods example
+        lines.append("    # =========================================")
+        lines.append("    # Custom admin methods")
+        lines.append("    # =========================================")
+        lines.append("")
+        lines.append("    # def get_queryset(self, request):")
+        lines.append('    #     """Customize the queryset (e.g., for multi-tenant filtering)."""')
+        lines.append("    #     qs = super().get_queryset(request)")
+        lines.append("    #     # Example: Filter by user's organization")
+        lines.append("    #     # if not request.user.is_superuser:")
+        lines.append("    #     #     qs = qs.filter(organization=request.user.organization)")
+        lines.append("    #     return qs")
+        lines.append("")
+        lines.append("    # def save_model(self, request, obj, form, change):")
+        lines.append('    #     """Add custom logic when saving."""')
+        lines.append("    #     if not change:  # Creating new object")
+        lines.append("    #         obj.created_by = request.user")
+        lines.append("    #     super().save_model(request, obj, form, change)")
 
         return "\n".join(lines)
