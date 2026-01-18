@@ -19,7 +19,7 @@
 django_matt/
 ├── api.py                  # MattAPI - main entry point
 ├── core/                   # Router, Controller, Schema, Errors
-├── auth/                   # JWT, magic links, RBAC
+├── auth/                   # JWT, magic links, RBAC, OAuth, SSO, Passkeys
 ├── views/                  # Composable CRUD views (ListView, CreateView, etc.)
 ├── permissions/            # Permission classes & decorators
 ├── openapi/                # OpenAPI/Swagger/ReDoc generation
@@ -29,7 +29,8 @@ django_matt/
 ├── typegen/                # TypeScript/Swift code generation
 ├── testing/                # Test client, factories, fixtures, assertions
 ├── utils/                  # Performance, hot reload, errors
-└── management/commands/    # CLI: startapi, config, sync_types, runserver_hot
+├── admin/                  # Django Unfold admin integration, dashboards, widgets
+└── management/commands/    # CLI: startapi, config, sync_types, generate_crud
 ```
 
 ## Key Modules
@@ -119,6 +120,46 @@ django_matt/
 - Routing: `WebSocketRouter`, `create_asgi_application()`
 - Schemas: `ChatMessage`, `NotificationMessage`, `PresenceMessage`, etc.
 
+### Admin (`django_matt.admin`)
+Django Unfold admin integration with dashboard builder and custom page support.
+
+**Base Classes:**
+- `MattModelAdmin` - Auto-configured admin with list_display, search_fields, filters
+- `MattStackedInline`, `MattTabularInline` - Inline admin classes
+- `register_admin(Model)` - Decorator for quick registration
+
+**Mixins:**
+- `AuditAdminMixin` - Created/updated tracking
+- `SoftDeleteAdminMixin` - Soft delete support with restore action
+- `MultiTenantAdminMixin` - Filter by organization/tenant
+- `ExportAdminMixin` - CSV/JSON export actions
+
+**Dashboard Widgets (`admin/widgets.py`):**
+- `StatWidget` - Statistics card with value, change indicator, icon
+- `ActivityWidget` - Recent activity feed
+- `QuickActionsWidget` - Grid of action buttons
+- `TableWidget` - Simple data tables
+- `ProgressWidget` - Progress/goal indicators
+- `model_stat_widget(Model)` - Auto-generate stats from Django model
+
+**Chart Components (`admin/charts.py`):**
+- `ChartWidget` - Chart.js charts (line, bar, doughnut, pie, area, radar)
+- `SparklineWidget` - Compact inline sparklines
+- `model_time_series_chart(Model)` - Auto-generate time series from model
+- `model_distribution_chart(Model, field)` - Auto-generate pie/doughnut from field
+
+**Dashboard Builder (`admin/dashboard.py`):**
+- `Dashboard` - Build dashboards with stats, charts, sections
+- `DashboardSection` - Collapsible grid sections
+- `DashboardAdminSite` - Custom AdminSite with dashboard support
+- `auto_dashboard()` - Auto-generate dashboard from registered admin models
+
+**Page Builder (`admin/pages.py`):**
+- `AdminPage` - Custom admin pages with permission support
+- `AdminPageGroup` - Group pages under common parent
+- `AdminPageRegistry` - `@pages.register()` decorator for page registration
+- `PageBuilderMixin` - Add custom pages to any AdminSite
+
 ## CLI Commands
 
 ```bash
@@ -138,7 +179,10 @@ python manage.py generate_crud myapp.MyModel
 python manage.py generate_crud myapp.MyModel --output-dir ./api
 python manage.py generate_crud myapp.MyModel --components all --with-tests
 python manage.py generate_crud myapp.MyModel --permissions IsAuthenticated --soft-delete
-python manage.py generate_crud myapp.MyModel --dry-run  # Preview without writing
+python manage.py generate_crud myapp.MyModel --with-service  # Generate service layer
+python manage.py generate_crud myapp.MyModel --with-admin    # Generate Django Unfold admin
+python manage.py generate_crud myapp.MyModel --full          # All: controller, schema, service, admin, tests
+python manage.py generate_crud myapp.MyModel --dry-run       # Preview without writing
 
 # Hot reload development server
 python manage.py runserver_hot
@@ -390,6 +434,56 @@ distributed_cache.set_many({"key1": "val1", "key2": "val2"})
 
 # Atomic counters
 distributed_cache.incr("page_views")
+```
+
+### Admin Dashboard
+
+```python
+from django_matt.admin import (
+    MattModelAdmin, register_admin,
+    Dashboard, auto_dashboard, DashboardAdminSite,
+    StatWidget, model_stat_widget, model_time_series_chart,
+)
+
+# Quick model admin registration
+@register_admin(Product)
+class ProductAdmin(MattModelAdmin):
+    list_display = ["name", "price", "created_at"]
+    search_fields = ["name"]
+
+# Auto-generate dashboard from registered models
+admin_site = DashboardAdminSite(name="myadmin")
+admin_site.dashboard = auto_dashboard(site=admin_site)
+
+# Or build custom dashboard
+dashboard = Dashboard(title="Sales Dashboard")
+dashboard.add_stat(model_stat_widget(Order, icon="shopping", color="success"))
+dashboard.add_stat(model_stat_widget(User, icon="users", color="primary"))
+dashboard.add_chart(model_time_series_chart(Order, date_field="created_at", days=30))
+```
+
+### Custom Admin Pages
+
+```python
+from django_matt.admin import pages, AdminPage
+
+# Register custom admin page with decorator
+@pages.register("reports/sales/", title="Sales Report", icon="chart")
+def sales_report(request):
+    data = get_sales_data()
+    return pages.render(request, "sales", {"data": data})
+
+# Or create page manually
+report_page = AdminPage(
+    title="Analytics",
+    url_name="analytics",
+    url_path="analytics/",
+    permission="app.view_analytics",
+)
+
+@report_page.view
+def analytics_view(request):
+    return report_page.render(request, {"charts": get_charts()})
 ```
 
 ## Testing
