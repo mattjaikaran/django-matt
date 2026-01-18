@@ -71,35 +71,34 @@ class AppleOAuthProvider(OAuthProvider):
         Apple requires a JWT signed with your private key instead of
         a static client secret.
         """
-        try:
-            import jwt
-        except ImportError:
-            raise OAuthAuthenticationError(
-                "PyJWT is required for Apple Sign In. Install with: pip install PyJWT"
-            )
+        from django_matt.auth.jwt_builtin import encode_jwt, JWTAlgorithmError
 
         extra = self.provider_config.extra
-        now = int(time.time())
 
         headers = {
-            "alg": "ES256",
             "kid": extra["key_id"],
         }
 
         payload = {
             "iss": extra["team_id"],
-            "iat": now,
-            "exp": now + 86400 * 180,  # 180 days max
             "aud": "https://appleid.apple.com",
             "sub": self.provider_config.client_id,
         }
 
-        return jwt.encode(
-            payload,
-            extra["private_key"],
-            algorithm="ES256",
-            headers=headers,
-        )
+        try:
+            return encode_jwt(
+                payload=payload,
+                secret=extra["private_key"],
+                algorithm="ES256",
+                expires_in=86400 * 180,  # 180 days max
+                issued_at=True,
+                headers=headers,
+            )
+        except JWTAlgorithmError:
+            raise OAuthAuthenticationError(
+                "Apple Sign In requires ES256 signing. Install with: pip install 'django-matt[jwt-asymmetric]' "
+                "or pip install cryptography"
+            )
 
     def _customize_auth_params(self, params: dict) -> dict:
         """Add Apple-specific parameters."""

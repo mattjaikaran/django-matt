@@ -8,7 +8,7 @@ Supports OIDC-based identity providers like:
 - Auth0
 - Any OIDC compliant IdP
 
-Requires: pip install httpx PyJWT
+Requires: pip install httpx
 """
 
 import hashlib

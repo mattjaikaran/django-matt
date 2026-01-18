@@ -131,14 +131,14 @@ class JWTAuthMiddleware(AuthMiddlewareBase):
     async def _decode_jwt_manually(self, token: str) -> Any:
         """Manually decode JWT if django_matt.auth not available."""
         try:
-            import jwt
+            from django_matt.auth.jwt_builtin import decode_jwt, JWTError
             from django.conf import settings
 
             secret = getattr(settings, "SECRET_KEY", "")
             jwt_settings = getattr(settings, "DJANGO_MATT_JWT", {})
             algorithm = jwt_settings.get("ALGORITHM", "HS256")
 
-            payload = jwt.decode(token, secret, algorithms=[algorithm])
+            payload = decode_jwt(token, secret, algorithms=[algorithm])
             user_id = payload.get("sub") or payload.get("user_id")
 
             if user_id:
@@ -149,6 +149,8 @@ class JWTAuthMiddleware(AuthMiddlewareBase):
                 except User.DoesNotExist:
                     return None
 
+        except JWTError as e:
+            logger.warning(f"Manual JWT decode failed: {e}")
         except Exception as e:
             logger.warning(f"Manual JWT decode failed: {e}")
 

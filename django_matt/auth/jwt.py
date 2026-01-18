@@ -2,10 +2,9 @@
 JWT Authentication backend for Django Matt.
 
 Provides JWT token generation, validation, and authentication
-without depending on django-ninja-jwt or DRF.
+using our built-in JWT implementation (no external dependencies).
 """
 
-import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -15,16 +14,20 @@ from django.contrib.auth import get_user_model
 from django.http import HttpRequest
 
 from django_matt.auth.schemas import TokenPayload, TokenPair, AccessToken
+from django_matt.auth.jwt_builtin import (
+    encode_jwt,
+    decode_jwt,
+    JWTError,
+    JWTExpiredError,
+    JWTInvalidSignatureError,
+    JWTInvalidClaimError,
+    JWTDecodeError,
+    JWTAlgorithmError,
+)
 
-
-# Try to import PyJWT, provide helpful error if not installed
-try:
-    import jwt
-    from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
-except ImportError:
-    jwt = None  # type: ignore
-    ExpiredSignatureError = Exception  # type: ignore
-    InvalidTokenError = Exception  # type: ignore
+# Backward-compatible exception aliases
+InvalidTokenError = JWTError
+ExpiredSignatureError = JWTExpiredError
 
 
 class JWTConfig:
@@ -116,15 +119,6 @@ class JWTConfig:
 jwt_config = JWTConfig()
 
 
-def _ensure_jwt_installed():
-    """Raise helpful error if PyJWT is not installed."""
-    if jwt is None:
-        raise ImportError(
-            "PyJWT is required for JWT authentication. "
-            "Install it with: pip install 'django-matt[auth]' or pip install PyJWT"
-        )
-
-
 def generate_jti() -> str:
     """Generate a unique JWT ID."""
     return secrets.token_urlsafe(32)
@@ -137,51 +131,47 @@ def create_access_token(
 ) -> str:
     """
     Create a JWT access token for a user.
-    
+
     Args:
         user: Django user instance
         extra_claims: Additional claims to include in the token
         lifetime: Override token lifetime
-        
+
     Returns:
         Encoded JWT string
     """
-    _ensure_jwt_installed()
-    
-    now = datetime.now(timezone.utc)
     lifetime = lifetime or jwt_config.access_token_lifetime
-    exp = now + lifetime
-    
+    expires_in = int(lifetime.total_seconds())
+
     # Build payload
     payload = {
         jwt_config.user_id_claim: str(getattr(user, jwt_config.user_id_field)),
-        "exp": exp,
-        "iat": now,
         "type": "access",
         "jti": generate_jti(),
     }
-    
+
     # Add user info
     if hasattr(user, "email"):
         payload["email"] = user.email
     if hasattr(user, "username"):
         payload["username"] = user.username
-    
+
     # Add roles (from groups)
     if hasattr(user, "groups"):
         payload["roles"] = list(user.groups.values_list("name", flat=True))
-    
-    # Add issuer/audience if configured
-    if jwt_config.issuer:
-        payload["iss"] = jwt_config.issuer
-    if jwt_config.audience:
-        payload["aud"] = jwt_config.audience
-    
+
     # Add extra claims
     if extra_claims:
         payload.update(extra_claims)
-    
-    return jwt.encode(payload, jwt_config.signing_key, algorithm=jwt_config.algorithm)
+
+    return encode_jwt(
+        payload=payload,
+        secret=jwt_config.signing_key,
+        algorithm=jwt_config.algorithm,
+        expires_in=expires_in,
+        issuer=jwt_config.issuer,
+        audience=jwt_config.audience,
+    )
 
 
 def create_refresh_token(
@@ -191,38 +181,35 @@ def create_refresh_token(
 ) -> str:
     """
     Create a JWT refresh token for a user.
-    
+
     Args:
         user: Django user instance
         extra_claims: Additional claims to include in the token
         lifetime: Override token lifetime
-        
+
     Returns:
         Encoded JWT string
     """
-    _ensure_jwt_installed()
-    
-    now = datetime.now(timezone.utc)
     lifetime = lifetime or jwt_config.refresh_token_lifetime
-    exp = now + lifetime
-    
+    expires_in = int(lifetime.total_seconds())
+
     payload = {
         jwt_config.user_id_claim: str(getattr(user, jwt_config.user_id_field)),
-        "exp": exp,
-        "iat": now,
         "type": "refresh",
         "jti": generate_jti(),
     }
-    
-    if jwt_config.issuer:
-        payload["iss"] = jwt_config.issuer
-    if jwt_config.audience:
-        payload["aud"] = jwt_config.audience
-    
+
     if extra_claims:
         payload.update(extra_claims)
-    
-    return jwt.encode(payload, jwt_config.signing_key, algorithm=jwt_config.algorithm)
+
+    return encode_jwt(
+        payload=payload,
+        secret=jwt_config.signing_key,
+        algorithm=jwt_config.algorithm,
+        expires_in=expires_in,
+        issuer=jwt_config.issuer,
+        audience=jwt_config.audience,
+    )
 
 
 def create_token_pair(
@@ -254,47 +241,39 @@ def create_token_pair(
 def decode_token(token: str, verify_type: str | None = None) -> TokenPayload:
     """
     Decode and validate a JWT token.
-    
+
     Args:
         token: The JWT string to decode
         verify_type: Optional token type to verify ("access" or "refresh")
-        
+
     Returns:
         Decoded token payload
-        
+
     Raises:
         InvalidTokenError: If token is invalid
         ExpiredSignatureError: If token has expired
     """
-    _ensure_jwt_installed()
-    
     try:
-        # Decode options
-        options = {}
-        if jwt_config.audience:
-            options["audience"] = jwt_config.audience
-        if jwt_config.issuer:
-            options["issuer"] = jwt_config.issuer
-        
         # Determine verification key
         verify_key = jwt_config.verifying_key or jwt_config.signing_key
-        
-        payload = jwt.decode(
-            token,
-            verify_key,
+
+        payload = decode_jwt(
+            token=token,
+            secret=verify_key,
             algorithms=[jwt_config.algorithm],
-            **options,
+            verify_iss=jwt_config.issuer,
+            verify_aud=jwt_config.audience,
         )
-        
+
         # Verify token type if specified
         if verify_type and payload.get("type") != verify_type:
             raise InvalidTokenError(f"Expected {verify_type} token")
-        
+
         return TokenPayload(**payload)
-        
-    except ExpiredSignatureError:
-        raise
-    except jwt.PyJWTError as e:
+
+    except JWTExpiredError:
+        raise ExpiredSignatureError("Token has expired")
+    except JWTError as e:
         raise InvalidTokenError(str(e))
 
 
@@ -311,18 +290,16 @@ def verify_refresh_token(token: str) -> TokenPayload:
 def refresh_tokens(refresh_token: str) -> TokenPair:
     """
     Use a refresh token to get new access and refresh tokens.
-    
+
     Args:
         refresh_token: The refresh token
-        
+
     Returns:
         New TokenPair
-        
+
     Raises:
         InvalidTokenError: If refresh token is invalid
     """
-    _ensure_jwt_installed()
-    
     # Verify the refresh token
     payload = verify_refresh_token(refresh_token)
     
@@ -437,20 +414,34 @@ class JWTAuthentication:
         return f'{jwt_config.auth_header_types[0]} realm="api"'
 
 
-# Export exceptions for convenience
+# Export functions, classes, and exceptions
 __all__ = [
+    # Config
     "JWTConfig",
     "jwt_config",
+    # Token creation
     "create_access_token",
     "create_refresh_token",
     "create_token_pair",
+    # Token verification
     "decode_token",
     "verify_access_token",
     "verify_refresh_token",
     "refresh_tokens",
+    # Request helpers
     "get_token_from_request",
     "get_user_from_token",
+    "generate_jti",
+    # Authentication class
     "JWTAuthentication",
+    # Exceptions (backward-compatible aliases)
     "InvalidTokenError",
     "ExpiredSignatureError",
+    # Native exception classes
+    "JWTError",
+    "JWTExpiredError",
+    "JWTInvalidSignatureError",
+    "JWTInvalidClaimError",
+    "JWTDecodeError",
+    "JWTAlgorithmError",
 ]
