@@ -6,6 +6,7 @@ Beautiful, interactive command-line interface tools.
 
 from django_matt.cli.base import GeneratorCommand, InteractiveCommand, MattCommand
 from django_matt.cli.console import console
+from django_matt.cli.help import show_help_for, show_main_help
 from django_matt.cli.prompts import confirm, multiselect, path, select, text
 
 __all__ = [
@@ -21,4 +22,7 @@ __all__ = [
     "multiselect",
     "confirm",
     "path",
+    # Help
+    "show_main_help",
+    "show_help_for",
 ]

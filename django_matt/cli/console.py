@@ -502,6 +502,95 @@ class Console:
         self.numbered_list(steps)
 
     # =========================================================================
+    # Help and Documentation
+    # =========================================================================
+
+    def command_help(
+        self,
+        command: str,
+        description: str,
+        usage: str,
+        options: list[dict] | None = None,
+        examples: list[dict] | None = None,
+    ):
+        """
+        Display rich help for a command.
+
+        Args:
+            command: Command name
+            description: Command description
+            usage: Usage string
+            options: List of dicts with 'name', 'description', 'default'
+            examples: List of dicts with 'command', 'description'
+        """
+        if self._quiet:
+            return
+
+        options = options or []
+        examples = examples or []
+
+        self.newline()
+        self._console.print(f"[bold magenta]{command}[/]")
+        self._console.print(f"[dim]{description}[/]")
+        self.newline()
+
+        # Usage
+        self._console.print("[bold]Usage:[/]")
+        self._console.print(f"  [cyan]{usage}[/]")
+        self.newline()
+
+        # Options
+        if options:
+            self._console.print("[bold]Options:[/]")
+            table = Table(show_header=False, box=None, padding=(0, 2))
+            table.add_column("Option", style="green", no_wrap=True)
+            table.add_column("Description")
+            table.add_column("Default", style="dim")
+
+            for opt in options:
+                default = f"[{opt.get('default', '')}]" if opt.get("default") else ""
+                table.add_row(opt["name"], opt["description"], default)
+
+            self._console.print(table)
+            self.newline()
+
+        # Examples
+        if examples:
+            self._console.print("[bold]Examples:[/]")
+            for ex in examples:
+                self._console.print(f"  [dim]# {ex['description']}[/]")
+                self._console.print(f"  [cyan]{ex['command']}[/]")
+                self.newline()
+
+    def did_you_mean(self, input_cmd: str, suggestion: str):
+        """Show a 'did you mean' suggestion for typos."""
+        if not self._quiet:
+            self._console.print(
+                f"[yellow]Unknown command:[/] {input_cmd}\n"
+                f"[dim]Did you mean:[/] [cyan]{suggestion}[/]?"
+            )
+
+    def command_group(self, title: str, commands: list[tuple[str, str]]):
+        """
+        Display a group of commands in a panel.
+
+        Args:
+            title: Group title
+            commands: List of (command, description) tuples
+        """
+        if self._quiet:
+            return
+
+        table = Table(show_header=False, box=None, padding=(0, 2))
+        table.add_column("Command", style="cyan", no_wrap=True)
+        table.add_column("Description")
+
+        for cmd, desc in commands:
+            table.add_row(cmd, desc)
+
+        self._console.print(Panel(table, title=f"[bold]{title}[/]", border_style="blue"))
+
+    # =========================================================================
     # Branding
     # =========================================================================
 

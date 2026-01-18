@@ -94,6 +94,9 @@ class Command(GeneratorCommand):
             help="Type of test to generate",
         )
 
+    # Available subcommands for "did you mean" suggestions
+    SUBCOMMANDS = ["info", "doctor", "routes", "models", "version", "new"]
+
     def handle(self, *args, **options):
         subcommand = options.get("subcommand")
 
@@ -105,27 +108,71 @@ class Command(GeneratorCommand):
         if handler:
             handler(options)
         else:
-            self.error(f"Unknown subcommand: {subcommand}")
+            # Try to suggest a similar command
+            suggestion = self._suggest_command(subcommand)
+            if suggestion:
+                self.console.did_you_mean(subcommand, suggestion)
+            else:
+                self.error(f"Unknown subcommand: {subcommand}")
+
+    def _suggest_command(self, input_cmd: str) -> str | None:
+        """Suggest a similar command for typos."""
+        best_match = None
+        best_score = 0
+
+        for cmd in self.SUBCOMMANDS:
+            score = self._similarity(input_cmd.lower(), cmd.lower())
+            if score > best_score and score > 0.5:
+                best_score = score
+                best_match = cmd
+
+        return best_match
+
+    def _similarity(self, s1: str, s2: str) -> float:
+        """Calculate similarity ratio between two strings."""
+        if not s1 or not s2:
+            return 0.0
+
+        # Count matching characters in order
+        matches = sum(1 for a, b in zip(s1, s2, strict=False) if a == b)
+        max_len = max(len(s1), len(s2))
+
+        return matches / max_len if max_len > 0 else 0.0
 
     def show_help(self):
-        """Show main help with banner."""
+        """Show main help with banner and grouped commands."""
         self.console.banner()
         self.console.print("[bold]Usage:[/] python manage.py matt <command>")
         self.console.newline()
 
-        commands = [
-            {"Command": "info", "Description": "Show project information and statistics"},
-            {"Command": "doctor", "Description": "Check project health and configuration"},
-            {"Command": "routes", "Description": "List all API routes"},
-            {"Command": "models", "Description": "List all Django models"},
-            {"Command": "version", "Description": "Show django-matt version"},
-            {
-                "Command": "new",
-                "Description": "Scaffold new components (controller, schema, service, test)",
-            },
-        ]
+        # Group commands by category
+        self.console.command_group(
+            "Project Commands",
+            [
+                ("info", "Show project information and statistics"),
+                ("doctor", "Check project health and configuration"),
+                ("version", "Show django-matt version"),
+            ],
+        )
 
-        self.console.table(commands, title="Available Commands")
+        self.console.command_group(
+            "Development Commands",
+            [
+                ("routes", "List all API routes"),
+                ("models", "List all Django models"),
+            ],
+        )
+
+        self.console.command_group(
+            "Scaffolding Commands",
+            [
+                ("new controller", "Generate a new API controller"),
+                ("new schema", "Generate Pydantic schemas"),
+                ("new service", "Generate a service layer"),
+                ("new test", "Generate test files"),
+            ],
+        )
+
         self.console.newline()
         self.console.muted("Run 'python manage.py matt <command> --help' for more info")
 
