@@ -1172,6 +1172,364 @@ function LoginPage() {
 
 ---
 
+## Stage 13: Messaging System
+
+> Goal: Full-featured real-time messaging with optional WebSocket support, suitable for chat apps, support systems, and in-app communication.
+
+### Phase 13A: Core Messaging Models
+- [ ] **13A.1** - Conversation models
+  - `Conversation` - Base conversation model (direct, group, channel)
+  - `ConversationType` enum (direct, group, channel, support)
+  - `ConversationMember` - Membership with roles (admin, member, guest)
+  - `ConversationSettings` - Per-user settings (muted, pinned, archived)
+- [ ] **13A.2** - Message models
+  - `Message` - Core message model with content types
+  - `MessageType` enum (text, image, file, system, reply, forward)
+  - `MessageStatus` - Delivery tracking (sent, delivered, read)
+  - `MessageReaction` - Emoji reactions on messages
+  - `MessageEdit` - Edit history tracking
+- [ ] **13A.3** - Attachment system
+  - `Attachment` model with file storage integration
+  - Image thumbnails and previews
+  - File type validation and size limits
+  - Virus/malware scanning hooks
+
+### Phase 13B: Messaging Features
+- [ ] **13B.1** - Message status tracking
+  - Sent/delivered/read receipts
+  - Typing indicators
+  - Online/offline presence
+  - Last seen timestamps
+- [ ] **13B.2** - Message actions
+  - Edit messages (with history)
+  - Delete/undo messages (soft delete with time window)
+  - Reply to messages (threading)
+  - Forward messages
+  - Pin important messages
+- [ ] **13B.3** - Group conversations
+  - Create/manage groups
+  - Add/remove members
+  - Member roles and permissions
+  - Group settings (name, avatar, description)
+  - Leave/archive conversations
+- [ ] **13B.4** - Search and history
+  - Full-text message search
+  - Search within conversation
+  - Message pagination (cursor-based)
+  - Jump to date/message
+
+### Phase 13C: Real-time & Transport
+- [ ] **13C.1** - WebSocket transport (optional)
+  - `MessagingConsumer` - Django Channels consumer
+  - Real-time message delivery
+  - Typing indicators via WebSocket
+  - Presence tracking
+  - Reconnection handling
+- [ ] **13C.2** - Polling fallback
+  - Long-polling endpoint for environments without WebSocket
+  - Efficient delta sync
+  - Configurable poll intervals
+- [ ] **13C.3** - Push notifications integration
+  - FCM/APNs integration for mobile
+  - Web push for browsers
+  - Notification preferences per conversation
+
+### Phase 13D: Controllers & API
+- [ ] **13D.1** - Conversation controller
+  - `ConversationController` - Full CRUD for conversations
+  - List conversations with unread counts
+  - Create direct/group conversations
+  - Update conversation settings
+  - Archive/delete conversations
+- [ ] **13D.2** - Message controller
+  - `MessageController` - Full CRUD for messages
+  - Send messages (text, attachments)
+  - Edit/delete messages
+  - Mark as read
+  - Get message history with pagination
+- [ ] **13D.3** - Schemas
+  - `ConversationSchema`, `ConversationListSchema`
+  - `MessageSchema`, `MessageCreateSchema`
+  - `AttachmentSchema`, `AttachmentUploadSchema`
+  - `TypingIndicatorSchema`, `ReadReceiptSchema`
+
+### Phase 13E: Admin & CLI
+- [ ] **13E.1** - Django Unfold admin
+  - `ConversationAdmin` with member inline
+  - `MessageAdmin` with search and filters
+  - Moderation tools (delete messages, ban users)
+  - Analytics dashboard (messages/day, active conversations)
+- [ ] **13E.2** - CLI scaffolding
+  - `python manage.py generate_messaging` - Full messaging setup
+  - `--websocket` / `--no-websocket` - Transport choice
+  - `--with-attachments` - Include file upload support
+  - `--with-reactions` - Include emoji reactions
+- [ ] **13E.3** - Testing utilities
+  - `ConversationFactory`, `MessageFactory`
+  - WebSocket test client helpers
+  - Message delivery assertions
+
+---
+
+## Stage 14: Notifications System
+
+> Goal: Unified notification system for in-app, email, push, and SMS with preferences and CLI scaffolding.
+
+### Phase 14A: Core Notification Models
+- [ ] **14A.1** - Notification models
+  - `Notification` - Core notification model
+  - `NotificationType` - Configurable notification types
+  - `NotificationChannel` enum (in_app, email, push, sms)
+  - `NotificationStatus` (pending, sent, delivered, read, failed)
+- [ ] **14A.2** - User preferences
+  - `NotificationPreference` - Per-user, per-type settings
+  - Channel preferences (which channels for which types)
+  - Quiet hours / Do not disturb
+  - Frequency settings (immediate, digest, off)
+- [ ] **14A.3** - Templates
+  - `NotificationTemplate` - Reusable templates
+  - Variable interpolation
+  - Per-channel template variants
+  - Localization support
+
+### Phase 14B: Notification Channels
+- [ ] **14B.1** - In-app notifications
+  - Real-time delivery via WebSocket
+  - Notification center UI components
+  - Mark as read/unread
+  - Bulk actions (mark all read, clear all)
+- [ ] **14B.2** - Email notifications
+  - Integration with Email Service (Stage 15)
+  - HTML and plain text templates
+  - Unsubscribe links
+  - Email digest aggregation
+- [ ] **14B.3** - Push notifications
+  - FCM (Firebase Cloud Messaging) provider
+  - APNs (Apple Push Notification) provider
+  - Web Push (VAPID) provider
+  - Device token management
+- [ ] **14B.4** - SMS notifications (optional)
+  - Twilio provider
+  - Message formatting and length handling
+  - Delivery status tracking
+
+### Phase 14C: Controllers & API
+- [ ] **14C.1** - Notification controller
+  - `NotificationController` - User notifications API
+  - List notifications with filters
+  - Mark as read/unread
+  - Delete notifications
+  - Get unread count
+- [ ] **14C.2** - Preferences controller
+  - `NotificationPreferenceController`
+  - Get/update preferences
+  - Bulk preference updates
+  - Unsubscribe tokens
+- [ ] **14C.3** - Admin controller
+  - Send notifications to users/groups
+  - Notification analytics
+  - Failed notification retry
+
+### Phase 14D: CLI & Developer Tools
+- [ ] **14D.1** - CLI scaffolding
+  - `python manage.py generate_notifications` - Full setup
+  - `--channels in_app,email,push` - Select channels
+  - `--with-preferences` - Include preference management
+  - `--with-templates` - Include template system
+- [ ] **14D.2** - Notification helpers
+  - `notify(user, type, data)` - Simple notification dispatch
+  - `notify_many(users, type, data)` - Bulk notifications
+  - `@triggers_notification(type)` - Decorator for auto-notifications
+- [ ] **14D.3** - Testing utilities
+  - `NotificationFactory`
+  - In-memory notification backend for tests
+  - Assertion helpers
+
+### Phase 14E: Admin Interface
+- [ ] **14E.1** - Django Unfold admin
+  - `NotificationAdmin` with filters and search
+  - `NotificationTypeAdmin` for managing types
+  - `NotificationTemplateAdmin` with preview
+  - Bulk send interface
+- [ ] **14E.2** - Analytics dashboard
+  - Notifications sent per channel
+  - Delivery success rates
+  - User engagement metrics
+
+---
+
+## Stage 15: Email Service
+
+> Goal: Transactional and marketing email with multiple providers, templates, and tracking.
+
+### Phase 15A: Email Infrastructure
+- [ ] **15A.1** - Email providers
+  - `EmailProvider` base class
+  - `SendGridProvider` - SendGrid API
+  - `PostmarkProvider` - Postmark API
+  - `ResendProvider` - Resend API
+  - `SESProvider` - Amazon SES
+  - `SMTPProvider` - Generic SMTP fallback
+  - `ConsoleProvider` - Development (prints to console)
+- [ ] **15A.2** - Email models
+  - `EmailMessage` - Outgoing email record
+  - `EmailStatus` (queued, sent, delivered, bounced, complained)
+  - `EmailEvent` - Webhook events (opens, clicks, bounces)
+  - `EmailAttachment` - File attachments
+- [ ] **15A.3** - Template system
+  - `EmailTemplate` model with versioning
+  - MJML support for responsive emails
+  - Plain text auto-generation
+  - Template variables and loops
+  - Preview functionality
+
+### Phase 15B: Email Features
+- [ ] **15B.1** - Transactional emails
+  - `send_email(to, template, context)` - Simple API
+  - Automatic queuing with background tasks
+  - Retry logic for failures
+  - Rate limiting per provider
+- [ ] **15B.2** - Email tracking
+  - Open tracking (pixel)
+  - Click tracking (link rewriting)
+  - Bounce handling
+  - Complaint/spam handling
+  - Unsubscribe management
+- [ ] **15B.3** - Email lists (optional)
+  - `EmailList` - Mailing lists
+  - `EmailSubscriber` - List membership
+  - Double opt-in flow
+  - List segmentation
+- [ ] **15B.4** - Webhooks
+  - Provider webhook handlers
+  - Event normalization across providers
+  - Automatic status updates
+
+### Phase 15C: Controllers & CLI
+- [ ] **15C.1** - Email controller
+  - `EmailController` - Send emails via API
+  - Template preview endpoint
+  - Email status lookup
+  - Resend failed emails
+- [ ] **15C.2** - CLI commands
+  - `python manage.py generate_email` - Full email setup
+  - `--provider sendgrid|postmark|resend|ses|smtp`
+  - `--with-templates` - Include template system
+  - `--with-tracking` - Include open/click tracking
+  - `python manage.py send_email` - Send test emails
+  - `python manage.py email_stats` - View email statistics
+- [ ] **15C.3** - Admin interface
+  - `EmailTemplateAdmin` with MJML editor
+  - `EmailMessageAdmin` with status filters
+  - Email analytics dashboard
+  - Bounce/complaint management
+
+### Phase 15D: Pre-built Templates
+- [ ] **15D.1** - Authentication emails
+  - Welcome email
+  - Email verification
+  - Password reset
+  - Magic link login
+  - Two-factor code
+- [ ] **15D.2** - Transactional emails
+  - Order confirmation
+  - Invoice/receipt
+  - Shipping notification
+  - Account notifications
+- [ ] **15D.3** - Template components
+  - Header/footer components
+  - Button component
+  - Card component
+  - Social links
+
+---
+
+## Stage 16: Developer Experience & CLI
+
+> Goal: Make the CLI beautiful, intuitive, and powerful with rich output, interactive prompts, and helpful feedback.
+
+### Phase 16A: CLI Visual Design
+- [ ] **16A.1** - Rich terminal output
+  - Colored output with `rich` library
+  - Progress bars for long operations
+  - Spinners for async operations
+  - Tables for data display
+  - Tree views for file structures
+- [ ] **16A.2** - Consistent styling
+  - Brand colors and icons
+  - Success/warning/error formatting
+  - Code syntax highlighting
+  - Box drawing for sections
+- [ ] **16A.3** - Help improvements
+  - Rich help text with examples
+  - Command grouping
+  - Contextual suggestions
+  - "Did you mean?" for typos
+
+### Phase 16B: Interactive CLI
+- [ ] **16B.1** - Interactive prompts
+  - `inquirer`-style prompts for scaffolding
+  - Multi-select for features
+  - Confirmation prompts for destructive actions
+  - Path autocomplete
+- [ ] **16B.2** - Wizard mode
+  - `python manage.py startapi --wizard` - Guided project setup
+  - `python manage.py generate_crud --wizard` - Guided CRUD generation
+  - Step-by-step with explanations
+  - Review before generation
+- [ ] **16B.3** - Configuration
+  - Interactive config editor
+  - Validate configuration
+  - Show current settings
+
+### Phase 16C: Developer Feedback
+- [ ] **16C.1** - Generation output
+  - Show files created/modified
+  - Syntax-highlighted code previews
+  - Diff view for modifications
+  - Next steps instructions
+- [ ] **16C.2** - Error handling
+  - Friendly error messages
+  - Suggested fixes
+  - Links to documentation
+  - Debug mode with stack traces
+- [ ] **16C.3** - Dry run improvements
+  - Full preview of all changes
+  - Side-by-side diffs
+  - Confirmation before applying
+
+### Phase 16D: New CLI Commands
+- [ ] **16D.1** - Project commands
+  - `python manage.py matt info` - Show project info and stats
+  - `python manage.py matt doctor` - Check project health
+  - `python manage.py matt upgrade` - Upgrade django-matt version
+- [ ] **16D.2** - Development commands
+  - `python manage.py matt routes` - List all API routes (like Rails)
+  - `python manage.py matt models` - List all models with fields
+  - `python manage.py matt shell` - Enhanced shell with auto-imports
+- [ ] **16D.3** - Scaffolding commands
+  - `python manage.py matt new controller <name>`
+  - `python manage.py matt new schema <name>`
+  - `python manage.py matt new service <name>`
+  - `python manage.py matt new test <name>`
+
+### Phase 16E: CLI Architecture
+- [ ] **16E.1** - Command base classes
+  - `MattCommand` - Base with rich output
+  - `InteractiveCommand` - Base with prompts
+  - `GeneratorCommand` - Base for scaffolding
+- [ ] **16E.2** - Output utilities
+  - `console.success()`, `console.error()`, `console.warning()`
+  - `console.table()`, `console.tree()`
+  - `console.code()` - Syntax highlighted code
+  - `console.diff()` - File diffs
+- [ ] **16E.3** - Testing
+  - CLI test utilities
+  - Mock prompts for testing
+  - Output capture and assertions
+
+---
+
 ## Future Ideas
 
 > These are potential enhancements that could be added in future versions.
