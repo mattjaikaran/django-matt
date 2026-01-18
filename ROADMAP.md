@@ -346,29 +346,32 @@ django-matt consolidates features from multiple packages into one cohesive libra
 
 ---
 
-## Stage 8: Dependency Reduction
+## Stage 8: Dependency Reduction ✅
 
 > Goal: Minimize external dependencies to reduce version conflicts, security surface, and maintenance burden.
 
-### Phase 8A: Replace PyJWT
-- [ ] **8A.1** - Built-in JWT implementation
+### Phase 8A: Replace PyJWT ✅
+- [x] **8A.1** - Built-in JWT implementation
   - HMAC signing (HS256, HS384, HS512) using `hmac` stdlib
   - Base64url encoding/decoding
   - Claims validation (exp, nbf, iat, iss, aud)
   - Token parsing and verification
-- [ ] **8A.2** - RSA/EC support (optional `cryptography` dep)
+  - `jwt_builtin.py` - complete implementation
+- [x] **8A.2** - RSA/EC support (optional `cryptography` dep)
   - RS256, RS384, RS512
-  - ES256, ES384, ES512
+  - ES256, ES384, ES512 (used by Apple Sign In)
   - Public key verification
+  - Install with `pip install 'django-matt[jwt-asymmetric]'`
 
-### Phase 8B: Replace passlib/argon2-cffi
-- [ ] **8B.1** - Use Django's built-in password hashers
+### Phase 8B: Replace passlib/argon2-cffi ✅
+- [x] **8B.1** - Use Django's built-in password hashers
   - Django already supports Argon2, bcrypt, PBKDF2
   - Wrapper around `make_password()` / `check_password()`
-  - Password strength validation
-- [ ] **8B.2** - Remove passlib and argon2-cffi dependencies
-  - Migrate existing code to Django hashers
-  - Maintain backward compatibility with existing hashes
+  - Password strength validation and generation
+  - `passwords.py` - complete implementation
+- [x] **8B.2** - Remove passlib and argon2-cffi dependencies
+  - `auth = []` - no external deps needed for basic auth
+  - Django hashers handle all password operations
 
 ### Phase 8C: Universal Frontend Codegen Engine
 
@@ -508,39 +511,42 @@ export function UserForm({ onSuccess }: UserFormProps) {
 }
 ```
 
-### Phase 8D: Replace factory-boy
-- [ ] **8D.1** - Built-in model factory system
-  - `ModelFactory` base class
-  - Field auto-generation based on model fields
-  - Sequence support for unique values
-  - Trait/variant support
-  - Related object creation
-- [ ] **8D.2** - Built-in data generators (replace Faker)
-  - Names, emails, usernames
-  - Addresses, phone numbers
+### Phase 8D: Replace factory-boy ✅
+- [x] **8D.1** - Built-in model factory system
+  - `ModelFactory` base class in `testing/model_factory.py`
+  - `Field`, `LazyAttribute`, `Sequence` definitions
+  - `SubFactory` for related models
+  - `PostGeneration` hooks
+  - Field auto-generation based on Django model field types
+- [x] **8D.2** - Built-in data generators (replace Faker)
+  - `DataGenerator` class in `testing/generators.py`
+  - Names, emails, usernames, passwords
+  - Addresses, cities, states, countries
+  - Phone numbers, credit cards (fake)
   - Dates, times, timestamps
-  - Lorem ipsum text
-  - UUIDs, slugs
-  - Common patterns (credit cards, SSN - fake only)
+  - Lorem ipsum text, sentences, paragraphs
+  - UUIDs, colors, file names, MIME types
+  - All with deterministic seeding support
 
-### Phase 8E: Replace python-multipart
-- [ ] **8E.1** - Built-in multipart form parser
-  - Streaming multipart parsing
-  - File upload handling
+### Phase 8E: Replace python-multipart ✅
+- [x] **8E.1** - Built-in multipart form parser
+  - Already implemented in `files/upload.py`
+  - `MultipartParser` class with streaming support
+  - File upload handling with validation
   - Memory-efficient large file support
-  - Content-Type validation
+  - Content-Type and boundary handling
 
 ### Dependency Analysis
 
-| Current Dep | Replacement | Complexity | Priority |
-|------------|-------------|------------|----------|
-| PyJWT | Built-in JWT (symmetric + asymmetric) | Medium | High |
-| passlib | Django hashers | Low | High |
-| argon2-cffi | Django hashers | Low | High |
-| jinja2 | Universal Codegen Engine | High | High |
-| factory-boy | Built-in factories | Medium | Medium |
-| faker | Built-in generators | Medium | Low |
-| python-multipart | Built-in parser | High | Low |
+| Dependency | Replacement | Status |
+|------------|-------------|--------|
+| PyJWT | `jwt_builtin.py` (HMAC + RSA/EC) | ✅ Done |
+| passlib | `passwords.py` (Django hashers) | ✅ Done |
+| argon2-cffi | `passwords.py` (Django hashers) | ✅ Done |
+| jinja2 | Codegen Engine (Phase 8C) | 🔄 In Progress |
+| factory-boy | `model_factory.py` | ✅ Done |
+| faker | `generators.py` | ✅ Done |
+| python-multipart | `files/upload.py` (already built) | ✅ Done |
 
 ### Dependencies to Keep (Too Complex/Specialized)
 
@@ -560,25 +566,46 @@ export function UserForm({ onSuccess }: UserFormProps) {
 
 ## Dependencies
 
-### Current Dependencies
+### Current Dependencies (After Stage 8)
 ```toml
 [project]
 requires-python = ">=3.11"
 dependencies = [
     "django>=5.2",
     "pydantic>=2.0.0",
-    "typing-extensions>=4.0.0",
 ]
 
 [project.optional-dependencies]
-full = ["orjson>=3.9.0", "uvicorn>=0.30.0"]
-auth = ["PyJWT>=2.9.0", "passlib[bcrypt]>=1.7.4", "argon2-cffi>=23.1.0"]
+# Performance optimizations
+performance = ["orjson>=3.10.0", "ujson>=5.10.0", "msgpack>=1.0.8", "redis>=5.0.0"]
+
+# Authentication - built-in JWT, uses Django password hashers
+# No external dependencies needed for basic auth!
+auth = []
+
+# JWT with RSA/EC algorithms (ES256 for Apple, RS256 for others)
+jwt-asymmetric = ["cryptography>=42.0.0"]
+
+# OAuth providers
 oauth = ["authlib>=1.3.0"]
+
+# Passkeys/WebAuthn
 passkeys = ["webauthn>=2.1.0"]
-typegen = ["jinja2>=3.1.0"]
-testing = ["factory-boy>=3.3.0", "faker>=24.0.0", "pytest>=8.0.0", "pytest-django>=4.8.0", "httpx>=0.27.0"]
-files = ["boto3>=1.34.0", "python-multipart>=0.0.9"]
-tasks = ["celery>=5.4.0", "redis>=5.0.0"]
+
+# Type generation - built-in codegen engine, no external deps
+typegen = []
+
+# File handling (S3, etc.) - built-in multipart parser
+files = ["boto3>=1.34.0"]
+
+# Background tasks
+tasks = ["celery>=5.4.0", "dramatiq[redis]>=1.17.0", "django-q2>=1.6.0"]
+
+# Billing providers
+billing = ["stripe>=10.0.0"]
+
+# Testing utilities - built-in factories and data generators
+testing = ["pytest>=8.0.0", "pytest-django>=4.8.0", "pytest-asyncio>=0.24.0", "httpx>=0.27.0"]
 all = ["django-matt[full,auth,oauth,passkeys,typegen,testing,files,tasks]"]
 ```
 
