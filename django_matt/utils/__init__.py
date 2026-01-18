@@ -41,6 +41,14 @@ from django_matt.utils.performance import (
     query_analyzer,
     stream_json_list,
 )
+from django_matt.utils.cache_invalidation import (
+    CacheInvalidationMixin,
+    CacheInvalidator,
+    cache_invalidator,
+    cached_view,
+    invalidate_cache_for_model,
+    register_cache_invalidation,
+)
 
 __all__ = [
     # Error handling
@@ -69,6 +77,13 @@ __all__ = [
     "DistributedCacheManager",
     "cache_manager",
     "distributed_cache",
+    # Cache Invalidation
+    "CacheInvalidator",
+    "CacheInvalidationMixin",
+    "cache_invalidator",
+    "register_cache_invalidation",
+    "cached_view",
+    "invalidate_cache_for_model",
     # Performance - Query Optimization
     "QueryAnalyzer",
     "QueryLoggingMiddleware",
