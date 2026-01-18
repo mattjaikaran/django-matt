@@ -35,12 +35,12 @@ class TestFastJSONRenderer(TestCase):
         renderer = FastJSONRenderer()
         data = {"key": "value", "nested": {"list": [1, 2, 3]}}
 
-        # Test dumps
-        json_str = renderer.dumps(data)
-        self.assertIsInstance(json_str, str)
+        # Test dumps - returns bytes
+        json_bytes = renderer.dumps(data)
+        self.assertIsInstance(json_bytes, bytes)
 
         # Test loads
-        loaded_data = renderer.loads(json_str)
+        loaded_data = renderer.loads(json_bytes)
         self.assertEqual(loaded_data, data)
 
     def test_renderer_selection(self):

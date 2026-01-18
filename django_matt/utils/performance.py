@@ -14,7 +14,7 @@ from typing import Any
 
 from django.conf import settings
 from django.core.cache import cache as django_cache
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 
 # Try to import faster JSON libraries
 try:
@@ -47,6 +47,15 @@ class FastJSONRenderer:
     This class provides methods to serialize Python objects to JSON using
     the fastest available JSON library.
     """
+
+    def __init__(self):
+        """Initialize the renderer and determine which library to use."""
+        if HAS_ORJSON:
+            self.library_name = "orjson"
+        elif HAS_UJSON:
+            self.library_name = "ujson"
+        else:
+            self.library_name = "json"
 
     @staticmethod
     def dumps(obj: Any, **kwargs) -> bytes:
@@ -144,11 +153,11 @@ class MessagePackRenderer:
         return msgpack.unpackb(s, **kwargs)
 
 
-class FastJsonResponse(JsonResponse):
+class FastJsonResponse(HttpResponse):
     """
     A JsonResponse that uses the fastest available JSON library.
 
-    This class extends Django's JsonResponse to use orjson or ujson
+    This class extends Django's HttpResponse to use orjson or ujson
     for faster JSON serialization.
     """
 
@@ -166,15 +175,9 @@ class FastJsonResponse(JsonResponse):
         if json_dumps_params is None:
             json_dumps_params = {}
 
-        # Use the fastest available JSON library
-        if not safe and encoder:
-            # If not safe and a custom encoder is provided, fall back to Django's JsonResponse
-            super().__init__(data, encoder, safe, json_dumps_params, **kwargs)
-            return
-
         kwargs.setdefault("content_type", "application/json")
-        data = FastJSONRenderer.dumps(data, **json_dumps_params)
-        super(HttpResponse, self).__init__(content=data, **kwargs)
+        content = FastJSONRenderer.dumps(data, **json_dumps_params)
+        super().__init__(content=content, **kwargs)
 
 
 class MessagePackResponse(HttpResponse):
@@ -245,6 +248,44 @@ class CacheManager:
         key_hash = hashlib.md5(key_data.encode()).hexdigest()
 
         return f"django_matt:{prefix}:{key_hash}"
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """
+        Get a value from cache.
+
+        Args:
+            key: The cache key
+            default: Default value if key not found
+
+        Returns:
+            The cached value or default
+        """
+        if not self.enabled:
+            return default
+        return self.cache.get(key, default)
+
+    def set(self, key: str, value: Any, timeout: int | None = None) -> None:
+        """
+        Set a value in cache.
+
+        Args:
+            key: The cache key
+            value: The value to cache
+            timeout: Cache timeout in seconds (defaults to DJANGO_MATT_CACHE_TIMEOUT)
+        """
+        if not self.enabled:
+            return
+        cache_timeout = timeout or self.default_timeout
+        self.cache.set(key, value, cache_timeout)
+
+    def delete(self, key: str) -> None:
+        """
+        Delete a value from cache.
+
+        Args:
+            key: The cache key to delete
+        """
+        self.cache.delete(key)
 
     def cache_response(self, timeout: int | None = None, key_prefix: str | None = None):
         """
@@ -425,64 +466,26 @@ class APIBenchmark:
         self.measurements = {}
         self.enabled = getattr(settings, "DJANGO_MATT_BENCHMARK_ENABLED", False)
 
-    def measure(self, name: str | None = None) -> Callable:
+    def measure(self, name: str | None = None):
         """
-        Decorator to measure the execution time of a function.
+        Decorator or context manager to measure execution time.
+
+        Can be used as a decorator:
+            @benchmark.measure("my_operation")
+            def my_function():
+                pass
+
+        Or as a context manager:
+            with benchmark.measure("my_operation"):
+                do_something()
 
         Args:
-            name: The name of the measurement (defaults to the function name)
+            name: The name of the measurement
 
         Returns:
-            The decorated function
+            A MeasureContext that works as both decorator and context manager
         """
-
-        def decorator(func):
-            @functools.wraps(func)
-            async def async_wrapper(*args, **kwargs):
-                if not self.enabled:
-                    return await func(*args, **kwargs)
-
-                measurement_name = name or func.__name__
-                start_time = time.time()
-                result = await func(*args, **kwargs)
-                end_time = time.time()
-
-                # Record the measurement
-                duration = (end_time - start_time) * 1000  # Convert to milliseconds
-                self._record_measurement(measurement_name, duration)
-
-                # Add timing information to the response headers if it's an HTTP response
-                if isinstance(result, HttpResponse):
-                    result["X-Django-Matt-Timing"] = f"{duration:.2f}ms"
-
-                return result
-
-            @functools.wraps(func)
-            def sync_wrapper(*args, **kwargs):
-                if not self.enabled:
-                    return func(*args, **kwargs)
-
-                measurement_name = name or func.__name__
-                start_time = time.time()
-                result = func(*args, **kwargs)
-                end_time = time.time()
-
-                # Record the measurement
-                duration = (end_time - start_time) * 1000  # Convert to milliseconds
-                self._record_measurement(measurement_name, duration)
-
-                # Add timing information to the response headers if it's an HTTP response
-                if isinstance(result, HttpResponse):
-                    result["X-Django-Matt-Timing"] = f"{duration:.2f}ms"
-
-                return result
-
-            if asyncio.iscoroutinefunction(func):
-                return async_wrapper
-            else:
-                return sync_wrapper
-
-        return decorator
+        return _MeasureContext(self, name)
 
     def _record_measurement(self, name: str, duration: float):
         """
@@ -527,7 +530,73 @@ class APIBenchmark:
         self.measurements = {}
 
 
-class StreamingJsonResponse(HttpResponse):
+class _MeasureContext:
+    """Helper class that works as both a decorator and context manager."""
+
+    def __init__(self, benchmark: "APIBenchmark", name: str | None = None):
+        self.benchmark = benchmark
+        self.name = name
+        self.start_time: float | None = None
+
+    def __call__(self, func):
+        """Use as a decorator."""
+        @functools.wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            if not self.benchmark.enabled:
+                return await func(*args, **kwargs)
+
+            measurement_name = self.name or func.__name__
+            start_time = time.time()
+            result = await func(*args, **kwargs)
+            end_time = time.time()
+
+            duration = (end_time - start_time) * 1000
+            self.benchmark._record_measurement(measurement_name, duration)
+
+            if isinstance(result, HttpResponse):
+                result["X-Django-Matt-Timing"] = f"{duration:.2f}ms"
+
+            return result
+
+        @functools.wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            if not self.benchmark.enabled:
+                return func(*args, **kwargs)
+
+            measurement_name = self.name or func.__name__
+            start_time = time.time()
+            result = func(*args, **kwargs)
+            end_time = time.time()
+
+            duration = (end_time - start_time) * 1000
+            self.benchmark._record_measurement(measurement_name, duration)
+
+            if isinstance(result, HttpResponse):
+                result["X-Django-Matt-Timing"] = f"{duration:.2f}ms"
+
+            return result
+
+        if asyncio.iscoroutinefunction(func):
+            return async_wrapper
+        else:
+            return sync_wrapper
+
+    def __enter__(self):
+        """Enter context manager."""
+        self.start_time = time.time()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit context manager and record measurement."""
+        if self.start_time is not None and self.benchmark.enabled:
+            end_time = time.time()
+            duration = (end_time - self.start_time) * 1000
+            measurement_name = self.name or "unnamed"
+            self.benchmark._record_measurement(measurement_name, duration)
+        return False
+
+
+class StreamingJsonResponse(StreamingHttpResponse):
     """
     A streaming HTTP response that renders its content as JSON.
 
@@ -541,7 +610,7 @@ class StreamingJsonResponse(HttpResponse):
 
         Args:
             streaming_content: An iterator that yields chunks of data
-            **kwargs: Additional keyword arguments to pass to the HttpResponse
+            **kwargs: Additional keyword arguments to pass to the StreamingHttpResponse
         """
         kwargs.setdefault("content_type", "application/json")
         super().__init__(streaming_content=streaming_content, **kwargs)
@@ -623,7 +692,7 @@ class BenchmarkMiddleware:
         duration = (end_time - start_time) * 1000
 
         # Add timing information to the response headers
-        response["X-Django-Matt-Request-Time"] = f"{duration:.2f}ms"
+        response["X-Django-Matt-Timing"] = f"{duration:.2f}ms"
 
         return response
 
