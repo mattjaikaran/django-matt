@@ -18,15 +18,17 @@ from pathlib import Path
 from typing import Any
 
 from django.apps import apps
-from django.core.management.base import BaseCommand, CommandError
 from django.db import models
 from django.db.models.fields.related import ForeignKey, ManyToManyField, OneToOneField
 
+from django_matt.cli import GeneratorCommand
 
-class Command(BaseCommand):
+
+class Command(GeneratorCommand):
     help = "Generate CRUD controllers, schemas, and tests for Django models"
 
     def add_arguments(self, parser):
+        super().add_arguments(parser)
         parser.add_argument(
             "model",
             help="The model to generate CRUD for (format: app_name.ModelName)",
@@ -41,11 +43,7 @@ class Command(BaseCommand):
             default=None,
             help="URL prefix for the controller (default: model name in lowercase plural)",
         )
-        parser.add_argument(
-            "--force",
-            action="store_true",
-            help="Overwrite existing files",
-        )
+        # Note: --force and --dry-run are provided by GeneratorCommand
         parser.add_argument(
             "--components",
             nargs="+",
@@ -83,11 +81,6 @@ class Command(BaseCommand):
             help="Use soft delete instead of hard delete",
         )
         parser.add_argument(
-            "--dry-run",
-            action="store_true",
-            help="Print generated code without writing files",
-        )
-        parser.add_argument(
             "--no-service",
             action="store_true",
             help="Skip generating the service layer (service is included by default)",
@@ -107,14 +100,12 @@ class Command(BaseCommand):
         model_path = options["model"]
         output_dir = options["output_dir"]
         prefix = options["prefix"]
-        force = options["force"]
         components = options["components"]
         permissions = options["permissions"]
         with_tests = options["with_tests"]
         pagination = options["pagination"]
         filtering = options["filtering"]
         soft_delete = options["soft_delete"]
-        dry_run = options["dry_run"]
         no_service = options["no_service"]
         with_admin = options["with_admin"]
         full = options["full"]
@@ -134,15 +125,22 @@ class Command(BaseCommand):
         if with_tests and "test" not in components:
             components.append("test")
 
+        # Parse model path
         try:
             app_label, model_name = model_path.split(".")
         except ValueError:
-            raise CommandError("Model must be specified in the format app_name.ModelName")
+            self.error("Model must be specified in the format app_name.ModelName", raise_error=True)
+            return
 
+        # Get the model
         try:
             model = apps.get_model(app_label, model_name)
         except LookupError:
-            raise CommandError(f"Model {model_path} not found")
+            self.error(f"Model {model_path} not found", raise_error=True)
+            return
+
+        # Show header
+        self.header(f"Generate CRUD for {model_name}", f"App: {app_label}")
 
         # Determine output directory
         if output_dir is None:
@@ -157,6 +155,25 @@ class Command(BaseCommand):
 
         # Get model fields
         fields = self._get_model_fields(model)
+
+        # Show what will be generated
+        self.section("Components")
+        gen_items = []
+        if "schema" in components:
+            gen_items.append("schemas.py")
+        if "controller" in components:
+            gen_items.append("controllers.py")
+        if "test" in components:
+            gen_items.append("tests.py")
+        if with_service:
+            gen_items.append("services.py")
+        if with_admin:
+            gen_items.append("admin.py")
+
+        for item in gen_items:
+            self.console.list_item(item, bullet="•", style="cyan")
+
+        self.console.newline()
 
         # Store generation context
         context = {
@@ -175,72 +192,45 @@ class Command(BaseCommand):
         # Generate components
         if "schema" in components:
             content = self._generate_schema_content(context)
-            if dry_run:
-                self.stdout.write(self.style.NOTICE("=== schemas.py ==="))
-                self.stdout.write(content)
-            else:
-                self._write_file(output_dir / "schemas.py", content, model_name, force, "Schema")
+            self.write_file(output_dir / "schemas.py", content, preview=not self._dry_run)
 
         if "controller" in components:
             content = self._generate_controller_content(context)
-            if dry_run:
-                self.stdout.write(self.style.NOTICE("\n=== controllers.py ==="))
-                self.stdout.write(content)
-            else:
-                self._write_file(
-                    output_dir / "controllers.py", content, model_name, force, "Controller"
-                )
+            self.write_file(output_dir / "controllers.py", content, preview=not self._dry_run)
 
         if "test" in components:
             content = self._generate_test_content(context)
-            if dry_run:
-                self.stdout.write(self.style.NOTICE("\n=== tests.py ==="))
-                self.stdout.write(content)
-            else:
-                self._write_file(output_dir / "tests.py", content, model_name, force, "Test")
+            self.write_file(output_dir / "tests.py", content, preview=not self._dry_run)
 
         # Generate service layer
         if with_service:
             content = self._generate_service_content(context)
-            if dry_run:
-                self.stdout.write(self.style.NOTICE("\n=== services.py ==="))
-                self.stdout.write(content)
-            else:
-                self._write_file(output_dir / "services.py", content, model_name, force, "Service")
+            self.write_file(output_dir / "services.py", content, preview=not self._dry_run)
 
         # Generate admin
         if with_admin:
             content = self._generate_admin_content(context)
-            if dry_run:
-                self.stdout.write(self.style.NOTICE("\n=== admin.py ==="))
-                self.stdout.write(content)
-            else:
-                self._write_file(output_dir / "admin.py", content, model_name, force, "Admin")
+            self.write_file(output_dir / "admin.py", content, preview=not self._dry_run)
 
-        if not dry_run:
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"\nSuccessfully generated CRUD for {model_name} in {output_dir}"
-                )
-            )
+        # Show summary
+        self.show_summary()
 
-            # Build next steps message
+        # Show next steps
+        if not self._dry_run and self.total_changes > 0:
             next_steps = [
-                f"1. Review generated files in {output_dir}",
-                "2. Register controller in your API:",
-                f"   from {app_label}.controllers import {model_name}Controller",
-                f"   api.register_controller({model_name}Controller)",
+                f"Review generated files in {output_dir}",
+                "Register controller in your API:",
             ]
+            next_steps.append(f"  from {app_label}.controllers import {model_name}Controller")
+            next_steps.append(f"  api.register_controller({model_name}Controller)")
 
             if with_service:
-                next_steps.append(f"3. Add your business logic in {output_dir}/services.py")
+                next_steps.append(f"Add your business logic in {output_dir}/services.py")
 
             if with_admin:
-                next_steps.append(
-                    f"{'4' if with_service else '3'}. Admin is auto-registered via @register_admin decorator"
-                )
+                next_steps.append("Admin is auto-registered via @register_admin decorator")
 
-            self.stdout.write(self.style.NOTICE("\nNext steps:\n" + "\n".join(next_steps) + "\n"))
+            self.next_steps(next_steps)
 
     def _pluralize(self, word: str) -> str:
         """Simple pluralization."""
@@ -249,37 +239,6 @@ class Command(BaseCommand):
         if word.endswith(("s", "x", "z", "ch", "sh")):
             return word + "es"
         return word + "s"
-
-    def _write_file(self, path: Path, content: str, model_name: str, force: bool, component: str):
-        """Write content to file, handling existing files."""
-        exists = path.exists()
-
-        if exists and not force:
-            with open(path) as f:
-                existing = f.read()
-
-            if f"class {model_name}" in existing:
-                self.stdout.write(
-                    self.style.WARNING(
-                        f"{component} for {model_name} already exists in {path}. Use --force to overwrite."
-                    )
-                )
-                return
-
-            # Append to existing file
-            with open(path, "a") as f:
-                f.write("\n\n" + content)
-
-            self.stdout.write(
-                self.style.SUCCESS(f"Appended {component.lower()} for {model_name} to {path}")
-            )
-        else:
-            with open(path, "w") as f:
-                f.write(content)
-
-            self.stdout.write(
-                self.style.SUCCESS(f"Created {component.lower()} for {model_name} in {path}")
-            )
 
     def _get_model_fields(self, model: models.Model) -> list[dict[str, Any]]:
         """Get field information from a Django model."""
