@@ -3,18 +3,23 @@ Django Matt Testing - Test utilities and helpers.
 
 Provides:
 - APITestClient with authentication helpers
-- Base factory classes for model factories
+- Built-in model factory system (no factory-boy required)
+- Built-in data generators (no Faker required)
 - pytest fixtures for common testing scenarios
 - Custom assertions for API testing
 
 Example:
-    from django_matt.testing import APITestClient, UserFactory
-    
+    from django_matt.testing import APITestClient, UserFactory, fake
+
     class TestUserAPI:
         def test_list_users(self, api_client, user):
             api_client.force_authenticate(user)
             response = api_client.get("/api/users/")
             assert response.status_code == 200
+
+    # Use built-in data generators
+    email = fake.email()
+    name = fake.name()
 """
 
 # Test Client
@@ -23,7 +28,26 @@ from django_matt.testing.client import (
     AsyncAPITestClient,
 )
 
-# Factories
+# Built-in Model Factory System
+from django_matt.testing.model_factory import (
+    ModelFactory,
+    Field,
+    LazyAttribute,
+    Sequence,
+    SubFactory,
+    PostGeneration,
+    RelatedFactory,
+    factory_for_model,
+)
+
+# Built-in Data Generators (replaces Faker)
+from django_matt.testing.generators import (
+    DataGenerator,
+    RandomGenerator,
+    fake,
+)
+
+# Pre-built Factories
 from django_matt.testing.factories import (
     BaseModelFactory,
     UserFactory,
@@ -60,7 +84,20 @@ __all__ = [
     # Client
     "APITestClient",
     "AsyncAPITestClient",
-    # Factories
+    # Model Factory System
+    "ModelFactory",
+    "Field",
+    "LazyAttribute",
+    "Sequence",
+    "SubFactory",
+    "PostGeneration",
+    "RelatedFactory",
+    "factory_for_model",
+    # Data Generators
+    "DataGenerator",
+    "RandomGenerator",
+    "fake",
+    # Pre-built Factories
     "BaseModelFactory",
     "UserFactory",
     "OrganizationFactory",
