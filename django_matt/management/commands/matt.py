@@ -2,27 +2,38 @@
 Django Matt CLI - Main entry point.
 
 Usage:
-    python manage.py matt info       # Show project info
-    python manage.py matt doctor     # Check project health
-    python manage.py matt routes     # List all API routes
-    python manage.py matt models     # List all models
-    python manage.py matt version    # Show version
+    python manage.py matt info              # Show project info
+    python manage.py matt doctor            # Check project health
+    python manage.py matt routes            # List all API routes
+    python manage.py matt models            # List all models
+    python manage.py matt version           # Show version
+    python manage.py matt new controller    # Scaffold a new controller
+    python manage.py matt new schema        # Scaffold a new schema
+    python manage.py matt new service       # Scaffold a new service
+    python manage.py matt new test          # Scaffold a new test file
 """
 
 import sys
 from importlib import import_module
+from pathlib import Path
 
 from django.apps import apps
 from django.conf import settings
 from django.urls import URLPattern, URLResolver, get_resolver
 
-from django_matt.cli import MattCommand
+from django_matt.cli import GeneratorCommand
+from django_matt.cli.templates import (
+    generate_controller_template,
+    generate_schema_template,
+    generate_service_template,
+    generate_test_template,
+)
 
 
-class Command(MattCommand):
+class Command(GeneratorCommand):
     """Django Matt CLI - Project utilities and information."""
 
-    help = "Django Matt CLI utilities (info, doctor, routes, models, version)"
+    help = "Django Matt CLI utilities (info, doctor, routes, models, version, new)"
 
     def add_arguments(self, parser):
         super().add_arguments(parser)
@@ -49,6 +60,40 @@ class Command(MattCommand):
         # version
         subparsers.add_parser("version", help="Show django-matt version")
 
+        # new (scaffolding)
+        new_parser = subparsers.add_parser("new", help="Scaffold new components")
+        new_subparsers = new_parser.add_subparsers(
+            dest="component", help="Component type to create"
+        )
+
+        # new controller
+        ctrl_parser = new_subparsers.add_parser("controller", help="Create a new controller")
+        ctrl_parser.add_argument("name", help="Controller name (e.g., User, Product)")
+        ctrl_parser.add_argument("--app", "-a", help="Target app (default: current directory)")
+        ctrl_parser.add_argument("--crud", action="store_true", help="Generate full CRUD endpoints")
+
+        # new schema
+        schema_parser = new_subparsers.add_parser("schema", help="Create a new schema")
+        schema_parser.add_argument("name", help="Schema name (e.g., User, Product)")
+        schema_parser.add_argument("--app", "-a", help="Target app (default: current directory)")
+
+        # new service
+        svc_parser = new_subparsers.add_parser("service", help="Create a new service")
+        svc_parser.add_argument("name", help="Service name (e.g., User, Product)")
+        svc_parser.add_argument("--app", "-a", help="Target app (default: current directory)")
+
+        # new test
+        test_parser = new_subparsers.add_parser("test", help="Create a new test file")
+        test_parser.add_argument("name", help="Test name (e.g., User, Product)")
+        test_parser.add_argument("--app", "-a", help="Target app (default: current directory)")
+        test_parser.add_argument(
+            "--type",
+            "-t",
+            choices=["controller", "service", "unit"],
+            default="controller",
+            help="Type of test to generate",
+        )
+
     def handle(self, *args, **options):
         subcommand = options.get("subcommand")
 
@@ -74,6 +119,10 @@ class Command(MattCommand):
             {"Command": "routes", "Description": "List all API routes"},
             {"Command": "models", "Description": "List all Django models"},
             {"Command": "version", "Description": "Show django-matt version"},
+            {
+                "Command": "new",
+                "Description": "Scaffold new components (controller, schema, service, test)",
+            },
         ]
 
         self.console.table(commands, title="Available Commands")
@@ -266,6 +315,121 @@ class Command(MattCommand):
 
         self.console.banner()
         self.console.version_info(version)
+
+    def handle_new(self, options):
+        """Handle scaffolding new components."""
+        component = options.get("component")
+
+        if not component:
+            self._show_new_help()
+            return
+
+        name = options.get("name")
+        app = options.get("app")
+
+        # Determine output directory
+        if app:
+            try:
+                app_config = apps.get_app_config(app)
+                output_dir = Path(app_config.path)
+            except LookupError:
+                self.error(f"App '{app}' not found", raise_error=True)
+                return
+        else:
+            output_dir = Path.cwd()
+
+        self.header(f"Create New {component.title()}", f"Name: {name}")
+
+        # Generate component
+        handler = getattr(self, f"_scaffold_{component}", None)
+        if handler:
+            handler(name, output_dir, options)
+            self.show_summary()
+        else:
+            self.error(f"Unknown component type: {component}")
+
+    def _show_new_help(self):
+        """Show help for the new command."""
+        self.console.header("Scaffold New Components")
+        self.console.print("[bold]Usage:[/] python manage.py matt new <component> <name>")
+        self.console.newline()
+
+        components = [
+            {"Component": "controller", "Description": "API controller with endpoints"},
+            {"Component": "schema", "Description": "Pydantic schema for request/response"},
+            {"Component": "service", "Description": "Service layer for business logic"},
+            {"Component": "test", "Description": "Test file for testing components"},
+        ]
+
+        self.console.table(components, title="Available Components")
+        self.console.newline()
+        self.console.muted("Example: python manage.py matt new controller User --app myapp")
+
+    def _scaffold_controller(self, name: str, output_dir: Path, options: dict):
+        """Scaffold a new controller."""
+        crud = options.get("crud", False)
+
+        content = generate_controller_template(name, crud)
+        filename = f"{name.lower()}_controller.py"
+
+        self.write_file(output_dir / filename, content)
+
+        self.next_steps(
+            [
+                "Register controller in your API:",
+                f"  from .{name.lower()}_controller import {name}Controller",
+                f"  api.register_controller({name}Controller)",
+            ]
+        )
+
+    def _scaffold_schema(self, name: str, output_dir: Path, options: dict):
+        """Scaffold a new schema."""
+        content = generate_schema_template(name)
+        filename = f"{name.lower()}_schemas.py"
+
+        self.write_file(output_dir / filename, content)
+
+        self.next_steps(
+            [
+                "Import schemas in your controller:",
+                f"  from .{name.lower()}_schemas import {name}Schema, {name}CreateSchema",
+            ]
+        )
+
+    def _scaffold_service(self, name: str, output_dir: Path, options: dict):
+        """Scaffold a new service."""
+        content = generate_service_template(name)
+        filename = f"{name.lower()}_service.py"
+
+        self.write_file(output_dir / filename, content)
+
+        self.next_steps(
+            [
+                "Use the service in your controller:",
+                f"  from .{name.lower()}_service import {name}Service",
+                f"  self.service = {name}Service()",
+            ]
+        )
+
+    def _scaffold_test(self, name: str, output_dir: Path, options: dict):
+        """Scaffold a new test file."""
+        test_type = options.get("type", "controller")
+        content = generate_test_template(name, test_type)
+        filename = f"test_{name.lower()}.py"
+
+        # Put tests in tests directory if it exists
+        tests_dir = output_dir / "tests"
+        if tests_dir.exists():
+            output_dir = tests_dir
+
+        self.write_file(output_dir / filename, content)
+
+        self.next_steps(
+            [
+                "Run tests with:",
+                f"  pytest {output_dir / filename}",
+            ]
+        )
 
     # =========================================================================
     # Helper Methods
