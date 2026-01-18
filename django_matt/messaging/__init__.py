@@ -23,6 +23,23 @@ from django_matt.messaging.models import (
     MessageStatus,
 )
 
+# Real-time components (lazy import to avoid circular imports)
+
+
+def get_messaging_consumer():
+    """Get the MessagingConsumer class."""
+    from django_matt.messaging.realtime import MessagingConsumer
+
+    return MessagingConsumer
+
+
+def get_polling_controller():
+    """Get the PollingController class."""
+    from django_matt.messaging.realtime import PollingController
+
+    return PollingController
+
+
 __all__ = [
     # Models
     "Conversation",
@@ -39,4 +56,7 @@ __all__ = [
     "MessageType",
     "DeliveryStatus",
     "AttachmentType",
+    # Lazy accessors
+    "get_messaging_consumer",
+    "get_polling_controller",
 ]
