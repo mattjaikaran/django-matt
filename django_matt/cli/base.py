@@ -34,6 +34,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 
 from django_matt.cli.console import console
+from django_matt.cli.errors import CLIError, CLIErrorCode, CLIErrorHandler
 from django_matt.cli.prompts import (
     autocomplete,
     confirm,
@@ -56,9 +57,11 @@ class MattCommand(BaseCommand):
     - Progress indicators
     - Tables and trees
     - Consistent styling
+    - Rich error handling with suggestions
 
     Attributes:
         console: Rich console instance for output
+        error_handler: CLI error handler with suggestions
     """
 
     # Suppress Django's default output handling
@@ -67,6 +70,7 @@ class MattCommand(BaseCommand):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.console = console
+        self.error_handler = CLIErrorHandler(console=console._console)
 
     def add_arguments(self, parser):
         """Add common arguments."""
@@ -76,12 +80,20 @@ class MattCommand(BaseCommand):
             action="store_true",
             help="Suppress non-essential output",
         )
+        parser.add_argument(
+            "--debug",
+            action="store_true",
+            help="Show detailed error information with stack traces",
+        )
         # Note: --no-color is already provided by Django's BaseCommand
 
     def execute(self, *args, **options):
         """Execute with console configuration."""
         if options.get("quiet"):
             self.console.quiet = True
+
+        if options.get("debug"):
+            self.error_handler.debug = True
 
         return super().execute(*args, **options)
 
@@ -98,6 +110,62 @@ class MattCommand(BaseCommand):
         self.console.error(message)
         if raise_error:
             raise CommandError(message)
+
+    def handle_error(
+        self,
+        error: Exception | CLIError,
+        exit_code: int | None = None,
+    ):
+        """
+        Handle an error with rich formatting and suggestions.
+
+        Args:
+            error: The error to handle
+            exit_code: Exit code (None to not exit)
+        """
+        self.error_handler.handle(error, exit_code=exit_code)
+
+    def fail(
+        self,
+        message: str,
+        code: CLIErrorCode = CLIErrorCode.UNKNOWN_ERROR,
+        suggestion: str | None = None,
+    ):
+        """
+        Fail with a formatted error message.
+
+        Args:
+            message: Error message
+            code: Error code for categorization
+            suggestion: Optional suggestion for fixing
+        """
+        error = CLIError(message=message, code=code, suggestion=suggestion)
+        self.error_handler.handle(error, exit_code=1)
+
+    def fail_model_not_found(
+        self,
+        model_path: str,
+        available_models: list[str] | None = None,
+    ):
+        """Fail with a model not found error."""
+        self.error_handler.model_not_found(model_path, available_models)
+
+    def fail_file_not_found(self, path: str):
+        """Fail with a file not found error."""
+        self.error_handler.file_not_found(path)
+
+    def fail_file_exists(self, path: str):
+        """Fail with a file exists error."""
+        self.error_handler.file_exists(path)
+
+    def fail_invalid_argument(
+        self,
+        argument: str,
+        reason: str,
+        valid_values: list[str] | None = None,
+    ):
+        """Fail with an invalid argument error."""
+        self.error_handler.invalid_argument(argument, reason, valid_values)
 
     def warning(self, message: str):
         """Print warning message."""
