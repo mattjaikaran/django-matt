@@ -14,8 +14,11 @@ Usage:
     # Generate API client
     python manage.py sync_types --target api-client --output frontend/src/api/client.ts
 
-    # Watch mode for development
+    # Watch mode for development (uses watchdog if available)
     python manage.py sync_types --target typescript --output frontend/src/types/api.ts --watch
+
+    # Watch specific directories
+    python manage.py sync_types --target typescript --output frontend/types --watch --watch-dirs myapp,otherapp
 
     # Scan specific apps
     python manage.py sync_types --target typescript --apps myapp,otherapp
@@ -24,9 +27,11 @@ Usage:
     python manage.py sync_types --target typescript --modules myapp.schemas,otherapp.schemas
 """
 
+from __future__ import annotations
+
 import importlib
 import os
-import time
+from datetime import datetime
 from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
@@ -81,6 +86,27 @@ class Command(BaseCommand):
             help="Watch interval in seconds (default: 1.0)",
         )
         parser.add_argument(
+            "--watch-dirs",
+            type=str,
+            help="Comma-separated directories to watch (default: auto-detect from apps/modules)",
+        )
+        parser.add_argument(
+            "--debounce",
+            type=float,
+            default=0.5,
+            help="Debounce delay in seconds for watch mode (default: 0.5)",
+        )
+        parser.add_argument(
+            "--force-polling",
+            action="store_true",
+            help="Force polling mode instead of watchdog (for debugging)",
+        )
+        parser.add_argument(
+            "--clear-screen",
+            action="store_true",
+            help="Clear screen before each regeneration in watch mode",
+        )
+        parser.add_argument(
             "--camel-case",
             action="store_true",
             help="Convert field names to camelCase",
@@ -110,6 +136,10 @@ class Command(BaseCommand):
         include_models = options["models"]
         watch = options["watch"]
         watch_interval = options["watch_interval"]
+        watch_dirs = options["watch_dirs"]
+        debounce = options["debounce"]
+        force_polling = options["force_polling"]
+        clear_screen = options["clear_screen"]
         camel_case = options["camel_case"]
         base_url = options["base_url"]
         include_react_query = options["include_react_query"]
@@ -141,6 +171,10 @@ class Command(BaseCommand):
                 schemas=schemas,
                 models=models,
                 interval=watch_interval,
+                watch_dirs=watch_dirs,
+                debounce=debounce,
+                force_polling=force_polling,
+                clear_screen=clear_screen,
                 camel_case=camel_case,
                 base_url=base_url,
                 include_react_query=include_react_query,
@@ -430,72 +464,159 @@ class Command(BaseCommand):
         schemas: list[type[BaseModel]],
         models: list[type],
         interval: float,
+        watch_dirs: str | None = None,
+        debounce: float = 0.5,
+        force_polling: bool = False,
+        clear_screen: bool = False,
         **kwargs,
     ):
-        """Watch for changes and regenerate."""
-        self.stdout.write(self.style.SUCCESS(f"Watching for changes (interval: {interval}s)..."))
+        """Watch for changes and regenerate using enhanced watcher."""
+        from django_matt.codegen.watcher import HAS_WATCHDOG, CodegenWatcher, WatchConfig
 
-        # Get module files to watch
-        watch_files = set()
+        # Determine paths to watch
+        watch_paths: set[str] = set()
+
+        # Add explicitly specified watch directories
+        if watch_dirs:
+            for dir_path in watch_dirs.split(","):
+                dir_path = dir_path.strip()
+                if Path(dir_path).is_dir():
+                    watch_paths.add(dir_path)
+                else:
+                    self.stderr.write(self.style.WARNING(f"Watch directory not found: {dir_path}"))
+
+        # Auto-detect from schemas and models
         for schema in schemas:
             module = importlib.import_module(schema.__module__)
             if hasattr(module, "__file__") and module.__file__:
-                watch_files.add(module.__file__)
+                # Watch the parent directory of the module
+                parent_dir = os.path.dirname(module.__file__)
+                watch_paths.add(parent_dir)
 
         for model in models:
             module = importlib.import_module(model.__module__)
             if hasattr(module, "__file__") and module.__file__:
-                watch_files.add(module.__file__)
+                parent_dir = os.path.dirname(module.__file__)
+                watch_paths.add(parent_dir)
 
-        self.stdout.write(f"Watching {len(watch_files)} files")
+        if not watch_paths:
+            raise CommandError("No paths to watch. Use --watch-dirs or specify --apps/--modules.")
 
-        # Get initial mtimes
-        mtimes = {}
-        for filepath in watch_files:
+        # Display watch info
+        watcher_type = "watchdog" if (HAS_WATCHDOG and not force_polling) else "polling"
+        self.stdout.write(self.style.SUCCESS(f"Starting watch mode ({watcher_type})..."))
+        self.stdout.write(f"  Debounce: {debounce}s, Poll interval: {interval}s")
+        self.stdout.write(f"  Watching {len(watch_paths)} directories:")
+        for path in sorted(watch_paths):
+            self.stdout.write(f"    - {path}")
+
+        # Track generation count for statistics
+        generation_count = [0]
+        start_time = datetime.now()
+
+        def on_change(changed_files: list[str]):
+            """Handle file changes by regenerating code."""
+            generation_count[0] += 1
+            timestamp = datetime.now().strftime("%H:%M:%S")
+
+            self.stdout.write(f"\n[{timestamp}] Detected {len(changed_files)} file change(s):")
+            for filepath in changed_files[:5]:  # Show first 5
+                self.stdout.write(f"  - {Path(filepath).name}")
+            if len(changed_files) > 5:
+                self.stdout.write(f"  ... and {len(changed_files) - 5} more")
+
+            self.stdout.write("Regenerating...")
+
+            # Reload modules to pick up changes
+            for schema in schemas:
+                try:
+                    module = importlib.import_module(schema.__module__)
+                    importlib.reload(module)
+                except Exception as e:
+                    self.stderr.write(
+                        self.style.ERROR(f"Failed to reload {schema.__module__}: {e}")
+                    )
+                    return
+
+            for model in models:
+                try:
+                    module = importlib.import_module(model.__module__)
+                    importlib.reload(module)
+                except Exception as e:
+                    self.stderr.write(self.style.ERROR(f"Failed to reload {model.__module__}: {e}"))
+                    return
+
+            # Regenerate code
             try:
-                mtimes[filepath] = os.path.getmtime(filepath)
-            except OSError:
-                pass
+                code = self._generate(
+                    target=target,
+                    schemas=schemas,
+                    models=models,
+                    **kwargs,
+                )
+
+                if output:
+                    self._write_output(output, code)
+                    self.stdout.write(
+                        self.style.SUCCESS(f"[{timestamp}] Generated {target} types to {output}")
+                    )
+                else:
+                    self.stdout.write(code)
+
+            except Exception as e:
+                self.stderr.write(self.style.ERROR(f"Generation failed: {e}"))
+
+        def on_start():
+            """Called when watcher starts."""
+            self.stdout.write(self.style.SUCCESS("Watcher started. Press Ctrl+C to stop."))
+
+        def on_error(e: Exception):
+            """Handle watcher errors."""
+            self.stderr.write(self.style.ERROR(f"Watcher error: {e}"))
+
+        # Create watcher config
+        config = WatchConfig(
+            paths=list(watch_paths),
+            include_patterns=["*.py"],
+            exclude_patterns=["__pycache__", "*.pyc", ".git", ".venv", "venv", "migrations"],
+            debounce_delay=debounce,
+            poll_interval=interval,
+            clear_screen=clear_screen,
+            force_polling=force_polling,
+        )
+
+        # Create and start watcher
+        watcher = CodegenWatcher(
+            config=config,
+            on_change=on_change,
+            on_start=on_start,
+            on_error=on_error,
+        )
 
         try:
-            while True:
-                time.sleep(interval)
+            # Do initial generation
+            self.stdout.write("Performing initial generation...")
+            code = self._generate(
+                target=target,
+                schemas=schemas,
+                models=models,
+                **kwargs,
+            )
+            if output:
+                self._write_output(output, code)
+                self.stdout.write(self.style.SUCCESS(f"Generated {target} types to {output}"))
+            else:
+                self.stdout.write(code)
 
-                # Check for changes
-                changed = False
-                for filepath in watch_files:
-                    try:
-                        current_mtime = os.path.getmtime(filepath)
-                        if filepath not in mtimes or current_mtime > mtimes[filepath]:
-                            mtimes[filepath] = current_mtime
-                            changed = True
-                            self.stdout.write(f"  Changed: {filepath}")
-                    except OSError:
-                        pass
-
-                if changed:
-                    self.stdout.write("Regenerating...")
-
-                    # Reload modules
-                    for schema in schemas:
-                        module = importlib.import_module(schema.__module__)
-                        importlib.reload(module)
-
-                    # Regenerate
-                    code = self._generate(
-                        target=target,
-                        schemas=schemas,
-                        models=models,
-                        **kwargs,
-                    )
-
-                    if output:
-                        self._write_output(output, code)
-                        self.stdout.write(
-                            self.style.SUCCESS(f"Generated {target} types to {output}")
-                        )
-                    else:
-                        self.stdout.write(code)
+            # Start watching
+            watcher.start()
+            watcher.wait()
 
         except KeyboardInterrupt:
-            self.stdout.write("\nStopped watching.")
+            pass
+        finally:
+            watcher.stop()
+            elapsed = datetime.now() - start_time
+            self.stdout.write(
+                f"\nStopped watching. Generated {generation_count[0]} time(s) in {elapsed.seconds}s."
+            )

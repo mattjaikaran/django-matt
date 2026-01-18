@@ -484,9 +484,12 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - `ReactGenerator`, `SvelteGenerator`, `SolidGenerator`
   - `TypeScriptGenerator` for types-only output
   - All with `generate_all()` returning file dict
-- [ ] **8C.5.2** - Watch mode for development (future)
-  - Auto-regenerate on model changes
-  - HMR-friendly output
+- [x] **8C.5.2** - Watch mode for development ✅
+  - Auto-regenerate on model changes with `--watch` flag
+  - `CodegenWatcher` with watchdog support (fast) and polling fallback
+  - `DebouncedCallback` for handling rapid file changes
+  - New options: `--watch-dirs`, `--debounce`, `--force-polling`, `--clear-screen`
+  - Initial generation on watch start, statistics on exit
 - [ ] **8C.5.3** - Config file support (future)
   ```python
   # django_matt_codegen.py

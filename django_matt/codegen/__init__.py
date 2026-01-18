@@ -80,6 +80,15 @@ from django_matt.codegen.typescript import (
     generate_typescript_interface,
     generate_zod_schema,
 )
+from django_matt.codegen.watcher import (
+    CodegenWatcher,
+    DebouncedCallback,
+    HAS_WATCHDOG,
+    PollingWatcher,
+    WatchConfig,
+    get_module_file,
+    reload_module,
+)
 
 __all__ = [
     # Core AST nodes
@@ -130,4 +139,12 @@ __all__ = [
     "FieldInfo",
     "RelationInfo",
     "ModelInfo",
+    # File watching
+    "CodegenWatcher",
+    "WatchConfig",
+    "DebouncedCallback",
+    "PollingWatcher",
+    "HAS_WATCHDOG",
+    "reload_module",
+    "get_module_file",
 ]
