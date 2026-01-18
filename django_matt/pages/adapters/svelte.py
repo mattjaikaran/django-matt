@@ -15,7 +15,7 @@ def generate_svelte_adapter() -> str:
 
     This can be written to a file and used in Svelte/SvelteKit projects.
     """
-    return '''/**
+    return """/**
  * Django Matt Pages - Svelte Adapter
  *
  * Auto-generated client-side adapter for Django Matt Pages.
@@ -279,7 +279,7 @@ export default {
   initPage,
   clearFlash,
 };
-'''
+"""
 
 
 __all__ = [

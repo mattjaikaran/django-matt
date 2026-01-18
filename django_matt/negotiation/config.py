@@ -43,13 +43,13 @@ from typing import Literal
 
 from django.conf import settings
 
-
 FormatType = Literal["json", "xml", "csv", "yaml", "msgpack", "html"]
 
 
 @dataclass
 class JSONConfig:
     """JSON renderer configuration."""
+
     indent: int | None = None
     ensure_ascii: bool = False
     sort_keys: bool = False
@@ -58,6 +58,7 @@ class JSONConfig:
 @dataclass
 class XMLConfig:
     """XML renderer configuration."""
+
     root_tag: str = "response"
     item_tag: str = "item"
     declaration: bool = True
@@ -68,6 +69,7 @@ class XMLConfig:
 @dataclass
 class CSVConfig:
     """CSV renderer configuration."""
+
     delimiter: str = ","
     include_header: bool = True
     quoting: int = 0  # csv.QUOTE_MINIMAL
@@ -76,6 +78,7 @@ class CSVConfig:
 @dataclass
 class YAMLConfig:
     """YAML renderer configuration."""
+
     default_flow_style: bool = False
     allow_unicode: bool = True
     indent: int = 2
@@ -84,6 +87,7 @@ class YAMLConfig:
 @dataclass
 class HTMLConfig:
     """HTML renderer configuration."""
+
     template_name: str | None = None
     base_template: str = "base.html"
 
@@ -97,7 +101,9 @@ class NegotiationConfig:
     strict_accept: bool = False  # Return 406 if format not supported
 
     # Enabled formats in priority order
-    formats: list[FormatType] = field(default_factory=lambda: ["json", "xml", "csv", "yaml", "msgpack"])
+    formats: list[FormatType] = field(
+        default_factory=lambda: ["json", "xml", "csv", "yaml", "msgpack"]
+    )
 
     # Format aliases (e.g., "yml" -> "yaml")
     format_aliases: dict[str, FormatType] = field(default_factory=dict)

@@ -28,14 +28,14 @@ Usage:
 """
 
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Generic, List, Optional, Type, TypeVar, Union
+from typing import Any, TypeVar
 
 from django.apps import apps
 from django.db import models
 
-from django_matt.testing.generators import fake, DataGenerator
-
+from django_matt.testing.generators import fake
 
 T = TypeVar("T", bound=models.Model)
 
@@ -43,8 +43,6 @@ T = TypeVar("T", bound=models.Model)
 @dataclass
 class FieldDefinition:
     """Base class for factory field definitions."""
-
-    pass
 
 
 @dataclass
@@ -115,10 +113,10 @@ class SubFactory(FieldDefinition):
         user = SubFactory(UserFactory, is_staff=True)
     """
 
-    factory: Type["ModelFactory"]
-    kwargs: Dict[str, Any]
+    factory: type["ModelFactory"]
+    kwargs: dict[str, Any]
 
-    def __init__(self, factory: Type["ModelFactory"], **kwargs):
+    def __init__(self, factory: type["ModelFactory"], **kwargs):
         self.factory = factory
         self.kwargs = kwargs
 
@@ -150,11 +148,11 @@ class RelatedFactory(FieldDefinition):
         memberships = RelatedFactory(MembershipFactory, "organization")
     """
 
-    factory: Type["ModelFactory"]
+    factory: type["ModelFactory"]
     factory_related_name: str
-    kwargs: Dict[str, Any]
+    kwargs: dict[str, Any]
 
-    def __init__(self, factory: Type["ModelFactory"], factory_related_name: str, **kwargs):
+    def __init__(self, factory: type["ModelFactory"], factory_related_name: str, **kwargs):
         self.factory = factory
         self.factory_related_name = factory_related_name
         self.kwargs = kwargs
@@ -163,9 +161,9 @@ class RelatedFactory(FieldDefinition):
 class FactoryMeta:
     """Metaclass configuration for ModelFactory."""
 
-    model: Union[str, Type[models.Model]] = None
+    model: str | type[models.Model] = None
     abstract: bool = False
-    django_get_or_create: Optional[tuple] = None
+    django_get_or_create: tuple | None = None
     exclude: tuple = ()
 
 
@@ -215,8 +213,14 @@ class ModelFactoryMeta(type):
             elif isinstance(value, PostGeneration):
                 cls._post_generations[key] = value.func
             elif isinstance(value, RelatedFactory):
-                cls._related_factories[key] = (value.factory, value.factory_related_name, value.kwargs)
-            elif not callable(value) and not isinstance(value, (classmethod, staticmethod, property)):
+                cls._related_factories[key] = (
+                    value.factory,
+                    value.factory_related_name,
+                    value.kwargs,
+                )
+            elif not callable(value) and not isinstance(
+                value, (classmethod, staticmethod, property)
+            ):
                 # Static value
                 cls._field_definitions[key] = ("static", value)
 
@@ -241,14 +245,14 @@ class ModelFactory(metaclass=ModelFactoryMeta):
         user = UserFactory.create()
     """
 
-    _meta: Type[FactoryMeta]
-    _field_definitions: Dict[str, tuple]
-    _post_generations: Dict[str, Callable]
-    _related_factories: Dict[str, tuple]
-    _sequence_counters: Dict[str, int]
+    _meta: type[FactoryMeta]
+    _field_definitions: dict[str, tuple]
+    _post_generations: dict[str, Callable]
+    _related_factories: dict[str, tuple]
+    _sequence_counters: dict[str, int]
 
     # Instance attributes for lazy evaluation
-    _values: Dict[str, Any]
+    _values: dict[str, Any]
 
     def __init__(self, **kwargs):
         self._values = kwargs
@@ -259,7 +263,7 @@ class ModelFactory(metaclass=ModelFactoryMeta):
         return self._values.get(name)
 
     @classmethod
-    def _get_model(cls) -> Type[models.Model]:
+    def _get_model(cls) -> type[models.Model]:
         """Get the Django model class."""
         model = getattr(cls._meta, "model", None)
         if model is None:
@@ -269,8 +273,7 @@ class ModelFactory(metaclass=ModelFactoryMeta):
             # Parse "app_label.ModelName" format
             if "." in model:
                 return apps.get_model(model)
-            else:
-                raise ValueError(f"Model must be in 'app_label.ModelName' format: {model}")
+            raise ValueError(f"Model must be in 'app_label.ModelName' format: {model}")
 
         return model
 
@@ -298,22 +301,22 @@ class ModelFactory(metaclass=ModelFactoryMeta):
         if field_type == "static":
             return definition[1]
 
-        elif field_type == "lazy":
+        if field_type == "lazy":
             func = definition[1]
             # Check if function takes self parameter
             import inspect
+
             sig = inspect.signature(func)
             if len(sig.parameters) > 0:
                 return func(instance)
-            else:
-                return func()
+            return func()
 
-        elif field_type == "sequence":
+        if field_type == "sequence":
             func = definition[1]
             seq_num = cls._get_next_sequence(field_name)
             return func(seq_num)
 
-        elif field_type == "subfactory":
+        if field_type == "subfactory":
             factory_cls = definition[1]
             factory_kwargs = definition[2]
             return factory_cls.create(**factory_kwargs)
@@ -336,18 +339,17 @@ class ModelFactory(metaclass=ModelFactoryMeta):
             max_length = getattr(field, "max_length", 100) or 100
             if "email" in field.name.lower():
                 return fake.email()[:max_length]
-            elif "name" in field.name.lower():
+            if "name" in field.name.lower():
                 return fake.name()[:max_length]
-            elif "title" in field.name.lower():
+            if "title" in field.name.lower():
                 return fake.sentence()[:max_length]
-            elif "slug" in field.name.lower():
+            if "slug" in field.name.lower():
                 return fake.uuid4()[:max_length]
-            elif "description" in field.name.lower():
+            if "description" in field.name.lower():
                 return fake.paragraph()[:max_length]
-            elif "url" in field.name.lower():
+            if "url" in field.name.lower():
                 return fake.url()[:max_length]
-            else:
-                return fake.word()[:max_length]
+            return fake.word()[:max_length]
 
         if isinstance(field, models.EmailField):
             return fake.email()
@@ -369,6 +371,7 @@ class ModelFactory(metaclass=ModelFactoryMeta):
 
         if isinstance(field, models.DecimalField):
             from decimal import Decimal
+
             return Decimal(str(fake.random_float(0, 1000, field.decimal_places)))
 
         if isinstance(field, models.BooleanField):
@@ -447,7 +450,9 @@ class ModelFactory(metaclass=ModelFactoryMeta):
             # Skip auto fields, primary keys, and relations
             if isinstance(field, (models.AutoField, models.BigAutoField)):
                 continue
-            if isinstance(field, (models.ManyToManyField, models.ManyToOneRel, models.ManyToManyRel)):
+            if isinstance(
+                field, (models.ManyToManyField, models.ManyToOneRel, models.ManyToManyRel)
+            ):
                 continue
             if getattr(field, "primary_key", False):
                 continue
@@ -511,7 +516,11 @@ class ModelFactory(metaclass=ModelFactoryMeta):
         # Run post-generation hooks
         for pg_name, pg_func in cls._post_generations.items():
             extracted = kwargs.get(pg_name)
-            pg_kwargs = {k.replace(f"{pg_name}__", ""): v for k, v in kwargs.items() if k.startswith(f"{pg_name}__")}
+            pg_kwargs = {
+                k.replace(f"{pg_name}__", ""): v
+                for k, v in kwargs.items()
+                if k.startswith(f"{pg_name}__")
+            }
             pg_func(instance, True, extracted, **pg_kwargs)
 
         # Create related factories
@@ -523,7 +532,7 @@ class ModelFactory(metaclass=ModelFactoryMeta):
         return instance
 
     @classmethod
-    def create_batch(cls, size: int, **kwargs) -> List[T]:
+    def create_batch(cls, size: int, **kwargs) -> list[T]:
         """
         Create multiple model instances.
 
@@ -537,7 +546,7 @@ class ModelFactory(metaclass=ModelFactoryMeta):
         return [cls.create(**kwargs) for _ in range(size)]
 
     @classmethod
-    def build_batch(cls, size: int, **kwargs) -> List[T]:
+    def build_batch(cls, size: int, **kwargs) -> list[T]:
         """
         Build multiple model instances without saving.
 
@@ -558,7 +567,7 @@ class ModelFactory(metaclass=ModelFactoryMeta):
 
 
 # Convenience function to create a factory from a model
-def factory_for_model(model: Union[str, Type[models.Model]], **field_definitions) -> Type[ModelFactory]:
+def factory_for_model(model: str | type[models.Model], **field_definitions) -> type[ModelFactory]:
     """
     Dynamically create a factory for a model.
 
@@ -584,12 +593,12 @@ def factory_for_model(model: Union[str, Type[models.Model]], **field_definitions
 
 # Export all
 __all__ = [
-    "ModelFactory",
     "Field",
     "LazyAttribute",
-    "Sequence",
-    "SubFactory",
+    "ModelFactory",
     "PostGeneration",
     "RelatedFactory",
+    "Sequence",
+    "SubFactory",
     "factory_for_model",
 ]

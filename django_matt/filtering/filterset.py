@@ -2,22 +2,21 @@
 FilterSet for declarative filter definitions.
 """
 
-from typing import Any, Type
+from typing import Any
 
 from django.db import models
 from django.db.models import QuerySet
 from django.http import HttpRequest
 
 from .filters import (
-    Filter,
-    CharFilter,
-    IntegerFilter,
     BooleanFilter,
+    CharFilter,
     DateFilter,
     DateTimeFilter,
+    Filter,
+    IntegerFilter,
     UUIDFilter,
 )
-
 
 # Mapping of Django field types to filter classes
 FILTER_FOR_DBFIELD = {
@@ -49,8 +48,8 @@ class FilterSetOptions:
     Options class for FilterSet Meta configuration.
     """
 
-    def __init__(self, options: Type | None = None):
-        self.model: Type[models.Model] | None = getattr(options, "model", None)
+    def __init__(self, options: type | None = None):
+        self.model: type[models.Model] | None = getattr(options, "model", None)
         self.fields: list[str] | str | None = getattr(options, "fields", None)
         self.exclude: list[str] = getattr(options, "exclude", [])
 

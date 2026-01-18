@@ -94,8 +94,7 @@ class BaseThrottle(ABC):
         duration = period_map.get(period)
         if duration is None:
             raise ValueError(
-                f"Invalid period in rate: {period}. "
-                f"Expected one of: {', '.join(period_map.keys())}"
+                f"Invalid period in rate: {period}. Expected one of: {', '.join(period_map.keys())}"
             )
 
         return (num_requests, duration)

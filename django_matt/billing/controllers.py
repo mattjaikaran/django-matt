@@ -14,37 +14,30 @@ from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 
-from django_matt.billing.config import get_billing_config, ProviderType
+from django_matt.billing.config import ProviderType, get_billing_config
 from django_matt.billing.providers import (
-    get_provider,
     BillingError,
-    BillingAPIError,
     BillingWebhookError,
+    get_provider,
 )
 from django_matt.billing.schemas import (
-    CustomerCreate,
-    CustomerUpdate,
-    CustomerResponse,
-    ProductCreate,
-    ProductUpdate,
-    ProductResponse,
-    PriceCreate,
-    PriceResponse,
-    SubscriptionCreate,
-    SubscriptionUpdate,
-    SubscriptionCancel,
-    SubscriptionResponse,
-    SubscriptionListResponse,
-    CheckoutCreate,
-    CheckoutResponse,
-    BillingPortalCreate,
-    BillingPortalResponse,
-    InvoiceResponse,
-    InvoiceListResponse,
     BillingConfigResponse,
     BillingErrorResponse,
+    BillingPortalCreate,
+    BillingPortalResponse,
+    CheckoutCreate,
+    CheckoutResponse,
+    CustomerCreate,
+    CustomerResponse,
+    CustomerUpdate,
+    InvoiceListResponse,
+    InvoiceResponse,
+    SubscriptionCancel,
+    SubscriptionCreate,
+    SubscriptionListResponse,
+    SubscriptionResponse,
+    SubscriptionUpdate,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -669,7 +662,9 @@ class WebhookController:
         """Handle PayPal webhook events."""
         # PayPal uses multiple headers for verification
         signature = request.headers.get("paypal-transmission-sig", "")
-        return await self._handle_webhook(request, "paypal", signature_header=None, signature=signature)
+        return await self._handle_webhook(
+            request, "paypal", signature_header=None, signature=signature
+        )
 
     async def handle_polar_webhook(self, request: HttpRequest) -> HttpResponse:
         """Handle Polar webhook events."""

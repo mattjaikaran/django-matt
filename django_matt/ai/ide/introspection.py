@@ -10,7 +10,7 @@ import inspect
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Type
+from typing import Any
 
 from django.apps import apps
 from django.conf import settings
@@ -20,27 +20,29 @@ from django.urls import URLPattern, URLResolver, get_resolver
 @dataclass
 class FieldInfo:
     """Information about a model field."""
+
     name: str
     field_type: str
     nullable: bool = False
     blank: bool = False
     unique: bool = False
     primary_key: bool = False
-    default: Optional[str] = None
-    choices: Optional[List[tuple]] = None
-    related_model: Optional[str] = None
+    default: str | None = None
+    choices: list[tuple] | None = None
+    related_model: str | None = None
     help_text: str = ""
 
 
 @dataclass
 class ModelInfo:
     """Information about a Django model."""
+
     name: str
     app_label: str
     module: str
     table_name: str
-    fields: List[FieldInfo] = field(default_factory=list)
-    meta_options: Dict[str, Any] = field(default_factory=dict)
+    fields: list[FieldInfo] = field(default_factory=list)
+    meta_options: dict[str, Any] = field(default_factory=dict)
     docstring: str = ""
     is_abstract: bool = False
 
@@ -52,47 +54,51 @@ class ModelInfo:
 @dataclass
 class ViewInfo:
     """Information about a view."""
+
     name: str
     module: str
     view_type: str  # function, class, viewset
-    methods: List[str] = field(default_factory=list)
+    methods: list[str] = field(default_factory=list)
     docstring: str = ""
-    decorators: List[str] = field(default_factory=list)
+    decorators: list[str] = field(default_factory=list)
 
 
 @dataclass
 class URLInfo:
     """Information about a URL pattern."""
+
     pattern: str
-    name: Optional[str]
+    name: str | None
     view_name: str
-    methods: List[str] = field(default_factory=list)
-    namespace: Optional[str] = None
+    methods: list[str] = field(default_factory=list)
+    namespace: str | None = None
 
 
 @dataclass
 class AppInfo:
     """Information about a Django app."""
+
     name: str
     label: str
     path: str
-    models: List[ModelInfo] = field(default_factory=list)
-    views: List[ViewInfo] = field(default_factory=list)
-    urls: List[URLInfo] = field(default_factory=list)
+    models: list[ModelInfo] = field(default_factory=list)
+    views: list[ViewInfo] = field(default_factory=list)
+    urls: list[URLInfo] = field(default_factory=list)
 
 
 @dataclass
 class ProjectInfo:
     """Complete project information."""
+
     name: str
     root_path: str
     python_version: str
     django_version: str
-    apps: List[AppInfo] = field(default_factory=list)
+    apps: list[AppInfo] = field(default_factory=list)
     settings_module: str = ""
-    installed_packages: List[str] = field(default_factory=list)
-    middleware: List[str] = field(default_factory=list)
-    databases: Dict[str, str] = field(default_factory=dict)
+    installed_packages: list[str] = field(default_factory=list)
+    middleware: list[str] = field(default_factory=list)
+    databases: dict[str, str] = field(default_factory=dict)
 
 
 class ProjectIntrospector:
@@ -107,7 +113,7 @@ class ProjectIntrospector:
     def __init__(
         self,
         include_third_party: bool = False,
-        exclude_apps: Optional[List[str]] = None,
+        exclude_apps: list[str] | None = None,
     ):
         """
         Initialize introspector.
@@ -149,8 +155,9 @@ class ProjectIntrospector:
 
     def introspect(self) -> ProjectInfo:
         """Perform full project introspection."""
-        import django
         import sys
+
+        import django
 
         project_info = ProjectInfo(
             name=self._project_root.name,
@@ -202,7 +209,7 @@ class ProjectIntrospector:
 
         return app_info
 
-    def _introspect_model(self, model: Type) -> ModelInfo:
+    def _introspect_model(self, model: type) -> ModelInfo:
         """Introspect a Django model."""
         meta = model._meta
 
@@ -241,7 +248,9 @@ class ProjectIntrospector:
 
                 # Handle relations
                 if hasattr(field, "related_model") and field.related_model:
-                    field_info.related_model = f"{field.related_model._meta.app_label}.{field.related_model.__name__}"
+                    field_info.related_model = (
+                        f"{field.related_model._meta.app_label}.{field.related_model.__name__}"
+                    )
 
                 model_info.fields.append(field_info)
 
@@ -253,7 +262,7 @@ class ProjectIntrospector:
 
         return model_info
 
-    def _introspect_views(self, app_config) -> List[ViewInfo]:
+    def _introspect_views(self, app_config) -> list[ViewInfo]:
         """Introspect views in an app."""
         views = []
 
@@ -295,7 +304,7 @@ class ProjectIntrospector:
 
         return views
 
-    def _get_app_urls(self, app_label: str) -> List[URLInfo]:
+    def _get_app_urls(self, app_label: str) -> list[URLInfo]:
         """Get URLs for an app."""
         urls = []
 
@@ -310,7 +319,10 @@ class ProjectIntrospector:
                     callback = pattern.callback
                     if callback:
                         module = getattr(callback, "__module__", "")
-                        if app_label in module or (hasattr(callback, "cls") and app_label in getattr(callback.cls, "__module__", "")):
+                        if app_label in module or (
+                            hasattr(callback, "cls")
+                            and app_label in getattr(callback.cls, "__module__", "")
+                        ):
                             url_info = URLInfo(
                                 pattern=prefix + str(pattern.pattern),
                                 name=pattern.name,
@@ -327,12 +339,13 @@ class ProjectIntrospector:
 
         return urls
 
-    def _get_installed_packages(self) -> List[str]:
+    def _get_installed_packages(self) -> list[str]:
         """Get list of installed packages."""
         packages = []
 
         try:
             import pkg_resources
+
             for dist in pkg_resources.working_set:
                 packages.append(f"{dist.project_name}=={dist.version}")
         except ImportError:
@@ -341,7 +354,7 @@ class ProjectIntrospector:
         return sorted(packages)[:50]  # Limit to top 50
 
 
-def get_project_structure(root_path: Optional[str] = None) -> Dict[str, Any]:
+def get_project_structure(root_path: str | None = None) -> dict[str, Any]:
     """
     Get a simple dictionary representation of project structure.
 
@@ -349,7 +362,7 @@ def get_project_structure(root_path: Optional[str] = None) -> Dict[str, Any]:
     """
     root = Path(root_path) if root_path else Path.cwd()
 
-    def scan_directory(path: Path, depth: int = 0, max_depth: int = 4) -> Dict[str, Any]:
+    def scan_directory(path: Path, depth: int = 0, max_depth: int = 4) -> dict[str, Any]:
         if depth > max_depth:
             return {}
 
@@ -359,9 +372,20 @@ def get_project_structure(root_path: Optional[str] = None) -> Dict[str, Any]:
             for item in sorted(path.iterdir()):
                 # Skip common non-essential directories
                 if item.name in {
-                    "__pycache__", ".git", ".venv", "venv", "node_modules",
-                    ".pytest_cache", ".mypy_cache", "htmlcov", "dist", "build",
-                    ".eggs", "*.egg-info", ".tox", ".coverage",
+                    "__pycache__",
+                    ".git",
+                    ".venv",
+                    "venv",
+                    "node_modules",
+                    ".pytest_cache",
+                    ".mypy_cache",
+                    "htmlcov",
+                    "dist",
+                    "build",
+                    ".eggs",
+                    "*.egg-info",
+                    ".tox",
+                    ".coverage",
                 }:
                     continue
 
@@ -383,12 +407,12 @@ def get_project_structure(root_path: Optional[str] = None) -> Dict[str, Any]:
 
 
 __all__ = [
+    "AppInfo",
     "FieldInfo",
     "ModelInfo",
-    "ViewInfo",
-    "URLInfo",
-    "AppInfo",
     "ProjectInfo",
     "ProjectIntrospector",
+    "URLInfo",
+    "ViewInfo",
     "get_project_structure",
 ]

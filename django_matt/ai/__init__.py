@@ -67,65 +67,65 @@ Local LLMs with Ollama:
 
 # Base classes and types
 from django_matt.ai.base import (
-    Role,
-    Message,
-    ToolDefinition,
-    ToolCall,
-    Usage,
     CompletionResponse,
-    StreamChunk,
+    EmbeddingProvider,
     EmbeddingResponse,
     LLMProvider,
-    EmbeddingProvider,
+    Message,
+    Role,
+    StreamChunk,
     StructuredOutputProvider,
+    ToolCall,
+    ToolDefinition,
+    Usage,
     messages_to_prompt,
-)
-
-# Providers
-from django_matt.ai.providers import (
-    OpenAIProvider,
-    OpenAIEmbeddings,
-    AnthropicProvider,
-    GeminiProvider,
-    GeminiEmbeddings,
-    OllamaProvider,
-    OllamaEmbeddings,
 )
 
 # Embeddings utilities
 from django_matt.ai.embeddings import (
-    CachedEmbeddings,
     BatchEmbeddings,
+    CachedEmbeddings,
     cosine_similarity,
-    euclidean_distance,
     dot_product,
-    normalize_vector,
+    euclidean_distance,
     find_most_similar,
+    normalize_vector,
+)
+
+# Providers
+from django_matt.ai.providers import (
+    AnthropicProvider,
+    GeminiEmbeddings,
+    GeminiProvider,
+    OllamaEmbeddings,
+    OllamaProvider,
+    OpenAIEmbeddings,
+    OpenAIProvider,
+)
+
+# RAG utilities
+from django_matt.ai.rag import (
+    CharacterSplitter,
+    Chunk,
+    ConversationMemory,
+    MultiQueryRAG,
+    RAGChain,
+    RAGResponse,
+    RecursiveSplitter,
+    SentenceSplitter,
+    SummaryMemory,
+    TextSplitter,
 )
 
 # Vector stores
 from django_matt.ai.vectorstore import (
     Document,
-    SearchResult,
-    VectorStore,
     InMemoryVectorStore,
     PgVectorStore,
     PineconeVectorStore,
     QdrantVectorStore,
-)
-
-# RAG utilities
-from django_matt.ai.rag import (
-    Chunk,
-    TextSplitter,
-    CharacterSplitter,
-    RecursiveSplitter,
-    SentenceSplitter,
-    ConversationMemory,
-    SummaryMemory,
-    RAGResponse,
-    RAGChain,
-    MultiQueryRAG,
+    SearchResult,
+    VectorStore,
 )
 
 
@@ -156,10 +156,7 @@ def get_provider(
 
     provider_class = providers.get(name.lower())
     if not provider_class:
-        raise ValueError(
-            f"Unknown provider: {name}. "
-            f"Available: {', '.join(providers.keys())}"
-        )
+        raise ValueError(f"Unknown provider: {name}. Available: {', '.join(providers.keys())}")
 
     return provider_class(**kwargs)
 
@@ -189,8 +186,7 @@ def get_embeddings(
     provider_class = providers.get(name.lower())
     if not provider_class:
         raise ValueError(
-            f"Unknown embedding provider: {name}. "
-            f"Available: {', '.join(providers.keys())}"
+            f"Unknown embedding provider: {name}. Available: {', '.join(providers.keys())}"
         )
 
     return provider_class(**kwargs)

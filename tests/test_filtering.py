@@ -6,7 +6,6 @@ from datetime import date, datetime
 from unittest.mock import MagicMock
 from uuid import UUID
 
-import pytest
 from django.test import RequestFactory, TestCase
 
 from django_matt.filtering import (
@@ -25,11 +24,9 @@ from django_matt.filtering import (
     MultipleChoiceFilter,
     NumberRangeFilter,
     OrderingBackend,
-    RangeFilter,
     SearchBackend,
     UUIDFilter,
 )
-
 
 # =============================================================================
 # Mock QuerySet for Testing
@@ -165,6 +162,7 @@ class TestFilter(TestCase):
 
     def test_filter_with_custom_method(self):
         """Test filter with custom method."""
+
         def custom_filter(queryset, field, value):
             return queryset.filter(custom_field=value)
 

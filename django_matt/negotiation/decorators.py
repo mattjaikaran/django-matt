@@ -5,19 +5,17 @@ Decorators for customizing content negotiation on a per-view basis.
 """
 
 import functools
-from typing import Any, Callable, Sequence, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from django.http import HttpRequest, HttpResponse
 
 from django_matt.negotiation.config import FormatType
 from django_matt.negotiation.negotiator import (
-    ContentNegotiator,
     NotAcceptable,
     get_negotiator,
     render_format,
 )
-from django_matt.negotiation.renderers import get_renderer
-
 
 F = TypeVar("F", bound=Callable[..., Any])
 

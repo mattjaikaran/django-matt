@@ -6,7 +6,7 @@ Provides the abstract interface that all renderers must implement.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any
 
 from django_matt.components.base import Component, ComponentType
 from django_matt.components.theming import Theme, get_theme
@@ -15,13 +15,14 @@ from django_matt.components.theming import Theme, get_theme
 @dataclass
 class RenderContext:
     """Context passed to renderers during component rendering."""
+
     theme: Theme = field(default_factory=get_theme)
     dark_mode: bool = False
     locale: str = "en"
-    data: Dict[str, Any] = field(default_factory=dict)
-    user: Optional[Any] = None
-    request: Optional[Any] = None
-    path: List[str] = field(default_factory=list)  # Component path for debugging
+    data: dict[str, Any] = field(default_factory=dict)
+    user: Any | None = None
+    request: Any | None = None
+    path: list[str] = field(default_factory=list)  # Component path for debugging
 
     def child_context(self, component_id: str) -> "RenderContext":
         """Create a child context for nested components."""
@@ -39,12 +40,13 @@ class RenderContext:
 @dataclass
 class RenderOutput:
     """Output from a renderer."""
+
     content: str  # Rendered content (HTML, JSON, etc.)
     content_type: str = "text/html"  # MIME type
-    scripts: List[str] = field(default_factory=list)  # Additional scripts to include
-    styles: List[str] = field(default_factory=list)  # Additional styles to include
-    head: List[str] = field(default_factory=list)  # Content for <head>
-    metadata: Dict[str, Any] = field(default_factory=dict)  # Additional metadata
+    scripts: list[str] = field(default_factory=list)  # Additional scripts to include
+    styles: list[str] = field(default_factory=list)  # Additional styles to include
+    head: list[str] = field(default_factory=list)  # Content for <head>
+    metadata: dict[str, Any] = field(default_factory=dict)  # Additional metadata
 
 
 class BaseRenderer(ABC):
@@ -63,13 +65,12 @@ class BaseRenderer(ABC):
     """
 
     def __init__(self):
-        self._component_renderers: Dict[ComponentType, callable] = {}
+        self._component_renderers: dict[ComponentType, callable] = {}
         self._register_default_renderers()
 
     @abstractmethod
     def _register_default_renderers(self) -> None:
         """Register default component-specific renderers."""
-        pass
 
     def register_renderer(
         self,
@@ -83,7 +84,7 @@ class BaseRenderer(ABC):
     def render_component(
         self,
         component: Component,
-        context: Optional[RenderContext] = None,
+        context: RenderContext | None = None,
     ) -> RenderOutput:
         """
         Render a single component.
@@ -95,12 +96,11 @@ class BaseRenderer(ABC):
         Returns:
             RenderOutput with the rendered content
         """
-        pass
 
     def render(
         self,
-        component: Union[Component, List[Component]],
-        context: Optional[RenderContext] = None,
+        component: Component | list[Component],
+        context: RenderContext | None = None,
     ) -> RenderOutput:
         """
         Render one or more components.
@@ -121,7 +121,7 @@ class BaseRenderer(ABC):
 
         return self.render_component(component, context)
 
-    def _combine_outputs(self, outputs: List[RenderOutput]) -> RenderOutput:
+    def _combine_outputs(self, outputs: list[RenderOutput]) -> RenderOutput:
         """Combine multiple render outputs into one."""
         if not outputs:
             return RenderOutput(content="")
@@ -154,7 +154,7 @@ class BaseRenderer(ABC):
 
     def render_children(
         self,
-        children: List[Component],
+        children: list[Component],
         context: RenderContext,
     ) -> str:
         """Render a list of child components."""
@@ -171,4 +171,3 @@ class BaseRenderer(ABC):
 
 class ComponentNotFoundError(Exception):
     """Raised when a component type has no registered renderer."""
-    pass

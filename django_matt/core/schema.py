@@ -7,12 +7,11 @@ inspired by ninja-schema but with enhanced features.
 
 import datetime
 import uuid
-from functools import wraps
 from typing import Any, ClassVar, Optional, Union, get_args, get_origin
 
 from django.db import models
-from pydantic import BaseModel, Field, create_model, field_validator, model_validator as pydantic_model_validator
 
+from pydantic import BaseModel, Field, create_model, field_validator
 
 # Mapping from Django model field types to Python/Pydantic types
 FIELD_TYPE_MAP: dict[type, type] = {
@@ -47,30 +46,32 @@ FIELD_TYPE_MAP: dict[type, type] = {
 def model_validator(*fields: str, mode: str = "after"):
     """
     Decorator to mark a method as a field validator for ModelSchema.
-    
+
     Similar to ninja-schema's model_validator decorator.
-    
+
     Usage:
         class UserSchema(ModelSchema):
             class Config:
                 model = User
                 include = ['email', 'username']
-            
+
             @model_validator('email')
             def validate_email(cls, v):
                 if not v.endswith('@company.com'):
                     raise ValueError('Must be company email')
                 return v
-    
+
     Args:
         *fields: Field names to validate
         mode: Validation mode ('before' or 'after')
     """
+
     def decorator(func):
         func._matt_validator = True
         func._matt_validator_fields = fields
         func._matt_validator_mode = mode
         return func
+
     return decorator
 
 
@@ -78,28 +79,28 @@ class ModelSchemaMetaclass(type(BaseModel)):
     """
     Metaclass for ModelSchema that automatically generates fields from Django model.
     """
-    
+
     def __new__(mcs, name: str, bases: tuple, namespace: dict, **kwargs):
         # Skip processing for ModelSchema base class itself
         if name == "ModelSchema":
             return super().__new__(mcs, name, bases, namespace, **kwargs)
-        
+
         # Get Config class
         config = namespace.get("Config")
         if not config:
             return super().__new__(mcs, name, bases, namespace, **kwargs)
-        
+
         # Get model from Config
         django_model = getattr(config, "model", None)
         if not django_model:
             return super().__new__(mcs, name, bases, namespace, **kwargs)
-        
+
         # Get configuration options
         include = getattr(config, "include", None)
         exclude = getattr(config, "exclude", set())
         optional_fields = getattr(config, "optional", set())
         depth = getattr(config, "depth", 0)
-        
+
         # Handle special values
         if include == "__all__":
             include = None  # Include all fields
@@ -111,47 +112,47 @@ class ModelSchemaMetaclass(type(BaseModel)):
                 optional_fields = {optional_fields}
             else:
                 optional_fields = set(optional_fields) if optional_fields else set()
-        
+
         if isinstance(exclude, str):
             exclude = {exclude}
         else:
             exclude = set(exclude) if exclude else set()
-        
+
         # Build annotations and field definitions
         annotations = namespace.get("__annotations__", {})
-        
+
         for field in django_model._meta.fields:
             field_name = field.name
-            
+
             # Skip if already defined in the class
             if field_name in annotations:
                 continue
-            
+
             # Handle include/exclude
             if include is not None and field_name not in include:
                 continue
             if field_name in exclude:
                 continue
-            
+
             # Get Python type
             python_type = _get_python_type_for_field(field, depth)
-            
+
             # Handle nullable/optional fields
             is_optional = (
-                field.null or 
-                field.blank or 
-                all_optional or 
-                field_name in optional_fields or
-                field.has_default() or
-                field.primary_key  # PK is optional for creation
+                field.null
+                or field.blank
+                or all_optional
+                or field_name in optional_fields
+                or field.has_default()
+                or field.primary_key  # PK is optional for creation
             )
-            
+
             if is_optional and python_type is not type(None):
                 python_type = Optional[python_type]
-            
+
             # Add to annotations
             annotations[field_name] = python_type
-            
+
             # Set default value
             if field.has_default():
                 if callable(field.default):
@@ -160,9 +161,9 @@ class ModelSchemaMetaclass(type(BaseModel)):
                     namespace[field_name] = Field(default=field.default)
             elif is_optional:
                 namespace[field_name] = Field(default=None)
-        
+
         namespace["__annotations__"] = annotations
-        
+
         # Store model reference for from_orm and apply_to_model
         namespace["_django_model"] = django_model
         namespace["_model_config"] = {
@@ -171,31 +172,31 @@ class ModelSchemaMetaclass(type(BaseModel)):
             "optional": optional_fields,
             "depth": depth,
         }
-        
+
         # Collect validators marked with @model_validator
         validators_to_add = {}
         for attr_name, attr_value in list(namespace.items()):
             if callable(attr_value) and getattr(attr_value, "_matt_validator", False):
                 fields = attr_value._matt_validator_fields
                 mode = attr_value._matt_validator_mode
-                
+
                 # Create Pydantic field validator
                 if fields:
                     validator_decorator = field_validator(*fields, mode=mode)
                     validators_to_add[attr_name] = validator_decorator(attr_value)
-        
+
         namespace.update(validators_to_add)
-        
+
         return super().__new__(mcs, name, bases, namespace, **kwargs)
 
 
 class ModelSchema(BaseModel, metaclass=ModelSchemaMetaclass):
     """
     Base class for creating Pydantic schemas from Django models.
-    
+
     Inspired by ninja-schema, provides automatic schema generation
     with field validation support.
-    
+
     Usage:
         class UserSchema(ModelSchema):
             class Config:
@@ -205,36 +206,36 @@ class ModelSchema(BaseModel, metaclass=ModelSchemaMetaclass):
                 # OR fields = '__all__'
                 optional = ['email']  # Make specific fields optional
                 depth = 1  # Nested relations depth
-            
+
             @model_validator('email')
             def validate_email(cls, v):
                 if v and not v.endswith('@company.com'):
                     raise ValueError('Must be company email')
                 return v
     """
-    
+
     _django_model: ClassVar[type[models.Model] | None] = None
     _model_config: ClassVar[dict] = {}
-    
+
     model_config = {
         "from_attributes": True,
         "arbitrary_types_allowed": True,
     }
-    
+
     @classmethod
     def from_orm(cls, obj: models.Model) -> "ModelSchema":
         """
         Create a schema instance from a Django model instance.
-        
+
         Args:
             obj: Django model instance
-        
+
         Returns:
             Schema instance with data from the model
         """
         if obj is None:
             raise ValueError("Cannot create schema from None")
-        
+
         data = {}
         for field_name in cls.model_fields:
             if hasattr(obj, field_name):
@@ -244,22 +245,22 @@ class ModelSchema(BaseModel, metaclass=ModelSchemaMetaclass):
                     # Use the ID for foreign keys
                     value = value.pk
                 data[field_name] = value
-        
+
         return cls(**data)
-    
+
     @classmethod
     def from_queryset(cls, queryset) -> list["ModelSchema"]:
         """
         Create a list of schema instances from a Django QuerySet.
-        
+
         Args:
             queryset: Django QuerySet
-        
+
         Returns:
             List of schema instances
         """
         return [cls.from_orm(obj) for obj in queryset]
-    
+
     def apply_to_model(
         self,
         model_instance: models.Model,
@@ -269,13 +270,13 @@ class ModelSchema(BaseModel, metaclass=ModelSchemaMetaclass):
     ) -> models.Model:
         """
         Apply schema data to a Django model instance.
-        
+
         Args:
             model_instance: Django model instance to update
             exclude_unset: Exclude fields that were not explicitly set
             exclude_none: Exclude fields with None values
             exclude: Set of field names to exclude
-        
+
         Returns:
             Updated model instance (not saved)
         """
@@ -284,29 +285,29 @@ class ModelSchema(BaseModel, metaclass=ModelSchemaMetaclass):
             exclude_none=exclude_none,
             exclude=exclude,
         )
-        
+
         for field_name, value in data.items():
             if hasattr(model_instance, field_name):
                 setattr(model_instance, field_name, value)
-        
+
         return model_instance
-    
+
     def create_model_instance(self, **extra_fields) -> models.Model:
         """
         Create a new Django model instance from this schema.
-        
+
         Args:
             **extra_fields: Additional fields to set on the model
-        
+
         Returns:
             New model instance (not saved)
         """
         if self._django_model is None:
             raise ValueError("No Django model associated with this schema")
-        
+
         data = self.model_dump(exclude_none=True)
         data.update(extra_fields)
-        
+
         return self._django_model(**data)
 
 
@@ -321,7 +322,7 @@ def create_schema_from_model(
 ) -> type[BaseModel]:
     """
     Dynamically create a Pydantic schema from a Django model.
-    
+
     For most cases, prefer using ModelSchema class directly.
     This function is useful for programmatic schema creation.
 
@@ -339,7 +340,7 @@ def create_schema_from_model(
     """
     if name is None:
         name = f"{model_class.__name__}Schema"
-    
+
     if exclude is None:
         exclude = []
     if optional is None:
@@ -348,10 +349,10 @@ def create_schema_from_model(
     # Get all fields from the model
     fields = {}
     field_definitions = {}
-    
+
     for field in model_class._meta.fields:
         field_name = field.name
-        
+
         # Skip if not in include or in exclude
         if include is not None and field_name not in include:
             continue
@@ -363,13 +364,13 @@ def create_schema_from_model(
 
         # Handle nullable/optional fields
         is_optional = (
-            field.null or 
-            field.blank or 
-            field_name in optional or
-            field.has_default() or
-            field.primary_key
+            field.null
+            or field.blank
+            or field_name in optional
+            or field.has_default()
+            or field.primary_key
         )
-        
+
         if is_optional:
             python_type = Optional[python_type]
 
@@ -385,12 +386,12 @@ def create_schema_from_model(
             default = Field(default=None)
         else:
             default = ...
-        
+
         fields[field_name] = (python_type, default)
 
     # Create the Pydantic model
     schema_class = create_model(name, __base__=base_class, **fields)
-    
+
     # Add from_orm method
     @classmethod
     def from_orm(cls, obj):
@@ -402,7 +403,7 @@ def create_schema_from_model(
                     value = value.pk
                 data[field_name] = value
         return cls(**data)
-    
+
     schema_class.from_orm = from_orm
     schema_class._django_model = model_class
 
@@ -509,10 +510,10 @@ def _get_django_field_for_type(type_hint: type) -> models.Field:
         bytes: lambda: models.BinaryField(null=True),
         dict: lambda: models.JSONField(null=True),
     }
-    
+
     if type_hint in type_to_field:
         return type_to_field[type_hint]()
-    
+
     if origin is dict:
         return models.JSONField(null=True)
 
@@ -524,14 +525,12 @@ def _get_django_field_for_type(type_hint: type) -> models.Field:
 class Schema(ModelSchema):
     """
     Legacy alias for ModelSchema.
-    
+
     Use ModelSchema directly for new code.
     """
-    
+
     @classmethod
-    def from_django_model(
-        cls, model_class: type[models.Model], **kwargs
-    ) -> type["Schema"]:
+    def from_django_model(cls, model_class: type[models.Model], **kwargs) -> type["Schema"]:
         """Create a schema from a Django model."""
         return create_schema_from_model(model_class, base_class=cls, **kwargs)
 

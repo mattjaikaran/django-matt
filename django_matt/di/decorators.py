@@ -8,29 +8,32 @@ Provides decorators for:
 """
 
 import inspect
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, Type, TypeVar, Union
+from typing import TypeVar
 
 from .container import (
     Container,
+    Scoped,
     ServiceLifetime,
     Singleton,
-    Scoped,
     Transient,
+)
+from .container import (
     container as default_container,
 )
-from .depends import resolve_dependencies, aresolve_dependencies
+from .depends import aresolve_dependencies, resolve_dependencies
 
 T = TypeVar("T")
 
 
 def injectable(
-    cls: Type[T] = None,
+    cls: type[T] = None,
     *,
     lifetime: ServiceLifetime = ServiceLifetime.TRANSIENT,
-    as_type: Type = None,
+    as_type: type = None,
     container: Container = None,
-) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+) -> type[T] | Callable[[type[T]], type[T]]:
     """
     Decorator that registers a class with the DI container.
 
@@ -54,7 +57,7 @@ def injectable(
     """
     container = container or default_container
 
-    def decorator(cls: Type[T]) -> Type[T]:
+    def decorator(cls: type[T]) -> type[T]:
         service_type = as_type or cls
         container.register(service_type, cls, lifetime=lifetime)
         return cls
@@ -133,29 +136,28 @@ def inject(
                 return await fn(*args, **kwargs)
 
             return async_wrapper
-        else:
 
-            @wraps(fn)
-            def sync_wrapper(*args, **kwargs):
-                # Extract request from args if present
-                request = None
-                if args and hasattr(args[0], "META"):
-                    request = args[0]
-                elif len(args) > 1 and hasattr(args[1], "META"):
-                    # Method call: self, request, ...
-                    request = args[1]
+        @wraps(fn)
+        def sync_wrapper(*args, **kwargs):
+            # Extract request from args if present
+            request = None
+            if args and hasattr(args[0], "META"):
+                request = args[0]
+            elif len(args) > 1 and hasattr(args[1], "META"):
+                # Method call: self, request, ...
+                request = args[1]
 
-                # Resolve dependencies
-                deps = resolve_dependencies(
-                    fn,
-                    request=request,
-                    container=container,
-                    **kwargs,
-                )
-                kwargs.update(deps)
-                return fn(*args, **kwargs)
+            # Resolve dependencies
+            deps = resolve_dependencies(
+                fn,
+                request=request,
+                container=container,
+                **kwargs,
+            )
+            kwargs.update(deps)
+            return fn(*args, **kwargs)
 
-            return sync_wrapper
+        return sync_wrapper
 
     if func is not None:
         return decorator(func)
@@ -163,7 +165,7 @@ def inject(
 
 
 def provides(
-    service_type: Type[T] = None,
+    service_type: type[T] = None,
     *,
     lifetime: ServiceLifetime = ServiceLifetime.TRANSIENT,
     container: Container = None,
@@ -222,11 +224,11 @@ def provides(
 
 
 def singleton(
-    cls: Type[T] = None,
+    cls: type[T] = None,
     *,
-    as_type: Type = None,
+    as_type: type = None,
     container: Container = None,
-) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+) -> type[T] | Callable[[type[T]], type[T]]:
     """
     Shortcut for @injectable(lifetime=Singleton).
 
@@ -242,11 +244,11 @@ def singleton(
 
 
 def scoped(
-    cls: Type[T] = None,
+    cls: type[T] = None,
     *,
-    as_type: Type = None,
+    as_type: type = None,
     container: Container = None,
-) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+) -> type[T] | Callable[[type[T]], type[T]]:
     """
     Shortcut for @injectable(lifetime=Scoped).
 
@@ -262,11 +264,11 @@ def scoped(
 
 
 def transient(
-    cls: Type[T] = None,
+    cls: type[T] = None,
     *,
-    as_type: Type = None,
+    as_type: type = None,
     container: Container = None,
-) -> Union[Type[T], Callable[[Type[T]], Type[T]]]:
+) -> type[T] | Callable[[type[T]], type[T]]:
     """
     Shortcut for @injectable(lifetime=Transient).
 

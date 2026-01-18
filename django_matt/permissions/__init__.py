@@ -6,14 +6,14 @@ Supports class-based permissions, decorators, and integration with ViewSets.
 
 Example:
     from django_matt.permissions import IsAuthenticated, requires_permission
-    
+
     class TaskController(APIController):
         permission_classes = [IsAuthenticated]
-        
+
         @get("")
         async def list_tasks(self, request):
             return await self.list(request)
-        
+
         @delete("{id}")
         @requires_permission("tasks.delete")
         async def delete_task(self, request, id: str):
@@ -22,30 +22,30 @@ Example:
 
 from django_matt.permissions.base import (
     BasePermission,
-    Permission,
     OperationPermission,
+    Permission,
     PermissionDenied,
 )
 from django_matt.permissions.common import (
     AllowAny,
-    IsAuthenticated,
+    HasPermission,
+    HasRole,
     IsAdmin,
+    IsAdminOrReadOnly,
+    IsAuthenticated,
+    IsAuthenticatedOrReadOnly,
+    IsOwner,
     IsStaff,
     IsSuperUser,
-    IsOwner,
-    HasRole,
-    HasPermission,
-    IsAuthenticatedOrReadOnly,
-    IsAdminOrReadOnly,
 )
 from django_matt.permissions.decorators import (
+    allow_any,
+    authenticated,
+    check_permissions,
     requires_permission,
     requires_permissions,
     requires_role,
-    authenticated,
-    allow_any,
     with_permissions,
-    check_permissions,
 )
 
 __all__ = [

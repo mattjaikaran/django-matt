@@ -5,21 +5,23 @@ Provides standardized health, readiness, and liveness endpoints
 for Kubernetes, Docker, and cloud platform deployments.
 """
 
+import asyncio
+import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
 from functools import wraps
-import time
-import asyncio
+from typing import Any
 
-from django.http import JsonResponse, HttpRequest
-from django.db import connection
-from django.core.cache import cache
 from django.conf import settings
+from django.core.cache import cache
+from django.db import connection
+from django.http import HttpRequest, JsonResponse
 
 
 class HealthStatus(str, Enum):
     """Health check status values."""
+
     HEALTHY = "healthy"
     UNHEALTHY = "unhealthy"
     DEGRADED = "degraded"
@@ -28,13 +30,14 @@ class HealthStatus(str, Enum):
 @dataclass
 class CheckResult:
     """Result of a health check."""
+
     name: str
     status: HealthStatus
     message: str = ""
     duration_ms: float = 0.0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         result = {
             "name": self.name,
             "status": self.status.value,
@@ -50,12 +53,13 @@ class CheckResult:
 @dataclass
 class HealthCheckResponse:
     """Complete health check response."""
+
     status: HealthStatus
-    checks: List[CheckResult] = field(default_factory=list)
+    checks: list[CheckResult] = field(default_factory=list)
     version: str = ""
     uptime_seconds: float = 0.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "status": self.status.value,
             "checks": [c.to_dict() for c in self.checks],
@@ -109,8 +113,8 @@ class HealthCheck:
         self.include_migrations = include_migrations
         self.timeout = timeout
         self.version = version or getattr(settings, "VERSION", "")
-        self._checks: Dict[str, Callable] = {}
-        self._async_checks: Dict[str, Callable] = {}
+        self._checks: dict[str, Callable] = {}
+        self._async_checks: dict[str, Callable] = {}
 
     def add_check(self, name: str, check_func: Callable[[], CheckResult]):
         """Add a custom health check."""
@@ -252,14 +256,19 @@ class HealthCheck:
                 checks.append(result)
                 if result.status == HealthStatus.UNHEALTHY:
                     overall_status = HealthStatus.UNHEALTHY
-                elif result.status == HealthStatus.DEGRADED and overall_status == HealthStatus.HEALTHY:
+                elif (
+                    result.status == HealthStatus.DEGRADED
+                    and overall_status == HealthStatus.HEALTHY
+                ):
                     overall_status = HealthStatus.DEGRADED
             except Exception as e:
-                checks.append(CheckResult(
-                    name=name,
-                    status=HealthStatus.UNHEALTHY,
-                    message=str(e),
-                ))
+                checks.append(
+                    CheckResult(
+                        name=name,
+                        status=HealthStatus.UNHEALTHY,
+                        message=str(e),
+                    )
+                )
                 overall_status = HealthStatus.UNHEALTHY
 
         return HealthCheckResponse(
@@ -284,21 +293,28 @@ class HealthCheck:
                 response.checks.append(result)
                 if result.status == HealthStatus.UNHEALTHY:
                     response.status = HealthStatus.UNHEALTHY
-                elif result.status == HealthStatus.DEGRADED and response.status == HealthStatus.HEALTHY:
+                elif (
+                    result.status == HealthStatus.DEGRADED
+                    and response.status == HealthStatus.HEALTHY
+                ):
                     response.status = HealthStatus.DEGRADED
-            except asyncio.TimeoutError:
-                response.checks.append(CheckResult(
-                    name=name,
-                    status=HealthStatus.UNHEALTHY,
-                    message="Check timed out",
-                ))
+            except TimeoutError:
+                response.checks.append(
+                    CheckResult(
+                        name=name,
+                        status=HealthStatus.UNHEALTHY,
+                        message="Check timed out",
+                    )
+                )
                 response.status = HealthStatus.UNHEALTHY
             except Exception as e:
-                response.checks.append(CheckResult(
-                    name=name,
-                    status=HealthStatus.UNHEALTHY,
-                    message=str(e),
-                ))
+                response.checks.append(
+                    CheckResult(
+                        name=name,
+                        status=HealthStatus.UNHEALTHY,
+                        message=str(e),
+                    )
+                )
                 response.status = HealthStatus.UNHEALTHY
 
         return response
@@ -325,10 +341,12 @@ class HealthCheck:
 
         Simple check to see if the app is alive.
         """
-        return JsonResponse({
-            "status": "healthy",
-            "uptime_seconds": round(get_uptime(), 2),
-        })
+        return JsonResponse(
+            {
+                "status": "healthy",
+                "uptime_seconds": round(get_uptime(), 2),
+            }
+        )
 
     async def async_health_view(self, request: HttpRequest) -> JsonResponse:
         """Async Django view for full health check."""
@@ -338,7 +356,7 @@ class HealthCheck:
 
 
 # Default health check instance
-_default_health_check: Optional[HealthCheck] = None
+_default_health_check: HealthCheck | None = None
 
 
 def get_health_check() -> HealthCheck:
@@ -404,6 +422,7 @@ def health_check(name: str):
                 message="Service is up",
             )
     """
+
     def decorator(func: Callable[[], CheckResult]):
         if asyncio.iscoroutinefunction(func):
             get_health_check().add_async_check(name, func)
@@ -415,6 +434,7 @@ def health_check(name: str):
             return func(*args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
@@ -441,17 +461,17 @@ def get_health_urls():
 
 
 __all__ = [
-    "HealthStatus",
     "CheckResult",
-    "HealthCheckResponse",
     "HealthCheck",
-    "get_health_check",
-    "configure_health_check",
-    "health_check_view",
-    "readiness_check_view",
-    "liveness_check_view",
+    "HealthCheckResponse",
+    "HealthStatus",
     "async_health_check_view",
-    "health_check",
+    "configure_health_check",
+    "get_health_check",
     "get_health_urls",
     "get_uptime",
+    "health_check",
+    "health_check_view",
+    "liveness_check_view",
+    "readiness_check_view",
 ]

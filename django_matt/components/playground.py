@@ -6,16 +6,15 @@ components with live props editing and theme switching.
 """
 
 import json
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
+
 from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.template import Context, Template
 from django.views import View
-from django.template import Template, Context
-from django.utils.safestring import mark_safe
 
-from django_matt.components.base import Component, registry, ComponentType
-from django_matt.components.renderers import ReactRenderer, HTMLRenderer, JSONRenderer
-from django_matt.components.theming import theme_manager, Theme
-
+from django_matt.components.base import Component, registry
+from django_matt.components.renderers import HTMLRenderer, JSONRenderer, ReactRenderer
+from django_matt.components.theming import theme_manager
 
 # =============================================================================
 # Playground View
@@ -390,7 +389,7 @@ class PlaygroundView(View):
 
         return HttpResponse(html)
 
-    def _get_components_info(self) -> Dict[str, Dict[str, Any]]:
+    def _get_components_info(self) -> dict[str, dict[str, Any]]:
         """Get info about all registered components."""
         components = {}
 
@@ -406,9 +405,9 @@ class PlaygroundView(View):
 
     def _render_component(
         self,
-        component_class: Type[Component],
-        props: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        component_class: type[Component],
+        props: dict[str, Any],
+    ) -> dict[str, Any]:
         """Render a component with given props."""
         # Get props schema
         props_schema = self._get_props_schema(component_class, props)
@@ -442,9 +441,9 @@ class PlaygroundView(View):
 
     def _get_props_schema(
         self,
-        component_class: Type[Component],
-        current_props: Dict[str, Any],
-    ) -> Dict[str, Dict[str, Any]]:
+        component_class: type[Component],
+        current_props: dict[str, Any],
+    ) -> dict[str, dict[str, Any]]:
         """Extract props schema from component class."""
         schema = {}
 
@@ -460,9 +459,7 @@ class PlaygroundView(View):
             if annotation:
                 if annotation == bool:
                     type_str = "boolean"
-                elif annotation == int:
-                    type_str = "number"
-                elif annotation == float:
+                elif annotation == int or annotation == float:
                     type_str = "number"
                 elif annotation == list or str(annotation).startswith("typing.List"):
                     type_str = "list"
@@ -494,7 +491,7 @@ class PlaygroundView(View):
 
         return schema
 
-    def _generate_react_code(self, component_name: str, props: Dict[str, Any]) -> str:
+    def _generate_react_code(self, component_name: str, props: dict[str, Any]) -> str:
         """Generate React component code."""
         props_str = ""
         for key, value in props.items():
@@ -536,11 +533,13 @@ def playground_api_list(request: HttpRequest) -> JsonResponse:
     for name in registry.list():
         cls = registry.get(name)
         if cls:
-            components.append({
-                "name": name,
-                "type": cls.__name__,
-                "module": cls.__module__,
-            })
+            components.append(
+                {
+                    "name": name,
+                    "type": cls.__name__,
+                    "module": cls.__module__,
+                }
+            )
 
     return JsonResponse({"components": components})
 
@@ -590,10 +589,12 @@ def playground_api_render(request: HttpRequest) -> JsonResponse:
 
     output = renderer.render(component)
 
-    return JsonResponse({
-        "content": output.content,
-        "content_type": output.content_type,
-    })
+    return JsonResponse(
+        {
+            "content": output.content,
+            "content_type": output.content_type,
+        }
+    )
 
 
 def playground_api_schema(request: HttpRequest, component_name: str) -> JsonResponse:

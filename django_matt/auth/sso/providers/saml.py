@@ -10,16 +10,14 @@ Supports SAML-based identity providers like:
 Requires: pip install python3-saml
 """
 
-import base64
 from urllib.parse import urlencode
 
 from django_matt.auth.sso.providers.base import (
+    SSOAuthenticationError,
+    SSOConfigError,
     SSOProvider,
     SSOUserInfo,
-    SSOConfigError,
-    SSOAuthenticationError,
 )
-
 
 # Check for python3-saml
 try:
@@ -45,8 +43,7 @@ class SAMLProvider(SSOProvider):
         """Ensure python3-saml is installed."""
         if not HAS_SAML:
             raise SSOConfigError(
-                "python3-saml is required for SAML SSO. "
-                "Install with: pip install python3-saml"
+                "python3-saml is required for SAML SSO. Install with: pip install python3-saml"
             )
 
     def _get_saml_settings(self) -> dict:
@@ -78,8 +75,7 @@ class SAMLProvider(SSOProvider):
                     "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST",
                 },
                 "NameIDFormat": extra.get(
-                    "name_id_format",
-                    "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
+                    "name_id_format", "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
                 ),
             },
             "idp": {
@@ -260,7 +256,7 @@ class SAMLProvider(SSOProvider):
         except SSOAuthenticationError:
             raise
         except Exception as e:
-            raise SSOAuthenticationError(f"SAML processing error: {str(e)}")
+            raise SSOAuthenticationError(f"SAML processing error: {e!s}")
 
     def get_metadata(self) -> str:
         """

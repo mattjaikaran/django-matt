@@ -59,7 +59,6 @@ class BaseBackend(ABC):
 
         Optional method - not all backends may support this.
         """
-        pass
 
 
 class InMemoryBackend(BaseBackend):
@@ -141,7 +140,8 @@ class InMemoryBackend(BaseBackend):
         now = time.time()
         with self._lock:
             expired_keys = [
-                key for key, (_, expires_at) in self._cache.items()
+                key
+                for key, (_, expires_at) in self._cache.items()
                 if expires_at and now > expires_at
             ]
             for key in expired_keys:
@@ -180,7 +180,7 @@ class RedisBackend(BaseBackend):
         self.prefix = prefix
 
     @classmethod
-    def from_django_cache(cls, cache_name: str = "default") -> "RedisBackend":
+    def from_django_cache(cls, cache_name: str = "default") -> RedisBackend:
         """
         Create backend from Django cache configuration.
 
@@ -326,6 +326,7 @@ class DjangoCacheBackend(BaseBackend):
     def cache(self) -> Any:
         """Get the Django cache instance."""
         from django.core.cache import caches
+
         return caches[self.cache_name]
 
     def _make_key(self, key: str) -> str:

@@ -3,11 +3,12 @@ Base pagination classes for django-matt.
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Generic, TypeVar
 
 from django.db.models import QuerySet
 from django.http import HttpRequest
+
 from pydantic import BaseModel
 
 T = TypeVar("T")
@@ -95,9 +96,7 @@ class BasePagination(ABC):
         Respects max_page_size limit.
         """
         try:
-            page_size = int(
-                request.GET.get(self.page_size_query_param, self.page_size)
-            )
+            page_size = int(request.GET.get(self.page_size_query_param, self.page_size))
         except (ValueError, TypeError):
             page_size = self.page_size
 
@@ -122,7 +121,6 @@ class BasePagination(ABC):
         Returns:
             Paginated queryset slice
         """
-        pass
 
     @abstractmethod
     def get_paginated_response(self, data: list[Any]) -> dict[str, Any]:
@@ -135,7 +133,6 @@ class BasePagination(ABC):
         Returns:
             Dict with items, count, and pagination metadata
         """
-        pass
 
     async def apaginate_queryset(
         self,

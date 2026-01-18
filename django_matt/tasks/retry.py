@@ -6,8 +6,8 @@ Provides different strategies for retrying failed tasks.
 
 import random
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Sequence, Type
 
 
 class RetryPolicy(ABC):
@@ -28,7 +28,6 @@ class RetryPolicy(ABC):
         Returns:
             Delay in seconds
         """
-        pass
 
     @abstractmethod
     def should_retry(self, attempt: int, exception: Exception) -> bool:
@@ -42,7 +41,6 @@ class RetryPolicy(ABC):
         Returns:
             True if the task should be retried
         """
-        pass
 
 
 @dataclass
@@ -72,7 +70,7 @@ class ExponentialBackoff(RetryPolicy):
     max_retries: int = 3
     jitter: bool = True
     jitter_factor: float = 0.1
-    retry_on: Sequence[Type[Exception]] = None
+    retry_on: Sequence[type[Exception]] = None
 
     def get_delay(self, attempt: int) -> float:
         """Calculate delay with exponential backoff."""
@@ -121,7 +119,7 @@ class LinearBackoff(RetryPolicy):
     increment: float = 5.0
     max_delay: float = 300.0
     max_retries: int = 3
-    retry_on: Sequence[Type[Exception]] = None
+    retry_on: Sequence[type[Exception]] = None
 
     def get_delay(self, attempt: int) -> float:
         """Calculate delay with linear backoff."""
@@ -156,7 +154,7 @@ class FixedDelay(RetryPolicy):
 
     delay: float = 60.0
     max_retries: int = 3
-    retry_on: Sequence[Type[Exception]] = None
+    retry_on: Sequence[type[Exception]] = None
 
     def get_delay(self, attempt: int) -> float:
         """Return the fixed delay."""
@@ -206,7 +204,7 @@ class RetryOnException(RetryPolicy):
             ...
     """
 
-    exceptions: Sequence[Type[Exception]]
+    exceptions: Sequence[type[Exception]]
     max_retries: int = 3
     delay: float = 5.0
     exponential: bool = False
@@ -250,7 +248,4 @@ class CompositeRetryPolicy(RetryPolicy):
 
     def should_retry(self, attempt: int, exception: Exception) -> bool:
         """Check if any policy allows retry."""
-        return any(
-            policy.should_retry(attempt, exception)
-            for policy in self.policies
-        )
+        return any(policy.should_retry(attempt, exception) for policy in self.policies)

@@ -5,9 +5,11 @@ Provides the Depends() marker for declaring dependencies in function parameters.
 """
 
 import inspect
-from typing import Any, Callable, TypeVar, Union, get_type_hints
+from collections.abc import Callable
+from typing import Any, TypeVar, get_type_hints
 
-from .container import container as default_container, Container
+from .container import Container
+from .container import container as default_container
 
 T = TypeVar("T")
 
@@ -56,7 +58,7 @@ class Depends(DependencyMarker):
 
     def __init__(
         self,
-        dependency: Union[type, Callable[..., T], None] = None,
+        dependency: type | Callable[..., T] | None = None,
         *,
         use_cache: bool = True,
     ):
@@ -86,9 +88,8 @@ class Depends(DependencyMarker):
                     return container.resolve(self.dependency)
                 # Not registered, try to instantiate with dependencies
                 return container._call_with_dependencies(self.dependency)
-            else:
-                # It's a factory function
-                return self._call_factory(self.dependency, request, container)
+            # It's a factory function
+            return self._call_factory(self.dependency, request, container)
 
         # Use parameter type from annotation
         if self._param_type is not None:
@@ -252,13 +253,9 @@ async def aresolve_dependencies(
 
             # Check if marker has async resolve
             if hasattr(marker, "aresolve"):
-                resolved[param_name] = await marker.aresolve(
-                    request=request, container=container
-                )
+                resolved[param_name] = await marker.aresolve(request=request, container=container)
             else:
-                resolved[param_name] = marker.resolve(
-                    request=request, container=container
-                )
+                resolved[param_name] = marker.resolve(request=request, container=container)
             continue
 
         # Check if type is registered in container

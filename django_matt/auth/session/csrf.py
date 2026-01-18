@@ -5,13 +5,13 @@ Provides CSRF token generation, validation, and protection utilities.
 """
 
 import functools
-import hashlib
 import hmac
 import secrets
-from typing import Callable, Optional, TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from django.http import HttpRequest, HttpResponse
+    from django.http import HttpRequest
 
 
 # CSRF token length
@@ -42,14 +42,12 @@ def _mask_token(secret: str) -> str:
     """
     mask = secrets.token_hex(CSRF_SECRET_LENGTH)
     # XOR the secret with the mask
-    masked = "".join(
-        chr(ord(a) ^ ord(b)) for a, b in zip(secret, mask)
-    )
+    masked = "".join(chr(ord(a) ^ ord(b)) for a, b in zip(secret, mask, strict=False))
     # Return mask + masked (both hex encoded)
     return mask + masked.encode().hex()
 
 
-def _unmask_token(token: str) -> Optional[str]:
+def _unmask_token(token: str) -> str | None:
     """
     Unmask a CSRF token to get the original secret.
 
@@ -59,14 +57,12 @@ def _unmask_token(token: str) -> Optional[str]:
         if len(token) < CSRF_SECRET_LENGTH * 4:
             return None
 
-        mask = token[:CSRF_SECRET_LENGTH * 2]
-        masked_hex = token[CSRF_SECRET_LENGTH * 2:]
+        mask = token[: CSRF_SECRET_LENGTH * 2]
+        masked_hex = token[CSRF_SECRET_LENGTH * 2 :]
         masked = bytes.fromhex(masked_hex).decode()
 
         # XOR to get original
-        secret = "".join(
-            chr(ord(a) ^ ord(b)) for a, b in zip(masked, mask)
-        )
+        secret = "".join(chr(ord(a) ^ ord(b)) for a, b in zip(masked, mask, strict=False))
         return secret
     except Exception:
         return None

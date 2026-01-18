@@ -58,46 +58,30 @@ Example usage:
 
 # Configuration
 from django_matt.negotiation.config import (
-    NegotiationConfig,
-    JSONConfig,
-    XMLConfig,
     CSVConfig,
-    YAMLConfig,
-    HTMLConfig,
     FormatType,
+    HTMLConfig,
+    JSONConfig,
+    NegotiationConfig,
+    XMLConfig,
+    YAMLConfig,
     get_negotiation_config,
     negotiation_config,
 )
 
-# Renderers
-from django_matt.negotiation.renderers import (
-    BaseRenderer,
-    JSONRenderer,
-    XMLRenderer,
-    CSVRenderer,
-    YAMLRenderer,
-    MessagePackRenderer,
-    HTMLRenderer,
-    get_renderer,
-    get_renderer_for_media_type,
-    RENDERERS,
-    MEDIA_TYPE_MAP,
+# Decorators
+from django_matt.negotiation.decorators import (
+    NegotiatedResponse,
+    content_negotiated,
+    render_as,
+    renders,
+    with_template,
 )
 
-# Parsers
-from django_matt.negotiation.parsers import (
-    BaseParser,
-    JSONParser,
-    XMLParser,
-    FormParser,
-    MultiPartParser,
-    YAMLParser,
-    MessagePackParser,
-    ParseError,
-    get_parser,
-    get_parser_for_media_type,
-    parse_request_body,
-    PARSERS,
+# Middleware
+from django_matt.negotiation.middleware import (
+    AsyncContentNegotiationMiddleware,
+    ContentNegotiationMiddleware,
 )
 
 # Negotiator
@@ -107,24 +91,40 @@ from django_matt.negotiation.negotiator import (
     NotAcceptable,
     get_negotiator,
     negotiate,
+    parse,
     render,
     render_format,
-    parse,
 )
 
-# Middleware
-from django_matt.negotiation.middleware import (
-    ContentNegotiationMiddleware,
-    AsyncContentNegotiationMiddleware,
+# Parsers
+from django_matt.negotiation.parsers import (
+    PARSERS,
+    BaseParser,
+    FormParser,
+    JSONParser,
+    MessagePackParser,
+    MultiPartParser,
+    ParseError,
+    XMLParser,
+    YAMLParser,
+    get_parser,
+    get_parser_for_media_type,
+    parse_request_body,
 )
 
-# Decorators
-from django_matt.negotiation.decorators import (
-    renders,
-    render_as,
-    content_negotiated,
-    with_template,
-    NegotiatedResponse,
+# Renderers
+from django_matt.negotiation.renderers import (
+    MEDIA_TYPE_MAP,
+    RENDERERS,
+    BaseRenderer,
+    CSVRenderer,
+    HTMLRenderer,
+    JSONRenderer,
+    MessagePackRenderer,
+    XMLRenderer,
+    YAMLRenderer,
+    get_renderer,
+    get_renderer_for_media_type,
 )
 
 __all__ = [

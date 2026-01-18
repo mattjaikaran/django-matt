@@ -18,10 +18,10 @@ from urllib.parse import urlencode
 from django.core.cache import cache
 
 from django_matt.auth.sso.providers.base import (
+    SSOAuthenticationError,
+    SSOConfigError,
     SSOProvider,
     SSOUserInfo,
-    SSOConfigError,
-    SSOAuthenticationError,
 )
 
 
@@ -140,17 +140,15 @@ class OIDCProvider(SSOProvider):
         """
         code_verifier = secrets.token_urlsafe(64)
         code_challenge = hashlib.sha256(code_verifier.encode()).digest()
-        code_challenge = (
-            code_challenge.hex()
-            .replace("+", "-")
-            .replace("/", "_")
-            .rstrip("=")
-        )
+        code_challenge = code_challenge.hex().replace("+", "-").replace("/", "_").rstrip("=")
         # Actually use base64url encoding
         import base64
-        code_challenge = base64.urlsafe_b64encode(
-            hashlib.sha256(code_verifier.encode()).digest()
-        ).decode().rstrip("=")
+
+        code_challenge = (
+            base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode()).digest())
+            .decode()
+            .rstrip("=")
+        )
 
         return code_verifier, code_challenge
 
@@ -233,9 +231,7 @@ class OIDCProvider(SSOProvider):
         error_description = request.GET.get("error_description")
 
         if error:
-            raise SSOAuthenticationError(
-                error_description or f"OIDC error: {error}"
-            )
+            raise SSOAuthenticationError(error_description or f"OIDC error: {error}")
 
         if not code:
             raise SSOAuthenticationError("No authorization code in callback")
@@ -284,7 +280,9 @@ class OIDCProvider(SSOProvider):
             )
 
             if response.status_code != 200:
-                error_data = response.json() if "json" in response.headers.get("content-type", "") else {}
+                error_data = (
+                    response.json() if "json" in response.headers.get("content-type", "") else {}
+                )
                 raise SSOAuthenticationError(
                     f"Token exchange failed: {error_data.get('error_description', response.text)}"
                 )
@@ -306,7 +304,7 @@ class OIDCProvider(SSOProvider):
                 if expected_nonce and user_data.get("nonce") != expected_nonce:
                     raise SSOAuthenticationError("Invalid nonce in id_token")
 
-            except Exception as e:
+            except Exception:
                 # Fall back to userinfo endpoint
                 pass
 

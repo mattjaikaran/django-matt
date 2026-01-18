@@ -9,18 +9,19 @@ Provides storage backends for:
 """
 
 import asyncio
-from datetime import datetime, timedelta, timezone
-from typing import BinaryIO, Iterator, Optional, Union, TYPE_CHECKING
+from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, BinaryIO, Union
 
 from .storage import (
     BaseStorage,
+    FileExistsError,
     FileInfo,
+    FileNotFoundError,
     PresignedUrl,
     StorageError,
-    FileNotFoundError,
-    FileExistsError,
 )
-from .utils import generate_unique_filename, sanitize_filename, get_content_type
+from .utils import generate_unique_filename, get_content_type, sanitize_filename
 
 if TYPE_CHECKING:
     from .upload import UploadedFile
@@ -122,10 +123,7 @@ class S3Storage(BaseStorage):
             import boto3
             from botocore.config import Config
         except ImportError:
-            raise ImportError(
-                "boto3 is required for S3 storage. "
-                "Install with: pip install boto3"
-            )
+            raise ImportError("boto3 is required for S3 storage. Install with: pip install boto3")
 
         config = Config(
             signature_version=self.signature_version,
@@ -188,18 +186,14 @@ class S3Storage(BaseStorage):
             if hasattr(file, "content_type") and content_type is None:
                 content_type = file.content_type
             if content_type is None:
-                content_type = get_content_type(
-                    getattr(file, "filename", key)
-                )
+                content_type = get_content_type(getattr(file, "filename", key))
         else:
             raise ValueError(f"Unsupported file type: {type(file)}")
 
         # Prepare upload parameters
         extra_args = {"ContentType": content_type}
         if metadata:
-            extra_args["Metadata"] = {
-                k: str(v) for k, v in metadata.items()
-            }
+            extra_args["Metadata"] = {k: str(v) for k, v in metadata.items()}
 
         # Upload to S3 (run in thread pool for async)
         loop = asyncio.get_event_loop()
@@ -317,7 +311,7 @@ class S3Storage(BaseStorage):
         prefix: str = "",
         limit: int = None,
         cursor: str = None,
-    ) -> tuple[list[FileInfo], Optional[str]]:
+    ) -> tuple[list[FileInfo], str | None]:
         """List files in S3."""
         loop = asyncio.get_event_loop()
 
@@ -371,7 +365,7 @@ class S3Storage(BaseStorage):
         metadata: dict = None,
     ) -> PresignedUrl:
         """Generate a pre-signed URL for direct upload."""
-        expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires)
+        expires_at = datetime.now(UTC) + timedelta(seconds=expires)
 
         conditions = []
         fields = {"key": key}
@@ -417,7 +411,7 @@ class S3Storage(BaseStorage):
         filename: str = None,
     ) -> PresignedUrl:
         """Generate a pre-signed URL for direct download."""
-        expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires)
+        expires_at = datetime.now(UTC) + timedelta(seconds=expires)
 
         params = {
             "Bucket": self.bucket,

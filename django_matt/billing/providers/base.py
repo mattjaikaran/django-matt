@@ -8,8 +8,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Generic, TypeVar, Optional
-
+from typing import Any, Generic, TypeVar
 
 # Type variable for provider-specific config
 ConfigT = TypeVar("ConfigT")
@@ -224,12 +223,10 @@ class BillingProvider(ABC, Generic[ConfigT]):
         metadata: dict[str, Any] | None = None,
     ) -> CustomerData:
         """Create a new customer."""
-        pass
 
     @abstractmethod
     async def get_customer(self, customer_id: str) -> CustomerData | None:
         """Get customer by ID."""
-        pass
 
     @abstractmethod
     async def update_customer(
@@ -240,12 +237,10 @@ class BillingProvider(ABC, Generic[ConfigT]):
         metadata: dict[str, Any] | None = None,
     ) -> CustomerData:
         """Update customer details."""
-        pass
 
     @abstractmethod
     async def delete_customer(self, customer_id: str) -> bool:
         """Delete a customer."""
-        pass
 
     async def get_or_create_customer(
         self,
@@ -288,12 +283,10 @@ class BillingProvider(ABC, Generic[ConfigT]):
         metadata: dict[str, Any] | None = None,
     ) -> ProductData:
         """Create a new product."""
-        pass
 
     @abstractmethod
     async def get_product(self, product_id: str) -> ProductData | None:
         """Get product by ID."""
-        pass
 
     @abstractmethod
     async def update_product(
@@ -305,7 +298,6 @@ class BillingProvider(ABC, Generic[ConfigT]):
         metadata: dict[str, Any] | None = None,
     ) -> ProductData:
         """Update product details."""
-        pass
 
     @abstractmethod
     async def list_products(
@@ -314,7 +306,6 @@ class BillingProvider(ABC, Generic[ConfigT]):
         limit: int = 10,
     ) -> list[ProductData]:
         """List products."""
-        pass
 
     # -------------------------------------------------------------------------
     # Price Management
@@ -332,12 +323,10 @@ class BillingProvider(ABC, Generic[ConfigT]):
         metadata: dict[str, Any] | None = None,
     ) -> PriceData:
         """Create a new price for a product."""
-        pass
 
     @abstractmethod
     async def get_price(self, price_id: str) -> PriceData | None:
         """Get price by ID."""
-        pass
 
     @abstractmethod
     async def list_prices(
@@ -347,7 +336,6 @@ class BillingProvider(ABC, Generic[ConfigT]):
         limit: int = 10,
     ) -> list[PriceData]:
         """List prices."""
-        pass
 
     # -------------------------------------------------------------------------
     # Subscription Management
@@ -363,12 +351,10 @@ class BillingProvider(ABC, Generic[ConfigT]):
         metadata: dict[str, Any] | None = None,
     ) -> SubscriptionData:
         """Create a new subscription."""
-        pass
 
     @abstractmethod
     async def get_subscription(self, subscription_id: str) -> SubscriptionData | None:
         """Get subscription by ID."""
-        pass
 
     @abstractmethod
     async def update_subscription(
@@ -379,7 +365,6 @@ class BillingProvider(ABC, Generic[ConfigT]):
         metadata: dict[str, Any] | None = None,
     ) -> SubscriptionData:
         """Update subscription details."""
-        pass
 
     @abstractmethod
     async def cancel_subscription(
@@ -388,12 +373,10 @@ class BillingProvider(ABC, Generic[ConfigT]):
         cancel_at_period_end: bool = True,
     ) -> SubscriptionData:
         """Cancel a subscription."""
-        pass
 
     @abstractmethod
     async def resume_subscription(self, subscription_id: str) -> SubscriptionData:
         """Resume a canceled subscription (if cancel_at_period_end was True)."""
-        pass
 
     @abstractmethod
     async def list_subscriptions(
@@ -403,7 +386,6 @@ class BillingProvider(ABC, Generic[ConfigT]):
         limit: int = 10,
     ) -> list[SubscriptionData]:
         """List subscriptions."""
-        pass
 
     # -------------------------------------------------------------------------
     # Checkout / Payment
@@ -423,12 +405,10 @@ class BillingProvider(ABC, Generic[ConfigT]):
         metadata: dict[str, Any] | None = None,
     ) -> CheckoutSessionData:
         """Create a checkout session for payment."""
-        pass
 
     @abstractmethod
     async def get_checkout_session(self, session_id: str) -> CheckoutSessionData | None:
         """Get checkout session by ID."""
-        pass
 
     async def create_billing_portal_session(
         self,
@@ -440,9 +420,7 @@ class BillingProvider(ABC, Generic[ConfigT]):
 
         Returns the portal URL.
         """
-        raise NotImplementedError(
-            f"{self.provider_name} does not support billing portal sessions"
-        )
+        raise NotImplementedError(f"{self.provider_name} does not support billing portal sessions")
 
     # -------------------------------------------------------------------------
     # Invoice Management
@@ -489,7 +467,6 @@ class BillingProvider(ABC, Generic[ConfigT]):
         Raises:
             BillingWebhookError: If verification fails
         """
-        pass
 
     def normalize_webhook_type(self, provider_type: str) -> str:
         """

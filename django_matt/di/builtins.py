@@ -12,17 +12,17 @@ Provides pre-built dependencies for:
 """
 
 import logging
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 from django.conf import settings as django_settings
 from django.core.cache import cache as django_cache
 
-from .depends import DependencyMarker
 from .container import Container
+from .depends import DependencyMarker
 
 if TYPE_CHECKING:
-    from django.http import HttpRequest
     from django.contrib.auth.models import AbstractUser
+    from django.http import HttpRequest
 
 
 class CurrentRequest(DependencyMarker):
@@ -85,9 +85,7 @@ class CurrentUser(DependencyMarker):
         """
         self.optional = optional
 
-    def resolve(
-        self, request=None, container: Container = None
-    ) -> Optional["AbstractUser"]:
+    def resolve(self, request=None, container: Container = None) -> Optional["AbstractUser"]:
         if request is None:
             if self.optional:
                 return None
@@ -102,9 +100,7 @@ class CurrentUser(DependencyMarker):
 
         return user
 
-    async def aresolve(
-        self, request=None, container: Container = None
-    ) -> Optional["AbstractUser"]:
+    async def aresolve(self, request=None, container: Container = None) -> Optional["AbstractUser"]:
         """Async version - same as sync since user is already on request."""
         return self.resolve(request=request, container=container)
 
@@ -396,24 +392,18 @@ class Query(DependencyMarker):
         # Validation
         if isinstance(value, (int, float)):
             if self.ge is not None and value < self.ge:
-                raise ValueError(
-                    f"Query parameter '{self.name}' must be >= {self.ge}"
-                )
+                raise ValueError(f"Query parameter '{self.name}' must be >= {self.ge}")
             if self.le is not None and value > self.le:
-                raise ValueError(
-                    f"Query parameter '{self.name}' must be <= {self.le}"
-                )
+                raise ValueError(f"Query parameter '{self.name}' must be <= {self.le}")
 
         if isinstance(value, str):
             if self.min_length is not None and len(value) < self.min_length:
                 raise ValueError(
-                    f"Query parameter '{self.name}' must be at least "
-                    f"{self.min_length} characters"
+                    f"Query parameter '{self.name}' must be at least {self.min_length} characters"
                 )
             if self.max_length is not None and len(value) > self.max_length:
                 raise ValueError(
-                    f"Query parameter '{self.name}' must be at most "
-                    f"{self.max_length} characters"
+                    f"Query parameter '{self.name}' must be at most {self.max_length} characters"
                 )
 
         return value

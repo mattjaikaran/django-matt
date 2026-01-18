@@ -4,12 +4,11 @@ Railway deployment provider.
 Provides deployment to Railway with automatic configuration generation.
 """
 
-from typing import Any, Dict, List, Optional
 import json
 
 from django_matt.deploy.base import (
-    DeploymentProvider,
     DeploymentConfig,
+    DeploymentProvider,
     DeploymentResult,
     DeploymentStatus,
     register_provider,
@@ -35,15 +34,17 @@ class RailwayProvider(DeploymentProvider):
 
     def __init__(self, config: DeploymentConfig):
         super().__init__(config)
-        self.project_id: Optional[str] = None
+        self.project_id: str | None = None
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """Validate configuration for Railway deployment."""
         errors = []
 
         # Check CLI is installed
         if not self.check_cli_installed("railway"):
-            errors.append("railway CLI is not installed. Install from https://docs.railway.app/develop/cli")
+            errors.append(
+                "railway CLI is not installed. Install from https://docs.railway.app/develop/cli"
+            )
 
         # Validate app name
         if not self.config.app_name:
@@ -55,7 +56,7 @@ class RailwayProvider(DeploymentProvider):
 
         return errors
 
-    def generate_config(self) -> Dict[str, str]:
+    def generate_config(self) -> dict[str, str]:
         """Generate Railway configuration files."""
         files = {}
 
@@ -93,13 +94,13 @@ class RailwayProvider(DeploymentProvider):
         """Generate Procfile for Railway."""
         wsgi_module = f"{self.config.django_settings_module.rsplit('.', 1)[0]}.wsgi:application"
 
-        return f'''web: gunicorn {wsgi_module} --bind 0.0.0.0:$PORT --workers {self.config.workers} --worker-class {self.config.worker_class}
+        return f"""web: gunicorn {wsgi_module} --bind 0.0.0.0:$PORT --workers {self.config.workers} --worker-class {self.config.worker_class}
 release: python manage.py migrate --noinput
-'''
+"""
 
     def _generate_nixpacks_toml(self) -> str:
         """Generate nixpacks.toml for custom build configuration."""
-        return f'''[phases.setup]
+        return f"""[phases.setup]
 nixPkgs = ["python313", "postgresql"]
 
 [phases.install]
@@ -109,8 +110,8 @@ cmds = ["pip install -r requirements.txt"]
 cmds = ["python manage.py collectstatic --noinput"]
 
 [start]
-cmd = "gunicorn {self.config.django_settings_module.rsplit('.', 1)[0]}.wsgi:application --bind 0.0.0.0:$PORT --workers {self.config.workers}"
-'''
+cmd = "gunicorn {self.config.django_settings_module.rsplit(".", 1)[0]}.wsgi:application --bind 0.0.0.0:$PORT --workers {self.config.workers}"
+"""
 
     async def deploy(self) -> DeploymentResult:
         """Deploy to Railway."""
@@ -146,9 +147,9 @@ cmd = "gunicorn {self.config.django_settings_module.rsplit('.', 1)[0]}.wsgi:appl
             if project_result.returncode != 0:
                 # Create new project
                 result.add_log(f"Creating project: {self.config.app_name}")
-                create_result = self.run_command([
-                    "railway", "init", "--name", self.config.app_name
-                ])
+                create_result = self.run_command(
+                    ["railway", "init", "--name", self.config.app_name]
+                )
                 if create_result.returncode != 0:
                     result.status = DeploymentStatus.FAILED
                     result.add_error(f"Failed to create project: {create_result.stderr}")
@@ -157,20 +158,18 @@ cmd = "gunicorn {self.config.django_settings_module.rsplit('.', 1)[0]}.wsgi:appl
             # Create database if needed
             if self.config.create_database and not self.config.database_url:
                 result.add_log("Adding PostgreSQL database...")
-                db_result = self.run_command([
-                    "railway", "add", "--database", "postgres"
-                ])
+                db_result = self.run_command(["railway", "add", "--database", "postgres"])
                 if db_result.returncode == 0:
                     result.add_log("PostgreSQL database added")
                 else:
-                    result.add_log("Note: Database may already exist or couldn't be added automatically")
+                    result.add_log(
+                        "Note: Database may already exist or couldn't be added automatically"
+                    )
 
             # Create Redis if needed
             if self.config.create_redis and not self.config.redis_url:
                 result.add_log("Adding Redis...")
-                redis_result = self.run_command([
-                    "railway", "add", "--database", "redis"
-                ])
+                redis_result = self.run_command(["railway", "add", "--database", "redis"])
                 if redis_result.returncode == 0:
                     result.add_log("Redis added")
 
@@ -271,7 +270,9 @@ cmd = "gunicorn {self.config.django_settings_module.rsplit('.', 1)[0]}.wsgi:appl
             deployments_result = self.run_command(["railway", "logs", "--deployment"])
 
             # Railway doesn't have direct rollback, redeploy previous
-            result.add_log("Railway doesn't support direct rollback. Redeploy from git commit instead.")
+            result.add_log(
+                "Railway doesn't support direct rollback. Redeploy from git commit instead."
+            )
             result.status = DeploymentStatus.FAILED
             result.add_error("Rollback not directly supported. Use git-based redeploy.")
 
@@ -292,7 +293,7 @@ cmd = "gunicorn {self.config.django_settings_module.rsplit('.', 1)[0]}.wsgi:appl
 
         return result
 
-    async def get_logs(self, lines: int = 100) -> List[str]:
+    async def get_logs(self, lines: int = 100) -> list[str]:
         """Get application logs."""
         result = self.run_command(["railway", "logs", "-n", str(lines)])
 

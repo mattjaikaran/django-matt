@@ -5,11 +5,11 @@ Enables real-time updates via WebSocket connections.
 """
 
 import json
-from typing import Any, Dict, List, Optional, Set, TYPE_CHECKING
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from django_matt.livewire.component import LiveComponent
+    pass
 
 
 # =============================================================================
@@ -20,11 +20,12 @@ if TYPE_CHECKING:
 @dataclass
 class ComponentConnection:
     """Represents a WebSocket connection to a component."""
+
     connection_id: str
     component_id: str
     component_name: str
-    user_id: Optional[str] = None
-    channel: Optional[Any] = None
+    user_id: str | None = None
+    channel: Any | None = None
 
 
 class ConnectionManager:
@@ -35,9 +36,9 @@ class ConnectionManager:
     """
 
     def __init__(self):
-        self._connections: Dict[str, ComponentConnection] = {}
-        self._component_connections: Dict[str, Set[str]] = {}
-        self._user_connections: Dict[str, Set[str]] = {}
+        self._connections: dict[str, ComponentConnection] = {}
+        self._component_connections: dict[str, set[str]] = {}
+        self._user_connections: dict[str, set[str]] = {}
 
     def register(self, connection: ComponentConnection):
         """Register a new connection."""
@@ -73,7 +74,7 @@ class ConnectionManager:
     def get_connections_for_component(
         self,
         component_id: str,
-    ) -> List[ComponentConnection]:
+    ) -> list[ComponentConnection]:
         """Get all connections for a component."""
         connection_ids = self._component_connections.get(component_id, set())
         return [self._connections[cid] for cid in connection_ids if cid in self._connections]
@@ -81,12 +82,12 @@ class ConnectionManager:
     def get_connections_for_user(
         self,
         user_id: str,
-    ) -> List[ComponentConnection]:
+    ) -> list[ComponentConnection]:
         """Get all connections for a user."""
         connection_ids = self._user_connections.get(user_id, set())
         return [self._connections[cid] for cid in connection_ids if cid in self._connections]
 
-    def get_all_connections(self) -> List[ComponentConnection]:
+    def get_all_connections(self) -> list[ComponentConnection]:
         """Get all active connections."""
         return list(self._connections.values())
 
@@ -123,20 +124,23 @@ class LivewireConsumer:
         self.scope = scope or {}
         self.receive = receive
         self.send = send
-        self.connection_id: Optional[str] = None
-        self._subscribed_components: Set[str] = set()
+        self.connection_id: str | None = None
+        self._subscribed_components: set[str] = set()
 
     @classmethod
     def as_asgi(cls):
         """Return ASGI application."""
+
         async def app(scope, receive, send):
             consumer = cls(scope, receive, send)
             await consumer.run()
+
         return app
 
     async def run(self):
         """Main consumer loop."""
         import uuid
+
         self.connection_id = str(uuid.uuid4())
 
         try:
@@ -155,14 +159,18 @@ class LivewireConsumer:
 
     async def connect(self):
         """Handle WebSocket connection."""
-        await self.send({
-            "type": "websocket.accept",
-        })
+        await self.send(
+            {
+                "type": "websocket.accept",
+            }
+        )
 
-        await self.send_json({
-            "type": "connected",
-            "connection_id": self.connection_id,
-        })
+        await self.send_json(
+            {
+                "type": "connected",
+                "connection_id": self.connection_id,
+            }
+        )
 
     async def disconnect(self):
         """Handle WebSocket disconnection."""
@@ -216,10 +224,12 @@ class LivewireConsumer:
         connection_manager.register(connection)
         self._subscribed_components.add(component_id)
 
-        await self.send_json({
-            "type": "subscribed",
-            "component_id": component_id,
-        })
+        await self.send_json(
+            {
+                "type": "subscribed",
+                "component_id": component_id,
+            }
+        )
 
     async def handle_unsubscribe(self, data: dict):
         """Unsubscribe from a component's updates."""
@@ -228,10 +238,12 @@ class LivewireConsumer:
             connection_manager.unregister(f"{self.connection_id}:{component_id}")
             self._subscribed_components.discard(component_id)
 
-            await self.send_json({
-                "type": "unsubscribed",
-                "component_id": component_id,
-            })
+            await self.send_json(
+                {
+                    "type": "unsubscribed",
+                    "component_id": component_id,
+                }
+            )
 
     async def handle_action(self, data: dict):
         """Handle an action call via WebSocket."""
@@ -273,13 +285,17 @@ class LivewireConsumer:
                 checksum=component.get_checksum(),
             )
 
-            await self.send_json({
-                "type": "update",
-                "component_id": snapshot.component_id,
-                "html": html,
-                "snapshot": new_snapshot.to_token(),
-                "result": result if isinstance(result, (dict, list, str, int, float, bool, type(None))) else None,
-            })
+            await self.send_json(
+                {
+                    "type": "update",
+                    "component_id": snapshot.component_id,
+                    "html": html,
+                    "snapshot": new_snapshot.to_token(),
+                    "result": result
+                    if isinstance(result, (dict, list, str, int, float, bool, type(None)))
+                    else None,
+                }
+            )
 
         except Exception as e:
             await self.send_error(str(e))
@@ -324,29 +340,35 @@ class LivewireConsumer:
                 checksum=component.get_checksum(),
             )
 
-            await self.send_json({
-                "type": "update",
-                "component_id": snapshot.component_id,
-                "html": html,
-                "snapshot": new_snapshot.to_token(),
-            })
+            await self.send_json(
+                {
+                    "type": "update",
+                    "component_id": snapshot.component_id,
+                    "html": html,
+                    "snapshot": new_snapshot.to_token(),
+                }
+            )
 
         except Exception as e:
             await self.send_error(str(e))
 
     async def send_json(self, data: dict):
         """Send JSON message."""
-        await self.send({
-            "type": "websocket.send",
-            "text": json.dumps(data),
-        })
+        await self.send(
+            {
+                "type": "websocket.send",
+                "text": json.dumps(data),
+            }
+        )
 
     async def send_error(self, message: str):
         """Send error message."""
-        await self.send_json({
-            "type": "error",
-            "message": message,
-        })
+        await self.send_json(
+            {
+                "type": "error",
+                "message": message,
+            }
+        )
 
 
 # =============================================================================
@@ -358,7 +380,7 @@ async def broadcast_to(
     component_id: str,
     html: str,
     snapshot_token: str,
-    effects: Optional[dict] = None,
+    effects: dict | None = None,
 ):
     """
     Broadcast an update to all connections watching a component.
@@ -424,7 +446,7 @@ async def broadcast_to_user(
 async def broadcast_to_all(
     event: str,
     data: dict,
-    component_name: Optional[str] = None,
+    component_name: str | None = None,
 ):
     """
     Broadcast an event to all connections.
@@ -456,9 +478,9 @@ async def broadcast_to_all(
 __all__ = [
     "ComponentConnection",
     "ConnectionManager",
-    "connection_manager",
     "LivewireConsumer",
     "broadcast_to",
-    "broadcast_to_user",
     "broadcast_to_all",
+    "broadcast_to_user",
+    "connection_manager",
 ]

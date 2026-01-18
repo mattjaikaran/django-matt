@@ -158,10 +158,10 @@ def parse_size(size_str: str) -> int:
     units = {
         "B": 1,
         "KB": 1024,
-        "MB": 1024 ** 2,
-        "GB": 1024 ** 3,
-        "TB": 1024 ** 4,
-        "PB": 1024 ** 5,
+        "MB": 1024**2,
+        "GB": 1024**3,
+        "TB": 1024**4,
+        "PB": 1024**5,
     }
 
     size_str = size_str.strip().upper()

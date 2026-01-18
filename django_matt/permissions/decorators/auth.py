@@ -2,11 +2,11 @@
 Authentication-related permission decorators.
 """
 
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from django_matt.permissions.common import IsAuthenticated
 from django_matt.permissions.decorators.base import create_permission_decorator
-
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -14,9 +14,9 @@ F = TypeVar("F", bound=Callable[..., Any])
 def authenticated(func: F) -> F:
     """
     Decorator that requires authentication.
-    
+
     Shorthand for requiring the IsAuthenticated permission.
-    
+
     Example:
         @authenticated
         async def protected_action(self, request):
@@ -30,14 +30,14 @@ def authenticated(func: F) -> F:
 def allow_any(func: F) -> F:
     """
     Decorator that explicitly marks a method as publicly accessible.
-    
+
     Useful when a controller has default permissions but some
     methods should be public.
-    
+
     Example:
         class UserController(APIController):
             permission_classes = [IsAuthenticated]
-            
+
             @get("public")
             @allow_any
             async def public_info(self, request):

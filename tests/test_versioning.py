@@ -6,7 +6,6 @@ import warnings
 from datetime import date
 from unittest.mock import MagicMock
 
-import pytest
 from django.http import HttpResponse
 from django.test import RequestFactory, TestCase, override_settings
 
@@ -25,7 +24,6 @@ from django_matt.versioning import (
 from django_matt.versioning.base import VersioningError
 from django_matt.versioning.decorators import VersionedMixin, version_range
 from django_matt.versioning.schemes import NamespaceVersioning
-
 
 # =============================================================================
 # BaseVersioning Tests
@@ -72,9 +70,7 @@ class TestBaseVersioning(TestCase):
 
     def test_is_allowed_version_none_with_default(self):
         """Test is_allowed_version with None when default exists."""
-        versioning = ConcreteVersioning(
-            default_version="1.0", allowed_versions=["1.0", "2.0"]
-        )
+        versioning = ConcreteVersioning(default_version="1.0", allowed_versions=["1.0", "2.0"])
         self.assertTrue(versioning.is_allowed_version(None))
 
     def test_is_allowed_version_none_without_default(self):
@@ -84,9 +80,7 @@ class TestBaseVersioning(TestCase):
 
     def test_validate_version_uses_default(self):
         """Test validate_version uses default when None."""
-        versioning = ConcreteVersioning(
-            default_version="1.0", allowed_versions=["1.0", "2.0"]
-        )
+        versioning = ConcreteVersioning(default_version="1.0", allowed_versions=["1.0", "2.0"])
         result = versioning.validate_version(None)
         self.assertEqual(result, "1.0")
 
@@ -301,9 +295,7 @@ class TestAcceptHeaderVersioning(TestCase):
 
     def test_determine_version_from_accept_header(self):
         """Test extracting version from Accept header."""
-        versioning = AcceptHeaderVersioning(
-            default_version="1", allowed_versions=["1", "2"]
-        )
+        versioning = AcceptHeaderVersioning(default_version="1", allowed_versions=["1", "2"])
         request = self.factory.get("/api/users/")
         request.META["HTTP_ACCEPT"] = "application/json; version=2"
 
@@ -312,9 +304,7 @@ class TestAcceptHeaderVersioning(TestCase):
 
     def test_determine_version_vendor_media_type(self):
         """Test extracting version from vendor media type."""
-        versioning = AcceptHeaderVersioning(
-            default_version="1", allowed_versions=["1", "2"]
-        )
+        versioning = AcceptHeaderVersioning(default_version="1", allowed_versions=["1", "2"])
         request = self.factory.get("/api/users/")
         request.META["HTTP_ACCEPT"] = "application/vnd.myapi.v2+json"
 
@@ -323,9 +313,7 @@ class TestAcceptHeaderVersioning(TestCase):
 
     def test_determine_version_falls_back_to_default(self):
         """Test falling back to default when no version in header."""
-        versioning = AcceptHeaderVersioning(
-            default_version="1", allowed_versions=["1", "2"]
-        )
+        versioning = AcceptHeaderVersioning(default_version="1", allowed_versions=["1", "2"])
         request = self.factory.get("/api/users/")
         request.META["HTTP_ACCEPT"] = "application/json"
 
@@ -352,9 +340,7 @@ class TestQueryParameterVersioning(TestCase):
 
     def test_determine_version_from_query(self):
         """Test extracting version from query parameter."""
-        versioning = QueryParameterVersioning(
-            default_version="1", allowed_versions=["1", "2"]
-        )
+        versioning = QueryParameterVersioning(default_version="1", allowed_versions=["1", "2"])
         request = self.factory.get("/api/users/?version=2")
 
         result = versioning.determine_version(request)
@@ -362,9 +348,7 @@ class TestQueryParameterVersioning(TestCase):
 
     def test_determine_version_with_v_prefix(self):
         """Test extracting version with 'v' prefix."""
-        versioning = QueryParameterVersioning(
-            default_version="1", allowed_versions=["1", "2"]
-        )
+        versioning = QueryParameterVersioning(default_version="1", allowed_versions=["1", "2"])
         request = self.factory.get("/api/users/?version=v2")
 
         result = versioning.determine_version(request)
@@ -372,9 +356,7 @@ class TestQueryParameterVersioning(TestCase):
 
     def test_determine_version_falls_back_to_default(self):
         """Test falling back to default when no query param."""
-        versioning = QueryParameterVersioning(
-            default_version="1", allowed_versions=["1", "2"]
-        )
+        versioning = QueryParameterVersioning(default_version="1", allowed_versions=["1", "2"])
         request = self.factory.get("/api/users/")
 
         result = versioning.determine_version(request)
@@ -408,9 +390,7 @@ class TestHostNameVersioning(TestCase):
     @override_settings(ALLOWED_HOSTS=["*"])
     def test_determine_version_from_hostname(self):
         """Test extracting version from hostname."""
-        versioning = HostNameVersioning(
-            default_version="1", allowed_versions=["1", "2"]
-        )
+        versioning = HostNameVersioning(default_version="1", allowed_versions=["1", "2"])
         request = self.factory.get("/api/users/", HTTP_HOST="v2.api.example.com")
 
         result = versioning.determine_version(request)
@@ -419,9 +399,7 @@ class TestHostNameVersioning(TestCase):
     @override_settings(ALLOWED_HOSTS=["*"])
     def test_determine_version_falls_back_to_default(self):
         """Test falling back to default when no version in hostname."""
-        versioning = HostNameVersioning(
-            default_version="1", allowed_versions=["1", "2"]
-        )
+        versioning = HostNameVersioning(default_version="1", allowed_versions=["1", "2"])
         request = self.factory.get("/api/users/", HTTP_HOST="api.example.com")
 
         result = versioning.determine_version(request)
@@ -442,9 +420,7 @@ class TestNamespaceVersioning(TestCase):
 
     def test_determine_version_from_namespace(self):
         """Test extracting version from URL namespace."""
-        versioning = NamespaceVersioning(
-            default_version="1", allowed_versions=["1", "2"]
-        )
+        versioning = NamespaceVersioning(default_version="1", allowed_versions=["1", "2"])
         request = self.factory.get("/api/users/")
 
         # Mock resolver_match with namespace
@@ -456,9 +432,7 @@ class TestNamespaceVersioning(TestCase):
 
     def test_determine_version_no_resolver_match(self):
         """Test when no resolver_match available."""
-        versioning = NamespaceVersioning(
-            default_version="1", allowed_versions=["1", "2"]
-        )
+        versioning = NamespaceVersioning(default_version="1", allowed_versions=["1", "2"])
         request = self.factory.get("/api/users/")
 
         result = versioning.determine_version(request)

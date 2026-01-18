@@ -4,9 +4,9 @@ Session authentication middleware.
 Provides session-based authentication and CSRF protection.
 """
 
-from typing import Callable, Optional, TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.utils.deprecation import MiddlewareMixin
@@ -150,7 +150,7 @@ class CSRFMiddleware(MiddlewareMixin):
 
         return verify_csrf_token(request, token)
 
-    def _get_csrf_token_from_request(self, request: "HttpRequest") -> Optional[str]:
+    def _get_csrf_token_from_request(self, request: "HttpRequest") -> str | None:
         """Extract CSRF token from request."""
         # Try header first (for AJAX requests)
         header_name = f"HTTP_{self.config.csrf_header_name.upper().replace('-', '_')}"
@@ -188,9 +188,7 @@ class CSRFMiddleware(MiddlewareMixin):
 
         return False
 
-    def process_response(
-        self, request: "HttpRequest", response: "HttpResponse"
-    ) -> "HttpResponse":
+    def process_response(self, request: "HttpRequest", response: "HttpResponse") -> "HttpResponse":
         """Set CSRF cookie on response."""
         from .csrf import get_csrf_token
 

@@ -16,12 +16,8 @@ class Command(BaseCommand):
         subparsers = parser.add_subparsers(dest="subcommand", help="Subcommand to run")
 
         # init subcommand
-        init_parser = subparsers.add_parser(
-            "init", help="Initialize configuration files"
-        )
-        init_parser.add_argument(
-            "--force", action="store_true", help="Overwrite existing files"
-        )
+        init_parser = subparsers.add_parser("init", help="Initialize configuration files")
+        init_parser.add_argument("--force", action="store_true", help="Overwrite existing files")
         init_parser.add_argument(
             "--env",
             choices=["development", "staging", "production", "all"],
@@ -36,9 +32,7 @@ class Command(BaseCommand):
         )
 
         # generate subcommand
-        generate_parser = subparsers.add_parser(
-            "generate", help="Generate a settings.py file"
-        )
+        generate_parser = subparsers.add_parser("generate", help="Generate a settings.py file")
         generate_parser.add_argument(
             "--env",
             choices=["development", "staging", "production"],
@@ -51,9 +45,7 @@ class Command(BaseCommand):
             default=["database", "cache", "security", "performance"],
             help="Components to include in the settings",
         )
-        generate_parser.add_argument(
-            "--output", default="settings.py", help="Output file path"
-        )
+        generate_parser.add_argument("--output", default="settings.py", help="Output file path")
         generate_parser.add_argument(
             "--db",
             choices=["postgres", "mysql", "sqlite"],
@@ -121,9 +113,7 @@ class Command(BaseCommand):
         if env == "all" or env == "production":
             self.create_env_file(project_dir, "production", force, db=db)
 
-        self.stdout.write(
-            self.style.SUCCESS("Configuration files initialized successfully")
-        )
+        self.stdout.write(self.style.SUCCESS("Configuration files initialized successfully"))
 
     def handle_generate(self, options):
         """Generate a settings.py file."""
@@ -138,9 +128,7 @@ class Command(BaseCommand):
         # Create the settings.py file
         self.create_settings_file(project_dir, env, True, output, components, db=db)
 
-        self.stdout.write(
-            self.style.SUCCESS(f"Settings file generated successfully at {output}")
-        )
+        self.stdout.write(self.style.SUCCESS(f"Settings file generated successfully at {output}"))
 
     def handle_env(self, options):
         """Generate a .env file."""
@@ -154,9 +142,7 @@ class Command(BaseCommand):
         # Create the .env file
         self.create_env_file(project_dir, env, True, output, db=db)
 
-        self.stdout.write(
-            self.style.SUCCESS(f".env file generated successfully at {output}")
-        )
+        self.stdout.write(self.style.SUCCESS(f".env file generated successfully at {output}"))
 
     def get_project_dir(self) -> Path:
         """Get the project directory."""
@@ -172,9 +158,7 @@ class Command(BaseCommand):
     def create_file(self, path: Path, content: str, force: bool = False) -> None:
         """Create a file with the given content."""
         if path.exists() and not force:
-            self.stdout.write(
-                self.style.WARNING(f"File {path} already exists, skipping")
-            )
+            self.stdout.write(self.style.WARNING(f"File {path} already exists, skipping"))
             return
 
         with open(path, "w") as f:
@@ -200,9 +184,7 @@ class Command(BaseCommand):
 
         # Create the settings content
         if env == "all":
-            content = self.get_settings_content(
-                project_name, "development", components, db
-            )
+            content = self.get_settings_content(project_name, "development", components, db)
         else:
             content = self.get_settings_content(project_name, env, components, db)
 
@@ -434,7 +416,7 @@ DJANGO_MATT_CACHE_TIMEOUT=300
 DB_PGVECTOR_ENABLED=False
 DB_POOL_ENABLED=False
 """
-        elif env == "staging":
+        if env == "staging":
             return f"""# {project_name.replace("_", " ").title()} staging environment variables
 DJANGO_ENV=staging
 DJANGO_SECRET_KEY={secrets.token_hex(32)}
@@ -464,7 +446,7 @@ DJANGO_MATT_CACHE_TIMEOUT=300
 DB_PGVECTOR_ENABLED=False
 DB_POOL_ENABLED=False
 """
-        elif env == "production":
+        if env == "production":
             return f"""# {project_name.replace("_", " ").title()} production environment variables
 DJANGO_ENV=production
 DJANGO_SECRET_KEY={secrets.token_hex(32)}
@@ -513,5 +495,4 @@ EMAIL_HOST_PASSWORD=change_me
 EMAIL_USE_TLS=True
 DEFAULT_FROM_EMAIL=noreply@example.com
 """
-        else:
-            return ""
+        return ""

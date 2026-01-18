@@ -74,53 +74,47 @@ Advanced Usage:
     ).apply_async()
 """
 
-from .base import (
-    Task,
-    TaskResult,
-    TaskStatus,
-    TaskRegistry,
-    task_registry,
-)
-
-from .decorators import (
-    task,
-    shared_task,
-    periodic_task,
-    schedule,
-)
-
-from .config import (
-    TaskConfig,
-    get_task_config,
-    get_backend,
-)
-
-from .retry import (
-    RetryPolicy,
-    ExponentialBackoff,
-    LinearBackoff,
-    FixedDelay,
-)
-
-from .scheduling import (
-    crontab,
-    every,
-    ScheduleEntry,
-)
-
-from .primitives import (
-    group,
-    chain,
-    chord,
-    signature,
-)
-
 from .backends import (
     BaseBackend,
     CeleryBackend,
-    DramatiqBackend,
     DjangoQBackend,
+    DramatiqBackend,
     SyncBackend,
+)
+from .base import (
+    Task,
+    TaskRegistry,
+    TaskResult,
+    TaskStatus,
+    task_registry,
+)
+from .config import (
+    TaskConfig,
+    get_backend,
+    get_task_config,
+)
+from .decorators import (
+    periodic_task,
+    schedule,
+    shared_task,
+    task,
+)
+from .primitives import (
+    chain,
+    chord,
+    group,
+    signature,
+)
+from .retry import (
+    ExponentialBackoff,
+    FixedDelay,
+    LinearBackoff,
+    RetryPolicy,
+)
+from .scheduling import (
+    ScheduleEntry,
+    crontab,
+    every,
 )
 
 __all__ = [

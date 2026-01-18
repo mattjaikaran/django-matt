@@ -8,10 +8,7 @@ This module provides the core functions for:
 - Verifying authentication responses
 """
 
-import base64
-import hashlib
 import secrets
-from datetime import timedelta
 from typing import Any
 
 from django.contrib.auth import get_user_model
@@ -23,24 +20,32 @@ from django_matt.auth.passkeys.config import get_passkey_config
 # Try to import webauthn library
 try:
     from webauthn import (
-        generate_registration_options as _generate_registration_options,
-        verify_registration_response as _verify_registration_response,
         generate_authentication_options as _generate_authentication_options,
-        verify_authentication_response as _verify_authentication_response,
+    )
+    from webauthn import (
+        generate_registration_options as _generate_registration_options,
+    )
+    from webauthn import (
         options_to_json,
     )
+    from webauthn import (
+        verify_authentication_response as _verify_authentication_response,
+    )
+    from webauthn import (
+        verify_registration_response as _verify_registration_response,
+    )
     from webauthn.helpers import (
-        bytes_to_base64url,
         base64url_to_bytes,
+        bytes_to_base64url,
     )
     from webauthn.helpers.structs import (
-        AuthenticatorSelectionCriteria,
-        UserVerificationRequirement,
-        ResidentKeyRequirement,
         AttestationConveyancePreference,
         AuthenticatorAttachment,
-        PublicKeyCredentialDescriptor,
+        AuthenticatorSelectionCriteria,
         AuthenticatorTransport,
+        PublicKeyCredentialDescriptor,
+        ResidentKeyRequirement,
+        UserVerificationRequirement,
     )
 
     HAS_WEBAUTHN = True
@@ -56,34 +61,24 @@ except ImportError:
 class PasskeyError(Exception):
     """Base exception for passkey errors."""
 
-    pass
-
 
 class PasskeyRegistrationError(PasskeyError):
     """Error during passkey registration."""
-
-    pass
 
 
 class PasskeyAuthenticationError(PasskeyError):
     """Error during passkey authentication."""
 
-    pass
-
 
 class PasskeyCredentialNotFoundError(PasskeyError):
     """Credential not found."""
-
-    pass
 
 
 class PasskeyNotInstalledError(PasskeyError):
     """WebAuthn library not installed."""
 
     def __init__(self):
-        super().__init__(
-            "webauthn library is not installed. Install it with: pip install webauthn"
-        )
+        super().__init__("webauthn library is not installed. Install it with: pip install webauthn")
 
 
 # =============================================================================
@@ -318,7 +313,7 @@ def verify_registration_response(
             require_user_verification=(config.user_verification == "required"),
         )
     except Exception as e:
-        raise PasskeyRegistrationError(f"Verification failed: {str(e)}")
+        raise PasskeyRegistrationError(f"Verification failed: {e!s}")
     finally:
         # Always delete the challenge
         _delete_challenge(challenge_id)
@@ -388,7 +383,7 @@ def generate_authentication_options(
         credentials = _get_user_credentials(user)
         for cred in credentials:
             transports = []
-            for t in (cred.transports or []):
+            for t in cred.transports or []:
                 try:
                     transports.append(AuthenticatorTransport(t))
                 except ValueError:
@@ -512,7 +507,7 @@ def verify_authentication_response(
             require_user_verification=(config.user_verification == "required"),
         )
     except Exception as e:
-        raise PasskeyAuthenticationError(f"Verification failed: {str(e)}")
+        raise PasskeyAuthenticationError(f"Verification failed: {e!s}")
     finally:
         # Always delete the challenge
         _delete_challenge(challenge_id)

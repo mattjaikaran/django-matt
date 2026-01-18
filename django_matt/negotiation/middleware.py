@@ -5,14 +5,15 @@ Automatically handles content negotiation for all API responses.
 """
 
 import json
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 
 from django_matt.negotiation.negotiator import (
     ContentNegotiator,
-    NotAcceptable,
     NegotiatedFormat,
+    NotAcceptable,
 )
 from django_matt.negotiation.parsers import ParseError
 
@@ -110,9 +111,9 @@ class ContentNegotiationMiddleware:
     def _extract_data(self, response: HttpResponse) -> Any | None:
         """Extract data from response for re-rendering."""
         try:
-            if isinstance(response, JsonResponse):
-                return json.loads(response.content)
-            elif response.get("Content-Type", "").startswith("application/json"):
+            if isinstance(response, JsonResponse) or response.get("Content-Type", "").startswith(
+                "application/json"
+            ):
                 return json.loads(response.content)
         except (json.JSONDecodeError, ValueError):
             pass
@@ -197,9 +198,9 @@ class AsyncContentNegotiationMiddleware:
     def _extract_data(self, response: HttpResponse) -> Any | None:
         """Extract data from response for re-rendering."""
         try:
-            if isinstance(response, JsonResponse):
-                return json.loads(response.content)
-            elif response.get("Content-Type", "").startswith("application/json"):
+            if isinstance(response, JsonResponse) or response.get("Content-Type", "").startswith(
+                "application/json"
+            ):
                 return json.loads(response.content)
         except (json.JSONDecodeError, ValueError):
             pass

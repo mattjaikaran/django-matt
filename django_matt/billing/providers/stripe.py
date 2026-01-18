@@ -6,23 +6,23 @@ Requires: pip install stripe
 Documentation: https://docs.stripe.com/api
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from django_matt.billing.config import StripeConfig
 from django_matt.billing.providers.base import (
-    BillingProvider,
     BillingAPIError,
+    BillingProvider,
     BillingWebhookError,
-    CustomerData,
-    ProductData,
-    PriceData,
-    SubscriptionData,
     CheckoutSessionData,
+    CustomerData,
     InvoiceData,
-    WebhookEvent,
+    PriceData,
     PriceInterval,
+    ProductData,
+    SubscriptionData,
     SubscriptionStatus,
+    WebhookEvent,
 )
 
 
@@ -63,20 +63,20 @@ class StripeProvider(BillingProvider[StripeConfig]):
                 status_code=e.http_status,
                 details={"code": e.code, "param": e.param},
             )
-        elif isinstance(e, stripe.error.InvalidRequestError):
+        if isinstance(e, stripe.error.InvalidRequestError):
             raise BillingAPIError(
                 str(e),
                 provider=self.provider_name,
                 status_code=e.http_status,
                 details={"param": e.param},
             )
-        elif isinstance(e, stripe.error.AuthenticationError):
+        if isinstance(e, stripe.error.AuthenticationError):
             raise BillingAPIError(
                 "Invalid Stripe API key",
                 provider=self.provider_name,
                 status_code=401,
             )
-        elif isinstance(e, stripe.error.StripeError):
+        if isinstance(e, stripe.error.StripeError):
             raise BillingAPIError(
                 str(e),
                 provider=self.provider_name,
@@ -88,7 +88,7 @@ class StripeProvider(BillingProvider[StripeConfig]):
         """Convert Unix timestamp to datetime."""
         if ts is None:
             return None
-        return datetime.fromtimestamp(ts, tz=timezone.utc)
+        return datetime.fromtimestamp(ts, tz=UTC)
 
     def _parse_customer(self, customer: Any) -> CustomerData:
         """Parse Stripe customer to CustomerData."""
@@ -201,12 +201,12 @@ class StripeProvider(BillingProvider[StripeConfig]):
             CheckoutSessionData(
                 id=session.id,
                 url=session.url or "",
-                customer_id=session.customer if isinstance(session.customer, str) else (
-                    session.customer.id if session.customer else None
-                ),
-                subscription_id=session.subscription if isinstance(session.subscription, str) else (
-                    session.subscription.id if session.subscription else None
-                ),
+                customer_id=session.customer
+                if isinstance(session.customer, str)
+                else (session.customer.id if session.customer else None),
+                subscription_id=session.subscription
+                if isinstance(session.subscription, str)
+                else (session.subscription.id if session.subscription else None),
                 status=session.status or "open",
                 mode=session.mode or "subscription",
                 success_url=session.success_url or "",
@@ -222,10 +222,12 @@ class StripeProvider(BillingProvider[StripeConfig]):
         return self._add_provider_tag(
             InvoiceData(
                 id=invoice.id,
-                customer_id=invoice.customer if isinstance(invoice.customer, str) else invoice.customer.id,
-                subscription_id=invoice.subscription if isinstance(invoice.subscription, str) else (
-                    invoice.subscription.id if invoice.subscription else None
-                ),
+                customer_id=invoice.customer
+                if isinstance(invoice.customer, str)
+                else invoice.customer.id,
+                subscription_id=invoice.subscription
+                if isinstance(invoice.subscription, str)
+                else (invoice.subscription.id if invoice.subscription else None),
                 status=invoice.status or "draft",
                 currency=invoice.currency,
                 amount_due=invoice.amount_due or 0,
@@ -234,7 +236,9 @@ class StripeProvider(BillingProvider[StripeConfig]):
                 invoice_pdf=invoice.invoice_pdf,
                 hosted_invoice_url=invoice.hosted_invoice_url,
                 due_date=self._timestamp_to_datetime(invoice.due_date),
-                paid_at=self._timestamp_to_datetime(invoice.status_transitions.paid_at if invoice.status_transitions else None),
+                paid_at=self._timestamp_to_datetime(
+                    invoice.status_transitions.paid_at if invoice.status_transitions else None
+                ),
                 created_at=self._timestamp_to_datetime(invoice.created),
                 raw_data=invoice.to_dict() if hasattr(invoice, "to_dict") else {},
             )
@@ -688,7 +692,9 @@ class StripeProvider(BillingProvider[StripeConfig]):
                 id=event.id,
                 type=event.type,
                 provider=self.provider_name,
-                data=event.data.object.to_dict() if hasattr(event.data.object, "to_dict") else dict(event.data.object),
+                data=event.data.object.to_dict()
+                if hasattr(event.data.object, "to_dict")
+                else dict(event.data.object),
                 created_at=self._timestamp_to_datetime(event.created),
                 raw_payload=payload,
             )

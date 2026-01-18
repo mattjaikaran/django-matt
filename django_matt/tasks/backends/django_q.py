@@ -6,13 +6,12 @@ Provides integration with Django-Q2 for task processing.
 
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Sequence, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from .base import BaseBackend
 
 if TYPE_CHECKING:
     from ..base import Task, TaskResult
-    from ..primitives import Signature, Group, GroupResult
 
 
 class DjangoQBackend(BaseBackend):
@@ -65,14 +64,13 @@ class DjangoQBackend(BaseBackend):
     def _ensure_django_q(self):
         """Ensure Django-Q2 is installed and configured."""
         try:
-            from django_q.tasks import async_task, result, fetch
             from django_q.models import Task as QTask
+            from django_q.tasks import async_task, fetch, result
 
             return async_task, result, fetch, QTask
         except ImportError:
             raise ImportError(
-                "Django-Q2 is required for DjangoQBackend. "
-                "Install with: pip install django-q2"
+                "Django-Q2 is required for DjangoQBackend. Install with: pip install django-q2"
             )
 
     def send_task(
@@ -89,7 +87,6 @@ class DjangoQBackend(BaseBackend):
         **options,
     ) -> "TaskResult":
         """Send a task to Django-Q2."""
-        from ..base import TaskResult, TaskStatus
 
         async_task, _, _, _ = self._ensure_django_q()
 
@@ -166,7 +163,6 @@ class DjangoQBackend(BaseBackend):
 
     def close(self) -> None:
         """Close Django-Q connections (no-op for Django-Q)."""
-        pass
 
 
 class DjangoQTaskResult:
@@ -195,7 +191,7 @@ class DjangoQTaskResult:
 
         if task.success:
             return TaskStatus.SUCCESS
-        elif task.stopped:
+        if task.stopped:
             return TaskStatus.FAILURE
 
         return TaskStatus.STARTED
@@ -225,21 +221,25 @@ class DjangoQTaskResult:
     @property
     def is_pending(self):
         from ..base import TaskStatus
+
         return self.status == TaskStatus.PENDING
 
     @property
     def is_success(self):
         from ..base import TaskStatus
+
         return self.status == TaskStatus.SUCCESS
 
     @property
     def is_failure(self):
         from ..base import TaskStatus
+
         return self.status == TaskStatus.FAILURE
 
     @property
     def is_complete(self):
         from ..base import TaskStatus
+
         return self.status in (TaskStatus.SUCCESS, TaskStatus.FAILURE)
 
     def get(self, timeout: float = None, propagate: bool = True):

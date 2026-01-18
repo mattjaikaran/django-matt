@@ -15,32 +15,27 @@ from django.contrib.auth import get_user_model
 from django.http import HttpResponseRedirect
 from django.utils import timezone
 
-from django_matt.auth.jwt import create_token_pair
 from django_matt.auth.decorators import jwt_required
+from django_matt.auth.jwt import create_token_pair
 from django_matt.auth.oauth.config import get_oauth_config
-from django_matt.auth.oauth.schemas import (
-    OAuthProviderInfo,
-    OAuthProvidersResponse,
-    OAuthLoginRequest,
-    OAuthLoginResponse,
-    OAuthCallbackRequest,
-    OAuthCallbackResponse,
-    OAuthConnectionResponse,
-    OAuthConnectionListResponse,
-    OAuthDisconnectRequest,
-    OAuthErrorResponse,
-)
 from django_matt.auth.oauth.providers import (
-    get_provider_instance,
     OAuthError,
     OAuthUserInfo,
+    get_provider_instance,
+)
+from django_matt.auth.oauth.schemas import (
+    OAuthCallbackResponse,
+    OAuthConnectionListResponse,
+    OAuthConnectionResponse,
+    OAuthLoginRequest,
+    OAuthLoginResponse,
+    OAuthProviderInfo,
+    OAuthProvidersResponse,
 )
 from django_matt.core.errors import (
-    APIError,
     NotFoundAPIError,
     ValidationAPIError,
 )
-
 
 User = get_user_model()
 
@@ -278,9 +273,7 @@ class OAuthController:
         """
         from django_matt.auth.oauth.models import OAuthConnection
 
-        connections = await _sync_to_async(list)(
-            OAuthConnection.objects.filter(user=request.user)
-        )
+        connections = await _sync_to_async(list)(OAuthConnection.objects.filter(user=request.user))
 
         return OAuthConnectionListResponse(
             connections=[
@@ -316,15 +309,14 @@ class OAuthController:
 
         # Prevent disconnecting last auth method if user has no password
         other_connections = await _sync_to_async(
-            OAuthConnection.objects.filter(user=request.user)
-            .exclude(provider=provider)
-            .count
+            OAuthConnection.objects.filter(user=request.user).exclude(provider=provider).count
         )()
 
         has_password = request.user.has_usable_password()
-        has_passkeys = hasattr(request.user, "passkey_credentials") and await _sync_to_async(
-            request.user.passkey_credentials.exists
-        )()
+        has_passkeys = (
+            hasattr(request.user, "passkey_credentials")
+            and await _sync_to_async(request.user.passkey_credentials.exists)()
+        )
 
         if not has_password and not has_passkeys and other_connections == 0:
             raise ValidationAPIError(
@@ -357,6 +349,7 @@ class OAuthController:
 def _sync_to_async(func):
     """Convert sync function to async."""
     from asgiref.sync import sync_to_async
+
     return sync_to_async(func, thread_sensitive=True)
 
 

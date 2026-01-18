@@ -5,8 +5,8 @@ Pydantic schemas for billing API requests and responses.
 from datetime import datetime
 from enum import Enum
 from typing import Any, Literal
-from pydantic import BaseModel, Field, EmailStr
 
+from pydantic import BaseModel, EmailStr, Field
 
 # -----------------------------------------------------------------------------
 # Enums

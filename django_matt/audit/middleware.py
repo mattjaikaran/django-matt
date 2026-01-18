@@ -4,17 +4,18 @@ Audit middleware.
 Captures request context for audit logging.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 
 from .context import (
-    set_audit_context,
     clear_audit_context,
     extract_client_ip,
     extract_user_agent,
+    set_audit_context,
 )
 
 if TYPE_CHECKING:
@@ -34,7 +35,7 @@ class AuditContext:
     user_agent: str = ""
     request_method: str = ""
     request_path: str = ""
-    session_key: Optional[str] = None
+    session_key: str | None = None
     extra: dict = None
 
     def __post_init__(self):
@@ -139,8 +140,8 @@ class AuditMiddleware(MiddlewareMixin):
 
     def _log_request(self, request: "HttpRequest", ctx: AuditContext) -> None:
         """Log an API request."""
-        from .models import AuditLog
         from .enums import AuditAction, AuditSeverity
+        from .models import AuditLog
 
         # Build metadata
         metadata = {
@@ -176,7 +177,6 @@ class AuditMiddleware(MiddlewareMixin):
         """Log response details."""
         # This is typically disabled for performance
         # Can be enabled for debugging or compliance
-        pass
 
 
 class AsyncAuditMiddleware:

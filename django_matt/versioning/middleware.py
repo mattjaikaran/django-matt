@@ -4,7 +4,8 @@ Versioning middleware for django-matt.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from django.http import JsonResponse
 
@@ -65,6 +66,7 @@ class VersioningMiddleware:
         if self._config is None:
             try:
                 from django.conf import settings
+
                 self._config = getattr(settings, "API_VERSIONING", {})
             except Exception:
                 self._config = {}
@@ -137,9 +139,7 @@ class VersioningMiddleware:
 
         return response
 
-    def version_error_response(
-        self, request: HttpRequest, exc: VersioningError
-    ) -> JsonResponse:
+    def version_error_response(self, request: HttpRequest, exc: VersioningError) -> JsonResponse:
         """
         Create an error response for invalid version.
 
@@ -190,6 +190,7 @@ class MultiSchemeVersioningMiddleware:
         if self._config is None:
             try:
                 from django.conf import settings
+
                 self._config = getattr(settings, "API_VERSIONING", {})
             except Exception:
                 self._config = {}

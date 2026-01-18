@@ -8,6 +8,7 @@ from collections.abc import Callable
 
 from django.apps import apps
 from django.conf import settings
+
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
@@ -33,10 +34,7 @@ class FileChangeHandler(FileSystemEventHandler):
             # Debounce to prevent multiple reloads for the same file
             current_time = time.time()
             if event.src_path in self.last_reload_time:
-                if (
-                    current_time - self.last_reload_time[event.src_path]
-                    < self.debounce_time
-                ):
+                if current_time - self.last_reload_time[event.src_path] < self.debounce_time:
                     return
 
             self.last_reload_time[event.src_path] = current_time
@@ -101,10 +99,7 @@ class ModuleReloader:
                     with open(module.__file__) as f:
                         content = f.read()
                         # Simple check for imports (could be improved)
-                        if (
-                            f"import {module_name}" in content
-                            or f"from {module_name}" in content
-                        ):
+                        if f"import {module_name}" in content or f"from {module_name}" in content:
                             dependent_modules.append(name)
             except (OSError, UnicodeDecodeError):
                 continue
@@ -127,13 +122,11 @@ class ModuleReloader:
                 for dep_module_name in dependent_modules:
                     if dep_module_name in sys.modules:
                         try:
-                            logger.info(
-                                f"Reloading dependent module: {dep_module_name}"
-                            )
+                            logger.info(f"Reloading dependent module: {dep_module_name}")
                             importlib.reload(sys.modules[dep_module_name])
                         except Exception as e:
                             logger.error(
-                                f"Error reloading dependent module {dep_module_name}: {str(e)}"
+                                f"Error reloading dependent module {dep_module_name}: {e!s}"
                             )
 
                 # Call reload hooks
@@ -141,21 +134,20 @@ class ModuleReloader:
                     try:
                         hook()
                     except Exception as e:
-                        logger.error(f"Error in reload hook: {str(e)}")
+                        logger.error(f"Error in reload hook: {e!s}")
 
                 logger.info(f"Successfully reloaded module: {module_name}")
                 return True
-            else:
-                # Try to import the module if it's not loaded
-                try:
-                    importlib.import_module(module_name)
-                    logger.info(f"Imported new module: {module_name}")
-                    return True
-                except ImportError as e:
-                    logger.error(f"Error importing module {module_name}: {str(e)}")
-                    return False
+            # Try to import the module if it's not loaded
+            try:
+                importlib.import_module(module_name)
+                logger.info(f"Imported new module: {module_name}")
+                return True
+            except ImportError as e:
+                logger.error(f"Error importing module {module_name}: {e!s}")
+                return False
         except Exception as e:
-            logger.error(f"Error reloading module {module_name}: {str(e)}")
+            logger.error(f"Error reloading module {module_name}: {e!s}")
             return False
 
     def handle_file_change(self, file_path: str):
@@ -330,7 +322,7 @@ class WebSocketReloadServer:
             loop.run_until_complete(send_reload())
 
         except Exception as e:
-            logger.error(f"Error notifying WebSocket clients: {str(e)}")
+            logger.error(f"Error notifying WebSocket clients: {e!s}")
 
     def stop(self):
         """Stop the WebSocket server."""
@@ -373,9 +365,7 @@ class HotReloader:
 hot_reloader = None
 
 
-def start_hot_reloading(
-    watch_paths: list[str] | None = None, websocket_port: int = 8001
-):
+def start_hot_reloading(watch_paths: list[str] | None = None, websocket_port: int = 8001):
     """Start hot reloading for the Django application."""
     global hot_reloader
 

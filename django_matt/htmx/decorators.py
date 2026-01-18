@@ -5,19 +5,19 @@ Provides decorators for HTMX-aware views with support for
 partial template rendering and request detection.
 """
 
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Optional, Union
+
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import render
-from django.template.response import TemplateResponse
 
-from django_matt.htmx.request import HtmxDetails, is_htmx_request
+from django_matt.htmx.request import HtmxDetails
 
 
 def htmx_view(
-    template: Optional[str] = None,
-    partial_template: Optional[str] = None,
-    target: Optional[str] = None,
+    template: str | None = None,
+    partial_template: str | None = None,
+    target: str | None = None,
 ):
     """
     Decorator for views that handle both full page and HTMX requests.
@@ -81,9 +81,7 @@ def htmx_view(
                 tmpl = template
 
             if not tmpl:
-                raise ValueError(
-                    "htmx_view requires at least a template parameter"
-                )
+                raise ValueError("htmx_view requires at least a template parameter")
 
             return render(request, tmpl, result)
 
@@ -97,7 +95,7 @@ def htmx_view(
     return decorator
 
 
-def htmx_only(view_func: Optional[Callable] = None, *, allow_boosted: bool = True):
+def htmx_only(view_func: Callable | None = None, *, allow_boosted: bool = True):
     """
     Restrict a view to HTMX requests only.
 
@@ -180,7 +178,7 @@ def htmx_partial(template_name: str):
 def htmx_trigger(
     *event_names: str,
     after: str = "receive",
-    params: Optional[dict] = None,
+    params: dict | None = None,
 ):
     """
     Automatically add HTMX triggers to responses.
@@ -287,10 +285,10 @@ def vary_on_htmx(view_func: Callable) -> Callable:
 
 
 __all__ = [
-    "htmx_view",
     "htmx_only",
     "htmx_partial",
     "htmx_trigger",
+    "htmx_view",
     "require_htmx_target",
     "vary_on_htmx",
 ]

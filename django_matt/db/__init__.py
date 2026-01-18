@@ -14,12 +14,12 @@ from django.db.models.functions import Cast, Coalesce
 
 # Import soft delete support
 from .soft_delete import (
-    SoftDeleteMixin,
-    SoftDeleteWithUserMixin,
     SoftDeleteManager,
+    SoftDeleteMixin,
     SoftDeleteQuerySet,
-    soft_delete_cascade,
+    SoftDeleteWithUserMixin,
     restore_cascade,
+    soft_delete_cascade,
 )
 
 # Import PostgreSQL support if available

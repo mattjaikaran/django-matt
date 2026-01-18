@@ -4,12 +4,11 @@ Auditable model mixins.
 Provides mixins for automatic change tracking on Django models.
 """
 
-from typing import Any, Optional, Set, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 from django.db import models
-from django.db.models.signals import post_save, post_delete, pre_save
 
-from .enums import AuditAction, AuditSeverity
+from .enums import AuditAction
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
@@ -21,7 +20,6 @@ class AuditableQuerySet(models.QuerySet):
     def update(self, **kwargs):
         """Override update to log bulk updates."""
         from .models import AuditLog
-        from .context import get_current_user, get_request_ip, get_user_agent
 
         # Get affected objects before update
         pks = list(self.values_list("pk", flat=True))
@@ -99,8 +97,8 @@ class AuditableMixin(models.Model):
     """
 
     # Configuration attributes (can be overridden in subclasses)
-    audit_fields: Optional[Set[str]] = None  # Fields to track (None = all)
-    audit_exclude: Set[str] = set()  # Fields to exclude from tracking
+    audit_fields: set[str] | None = None  # Fields to track (None = all)
+    audit_exclude: set[str] = set()  # Fields to exclude from tracking
     audit_on_create: bool = True
     audit_on_update: bool = True
     audit_on_delete: bool = True
@@ -123,14 +121,10 @@ class AuditableMixin(models.Model):
         else:
             self._audit_original_values = {}
 
-    def _get_auditable_fields(self) -> Set[str]:
+    def _get_auditable_fields(self) -> set[str]:
         """Get the set of fields to track."""
         # Get all concrete field names
-        all_fields = {
-            f.name
-            for f in self._meta.get_fields()
-            if f.concrete and not f.many_to_many
-        }
+        all_fields = {f.name for f in self._meta.get_fields() if f.concrete and not f.many_to_many}
 
         # Filter to specified fields if set
         if self.audit_fields:
@@ -200,8 +194,8 @@ class AuditableMixin(models.Model):
             audit_user: Override the user for this audit entry
             *args, **kwargs: Standard save arguments
         """
+        from .context import get_current_user
         from .models import AuditLog
-        from .context import get_current_user, get_request_ip, get_user_agent
 
         # Check if we should skip auditing
         if self._audit_skip:
@@ -247,8 +241,8 @@ class AuditableMixin(models.Model):
         Args:
             audit_user: Override the user for this audit entry
         """
-        from .models import AuditLog
         from .context import get_current_user
+        from .models import AuditLog
 
         if self._audit_skip or not self.audit_on_delete:
             return super().delete(*args, **kwargs)

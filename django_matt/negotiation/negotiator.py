@@ -14,18 +14,17 @@ from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 
-from django_matt.negotiation.config import get_negotiation_config, FormatType
-from django_matt.negotiation.renderers import (
-    BaseRenderer,
-    get_renderer,
-    MEDIA_TYPE_MAP,
-    RENDERERS,
-)
+from django_matt.negotiation.config import FormatType, get_negotiation_config
 from django_matt.negotiation.parsers import (
     BaseParser,
     get_parser_for_media_type,
     parse_request_body,
-    ParseError,
+)
+from django_matt.negotiation.renderers import (
+    MEDIA_TYPE_MAP,
+    RENDERERS,
+    BaseRenderer,
+    get_renderer,
 )
 
 
@@ -46,8 +45,7 @@ class NotAcceptable(Exception):
         self.requested = requested
         self.available = available
         super().__init__(
-            f"Cannot satisfy Accept header '{requested}'. "
-            f"Available formats: {', '.join(available)}"
+            f"Cannot satisfy Accept header '{requested}'. Available formats: {', '.join(available)}"
         )
 
 

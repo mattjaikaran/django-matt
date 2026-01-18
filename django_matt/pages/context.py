@@ -8,12 +8,11 @@ Provides mechanisms for:
 """
 
 import json
-from typing import Any, Callable, Dict, List, Optional, Union
+from collections.abc import Callable
 from functools import wraps
+from typing import Any
 
 from django.http import HttpRequest
-from django.conf import settings
-
 
 # Request attribute names
 SHARED_DATA_ATTR = "_page_shared_data"
@@ -21,10 +20,10 @@ FLASH_MESSAGES_ATTR = "_page_flash_messages"
 
 
 # Global shared data providers
-_shared_data_providers: List[Callable[[HttpRequest], Dict[str, Any]]] = []
+_shared_data_providers: list[Callable[[HttpRequest], dict[str, Any]]] = []
 
 
-def register_shared_data(provider: Callable[[HttpRequest], Dict[str, Any]]) -> Callable:
+def register_shared_data(provider: Callable[[HttpRequest], dict[str, Any]]) -> Callable:
     """
     Register a function that provides shared data for all pages.
 
@@ -55,7 +54,7 @@ def register_shared_data(provider: Callable[[HttpRequest], Dict[str, Any]]) -> C
     return provider
 
 
-def get_shared_data(request: HttpRequest) -> Dict[str, Any]:
+def get_shared_data(request: HttpRequest) -> dict[str, Any]:
     """
     Get all shared data for a request.
 
@@ -87,12 +86,13 @@ def get_shared_data(request: HttpRequest) -> Dict[str, Any]:
     return shared
 
 
-def _get_default_shared_data(request: HttpRequest) -> Dict[str, Any]:
+def _get_default_shared_data(request: HttpRequest) -> dict[str, Any]:
     """Get default shared data that's always included."""
     shared = {}
 
     # CSRF token (for forms)
     from django.middleware.csrf import get_token
+
     shared["csrfToken"] = get_token(request)
 
     # Authenticated user (basic info)
@@ -132,6 +132,7 @@ def set_shared_data(request: HttpRequest, key: str, value: Any) -> None:
 
 # Flash messages
 
+
 def add_flash_message(
     request: HttpRequest,
     message: str,
@@ -150,14 +151,16 @@ def add_flash_message(
         setattr(request, FLASH_MESSAGES_ATTR, [])
 
     messages = getattr(request, FLASH_MESSAGES_ATTR)
-    messages.append({
-        "message": message,
-        "type": type,
-        **extra,
-    })
+    messages.append(
+        {
+            "message": message,
+            "type": type,
+            **extra,
+        }
+    )
 
 
-def get_flash_messages(request: HttpRequest) -> List[Dict[str, Any]]:
+def get_flash_messages(request: HttpRequest) -> list[dict[str, Any]]:
     """
     Get all flash messages for the current request.
 
@@ -196,17 +199,21 @@ def flash(message: str, type: str = "success") -> Callable:
         def create_user(request):
             ...
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(request: HttpRequest, *args, **kwargs):
             result = func(request, *args, **kwargs)
             add_flash_message(request, message, type)
             return result
+
         return wrapper
+
     return decorator
 
 
 # Shared data context manager
+
 
 class SharedDataContext:
     """
@@ -220,7 +227,7 @@ class SharedDataContext:
     def __init__(self, request: HttpRequest, **data: Any):
         self.request = request
         self.data = data
-        self._original: Dict[str, Any] = {}
+        self._original: dict[str, Any] = {}
 
     def __enter__(self):
         # Store original values
@@ -250,11 +257,11 @@ class SharedDataContext:
 
 
 __all__ = [
-    "register_shared_data",
-    "get_shared_data",
-    "set_shared_data",
-    "add_flash_message",
-    "get_flash_messages",
-    "flash",
     "SharedDataContext",
+    "add_flash_message",
+    "flash",
+    "get_flash_messages",
+    "get_shared_data",
+    "register_shared_data",
+    "set_shared_data",
 ]

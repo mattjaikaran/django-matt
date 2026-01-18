@@ -25,63 +25,60 @@ Usage:
 """
 
 from django_matt.codegen.core import (
-    CodeNode,
-    Statement,
+    ArrayLiteral,
     Block,
+    Class,
+    CodeFile,
+    CodeNode,
+    Comment,
+    Function,
     Import,
     ImportFrom,
-    Variable,
-    Function,
-    Class,
     Interface,
-    TypeAlias,
     ObjectLiteral,
-    ArrayLiteral,
-    Property,
     Parameter,
+    Property,
     Return,
-    Comment,
-    CodeFile,
+    Statement,
+    TypeAlias,
+    Variable,
+)
+from django_matt.codegen.core import (
     CodeGenerator as BaseCodeGenerator,
 )
-
-from django_matt.codegen.typescript import (
-    TypeScriptGenerator,
-    generate_typescript_interface,
-    generate_zod_schema,
-    django_field_to_typescript,
+from django_matt.codegen.introspection import (
+    FieldInfo,
+    ModelInfo,
+    ModelIntrospector,
+    RelationInfo,
 )
-
 from django_matt.codegen.react import (
     ReactGenerator,
-    generate_react_hooks,
-    generate_react_form,
-    generate_react_list,
     generate_react_detail,
+    generate_react_form,
+    generate_react_hooks,
+    generate_react_list,
 )
-
-from django_matt.codegen.svelte import (
-    SvelteGenerator,
-    generate_svelte_stores,
-    generate_svelte5_stores,
-    generate_svelte_form,
-    generate_svelte_list,
-    generate_svelte_detail,
-)
-
 from django_matt.codegen.solid import (
     SolidGenerator,
-    generate_solid_resource,
+    generate_solid_detail,
     generate_solid_form,
     generate_solid_list,
-    generate_solid_detail,
+    generate_solid_resource,
 )
-
-from django_matt.codegen.introspection import (
-    ModelIntrospector,
-    FieldInfo,
-    RelationInfo,
-    ModelInfo,
+from django_matt.codegen.svelte import (
+    SvelteGenerator,
+    generate_svelte5_stores,
+    generate_svelte_detail,
+    generate_svelte_form,
+    generate_svelte_list,
+    generate_svelte_stores,
+)
+from django_matt.codegen.typescript import (
+    TypeScriptGenerator,
+    django_field_to_typescript,
+    generate_typescript_interface,
+    generate_zod_schema,
 )
 
 __all__ = [

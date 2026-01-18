@@ -6,15 +6,12 @@ assets change (CSS, JS, etc.).
 """
 
 import hashlib
-import json
 import os
-from typing import Optional
 
 from django.conf import settings
 
-
 # Cached version hash
-_cached_version: Optional[str] = None
+_cached_version: str | None = None
 
 
 def get_asset_version() -> str:
@@ -69,7 +66,7 @@ def clear_version_cache() -> None:
     _cached_version = None
 
 
-def _get_manifest_version(manifest_path: str) -> Optional[str]:
+def _get_manifest_version(manifest_path: str) -> str | None:
     """Get version hash from manifest file content."""
     try:
         from django.contrib.staticfiles import finders
@@ -91,7 +88,7 @@ def _get_manifest_version(manifest_path: str) -> Optional[str]:
     return None
 
 
-def _get_git_version() -> Optional[str]:
+def _get_git_version() -> str | None:
     """Get version from git commit hash."""
     try:
         import subprocess
@@ -99,6 +96,7 @@ def _get_git_version() -> Optional[str]:
         # Get short commit hash
         result = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
+            check=False,
             capture_output=True,
             text=True,
             timeout=1,
@@ -132,7 +130,7 @@ def check_version_match(client_version: str) -> bool:
 
 
 __all__ = [
-    "get_asset_version",
-    "clear_version_cache",
     "check_version_match",
+    "clear_version_cache",
+    "get_asset_version",
 ]

@@ -6,24 +6,24 @@ using our built-in JWT implementation (no external dependencies).
 """
 
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import Any
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.http import HttpRequest
 
-from django_matt.auth.schemas import TokenPayload, TokenPair, AccessToken
 from django_matt.auth.jwt_builtin import (
-    encode_jwt,
-    decode_jwt,
+    JWTAlgorithmError,
+    JWTDecodeError,
     JWTError,
     JWTExpiredError,
-    JWTInvalidSignatureError,
     JWTInvalidClaimError,
-    JWTDecodeError,
-    JWTAlgorithmError,
+    JWTInvalidSignatureError,
+    decode_jwt,
+    encode_jwt,
 )
+from django_matt.auth.schemas import TokenPair, TokenPayload
 
 # Backward-compatible exception aliases
 InvalidTokenError = JWTError
@@ -33,7 +33,7 @@ ExpiredSignatureError = JWTExpiredError
 class JWTConfig:
     """
     JWT configuration with sensible defaults.
-    
+
     Configure in Django settings:
         DJANGO_MATT_JWT = {
             "SECRET_KEY": "your-secret-key",  # defaults to Django SECRET_KEY
@@ -54,62 +54,62 @@ class JWTConfig:
             "AUTH_HEADER_NAME": "Authorization",
         }
     """
-    
+
     def __init__(self):
         self._config = getattr(settings, "DJANGO_MATT_JWT", {})
-    
+
     @property
     def secret_key(self) -> str:
         return self._config.get("SECRET_KEY", settings.SECRET_KEY)
-    
+
     @property
     def algorithm(self) -> str:
         return self._config.get("ALGORITHM", "HS256")
-    
+
     @property
     def access_token_lifetime(self) -> timedelta:
         return self._config.get("ACCESS_TOKEN_LIFETIME", timedelta(minutes=15))
-    
+
     @property
     def refresh_token_lifetime(self) -> timedelta:
         return self._config.get("REFRESH_TOKEN_LIFETIME", timedelta(days=7))
-    
+
     @property
     def rotate_refresh_tokens(self) -> bool:
         return self._config.get("ROTATE_REFRESH_TOKENS", True)
-    
+
     @property
     def blacklist_after_rotation(self) -> bool:
         return self._config.get("BLACKLIST_AFTER_ROTATION", True)
-    
+
     @property
     def signing_key(self) -> str:
         return self._config.get("SIGNING_KEY") or self.secret_key
-    
+
     @property
     def verifying_key(self) -> str | None:
         return self._config.get("VERIFYING_KEY")
-    
+
     @property
     def audience(self) -> str | None:
         return self._config.get("AUDIENCE")
-    
+
     @property
     def issuer(self) -> str | None:
         return self._config.get("ISSUER")
-    
+
     @property
     def user_id_field(self) -> str:
         return self._config.get("USER_ID_FIELD", "id")
-    
+
     @property
     def user_id_claim(self) -> str:
         return self._config.get("USER_ID_CLAIM", "sub")
-    
+
     @property
     def auth_header_types(self) -> list[str]:
         return self._config.get("AUTH_HEADER_TYPES", ["Bearer"])
-    
+
     @property
     def auth_header_name(self) -> str:
         return self._config.get("AUTH_HEADER_NAME", "Authorization")
@@ -218,17 +218,17 @@ def create_token_pair(
 ) -> TokenPair:
     """
     Create both access and refresh tokens for a user.
-    
+
     Args:
         user: Django user instance
         extra_claims: Additional claims for both tokens
-        
+
     Returns:
         TokenPair with access and refresh tokens
     """
     access_token = create_access_token(user, extra_claims)
     refresh_token = create_refresh_token(user, extra_claims)
-    
+
     return TokenPair(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -302,17 +302,17 @@ def refresh_tokens(refresh_token: str) -> TokenPair:
     """
     # Verify the refresh token
     payload = verify_refresh_token(refresh_token)
-    
+
     # Get the user
     User = get_user_model()
     try:
         user = User.objects.get(**{jwt_config.user_id_field: payload.sub})
     except User.DoesNotExist:
         raise InvalidTokenError("User not found")
-    
+
     if not user.is_active:
         raise InvalidTokenError("User is inactive")
-    
+
     # Create new token pair
     return create_token_pair(user)
 
@@ -320,46 +320,46 @@ def refresh_tokens(refresh_token: str) -> TokenPair:
 def get_token_from_request(request: HttpRequest) -> str | None:
     """
     Extract JWT token from request headers.
-    
+
     Looks for Authorization header with Bearer token.
-    
+
     Args:
         request: Django HttpRequest
-        
+
     Returns:
         Token string or None if not found
     """
     auth_header = request.headers.get(jwt_config.auth_header_name, "")
-    
+
     if not auth_header:
         # Also check META for older Django versions
         auth_header = request.META.get(
             f"HTTP_{jwt_config.auth_header_name.upper().replace('-', '_')}", ""
         )
-    
+
     if not auth_header:
         return None
-    
+
     parts = auth_header.split()
-    
+
     if len(parts) != 2:
         return None
-    
+
     auth_type, token = parts
-    
+
     if auth_type not in jwt_config.auth_header_types:
         return None
-    
+
     return token
 
 
 def get_user_from_token(token: str):
     """
     Get Django user from a JWT token.
-    
+
     Args:
         token: JWT access token
-        
+
     Returns:
         Django User instance or None
     """
@@ -376,37 +376,37 @@ def get_user_from_token(token: str):
 class JWTAuthentication:
     """
     JWT authentication class for use with controllers and views.
-    
+
     Example:
         class MyController(APIController):
             authentication_classes = [JWTAuthentication]
     """
-    
+
     def authenticate(self, request: HttpRequest):
         """
         Authenticate the request and return (user, token) or None.
         """
         token = get_token_from_request(request)
-        
+
         if token is None:
             return None
-        
+
         try:
             payload = verify_access_token(token)
         except (InvalidTokenError, ExpiredSignatureError):
             return None
-        
+
         User = get_user_model()
         try:
             user = User.objects.get(**{jwt_config.user_id_field: payload.sub})
         except User.DoesNotExist:
             return None
-        
+
         if not user.is_active:
             return None
-        
+
         return (user, token)
-    
+
     def authenticate_header(self, request: HttpRequest) -> str:
         """
         Return the WWW-Authenticate header value for 401 responses.

@@ -3,14 +3,14 @@ Enterprise SSO providers.
 """
 
 from django_matt.auth.sso.providers.base import (
+    SSOAuthenticationError,
+    SSOConfigError,
+    SSOError,
     SSOProvider,
     SSOUserInfo,
-    SSOError,
-    SSOConfigError,
-    SSOAuthenticationError,
 )
-from django_matt.auth.sso.providers.saml import SAMLProvider
 from django_matt.auth.sso.providers.oidc import OIDCProvider
+from django_matt.auth.sso.providers.saml import SAMLProvider
 
 __all__ = [
     # Base

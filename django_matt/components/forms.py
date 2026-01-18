@@ -5,17 +5,16 @@ Provides form fields, buttons, and complete form components
 with built-in validation support.
 """
 
-from typing import Any, Callable, Dict, List, Literal, Optional, Type, Union
+from typing import Any, Literal
+
 from pydantic import BaseModel, Field
 
 from django_matt.components.base import (
     Component,
     ComponentType,
     ValidationRule,
-    EventHandler,
     registry,
 )
-
 
 # =============================================================================
 # Base Field Component
@@ -24,16 +23,17 @@ from django_matt.components.base import (
 
 class BaseField(Component):
     """Base class for form fields."""
+
     name: str
-    label: Optional[str] = None
-    placeholder: Optional[str] = None
-    help_text: Optional[str] = None
+    label: str | None = None
+    placeholder: str | None = None
+    help_text: str | None = None
     required: bool = False
     readonly: bool = False
-    autocomplete: Optional[str] = None
-    validation: List[ValidationRule] = Field(default_factory=list)
-    error: Optional[str] = None
-    default_value: Optional[Any] = None
+    autocomplete: str | None = None
+    validation: list[ValidationRule] = Field(default_factory=list)
+    error: str | None = None
+    default_value: Any | None = None
 
     def with_validation(self, rule: ValidationRule) -> "BaseField":
         """Add a validation rule."""
@@ -67,13 +67,14 @@ class TextField(BaseField):
             max_length=20,
         )
     """
+
     type: ComponentType = ComponentType.TEXT_FIELD
     input_type: Literal["text", "search", "tel", "url"] = "text"
-    min_length: Optional[int] = None
-    max_length: Optional[int] = None
-    pattern: Optional[str] = None
-    prefix: Optional[str] = None
-    suffix: Optional[str] = None
+    min_length: int | None = None
+    max_length: int | None = None
+    pattern: str | None = None
+    prefix: str | None = None
+    suffix: str | None = None
 
 
 @registry.register("email_field", aliases=["email"])
@@ -84,6 +85,7 @@ class EmailField(BaseField):
     Usage:
         email = EmailField(name="email", label="Email Address", required=True)
     """
+
     type: ComponentType = ComponentType.EMAIL_FIELD
     autocomplete: str = "email"
 
@@ -109,10 +111,11 @@ class PasswordField(BaseField):
             min_length=8,
         )
     """
+
     type: ComponentType = ComponentType.PASSWORD_FIELD
     autocomplete: str = "current-password"
     show_toggle: bool = True  # Show/hide password toggle
-    min_length: Optional[int] = None
+    min_length: int | None = None
     strength_meter: bool = False  # Show password strength indicator
 
 
@@ -130,11 +133,12 @@ class NumberField(BaseField):
             step=1,
         )
     """
+
     type: ComponentType = ComponentType.NUMBER_FIELD
-    min_value: Optional[float] = None
-    max_value: Optional[float] = None
-    step: Optional[float] = None
-    precision: Optional[int] = None  # Decimal places
+    min_value: float | None = None
+    max_value: float | None = None
+    step: float | None = None
+    precision: int | None = None  # Decimal places
 
 
 @registry.register("textarea", aliases=["text_area"])
@@ -151,10 +155,11 @@ class Textarea(BaseField):
             show_count=True,
         )
     """
+
     type: ComponentType = ComponentType.TEXTAREA
     rows: int = 3
-    min_length: Optional[int] = None
-    max_length: Optional[int] = None
+    min_length: int | None = None
+    max_length: int | None = None
     show_count: bool = False  # Show character count
     resize: Literal["none", "vertical", "horizontal", "both"] = "vertical"
 
@@ -166,10 +171,11 @@ class Textarea(BaseField):
 
 class SelectOption(BaseModel):
     """Option for select fields."""
+
     value: str
     label: str
     disabled: bool = False
-    group: Optional[str] = None
+    group: str | None = None
 
 
 @registry.register("select", aliases=["dropdown"])
@@ -189,8 +195,9 @@ class Select(BaseField):
             searchable=True,
         )
     """
+
     type: ComponentType = ComponentType.SELECT
-    options: List[SelectOption] = Field(default_factory=list)
+    options: list[SelectOption] = Field(default_factory=list)
     searchable: bool = False
     clearable: bool = False
     empty_label: str = "Select an option..."
@@ -214,11 +221,12 @@ class MultiSelect(BaseField):
             max_selections=5,
         )
     """
+
     type: ComponentType = ComponentType.MULTI_SELECT
-    options: List[SelectOption] = Field(default_factory=list)
+    options: list[SelectOption] = Field(default_factory=list)
     searchable: bool = True
-    max_selections: Optional[int] = None
-    min_selections: Optional[int] = None
+    max_selections: int | None = None
+    min_selections: int | None = None
 
 
 @registry.register("checkbox")
@@ -233,6 +241,7 @@ class Checkbox(BaseField):
             required=True,
         )
     """
+
     type: ComponentType = ComponentType.CHECKBOX
     checked: bool = False
     indeterminate: bool = False
@@ -255,8 +264,9 @@ class RadioGroup(BaseField):
             direction="horizontal",
         )
     """
+
     type: ComponentType = ComponentType.RADIO
-    options: List[SelectOption] = Field(default_factory=list)
+    options: list[SelectOption] = Field(default_factory=list)
     direction: Literal["horizontal", "vertical"] = "vertical"
 
 
@@ -272,10 +282,11 @@ class Switch(BaseField):
             checked=True,
         )
     """
+
     type: ComponentType = ComponentType.SWITCH
     checked: bool = False
-    on_label: Optional[str] = None
-    off_label: Optional[str] = None
+    on_label: str | None = None
+    off_label: str | None = None
 
 
 # =============================================================================
@@ -295,11 +306,12 @@ class DatePicker(BaseField):
             max_date="today",
         )
     """
+
     type: ComponentType = ComponentType.DATE_PICKER
     format: str = "YYYY-MM-DD"
-    min_date: Optional[str] = None
-    max_date: Optional[str] = None
-    disabled_dates: List[str] = Field(default_factory=list)
+    min_date: str | None = None
+    max_date: str | None = None
+    disabled_dates: list[str] = Field(default_factory=list)
     show_time: bool = False
     time_format: str = "HH:mm"
 
@@ -322,11 +334,12 @@ class FileUpload(BaseField):
             max_size_mb=5,
         )
     """
+
     type: ComponentType = ComponentType.FILE_UPLOAD
-    accept: List[str] = Field(default_factory=list)  # MIME types or extensions
+    accept: list[str] = Field(default_factory=list)  # MIME types or extensions
     multiple: bool = False
-    max_size_mb: Optional[float] = None
-    max_files: Optional[int] = None
+    max_size_mb: float | None = None
+    max_files: int | None = None
     drag_drop: bool = True
     preview: bool = True
 
@@ -353,12 +366,13 @@ class Button(Component):
             variant="outline",
         ).on_click("/cancel")
     """
+
     type: ComponentType = ComponentType.BUTTON
     label: str
     button_type: Literal["button", "submit", "reset"] = "button"
     variant: Literal["primary", "secondary", "outline", "ghost", "destructive", "link"] = "primary"
     size: Literal["sm", "md", "lg", "icon"] = "md"
-    icon: Optional[str] = None
+    icon: str | None = None
     icon_position: Literal["left", "right"] = "left"
     full_width: bool = False
 
@@ -366,6 +380,7 @@ class Button(Component):
 @registry.register("submit_button")
 class SubmitButton(Button):
     """Submit button with default settings."""
+
     button_type: Literal["button", "submit", "reset"] = "submit"
     variant: Literal["primary", "secondary", "outline", "ghost", "destructive", "link"] = "primary"
 
@@ -392,14 +407,17 @@ class Form(Component):
             submit=SubmitButton(label="Sign In"),
         )
     """
+
     type: ComponentType = ComponentType.FORM
     action: str
     method: Literal["GET", "POST", "PUT", "PATCH", "DELETE"] = "POST"
-    fields: List[BaseField] = Field(default_factory=list)
-    submit: Optional[Button] = None
-    reset: Optional[Button] = None
-    enctype: Literal["application/x-www-form-urlencoded", "multipart/form-data", "application/json"] = "application/json"
-    redirect_on_success: Optional[str] = None
+    fields: list[BaseField] = Field(default_factory=list)
+    submit: Button | None = None
+    reset: Button | None = None
+    enctype: Literal[
+        "application/x-www-form-urlencoded", "multipart/form-data", "application/json"
+    ] = "application/json"
+    redirect_on_success: str | None = None
     show_validation_summary: bool = True
     inline: bool = False  # Inline form layout
     columns: int = 1  # Grid columns
@@ -428,6 +446,7 @@ class LoginForm(Component):
             oauth_providers=["google", "github"],
         )
     """
+
     type: ComponentType = ComponentType.LOGIN_FORM
     action: str = "/api/auth/login"
     email_label: str = "Email"
@@ -438,10 +457,10 @@ class LoginForm(Component):
     forgot_password_url: str = "/forgot-password"
     show_register_link: bool = True
     register_url: str = "/register"
-    oauth_providers: List[str] = Field(default_factory=list)
+    oauth_providers: list[str] = Field(default_factory=list)
     show_magic_link: bool = False
     show_passkeys: bool = False
-    redirect_url: Optional[str] = None
+    redirect_url: str | None = None
 
 
 @registry.register("register_form")
@@ -456,6 +475,7 @@ class RegisterForm(Component):
             show_terms_checkbox=True,
         )
     """
+
     type: ComponentType = ComponentType.REGISTER_FORM
     action: str = "/api/auth/register"
     email_label: str = "Email"
@@ -470,8 +490,8 @@ class RegisterForm(Component):
     privacy_url: str = "/privacy"
     show_login_link: bool = True
     login_url: str = "/login"
-    oauth_providers: List[str] = Field(default_factory=list)
-    redirect_url: Optional[str] = None
+    oauth_providers: list[str] = Field(default_factory=list)
+    redirect_url: str | None = None
 
 
 @registry.register("oauth_buttons")
@@ -485,10 +505,11 @@ class OAuthButtons(Component):
             mode="login",
         )
     """
+
     type: ComponentType = ComponentType.OAUTH_BUTTONS
-    providers: List[str] = Field(default_factory=list)
+    providers: list[str] = Field(default_factory=list)
     mode: Literal["login", "register", "connect"] = "login"
-    redirect_url: Optional[str] = None
+    redirect_url: str | None = None
     button_variant: Literal["primary", "outline", "ghost"] = "outline"
     show_labels: bool = True
     layout: Literal["horizontal", "vertical", "grid"] = "vertical"

@@ -30,11 +30,10 @@ Note: Apple only sends the user's name on the FIRST authorization.
       You must store it immediately or it will be lost.
 """
 
-import time
 from django_matt.auth.oauth.providers.base import (
+    OAuthAuthenticationError,
     OAuthProvider,
     OAuthUserInfo,
-    OAuthAuthenticationError,
 )
 
 
@@ -54,14 +53,17 @@ class AppleOAuthProvider(OAuthProvider):
         extra = self.provider_config.extra
         if not extra.get("team_id"):
             from django_matt.auth.oauth.providers.base import OAuthConfigError
+
             raise OAuthConfigError("team_id is required for Apple OAuth")
 
         if not extra.get("key_id"):
             from django_matt.auth.oauth.providers.base import OAuthConfigError
+
             raise OAuthConfigError("key_id is required for Apple OAuth")
 
         if not extra.get("private_key"):
             from django_matt.auth.oauth.providers.base import OAuthConfigError
+
             raise OAuthConfigError("private_key is required for Apple OAuth")
 
     def _generate_client_secret(self) -> str:
@@ -71,7 +73,7 @@ class AppleOAuthProvider(OAuthProvider):
         Apple requires a JWT signed with your private key instead of
         a static client secret.
         """
-        from django_matt.auth.jwt_builtin import encode_jwt, JWTAlgorithmError
+        from django_matt.auth.jwt_builtin import JWTAlgorithmError, encode_jwt
 
         extra = self.provider_config.extra
 
@@ -137,6 +139,7 @@ class AppleOAuthProvider(OAuthProvider):
         user_data = data.get("user", {})
         if isinstance(user_data, str):
             import json
+
             try:
                 user_data = json.loads(user_data)
             except (json.JSONDecodeError, TypeError):

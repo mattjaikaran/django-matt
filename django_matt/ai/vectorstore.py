@@ -8,10 +8,10 @@ Provides a unified interface for vector databases including:
 - In-memory (for development)
 """
 
+import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
-import uuid
+from typing import Any
 
 from django_matt.ai.base import EmbeddingProvider
 
@@ -27,10 +27,11 @@ class Document:
         embedding: Vector embedding (optional, can be computed)
         metadata: Additional metadata
     """
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     text: str = ""
-    embedding: Optional[List[float]] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    embedding: list[float] | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -43,6 +44,7 @@ class SearchResult:
         score: Similarity/distance score
         rank: Position in results
     """
+
     document: Document
     score: float
     rank: int = 0
@@ -57,9 +59,9 @@ class VectorStore(ABC):
 
     def __init__(
         self,
-        embedding_provider: Optional[EmbeddingProvider] = None,
+        embedding_provider: EmbeddingProvider | None = None,
         collection_name: str = "documents",
-        dimensions: Optional[int] = None,
+        dimensions: int | None = None,
     ):
         """
         Initialize vector store.
@@ -82,7 +84,7 @@ class VectorStore(ABC):
             return self.embedding_provider.dimensions
         raise ValueError("dimensions required if no embedding_provider")
 
-    async def _ensure_embedding(self, doc: Document) -> List[float]:
+    async def _ensure_embedding(self, doc: Document) -> list[float]:
         """Ensure document has an embedding."""
         if doc.embedding:
             return doc.embedding
@@ -91,7 +93,7 @@ class VectorStore(ABC):
         return await self.embedding_provider.embed_single(doc.text)
 
     @abstractmethod
-    async def add(self, documents: List[Document]) -> List[str]:
+    async def add(self, documents: list[Document]) -> list[str]:
         """
         Add documents to the store.
 
@@ -101,15 +103,14 @@ class VectorStore(ABC):
         Returns:
             List of document IDs
         """
-        pass
 
     @abstractmethod
     async def search(
         self,
-        query: Union[str, List[float]],
+        query: str | list[float],
         top_k: int = 10,
-        filter: Optional[Dict[str, Any]] = None,
-    ) -> List[SearchResult]:
+        filter: dict[str, Any] | None = None,
+    ) -> list[SearchResult]:
         """
         Search for similar documents.
 
@@ -121,38 +122,35 @@ class VectorStore(ABC):
         Returns:
             List of search results
         """
-        pass
 
     @abstractmethod
-    async def delete(self, ids: List[str]) -> int:
+    async def delete(self, ids: list[str]) -> int:
         """
         Delete documents by ID.
 
         Returns:
             Number of documents deleted
         """
-        pass
 
     @abstractmethod
-    async def get(self, ids: List[str]) -> List[Document]:
+    async def get(self, ids: list[str]) -> list[Document]:
         """Get documents by ID."""
-        pass
 
     async def search_text(
         self,
         query: str,
         top_k: int = 10,
-        filter: Optional[Dict[str, Any]] = None,
-    ) -> List[SearchResult]:
+        filter: dict[str, Any] | None = None,
+    ) -> list[SearchResult]:
         """Search using text query (embedding computed automatically)."""
         return await self.search(query, top_k=top_k, filter=filter)
 
     async def add_texts(
         self,
-        texts: List[str],
-        metadatas: Optional[List[Dict[str, Any]]] = None,
-        ids: Optional[List[str]] = None,
-    ) -> List[str]:
+        texts: list[str],
+        metadatas: list[dict[str, Any]] | None = None,
+        ids: list[str] | None = None,
+    ) -> list[str]:
         """
         Convenience method to add texts directly.
 
@@ -166,7 +164,7 @@ class VectorStore(ABC):
 
         documents = [
             Document(id=id_, text=text, metadata=meta)
-            for id_, text, meta in zip(ids, texts, metadatas)
+            for id_, text, meta in zip(ids, texts, metadatas, strict=False)
         ]
         return await self.add(documents)
 
@@ -191,9 +189,9 @@ class InMemoryVectorStore(VectorStore):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._documents: Dict[str, Document] = {}
+        self._documents: dict[str, Document] = {}
 
-    async def add(self, documents: List[Document]) -> List[str]:
+    async def add(self, documents: list[Document]) -> list[str]:
         """Add documents to the store."""
         ids = []
         for doc in documents:
@@ -206,10 +204,10 @@ class InMemoryVectorStore(VectorStore):
 
     async def search(
         self,
-        query: Union[str, List[float]],
+        query: str | list[float],
         top_k: int = 10,
-        filter: Optional[Dict[str, Any]] = None,
-    ) -> List[SearchResult]:
+        filter: dict[str, Any] | None = None,
+    ) -> list[SearchResult]:
         """Search for similar documents."""
         from django_matt.ai.embeddings import cosine_similarity
 
@@ -226,10 +224,7 @@ class InMemoryVectorStore(VectorStore):
         for doc in self._documents.values():
             # Apply metadata filter
             if filter:
-                match = all(
-                    doc.metadata.get(k) == v
-                    for k, v in filter.items()
-                )
+                match = all(doc.metadata.get(k) == v for k, v in filter.items())
                 if not match:
                     continue
 
@@ -244,7 +239,7 @@ class InMemoryVectorStore(VectorStore):
             for i, (doc, score) in enumerate(results[:top_k])
         ]
 
-    async def delete(self, ids: List[str]) -> int:
+    async def delete(self, ids: list[str]) -> int:
         """Delete documents by ID."""
         count = 0
         for id_ in ids:
@@ -253,13 +248,9 @@ class InMemoryVectorStore(VectorStore):
                 count += 1
         return count
 
-    async def get(self, ids: List[str]) -> List[Document]:
+    async def get(self, ids: list[str]) -> list[Document]:
         """Get documents by ID."""
-        return [
-            self._documents[id_]
-            for id_ in ids
-            if id_ in self._documents
-        ]
+        return [self._documents[id_] for id_ in ids if id_ in self._documents]
 
     def clear(self) -> None:
         """Clear all documents."""
@@ -288,7 +279,7 @@ class PgVectorStore(VectorStore):
 
     def __init__(
         self,
-        connection_string: Optional[str] = None,
+        connection_string: str | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -302,8 +293,7 @@ class PgVectorStore(VectorStore):
                 import asyncpg
             except ImportError:
                 raise ImportError(
-                    "asyncpg required for PgVectorStore. "
-                    "Install with: pip install asyncpg"
+                    "asyncpg required for PgVectorStore. Install with: pip install asyncpg"
                 )
 
             self._pool = await asyncpg.create_pool(self.connection_string)
@@ -336,7 +326,7 @@ class PgVectorStore(VectorStore):
                 WITH (lists = 100)
             """)
 
-    async def add(self, documents: List[Document]) -> List[str]:
+    async def add(self, documents: list[Document]) -> list[str]:
         """Add documents to the store."""
         pool = await self._get_pool()
         ids = []
@@ -366,10 +356,10 @@ class PgVectorStore(VectorStore):
 
     async def search(
         self,
-        query: Union[str, List[float]],
+        query: str | list[float],
         top_k: int = 10,
-        filter: Optional[Dict[str, Any]] = None,
-    ) -> List[SearchResult]:
+        filter: dict[str, Any] | None = None,
+    ) -> list[SearchResult]:
         """Search for similar documents."""
         pool = await self._get_pool()
 
@@ -419,7 +409,7 @@ class PgVectorStore(VectorStore):
             for i, row in enumerate(rows)
         ]
 
-    async def delete(self, ids: List[str]) -> int:
+    async def delete(self, ids: list[str]) -> int:
         """Delete documents by ID."""
         pool = await self._get_pool()
 
@@ -430,7 +420,7 @@ class PgVectorStore(VectorStore):
             )
             return int(result.split()[-1])
 
-    async def get(self, ids: List[str]) -> List[Document]:
+    async def get(self, ids: list[str]) -> list[Document]:
         """Get documents by ID."""
         pool = await self._get_pool()
 
@@ -469,13 +459,14 @@ class PineconeVectorStore(VectorStore):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         index_name: str = "documents",
         namespace: str = "",
         **kwargs,
     ):
         super().__init__(collection_name=index_name, **kwargs)
         import os
+
         self.api_key = api_key or os.environ.get("PINECONE_API_KEY")
         self.namespace = namespace
         self._index = None
@@ -494,18 +485,20 @@ class PineconeVectorStore(VectorStore):
             self._index = pc.Index(self.collection_name)
         return self._index
 
-    async def add(self, documents: List[Document]) -> List[str]:
+    async def add(self, documents: list[Document]) -> list[str]:
         """Add documents to the store."""
         index = self._get_index()
         vectors = []
 
         for doc in documents:
             embedding = await self._ensure_embedding(doc)
-            vectors.append({
-                "id": doc.id,
-                "values": embedding,
-                "metadata": {**doc.metadata, "text": doc.text},
-            })
+            vectors.append(
+                {
+                    "id": doc.id,
+                    "values": embedding,
+                    "metadata": {**doc.metadata, "text": doc.text},
+                }
+            )
 
         # Pinecone sync API (async wrapper would be better in production)
         index.upsert(vectors=vectors, namespace=self.namespace)
@@ -513,10 +506,10 @@ class PineconeVectorStore(VectorStore):
 
     async def search(
         self,
-        query: Union[str, List[float]],
+        query: str | list[float],
         top_k: int = 10,
-        filter: Optional[Dict[str, Any]] = None,
-    ) -> List[SearchResult]:
+        filter: dict[str, Any] | None = None,
+    ) -> list[SearchResult]:
         """Search for similar documents."""
         index = self._get_index()
 
@@ -549,13 +542,13 @@ class PineconeVectorStore(VectorStore):
             for i, match in enumerate(results.get("matches", []))
         ]
 
-    async def delete(self, ids: List[str]) -> int:
+    async def delete(self, ids: list[str]) -> int:
         """Delete documents by ID."""
         index = self._get_index()
         index.delete(ids=ids, namespace=self.namespace)
         return len(ids)
 
-    async def get(self, ids: List[str]) -> List[Document]:
+    async def get(self, ids: list[str]) -> list[Document]:
         """Get documents by ID."""
         index = self._get_index()
         results = index.fetch(ids=ids, namespace=self.namespace)
@@ -591,7 +584,7 @@ class QdrantVectorStore(VectorStore):
     def __init__(
         self,
         url: str = "http://localhost:6333",
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -605,9 +598,7 @@ class QdrantVectorStore(VectorStore):
             try:
                 from qdrant_client import QdrantClient
             except ImportError:
-                raise ImportError(
-                    "qdrant-client required. Install with: pip install qdrant-client"
-                )
+                raise ImportError("qdrant-client required. Install with: pip install qdrant-client")
 
             self._client = QdrantClient(url=self.url, api_key=self.api_key)
         return self._client
@@ -630,7 +621,7 @@ class QdrantVectorStore(VectorStore):
                 ),
             )
 
-    async def add(self, documents: List[Document]) -> List[str]:
+    async def add(self, documents: list[Document]) -> list[str]:
         """Add documents to the store."""
         from qdrant_client.models import PointStruct
 
@@ -652,10 +643,10 @@ class QdrantVectorStore(VectorStore):
 
     async def search(
         self,
-        query: Union[str, List[float]],
+        query: str | list[float],
         top_k: int = 10,
-        filter: Optional[Dict[str, Any]] = None,
-    ) -> List[SearchResult]:
+        filter: dict[str, Any] | None = None,
+    ) -> list[SearchResult]:
         """Search for similar documents."""
         client = self._get_client()
 
@@ -670,10 +661,10 @@ class QdrantVectorStore(VectorStore):
         # Build filter
         qdrant_filter = None
         if filter:
-            from qdrant_client.models import Filter, FieldCondition, MatchValue
+            from qdrant_client.models import FieldCondition, Filter, MatchValue
+
             conditions = [
-                FieldCondition(key=k, match=MatchValue(value=v))
-                for k, v in filter.items()
+                FieldCondition(key=k, match=MatchValue(value=v)) for k, v in filter.items()
             ]
             qdrant_filter = Filter(must=conditions)
 
@@ -697,7 +688,7 @@ class QdrantVectorStore(VectorStore):
             for i, hit in enumerate(results)
         ]
 
-    async def delete(self, ids: List[str]) -> int:
+    async def delete(self, ids: list[str]) -> int:
         """Delete documents by ID."""
         from qdrant_client.models import PointIdsList
 
@@ -708,7 +699,7 @@ class QdrantVectorStore(VectorStore):
         )
         return len(ids)
 
-    async def get(self, ids: List[str]) -> List[Document]:
+    async def get(self, ids: list[str]) -> list[Document]:
         """Get documents by ID."""
         client = self._get_client()
         results = client.retrieve(
@@ -728,10 +719,10 @@ class QdrantVectorStore(VectorStore):
 
 __all__ = [
     "Document",
-    "SearchResult",
-    "VectorStore",
     "InMemoryVectorStore",
     "PgVectorStore",
     "PineconeVectorStore",
     "QdrantVectorStore",
+    "SearchResult",
+    "VectorStore",
 ]

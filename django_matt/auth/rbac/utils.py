@@ -8,7 +8,7 @@ from django_matt.auth.rbac.config import rbac_config
 def get_user_roles(user) -> list[str]:
     """
     Get all roles for a user.
-    
+
     Checks:
     1. Django groups (if USE_DJANGO_GROUPS is True)
     2. Custom role field on user model
@@ -16,14 +16,14 @@ def get_user_roles(user) -> list[str]:
     """
     if user is None or not user.is_authenticated:
         return []
-    
+
     roles = []
-    
+
     # Check Django groups
     if rbac_config.use_django_groups and hasattr(user, "groups"):
         group_names = user.groups.values_list("name", flat=True)
         roles.extend(group_names)
-    
+
     # Check custom role field
     if hasattr(user, "role"):
         user_role = user.role
@@ -31,7 +31,7 @@ def get_user_roles(user) -> list[str]:
             roles.append(user_role)
         elif hasattr(user_role, "name"):
             roles.append(user_role.name)
-    
+
     # Check custom roles relation
     if hasattr(user, "roles"):
         try:
@@ -39,11 +39,11 @@ def get_user_roles(user) -> list[str]:
             roles.extend(role_names)
         except Exception:
             pass
-    
+
     # Add superadmin for superusers
     if hasattr(user, "is_superuser") and user.is_superuser:
         roles.append("superadmin")
-    
+
     return list(set(roles))
 
 
@@ -51,10 +51,10 @@ def get_user_permissions(user) -> set[str]:
     """Get all permissions for a user based on their roles."""
     roles = get_user_roles(user)
     permissions = set()
-    
+
     for role in roles:
         permissions |= rbac_config.get_role_permissions(role)
-    
+
     return permissions
 
 
@@ -65,28 +65,28 @@ def user_has_permission(
 ) -> bool:
     """
     Check if a user has a specific permission.
-    
+
     Args:
         user: Django user instance
         permission: Permission to check
         resource: Optional resource scope
-        
+
     Returns:
         True if user has the permission through any of their roles
     """
     if user is None or not user.is_authenticated:
         return False
-    
+
     # Superusers have all permissions
     if hasattr(user, "is_superuser") and user.is_superuser:
         return True
-    
+
     roles = get_user_roles(user)
-    
+
     for role in roles:
         if rbac_config.has_permission(role, permission, resource):
             return True
-    
+
     return False
 
 

@@ -8,24 +8,25 @@ import csv
 import io
 import json
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-from django.db.models import Count, Q
+from django.db.models import Count
 from django.utils import timezone
 
 from .enums import AuditAction, AuditSeverity
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
+
     from .models import AuditLog
 
 
 def get_audit_history(
     obj: models.Model,
-    limit: Optional[int] = None,
-    actions: Optional[List[AuditAction]] = None,
+    limit: int | None = None,
+    actions: list[AuditAction] | None = None,
 ) -> models.QuerySet:
     """
     Get audit history for a specific object.
@@ -64,9 +65,9 @@ def get_audit_history(
 
 def get_user_actions(
     user: "AbstractUser",
-    days: Optional[int] = None,
-    actions: Optional[List[AuditAction]] = None,
-    limit: Optional[int] = None,
+    days: int | None = None,
+    actions: list[AuditAction] | None = None,
+    limit: int | None = None,
 ) -> models.QuerySet:
     """
     Get all actions performed by a specific user.
@@ -100,8 +101,8 @@ def get_user_actions(
 
 def get_model_changes(
     model: type[models.Model],
-    since: Optional[datetime] = None,
-    until: Optional[datetime] = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
     user: Optional["AbstractUser"] = None,
 ) -> models.QuerySet:
     """
@@ -133,8 +134,8 @@ def get_model_changes(
 
 def get_recent_activity(
     days: int = 7,
-    actions: Optional[List[AuditAction]] = None,
-    severity_min: Optional[AuditSeverity] = None,
+    actions: list[AuditAction] | None = None,
+    severity_min: AuditSeverity | None = None,
     limit: int = 100,
 ) -> models.QuerySet:
     """
@@ -168,7 +169,7 @@ def get_recent_activity(
 def get_activity_summary(
     days: int = 7,
     group_by: str = "action",
-) -> Dict[str, int]:
+) -> dict[str, int]:
     """
     Get a summary of audit activity.
 
@@ -188,11 +189,11 @@ def get_activity_summary(
         results = qs.values("action").annotate(count=Count("id"))
         return {r["action"]: r["count"] for r in results}
 
-    elif group_by == "user":
+    if group_by == "user":
         results = qs.values("user__username").annotate(count=Count("id"))
         return {r["user__username"] or "anonymous": r["count"] for r in results}
 
-    elif group_by == "model":
+    if group_by == "model":
         results = qs.values("content_type__model").annotate(count=Count("id"))
         return {r["content_type__model"] or "none": r["count"] for r in results}
 
@@ -226,13 +227,15 @@ def get_security_events(
         actions.append(AuditAction.PERMISSION_DENIED.value)
 
     # Always include high-severity security actions
-    actions.extend([
-        AuditAction.PASSWORD_CHANGE.value,
-        AuditAction.PASSWORD_RESET.value,
-        AuditAction.ROLE_ASSIGNED.value,
-        AuditAction.ROLE_REMOVED.value,
-        AuditAction.CONFIGURATION_CHANGE.value,
-    ])
+    actions.extend(
+        [
+            AuditAction.PASSWORD_CHANGE.value,
+            AuditAction.PASSWORD_RESET.value,
+            AuditAction.ROLE_ASSIGNED.value,
+            AuditAction.ROLE_REMOVED.value,
+            AuditAction.CONFIGURATION_CHANGE.value,
+        ]
+    )
 
     return AuditLog.objects.filter(
         created_at__gte=since,
@@ -243,7 +246,7 @@ def get_security_events(
 def get_failed_logins_by_ip(
     days: int = 1,
     threshold: int = 5,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Get IP addresses with multiple failed login attempts.
 
@@ -271,10 +274,7 @@ def get_failed_logins_by_ip(
         .order_by("-count")
     )
 
-    return [
-        {"ip_address": r["ip_address"], "failed_attempts": r["count"]}
-        for r in results
-    ]
+    return [{"ip_address": r["ip_address"], "failed_attempts": r["count"]} for r in results]
 
 
 def cleanup_old_logs(
@@ -305,7 +305,7 @@ def cleanup_old_logs(
 
 
 def export_audit_logs(
-    queryset: Optional[models.QuerySet] = None,
+    queryset: models.QuerySet | None = None,
     format: str = "json",
     **filters,
 ) -> str:
@@ -331,8 +331,7 @@ def export_audit_logs(
 
         if "actions" in filters:
             action_values = [
-                a.value if isinstance(a, AuditAction) else a
-                for a in filters["actions"]
+                a.value if isinstance(a, AuditAction) else a for a in filters["actions"]
             ]
             queryset = queryset.filter(action__in=action_values)
 
@@ -347,10 +346,9 @@ def export_audit_logs(
 
     if format == "json":
         return _export_json(queryset)
-    elif format == "csv":
+    if format == "csv":
         return _export_csv(queryset)
-    else:
-        raise ValueError(f"Unknown export format: {format}")
+    raise ValueError(f"Unknown export format: {format}")
 
 
 def _export_json(queryset: models.QuerySet) -> str:
@@ -358,26 +356,28 @@ def _export_json(queryset: models.QuerySet) -> str:
     data = []
 
     for log in queryset:
-        data.append({
-            "id": log.id,
-            "action": log.action,
-            "severity": log.severity,
-            "user": str(log.user) if log.user else None,
-            "user_id": log.user_id,
-            "object_type": log.content_type.model if log.content_type else None,
-            "object_id": log.object_id,
-            "object_repr": log.object_repr,
-            "description": log.description,
-            "changes": log.changes,
-            "old_values": log.old_values,
-            "new_values": log.new_values,
-            "ip_address": log.ip_address,
-            "user_agent": log.user_agent,
-            "request_method": log.request_method,
-            "request_path": log.request_path,
-            "metadata": log.metadata,
-            "created_at": log.created_at.isoformat(),
-        })
+        data.append(
+            {
+                "id": log.id,
+                "action": log.action,
+                "severity": log.severity,
+                "user": str(log.user) if log.user else None,
+                "user_id": log.user_id,
+                "object_type": log.content_type.model if log.content_type else None,
+                "object_id": log.object_id,
+                "object_repr": log.object_repr,
+                "description": log.description,
+                "changes": log.changes,
+                "old_values": log.old_values,
+                "new_values": log.new_values,
+                "ip_address": log.ip_address,
+                "user_agent": log.user_agent,
+                "request_method": log.request_method,
+                "request_path": log.request_path,
+                "metadata": log.metadata,
+                "created_at": log.created_at.isoformat(),
+            }
+        )
 
     return json.dumps(data, indent=2, default=str)
 
@@ -388,36 +388,40 @@ def _export_csv(queryset: models.QuerySet) -> str:
     writer = csv.writer(output)
 
     # Header
-    writer.writerow([
-        "id",
-        "action",
-        "severity",
-        "user",
-        "object_type",
-        "object_id",
-        "object_repr",
-        "description",
-        "ip_address",
-        "request_method",
-        "request_path",
-        "created_at",
-    ])
+    writer.writerow(
+        [
+            "id",
+            "action",
+            "severity",
+            "user",
+            "object_type",
+            "object_id",
+            "object_repr",
+            "description",
+            "ip_address",
+            "request_method",
+            "request_path",
+            "created_at",
+        ]
+    )
 
     for log in queryset:
-        writer.writerow([
-            log.id,
-            log.action,
-            log.severity,
-            str(log.user) if log.user else "",
-            log.content_type.model if log.content_type else "",
-            log.object_id or "",
-            log.object_repr,
-            log.description,
-            log.ip_address or "",
-            log.request_method,
-            log.request_path,
-            log.created_at.isoformat(),
-        ])
+        writer.writerow(
+            [
+                log.id,
+                log.action,
+                log.severity,
+                str(log.user) if log.user else "",
+                log.content_type.model if log.content_type else "",
+                log.object_id or "",
+                log.object_repr,
+                log.description,
+                log.ip_address or "",
+                log.request_method,
+                log.request_path,
+                log.created_at.isoformat(),
+            ]
+        )
 
     return output.getvalue()
 
@@ -426,7 +430,7 @@ def diff_object_versions(
     obj: models.Model,
     from_log: "AuditLog",
     to_log: "AuditLog",
-) -> Dict[str, Dict[str, Any]]:
+) -> dict[str, dict[str, Any]]:
     """
     Get the diff between two versions of an object.
 

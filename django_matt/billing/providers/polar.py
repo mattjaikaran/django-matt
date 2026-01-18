@@ -11,23 +11,23 @@ Documentation: https://polar.sh/docs
 import hashlib
 import hmac
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 
 from django_matt.billing.config import PolarConfig
 from django_matt.billing.providers.base import (
-    BillingProvider,
     BillingAPIError,
+    BillingProvider,
     BillingWebhookError,
-    CustomerData,
-    ProductData,
-    PriceData,
-    SubscriptionData,
     CheckoutSessionData,
+    CustomerData,
     InvoiceData,
-    WebhookEvent,
+    PriceData,
     PriceInterval,
+    ProductData,
+    SubscriptionData,
     SubscriptionStatus,
+    WebhookEvent,
 )
 
 

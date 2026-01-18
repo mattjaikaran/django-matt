@@ -13,11 +13,11 @@ def get_swagger_ui(
 ) -> HttpResponse:
     """
     Generate Swagger UI HTML page.
-    
+
     Args:
         openapi_url: URL to the OpenAPI JSON schema
         title: Page title
-    
+
     Returns:
         HttpResponse with Swagger UI HTML
     """
@@ -85,11 +85,11 @@ def get_redoc(
 ) -> HttpResponse:
     """
     Generate ReDoc HTML page.
-    
+
     Args:
         openapi_url: URL to the OpenAPI JSON schema
         title: Page title
-    
+
     Returns:
         HttpResponse with ReDoc HTML
     """
@@ -120,22 +120,23 @@ def get_redoc(
 def get_openapi_json(schema: dict) -> HttpResponse:
     """
     Return OpenAPI schema as JSON response.
-    
+
     Args:
         schema: OpenAPI schema dictionary
-    
+
     Returns:
         HttpResponse with JSON content
     """
     import json
-    
+
     # Try to use orjson for faster serialization
     try:
         import orjson
+
         content = orjson.dumps(schema)
         return HttpResponse(content, content_type="application/json")
     except ImportError:
         pass
-    
+
     content = json.dumps(schema, indent=2)
     return HttpResponse(content, content_type="application/json")

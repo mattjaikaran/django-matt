@@ -18,16 +18,15 @@ Usage:
 """
 
 import uuid
-from typing import Any, Dict
+from typing import Any
 
+from django_matt.testing.generators import fake
 from django_matt.testing.model_factory import (
-    ModelFactory,
     Field,
+    ModelFactory,
     Sequence,
     SubFactory,
-    PostGeneration,
 )
-from django_matt.testing.generators import fake
 
 
 class BaseModelFactory(ModelFactory):
@@ -50,7 +49,7 @@ class BaseModelFactory(ModelFactory):
         return [cls._to_dict(item) for item in items]
 
     @staticmethod
-    def _to_dict(instance) -> Dict[str, Any]:
+    def _to_dict(instance) -> dict[str, Any]:
         """Convert a model instance to a dictionary."""
         data = {}
         for field in instance._meta.fields:
@@ -191,10 +190,10 @@ class APIKeyFactory(BaseModelFactory):
 
 
 __all__ = [
+    "APIKeyFactory",
     "BaseModelFactory",
-    "UserFactory",
+    "MembershipFactory",
     "OrganizationFactory",
     "TeamFactory",
-    "MembershipFactory",
-    "APIKeyFactory",
+    "UserFactory",
 ]

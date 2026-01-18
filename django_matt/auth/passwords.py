@@ -27,27 +27,24 @@ import re
 import secrets
 import string
 from dataclasses import dataclass, field
-from typing import List, Optional
 
 from django.contrib.auth.hashers import (
     check_password,
-    make_password,
-    is_password_usable,
     get_hasher,
     identify_hasher,
-    UNUSABLE_PASSWORD_PREFIX,
+    is_password_usable,
+    make_password,
 )
 from django.contrib.auth.password_validation import (
-    validate_password,
-    get_default_password_validators,
     password_validators_help_texts,
+    validate_password,
 )
 from django.core.exceptions import ValidationError
 
 
 def hash_password(
     password: str,
-    salt: Optional[str] = None,
+    salt: str | None = None,
     hasher: str = "default",
 ) -> str:
     """
@@ -180,8 +177,8 @@ class PasswordStrengthResult:
 
     is_valid: bool
     score: int  # 0-4 strength score
-    errors: List[str] = field(default_factory=list)
-    suggestions: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    suggestions: list[str] = field(default_factory=list)
 
     @property
     def strength_label(self) -> str:
@@ -407,15 +404,69 @@ def generate_passphrase(
     """
     # Common English words (subset for demo - in production use a larger wordlist)
     words = [
-        "apple", "banana", "cherry", "dragon", "eagle", "falcon", "garden",
-        "harbor", "island", "jungle", "kitten", "lemon", "mango", "nectar",
-        "orange", "purple", "quartz", "river", "sunset", "thunder", "umbrella",
-        "violet", "winter", "yellow", "zebra", "ancient", "bright", "castle",
-        "diamond", "empire", "forest", "golden", "hollow", "ivory", "journey",
-        "kingdom", "lantern", "meadow", "noble", "oracle", "phoenix", "quantum",
-        "radiant", "silver", "temple", "unique", "velvet", "whisper", "crystal",
-        "zenith", "aurora", "beacon", "cosmic", "dazzle", "emerald", "flicker",
-        "glacier", "harmony", "inferno", "jubilee", "kinetic", "legend", "mystic",
+        "apple",
+        "banana",
+        "cherry",
+        "dragon",
+        "eagle",
+        "falcon",
+        "garden",
+        "harbor",
+        "island",
+        "jungle",
+        "kitten",
+        "lemon",
+        "mango",
+        "nectar",
+        "orange",
+        "purple",
+        "quartz",
+        "river",
+        "sunset",
+        "thunder",
+        "umbrella",
+        "violet",
+        "winter",
+        "yellow",
+        "zebra",
+        "ancient",
+        "bright",
+        "castle",
+        "diamond",
+        "empire",
+        "forest",
+        "golden",
+        "hollow",
+        "ivory",
+        "journey",
+        "kingdom",
+        "lantern",
+        "meadow",
+        "noble",
+        "oracle",
+        "phoenix",
+        "quantum",
+        "radiant",
+        "silver",
+        "temple",
+        "unique",
+        "velvet",
+        "whisper",
+        "crystal",
+        "zenith",
+        "aurora",
+        "beacon",
+        "cosmic",
+        "dazzle",
+        "emerald",
+        "flicker",
+        "glacier",
+        "harmony",
+        "inferno",
+        "jubilee",
+        "kinetic",
+        "legend",
+        "mystic",
     ]
 
     selected = [secrets.choice(words) for _ in range(num_words)]
@@ -426,7 +477,7 @@ def generate_passphrase(
     return separator.join(selected)
 
 
-def get_password_help_text() -> List[str]:
+def get_password_help_text() -> list[str]:
     """
     Get help text describing password requirements.
 

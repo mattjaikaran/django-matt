@@ -11,7 +11,7 @@ Provides endpoints for:
 import csv
 import io
 import json
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
@@ -20,18 +20,17 @@ from django_matt.core.controller import APIController
 from django_matt.core.router import delete, get, post, put
 
 from .schemas import (
-    APIKeyCreateRequest,
     APIKeyCreatedResponse,
+    APIKeyCreateRequest,
     APIKeyListResponse,
     APIKeyResponse,
     APIKeyUpdateRequest,
     ExportRequest,
-    ExportResponse,
     UsageRecord,
     UsageResponse,
     UsageSummary,
 )
-from .utils import acreate_api_key, arotate_api_key, mask_api_key
+from .utils import acreate_api_key, arotate_api_key
 
 
 class APIKeyController(APIController):
@@ -377,9 +376,7 @@ class APIKeyController(APIController):
         )[:10]
 
         # Requests by hour (for charts)
-        requests_by_hour = [
-            {"hour": r.hour.isoformat(), "count": r.request_count} for r in records
-        ]
+        requests_by_hour = [{"hour": r.hour.isoformat(), "count": r.request_count} for r in records]
 
         summary = UsageSummary(
             period_start=start_date,
@@ -446,12 +443,14 @@ class APIKeyController(APIController):
                     usage_qs = usage_qs.filter(hour__lte=data.end_date)
 
                 async for usage in usage_qs.order_by("hour"):
-                    usage_records.append({
-                        "hour": usage.hour.isoformat(),
-                        "request_count": usage.request_count,
-                        "error_count": usage.error_count,
-                        "avg_response_time_ms": usage.avg_response_time_ms,
-                    })
+                    usage_records.append(
+                        {
+                            "hour": usage.hour.isoformat(),
+                            "request_count": usage.request_count,
+                            "error_count": usage.error_count,
+                            "avg_response_time_ms": usage.avg_response_time_ms,
+                        }
+                    )
 
                 key_data["usage"] = usage_records
 
@@ -463,18 +462,31 @@ class APIKeyController(APIController):
             if keys:
                 # Flatten for CSV
                 writer = csv.writer(output)
-                writer.writerow(["id", "name", "prefix", "is_test", "is_active", "plan", "created_at", "total_requests"])
+                writer.writerow(
+                    [
+                        "id",
+                        "name",
+                        "prefix",
+                        "is_test",
+                        "is_active",
+                        "plan",
+                        "created_at",
+                        "total_requests",
+                    ]
+                )
                 for key in keys:
-                    writer.writerow([
-                        key["id"],
-                        key["name"],
-                        key["prefix"],
-                        key["is_test"],
-                        key["is_active"],
-                        key["plan"],
-                        key["created_at"],
-                        key["total_requests"],
-                    ])
+                    writer.writerow(
+                        [
+                            key["id"],
+                            key["name"],
+                            key["prefix"],
+                            key["is_test"],
+                            key["is_active"],
+                            key["plan"],
+                            key["created_at"],
+                            key["total_requests"],
+                        ]
+                    )
 
             response = HttpResponse(output.getvalue(), content_type="text/csv")
             response["Content-Disposition"] = 'attachment; filename="api_keys_export.csv"'

@@ -9,27 +9,26 @@ from typing import TYPE_CHECKING
 from django.contrib.auth import authenticate, get_user_model
 from django.http import JsonResponse
 
+from .backend import delete_other_sessions, delete_session, get_user_sessions
+from .csrf import get_csrf_token
+from .decorators import session_required
 from .schemas import (
-    SessionLoginSchema,
-    SessionInfoSchema,
-    SessionListSchema,
-    SessionStatusSchema,
-    SessionUserSchema,
     CSRFTokenSchema,
     LogoutResponseSchema,
-    RevokeSessionSchema,
     RevokeAllSessionsSchema,
     RevokeSessionsResponseSchema,
+    SessionInfoSchema,
+    SessionListSchema,
+    SessionLoginSchema,
+    SessionStatusSchema,
+    SessionUserSchema,
 )
 from .utils import (
-    login_session,
-    logout_session,
     get_session_info,
     is_session_authenticated,
+    login_session,
+    logout_session,
 )
-from .csrf import get_csrf_token, ensure_csrf_cookie
-from .backend import get_user_sessions, delete_session, delete_other_sessions
-from .decorators import session_required, csrf_protect
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
@@ -145,11 +144,13 @@ class SessionController:
         session_data = get_session_info(request)
         csrf_token = get_csrf_token(request)
 
-        return JsonResponse({
-            "user": user_data.model_dump(),
-            "session": session_data,
-            "csrf_token": csrf_token,
-        })
+        return JsonResponse(
+            {
+                "user": user_data.model_dump(),
+                "session": session_data,
+                "csrf_token": csrf_token,
+            }
+        )
 
     async def logout(self, request: "HttpRequest") -> JsonResponse:
         """
@@ -161,9 +162,7 @@ class SessionController:
 
         await sync_to_async(logout_session)(request)
 
-        response = JsonResponse(
-            LogoutResponseSchema().model_dump()
-        )
+        response = JsonResponse(LogoutResponseSchema().model_dump())
 
         # Clear session cookie
         from .config import get_session_config
@@ -224,9 +223,7 @@ class SessionController:
         """
         token = get_csrf_token(request)
 
-        response = JsonResponse(
-            CSRFTokenSchema(csrf_token=token).model_dump()
-        )
+        response = JsonResponse(CSRFTokenSchema(csrf_token=token).model_dump())
 
         # Set CSRF cookie
         from .config import get_session_config

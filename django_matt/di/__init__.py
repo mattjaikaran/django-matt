@@ -57,54 +57,50 @@ Built-in Dependencies:
         return {"user": user.email, "org": org.name}
 """
 
-from .container import (
-    Container,
-    container,
-    ServiceLifetime,
-    Singleton,
-    Scoped,
-    Transient,
-    ServiceDescriptor,
-    ServiceNotFoundError,
-    CircularDependencyError,
-)
-
-from .depends import (
-    Depends,
-    DependencyMarker,
-)
-
 from .builtins import (
-    CurrentUser,
-    CurrentRequest,
-    CurrentOrg,
-    CurrentTenant,
-    DBSession,
-    Settings,
     Cache,
-    Logger,
-    Query,
+    CurrentOrg,
+    CurrentRequest,
+    CurrentTenant,
+    CurrentUser,
+    DBSession,
     Header,
+    Logger,
     Path,
+    Query,
+    Settings,
 )
-
+from .container import (
+    CircularDependencyError,
+    Container,
+    Scoped,
+    ServiceDescriptor,
+    ServiceLifetime,
+    ServiceNotFoundError,
+    Singleton,
+    Transient,
+    container,
+)
+from .decorators import (
+    InjectableMeta,
+    inject,
+    injectable,
+    provides,
+    scoped,
+    singleton,
+    transient,
+)
+from .depends import (
+    DependencyMarker,
+    Depends,
+)
 from .middleware import (
-    DependencyInjectionMiddleware,
     AsyncDependencyInjectionMiddleware,
-    RequestScopeMiddleware,
     AsyncRequestScopeMiddleware,
+    DependencyInjectionMiddleware,
+    RequestScopeMiddleware,
     inject_dependencies,
     with_scope,
-)
-
-from .decorators import (
-    injectable,
-    inject,
-    provides,
-    singleton,
-    scoped,
-    transient,
-    InjectableMeta,
 )
 
 __all__ = [

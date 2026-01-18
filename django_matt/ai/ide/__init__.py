@@ -34,23 +34,21 @@ Management Command:
     python manage.py generate_ai_context --format claude
 """
 
-from django_matt.ai.ide.introspection import (
-    FieldInfo,
-    ModelInfo,
-    ViewInfo,
-    URLInfo,
-    AppInfo,
-    ProjectInfo,
-    ProjectIntrospector,
-    get_project_structure,
-)
-
 from django_matt.ai.ide.generators import (
+    AIContextGenerator,
     ClaudeMdGenerator,
     CursorRulesGenerator,
-    AIContextGenerator,
 )
-
+from django_matt.ai.ide.introspection import (
+    AppInfo,
+    FieldInfo,
+    ModelInfo,
+    ProjectInfo,
+    ProjectIntrospector,
+    URLInfo,
+    ViewInfo,
+    get_project_structure,
+)
 
 __all__ = [
     # Introspection

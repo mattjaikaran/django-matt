@@ -4,9 +4,9 @@ Task scheduling utilities.
 Provides crontab and interval-based scheduling for periodic tasks.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .base import Task
@@ -42,13 +42,13 @@ class CrontabSchedule(ScheduleEntry):
         crontab(day_of_month=1, hour=12, minute=0)
     """
 
-    minute: Union[int, str] = "*"
-    hour: Union[int, str] = "*"
-    day_of_week: Union[int, str] = "*"
-    day_of_month: Union[int, str] = "*"
-    month_of_year: Union[int, str] = "*"
+    minute: int | str = "*"
+    hour: int | str = "*"
+    day_of_week: int | str = "*"
+    day_of_month: int | str = "*"
+    month_of_year: int | str = "*"
 
-    def _parse_field(self, value: Union[int, str], min_val: int, max_val: int) -> set[int]:
+    def _parse_field(self, value: int | str, min_val: int, max_val: int) -> set[int]:
         """Parse a crontab field into a set of valid values."""
         if isinstance(value, int):
             return {value}
@@ -181,11 +181,11 @@ class IntervalSchedule(ScheduleEntry):
 
 
 def crontab(
-    minute: Union[int, str] = "*",
-    hour: Union[int, str] = "*",
-    day_of_week: Union[int, str] = "*",
-    day_of_month: Union[int, str] = "*",
-    month_of_year: Union[int, str] = "*",
+    minute: int | str = "*",
+    hour: int | str = "*",
+    day_of_week: int | str = "*",
+    day_of_month: int | str = "*",
+    month_of_year: int | str = "*",
 ) -> CrontabSchedule:
     """
     Create a crontab schedule.
@@ -254,8 +254,8 @@ class ScheduledTask:
 
     task: "Task"
     schedule: ScheduleEntry
-    last_run: Optional[datetime] = None
-    next_run: Optional[datetime] = None
+    last_run: datetime | None = None
+    next_run: datetime | None = None
     enabled: bool = True
 
     def update_next_run(self):
@@ -284,7 +284,7 @@ class Scheduler:
         """Unregister a scheduled task."""
         self._tasks.pop(task_name, None)
 
-    def get(self, task_name: str) -> Optional[ScheduledTask]:
+    def get(self, task_name: str) -> ScheduledTask | None:
         """Get a scheduled task by name."""
         return self._tasks.get(task_name)
 

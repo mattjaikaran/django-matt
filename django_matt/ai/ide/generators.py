@@ -7,11 +7,9 @@ from Django project introspection data.
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django_matt.ai.ide.introspection import (
-    AppInfo,
-    ModelInfo,
     ProjectInfo,
     ProjectIntrospector,
     get_project_structure,
@@ -35,7 +33,7 @@ class ClaudeMdGenerator:
 
     def __init__(
         self,
-        introspector: Optional[ProjectIntrospector] = None,
+        introspector: ProjectIntrospector | None = None,
         include_models: bool = True,
         include_urls: bool = True,
         include_structure: bool = True,
@@ -57,7 +55,7 @@ class ClaudeMdGenerator:
         self.include_structure = include_structure
         self.max_model_fields = max_model_fields
 
-    def generate(self, project_info: Optional[ProjectInfo] = None) -> str:
+    def generate(self, project_info: ProjectInfo | None = None) -> str:
         """Generate CLAUDE.md content."""
         if project_info is None:
             project_info = self.introspector.introspect()
@@ -77,10 +75,12 @@ class ClaudeMdGenerator:
         if self.include_urls:
             sections.append(self._generate_urls(project_info))
 
-        sections.extend([
-            self._generate_conventions(project_info),
-            self._generate_commands(project_info),
-        ])
+        sections.extend(
+            [
+                self._generate_conventions(project_info),
+                self._generate_commands(project_info),
+            ]
+        )
 
         return "\n\n".join(filter(None, sections))
 
@@ -119,14 +119,21 @@ class ClaudeMdGenerator:
 
         # Key packages
         key_packages = [
-            "django-matt", "djangorestframework", "django-ninja",
-            "celery", "redis", "pytest", "pydantic",
+            "django-matt",
+            "djangorestframework",
+            "django-ninja",
+            "celery",
+            "redis",
+            "pytest",
+            "pydantic",
         ]
         installed = {p.split("==")[0].lower(): p for p in info.installed_packages}
 
         for pkg in key_packages:
             if pkg in installed:
-                lines.append(f"- **{pkg}**: {installed[pkg].split('==')[1] if '==' in installed[pkg] else 'installed'}")
+                lines.append(
+                    f"- **{pkg}**: {installed[pkg].split('==')[1] if '==' in installed[pkg] else 'installed'}"
+                )
 
         return "\n".join(lines)
 
@@ -134,7 +141,7 @@ class ClaudeMdGenerator:
         """Generate project structure tree."""
         structure = get_project_structure(info.root_path)
 
-        def format_tree(tree: Dict[str, Any], prefix: str = "") -> List[str]:
+        def format_tree(tree: dict[str, Any], prefix: str = "") -> list[str]:
             lines = []
             items = list(tree.items())
 
@@ -178,7 +185,7 @@ class ClaudeMdGenerator:
                 lines.append("| Field | Type | Notes |")
                 lines.append("|-------|------|-------|")
 
-                for field in model.fields[:self.max_model_fields]:
+                for field in model.fields[: self.max_model_fields]:
                     notes = []
                     if field.primary_key:
                         notes.append("PK")
@@ -194,7 +201,9 @@ class ClaudeMdGenerator:
                     )
 
                 if len(model.fields) > self.max_model_fields:
-                    lines.append(f"| ... | | +{len(model.fields) - self.max_model_fields} more fields |")
+                    lines.append(
+                        f"| ... | | +{len(model.fields) - self.max_model_fields} more fields |"
+                    )
 
                 lines.append("")
 
@@ -300,7 +309,7 @@ class CursorRulesGenerator:
 
     def __init__(
         self,
-        introspector: Optional[ProjectIntrospector] = None,
+        introspector: ProjectIntrospector | None = None,
         framework_rules: bool = True,
         model_rules: bool = True,
     ):
@@ -316,7 +325,7 @@ class CursorRulesGenerator:
         self.framework_rules = framework_rules
         self.model_rules = model_rules
 
-    def generate(self, project_info: Optional[ProjectInfo] = None) -> str:
+    def generate(self, project_info: ProjectInfo | None = None) -> str:
         """Generate .cursorrules content."""
         if project_info is None:
             project_info = self.introspector.introspect()
@@ -325,7 +334,9 @@ class CursorRulesGenerator:
 
         # Project context
         rules.append(f"# Project: {project_info.name}")
-        rules.append(f"# Django {project_info.django_version} with Python {project_info.python_version}")
+        rules.append(
+            f"# Django {project_info.django_version} with Python {project_info.python_version}"
+        )
         rules.append("")
 
         # Framework rules
@@ -341,7 +352,7 @@ class CursorRulesGenerator:
 
         return "\n".join(rules)
 
-    def _get_framework_rules(self) -> List[str]:
+    def _get_framework_rules(self) -> list[str]:
         """Get Django/django-matt framework rules."""
         return [
             "## Django & django-matt Framework Rules",
@@ -375,7 +386,7 @@ class CursorRulesGenerator:
             "",
         ]
 
-    def _get_model_rules(self, info: ProjectInfo) -> List[str]:
+    def _get_model_rules(self, info: ProjectInfo) -> list[str]:
         """Get model-specific rules."""
         rules = ["## Project Models", ""]
 
@@ -393,7 +404,7 @@ class CursorRulesGenerator:
 
         return rules
 
-    def _get_import_rules(self, info: ProjectInfo) -> List[str]:
+    def _get_import_rules(self, info: ProjectInfo) -> list[str]:
         """Get import preference rules."""
         rules = [
             "## Import Preferences",
@@ -438,7 +449,7 @@ class AIContextGenerator:
 
     def __init__(
         self,
-        output_dir: Optional[str] = None,
+        output_dir: str | None = None,
         include_third_party: bool = False,
     ):
         """
@@ -450,7 +461,7 @@ class AIContextGenerator:
         """
         self.output_dir = Path(output_dir) if output_dir else Path.cwd()
         self.introspector = ProjectIntrospector(include_third_party=include_third_party)
-        self._project_info: Optional[ProjectInfo] = None
+        self._project_info: ProjectInfo | None = None
 
     @property
     def project_info(self) -> ProjectInfo:
@@ -477,7 +488,7 @@ class AIContextGenerator:
         path.write_text(content)
         return path
 
-    def generate_all(self) -> Dict[str, Path]:
+    def generate_all(self) -> dict[str, Path]:
         """Generate all context files."""
         return {
             "claude_md": self.generate_claude_md(),
@@ -486,7 +497,7 @@ class AIContextGenerator:
 
 
 __all__ = [
+    "AIContextGenerator",
     "ClaudeMdGenerator",
     "CursorRulesGenerator",
-    "AIContextGenerator",
 ]

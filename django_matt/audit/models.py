@@ -5,7 +5,7 @@ Provides the AuditLog model for storing audit entries.
 """
 
 from datetime import datetime
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -40,16 +40,10 @@ class AuditLogManager(models.Manager):
         """Filter by action type."""
         return self.filter(action=action.value)
 
-    def by_severity(
-        self, severity: AuditSeverity, and_above: bool = False
-    ) -> models.QuerySet:
+    def by_severity(self, severity: AuditSeverity, and_above: bool = False) -> models.QuerySet:
         """Filter by severity level."""
         if and_above:
-            severities = [
-                s.value
-                for s in AuditSeverity
-                if s.level >= severity.level
-            ]
+            severities = [s.value for s in AuditSeverity if s.level >= severity.level]
             return self.filter(severity__in=severities)
         return self.filter(severity=severity.value)
 
@@ -63,7 +57,7 @@ class AuditLogManager(models.Manager):
         security_actions = [a.value for a in AuditAction.security_actions()]
         return self.filter(action__in=security_actions)
 
-    def failed_logins(self, since: Optional[datetime] = None) -> models.QuerySet:
+    def failed_logins(self, since: datetime | None = None) -> models.QuerySet:
         """Get failed login attempts."""
         qs = self.filter(action=AuditAction.LOGIN_FAILED.value)
         if since:
@@ -194,17 +188,17 @@ class AuditLog(models.Model):
         cls,
         action: AuditAction,
         user: Optional["AbstractUser"] = None,
-        obj: Optional[models.Model] = None,
+        obj: models.Model | None = None,
         description: str = "",
-        changes: Optional[dict] = None,
-        old_values: Optional[dict] = None,
-        new_values: Optional[dict] = None,
+        changes: dict | None = None,
+        old_values: dict | None = None,
+        new_values: dict | None = None,
         severity: AuditSeverity = AuditSeverity.INFO,
-        ip_address: Optional[str] = None,
+        ip_address: str | None = None,
         user_agent: str = "",
         request_method: str = "",
         request_path: str = "",
-        metadata: Optional[dict] = None,
+        metadata: dict | None = None,
     ) -> "AuditLog":
         """
         Create an audit log entry.
@@ -270,7 +264,7 @@ class AuditLog(models.Model):
         cls,
         action: AuditAction,
         user: Optional["AbstractUser"] = None,
-        obj: Optional[models.Model] = None,
+        obj: models.Model | None = None,
         **kwargs,
     ) -> "AuditLog":
         """Async version of log()."""

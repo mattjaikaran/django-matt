@@ -5,21 +5,16 @@ Tests for the deployment module in Django Matt.
 import json
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-import pytest
-from django.http import HttpRequest
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import RequestFactory, TestCase
 
 from django_matt.deploy.base import (
     DeploymentConfig,
-    DeploymentProvider,
     DeploymentResult,
     DeploymentStatus,
     SecretManager,
     get_provider,
     list_providers,
-    register_provider,
 )
 from django_matt.deploy.docker import (
     ComposeGenerator,
@@ -39,9 +34,7 @@ from django_matt.deploy.health import (
     get_uptime,
     health_check_view,
     liveness_check_view,
-    readiness_check_view,
 )
-
 
 # =============================================================================
 # Base Classes Tests
@@ -617,26 +610,28 @@ class TestEnvironmentManager(TestCase):
 
     def test_from_json(self):
         """Test JSON import."""
-        json_str = json.dumps({
-            "test": {
-                "name": "test",
-                "display_name": "Test",
-                "debug": True,
-                "allowed_hosts": ["localhost"],
-                "database_url": None,
-                "redis_url": None,
-                "cache_backend": "django.core.cache.backends.locmem.LocMemCache",
-                "email_backend": "django.core.mail.backends.console.EmailBackend",
-                "use_s3": False,
-                "log_level": "DEBUG",
-                "secure_ssl_redirect": False,
-                "session_cookie_secure": False,
-                "csrf_cookie_secure": False,
-                "secure_hsts_seconds": 0,
-                "extra_settings": {},
-                "env_vars": {},
+        json_str = json.dumps(
+            {
+                "test": {
+                    "name": "test",
+                    "display_name": "Test",
+                    "debug": True,
+                    "allowed_hosts": ["localhost"],
+                    "database_url": None,
+                    "redis_url": None,
+                    "cache_backend": "django.core.cache.backends.locmem.LocMemCache",
+                    "email_backend": "django.core.mail.backends.console.EmailBackend",
+                    "use_s3": False,
+                    "log_level": "DEBUG",
+                    "secure_ssl_redirect": False,
+                    "session_cookie_secure": False,
+                    "csrf_cookie_secure": False,
+                    "secure_hsts_seconds": 0,
+                    "extra_settings": {},
+                    "env_vars": {},
+                }
             }
-        })
+        )
 
         manager = EnvironmentManager.from_json(json_str)
 
@@ -742,6 +737,7 @@ class TestHealthCheck(TestCase):
 
     def test_add_custom_check(self):
         """Test adding a custom health check."""
+
         def my_check():
             return CheckResult(
                 name="my_check",
@@ -757,6 +753,7 @@ class TestHealthCheck(TestCase):
 
     def test_failing_custom_check(self):
         """Test a failing custom health check."""
+
         def failing_check():
             return CheckResult(
                 name="failing",
@@ -771,6 +768,7 @@ class TestHealthCheck(TestCase):
 
     def test_degraded_check(self):
         """Test a degraded health check."""
+
         def degraded_check():
             return CheckResult(
                 name="degraded",
@@ -785,6 +783,7 @@ class TestHealthCheck(TestCase):
 
     def test_remove_check(self):
         """Test removing a health check."""
+
         def my_check():
             return CheckResult(name="my_check", status=HealthStatus.HEALTHY)
 
@@ -796,6 +795,7 @@ class TestHealthCheck(TestCase):
 
     def test_exception_in_check(self):
         """Test handling exceptions in health checks."""
+
         def bad_check():
             raise Exception("Something went wrong")
 

@@ -4,8 +4,9 @@ Filter classes for django-matt.
 Individual filter types for building FilterSets.
 """
 
+from collections.abc import Callable, Sequence
 from datetime import date, datetime
-from typing import Any, Callable, Sequence
+from typing import Any
 from uuid import UUID
 
 from django.db.models import QuerySet
@@ -113,7 +114,7 @@ class Filter:
         if self.method:
             if callable(self.method):
                 return self.method(queryset, self.get_field_name(), value)
-            elif self.parent and hasattr(self.parent, self.method):
+            if self.parent and hasattr(self.parent, self.method):
                 method = getattr(self.parent, self.method)
                 return method(queryset, self.get_field_name(), value)
             return queryset

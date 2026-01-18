@@ -20,8 +20,9 @@ Usage:
 import random
 import string
 import uuid
-from datetime import datetime, date, time, timedelta, timezone
-from typing import List, Optional, Sequence, TypeVar
+from collections.abc import Sequence
+from datetime import UTC, date, datetime, time, timedelta
+from typing import TypeVar
 
 T = TypeVar("T")
 
@@ -33,7 +34,7 @@ class RandomGenerator:
     Allows reproducible test data generation.
     """
 
-    def __init__(self, seed: Optional[int] = None):
+    def __init__(self, seed: int | None = None):
         self._random = random.Random(seed)
         self._locale = "en_US"
 
@@ -49,11 +50,11 @@ class RandomGenerator:
         """Random choice from sequence."""
         return self._random.choice(seq)
 
-    def choices(self, seq: Sequence[T], k: int = 1) -> List[T]:
+    def choices(self, seq: Sequence[T], k: int = 1) -> list[T]:
         """Random choices with replacement."""
         return self._random.choices(seq, k=k)
 
-    def sample(self, seq: Sequence[T], k: int) -> List[T]:
+    def sample(self, seq: Sequence[T], k: int) -> list[T]:
         """Random sample without replacement."""
         return self._random.sample(list(seq), k)
 
@@ -73,95 +74,346 @@ class DataGenerator:
     Provides methods for generating common test data types.
     """
 
-    def __init__(self, seed: Optional[int] = None):
+    def __init__(self, seed: int | None = None):
         self._rng = RandomGenerator(seed)
 
         # First names (common English)
         self._first_names_male = [
-            "James", "John", "Robert", "Michael", "William", "David", "Richard",
-            "Joseph", "Thomas", "Charles", "Christopher", "Daniel", "Matthew",
-            "Anthony", "Mark", "Donald", "Steven", "Paul", "Andrew", "Joshua",
-            "Kenneth", "Kevin", "Brian", "George", "Timothy", "Ronald", "Edward",
-            "Jason", "Jeffrey", "Ryan", "Jacob", "Gary", "Nicholas", "Eric",
+            "James",
+            "John",
+            "Robert",
+            "Michael",
+            "William",
+            "David",
+            "Richard",
+            "Joseph",
+            "Thomas",
+            "Charles",
+            "Christopher",
+            "Daniel",
+            "Matthew",
+            "Anthony",
+            "Mark",
+            "Donald",
+            "Steven",
+            "Paul",
+            "Andrew",
+            "Joshua",
+            "Kenneth",
+            "Kevin",
+            "Brian",
+            "George",
+            "Timothy",
+            "Ronald",
+            "Edward",
+            "Jason",
+            "Jeffrey",
+            "Ryan",
+            "Jacob",
+            "Gary",
+            "Nicholas",
+            "Eric",
         ]
 
         self._first_names_female = [
-            "Mary", "Patricia", "Jennifer", "Linda", "Barbara", "Elizabeth",
-            "Susan", "Jessica", "Sarah", "Karen", "Lisa", "Nancy", "Betty",
-            "Margaret", "Sandra", "Ashley", "Kimberly", "Emily", "Donna",
-            "Michelle", "Dorothy", "Carol", "Amanda", "Melissa", "Deborah",
-            "Stephanie", "Rebecca", "Sharon", "Laura", "Cynthia", "Kathleen",
-            "Amy", "Angela", "Shirley", "Anna", "Brenda", "Pamela", "Emma",
+            "Mary",
+            "Patricia",
+            "Jennifer",
+            "Linda",
+            "Barbara",
+            "Elizabeth",
+            "Susan",
+            "Jessica",
+            "Sarah",
+            "Karen",
+            "Lisa",
+            "Nancy",
+            "Betty",
+            "Margaret",
+            "Sandra",
+            "Ashley",
+            "Kimberly",
+            "Emily",
+            "Donna",
+            "Michelle",
+            "Dorothy",
+            "Carol",
+            "Amanda",
+            "Melissa",
+            "Deborah",
+            "Stephanie",
+            "Rebecca",
+            "Sharon",
+            "Laura",
+            "Cynthia",
+            "Kathleen",
+            "Amy",
+            "Angela",
+            "Shirley",
+            "Anna",
+            "Brenda",
+            "Pamela",
+            "Emma",
         ]
 
         self._last_names = [
-            "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller",
-            "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez",
-            "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin",
-            "Lee", "Perez", "Thompson", "White", "Harris", "Sanchez", "Clark",
-            "Ramirez", "Lewis", "Robinson", "Walker", "Young", "Allen", "King",
-            "Wright", "Scott", "Torres", "Nguyen", "Hill", "Flores", "Green",
+            "Smith",
+            "Johnson",
+            "Williams",
+            "Brown",
+            "Jones",
+            "Garcia",
+            "Miller",
+            "Davis",
+            "Rodriguez",
+            "Martinez",
+            "Hernandez",
+            "Lopez",
+            "Gonzalez",
+            "Wilson",
+            "Anderson",
+            "Thomas",
+            "Taylor",
+            "Moore",
+            "Jackson",
+            "Martin",
+            "Lee",
+            "Perez",
+            "Thompson",
+            "White",
+            "Harris",
+            "Sanchez",
+            "Clark",
+            "Ramirez",
+            "Lewis",
+            "Robinson",
+            "Walker",
+            "Young",
+            "Allen",
+            "King",
+            "Wright",
+            "Scott",
+            "Torres",
+            "Nguyen",
+            "Hill",
+            "Flores",
+            "Green",
         ]
 
         # Domain words for emails/companies
         self._domain_words = [
-            "alpha", "beta", "gamma", "delta", "omega", "sigma", "tech", "data",
-            "cloud", "cyber", "quantum", "neural", "pixel", "byte", "code", "dev",
-            "apex", "prime", "nova", "zenith", "nexus", "vertex", "matrix", "core",
+            "alpha",
+            "beta",
+            "gamma",
+            "delta",
+            "omega",
+            "sigma",
+            "tech",
+            "data",
+            "cloud",
+            "cyber",
+            "quantum",
+            "neural",
+            "pixel",
+            "byte",
+            "code",
+            "dev",
+            "apex",
+            "prime",
+            "nova",
+            "zenith",
+            "nexus",
+            "vertex",
+            "matrix",
+            "core",
         ]
 
         self._tlds = ["com", "org", "net", "io", "co", "dev", "app", "ai"]
 
         # Lorem ipsum words for text generation
         self._lorem_words = [
-            "lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipiscing",
-            "elit", "sed", "do", "eiusmod", "tempor", "incididunt", "ut", "labore",
-            "et", "dolore", "magna", "aliqua", "enim", "ad", "minim", "veniam",
-            "quis", "nostrud", "exercitation", "ullamco", "laboris", "nisi", "aliquip",
-            "ex", "ea", "commodo", "consequat", "duis", "aute", "irure", "in",
-            "reprehenderit", "voluptate", "velit", "esse", "cillum", "fugiat",
-            "nulla", "pariatur", "excepteur", "sint", "occaecat", "cupidatat",
-            "non", "proident", "sunt", "culpa", "qui", "officia", "deserunt",
-            "mollit", "anim", "id", "est", "laborum",
+            "lorem",
+            "ipsum",
+            "dolor",
+            "sit",
+            "amet",
+            "consectetur",
+            "adipiscing",
+            "elit",
+            "sed",
+            "do",
+            "eiusmod",
+            "tempor",
+            "incididunt",
+            "ut",
+            "labore",
+            "et",
+            "dolore",
+            "magna",
+            "aliqua",
+            "enim",
+            "ad",
+            "minim",
+            "veniam",
+            "quis",
+            "nostrud",
+            "exercitation",
+            "ullamco",
+            "laboris",
+            "nisi",
+            "aliquip",
+            "ex",
+            "ea",
+            "commodo",
+            "consequat",
+            "duis",
+            "aute",
+            "irure",
+            "in",
+            "reprehenderit",
+            "voluptate",
+            "velit",
+            "esse",
+            "cillum",
+            "fugiat",
+            "nulla",
+            "pariatur",
+            "excepteur",
+            "sint",
+            "occaecat",
+            "cupidatat",
+            "non",
+            "proident",
+            "sunt",
+            "culpa",
+            "qui",
+            "officia",
+            "deserunt",
+            "mollit",
+            "anim",
+            "id",
+            "est",
+            "laborum",
         ]
 
         # Common company suffixes
         self._company_suffixes = [
-            "Inc", "LLC", "Corp", "Ltd", "Co", "Group", "Solutions", "Systems",
-            "Technologies", "Enterprises", "Industries", "Services", "Partners",
+            "Inc",
+            "LLC",
+            "Corp",
+            "Ltd",
+            "Co",
+            "Group",
+            "Solutions",
+            "Systems",
+            "Technologies",
+            "Enterprises",
+            "Industries",
+            "Services",
+            "Partners",
         ]
 
         # Street types
         self._street_types = [
-            "Street", "St", "Avenue", "Ave", "Boulevard", "Blvd", "Road", "Rd",
-            "Lane", "Ln", "Drive", "Dr", "Court", "Ct", "Place", "Pl", "Way",
+            "Street",
+            "St",
+            "Avenue",
+            "Ave",
+            "Boulevard",
+            "Blvd",
+            "Road",
+            "Rd",
+            "Lane",
+            "Ln",
+            "Drive",
+            "Dr",
+            "Court",
+            "Ct",
+            "Place",
+            "Pl",
+            "Way",
         ]
 
         # US cities
         self._cities = [
-            "New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Philadelphia",
-            "San Antonio", "San Diego", "Dallas", "San Jose", "Austin", "Jacksonville",
-            "Fort Worth", "Columbus", "Charlotte", "San Francisco", "Indianapolis",
-            "Seattle", "Denver", "Boston", "Portland", "Las Vegas", "Detroit", "Miami",
+            "New York",
+            "Los Angeles",
+            "Chicago",
+            "Houston",
+            "Phoenix",
+            "Philadelphia",
+            "San Antonio",
+            "San Diego",
+            "Dallas",
+            "San Jose",
+            "Austin",
+            "Jacksonville",
+            "Fort Worth",
+            "Columbus",
+            "Charlotte",
+            "San Francisco",
+            "Indianapolis",
+            "Seattle",
+            "Denver",
+            "Boston",
+            "Portland",
+            "Las Vegas",
+            "Detroit",
+            "Miami",
         ]
 
         # US states
         self._states = [
-            ("AL", "Alabama"), ("AK", "Alaska"), ("AZ", "Arizona"), ("AR", "Arkansas"),
-            ("CA", "California"), ("CO", "Colorado"), ("CT", "Connecticut"),
-            ("DE", "Delaware"), ("FL", "Florida"), ("GA", "Georgia"), ("HI", "Hawaii"),
-            ("ID", "Idaho"), ("IL", "Illinois"), ("IN", "Indiana"), ("IA", "Iowa"),
-            ("KS", "Kansas"), ("KY", "Kentucky"), ("LA", "Louisiana"), ("ME", "Maine"),
-            ("MD", "Maryland"), ("MA", "Massachusetts"), ("MI", "Michigan"),
-            ("MN", "Minnesota"), ("MS", "Mississippi"), ("MO", "Missouri"),
-            ("MT", "Montana"), ("NE", "Nebraska"), ("NV", "Nevada"),
-            ("NH", "New Hampshire"), ("NJ", "New Jersey"), ("NM", "New Mexico"),
-            ("NY", "New York"), ("NC", "North Carolina"), ("ND", "North Dakota"),
-            ("OH", "Ohio"), ("OK", "Oklahoma"), ("OR", "Oregon"), ("PA", "Pennsylvania"),
-            ("RI", "Rhode Island"), ("SC", "South Carolina"), ("SD", "South Dakota"),
-            ("TN", "Tennessee"), ("TX", "Texas"), ("UT", "Utah"), ("VT", "Vermont"),
-            ("VA", "Virginia"), ("WA", "Washington"), ("WV", "West Virginia"),
-            ("WI", "Wisconsin"), ("WY", "Wyoming"),
+            ("AL", "Alabama"),
+            ("AK", "Alaska"),
+            ("AZ", "Arizona"),
+            ("AR", "Arkansas"),
+            ("CA", "California"),
+            ("CO", "Colorado"),
+            ("CT", "Connecticut"),
+            ("DE", "Delaware"),
+            ("FL", "Florida"),
+            ("GA", "Georgia"),
+            ("HI", "Hawaii"),
+            ("ID", "Idaho"),
+            ("IL", "Illinois"),
+            ("IN", "Indiana"),
+            ("IA", "Iowa"),
+            ("KS", "Kansas"),
+            ("KY", "Kentucky"),
+            ("LA", "Louisiana"),
+            ("ME", "Maine"),
+            ("MD", "Maryland"),
+            ("MA", "Massachusetts"),
+            ("MI", "Michigan"),
+            ("MN", "Minnesota"),
+            ("MS", "Mississippi"),
+            ("MO", "Missouri"),
+            ("MT", "Montana"),
+            ("NE", "Nebraska"),
+            ("NV", "Nevada"),
+            ("NH", "New Hampshire"),
+            ("NJ", "New Jersey"),
+            ("NM", "New Mexico"),
+            ("NY", "New York"),
+            ("NC", "North Carolina"),
+            ("ND", "North Dakota"),
+            ("OH", "Ohio"),
+            ("OK", "Oklahoma"),
+            ("OR", "Oregon"),
+            ("PA", "Pennsylvania"),
+            ("RI", "Rhode Island"),
+            ("SC", "South Carolina"),
+            ("SD", "South Dakota"),
+            ("TN", "Tennessee"),
+            ("TX", "Texas"),
+            ("UT", "Utah"),
+            ("VT", "Vermont"),
+            ("VA", "Virginia"),
+            ("WA", "Washington"),
+            ("WV", "West Virginia"),
+            ("WI", "Wisconsin"),
+            ("WY", "Wyoming"),
         ]
 
     def seed(self, value: int) -> None:
@@ -174,15 +426,14 @@ class DataGenerator:
 
     # --- Name generation ---
 
-    def first_name(self, gender: Optional[str] = None) -> str:
+    def first_name(self, gender: str | None = None) -> str:
         """Generate a random first name."""
         if gender == "male":
             return self._rng.choice(self._first_names_male)
-        elif gender == "female":
+        if gender == "female":
             return self._rng.choice(self._first_names_female)
-        else:
-            all_names = self._first_names_male + self._first_names_female
-            return self._rng.choice(all_names)
+        all_names = self._first_names_male + self._first_names_female
+        return self._rng.choice(all_names)
 
     def first_name_male(self) -> str:
         """Generate a male first name."""
@@ -196,7 +447,7 @@ class DataGenerator:
         """Generate a random last name."""
         return self._rng.choice(self._last_names)
 
-    def name(self, gender: Optional[str] = None) -> str:
+    def name(self, gender: str | None = None) -> str:
         """Generate a full name (first + last)."""
         return f"{self.first_name(gender)} {self.last_name()}"
 
@@ -210,7 +461,7 @@ class DataGenerator:
 
     # --- Internet ---
 
-    def email(self, domain: Optional[str] = None) -> str:
+    def email(self, domain: str | None = None) -> str:
         """Generate a random email address."""
         first = self.first_name().lower()
         last = self.last_name().lower()
@@ -256,7 +507,7 @@ class DataGenerator:
 
         return "".join(self._rng.choices(chars, k=length))
 
-    def url(self, schemes: Optional[List[str]] = None) -> str:
+    def url(self, schemes: list[str] | None = None) -> str:
         """Generate a random URL."""
         scheme = self._rng.choice(schemes or ["https"])
         domain = f"{self._rng.choice(self._domain_words)}.{self._rng.choice(self._tlds)}"
@@ -296,7 +547,7 @@ class DataGenerator:
         """Generate a random word."""
         return self._rng.choice(self._lorem_words)
 
-    def words(self, nb: int = 3) -> List[str]:
+    def words(self, nb: int = 3) -> list[str]:
         """Generate random words."""
         return self._rng.choices(self._lorem_words, k=nb)
 
@@ -306,7 +557,7 @@ class DataGenerator:
         words[0] = words[0].capitalize()
         return " ".join(words) + "."
 
-    def sentences(self, nb: int = 3) -> List[str]:
+    def sentences(self, nb: int = 3) -> list[str]:
         """Generate random sentences."""
         return [self.sentence() for _ in range(nb)]
 
@@ -314,7 +565,7 @@ class DataGenerator:
         """Generate a random paragraph."""
         return " ".join(self.sentences(nb_sentences))
 
-    def paragraphs(self, nb: int = 3) -> List[str]:
+    def paragraphs(self, nb: int = 3) -> list[str]:
         """Generate random paragraphs."""
         return [self.paragraph() for _ in range(nb)]
 
@@ -402,13 +653,13 @@ class DataGenerator:
         end = today - timedelta(days=minimum_age * 365)
         return self.date_between(start, end)
 
-    def past_date(self, start_date: Optional[date] = None) -> date:
+    def past_date(self, start_date: date | None = None) -> date:
         """Generate a random date in the past."""
         today = date.today()
         start = start_date or date(today.year - 10, 1, 1)
         return self.date_between(start, today - timedelta(days=1))
 
-    def future_date(self, end_date: Optional[date] = None) -> date:
+    def future_date(self, end_date: date | None = None) -> date:
         """Generate a random date in the future."""
         today = date.today()
         end = end_date or date(today.year + 10, 12, 31)
@@ -434,15 +685,15 @@ class DataGenerator:
         random_seconds = self._rng.randint(0, int(delta.total_seconds()))
         return start + timedelta(seconds=random_seconds)
 
-    def past_datetime(self, start: Optional[datetime] = None) -> datetime:
+    def past_datetime(self, start: datetime | None = None) -> datetime:
         """Generate a random datetime in the past."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         start = start or now - timedelta(days=365 * 10)
         return self.datetime_between(start, now - timedelta(seconds=1))
 
-    def future_datetime(self, end: Optional[datetime] = None) -> datetime:
+    def future_datetime(self, end: datetime | None = None) -> datetime:
         """Generate a random datetime in the future."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         end = end or now + timedelta(days=365 * 10)
         return self.datetime_between(now + timedelta(seconds=1), end)
 
@@ -486,9 +737,24 @@ class DataGenerator:
     def country(self) -> str:
         """Generate a random country name."""
         countries = [
-            "United States", "Canada", "United Kingdom", "Australia", "Germany",
-            "France", "Japan", "Brazil", "India", "Mexico", "China", "Italy",
-            "Spain", "Netherlands", "Sweden", "Norway", "Denmark", "Finland",
+            "United States",
+            "Canada",
+            "United Kingdom",
+            "Australia",
+            "Germany",
+            "France",
+            "Japan",
+            "Brazil",
+            "India",
+            "Mexico",
+            "China",
+            "Italy",
+            "Spain",
+            "Netherlands",
+            "Sweden",
+            "Norway",
+            "Denmark",
+            "Finland",
         ]
         return self._rng.choice(countries)
 
@@ -521,9 +787,21 @@ class DataGenerator:
         """Generate a random job title."""
         prefixes = ["Senior", "Junior", "Lead", "Chief", "Head", "Principal", "Staff", ""]
         roles = [
-            "Software Engineer", "Developer", "Designer", "Manager", "Analyst",
-            "Consultant", "Administrator", "Specialist", "Coordinator", "Director",
-            "Architect", "Scientist", "Engineer", "Executive", "Officer",
+            "Software Engineer",
+            "Developer",
+            "Designer",
+            "Manager",
+            "Analyst",
+            "Consultant",
+            "Administrator",
+            "Specialist",
+            "Coordinator",
+            "Director",
+            "Architect",
+            "Scientist",
+            "Engineer",
+            "Executive",
+            "Officer",
         ]
         prefix = self._rng.choice(prefixes)
         role = self._rng.choice(roles)
@@ -614,15 +892,35 @@ class DataGenerator:
     def color_name(self) -> str:
         """Generate a random color name."""
         colors = [
-            "red", "blue", "green", "yellow", "orange", "purple", "pink", "brown",
-            "black", "white", "gray", "cyan", "magenta", "lime", "navy", "teal",
-            "maroon", "olive", "silver", "aqua", "coral", "crimson", "gold",
+            "red",
+            "blue",
+            "green",
+            "yellow",
+            "orange",
+            "purple",
+            "pink",
+            "brown",
+            "black",
+            "white",
+            "gray",
+            "cyan",
+            "magenta",
+            "lime",
+            "navy",
+            "teal",
+            "maroon",
+            "olive",
+            "silver",
+            "aqua",
+            "coral",
+            "crimson",
+            "gold",
         ]
         return self._rng.choice(colors)
 
     # --- File ---
 
-    def file_name(self, extension: Optional[str] = None) -> str:
+    def file_name(self, extension: str | None = None) -> str:
         """Generate a random file name."""
         name = "_".join(self._rng.choices(self._lorem_words, k=2))
         ext = extension or self._rng.choice(["txt", "pdf", "doc", "png", "jpg"])
@@ -635,9 +933,17 @@ class DataGenerator:
     def mime_type(self) -> str:
         """Generate a random MIME type."""
         types = [
-            "text/plain", "text/html", "text/css", "application/json",
-            "application/pdf", "image/png", "image/jpeg", "image/gif",
-            "audio/mpeg", "video/mp4", "application/octet-stream",
+            "text/plain",
+            "text/html",
+            "text/css",
+            "application/json",
+            "application/pdf",
+            "image/png",
+            "image/jpeg",
+            "image/gif",
+            "audio/mpeg",
+            "video/mp4",
+            "application/octet-stream",
         ]
         return self._rng.choice(types)
 
@@ -653,11 +959,11 @@ class DataGenerator:
         """Get a random element from a sequence."""
         return self._rng.choice(elements)
 
-    def random_elements(self, elements: Sequence[T], length: int = 3) -> List[T]:
+    def random_elements(self, elements: Sequence[T], length: int = 3) -> list[T]:
         """Get random elements from a sequence (with replacement)."""
         return self._rng.choices(elements, k=length)
 
-    def random_sample(self, elements: Sequence[T], length: int = 3) -> List[T]:
+    def random_sample(self, elements: Sequence[T], length: int = 3) -> list[T]:
         """Get random unique elements from a sequence (without replacement)."""
         return self._rng.sample(elements, min(length, len(elements)))
 

@@ -6,15 +6,15 @@ with JWT authentication and permissions.
 """
 
 from django_matt.auth.decorators.jwt import (
-    jwt_required,
     jwt_optional,
+    jwt_required,
     requires_auth,
 )
 from django_matt.auth.decorators.roles import (
     admin_required,
     superuser_required,
-    with_roles,
     with_permission,
+    with_roles,
 )
 
 __all__ = [

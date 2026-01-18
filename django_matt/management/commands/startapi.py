@@ -6,13 +6,13 @@ This command generates a new Django project with django-matt API configuration.
 Usage:
     # Basic starter project
     python -m django_matt startapi myproject
-    
+
     # B2B project with JWT auth
     python -m django_matt startapi myproject --template b2b --auth jwt
-    
+
     # Full-stack with React frontend
     python -m django_matt startapi myproject --frontend react-vite --docker
-    
+
     # iOS-ready backend
     python -m django_matt startapi myproject --frontend swift --auth jwt
 """
@@ -20,7 +20,6 @@ Usage:
 import os
 import subprocess
 from pathlib import Path
-from typing import Optional
 
 from django.core.management.base import BaseCommand, CommandError
 
@@ -102,7 +101,9 @@ class Command(BaseCommand):
         project_dir = Path(directory)
         if project_dir.exists() and not force:
             if (project_dir / project_name).exists() or (project_dir / "manage.py").exists():
-                raise CommandError(f"Project already exists in {project_dir}. Use --force to overwrite.")
+                raise CommandError(
+                    f"Project already exists in {project_dir}. Use --force to overwrite."
+                )
         else:
             os.makedirs(project_dir, exist_ok=True)
 
@@ -112,7 +113,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  Auth: {auth}")
         self.stdout.write(f"  Frontend: {frontend}")
         self.stdout.write(f"  Docker: {'Yes' if docker else 'No'}")
-        
+
         self._create_project(project_name, directory)
 
         # Change to the project directory
@@ -151,10 +152,12 @@ class Command(BaseCommand):
             self.stdout.write("Generating README...")
             self._create_readme(project_name, template, auth, frontend, docker)
 
-            self.stdout.write(self.style.SUCCESS(f"\nSuccessfully created django-matt API project {project_name}"))
-            
+            self.stdout.write(
+                self.style.SUCCESS(f"\nSuccessfully created django-matt API project {project_name}")
+            )
+
             self._print_next_steps(directory, docker, frontend)
-            
+
         finally:
             # Change back to the original directory
             os.chdir(original_dir)
@@ -162,17 +165,17 @@ class Command(BaseCommand):
     def _print_next_steps(self, directory: str, docker: bool, frontend: str):
         """Print next steps for the user."""
         cd_path = directory if directory else "."
-        
+
         self.stdout.write("\nNext steps:")
         self.stdout.write(f"  cd {cd_path}")
-        
+
         if docker:
             self.stdout.write("  make up          # Start with Docker")
             self.stdout.write("  make migrate     # Run migrations")
         else:
             self.stdout.write("  python manage.py migrate")
             self.stdout.write("  python manage.py runserver_hot")
-        
+
         if frontend == "react-vite":
             self.stdout.write("\nFor the frontend:")
             self.stdout.write("  cd frontend && bun install && bun dev")
@@ -209,7 +212,7 @@ class Command(BaseCommand):
                 check=True,
             )
         except subprocess.CalledProcessError as e:
-            self.stdout.write(self.style.ERROR(f"Error: {str(e)}"))
+            self.stdout.write(self.style.ERROR(f"Error: {e!s}"))
             raise CommandError("Failed to create API app")
 
     def _configure_project(self, project_name, api_app, db, template, auth):
@@ -253,7 +256,7 @@ class Command(BaseCommand):
                 check=True,
             )
         except subprocess.CalledProcessError as e:
-            self.stdout.write(self.style.WARNING(f"Config init skipped: {str(e)}"))
+            self.stdout.write(self.style.WARNING(f"Config init skipped: {e!s}"))
 
         # Update the project's urls.py
         urls_path = Path(f"{project_name}/urls.py")
@@ -278,7 +281,7 @@ class Command(BaseCommand):
         """Get authentication settings based on auth type."""
         if auth == "none":
             return ""
-        
+
         settings = """
 # JWT Configuration
 DJANGO_MATT_JWT = {
@@ -296,7 +299,7 @@ DJANGO_MATT_MAGIC_LINK = {
     "BASE_URL": "http://localhost:3000",  # Frontend URL
 }
 """
-        
+
         if auth in ["oauth", "all"]:
             settings += """
 # OAuth Configuration (add your provider credentials)
@@ -311,7 +314,7 @@ DJANGO_MATT_OAUTH = {
     },
 }
 """
-        
+
         return settings
 
     def _get_b2b_settings(self) -> str:
@@ -387,7 +390,7 @@ DJANGO_MATT_B2C = {
     def _create_docker_config(self, project_name: str, db: str):
         """Create Docker and docker-compose configuration."""
         # Dockerfile
-        dockerfile_content = f'''# Python base image
+        dockerfile_content = """# Python base image
 FROM python:3.13-slim
 
 # Set environment variables
@@ -421,14 +424,14 @@ EXPOSE 8000
 
 # Run the application
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
-'''
+"""
         with open("Dockerfile", "w") as f:
             f.write(dockerfile_content)
 
         # docker-compose.yml
         db_config = ""
         if db == "postgres":
-            db_config = '''
+            db_config = """
   db:
     image: postgres:16-alpine
     environment:
@@ -447,9 +450,9 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
 volumes:
   postgres_data:
-'''
+"""
         elif db == "mysql":
-            db_config = '''
+            db_config = """
   db:
     image: mysql:8
     environment:
@@ -464,9 +467,9 @@ volumes:
 
 volumes:
   mysql_data:
-'''
+"""
 
-        compose_content = f'''services:
+        compose_content = f"""services:
   api:
     build: .
     ports:
@@ -481,12 +484,12 @@ volumes:
         {"condition: service_healthy" if db == "postgres" else ""}
     command: python manage.py runserver 0.0.0.0:8000
 {db_config}
-'''
+"""
         with open("docker-compose.yml", "w") as f:
             f.write(compose_content)
 
         # .env.example
-        env_content = '''# Django
+        env_content = """# Django
 DEBUG=True
 SECRET_KEY=change-me-in-production
 ALLOWED_HOSTS=localhost,127.0.0.1
@@ -499,12 +502,12 @@ POSTGRES_PASSWORD=app
 
 # JWT
 JWT_SECRET_KEY=change-me-in-production
-'''
+"""
         with open(".env.example", "w") as f:
             f.write(env_content)
 
         # .dockerignore
-        dockerignore_content = '''__pycache__
+        dockerignore_content = """__pycache__
 *.py[cod]
 *$py.class
 *.so
@@ -523,14 +526,14 @@ htmlcov/
 .pytest_cache/
 .mypy_cache/
 node_modules/
-'''
+"""
         with open(".dockerignore", "w") as f:
             f.write(dockerignore_content)
 
     def _create_makefile(self, project_name: str, docker: bool, frontend: str):
         """Create a Makefile with common commands."""
         if docker:
-            makefile_content = f'''# {project_name} Makefile
+            makefile_content = f"""# {project_name} Makefile
 
 .PHONY: help up down build logs shell migrate makemigrations test lint format
 
@@ -570,9 +573,9 @@ test:
 
 superuser:
 \tdocker compose exec api python manage.py createsuperuser
-'''
+"""
         else:
-            makefile_content = f'''# {project_name} Makefile
+            makefile_content = f"""# {project_name} Makefile
 
 .PHONY: help run migrate makemigrations test lint format shell
 
@@ -604,10 +607,10 @@ superuser:
 # Type sync
 sync-types:
 \tpython manage.py sync_types --target typescript --output frontend/src/types/api.ts
-'''
+"""
 
         if frontend == "react-vite":
-            makefile_content += '''
+            makefile_content += """
 # Frontend
 frontend-install:
 \tcd frontend && bun install
@@ -617,7 +620,7 @@ frontend-dev:
 
 frontend-build:
 \tcd frontend && bun run build
-'''
+"""
 
         with open("Makefile", "w") as f:
             f.write(makefile_content)
@@ -690,7 +693,7 @@ frontend-build:
 
         # Create main App.tsx
         with open(src_dir / "App.tsx", "w") as f:
-            f.write('''import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+            f.write("""import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const queryClient = new QueryClient()
 
@@ -708,11 +711,11 @@ function App() {
 }
 
 export default App
-''')
+""")
 
         # Create main.tsx
         with open(src_dir / "main.tsx", "w") as f:
-            f.write('''import React from 'react'
+            f.write("""import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
@@ -722,18 +725,18 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <App />
   </React.StrictMode>,
 )
-''')
+""")
 
         # Create index.css
         with open(src_dir / "index.css", "w") as f:
-            f.write('''@tailwind base;
+            f.write("""@tailwind base;
 @tailwind components;
 @tailwind utilities;
-''')
+""")
 
         # Create index.html
         with open(frontend_dir / "index.html", "w") as f:
-            f.write(f'''<!doctype html>
+            f.write(f"""<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -745,11 +748,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-''')
+""")
 
         # Create vite.config.ts
         with open(frontend_dir / "vite.config.ts", "w") as f:
-            f.write('''import { defineConfig } from 'vite'
+            f.write("""import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
@@ -763,11 +766,11 @@ export default defineConfig({
     },
   },
 })
-''')
+""")
 
         # Create tsconfig.json
         with open(frontend_dir / "tsconfig.json", "w") as f:
-            f.write('''{
+            f.write("""{
   "compilerOptions": {
     "target": "ES2020",
     "useDefineForClassFields": true,
@@ -788,11 +791,11 @@ export default defineConfig({
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
-''')
+""")
 
         # Create tailwind.config.js
         with open(frontend_dir / "tailwind.config.js", "w") as f:
-            f.write('''/** @type {import('tailwindcss').Config} */
+            f.write("""/** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
@@ -803,21 +806,21 @@ export default {
   },
   plugins: [],
 }
-''')
+""")
 
         # Create postcss.config.js
         with open(frontend_dir / "postcss.config.js", "w") as f:
-            f.write('''export default {
+            f.write("""export default {
   plugins: {
     tailwindcss: {},
     autoprefixer: {},
   },
 }
-''')
+""")
 
     def _get_api_client_ts(self) -> str:
         """Get TypeScript API client code."""
-        return '''// API Client for making requests to the backend
+        return """// API Client for making requests to the backend
 
 const API_BASE_URL = '/api';
 
@@ -893,7 +896,7 @@ class ApiClient {
 }
 
 export const api = new ApiClient();
-'''
+"""
 
     def _create_swift_frontend(self, project_name: str):
         """Create Swift iOS frontend scaffold."""
@@ -947,7 +950,7 @@ let package = Package(
 
     def _get_swift_api_client(self) -> str:
         """Get Swift API client code."""
-        return '''// Auto-generated Swift API Client
+        return """// Auto-generated Swift API Client
 // Do not edit manually - regenerate with sync_types command
 
 import Foundation
@@ -1081,11 +1084,13 @@ private struct AnyEncodable: Encodable {
         try _encode(encoder)
     }
 }
-'''
+"""
 
-    def _create_readme(self, project_name: str, template: str, auth: str, frontend: str, docker: bool):
+    def _create_readme(
+        self, project_name: str, template: str, auth: str, frontend: str, docker: bool
+    ):
         """Create README.md file."""
-        readme = f'''# {project_name}
+        readme = f"""# {project_name}
 
 A Django API project built with [django-matt](https://github.com/mattjaikaran/django-matt).
 
@@ -1094,13 +1099,13 @@ A Django API project built with [django-matt](https://github.com/mattjaikaran/dj
 - **Template**: {template}
 - **Authentication**: {auth}
 - **Frontend**: {frontend}
-- **Docker**: {'Yes' if docker else 'No'}
+- **Docker**: {"Yes" if docker else "No"}
 
 ## Quick Start
 
-'''
+"""
         if docker:
-            readme += '''```bash
+            readme += """```bash
 # Start all services
 make up
 
@@ -1112,9 +1117,9 @@ make superuser
 ```
 
 The API will be available at http://localhost:8000
-'''
+"""
         else:
-            readme += '''```bash
+            readme += """```bash
 # Install dependencies
 pip install -r requirements.txt
 
@@ -1126,9 +1131,9 @@ python manage.py runserver_hot
 ```
 
 The API will be available at http://localhost:8000
-'''
+"""
 
-        readme += '''
+        readme += """
 ## API Documentation
 
 - Swagger UI: http://localhost:8000/docs/
@@ -1138,8 +1143,8 @@ The API will be available at http://localhost:8000
 ## Project Structure
 
 ```
-'''
-        readme += f'''{project_name}/
+"""
+        readme += f"""{project_name}/
 ├── api/
 │   ├── controllers/     # API endpoints
 │   ├── models/          # Database models
@@ -1148,25 +1153,25 @@ The API will be available at http://localhost:8000
 ├── {project_name}/
 │   ├── settings.py      # Django settings
 │   └── urls.py          # Root URL config
-'''
+"""
         if frontend == "react-vite":
-            readme += '''├── frontend/            # React frontend
+            readme += """├── frontend/            # React frontend
 │   ├── src/
 │   │   ├── api/         # API client
 │   │   └── types/       # TypeScript types
 │   └── package.json
-'''
+"""
         elif frontend == "swift":
-            readme += '''├── ios/                 # iOS frontend
+            readme += """├── ios/                 # iOS frontend
 │   ├── Sources/
 │   │   └── API/         # API client
 │   └── Package.swift
-'''
+"""
         if docker:
-            readme += '''├── Dockerfile
+            readme += """├── Dockerfile
 ├── docker-compose.yml
-'''
-        readme += '''├── Makefile
+"""
+        readme += """├── Makefile
 └── manage.py
 ```
 
@@ -1181,7 +1186,7 @@ python manage.py sync_types --target typescript --output frontend/src/types/api.
 # Swift
 python manage.py sync_types --target swift --output ios/Sources/API/Models.swift
 ```
-'''
+"""
 
         with open("README.md", "w") as f:
             f.write(readme)
@@ -1386,30 +1391,30 @@ class ApiConfig(AppConfig):
 
     def _get_example_urls(self, template: str, auth: str) -> str:
         """Get the content for the example urls.py file based on template."""
-        urls_content = '''from django.urls import path
+        urls_content = """from django.urls import path
 from django_matt import APIRouter
 
 from .controllers import TaskController
-'''
-        
+"""
+
         if auth in ["jwt", "magic-link", "all"]:
-            urls_content += '''from django_matt.auth import AuthController
-'''
-        
-        urls_content += '''
+            urls_content += """from django_matt.auth import AuthController
+"""
+
+        urls_content += """
 # Create a router for the API
 router = APIRouter(prefix="api/", tags=["tasks"])
 
 # Register controllers
 router.register_controller(TaskController)
-'''
-        
+"""
+
         if auth in ["jwt", "magic-link", "all"]:
-            urls_content += '''router.register_controller(AuthController)
-'''
-        
-        urls_content += '''
+            urls_content += """router.register_controller(AuthController)
+"""
+
+        urls_content += """
 # Get the URL patterns
 urlpatterns = router.get_urls()
-'''
+"""
         return urls_content

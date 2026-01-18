@@ -16,31 +16,19 @@ Usage:
     gen.generate_all()
 """
 
-from typing import Dict, List, Optional, Type
-
 from django.db import models
 
 from django_matt.codegen.core import (
     CodeFile,
     CodeGenerator,
-    Comment,
-    Import,
-    ImportFrom,
-    Function,
-    Parameter,
     Statement,
-    Return,
-    Variable,
 )
 from django_matt.codegen.introspection import (
-    ModelIntrospector,
-    ModelInfo,
     FieldInfo,
+    ModelIntrospector,
 )
 from django_matt.codegen.typescript import (
     generate_typescript_interface,
-    generate_zod_schema,
-    django_field_to_typescript,
 )
 
 
@@ -69,8 +57,7 @@ def _field_to_form_input(field: FieldInfo) -> str:
     # Handle choices with select
     if field.choices:
         options = "\n".join(
-            f'        <option value="{c[0]}">{c[1]}</option>'
-            for c in field.choices
+            f'        <option value="{c[0]}">{c[1]}</option>' for c in field.choices
         )
         return f'''    <div class="form-group">
       <label for="{name}">{label}</label>
@@ -84,9 +71,14 @@ def _field_to_form_input(field: FieldInfo) -> str:
     input_type = "text"
     extra_attrs = ""
 
-    if field.field_type in ("IntegerField", "SmallIntegerField", "BigIntegerField",
-                            "PositiveIntegerField", "PositiveSmallIntegerField",
-                            "PositiveBigIntegerField"):
+    if field.field_type in (
+        "IntegerField",
+        "SmallIntegerField",
+        "BigIntegerField",
+        "PositiveIntegerField",
+        "PositiveSmallIntegerField",
+        "PositiveBigIntegerField",
+    ):
         input_type = "number"
         extra_attrs = ' step="1"'
     elif field.field_type in ("FloatField", "DecimalField"):
@@ -124,7 +116,7 @@ def _field_to_form_input(field: FieldInfo) -> str:
 
     # Add required
     if field.is_required:
-        extra_attrs += ' required'
+        extra_attrs += " required"
 
     return f'''    <div class="form-group">
       <label for="{name}">{label}</label>
@@ -133,7 +125,7 @@ def _field_to_form_input(field: FieldInfo) -> str:
 
 
 def generate_svelte_stores(
-    model: Type[models.Model],
+    model: type[models.Model],
     api_base: str = "/api",
 ) -> str:
     """
@@ -154,7 +146,7 @@ def generate_svelte_stores(
     name_plural = f"{name_lower}s"
     endpoint = f"{api_base}/{name_plural}"
 
-    return f'''/**
+    return f"""/**
  * Svelte stores for {name} CRUD operations.
  * Auto-generated from Django model {info.full_name}.
  */
@@ -344,11 +336,11 @@ export function reset{name}State(): void {{
   page.set(1);
   totalCount.set(0);
 }}
-'''
+"""
 
 
 def generate_svelte5_stores(
-    model: Type[models.Model],
+    model: type[models.Model],
     api_base: str = "/api",
 ) -> str:
     """
@@ -369,7 +361,7 @@ def generate_svelte5_stores(
     name_plural = f"{name_lower}s"
     endpoint = f"{api_base}/{name_plural}"
 
-    return f'''/**
+    return f"""/**
  * Svelte 5 runes-based state for {name} CRUD operations.
  * Auto-generated from Django model {info.full_name}.
  */
@@ -548,11 +540,11 @@ export function create{name}State() {{
     reset,
   }};
 }}
-'''
+"""
 
 
 def generate_svelte_form(
-    model: Type[models.Model],
+    model: type[models.Model],
     mode: str = "create",
 ) -> str:
     """
@@ -576,9 +568,7 @@ def generate_svelte_form(
     form_fields = "\n\n".join(_field_to_form_input(f) for f in fields)
 
     # Generate initial values
-    initial_values = ",\n    ".join(
-        f"{f.name}: {_get_field_default(f)}" for f in fields
-    )
+    initial_values = ",\n    ".join(f"{f.name}: {_get_field_default(f)}" for f in fields)
 
     is_edit = mode == "edit"
     title = f"Edit {name}" if is_edit else f"Create {name}"
@@ -587,10 +577,10 @@ def generate_svelte_form(
     return f'''<script lang="ts">
   import {{ createEventDispatcher }} from 'svelte';
   import type {{ {name}CreateInput }} from './types';
-  {'import { create' + name + ', update' + name + ' } from "./' + name_lower + '-stores";' if not is_edit else 'import { update' + name + ' } from "./' + name_lower + '-stores";'}
+  {"import { create" + name + ", update" + name + ' } from "./' + name_lower + '-stores";' if not is_edit else "import { update" + name + ' } from "./' + name_lower + '-stores";'}
 
   export let initial: Partial<{name}CreateInput> = {{}};
-  {'export let id: number | string;' if is_edit else ''}
+  {"export let id: number | string;" if is_edit else ""}
 
   const dispatch = createEventDispatcher<{{
     success: {name}CreateInput;
@@ -610,7 +600,7 @@ def generate_svelte_form(
     errorMessage = null;
 
     try {{
-      {'await update' + name + '(id, formData);' if is_edit else 'await create' + name + '(formData);'}
+      {"await update" + name + "(id, formData);" if is_edit else "await create" + name + "(formData);"}
       dispatch('success', formData);
     }} catch (e) {{
       errorMessage = e instanceof Error ? e.message : 'An error occurred';
@@ -743,7 +733,7 @@ def generate_svelte_form(
 
 
 def generate_svelte_list(
-    model: Type[models.Model],
+    model: type[models.Model],
 ) -> str:
     """
     Generate a Svelte list component for a Django model.
@@ -763,14 +753,10 @@ def generate_svelte_list(
     display_fields = [f for f in info.fields if not f.is_auto][:5]
 
     # Generate table headers
-    headers = "\n      ".join(
-        f"<th>{f.verbose_name.title()}</th>" for f in display_fields
-    )
+    headers = "\n      ".join(f"<th>{f.verbose_name.title()}</th>" for f in display_fields)
 
     # Generate table cells
-    cells = "\n        ".join(
-        f"<td>{{item.{f.name}}}</td>" for f in display_fields
-    )
+    cells = "\n        ".join(f"<td>{{item.{f.name}}}</td>" for f in display_fields)
 
     return f'''<script lang="ts">
   import {{ onMount }} from 'svelte';
@@ -1022,7 +1008,7 @@ def generate_svelte_list(
 
 
 def generate_svelte_detail(
-    model: Type[models.Model],
+    model: type[models.Model],
 ) -> str:
     """
     Generate a Svelte detail component for a Django model.
@@ -1039,10 +1025,10 @@ def generate_svelte_detail(
 
     # Generate field displays
     field_displays = "\n    ".join(
-        f'''<div class="field">
+        f"""<div class="field">
       <dt>{f.verbose_name.title()}</dt>
       <dd>{{${name_lower}?.{f.name} ?? '-'}}</dd>
-    </div>'''
+    </div>"""
         for f in info.fields
     )
 
@@ -1181,9 +1167,16 @@ def _get_field_default(field: FieldInfo) -> str:
     """Get the default value for a field in JavaScript."""
     if field.field_type == "BooleanField":
         return "false"
-    if field.field_type in ("IntegerField", "SmallIntegerField", "BigIntegerField",
-                            "PositiveIntegerField", "PositiveSmallIntegerField",
-                            "PositiveBigIntegerField", "FloatField", "DecimalField"):
+    if field.field_type in (
+        "IntegerField",
+        "SmallIntegerField",
+        "BigIntegerField",
+        "PositiveIntegerField",
+        "PositiveSmallIntegerField",
+        "PositiveBigIntegerField",
+        "FloatField",
+        "DecimalField",
+    ):
         return "0"
     if field.choices:
         return "''"
@@ -1201,7 +1194,7 @@ class SvelteGenerator(CodeGenerator):
 
     def __init__(
         self,
-        models: List[Type[models.Model]],
+        models: list[type[models.Model]],
         output_dir: str = "./generated",
         api_base: str = "/api",
         svelte_version: int = 4,  # 4 or 5
@@ -1210,15 +1203,14 @@ class SvelteGenerator(CodeGenerator):
         self.models = models
         self.api_base = api_base
         self.svelte_version = svelte_version
-        self.model_infos = {
-            m._meta.object_name: ModelIntrospector(m).introspect()
-            for m in models
-        }
+        self.model_infos = {m._meta.object_name: ModelIntrospector(m).introspect() for m in models}
 
     def generate_types_file(self) -> CodeFile:
         """Generate a types.ts file with all interfaces."""
         file = CodeFile()
-        file.header_comment = "Auto-generated TypeScript types from Django models.\nDo not edit manually."
+        file.header_comment = (
+            "Auto-generated TypeScript types from Django models.\nDo not edit manually."
+        )
 
         for model in self.models:
             ts_code = generate_typescript_interface(model)
@@ -1226,25 +1218,25 @@ class SvelteGenerator(CodeGenerator):
 
         return file
 
-    def generate_stores_file(self, model: Type[models.Model]) -> str:
+    def generate_stores_file(self, model: type[models.Model]) -> str:
         """Generate stores file for a model."""
         if self.svelte_version >= 5:
             return generate_svelte5_stores(model, self.api_base)
         return generate_svelte_stores(model, self.api_base)
 
-    def generate_form_component(self, model: Type[models.Model], mode: str = "create") -> str:
+    def generate_form_component(self, model: type[models.Model], mode: str = "create") -> str:
         """Generate form component for a model."""
         return generate_svelte_form(model, mode)
 
-    def generate_list_component(self, model: Type[models.Model]) -> str:
+    def generate_list_component(self, model: type[models.Model]) -> str:
         """Generate list component for a model."""
         return generate_svelte_list(model)
 
-    def generate_detail_component(self, model: Type[models.Model]) -> str:
+    def generate_detail_component(self, model: type[models.Model]) -> str:
         """Generate detail component for a model."""
         return generate_svelte_detail(model)
 
-    def generate_all(self) -> Dict[str, str]:
+    def generate_all(self) -> dict[str, str]:
         """Generate all Svelte files."""
         files = {}
 
@@ -1271,9 +1263,9 @@ class SvelteGenerator(CodeGenerator):
 
 __all__ = [
     "SvelteGenerator",
-    "generate_svelte_stores",
     "generate_svelte5_stores",
+    "generate_svelte_detail",
     "generate_svelte_form",
     "generate_svelte_list",
-    "generate_svelte_detail",
+    "generate_svelte_stores",
 ]

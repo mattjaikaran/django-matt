@@ -5,7 +5,6 @@ This file ensures Django is properly set up before any test imports happen.
 """
 
 import os
-import sys
 
 # Configure Django settings before any other imports
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tests.settings")
@@ -16,8 +15,9 @@ import django
 django.setup()
 
 # Now we can safely import pytest and other fixtures
-import pytest
 from django.test import RequestFactory
+
+import pytest
 
 
 @pytest.fixture

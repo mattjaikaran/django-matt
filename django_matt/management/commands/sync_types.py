@@ -4,40 +4,39 @@ Management command to synchronize types between Python and TypeScript/Swift.
 Usage:
     # Generate TypeScript types
     python manage.py sync_types --target typescript --output frontend/src/types/api.ts
-    
+
     # Generate Zod schemas
     python manage.py sync_types --target zod --output frontend/src/schemas/api.ts
-    
+
     # Generate Swift types
     python manage.py sync_types --target swift --output ios/App/API/Models.swift
-    
+
     # Generate API client
     python manage.py sync_types --target api-client --output frontend/src/api/client.ts
-    
+
     # Watch mode for development
     python manage.py sync_types --target typescript --output frontend/src/types/api.ts --watch
-    
+
     # Scan specific apps
     python manage.py sync_types --target typescript --apps myapp,otherapp
-    
+
     # Scan specific schema modules
     python manage.py sync_types --target typescript --modules myapp.schemas,otherapp.schemas
 """
 
 import importlib
 import os
-import sys
 import time
 from pathlib import Path
-from typing import List, Optional, Type
 
 from django.core.management.base import BaseCommand, CommandError
+
 from pydantic import BaseModel
 
 
 class Command(BaseCommand):
     help = "Generate TypeScript or Swift types from Pydantic schemas and Django models"
-    
+
     def add_arguments(self, parser):
         parser.add_argument(
             "--target",
@@ -102,7 +101,7 @@ class Command(BaseCommand):
             action="store_true",
             help="Include SWR hooks in API client",
         )
-    
+
     def handle(self, *args, **options):
         target = options["target"]
         output = options["output"]
@@ -115,25 +114,25 @@ class Command(BaseCommand):
         base_url = options["base_url"]
         include_react_query = options["include_react_query"]
         include_swr = options["include_swr"]
-        
+
         # Normalize target
         if target == "ts":
             target = "typescript"
-        
+
         # Collect schemas and models
         schemas = self._collect_schemas(apps, modules)
         models = self._collect_models(apps) if include_models else []
-        
+
         if not schemas and not models:
             self.stderr.write(
-                self.style.WARNING("No schemas or models found. Use --apps or --modules to specify sources.")
+                self.style.WARNING(
+                    "No schemas or models found. Use --apps or --modules to specify sources."
+                )
             )
             return
-        
-        self.stdout.write(
-            f"Found {len(schemas)} Pydantic schemas and {len(models)} Django models"
-        )
-        
+
+        self.stdout.write(f"Found {len(schemas)} Pydantic schemas and {len(models)} Django models")
+
         # Generate code
         if watch:
             self._watch_and_generate(
@@ -157,29 +156,28 @@ class Command(BaseCommand):
                 include_react_query=include_react_query,
                 include_swr=include_swr,
             )
-            
+
             if output:
                 self._write_output(output, code)
-                self.stdout.write(
-                    self.style.SUCCESS(f"Generated {target} types to {output}")
-                )
+                self.stdout.write(self.style.SUCCESS(f"Generated {target} types to {output}"))
             else:
                 self.stdout.write(code)
-    
+
     def _collect_schemas(
         self,
-        apps: Optional[str],
-        modules: Optional[str],
-    ) -> List[Type[BaseModel]]:
+        apps: str | None,
+        modules: str | None,
+    ) -> list[type[BaseModel]]:
         """Collect Pydantic schemas from specified apps or modules."""
         schemas = []
-        
+
         # Collect from modules
         if modules:
             for module_path in modules.split(","):
                 module_path = module_path.strip()
                 try:
                     from django_matt.typegen.utils import collect_schemas_from_module
+
                     module_schemas = collect_schemas_from_module(module_path)
                     schemas.extend(module_schemas)
                     self.stdout.write(f"  Found {len(module_schemas)} schemas in {module_path}")
@@ -187,7 +185,7 @@ class Command(BaseCommand):
                     self.stderr.write(
                         self.style.WARNING(f"Could not import module {module_path}: {e}")
                     )
-        
+
         # Collect from apps
         if apps:
             for app_label in apps.split(","):
@@ -197,12 +195,13 @@ class Command(BaseCommand):
                     module_path = f"{app_label}.{suffix}"
                     try:
                         from django_matt.typegen.utils import collect_schemas_from_module
+
                         module_schemas = collect_schemas_from_module(module_path)
                         schemas.extend(module_schemas)
                         self.stdout.write(f"  Found {len(module_schemas)} schemas in {module_path}")
                     except ImportError:
                         pass
-        
+
         # Remove duplicates while preserving order
         seen = set()
         unique_schemas = []
@@ -210,31 +209,31 @@ class Command(BaseCommand):
             if schema.__name__ not in seen:
                 seen.add(schema.__name__)
                 unique_schemas.append(schema)
-        
+
         return unique_schemas
-    
-    def _collect_models(self, apps: Optional[str]) -> List[type]:
+
+    def _collect_models(self, apps: str | None) -> list[type]:
         """Collect Django models from specified apps."""
         models = []
-        
+
         if not apps:
             return models
-        
+
         from django_matt.typegen.utils import collect_models_from_app
-        
+
         for app_label in apps.split(","):
             app_label = app_label.strip()
             app_models = collect_models_from_app(app_label)
             models.extend(app_models)
             self.stdout.write(f"  Found {len(app_models)} models in {app_label}")
-        
+
         return models
-    
+
     def _generate(
         self,
         target: str,
-        schemas: List[Type[BaseModel]],
-        models: List[type],
+        schemas: list[type[BaseModel]],
+        models: list[type],
         camel_case: bool = False,
         base_url: str = "/api",
         include_react_query: bool = False,
@@ -243,34 +242,38 @@ class Command(BaseCommand):
         """Generate code for the specified target."""
         if target == "typescript":
             from django_matt.typegen.typescript import TypeScriptGenerator
+
             generator = TypeScriptGenerator(camel_case=camel_case)
-            
+
             parts = []
             if schemas:
                 parts.append(generator.generate(schemas))
             if models:
                 parts.append(generator.generate_from_django_models(models))
-            
+
             return "\n".join(parts)
-        
-        elif target == "zod":
+
+        if target == "zod":
             from django_matt.typegen.zod import ZodGenerator
+
             generator = ZodGenerator(camel_case=camel_case)
             return generator.generate(schemas)
-        
-        elif target == "swift":
+
+        if target == "swift":
             from django_matt.typegen.swift import SwiftGenerator
+
             generator = SwiftGenerator()
             return generator.generate(schemas)
-        
-        elif target == "api-client":
+
+        if target == "api-client":
             from django_matt.typegen.api_client import APIClientGenerator
-            
+
             # First generate types
             from django_matt.typegen.typescript import TypeScriptGenerator
+
             ts_generator = TypeScriptGenerator(camel_case=camel_case)
             types_code = ts_generator.generate(schemas)
-            
+
             # Then generate client stub
             api_generator = APIClientGenerator(
                 base_url=base_url,
@@ -278,7 +281,7 @@ class Command(BaseCommand):
                 include_react_query=include_react_query,
                 include_swr=include_swr,
             )
-            
+
             # Note: Without OpenAPI schema or controllers, we generate a basic client
             client_code = self._generate_basic_client(
                 schemas,
@@ -287,31 +290,32 @@ class Command(BaseCommand):
                 include_react_query,
                 include_swr,
             )
-            
+
             return f"{types_code}\n{client_code}"
-        
-        elif target == "all":
+
+        if target == "all":
             parts = []
             for t in ["typescript", "zod"]:
                 parts.append(f"// === {t.upper()} ===")
-                parts.append(self._generate(
-                    target=t,
-                    schemas=schemas,
-                    models=models,
-                    camel_case=camel_case,
-                    base_url=base_url,
-                    include_react_query=include_react_query,
-                    include_swr=include_swr,
-                ))
+                parts.append(
+                    self._generate(
+                        target=t,
+                        schemas=schemas,
+                        models=models,
+                        camel_case=camel_case,
+                        base_url=base_url,
+                        include_react_query=include_react_query,
+                        include_swr=include_swr,
+                    )
+                )
                 parts.append("")
             return "\n".join(parts)
-        
-        else:
-            raise CommandError(f"Unknown target: {target}")
-    
+
+        raise CommandError(f"Unknown target: {target}")
+
     def _generate_basic_client(
         self,
-        schemas: List[Type[BaseModel]],
+        schemas: list[type[BaseModel]],
         base_url: str,
         camel_case: bool,
         include_react_query: bool,
@@ -410,43 +414,41 @@ class Command(BaseCommand):
             "",
             "export const api = new ApiClient();",
         ]
-        
+
         return "\n".join(lines)
-    
+
     def _write_output(self, output_path: str, code: str):
         """Write generated code to output file."""
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(code)
-    
+
     def _watch_and_generate(
         self,
         target: str,
-        output: Optional[str],
-        schemas: List[Type[BaseModel]],
-        models: List[type],
+        output: str | None,
+        schemas: list[type[BaseModel]],
+        models: list[type],
         interval: float,
         **kwargs,
     ):
         """Watch for changes and regenerate."""
-        self.stdout.write(
-            self.style.SUCCESS(f"Watching for changes (interval: {interval}s)...")
-        )
-        
+        self.stdout.write(self.style.SUCCESS(f"Watching for changes (interval: {interval}s)..."))
+
         # Get module files to watch
         watch_files = set()
         for schema in schemas:
             module = importlib.import_module(schema.__module__)
             if hasattr(module, "__file__") and module.__file__:
                 watch_files.add(module.__file__)
-        
+
         for model in models:
             module = importlib.import_module(model.__module__)
             if hasattr(module, "__file__") and module.__file__:
                 watch_files.add(module.__file__)
-        
+
         self.stdout.write(f"Watching {len(watch_files)} files")
-        
+
         # Get initial mtimes
         mtimes = {}
         for filepath in watch_files:
@@ -454,11 +456,11 @@ class Command(BaseCommand):
                 mtimes[filepath] = os.path.getmtime(filepath)
             except OSError:
                 pass
-        
+
         try:
             while True:
                 time.sleep(interval)
-                
+
                 # Check for changes
                 changed = False
                 for filepath in watch_files:
@@ -470,15 +472,15 @@ class Command(BaseCommand):
                             self.stdout.write(f"  Changed: {filepath}")
                     except OSError:
                         pass
-                
+
                 if changed:
                     self.stdout.write("Regenerating...")
-                    
+
                     # Reload modules
                     for schema in schemas:
                         module = importlib.import_module(schema.__module__)
                         importlib.reload(module)
-                    
+
                     # Regenerate
                     code = self._generate(
                         target=target,
@@ -486,7 +488,7 @@ class Command(BaseCommand):
                         models=models,
                         **kwargs,
                     )
-                    
+
                     if output:
                         self._write_output(output, code)
                         self.stdout.write(
@@ -494,6 +496,6 @@ class Command(BaseCommand):
                         )
                     else:
                         self.stdout.write(code)
-        
+
         except KeyboardInterrupt:
             self.stdout.write("\nStopped watching.")

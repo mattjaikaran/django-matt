@@ -4,24 +4,24 @@ Local filesystem storage backend.
 Provides file storage on the local filesystem.
 """
 
+import hashlib
+import os
+from collections.abc import Iterator
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from typing import TYPE_CHECKING, BinaryIO, Union
+
 import aiofiles
 import aiofiles.os
-import mimetypes
-import os
-import hashlib
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
-from typing import BinaryIO, Iterator, Optional, Union, TYPE_CHECKING
 
 from .storage import (
     BaseStorage,
-    FileInfo,
-    PresignedUrl,
-    StorageError,
-    FileNotFoundError,
     FileExistsError,
+    FileInfo,
+    FileNotFoundError,
+    PresignedUrl,
 )
-from .utils import generate_unique_filename, sanitize_filename, get_content_type
+from .utils import generate_unique_filename, get_content_type, sanitize_filename
 
 if TYPE_CHECKING:
     from .upload import UploadedFile
@@ -215,7 +215,7 @@ class LocalStorage(BaseStorage):
         if meta_path.exists():
             import json
 
-            async with aiofiles.open(meta_path, "r") as f:
+            async with aiofiles.open(meta_path) as f:
                 metadata = json.loads(await f.read())
 
         # Calculate etag
@@ -227,7 +227,7 @@ class LocalStorage(BaseStorage):
             key=key,
             size=stat.st_size,
             content_type=get_content_type(full_path.name),
-            last_modified=datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc),
+            last_modified=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
             etag=etag,
             metadata=metadata,
         )
@@ -237,7 +237,7 @@ class LocalStorage(BaseStorage):
         prefix: str = "",
         limit: int = None,
         cursor: str = None,
-    ) -> tuple[list[FileInfo], Optional[str]]:
+    ) -> tuple[list[FileInfo], str | None]:
         """List files in storage."""
         search_path = self.base_path
         if prefix:
@@ -296,11 +296,11 @@ class LocalStorage(BaseStorage):
         Note: Local storage doesn't support true pre-signed uploads.
         This returns a signed token that can be verified server-side.
         """
-        import hmac
         import base64
+        import hmac
         import json
 
-        expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires)
+        expires_at = datetime.now(UTC) + timedelta(seconds=expires)
 
         # Create signature payload
         payload = {
@@ -343,11 +343,11 @@ class LocalStorage(BaseStorage):
         Note: Local storage uses signed tokens for access control.
         You'll need to implement a view to verify and serve the file.
         """
-        import hmac
         import base64
+        import hmac
         import json
 
-        expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires)
+        expires_at = datetime.now(UTC) + timedelta(seconds=expires)
 
         # Create signature payload
         payload = {
@@ -379,7 +379,7 @@ class LocalStorage(BaseStorage):
             headers=headers,
         )
 
-    def verify_signature(self, token: str, signature: str) -> Optional[dict]:
+    def verify_signature(self, token: str, signature: str) -> dict | None:
         """
         Verify a pre-signed URL signature.
 
@@ -390,8 +390,8 @@ class LocalStorage(BaseStorage):
         Returns:
             The payload dict if valid and not expired, None otherwise
         """
-        import hmac
         import base64
+        import hmac
         import json
 
         try:
@@ -409,7 +409,7 @@ class LocalStorage(BaseStorage):
 
             # Check expiration
             expires = datetime.fromisoformat(payload["expires"])
-            if datetime.now(timezone.utc) > expires:
+            if datetime.now(UTC) > expires:
                 return None
 
             return payload

@@ -10,13 +10,9 @@ import os
 settings = {
     # Django Matt performance settings
     "DJANGO_MATT": {
-        "BENCHMARK_ENABLED": os.environ.get(
-            "DJANGO_MATT_BENCHMARK_ENABLED", "False"
-        ).lower()
+        "BENCHMARK_ENABLED": os.environ.get("DJANGO_MATT_BENCHMARK_ENABLED", "False").lower()
         == "true",
-        "BENCHMARK_HEADER": os.environ.get(
-            "DJANGO_MATT_BENCHMARK_HEADER", "X-Django-Matt-Timing"
-        ),
+        "BENCHMARK_HEADER": os.environ.get("DJANGO_MATT_BENCHMARK_HEADER", "X-Django-Matt-Timing"),
     },
     # Django optimization settings
     "DATA_UPLOAD_MAX_MEMORY_SIZE": int(
@@ -25,9 +21,7 @@ settings = {
     "FILE_UPLOAD_MAX_MEMORY_SIZE": int(
         os.environ.get("FILE_UPLOAD_MAX_MEMORY_SIZE", 2621440)
     ),  # 2.5 MB
-    "DATA_UPLOAD_MAX_NUMBER_FIELDS": int(
-        os.environ.get("DATA_UPLOAD_MAX_NUMBER_FIELDS", 1000)
-    ),
+    "DATA_UPLOAD_MAX_NUMBER_FIELDS": int(os.environ.get("DATA_UPLOAD_MAX_NUMBER_FIELDS", 1000)),
     # Template caching
     "TEMPLATES": [
         {

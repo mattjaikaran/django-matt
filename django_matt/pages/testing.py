@@ -6,10 +6,10 @@ page views and responses.
 """
 
 import json
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
 
-from django.test import Client, TestCase
 from django.http import HttpResponse
+from django.test import Client
 
 
 class PageTestClient(Client):
@@ -43,7 +43,7 @@ class PageTestClient(Client):
         response = self.get(path, **kwargs)
         return PageResponse(response)
 
-    def post_page(self, path: str, data: Dict[str, Any] = None, **kwargs) -> "PageResponse":
+    def post_page(self, path: str, data: dict[str, Any] = None, **kwargs) -> "PageResponse":
         """
         Make a POST request expecting a page response.
         """
@@ -64,7 +64,7 @@ class PageTestClient(Client):
     def submit_form(
         self,
         path: str,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         **kwargs,
     ) -> "PageResponse":
         """
@@ -83,7 +83,7 @@ class PageTestClient(Client):
         kwargs.setdefault("HTTP_ACCEPT", "application/json")
         return self.get(path, **kwargs)
 
-    def api_post(self, path: str, data: Dict[str, Any] = None, **kwargs) -> HttpResponse:
+    def api_post(self, path: str, data: dict[str, Any] = None, **kwargs) -> HttpResponse:
         """
         Make an API POST request.
         """
@@ -101,7 +101,7 @@ class PageResponse:
 
     def __init__(self, response: HttpResponse):
         self.response = response
-        self._page_data: Optional[Dict[str, Any]] = None
+        self._page_data: dict[str, Any] | None = None
 
     @property
     def status_code(self) -> int:
@@ -118,14 +118,14 @@ class PageResponse:
         return self.status_code in (301, 302, 303, 307, 308)
 
     @property
-    def redirect_url(self) -> Optional[str]:
+    def redirect_url(self) -> str | None:
         """Get redirect URL if this is a redirect."""
         if self.is_redirect:
             return self.response.get("Location") or self.response.get("X-Page-Location")
         return None
 
     @property
-    def page_data(self) -> Dict[str, Any]:
+    def page_data(self) -> dict[str, Any]:
         """
         Get the page data from the response.
 
@@ -150,6 +150,7 @@ class PageResponse:
             content = self.response.content.decode("utf-8")
             # Find the page-data script tag
             import re
+
             match = re.search(
                 r'<script[^>]*id="page-data"[^>]*>(.*?)</script>',
                 content,
@@ -164,36 +165,36 @@ class PageResponse:
         return {}
 
     @property
-    def page_component(self) -> Optional[str]:
+    def page_component(self) -> str | None:
         """Get the component name from page data."""
         return self.page_data.get("component")
 
     @property
-    def page_props(self) -> Dict[str, Any]:
+    def page_props(self) -> dict[str, Any]:
         """Get props from page data."""
         return self.page_data.get("props", {})
 
     @property
-    def page_shared(self) -> Dict[str, Any]:
+    def page_shared(self) -> dict[str, Any]:
         """Get shared data from page data."""
         return self.page_data.get("shared", {})
 
     @property
-    def page_errors(self) -> Dict[str, List[str]]:
+    def page_errors(self) -> dict[str, list[str]]:
         """Get validation errors from page data."""
         return self.page_data.get("errors", {})
 
     @property
-    def page_flash(self) -> List[Dict[str, str]]:
+    def page_flash(self) -> list[dict[str, str]]:
         """Get flash messages from page data."""
         return self.page_data.get("flash", [])
 
     @property
-    def page_title(self) -> Optional[str]:
+    def page_title(self) -> str | None:
         """Get page title from page data."""
         return self.page_data.get("title")
 
-    def json(self) -> Dict[str, Any]:
+    def json(self) -> dict[str, Any]:
         """Get the response as JSON."""
         return json.loads(self.response.content)
 
@@ -222,7 +223,7 @@ class PageTestMixin:
         """Make a page GET request."""
         return self.page_client.get_page(path, **kwargs)
 
-    def post_page(self, path: str, data: Dict[str, Any] = None, **kwargs) -> PageResponse:
+    def post_page(self, path: str, data: dict[str, Any] = None, **kwargs) -> PageResponse:
         """Make a page POST request."""
         return self.page_client.post_page(path, data, **kwargs)
 
@@ -289,7 +290,7 @@ class PageTestMixin:
 
 
 __all__ = [
-    "PageTestClient",
     "PageResponse",
+    "PageTestClient",
     "PageTestMixin",
 ]

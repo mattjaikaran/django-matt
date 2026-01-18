@@ -9,7 +9,6 @@ from typing import Any
 
 from django.core.cache import cache
 
-
 # =============================================================================
 # Data Classes
 # =============================================================================
@@ -47,13 +46,9 @@ class SSOError(Exception):
 class SSOConfigError(SSOError):
     """SSO configuration error."""
 
-    pass
-
 
 class SSOAuthenticationError(SSOError):
     """SSO authentication failed."""
-
-    pass
 
 
 # =============================================================================
@@ -148,13 +143,42 @@ class SSOProvider(ABC):
 
         # Default attribute names (common across providers)
         default_mapping = {
-            "idp_user_id": ["sub", "nameId", "NameID", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"],
-            "email": ["email", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress", "mail"],
-            "name": ["name", "displayName", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"],
-            "first_name": ["given_name", "firstName", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"],
-            "last_name": ["family_name", "lastName", "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"],
-            "groups": ["groups", "memberOf", "http://schemas.microsoft.com/ws/2008/06/identity/claims/groups"],
-            "roles": ["roles", "role", "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"],
+            "idp_user_id": [
+                "sub",
+                "nameId",
+                "NameID",
+                "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
+            ],
+            "email": [
+                "email",
+                "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
+                "mail",
+            ],
+            "name": [
+                "name",
+                "displayName",
+                "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+            ],
+            "first_name": [
+                "given_name",
+                "firstName",
+                "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname",
+            ],
+            "last_name": [
+                "family_name",
+                "lastName",
+                "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname",
+            ],
+            "groups": [
+                "groups",
+                "memberOf",
+                "http://schemas.microsoft.com/ws/2008/06/identity/claims/groups",
+            ],
+            "roles": [
+                "roles",
+                "role",
+                "http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+            ],
         }
 
         def get_attribute(field: str) -> Any:
@@ -204,7 +228,6 @@ class SSOProvider(ABC):
         Returns:
             The login URL
         """
-        pass
 
     @abstractmethod
     async def process_callback(self, request) -> SSOUserInfo:
@@ -220,7 +243,6 @@ class SSOProvider(ABC):
         Raises:
             SSOAuthenticationError: If authentication fails
         """
-        pass
 
     def get_metadata(self) -> str | None:
         """

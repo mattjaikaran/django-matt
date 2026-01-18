@@ -5,16 +5,15 @@ Provides PageData and PageResponse for rendering pages as HTML or JSON
 based on request mode (initial visit, SPA navigation, or API).
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Type, Union
 import json
+from dataclasses import dataclass, field
+from typing import Any
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.template.loader import render_to_string
-from django.conf import settings
 
 try:
     import orjson
+
     HAS_ORJSON = True
 except ImportError:
     HAS_ORJSON = False
@@ -29,24 +28,24 @@ class PageData:
     containing the component name, props, and metadata.
     """
 
-    component: str                                      # Component name (e.g., "UserList")
-    props: Dict[str, Any]                              # Page props
-    url: str                                           # Current URL
-    version: str = ""                                  # Asset version hash
-    shared: Dict[str, Any] = field(default_factory=dict)   # Shared data (auth, etc.)
-    errors: Dict[str, List[str]] = field(default_factory=dict)  # Validation errors
-    flash: List[Dict[str, str]] = field(default_factory=list)   # Flash messages
+    component: str  # Component name (e.g., "UserList")
+    props: dict[str, Any]  # Page props
+    url: str  # Current URL
+    version: str = ""  # Asset version hash
+    shared: dict[str, Any] = field(default_factory=dict)  # Shared data (auth, etc.)
+    errors: dict[str, list[str]] = field(default_factory=dict)  # Validation errors
+    flash: list[dict[str, str]] = field(default_factory=list)  # Flash messages
 
     # Metadata
-    title: Optional[str] = None                        # Page title
-    meta: Dict[str, str] = field(default_factory=dict) # Meta tags
+    title: str | None = None  # Page title
+    meta: dict[str, str] = field(default_factory=dict)  # Meta tags
 
     # Navigation options
-    preserve_scroll: bool = False                      # Preserve scroll position
-    clear_history: bool = False                        # Clear browser history
-    replace_state: bool = False                        # Replace instead of push
+    preserve_scroll: bool = False  # Preserve scroll position
+    clear_history: bool = False  # Clear browser history
+    replace_state: bool = False  # Replace instead of push
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary for JSON response."""
         data = {
             "component": self.component,
@@ -109,15 +108,15 @@ class PageResponse:
     def __init__(
         self,
         component: str,
-        props: Optional[Dict[str, Any]] = None,
+        props: dict[str, Any] | None = None,
         *,
-        shared: Optional[Dict[str, Any]] = None,
-        errors: Optional[Dict[str, List[str]]] = None,
-        flash: Optional[List[Dict[str, str]]] = None,
-        title: Optional[str] = None,
-        meta: Optional[Dict[str, str]] = None,
+        shared: dict[str, Any] | None = None,
+        errors: dict[str, list[str]] | None = None,
+        flash: list[dict[str, str]] | None = None,
+        title: str | None = None,
+        meta: dict[str, str] | None = None,
         status: int = 200,
-        headers: Optional[Dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         preserve_scroll: bool = False,
         clear_history: bool = False,
         replace_state: bool = False,
@@ -136,12 +135,12 @@ class PageResponse:
         self.replace_state = replace_state
 
         # Will be set by middleware/decorator
-        self._request: Optional[HttpRequest] = None
+        self._request: HttpRequest | None = None
 
     def get_page_data(self, request: HttpRequest) -> PageData:
         """Build the PageData object for this response."""
-        from django_matt.pages.context import get_shared_data, get_flash_messages
         from django_matt.pages.assets import get_asset_version
+        from django_matt.pages.context import get_flash_messages, get_shared_data
 
         # Merge shared data from context
         shared = {**get_shared_data(request), **self.shared}
@@ -166,16 +165,15 @@ class PageResponse:
 
     def render(self, request: HttpRequest) -> HttpResponse:
         """Render based on request mode."""
-        from django_matt.pages.middleware import get_request_mode, RequestMode
+        from django_matt.pages.middleware import RequestMode, get_request_mode
 
         mode = get_request_mode(request)
 
         if mode == RequestMode.PAGE_XHR:
             return self._render_page_json(request)
-        elif mode == RequestMode.API:
+        if mode == RequestMode.API:
             return self._render_api_json(request)
-        else:
-            return self._render_full_html(request)
+        return self._render_full_html(request)
 
     def _render_page_json(self, request: HttpRequest) -> JsonResponse:
         """Render as page JSON for SPA navigation."""
@@ -234,7 +232,7 @@ class PageResponse:
 def redirect_page(
     url: str,
     *,
-    flash: Optional[str] = None,
+    flash: str | None = None,
     flash_type: str = "success",
     preserve_scroll: bool = False,
 ) -> HttpResponse:
@@ -249,7 +247,6 @@ def redirect_page(
         return redirect_page(f"/users/{user.id}")
     """
     from django.shortcuts import redirect
-    from django_matt.pages.context import add_flash_message
 
     # This will be handled by middleware to add flash message
     response = redirect(url)

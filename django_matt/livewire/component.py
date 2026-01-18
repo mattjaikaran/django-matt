@@ -5,26 +5,18 @@ Provides the foundation for Livewire-style components with
 state management, actions, and lifecycle hooks.
 """
 
-from functools import wraps
-from typing import (
-    Any,
-    Callable,
-    ClassVar,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Set,
-    Type,
-    TypeVar,
-    Union,
-    get_type_hints,
-)
-from pydantic import BaseModel, Field, ConfigDict, PrivateAttr
 import hashlib
 import json
 import uuid
+from collections.abc import Callable
+from functools import wraps
+from typing import (
+    Any,
+    ClassVar,
+    TypeVar,
+)
 
+from pydantic import BaseModel, ConfigDict, PrivateAttr
 
 T = TypeVar("T")
 
@@ -63,7 +55,9 @@ def computed(func: Callable[..., T]) -> property:
     @wraps(func)
     def wrapper(self) -> T:
         # Simple caching - invalidated on any state change
-        if not hasattr(self, cache_attr) or self._state_version != getattr(self, f"{cache_attr}_version", -1):
+        if not hasattr(self, cache_attr) or self._state_version != getattr(
+            self, f"{cache_attr}_version", -1
+        ):
             result = func(self)
             setattr(self, cache_attr, result)
             setattr(self, f"{cache_attr}_version", self._state_version)
@@ -85,9 +79,11 @@ def watch(*fields: str):
             def on_query_change(self, old_value, new_value):
                 self.results = self.search(new_value)
     """
+
     def decorator(func: Callable) -> Callable:
         func._watch_fields = fields
         return func
+
     return decorator
 
 
@@ -221,13 +217,13 @@ class LiveComponent(BaseModel):
     _state_version: int = PrivateAttr(default=0)
     _dirty: bool = PrivateAttr(default=False)
     _mounted: bool = PrivateAttr(default=False)
-    _request: Optional[Any] = PrivateAttr(default=None)
-    _old_state: Dict[str, Any] = PrivateAttr(default_factory=dict)
+    _request: Any | None = PrivateAttr(default=None)
+    _old_state: dict[str, Any] = PrivateAttr(default_factory=dict)
 
     # Class-level configuration
-    _actions: ClassVar[Set[str]] = set()
-    _watchers: ClassVar[Dict[str, List[str]]] = {}
-    _lifecycle_hooks: ClassVar[Dict[str, List[str]]] = {}
+    _actions: ClassVar[set[str]] = set()
+    _watchers: ClassVar[dict[str, list[str]]] = {}
+    _lifecycle_hooks: ClassVar[dict[str, list[str]]] = {}
 
     def __init__(self, **data):
         super().__init__(**data)
@@ -262,7 +258,6 @@ class LiveComponent(BaseModel):
 
     def _discover_methods(self):
         """Discover action methods at runtime."""
-        pass
 
     def _mark_dirty(self):
         """Mark component as needing re-render."""
@@ -290,11 +285,11 @@ class LiveComponent(BaseModel):
         """Get the unique component ID."""
         return self._component_id
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         """Get the current component state."""
         return self.model_dump(exclude={"_*"})
 
-    def set_state(self, state: Dict[str, Any]):
+    def set_state(self, state: dict[str, Any]):
         """Set component state from dictionary."""
         for key, value in state.items():
             if hasattr(self, key):
@@ -315,13 +310,13 @@ class LiveComponent(BaseModel):
             for hook_name in self._lifecycle_hooks.get("mount", []):
                 getattr(self, hook_name)()
 
-    def hydrate(self, state: Dict[str, Any]):
+    def hydrate(self, state: dict[str, Any]):
         """Restore component from serialized state."""
         self.set_state(state)
         for hook_name in self._lifecycle_hooks.get("hydrate", []):
             getattr(self, hook_name)()
 
-    def dehydrate(self) -> Dict[str, Any]:
+    def dehydrate(self) -> dict[str, Any]:
         """Serialize component state for storage."""
         for hook_name in self._lifecycle_hooks.get("dehydrate", []):
             getattr(self, hook_name)()
@@ -335,7 +330,7 @@ class LiveComponent(BaseModel):
         """
         raise NotImplementedError("Subclasses must implement render()")
 
-    def get_render_context(self) -> Dict[str, Any]:
+    def get_render_context(self) -> dict[str, Any]:
         """Get the context for rendering."""
         context = self.get_state()
         context["component_id"] = self._component_id
@@ -351,7 +346,7 @@ class LiveComponent(BaseModel):
 
     def to_html(self) -> str:
         """Render component to HTML with wire attributes."""
-        from django.template import Template, Context
+        from django.template import Context, Template
 
         template_str = self.render()
         context = self.get_render_context()
@@ -395,18 +390,17 @@ class ValidatedComponent(LiveComponent):
                     self.reset()
     """
 
-    _errors: Dict[str, List[str]] = PrivateAttr(default_factory=dict)
+    _errors: dict[str, list[str]] = PrivateAttr(default_factory=dict)
 
     class Validation:
         """Override to define field validation rules."""
-        pass
 
     @property
-    def errors(self) -> Dict[str, List[str]]:
+    def errors(self) -> dict[str, list[str]]:
         """Get current validation errors."""
         return self._errors
 
-    def validate(self, fields: Optional[List[str]] = None) -> bool:
+    def validate(self, fields: list[str] | None = None) -> bool:
         """
         Validate component state.
 
@@ -423,8 +417,7 @@ class ValidatedComponent(LiveComponent):
             return True
 
         fields_to_validate = fields or [
-            name for name in dir(validation_class)
-            if not name.startswith("_")
+            name for name in dir(validation_class) if not name.startswith("_")
         ]
 
         for field_name in fields_to_validate:
@@ -444,8 +437,8 @@ class ValidatedComponent(LiveComponent):
         self,
         field_name: str,
         value: Any,
-        rules: Dict[str, Any],
-    ) -> List[str]:
+        rules: dict[str, Any],
+    ) -> list[str]:
         """Validate a single field against rules."""
         errors = []
 
@@ -467,11 +460,13 @@ class ValidatedComponent(LiveComponent):
 
             if rules.get("email"):
                 import re
+
                 if not re.match(r"^[^@]+@[^@]+\.[^@]+$", value):
                     errors.append(f"{field_name} must be a valid email")
 
             if "pattern" in rules:
                 import re
+
                 if not re.match(rules["pattern"], value):
                     errors.append(rules.get("pattern_message", f"{field_name} format is invalid"))
 
@@ -505,7 +500,7 @@ class ValidatedComponent(LiveComponent):
             elif field_info.default_factory is not None:
                 setattr(self, field_name, field_info.default_factory())
 
-    def get_render_context(self) -> Dict[str, Any]:
+    def get_render_context(self) -> dict[str, Any]:
         """Include errors in render context."""
         context = super().get_render_context()
         context["errors"] = self._errors
@@ -515,11 +510,11 @@ class ValidatedComponent(LiveComponent):
 __all__ = [
     "LiveComponent",
     "ValidatedComponent",
-    "reactive",
-    "computed",
-    "watch",
     "action",
-    "on_mount",
-    "on_hydrate",
+    "computed",
     "on_dehydrate",
+    "on_hydrate",
+    "on_mount",
+    "reactive",
+    "watch",
 ]

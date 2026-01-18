@@ -36,7 +36,6 @@ class BaseParser(ABC):
     @abstractmethod
     def parse(self, data: bytes, **kwargs) -> Any:
         """Parse bytes to Python data structure."""
-        pass
 
     def parse_request(self, request: HttpRequest, **kwargs) -> Any:
         """Parse request body."""
@@ -58,12 +57,14 @@ class JSONParser(BaseParser):
         """Get the best available JSON decoder."""
         try:
             import orjson
+
             return "orjson"
         except ImportError:
             pass
 
         try:
             import ujson
+
             return "ujson"
         except ImportError:
             pass
@@ -78,12 +79,13 @@ class JSONParser(BaseParser):
         try:
             if self._decoder == "orjson":
                 import orjson
+
                 return orjson.loads(data)
-            elif self._decoder == "ujson":
+            if self._decoder == "ujson":
                 import ujson
+
                 return ujson.loads(data)
-            else:
-                return json.loads(data)
+            return json.loads(data)
         except (json.JSONDecodeError, ValueError) as e:
             raise ParseError("Invalid JSON", str(e))
 

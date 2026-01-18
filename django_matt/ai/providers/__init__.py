@@ -8,11 +8,10 @@ Provides LLM and embedding providers for:
 - Ollama (local models)
 """
 
-from django_matt.ai.providers.openai import OpenAIProvider, OpenAIEmbeddings
 from django_matt.ai.providers.anthropic import AnthropicProvider
-from django_matt.ai.providers.google import GeminiProvider, GeminiEmbeddings
-from django_matt.ai.providers.ollama import OllamaProvider, OllamaEmbeddings
-
+from django_matt.ai.providers.google import GeminiEmbeddings, GeminiProvider
+from django_matt.ai.providers.ollama import OllamaEmbeddings, OllamaProvider
+from django_matt.ai.providers.openai import OpenAIEmbeddings, OpenAIProvider
 
 __all__ = [
     # OpenAI

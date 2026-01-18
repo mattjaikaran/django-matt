@@ -68,13 +68,23 @@ class PasskeyConfig:
             user_verification=config_dict.get("USER_VERIFICATION", cls.user_verification),
             resident_key=config_dict.get("RESIDENT_KEY", cls.resident_key),
             attestation=config_dict.get("ATTESTATION", cls.attestation),
-            authenticator_attachment=config_dict.get("AUTHENTICATOR_ATTACHMENT", cls.authenticator_attachment),
+            authenticator_attachment=config_dict.get(
+                "AUTHENTICATOR_ATTACHMENT", cls.authenticator_attachment
+            ),
             supported_algorithms=config_dict.get("SUPPORTED_ALGORITHMS", cls.supported_algorithms),
             credential_model=config_dict.get("CREDENTIAL_MODEL", cls.credential_model),
-            challenge_cache_prefix=config_dict.get("CHALLENGE_CACHE_PREFIX", cls.challenge_cache_prefix),
-            challenge_cache_timeout=config_dict.get("CHALLENGE_CACHE_TIMEOUT", cls.challenge_cache_timeout),
-            allow_multiple_credentials=config_dict.get("ALLOW_MULTIPLE_CREDENTIALS", cls.allow_multiple_credentials),
-            max_credentials_per_user=config_dict.get("MAX_CREDENTIALS_PER_USER", cls.max_credentials_per_user),
+            challenge_cache_prefix=config_dict.get(
+                "CHALLENGE_CACHE_PREFIX", cls.challenge_cache_prefix
+            ),
+            challenge_cache_timeout=config_dict.get(
+                "CHALLENGE_CACHE_TIMEOUT", cls.challenge_cache_timeout
+            ),
+            allow_multiple_credentials=config_dict.get(
+                "ALLOW_MULTIPLE_CREDENTIALS", cls.allow_multiple_credentials
+            ),
+            max_credentials_per_user=config_dict.get(
+                "MAX_CREDENTIALS_PER_USER", cls.max_credentials_per_user
+            ),
         )
 
     def validate(self) -> list[str]:

@@ -8,11 +8,11 @@ that can be accessed from anywhere during request processing.
 import contextvars
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from django.http import HttpRequest
     from django.contrib.auth.models import AbstractUser
+    from django.http import HttpRequest
 
 
 @dataclass
@@ -21,20 +21,20 @@ class AuditContextData:
 
     user: Optional["AbstractUser"] = None
     request: Optional["HttpRequest"] = None
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
-    request_method: Optional[str] = None
-    request_path: Optional[str] = None
+    ip_address: str | None = None
+    user_agent: str | None = None
+    request_method: str | None = None
+    request_path: str | None = None
     extra: dict = field(default_factory=dict)
 
 
 # Context variable for async-safe storage
-_audit_context: contextvars.ContextVar[Optional[AuditContextData]] = contextvars.ContextVar(
+_audit_context: contextvars.ContextVar[AuditContextData | None] = contextvars.ContextVar(
     "audit_context", default=None
 )
 
 
-def get_audit_context() -> Optional[AuditContextData]:
+def get_audit_context() -> AuditContextData | None:
     """Get the current audit context."""
     return _audit_context.get()
 
@@ -42,10 +42,10 @@ def get_audit_context() -> Optional[AuditContextData]:
 def set_audit_context(
     user: Optional["AbstractUser"] = None,
     request: Optional["HttpRequest"] = None,
-    ip_address: Optional[str] = None,
-    user_agent: Optional[str] = None,
-    request_method: Optional[str] = None,
-    request_path: Optional[str] = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+    request_method: str | None = None,
+    request_path: str | None = None,
     **extra,
 ) -> AuditContextData:
     """
@@ -87,7 +87,7 @@ def get_current_request() -> Optional["HttpRequest"]:
     return None
 
 
-def get_request_ip() -> Optional[str]:
+def get_request_ip() -> str | None:
     """Get the client IP address from audit context."""
     ctx = get_audit_context()
     if ctx:
@@ -95,7 +95,7 @@ def get_request_ip() -> Optional[str]:
     return None
 
 
-def get_user_agent() -> Optional[str]:
+def get_user_agent() -> str | None:
     """Get the User-Agent from audit context."""
     ctx = get_audit_context()
     if ctx:
@@ -103,7 +103,7 @@ def get_user_agent() -> Optional[str]:
     return None
 
 
-def get_request_method() -> Optional[str]:
+def get_request_method() -> str | None:
     """Get the HTTP method from audit context."""
     ctx = get_audit_context()
     if ctx:
@@ -111,7 +111,7 @@ def get_request_method() -> Optional[str]:
     return None
 
 
-def get_request_path() -> Optional[str]:
+def get_request_path() -> str | None:
     """Get the request path from audit context."""
     ctx = get_audit_context()
     if ctx:
@@ -134,8 +134,8 @@ def update_audit_context(**kwargs) -> None:
 def audit_context(
     user: Optional["AbstractUser"] = None,
     request: Optional["HttpRequest"] = None,
-    ip_address: Optional[str] = None,
-    user_agent: Optional[str] = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
     **extra,
 ):
     """

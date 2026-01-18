@@ -4,30 +4,30 @@ Filtering module for django-matt.
 Provides pluggable filtering backends and filter classes for API queries.
 """
 
+from .backends import DjangoFilterBackend, OrderingBackend, SearchBackend
 from .base import BaseFilterBackend
-from .backends import DjangoFilterBackend, SearchBackend, OrderingBackend
-from .filterset import FilterSet, FilterSetMeta
 from .filters import (
-    Filter,
-    CharFilter,
-    IntegerFilter,
     BooleanFilter,
-    DateFilter,
-    DateTimeFilter,
-    UUIDFilter,
+    CharFilter,
     ChoiceFilter,
-    MultipleChoiceFilter,
-    RangeFilter,
-    NumberRangeFilter,
+    DateFilter,
     DateRangeFilter,
+    DateTimeFilter,
+    Filter,
     InFilter,
+    IntegerFilter,
     ModelChoiceFilter,
+    MultipleChoiceFilter,
+    NumberRangeFilter,
+    RangeFilter,
+    UUIDFilter,
 )
+from .filterset import FilterSet, FilterSetMeta
 from .search import (
     BaseSearchEngine,
-    PostgresSearchBackend,
     ElasticsearchEngine,
     MeilisearchEngine,
+    PostgresSearchBackend,
     SearchEngineBackend,
 )
 

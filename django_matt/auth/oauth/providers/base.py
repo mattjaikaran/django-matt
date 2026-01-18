@@ -2,7 +2,6 @@
 Base OAuth provider class and common utilities.
 """
 
-import hashlib
 import secrets
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -10,7 +9,6 @@ from typing import Any
 from urllib.parse import urlencode
 
 from django.core.cache import cache
-
 
 # =============================================================================
 # Data Classes
@@ -63,19 +61,13 @@ class OAuthError(Exception):
 class OAuthConfigError(OAuthError):
     """OAuth configuration error."""
 
-    pass
-
 
 class OAuthAuthenticationError(OAuthError):
     """OAuth authentication failed."""
 
-    pass
-
 
 class OAuthUserInfoError(OAuthError):
     """Failed to get user info from provider."""
-
-    pass
 
 
 # =============================================================================
@@ -244,7 +236,11 @@ class OAuthProvider(ABC):
             )
 
             if response.status_code != 200:
-                error_data = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
+                error_data = (
+                    response.json()
+                    if response.headers.get("content-type", "").startswith("application/json")
+                    else {}
+                )
                 raise OAuthAuthenticationError(
                     f"Failed to exchange code: {error_data.get('error_description', response.text)}",
                     error_code=error_data.get("error"),
@@ -304,9 +300,7 @@ class OAuthProvider(ABC):
             )
 
             if response.status_code != 200:
-                raise OAuthUserInfoError(
-                    f"Failed to fetch user info: {response.text}"
-                )
+                raise OAuthUserInfoError(f"Failed to fetch user info: {response.text}")
 
             user_data = response.json()
 
@@ -350,7 +344,6 @@ class OAuthProvider(ABC):
         Returns:
             Normalized OAuthUserInfo
         """
-        pass
 
 
 def sync_exchange_code(provider: OAuthProvider, code: str) -> OAuthToken:

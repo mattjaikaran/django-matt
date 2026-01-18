@@ -8,13 +8,13 @@ Provides tools for building RAG pipelines:
 - RAG chains
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Union
 import re
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from typing import Any
 
 from django_matt.ai.base import CompletionResponse, LLMProvider, Message, Role
-from django_matt.ai.vectorstore import Document, SearchResult, VectorStore
-
+from django_matt.ai.vectorstore import SearchResult, VectorStore
 
 # =============================================================================
 # Document Chunking
@@ -24,9 +24,10 @@ from django_matt.ai.vectorstore import Document, SearchResult, VectorStore
 @dataclass
 class Chunk:
     """A chunk of text with metadata."""
+
     text: str
     index: int
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class TextSplitter:
@@ -54,7 +55,7 @@ class TextSplitter:
         self.chunk_overlap = chunk_overlap
         self.length_function = length_function
 
-    def split(self, text: str, metadata: Optional[Dict[str, Any]] = None) -> List[Chunk]:
+    def split(self, text: str, metadata: dict[str, Any] | None = None) -> list[Chunk]:
         """Split text into chunks."""
         raise NotImplementedError
 
@@ -66,7 +67,7 @@ class CharacterSplitter(TextSplitter):
     Simple but may split mid-word or mid-sentence.
     """
 
-    def split(self, text: str, metadata: Optional[Dict[str, Any]] = None) -> List[Chunk]:
+    def split(self, text: str, metadata: dict[str, Any] | None = None) -> list[Chunk]:
         """Split text by character count."""
         chunks = []
         start = 0
@@ -84,11 +85,13 @@ class CharacterSplitter(TextSplitter):
 
             chunk_text = text[start:end].strip()
             if chunk_text:
-                chunks.append(Chunk(
-                    text=chunk_text,
-                    index=index,
-                    metadata={**(metadata or {}), "start": start, "end": end},
-                ))
+                chunks.append(
+                    Chunk(
+                        text=chunk_text,
+                        index=index,
+                        metadata={**(metadata or {}), "start": start, "end": end},
+                    )
+                )
                 index += 1
 
             start = end - self.chunk_overlap
@@ -106,22 +109,22 @@ class RecursiveSplitter(TextSplitter):
 
     def __init__(
         self,
-        separators: Optional[List[str]] = None,
+        separators: list[str] | None = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
         self.separators = separators or ["\n\n", "\n", ". ", " ", ""]
 
-    def split(self, text: str, metadata: Optional[Dict[str, Any]] = None) -> List[Chunk]:
+    def split(self, text: str, metadata: dict[str, Any] | None = None) -> list[Chunk]:
         """Recursively split text."""
         return self._split_recursive(text, self.separators, metadata or {})
 
     def _split_recursive(
         self,
         text: str,
-        separators: List[str],
-        metadata: Dict[str, Any],
-    ) -> List[Chunk]:
+        separators: list[str],
+        metadata: dict[str, Any],
+    ) -> list[Chunk]:
         chunks = []
         separator = separators[0]
 
@@ -150,11 +153,13 @@ class RecursiveSplitter(TextSplitter):
         # Process splits
         for i, split in enumerate(good_splits):
             if self.length_function(split) <= self.chunk_size:
-                chunks.append(Chunk(
-                    text=split,
-                    index=len(chunks),
-                    metadata={**metadata},
-                ))
+                chunks.append(
+                    Chunk(
+                        text=split,
+                        index=len(chunks),
+                        metadata={**metadata},
+                    )
+                )
             elif len(separators) > 1:
                 # Recursively split with next separator
                 sub_chunks = self._split_recursive(split, separators[1:], metadata)
@@ -163,11 +168,13 @@ class RecursiveSplitter(TextSplitter):
                     chunks.append(chunk)
             else:
                 # Last resort: just truncate
-                chunks.append(Chunk(
-                    text=split[:self.chunk_size],
-                    index=len(chunks),
-                    metadata={**metadata},
-                ))
+                chunks.append(
+                    Chunk(
+                        text=split[: self.chunk_size],
+                        index=len(chunks),
+                        metadata={**metadata},
+                    )
+                )
 
         return chunks
 
@@ -179,9 +186,9 @@ class SentenceSplitter(TextSplitter):
     Keeps sentences together and groups them into chunks.
     """
 
-    SENTENCE_ENDINGS = re.compile(r'(?<=[.!?])\s+')
+    SENTENCE_ENDINGS = re.compile(r"(?<=[.!?])\s+")
 
-    def split(self, text: str, metadata: Optional[Dict[str, Any]] = None) -> List[Chunk]:
+    def split(self, text: str, metadata: dict[str, Any] | None = None) -> list[Chunk]:
         """Split text by sentences."""
         sentences = self.SENTENCE_ENDINGS.split(text)
         chunks = []
@@ -199,20 +206,24 @@ class SentenceSplitter(TextSplitter):
                 current_chunk = test_chunk
             else:
                 if current_chunk:
-                    chunks.append(Chunk(
-                        text=current_chunk,
-                        index=index,
-                        metadata={**(metadata or {})},
-                    ))
+                    chunks.append(
+                        Chunk(
+                            text=current_chunk,
+                            index=index,
+                            metadata={**(metadata or {})},
+                        )
+                    )
                     index += 1
                 current_chunk = sentence
 
         if current_chunk:
-            chunks.append(Chunk(
-                text=current_chunk,
-                index=index,
-                metadata={**(metadata or {})},
-            ))
+            chunks.append(
+                Chunk(
+                    text=current_chunk,
+                    index=index,
+                    metadata={**(metadata or {})},
+                )
+            )
 
         return chunks
 
@@ -239,7 +250,7 @@ class ConversationMemory:
     def __init__(
         self,
         max_messages: int = 20,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
     ):
         """
         Initialize conversation memory.
@@ -250,7 +261,7 @@ class ConversationMemory:
         """
         self.max_messages = max_messages
         self.system_prompt = system_prompt
-        self._messages: List[Message] = []
+        self._messages: list[Message] = []
 
     def add_user(self, content: str) -> None:
         """Add a user message."""
@@ -270,9 +281,9 @@ class ConversationMemory:
     def _trim(self) -> None:
         """Trim messages to max_messages."""
         if len(self._messages) > self.max_messages:
-            self._messages = self._messages[-self.max_messages:]
+            self._messages = self._messages[-self.max_messages :]
 
-    def get_messages(self) -> List[Message]:
+    def get_messages(self) -> list[Message]:
         """Get all messages with optional system prompt."""
         messages = []
         if self.system_prompt:
@@ -285,7 +296,7 @@ class ConversationMemory:
         self._messages.clear()
 
     @property
-    def last_user_message(self) -> Optional[str]:
+    def last_user_message(self) -> str | None:
         """Get the last user message."""
         for msg in reversed(self._messages):
             if msg.role == Role.USER:
@@ -319,7 +330,7 @@ class SummaryMemory(ConversationMemory):
         super().__init__(max_messages=summary_threshold, **kwargs)
         self.llm = llm
         self.final_max = max_messages
-        self._summary: Optional[str] = None
+        self._summary: str | None = None
 
     async def _summarize(self) -> None:
         """Summarize older messages."""
@@ -327,13 +338,11 @@ class SummaryMemory(ConversationMemory):
             return
 
         # Take older messages to summarize
-        to_summarize = self._messages[:-self.final_max]
-        to_keep = self._messages[-self.final_max:]
+        to_summarize = self._messages[: -self.final_max]
+        to_keep = self._messages[-self.final_max :]
 
         # Create summary prompt
-        conversation = "\n".join(
-            f"{msg.role.value}: {msg.content}" for msg in to_summarize
-        )
+        conversation = "\n".join(f"{msg.role.value}: {msg.content}" for msg in to_summarize)
 
         summary_prompt = Message.user(
             f"Summarize this conversation concisely, preserving key information:\n\n{conversation}"
@@ -343,7 +352,7 @@ class SummaryMemory(ConversationMemory):
         self._summary = response.content
         self._messages = to_keep
 
-    def get_messages(self) -> List[Message]:
+    def get_messages(self) -> list[Message]:
         """Get messages with summary context."""
         messages = []
 
@@ -367,10 +376,11 @@ class SummaryMemory(ConversationMemory):
 @dataclass
 class RAGResponse:
     """Response from a RAG query."""
+
     answer: str
-    sources: List[SearchResult]
-    messages: List[Message]
-    raw_response: Optional[CompletionResponse] = None
+    sources: list[SearchResult]
+    messages: list[Message]
+    raw_response: CompletionResponse | None = None
 
 
 class RAGChain:
@@ -409,9 +419,9 @@ Answer:"""
         self,
         llm: LLMProvider,
         vector_store: VectorStore,
-        prompt_template: Optional[str] = None,
+        prompt_template: str | None = None,
         top_k: int = 5,
-        memory: Optional[ConversationMemory] = None,
+        memory: ConversationMemory | None = None,
         include_sources: bool = True,
     ):
         """
@@ -435,7 +445,7 @@ Answer:"""
     async def query(
         self,
         question: str,
-        filter: Optional[Dict[str, Any]] = None,
+        filter: dict[str, Any] | None = None,
         **kwargs,
     ) -> RAGResponse:
         """
@@ -492,7 +502,7 @@ Answer:"""
     async def query_with_history(
         self,
         question: str,
-        history: List[tuple[str, str]],
+        history: list[tuple[str, str]],
         **kwargs,
     ) -> RAGResponse:
         """
@@ -540,7 +550,7 @@ Original question: {question}"""
         super().__init__(**kwargs)
         self.num_queries = num_queries
 
-    async def _generate_queries(self, question: str) -> List[str]:
+    async def _generate_queries(self, question: str) -> list[str]:
         """Generate query variations."""
         prompt = self.QUERY_GENERATION_PROMPT.format(
             n=self.num_queries,
@@ -549,12 +559,12 @@ Original question: {question}"""
 
         response = await self.llm.complete([Message.user(prompt)], temperature=0.7)
         queries = [q.strip() for q in response.content.strip().split("\n") if q.strip()]
-        return [question] + queries[:self.num_queries]
+        return [question] + queries[: self.num_queries]
 
     async def query(
         self,
         question: str,
-        filter: Optional[Dict[str, Any]] = None,
+        filter: dict[str, Any] | None = None,
         **kwargs,
     ) -> RAGResponse:
         """Query with multiple generated queries."""
@@ -562,7 +572,7 @@ Original question: {question}"""
         queries = await self._generate_queries(question)
 
         # Search with all queries
-        all_results: Dict[str, SearchResult] = {}
+        all_results: dict[str, SearchResult] = {}
         for query in queries:
             results = await self.vector_store.search(query, top_k=self.top_k, filter=filter)
             for result in results:
@@ -572,7 +582,7 @@ Original question: {question}"""
 
         # Sort by score and take top_k
         sorted_results = sorted(all_results.values(), key=lambda x: x.score, reverse=True)
-        top_results = sorted_results[:self.top_k]
+        top_results = sorted_results[: self.top_k]
 
         # Build context
         context_parts = []

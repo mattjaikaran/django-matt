@@ -6,7 +6,8 @@ like HX-Trigger, HX-Push-Url, HX-Redirect, etc.
 """
 
 import json
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
+
 from django.http import HttpResponse
 from django.template import loader
 from django.template.response import TemplateResponse
@@ -40,7 +41,7 @@ class HtmxResponse(HttpResponse):
     def trigger(
         self,
         name: str,
-        params: Optional[Dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
         after: str = "receive",
     ) -> "HtmxResponse":
         """
@@ -68,28 +69,25 @@ class HtmxResponse(HttpResponse):
         # Add new trigger
         if params:
             existing[name] = params
-        else:
-            # If no params, just use the name
-            if name not in existing:
-                existing[name] = None
+        # If no params, just use the name
+        elif name not in existing:
+            existing[name] = None
 
         # Set header
         self._set_trigger_header(header_name, existing)
         return self
 
     def trigger_after_settle(
-        self, name: str, params: Optional[Dict[str, Any]] = None
+        self, name: str, params: dict[str, Any] | None = None
     ) -> "HtmxResponse":
         """Trigger event after settling (DOM updates complete)."""
         return self.trigger(name, params, after="settle")
 
-    def trigger_after_swap(
-        self, name: str, params: Optional[Dict[str, Any]] = None
-    ) -> "HtmxResponse":
+    def trigger_after_swap(self, name: str, params: dict[str, Any] | None = None) -> "HtmxResponse":
         """Trigger event after swap (content inserted)."""
         return self.trigger(name, params, after="swap")
 
-    def _get_trigger_dict(self, header_name: str) -> Dict[str, Any]:
+    def _get_trigger_dict(self, header_name: str) -> dict[str, Any]:
         """Get existing triggers as a dictionary."""
         existing = self.get(header_name)
         if not existing:
@@ -100,7 +98,7 @@ class HtmxResponse(HttpResponse):
             # If it's not JSON, treat as single event name
             return {existing: None}
 
-    def _set_trigger_header(self, header_name: str, triggers: Dict[str, Any]) -> None:
+    def _set_trigger_header(self, header_name: str, triggers: dict[str, Any]) -> None:
         """Set the trigger header value."""
         # Filter out None values for cleaner output
         if all(v is None for v in triggers.values()):
@@ -142,14 +140,14 @@ class HtmxResponse(HttpResponse):
     def location(
         self,
         url: str,
-        target: Optional[str] = None,
-        swap: Optional[str] = None,
-        source: Optional[str] = None,
-        event: Optional[str] = None,
-        handler: Optional[str] = None,
-        values: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
-        select: Optional[str] = None,
+        target: str | None = None,
+        swap: str | None = None,
+        source: str | None = None,
+        event: str | None = None,
+        handler: str | None = None,
+        values: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        select: str | None = None,
     ) -> "HtmxResponse":
         """
         Navigate to a URL with HTMX-style swap.
@@ -167,7 +165,7 @@ class HtmxResponse(HttpResponse):
             headers: Additional headers
             select: CSS selector to select content from response
         """
-        location_data: Dict[str, Any] = {"path": url}
+        location_data: dict[str, Any] = {"path": url}
 
         if target:
             location_data["target"] = target
@@ -218,11 +216,11 @@ class HtmxResponse(HttpResponse):
         self,
         method: str,
         transition: bool = False,
-        settle: Optional[int] = None,
-        swap: Optional[int] = None,
-        scroll: Optional[str] = None,
-        show: Optional[str] = None,
-        focus_scroll: Optional[bool] = None,
+        settle: int | None = None,
+        swap: int | None = None,
+        scroll: str | None = None,
+        show: str | None = None,
+        focus_scroll: bool | None = None,
     ) -> "HtmxResponse":
         """
         Change the swap method.
@@ -278,7 +276,7 @@ class HtmxTemplateResponse(TemplateResponse):
     def trigger(
         self,
         name: str,
-        params: Optional[Dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
         after: str = "receive",
     ) -> "HtmxTemplateResponse":
         """Trigger a client-side event."""
@@ -291,23 +289,22 @@ class HtmxTemplateResponse(TemplateResponse):
         existing = self._get_trigger_dict(header_name)
         if params:
             existing[name] = params
-        else:
-            if name not in existing:
-                existing[name] = None
+        elif name not in existing:
+            existing[name] = None
         self._set_trigger_header(header_name, existing)
         return self
 
     def trigger_after_settle(
-        self, name: str, params: Optional[Dict[str, Any]] = None
+        self, name: str, params: dict[str, Any] | None = None
     ) -> "HtmxTemplateResponse":
         return self.trigger(name, params, after="settle")
 
     def trigger_after_swap(
-        self, name: str, params: Optional[Dict[str, Any]] = None
+        self, name: str, params: dict[str, Any] | None = None
     ) -> "HtmxTemplateResponse":
         return self.trigger(name, params, after="swap")
 
-    def _get_trigger_dict(self, header_name: str) -> Dict[str, Any]:
+    def _get_trigger_dict(self, header_name: str) -> dict[str, Any]:
         existing = self.get(header_name)
         if not existing:
             return {}
@@ -316,7 +313,7 @@ class HtmxTemplateResponse(TemplateResponse):
         except (json.JSONDecodeError, TypeError):
             return {existing: None}
 
-    def _set_trigger_header(self, header_name: str, triggers: Dict[str, Any]) -> None:
+    def _set_trigger_header(self, header_name: str, triggers: dict[str, Any]) -> None:
         if all(v is None for v in triggers.values()):
             self[header_name] = ", ".join(triggers.keys())
         else:
@@ -368,8 +365,8 @@ class HtmxTemplateResponse(TemplateResponse):
 def render_partial(
     request,
     template_name: str,
-    context: Optional[Dict[str, Any]] = None,
-    content_type: Optional[str] = None,
+    context: dict[str, Any] | None = None,
+    content_type: str | None = None,
     status: int = 200,
 ) -> HtmxResponse:
     """
@@ -394,7 +391,7 @@ def render_partial(
 def trigger_client_event(
     response: HttpResponse,
     name: str,
-    params: Optional[Dict[str, Any]] = None,
+    params: dict[str, Any] | None = None,
     after: str = "receive",
 ) -> HttpResponse:
     """
@@ -479,11 +476,11 @@ class HtmxRefreshResponse(HtmxResponse):
 
 
 __all__ = [
-    "HtmxResponse",
-    "HtmxTemplateResponse",
-    "render_partial",
-    "trigger_client_event",
-    "StopPolling",
     "HtmxRedirectResponse",
     "HtmxRefreshResponse",
+    "HtmxResponse",
+    "HtmxTemplateResponse",
+    "StopPolling",
+    "render_partial",
+    "trigger_client_event",
 ]

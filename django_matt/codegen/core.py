@@ -30,7 +30,7 @@ Usage:
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from typing import Union
 
 
 class CodeNode(ABC):
@@ -39,7 +39,6 @@ class CodeNode(ABC):
     @abstractmethod
     def to_typescript(self, indent: int = 0) -> str:
         """Render this node as TypeScript code."""
-        pass
 
     def to_javascript(self, indent: int = 0) -> str:
         """Render this node as JavaScript code. Default: same as TypeScript."""
@@ -69,10 +68,9 @@ class Comment(CodeNode):
                 result.append(f"{prefix} * {line}")
             result.append(f"{prefix} */")
             return "\n".join(result)
-        elif self.multiline:
+        if self.multiline:
             return f"{prefix}/* {self.text} */"
-        else:
-            return f"{prefix}// {self.text}"
+        return f"{prefix}// {self.text}"
 
 
 @dataclass
@@ -81,7 +79,7 @@ class Import(CodeNode):
 
     module: str
     name: str  # Import name or * for namespace
-    alias: Optional[str] = None  # as alias
+    alias: str | None = None  # as alias
 
     def to_typescript(self, indent: int = 0) -> str:
         prefix = self._indent(indent)
@@ -89,10 +87,9 @@ class Import(CodeNode):
             if self.alias:
                 return f'{prefix}import * as {self.alias} from "{self.module}"'
             return f'{prefix}import * from "{self.module}"'
-        elif self.alias:
+        if self.alias:
             return f'{prefix}import {self.name} as {self.alias} from "{self.module}"'
-        else:
-            return f'{prefix}import {self.name} from "{self.module}"'
+        return f'{prefix}import {self.name} from "{self.module}"'
 
 
 @dataclass
@@ -100,7 +97,7 @@ class ImportFrom(CodeNode):
     """A named import from a module."""
 
     module: str
-    names: List[Union[str, tuple]]  # ["foo", "bar"] or [("foo", "f"), "bar"]
+    names: list[str | tuple]  # ["foo", "bar"] or [("foo", "f"), "bar"]
     type_only: bool = False  # import type { ... }
 
     def to_typescript(self, indent: int = 0) -> str:
@@ -126,8 +123,8 @@ class Property(CodeNode):
     type: str
     optional: bool = False
     readonly: bool = False
-    default: Optional[str] = None
-    comment: Optional[str] = None
+    default: str | None = None
+    comment: str | None = None
 
     def to_typescript(self, indent: int = 0) -> str:
         prefix = self._indent(indent)
@@ -148,8 +145,8 @@ class Parameter(CodeNode):
     """A function parameter."""
 
     name: str
-    type: Optional[str] = None
-    default: Optional[str] = None
+    type: str | None = None
+    default: str | None = None
     optional: bool = False
     rest: bool = False  # ...args
 
@@ -176,16 +173,15 @@ class Statement(CodeNode):
 class Return(CodeNode):
     """A return statement."""
 
-    value: Optional[Union[str, "CodeNode"]] = None
+    value: Union[str, "CodeNode"] | None = None
 
     def to_typescript(self, indent: int = 0) -> str:
         prefix = self._indent(indent)
         if self.value is None:
             return f"{prefix}return"
-        elif isinstance(self.value, CodeNode):
+        if isinstance(self.value, CodeNode):
             return f"{prefix}return {self.value.to_typescript(0)}"
-        else:
-            return f"{prefix}return {self.value}"
+        return f"{prefix}return {self.value}"
 
 
 @dataclass
@@ -193,8 +189,8 @@ class Variable(CodeNode):
     """A variable declaration."""
 
     name: str
-    value: Optional[Union[str, "CodeNode"]] = None
-    type: Optional[str] = None
+    value: Union[str, "CodeNode"] | None = None
+    type: str | None = None
     const: bool = True
     export: bool = False
 
@@ -206,18 +202,17 @@ class Variable(CodeNode):
 
         if self.value is None:
             return f"{prefix}{export}{kind} {self.name}{type_annotation}"
-        elif isinstance(self.value, CodeNode):
+        if isinstance(self.value, CodeNode):
             value_str = self.value.to_typescript(0)
             return f"{prefix}{export}{kind} {self.name}{type_annotation} = {value_str}"
-        else:
-            return f"{prefix}{export}{kind} {self.name}{type_annotation} = {self.value}"
+        return f"{prefix}{export}{kind} {self.name}{type_annotation} = {self.value}"
 
 
 @dataclass
 class Block(CodeNode):
     """A block of code (statements)."""
 
-    statements: List[CodeNode] = field(default_factory=list)
+    statements: list[CodeNode] = field(default_factory=list)
 
     def to_typescript(self, indent: int = 0) -> str:
         return "\n".join(s.to_typescript(indent) for s in self.statements)
@@ -227,7 +222,7 @@ class Block(CodeNode):
 class ObjectLiteral(CodeNode):
     """An object literal { key: value }."""
 
-    properties: Dict[str, Union[str, "CodeNode"]] = field(default_factory=dict)
+    properties: dict[str, Union[str, "CodeNode"]] = field(default_factory=dict)
     multiline: bool = True
 
     def to_typescript(self, indent: int = 0) -> str:
@@ -246,22 +241,21 @@ class ObjectLiteral(CodeNode):
                 lines.append(f"{inner_prefix}{key}: {value_str},")
             lines.append(f"{prefix}}}")
             return "\n".join(lines)
-        else:
-            props = []
-            for key, value in self.properties.items():
-                if isinstance(value, CodeNode):
-                    value_str = value.to_typescript(0)
-                else:
-                    value_str = str(value)
-                props.append(f"{key}: {value_str}")
-            return "{ " + ", ".join(props) + " }"
+        props = []
+        for key, value in self.properties.items():
+            if isinstance(value, CodeNode):
+                value_str = value.to_typescript(0)
+            else:
+                value_str = str(value)
+            props.append(f"{key}: {value_str}")
+        return "{ " + ", ".join(props) + " }"
 
 
 @dataclass
 class ArrayLiteral(CodeNode):
     """An array literal [a, b, c]."""
 
-    items: List[Union[str, "CodeNode"]] = field(default_factory=list)
+    items: list[Union[str, "CodeNode"]] = field(default_factory=list)
     multiline: bool = False
 
     def to_typescript(self, indent: int = 0) -> str:
@@ -283,8 +277,7 @@ class ArrayLiteral(CodeNode):
                 lines.append(f"{inner_prefix}{item},")
             lines.append(f"{prefix}]")
             return "\n".join(lines)
-        else:
-            return "[" + ", ".join(rendered) + "]"
+        return "[" + ", ".join(rendered) + "]"
 
 
 @dataclass
@@ -292,14 +285,14 @@ class Function(CodeNode):
     """A function declaration."""
 
     name: str
-    parameters: List[Parameter] = field(default_factory=list)
-    return_type: Optional[str] = None
-    body: List[CodeNode] = field(default_factory=list)
+    parameters: list[Parameter] = field(default_factory=list)
+    return_type: str | None = None
+    body: list[CodeNode] = field(default_factory=list)
     async_: bool = False
     export: bool = False
     arrow: bool = False
-    generic: Optional[str] = None  # <T>
-    comment: Optional[str] = None
+    generic: str | None = None  # <T>
+    comment: str | None = None
 
     def to_typescript(self, indent: int = 0) -> str:
         prefix = self._indent(indent)
@@ -316,9 +309,13 @@ class Function(CodeNode):
 
         if self.arrow:
             # Arrow function
-            result.append(f"{prefix}{export}const {self.name} = {async_}{generic}({params}){return_type} => {{")
+            result.append(
+                f"{prefix}{export}const {self.name} = {async_}{generic}({params}){return_type} => {{"
+            )
         else:
-            result.append(f"{prefix}{export}{async_}function {self.name}{generic}({params}){return_type} {{")
+            result.append(
+                f"{prefix}{export}{async_}function {self.name}{generic}({params}){return_type} {{"
+            )
 
         for statement in self.body:
             result.append(statement.to_typescript(indent + 1))
@@ -333,11 +330,11 @@ class Interface(CodeNode):
     """A TypeScript interface."""
 
     name: str
-    properties: List[Property] = field(default_factory=list)
-    extends: Optional[List[str]] = None
+    properties: list[Property] = field(default_factory=list)
+    extends: list[str] | None = None
     export: bool = True
-    generic: Optional[str] = None
-    comment: Optional[str] = None
+    generic: str | None = None
+    comment: str | None = None
 
     def to_typescript(self, indent: int = 0) -> str:
         prefix = self._indent(indent)
@@ -367,8 +364,8 @@ class TypeAlias(CodeNode):
     name: str
     type: str
     export: bool = True
-    generic: Optional[str] = None
-    comment: Optional[str] = None
+    generic: str | None = None
+    comment: str | None = None
 
     def to_typescript(self, indent: int = 0) -> str:
         prefix = self._indent(indent)
@@ -389,14 +386,14 @@ class Class(CodeNode):
     """A class declaration."""
 
     name: str
-    properties: List[Property] = field(default_factory=list)
-    methods: List[Function] = field(default_factory=list)
-    extends: Optional[str] = None
-    implements: Optional[List[str]] = None
+    properties: list[Property] = field(default_factory=list)
+    methods: list[Function] = field(default_factory=list)
+    extends: str | None = None
+    implements: list[str] | None = None
     export: bool = True
     abstract: bool = False
-    generic: Optional[str] = None
-    comment: Optional[str] = None
+    generic: str | None = None
+    comment: str | None = None
 
     def to_typescript(self, indent: int = 0) -> str:
         prefix = self._indent(indent)
@@ -411,7 +408,9 @@ class Class(CodeNode):
         extends = f" extends {self.extends}" if self.extends else ""
         implements = f" implements {', '.join(self.implements)}" if self.implements else ""
 
-        result.append(f"{prefix}{export}{abstract}class {self.name}{generic}{extends}{implements} {{")
+        result.append(
+            f"{prefix}{export}{abstract}class {self.name}{generic}{extends}{implements} {{"
+        )
 
         for prop in self.properties:
             result.append(prop.to_typescript(indent + 1))
@@ -431,11 +430,11 @@ class Class(CodeNode):
 class CodeFile:
     """A complete code file."""
 
-    imports: List[Union[Import, ImportFrom]] = field(default_factory=list)
-    nodes: List[CodeNode] = field(default_factory=list)
-    header_comment: Optional[str] = None
+    imports: list[Import | ImportFrom] = field(default_factory=list)
+    nodes: list[CodeNode] = field(default_factory=list)
+    header_comment: str | None = None
 
-    def add_import(self, imp: Union[Import, ImportFrom]) -> None:
+    def add_import(self, imp: Import | ImportFrom) -> None:
         """Add an import, avoiding duplicates."""
         # Check for duplicate
         for existing in self.imports:
@@ -504,17 +503,17 @@ class CodeGenerator:
 
     def __init__(self, output_dir: str = "./generated"):
         self.output_dir = output_dir
-        self.files: Dict[str, CodeFile] = {}
+        self.files: dict[str, CodeFile] = {}
 
     def add_file(self, path: str, file: CodeFile) -> None:
         """Add a file to be generated."""
         self.files[path] = file
 
-    def generate(self) -> Dict[str, str]:
+    def generate(self) -> dict[str, str]:
         """Generate all files and return path -> content mapping."""
         return {path: file.to_typescript() for path, file in self.files.items()}
 
-    def write_files(self) -> List[str]:
+    def write_files(self) -> list[str]:
         """Write all files to disk."""
         import os
 
@@ -529,22 +528,22 @@ class CodeGenerator:
 
 
 __all__ = [
-    "CodeNode",
-    "Statement",
-    "Block",
-    "Import",
-    "ImportFrom",
-    "Variable",
-    "Function",
-    "Class",
-    "Interface",
-    "TypeAlias",
-    "ObjectLiteral",
     "ArrayLiteral",
-    "Property",
-    "Parameter",
-    "Return",
-    "Comment",
+    "Block",
+    "Class",
     "CodeFile",
     "CodeGenerator",
+    "CodeNode",
+    "Comment",
+    "Function",
+    "Import",
+    "ImportFrom",
+    "Interface",
+    "ObjectLiteral",
+    "Parameter",
+    "Property",
+    "Return",
+    "Statement",
+    "TypeAlias",
+    "Variable",
 ]

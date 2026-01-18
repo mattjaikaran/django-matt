@@ -7,6 +7,7 @@ from typing import Any
 
 from django.conf import settings
 from django.http import HttpRequest, JsonResponse
+
 from pydantic import ValidationError
 
 
@@ -98,46 +99,45 @@ class ErrorHandler:
         """Generate a helpful suggestion based on the exception type."""
         if error_type == "ValidationError":
             return "Check the data structure against the schema requirements."
-        elif error_type == "TypeError":
+        if error_type == "TypeError":
             return "Verify the types of all arguments being passed."
-        elif error_type == "AttributeError":
+        if error_type == "AttributeError":
             return "Ensure the object has the attribute you're trying to access."
-        elif error_type == "ImportError":
+        if error_type == "ImportError":
             return "Check that the module exists and is installed."
-        elif error_type == "KeyError":
+        if error_type == "KeyError":
             return "Verify the key exists in the dictionary before accessing it."
-        elif error_type == "IndexError":
+        if error_type == "IndexError":
             return "Ensure the index is within the bounds of the list."
-        elif error_type == "SyntaxError":
+        if error_type == "SyntaxError":
             return "Fix the syntax error in your code."
-        elif error_type == "NameError":
+        if error_type == "NameError":
             return "Make sure the variable is defined before using it."
-        elif error_type == "FileNotFoundError":
+        if error_type == "FileNotFoundError":
             return "Verify the file path is correct and the file exists."
-        elif error_type == "PermissionError":
+        if error_type == "PermissionError":
             return "Check file permissions or if you have the necessary access rights."
-        elif error_type == "ConnectionError":
+        if error_type == "ConnectionError":
             return "Verify network connectivity and that the service is running."
-        elif error_type == "ValueError":
+        if error_type == "ValueError":
             return "Check that the value is appropriate for the operation."
-        elif error_type == "ZeroDivisionError":
+        if error_type == "ZeroDivisionError":
             return "Avoid dividing by zero; add a check before division."
-        elif error_type == "AssertionError":
+        if error_type == "AssertionError":
             return "The assertion condition failed; check your assumptions."
-        elif error_type == "RuntimeError":
+        if error_type == "RuntimeError":
             return "A runtime error occurred; check the execution flow."
-        elif error_type == "NotImplementedError":
+        if error_type == "NotImplementedError":
             return "This feature is not implemented yet; implement it or use an alternative."
-        elif error_type == "RecursionError":
+        if error_type == "RecursionError":
             return "Your recursion is too deep; check for infinite recursion or use iteration."
-        elif error_type == "MemoryError":
+        if error_type == "MemoryError":
             return "The operation is using too much memory; optimize memory usage."
-        elif error_type == "TimeoutError":
+        if error_type == "TimeoutError":
             return "The operation timed out; check for long-running operations or increase timeout."
-        elif error_type == "StopIteration":
+        if error_type == "StopIteration":
             return "The iterator has no more items; check your iteration logic."
-        else:
-            return None
+        return None
 
     @classmethod
     def capture_error(cls, exception: Exception) -> ErrorDetail:
@@ -145,9 +145,7 @@ class ErrorHandler:
         exc_type, exc_value, exc_traceback = sys.exc_info()
 
         # Get the traceback as a string
-        traceback_str = "".join(
-            traceback.format_exception(exc_type, exc_value, exc_traceback)
-        )
+        traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
 
         # Get the error type
         error_type = exc_type.__name__ if exc_type else "Unknown"
@@ -249,11 +247,10 @@ class ValidationErrorFormatter:
         for part in error_loc:
             if isinstance(part, int):
                 path_parts.append(f"[{part}]")
+            elif path_parts:
+                path_parts.append(f".{part}")
             else:
-                if path_parts:
-                    path_parts.append(f".{part}")
-                else:
-                    path_parts.append(str(part))
+                path_parts.append(str(part))
 
         return "".join(path_parts)
 

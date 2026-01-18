@@ -5,12 +5,13 @@ Defines the abstract interface that all task backends must implement.
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, Sequence, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..base import Task, TaskResult
-    from ..primitives import Signature, Group, GroupResult
+    from ..primitives import Group, GroupResult, Signature
 
 
 class BaseBackend(ABC):
@@ -53,7 +54,6 @@ class BaseBackend(ABC):
         Returns:
             TaskResult for tracking
         """
-        pass
 
     @abstractmethod
     def get_result(self, task_id: str) -> "TaskResult":
@@ -66,7 +66,6 @@ class BaseBackend(ABC):
         Returns:
             TaskResult with current status
         """
-        pass
 
     @abstractmethod
     def revoke(self, task_id: str, terminate: bool = False) -> None:
@@ -77,7 +76,6 @@ class BaseBackend(ABC):
             task_id: The task ID to revoke
             terminate: Whether to terminate if already running
         """
-        pass
 
     def send_group(
         self,
@@ -97,7 +95,6 @@ class BaseBackend(ABC):
         Returns:
             GroupResult for tracking
         """
-        from ..base import TaskResult
         from ..primitives import GroupResult
 
         results = []
@@ -183,7 +180,6 @@ class BaseBackend(ABC):
         Args:
             **config: Configuration options
         """
-        pass
 
     def close(self) -> None:
         """
@@ -191,4 +187,3 @@ class BaseBackend(ABC):
 
         Called during shutdown.
         """
-        pass

@@ -5,13 +5,12 @@ Provides global API key authentication and rate limiting.
 """
 
 import time
-from typing import Callable
+from collections.abc import Callable
 
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.utils import timezone
 
-from .utils import get_api_key_from_request, get_client_ip, api_key_config
+from .utils import api_key_config, get_api_key_from_request, get_client_ip
 
 
 class APIKeyAuthenticationMiddleware:

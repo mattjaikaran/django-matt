@@ -7,7 +7,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-
 # =============================================================================
 # SSO Connection Configuration
 # =============================================================================
@@ -16,7 +15,9 @@ from pydantic import BaseModel, Field
 class SSOConnectionBase(BaseModel):
     """Base schema for SSO connection."""
 
-    provider_type: Literal["saml", "oidc", "okta", "azure_ad", "google_workspace", "onelogin", "auth0"]
+    provider_type: Literal[
+        "saml", "oidc", "okta", "azure_ad", "google_workspace", "onelogin", "auth0"
+    ]
     name: str = Field(default="", max_length=255)
     is_active: bool = True
     is_required: bool = False

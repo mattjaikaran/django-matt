@@ -5,9 +5,10 @@ Tests for the performance utilities in Django Matt.
 import json
 import time
 
-import pytest
 from django.http import HttpRequest, JsonResponse
 from django.test import RequestFactory, TestCase, override_settings
+
+import pytest
 
 from django_matt.utils.performance import (
     HAS_MSGPACK,
@@ -117,9 +118,7 @@ class TestStreamingJsonResponse(TestCase):
             for i in range(5):
                 yield {"id": i, "name": f"Item {i}"}
 
-        response = StreamingJsonResponse(
-            streaming_content=stream_json_list(items_generator())
-        )
+        response = StreamingJsonResponse(streaming_content=stream_json_list(items_generator()))
 
         # Check content type
         self.assertEqual(response["Content-Type"], "application/json")

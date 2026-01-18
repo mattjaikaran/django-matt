@@ -2,7 +2,7 @@
 ListView for listing resources with pagination, filtering, and search.
 """
 
-from typing import Any, Type
+from typing import Any
 
 from django.db import models
 from django.http import HttpRequest
@@ -87,7 +87,7 @@ class ListView(APIView):
     ordering_fields: list[str] | None = None  # Allowed fields for ordering
     filter_fields: list[str] | None = None
     filter_backends: list[Any] | None = None  # List of filter backend instances
-    filterset_class: Type | None = None  # FilterSet class
+    filterset_class: type | None = None  # FilterSet class
     search_fields: list[str] | None = None
 
     def __init__(
@@ -100,7 +100,7 @@ class ListView(APIView):
         ordering_fields: list[str] | None = None,
         filter_fields: list[str] | None = None,
         filter_backends: list[Any] | None = None,
-        filterset_class: Type | None = None,
+        filterset_class: type | None = None,
         search_fields: list[str] | None = None,
         **kwargs,
     ):
@@ -134,7 +134,7 @@ class ListView(APIView):
             return self._viewset.filter_backends or []
         return []
 
-    def _get_filterset_class(self) -> Type | None:
+    def _get_filterset_class(self) -> type | None:
         """Get FilterSet class from view or viewset."""
         if self.filterset_class is not None:
             return self.filterset_class
@@ -212,9 +212,7 @@ class ListView(APIView):
                 queryset = backend.filter_queryset(request, queryset, self)
         return queryset
 
-    def _apply_ordering(
-        self, queryset: models.QuerySet, request: HttpRequest
-    ) -> models.QuerySet:
+    def _apply_ordering(self, queryset: models.QuerySet, request: HttpRequest) -> models.QuerySet:
         """Apply ordering to the queryset."""
         order_param = request.GET.get("ordering") or request.GET.get("order_by")
 
@@ -235,9 +233,7 @@ class ListView(APIView):
 
         return queryset
 
-    def _apply_filters(
-        self, queryset: models.QuerySet, request: HttpRequest
-    ) -> models.QuerySet:
+    def _apply_filters(self, queryset: models.QuerySet, request: HttpRequest) -> models.QuerySet:
         """Apply filters from query parameters."""
         # Check for FilterSet first
         filterset_class = self._get_filterset_class()
@@ -258,7 +254,16 @@ class ListView(APIView):
 
         filters = {}
         for key, value in request.GET.items():
-            if key in ("page", "page_size", "ordering", "order_by", "search", "cursor", "limit", "offset"):
+            if key in (
+                "page",
+                "page_size",
+                "ordering",
+                "order_by",
+                "search",
+                "cursor",
+                "limit",
+                "offset",
+            ):
                 continue
 
             base_field = key.split("__")[0]
@@ -273,9 +278,7 @@ class ListView(APIView):
 
         return queryset
 
-    def _apply_search(
-        self, queryset: models.QuerySet, request: HttpRequest
-    ) -> models.QuerySet:
+    def _apply_search(self, queryset: models.QuerySet, request: HttpRequest) -> models.QuerySet:
         """Apply search filter."""
         search = request.GET.get("search")
         if not search or not self.search_fields:

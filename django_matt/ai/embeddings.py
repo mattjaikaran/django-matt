@@ -5,8 +5,7 @@ Provides caching, batching, and helper functions for embeddings.
 """
 
 import hashlib
-import json
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from django_matt.ai.base import EmbeddingProvider, EmbeddingResponse
 
@@ -33,7 +32,7 @@ class CachedEmbeddings:
     def __init__(
         self,
         provider: EmbeddingProvider,
-        cache: Optional[Any] = None,
+        cache: Any | None = None,
         cache_prefix: str = "embed:",
         ttl: int = 86400 * 7,  # 1 week default
     ):
@@ -50,16 +49,16 @@ class CachedEmbeddings:
         self.cache = cache
         self.cache_prefix = cache_prefix
         self.ttl = ttl
-        self._local_cache: Dict[str, List[float]] = {}
+        self._local_cache: dict[str, list[float]] = {}
 
-    def _cache_key(self, text: str, model: Optional[str] = None) -> str:
+    def _cache_key(self, text: str, model: str | None = None) -> str:
         """Generate a cache key for text."""
         model = model or self.provider.model
         content = f"{model}:{text}"
         hash_val = hashlib.sha256(content.encode()).hexdigest()[:16]
         return f"{self.cache_prefix}{hash_val}"
 
-    async def _get_cached(self, key: str) -> Optional[List[float]]:
+    async def _get_cached(self, key: str) -> list[float] | None:
         """Get value from cache."""
         # Try local cache first
         if key in self._local_cache:
@@ -74,7 +73,7 @@ class CachedEmbeddings:
 
         return None
 
-    async def _set_cached(self, key: str, value: List[float]) -> None:
+    async def _set_cached(self, key: str, value: list[float]) -> None:
         """Set value in cache."""
         self._local_cache[key] = value
         if self.cache:
@@ -82,9 +81,9 @@ class CachedEmbeddings:
 
     async def embed(
         self,
-        texts: List[str],
+        texts: list[str],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         **kwargs,
     ) -> EmbeddingResponse:
         """
@@ -93,8 +92,8 @@ class CachedEmbeddings:
         Cached embeddings are returned from cache, uncached ones
         are fetched from the provider and then cached.
         """
-        results: Dict[int, List[float]] = {}
-        uncached_texts: List[tuple[int, str]] = []
+        results: dict[int, list[float]] = {}
+        uncached_texts: list[tuple[int, str]] = []
 
         # Check cache for each text
         for i, text in enumerate(texts):
@@ -107,7 +106,7 @@ class CachedEmbeddings:
 
         # Fetch uncached embeddings
         if uncached_texts:
-            indices, texts_to_embed = zip(*uncached_texts)
+            indices, texts_to_embed = zip(*uncached_texts, strict=False)
             response = await self.provider.embed(list(texts_to_embed), model=model, **kwargs)
 
             # Cache and store results
@@ -125,7 +124,7 @@ class CachedEmbeddings:
             model=model or self.provider.model,
         )
 
-    async def embed_single(self, text: str, **kwargs) -> List[float]:
+    async def embed_single(self, text: str, **kwargs) -> list[float]:
         """Embed a single text with caching."""
         response = await self.embed([text], **kwargs)
         return response.embeddings[0]
@@ -180,12 +179,12 @@ class BatchEmbeddings:
 
     async def embed_all(
         self,
-        texts: List[str],
+        texts: list[str],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         show_progress: bool = False,
         **kwargs,
-    ) -> List[List[float]]:
+    ) -> list[list[float]]:
         """
         Embed all texts in batches.
 
@@ -197,7 +196,7 @@ class BatchEmbeddings:
         """
         import asyncio
 
-        all_embeddings: List[Optional[List[float]]] = [None] * len(texts)
+        all_embeddings: list[list[float] | None] = [None] * len(texts)
 
         # Create batches
         batches = []
@@ -210,6 +209,7 @@ class BatchEmbeddings:
         if show_progress:
             try:
                 from tqdm import tqdm
+
                 iterator = tqdm(batches, desc="Embedding", unit="batch")
             except ImportError:
                 pass
@@ -217,7 +217,7 @@ class BatchEmbeddings:
         # Process batches with concurrency limit
         semaphore = asyncio.Semaphore(self.max_concurrent)
 
-        async def process_batch(start_idx: int, batch_texts: List[str]):
+        async def process_batch(start_idx: int, batch_texts: list[str]):
             async with semaphore:
                 response = await self.provider.embed(batch_texts, model=model, **kwargs)
                 for j, embedding in enumerate(response.embeddings):
@@ -229,7 +229,7 @@ class BatchEmbeddings:
         return all_embeddings  # type: ignore
 
 
-def cosine_similarity(a: List[float], b: List[float]) -> float:
+def cosine_similarity(a: list[float], b: list[float]) -> float:
     """
     Calculate cosine similarity between two vectors.
 
@@ -237,7 +237,7 @@ def cosine_similarity(a: List[float], b: List[float]) -> float:
     """
     import math
 
-    dot_product = sum(x * y for x, y in zip(a, b))
+    dot_product = sum(x * y for x, y in zip(a, b, strict=False))
     norm_a = math.sqrt(sum(x * x for x in a))
     norm_b = math.sqrt(sum(x * x for x in b))
 
@@ -247,20 +247,22 @@ def cosine_similarity(a: List[float], b: List[float]) -> float:
     return dot_product / (norm_a * norm_b)
 
 
-def euclidean_distance(a: List[float], b: List[float]) -> float:
+def euclidean_distance(a: list[float], b: list[float]) -> float:
     """Calculate Euclidean distance between two vectors."""
     import math
-    return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)))
+
+    return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b, strict=False)))
 
 
-def dot_product(a: List[float], b: List[float]) -> float:
+def dot_product(a: list[float], b: list[float]) -> float:
     """Calculate dot product between two vectors."""
-    return sum(x * y for x, y in zip(a, b))
+    return sum(x * y for x, y in zip(a, b, strict=False))
 
 
-def normalize_vector(v: List[float]) -> List[float]:
+def normalize_vector(v: list[float]) -> list[float]:
     """Normalize a vector to unit length."""
     import math
+
     norm = math.sqrt(sum(x * x for x in v))
     if norm == 0:
         return v
@@ -268,11 +270,11 @@ def normalize_vector(v: List[float]) -> List[float]:
 
 
 def find_most_similar(
-    query_embedding: List[float],
-    embeddings: List[List[float]],
+    query_embedding: list[float],
+    embeddings: list[list[float]],
     top_k: int = 5,
     metric: str = "cosine",
-) -> List[tuple[int, float]]:
+) -> list[tuple[int, float]]:
     """
     Find the most similar embeddings to a query.
 
@@ -301,11 +303,11 @@ def find_most_similar(
 
 
 __all__ = [
-    "CachedEmbeddings",
     "BatchEmbeddings",
+    "CachedEmbeddings",
     "cosine_similarity",
-    "euclidean_distance",
     "dot_product",
-    "normalize_vector",
+    "euclidean_distance",
     "find_most_similar",
+    "normalize_vector",
 ]

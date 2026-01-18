@@ -7,6 +7,7 @@ HTMX-specific request headers.
 
 from dataclasses import dataclass
 from typing import Optional
+
 from django.http import HttpRequest
 
 
@@ -40,13 +41,13 @@ class HtmxDetails:
     """
 
     boosted: bool = False
-    current_url: Optional[str] = None
+    current_url: str | None = None
     history_restore_request: bool = False
-    prompt: Optional[str] = None
+    prompt: str | None = None
     request: bool = False
-    target: Optional[str] = None
-    trigger: Optional[str] = None
-    trigger_name: Optional[str] = None
+    target: str | None = None
+    trigger: str | None = None
+    trigger_name: str | None = None
 
     @classmethod
     def from_request(cls, request: HttpRequest) -> Optional["HtmxDetails"]:
@@ -95,39 +96,39 @@ def is_htmx_history_restore(request: HttpRequest) -> bool:
     return request.headers.get("HX-History-Restore-Request") == "true"
 
 
-def get_htmx_target(request: HttpRequest) -> Optional[str]:
+def get_htmx_target(request: HttpRequest) -> str | None:
     """Get the target element ID from an HTMX request."""
     return request.headers.get("HX-Target")
 
 
-def get_htmx_trigger(request: HttpRequest) -> Optional[str]:
+def get_htmx_trigger(request: HttpRequest) -> str | None:
     """Get the trigger element ID from an HTMX request."""
     return request.headers.get("HX-Trigger")
 
 
-def get_htmx_trigger_name(request: HttpRequest) -> Optional[str]:
+def get_htmx_trigger_name(request: HttpRequest) -> str | None:
     """Get the trigger element name from an HTMX request."""
     return request.headers.get("HX-Trigger-Name")
 
 
-def get_htmx_prompt(request: HttpRequest) -> Optional[str]:
+def get_htmx_prompt(request: HttpRequest) -> str | None:
     """Get the user's response to hx-prompt."""
     return request.headers.get("HX-Prompt")
 
 
-def get_htmx_current_url(request: HttpRequest) -> Optional[str]:
+def get_htmx_current_url(request: HttpRequest) -> str | None:
     """Get the current URL of the browser."""
     return request.headers.get("HX-Current-URL")
 
 
 __all__ = [
     "HtmxDetails",
-    "is_htmx_request",
-    "is_htmx_boosted",
-    "is_htmx_history_restore",
+    "get_htmx_current_url",
+    "get_htmx_prompt",
     "get_htmx_target",
     "get_htmx_trigger",
     "get_htmx_trigger_name",
-    "get_htmx_prompt",
-    "get_htmx_current_url",
+    "is_htmx_boosted",
+    "is_htmx_history_restore",
+    "is_htmx_request",
 ]

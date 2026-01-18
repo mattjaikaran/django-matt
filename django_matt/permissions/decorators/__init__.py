@@ -4,10 +4,11 @@ Permission decorators for Django Matt.
 Provides decorators for applying permissions to controller methods and views.
 """
 
+from django_matt.permissions.decorators.auth import allow_any, authenticated
 from django_matt.permissions.decorators.base import (
     check_permissions,
-    get_request,
     create_permission_decorator,
+    get_request,
 )
 from django_matt.permissions.decorators.permission import (
     requires_permission,
@@ -15,7 +16,6 @@ from django_matt.permissions.decorators.permission import (
     with_permissions,
 )
 from django_matt.permissions.decorators.role import requires_role
-from django_matt.permissions.decorators.auth import authenticated, allow_any
 
 __all__ = [
     # Base utilities

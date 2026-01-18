@@ -4,14 +4,15 @@ Celery backend implementation.
 Provides integration with Celery for distributed task processing.
 """
 
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, Sequence, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from .base import BaseBackend
 
 if TYPE_CHECKING:
     from ..base import Task, TaskResult
-    from ..primitives import Signature, Group, GroupResult
+    from ..primitives import Group, GroupResult, Signature
 
 
 class CeleryBackend(BaseBackend):
@@ -68,8 +69,7 @@ class CeleryBackend(BaseBackend):
             from celery import Celery
         except ImportError:
             raise ImportError(
-                "Celery is required for CeleryBackend. "
-                "Install with: pip install celery[redis]"
+                "Celery is required for CeleryBackend. Install with: pip install celery[redis]"
             )
 
         app = Celery("django_matt_tasks")
@@ -105,7 +105,6 @@ class CeleryBackend(BaseBackend):
 
     def _register_celery_task(self, task: "Task"):
         """Register a django-matt task with Celery."""
-        from celery import shared_task
 
         @self.app.task(
             name=task.name,
@@ -138,7 +137,6 @@ class CeleryBackend(BaseBackend):
         **options,
     ) -> "TaskResult":
         """Send a task to Celery."""
-        from ..base import TaskResult, TaskStatus
 
         # Get the Celery task
         celery_task = getattr(task, "_celery_task", None)
@@ -185,6 +183,7 @@ class CeleryBackend(BaseBackend):
     ) -> "GroupResult":
         """Send a group using Celery's native group support."""
         from celery import group as celery_group
+
         from ..primitives import GroupResult
 
         # Convert to Celery signatures
@@ -200,10 +199,7 @@ class CeleryBackend(BaseBackend):
         group_result = celery_group(celery_sigs).apply_async(**options)
 
         # Convert results
-        results = [
-            CeleryTaskResult(task_id=r.id, celery_result=r)
-            for r in group_result.results
-        ]
+        results = [CeleryTaskResult(task_id=r.id, celery_result=r) for r in group_result.results]
 
         return GroupResult(results=results)
 
@@ -261,9 +257,7 @@ class CeleryBackend(BaseBackend):
             body_celery = body.task._celery_task
 
         # Execute chord
-        chord_result = celery_chord(celery_header)(
-            body_celery.s(*body.args, **body.kwargs)
-        )
+        chord_result = celery_chord(celery_header)(body_celery.s(*body.args, **body.kwargs))
 
         return CeleryTaskResult(
             task_id=chord_result.id,
@@ -321,21 +315,25 @@ class CeleryTaskResult:
     @property
     def is_pending(self):
         from ..base import TaskStatus
+
         return self.status == TaskStatus.PENDING
 
     @property
     def is_success(self):
         from ..base import TaskStatus
+
         return self.status == TaskStatus.SUCCESS
 
     @property
     def is_failure(self):
         from ..base import TaskStatus
+
         return self.status == TaskStatus.FAILURE
 
     @property
     def is_complete(self):
         from ..base import TaskStatus
+
         return self.status in (TaskStatus.SUCCESS, TaskStatus.FAILURE, TaskStatus.REVOKED)
 
     def get(self, timeout: float = None, propagate: bool = True):

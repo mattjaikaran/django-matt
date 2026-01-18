@@ -5,14 +5,16 @@ Generates Dockerfile and docker-compose.yml for self-hosted deployments.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
 from pathlib import Path
+from typing import Any
+
 import yaml
 
 
 @dataclass
 class DockerfileConfig:
     """Configuration for Dockerfile generation."""
+
     python_version: str = "3.13"
     base_image: str = "python:{version}-slim"
     working_dir: str = "/app"
@@ -22,16 +24,18 @@ class DockerfileConfig:
     wsgi_module: str = "config.wsgi:application"
     asgi_module: str = "config.asgi:application"
     use_asgi: bool = False
-    system_packages: List[str] = field(default_factory=lambda: [
-        "build-essential",
-        "libpq-dev",
-        "curl",
-    ])
+    system_packages: list[str] = field(
+        default_factory=lambda: [
+            "build-essential",
+            "libpq-dev",
+            "curl",
+        ]
+    )
     requirements_file: str = "requirements.txt"
     static_root: str = "staticfiles"
     media_root: str = "media"
     health_check_path: str = "/health/"
-    extra_commands: List[str] = field(default_factory=list)
+    extra_commands: list[str] = field(default_factory=list)
 
 
 class DockerfileGenerator:
@@ -46,24 +50,23 @@ class DockerfileGenerator:
     - Non-root user
     """
 
-    def __init__(self, config: Optional[DockerfileConfig] = None):
+    def __init__(self, config: DockerfileConfig | None = None):
         self.config = config or DockerfileConfig()
 
     def generate(self, mode: str = "production") -> str:
         """Generate Dockerfile content."""
         if mode == "development":
             return self._generate_development()
-        elif mode == "multistage":
+        if mode == "multistage":
             return self._generate_multistage()
-        else:
-            return self._generate_production()
+        return self._generate_production()
 
     def _generate_production(self) -> str:
         """Generate production Dockerfile."""
         base_image = self.config.base_image.format(version=self.config.python_version)
         server_cmd = self._get_server_command()
 
-        dockerfile = f'''# Production Dockerfile
+        dockerfile = f"""# Production Dockerfile
 FROM {base_image}
 
 # Set environment variables
@@ -76,7 +79,7 @@ WORKDIR {self.config.working_dir}
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \\
-    {' '.join(self.config.system_packages)} \\
+    {" ".join(self.config.system_packages)} \\
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -105,7 +108,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \\
 
 # Run the application
 CMD {server_cmd}
-'''
+"""
         return dockerfile
 
     def _generate_multistage(self) -> str:
@@ -113,7 +116,7 @@ CMD {server_cmd}
         base_image = self.config.base_image.format(version=self.config.python_version)
         server_cmd = self._get_server_command()
 
-        dockerfile = f'''# Multi-stage production Dockerfile
+        dockerfile = f"""# Multi-stage production Dockerfile
 # Stage 1: Build
 FROM {base_image} AS builder
 
@@ -169,14 +172,14 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \\
     CMD curl -f http://localhost:$PORT{self.config.health_check_path} || exit 1
 
 CMD {server_cmd}
-'''
+"""
         return dockerfile
 
     def _generate_development(self) -> str:
         """Generate development Dockerfile with hot reloading."""
         base_image = self.config.base_image.format(version=self.config.python_version)
 
-        dockerfile = f'''# Development Dockerfile
+        dockerfile = f"""# Development Dockerfile
 FROM {base_image}
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -187,7 +190,7 @@ WORKDIR {self.config.working_dir}
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \\
-    {' '.join(self.config.system_packages)} \\
+    {" ".join(self.config.system_packages)} \\
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -201,15 +204,14 @@ EXPOSE {self.config.port}
 
 # Run development server with hot reload
 CMD ["python", "manage.py", "runserver", "0.0.0.0:{self.config.port}"]
-'''
+"""
         return dockerfile
 
     def _get_server_command(self) -> str:
         """Get the appropriate server command."""
         if self.config.use_asgi:
             return f'["sh", "-c", "python manage.py migrate --noinput && uvicorn {self.config.asgi_module} --host 0.0.0.0 --port $PORT --workers {self.config.workers}"]'
-        else:
-            return f'["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.wsgi_module} --bind 0.0.0.0:$PORT --workers {self.config.workers} --worker-class {self.config.worker_class}"]'
+        return f'["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.wsgi_module} --bind 0.0.0.0:$PORT --workers {self.config.workers} --worker-class {self.config.worker_class}"]'
 
     def write(self, path: Path, mode: str = "production"):
         """Write Dockerfile to path."""
@@ -221,28 +223,30 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:{self.config.port}"]
 @dataclass
 class ComposeService:
     """Configuration for a Docker Compose service."""
+
     name: str
-    image: Optional[str] = None
-    build: Optional[str] = "."
-    ports: List[str] = field(default_factory=list)
-    environment: Dict[str, str] = field(default_factory=dict)
-    env_file: Optional[str] = None
-    volumes: List[str] = field(default_factory=list)
-    depends_on: List[str] = field(default_factory=list)
-    command: Optional[str] = None
+    image: str | None = None
+    build: str | None = "."
+    ports: list[str] = field(default_factory=list)
+    environment: dict[str, str] = field(default_factory=dict)
+    env_file: str | None = None
+    volumes: list[str] = field(default_factory=list)
+    depends_on: list[str] = field(default_factory=list)
+    command: str | None = None
     restart: str = "unless-stopped"
-    healthcheck: Optional[Dict[str, Any]] = None
-    networks: List[str] = field(default_factory=list)
-    labels: Dict[str, str] = field(default_factory=dict)
+    healthcheck: dict[str, Any] | None = None
+    networks: list[str] = field(default_factory=list)
+    labels: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
 class ComposeConfig:
     """Configuration for Docker Compose generation."""
+
     project_name: str
-    services: List[ComposeService] = field(default_factory=list)
-    volumes: List[str] = field(default_factory=list)
-    networks: List[str] = field(default_factory=list)
+    services: list[ComposeService] = field(default_factory=list)
+    volumes: list[str] = field(default_factory=list)
+    networks: list[str] = field(default_factory=list)
 
 
 class ComposeGenerator:
@@ -266,7 +270,7 @@ class ComposeGenerator:
         include_celery: bool = False,
         include_proxy: bool = True,
         proxy_type: str = "caddy",  # "caddy" or "nginx"
-        domain: Optional[str] = None,
+        domain: str | None = None,
     ):
         self.app_name = app_name
         self.port = port
@@ -282,22 +286,19 @@ class ComposeGenerator:
         """Generate docker-compose.yml content."""
         if mode == "development":
             return self._generate_development()
-        else:
-            return self._generate_production()
+        return self._generate_production()
 
     def _generate_production(self) -> str:
         """Generate production docker-compose.yml."""
-        compose: Dict[str, Any] = {
+        compose: dict[str, Any] = {
             "version": "3.8",
             "services": {},
             "volumes": {},
-            "networks": {
-                "app_network": {"driver": "bridge"}
-            },
+            "networks": {"app_network": {"driver": "bridge"}},
         }
 
         # Web service
-        web_service: Dict[str, Any] = {
+        web_service: dict[str, Any] = {
             "build": ".",
             "restart": "always",
             "environment": {
@@ -316,7 +317,9 @@ class ComposeGenerator:
 
         if self.include_db:
             web_service["depends_on"].append("db")
-            web_service["environment"]["DATABASE_URL"] = "postgres://django:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+            web_service["environment"]["DATABASE_URL"] = (
+                "postgres://django:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
+            )
 
         if self.include_redis:
             web_service["depends_on"].append("redis")
@@ -423,7 +426,7 @@ class ComposeGenerator:
 
     def _generate_development(self) -> str:
         """Generate development docker-compose.yml."""
-        compose: Dict[str, Any] = {
+        compose: dict[str, Any] = {
             "version": "3.8",
             "services": {},
             "volumes": {},
@@ -450,7 +453,9 @@ class ComposeGenerator:
 
         if self.include_db:
             compose["services"]["web"]["depends_on"].append("db")
-            compose["services"]["web"]["environment"]["DATABASE_URL"] = "postgres://django:django@db:5432/django"
+            compose["services"]["web"]["environment"]["DATABASE_URL"] = (
+                "postgres://django:django@db:5432/django"
+            )
 
             compose["services"]["db"] = {
                 "image": "postgres:16-alpine",
@@ -479,7 +484,7 @@ class ComposeGenerator:
         """Generate Caddyfile for Caddy reverse proxy."""
         domain = self.domain or "localhost"
 
-        return f'''{domain} {{
+        return f"""{domain} {{
     # Enable compression
     encode gzip
 
@@ -509,13 +514,13 @@ class ComposeGenerator:
         -Server
     }}
 }}
-'''
+"""
 
     def generate_nginx_conf(self) -> str:
         """Generate nginx.conf for Nginx reverse proxy."""
         domain = self.domain or "localhost"
 
-        return f'''events {{
+        return f"""events {{
     worker_connections 1024;
 }}
 
@@ -566,11 +571,11 @@ http {{
         }}
     }}
 }}
-'''
+"""
 
     def generate_dockerignore(self) -> str:
         """Generate .dockerignore file."""
-        return '''# Python
+        return """# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -616,7 +621,7 @@ htmlcov/
 !.env.example
 .DS_Store
 node_modules/
-'''
+"""
 
     def write(self, path: Path, mode: str = "production"):
         """Write docker-compose.yml to path."""
@@ -626,9 +631,9 @@ node_modules/
 
 
 __all__ = [
-    "DockerfileConfig",
-    "DockerfileGenerator",
-    "ComposeService",
     "ComposeConfig",
     "ComposeGenerator",
+    "ComposeService",
+    "DockerfileConfig",
+    "DockerfileGenerator",
 ]

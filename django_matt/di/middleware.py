@@ -7,13 +7,14 @@ Provides middleware for:
 """
 
 import inspect
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable
 
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import HttpRequest, HttpResponse
 
-from .container import container as default_container, _scoped_instances, Container
-from .depends import resolve_dependencies, aresolve_dependencies, DependencyMarker
+from .container import Container, _scoped_instances
+from .container import container as default_container
+from .depends import aresolve_dependencies, resolve_dependencies
 
 
 class RequestScopeMiddleware:
@@ -182,21 +183,20 @@ def inject_dependencies(
                 return await fn(request, *args, **kwargs)
 
             return async_wrapper
-        else:
 
-            @wraps(fn)
-            def sync_wrapper(request, *args, **kwargs):
-                # Resolve dependencies
-                deps = resolve_dependencies(
-                    fn,
-                    request=request,
-                    container=container,
-                    **kwargs,
-                )
-                kwargs.update(deps)
-                return fn(request, *args, **kwargs)
+        @wraps(fn)
+        def sync_wrapper(request, *args, **kwargs):
+            # Resolve dependencies
+            deps = resolve_dependencies(
+                fn,
+                request=request,
+                container=container,
+                **kwargs,
+            )
+            kwargs.update(deps)
+            return fn(request, *args, **kwargs)
 
-            return sync_wrapper
+        return sync_wrapper
 
     if func is not None:
         return decorator(func)
@@ -231,17 +231,16 @@ def with_scope(func: Callable = None) -> Callable:
                     _scoped_instances.reset(token)
 
             return async_wrapper
-        else:
 
-            @wraps(fn)
-            def sync_wrapper(*args, **kwargs):
-                token = _scoped_instances.set({})
-                try:
-                    return fn(*args, **kwargs)
-                finally:
-                    _scoped_instances.reset(token)
+        @wraps(fn)
+        def sync_wrapper(*args, **kwargs):
+            token = _scoped_instances.set({})
+            try:
+                return fn(*args, **kwargs)
+            finally:
+                _scoped_instances.reset(token)
 
-            return sync_wrapper
+        return sync_wrapper
 
     if func is not None:
         return decorator(func)

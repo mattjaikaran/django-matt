@@ -3,7 +3,7 @@ Zod validation schema generation from Pydantic schemas.
 """
 
 from pathlib import Path
-from typing import Any, List, Optional, Set, Type
+from typing import Any
 
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
@@ -17,11 +17,11 @@ from django_matt.typegen.utils import (
 class ZodGenerator:
     """
     Generate Zod validation schemas from Pydantic schemas.
-    
+
     Example:
         generator = ZodGenerator()
         zod_code = generator.generate([UserSchema, PostSchema])
-        
+
         # With options
         generator = ZodGenerator(
             schema_suffix="Schema",
@@ -29,7 +29,7 @@ class ZodGenerator:
             include_descriptions=True,
         )
     """
-    
+
     def __init__(
         self,
         schema_suffix: str = "Schema",
@@ -39,7 +39,7 @@ class ZodGenerator:
     ):
         """
         Initialize Zod generator.
-        
+
         Args:
             schema_suffix: Suffix to add to schema names
             camel_case: Convert snake_case field names to camelCase
@@ -50,30 +50,30 @@ class ZodGenerator:
         self.camel_case = camel_case
         self.include_descriptions = include_descriptions
         self.include_defaults = include_defaults
-        
-        self._generated: Set[str] = set()
-        self._schema_names: Set[str] = set()
-    
+
+        self._generated: set[str] = set()
+        self._schema_names: set[str] = set()
+
     def generate(
         self,
-        schemas: List[Type[BaseModel]],
-        header: Optional[str] = None,
+        schemas: list[type[BaseModel]],
+        header: str | None = None,
     ) -> str:
         """
         Generate Zod schemas from Pydantic schemas.
-        
+
         Args:
             schemas: List of Pydantic BaseModel classes
             header: Optional header comment
-        
+
         Returns:
             Zod schema code as string
         """
         self._generated.clear()
         self._schema_names = {s.__name__ for s in schemas}
-        
+
         lines = []
-        
+
         # Add header
         if header:
             lines.append(f"// {header}")
@@ -81,36 +81,36 @@ class ZodGenerator:
             lines.append("// Auto-generated Zod schemas from Pydantic models")
             lines.append("// Do not edit manually - regenerate with sync_types command")
         lines.append("")
-        
+
         # Import statement
         lines.append('import { z } from "zod";')
         lines.append("")
-        
+
         # Generate schemas
         for schema in schemas:
             if schema.__name__ not in self._generated:
                 schema_code = self._generate_schema(schema)
                 lines.append(schema_code)
                 lines.append("")
-        
+
         # Generate type exports
         lines.append("// Inferred types")
         for schema in schemas:
             name = schema.__name__
             schema_name = f"{name}{self.schema_suffix}"
             lines.append(f"export type {name} = z.infer<typeof {schema_name}>;")
-        
+
         return "\n".join(lines)
-    
-    def _generate_schema(self, schema: Type[BaseModel]) -> str:
+
+    def _generate_schema(self, schema: type[BaseModel]) -> str:
         """Generate Zod schema for a single Pydantic model."""
         self._generated.add(schema.__name__)
-        
+
         name = schema.__name__
         schema_name = f"{name}{self.schema_suffix}"
-        
+
         lines = []
-        
+
         # Add JSDoc comment
         doc = schema.__doc__
         if doc:
@@ -118,151 +118,149 @@ class ZodGenerator:
             for line in doc.strip().split("\n"):
                 lines.append(f" * {line.strip()}")
             lines.append(" */")
-        
+
         # Schema declaration
         lines.append(f"export const {schema_name} = z.object({{")
-        
+
         # Generate fields
         for field_name, field_info in schema.model_fields.items():
             field_code = self._generate_field(field_name, field_info, schema)
             lines.append(f"  {field_code}")
-        
+
         lines.append("});")
-        
+
         return "\n".join(lines)
-    
+
     def _generate_field(
         self,
         field_name: str,
         field_info: FieldInfo,
-        schema: Type[BaseModel],
+        schema: type[BaseModel],
     ) -> str:
         """Generate Zod field declaration."""
         # Get field type from annotation
         annotations = schema.__annotations__
         python_type = annotations.get(field_name, Any)
-        
+
         # Convert to Zod schema
         zod_type = python_type_to_zod(python_type, self._schema_names)
-        
+
         # Convert field name if camelCase is enabled
         output_name = snake_to_camel(field_name) if self.camel_case else field_name
-        
+
         # Check if field is optional
         is_optional = not field_info.is_required()
-        
+
         # Build modifiers
         modifiers = []
-        
+
         # Add description
         if self.include_descriptions and field_info.description:
             modifiers.append(f'.describe("{field_info.description}")')
-        
+
         # Add default value
         if self.include_defaults and field_info.default is not None:
             default_val = field_info.default
             if isinstance(default_val, str):
                 modifiers.append(f'.default("{default_val}")')
             elif isinstance(default_val, bool):
-                modifiers.append(f'.default({str(default_val).lower()})')
+                modifiers.append(f".default({str(default_val).lower()})")
             elif isinstance(default_val, (int, float)):
-                modifiers.append(f'.default({default_val})')
+                modifiers.append(f".default({default_val})")
             elif isinstance(default_val, dict):
-                modifiers.append('.default({})')
+                modifiers.append(".default({})")
             elif isinstance(default_val, list):
-                modifiers.append('.default([])')
-        
+                modifiers.append(".default([])")
+
         # Add optional modifier
         if is_optional and ".nullable()" not in zod_type:
             modifiers.append(".optional()")
-        
+
         # Combine
         modifier_str = "".join(modifiers)
-        
+
         return f"{output_name}: {zod_type}{modifier_str},"
-    
+
     def generate_with_refinements(
         self,
-        schemas: List[Type[BaseModel]],
+        schemas: list[type[BaseModel]],
         refinements: dict,
     ) -> str:
         """
         Generate Zod schemas with custom refinements.
-        
+
         Args:
             schemas: List of Pydantic BaseModel classes
             refinements: Dict mapping schema.field to refinement code
-        
+
         Returns:
             Zod schema code with refinements
         """
         base_code = self.generate(schemas)
-        
+
         # Add refinements as separate exports
         lines = [base_code, "", "// Schemas with refinements"]
-        
+
         for schema in schemas:
             name = schema.__name__
             schema_name = f"{name}{self.schema_suffix}"
             refined_name = f"{name}Refined{self.schema_suffix}"
-            
+
             schema_refinements = {
-                k.split(".")[-1]: v
-                for k, v in refinements.items()
-                if k.startswith(f"{name}.")
+                k.split(".")[-1]: v for k, v in refinements.items() if k.startswith(f"{name}.")
             }
-            
+
             if schema_refinements:
                 lines.append(f"export const {refined_name} = {schema_name}")
                 for field, refinement in schema_refinements.items():
-                    lines.append(f"  .refine(")
+                    lines.append("  .refine(")
                     lines.append(f"    (data) => {refinement},")
                     lines.append(f'    {{ path: ["{field}"], message: "Validation failed" }},')
-                    lines.append(f"  )")
+                    lines.append("  )")
                 lines.append(";")
                 lines.append("")
-        
+
         return "\n".join(lines)
 
 
 def generate_zod_schema(
-    schemas: List[Type[BaseModel]],
-    output_path: Optional[str] = None,
+    schemas: list[type[BaseModel]],
+    output_path: str | None = None,
     **kwargs,
 ) -> str:
     """
     Convenience function to generate Zod schemas.
-    
+
     Args:
         schemas: List of Pydantic BaseModel classes
         output_path: Optional path to write the output file
         **kwargs: Additional options passed to ZodGenerator
-    
+
     Returns:
         Zod schema code as string
     """
     generator = ZodGenerator(**kwargs)
     code = generator.generate(schemas)
-    
+
     if output_path:
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(code)
-    
+
     return code
 
 
 def pydantic_to_zod(
-    schema: Type[BaseModel],
+    schema: type[BaseModel],
     **kwargs,
 ) -> str:
     """
     Convert a single Pydantic schema to Zod schema.
-    
+
     Args:
         schema: Pydantic BaseModel class
         **kwargs: Additional options passed to ZodGenerator
-    
+
     Returns:
         Zod schema code
     """

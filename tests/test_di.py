@@ -2,16 +2,13 @@
 Tests for the Dependency Injection module in Django Matt.
 """
 
-from unittest.mock import MagicMock
-
-import pytest
-from django.test import RequestFactory, TestCase
+from django.test import TestCase
 
 from django_matt.di import (
     CircularDependencyError,
     Container,
-    Depends,
     DependencyMarker,
+    Depends,
     Scoped,
     ServiceDescriptor,
     ServiceLifetime,
@@ -21,7 +18,6 @@ from django_matt.di import (
     container,
 )
 from django_matt.di.depends import resolve_dependencies
-
 
 # =============================================================================
 # Test Service Classes
@@ -352,9 +348,8 @@ class TestContainer(TestCase):
 
     def test_chaining(self):
         """Test method chaining."""
-        result = (
-            self.container.register(EmailService, lifetime=Singleton)
-            .register(DatabaseService, lifetime=Singleton)
+        result = self.container.register(EmailService, lifetime=Singleton).register(
+            DatabaseService, lifetime=Singleton
         )
 
         self.assertIs(result, self.container)
@@ -494,9 +489,7 @@ class TestResolveDependencies(TestCase):
         def my_func(service: EmailService = Depends()):
             pass
 
-        resolved = resolve_dependencies(
-            my_func, container=self.test_container
-        )
+        resolved = resolve_dependencies(my_func, container=self.test_container)
 
         self.assertIn("service", resolved)
         self.assertIsInstance(resolved["service"], EmailService)
@@ -523,9 +516,7 @@ class TestResolveDependencies(TestCase):
             def method(self, service: EmailService = Depends()):
                 pass
 
-        resolved = resolve_dependencies(
-            MyClass.method, container=self.test_container
-        )
+        resolved = resolve_dependencies(MyClass.method, container=self.test_container)
 
         self.assertNotIn("self", resolved)
 
@@ -535,9 +526,7 @@ class TestResolveDependencies(TestCase):
         def my_func(service: EmailService):
             pass
 
-        resolved = resolve_dependencies(
-            my_func, container=self.test_container
-        )
+        resolved = resolve_dependencies(my_func, container=self.test_container)
 
         self.assertIn("service", resolved)
         self.assertIsInstance(resolved["service"], EmailService)

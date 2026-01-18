@@ -4,15 +4,13 @@ Dramatiq backend implementation.
 Provides integration with Dramatiq for task processing.
 """
 
-import uuid
 from datetime import datetime
-from typing import Any, Sequence, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from .base import BaseBackend
 
 if TYPE_CHECKING:
     from ..base import Task, TaskResult
-    from ..primitives import Signature, Group, GroupResult
 
 
 class DramatiqBackend(BaseBackend):
@@ -68,8 +66,8 @@ class DramatiqBackend(BaseBackend):
         """Create and configure the Dramatiq broker."""
         try:
             import dramatiq
-            from dramatiq.brokers.redis import RedisBroker
             from dramatiq.brokers.rabbitmq import RabbitmqBroker
+            from dramatiq.brokers.redis import RedisBroker
         except ImportError:
             raise ImportError(
                 "Dramatiq is required for DramatiqBackend. "
@@ -101,9 +99,7 @@ class DramatiqBackend(BaseBackend):
                 from dramatiq.results import Results
                 from dramatiq.results.backends import RedisBackend
 
-                result_backend = RedisBackend(
-                    url=self._config.get("DRAMATIQ_RESULT_BACKEND")
-                )
+                result_backend = RedisBackend(url=self._config.get("DRAMATIQ_RESULT_BACKEND"))
                 broker.add_middleware(Results(backend=result_backend))
             except ImportError:
                 pass
@@ -155,7 +151,6 @@ class DramatiqBackend(BaseBackend):
         **options,
     ) -> "TaskResult":
         """Send a task to Dramatiq."""
-        from ..base import TaskResult, TaskStatus
 
         # Ensure broker is created
         _ = self.broker
@@ -197,7 +192,6 @@ class DramatiqBackend(BaseBackend):
         Note: Dramatiq doesn't have built-in task revocation.
         This is a no-op.
         """
-        pass
 
     def configure(self, **config) -> None:
         """Update configuration."""
@@ -243,21 +237,25 @@ class DramatiqTaskResult:
     @property
     def is_pending(self):
         from ..base import TaskStatus
+
         return self.status == TaskStatus.PENDING
 
     @property
     def is_success(self):
         from ..base import TaskStatus
+
         return self.status == TaskStatus.SUCCESS
 
     @property
     def is_failure(self):
         from ..base import TaskStatus
+
         return self.status == TaskStatus.FAILURE
 
     @property
     def is_complete(self):
         from ..base import TaskStatus
+
         return self.status in (TaskStatus.SUCCESS, TaskStatus.FAILURE)
 
     def get(self, timeout: float = None, propagate: bool = True):
@@ -270,7 +268,7 @@ class DramatiqTaskResult:
             try:
                 self._result = self._message.get_result(block=True, timeout=timeout)
                 return self._result
-            except Exception as e:
+            except Exception:
                 if propagate:
                     raise
                 return None

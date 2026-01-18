@@ -5,7 +5,8 @@ Provides middleware for automatic HTMX request detection and
 response handling.
 """
 
-from typing import Callable, Optional
+from collections.abc import Callable
+
 from django.http import HttpRequest, HttpResponse
 
 from django_matt.htmx.request import HtmxDetails
@@ -163,8 +164,8 @@ def htmx_context_processor(request: HttpRequest) -> dict:
 
 
 __all__ = [
-    "HtmxMiddleware",
     "AsyncHtmxMiddleware",
+    "HtmxMiddleware",
     "HtmxTemplateContextMiddleware",
     "htmx_context_processor",
 ]

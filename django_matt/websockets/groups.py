@@ -20,14 +20,12 @@ Usage:
     users = await get_group_users("chat_room_1")
 """
 
-import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from django_matt.websockets.config import get_websocket_config
-
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +33,10 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PresenceInfo:
     """Information about a user's presence in a group."""
+
     user_id: str
     channel_name: str
-    joined_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    joined_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -68,6 +67,7 @@ class PresenceManager:
     def _get_cache(self):
         """Get cache backend."""
         from django.core.cache import caches
+
         return caches[self.cache_alias]
 
     def _presence_key(self, group_name: str) -> str:
@@ -91,7 +91,7 @@ class PresenceManager:
         # Add user
         data[user_id] = {
             "channel_name": channel_name,
-            "joined_at": datetime.now(timezone.utc).isoformat(),
+            "joined_at": datetime.now(UTC).isoformat(),
             "metadata": metadata or {},
         }
 
@@ -124,14 +124,16 @@ class PresenceManager:
             try:
                 joined_at = datetime.fromisoformat(info["joined_at"])
             except (KeyError, ValueError):
-                joined_at = datetime.now(timezone.utc)
+                joined_at = datetime.now(UTC)
 
-            users.append(PresenceInfo(
-                user_id=user_id,
-                channel_name=info.get("channel_name", ""),
-                joined_at=joined_at,
-                metadata=info.get("metadata", {}),
-            ))
+            users.append(
+                PresenceInfo(
+                    user_id=user_id,
+                    channel_name=info.get("channel_name", ""),
+                    joined_at=joined_at,
+                    metadata=info.get("metadata", {}),
+                )
+            )
 
         return users
 
@@ -184,6 +186,7 @@ async def get_channel_layer():
     """Get the default channel layer."""
     try:
         from channels.layers import get_channel_layer as channels_get_layer
+
         return channels_get_layer()
     except ImportError:
         logger.warning("channels package not installed")
@@ -214,10 +217,13 @@ async def broadcast(
     prefixed_name = f"{config.group_prefix}{group_name}"
 
     try:
-        await channel_layer.group_send(prefixed_name, {
-            "type": message_type,
-            "data": data,
-        })
+        await channel_layer.group_send(
+            prefixed_name,
+            {
+                "type": message_type,
+                "data": data,
+            },
+        )
         return True
     except Exception as e:
         logger.error(f"Failed to broadcast to {group_name}: {e}")
@@ -267,10 +273,13 @@ async def send_to_channel(
         return False
 
     try:
-        await channel_layer.send(channel_name, {
-            "type": message_type,
-            "data": data,
-        })
+        await channel_layer.send(
+            channel_name,
+            {
+                "type": message_type,
+                "data": data,
+            },
+        )
         return True
     except Exception as e:
         logger.error(f"Failed to send to channel {channel_name}: {e}")

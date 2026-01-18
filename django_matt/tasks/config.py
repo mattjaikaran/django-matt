@@ -4,8 +4,8 @@ Task configuration.
 Provides configuration management and backend factory.
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, TYPE_CHECKING
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from .backends import BaseBackend
@@ -30,7 +30,7 @@ class TaskConfig:
     dramatiq_broker: str = "redis"
     dramatiq_redis_url: str = "redis://localhost:6379/0"
     dramatiq_rabbitmq_url: str = "amqp://guest:guest@localhost:5672"
-    dramatiq_result_backend: Optional[str] = None
+    dramatiq_result_backend: str | None = None
 
     # Common settings
     default_queue: str = "default"
@@ -56,17 +56,13 @@ class TaskConfig:
         return cls(
             backend=config_dict.get("BACKEND", "sync"),
             # Celery
-            celery_broker_url=config_dict.get(
-                "CELERY_BROKER_URL", "redis://localhost:6379/0"
-            ),
+            celery_broker_url=config_dict.get("CELERY_BROKER_URL", "redis://localhost:6379/0"),
             celery_result_backend=config_dict.get(
                 "CELERY_RESULT_BACKEND", "redis://localhost:6379/0"
             ),
             # Dramatiq
             dramatiq_broker=config_dict.get("DRAMATIQ_BROKER", "redis"),
-            dramatiq_redis_url=config_dict.get(
-                "DRAMATIQ_REDIS_URL", "redis://localhost:6379/0"
-            ),
+            dramatiq_redis_url=config_dict.get("DRAMATIQ_REDIS_URL", "redis://localhost:6379/0"),
             dramatiq_rabbitmq_url=config_dict.get(
                 "DRAMATIQ_RABBITMQ_URL", "amqp://guest:guest@localhost:5672"
             ),
@@ -81,7 +77,7 @@ class TaskConfig:
 
 
 # Global config instance
-_config: Optional[TaskConfig] = None
+_config: TaskConfig | None = None
 _backend: Optional["BaseBackend"] = None
 
 
@@ -157,8 +153,7 @@ def get_backend() -> "BaseBackend":
         _backend = SyncBackend()
     else:
         raise ValueError(
-            f"Unknown task backend: {backend_name}. "
-            f"Supported: celery, dramatiq, django_q, sync"
+            f"Unknown task backend: {backend_name}. Supported: celery, dramatiq, django_q, sync"
         )
 
     return _backend

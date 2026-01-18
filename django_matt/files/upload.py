@@ -6,8 +6,9 @@ Provides utilities for parsing multipart form data and handling file uploads.
 
 import io
 import re
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import BinaryIO, Iterator, Union, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, BinaryIO, Optional
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
@@ -144,7 +145,7 @@ class MultipartParser:
     def __init__(
         self,
         content_type: str,
-        body: Union[bytes, BinaryIO],
+        body: bytes | BinaryIO,
         max_size: int = None,
     ):
         """
@@ -164,7 +165,7 @@ class MultipartParser:
 
     def _extract_boundary(self, content_type: str) -> bytes:
         """Extract the boundary string from Content-Type header."""
-        match = re.search(r'boundary=([^;\s]+)', content_type)
+        match = re.search(r"boundary=([^;\s]+)", content_type)
         if not match:
             raise ValueError("No boundary found in Content-Type header")
 
@@ -204,7 +205,7 @@ class MultipartParser:
                 continue
 
             headers_raw = part[:header_end].decode("utf-8", errors="replace")
-            body = part[header_end + 4:]
+            body = part[header_end + 4 :]
 
             # Remove trailing CRLF
             if body.endswith(b"\r\n"):
@@ -231,10 +232,9 @@ class MultipartParser:
                         headers=headers,
                     )
                 )
-            else:
-                # It's a form field
-                if field_name:
-                    form_data[field_name] = body.decode("utf-8", errors="replace")
+            # It's a form field
+            elif field_name:
+                form_data[field_name] = body.decode("utf-8", errors="replace")
 
         return form_data, files
 
@@ -247,7 +247,7 @@ class MultipartParser:
                 headers[key.strip().lower()] = value.strip()
         return headers
 
-    def _extract_param(self, header: str, param: str) -> Optional[str]:
+    def _extract_param(self, header: str, param: str) -> str | None:
         """Extract a parameter value from a header."""
         # Try quoted value first
         match = re.search(rf'{param}="([^"]*)"', header)
@@ -255,7 +255,7 @@ class MultipartParser:
             return match.group(1)
 
         # Try unquoted value
-        match = re.search(rf'{param}=([^;\s]+)', header)
+        match = re.search(rf"{param}=([^;\s]+)", header)
         if match:
             return match.group(1)
 

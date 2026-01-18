@@ -5,9 +5,9 @@ Provides theme configuration, color schemes, and design tokens
 for consistent styling across components.
 """
 
-from typing import Any, Dict, List, Literal, Optional
-from pydantic import BaseModel, Field
+from typing import Any
 
+from pydantic import BaseModel, Field
 
 # =============================================================================
 # Color System
@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 class ColorScale(BaseModel):
     """Color scale with shades from 50 to 950."""
+
     _50: str = Field(alias="50")
     _100: str = Field(alias="100")
     _200: str = Field(alias="200")
@@ -34,6 +35,7 @@ class ColorScale(BaseModel):
 
 class SemanticColors(BaseModel):
     """Semantic color definitions."""
+
     background: str = "hsl(0 0% 100%)"
     foreground: str = "hsl(222.2 84% 4.9%)"
     card: str = "hsl(0 0% 100%)"
@@ -63,6 +65,7 @@ class SemanticColors(BaseModel):
 
 class DarkColors(SemanticColors):
     """Dark mode color overrides."""
+
     background: str = "hsl(222.2 84% 4.9%)"
     foreground: str = "hsl(210 40% 98%)"
     card: str = "hsl(222.2 84% 4.9%)"
@@ -91,6 +94,7 @@ class DarkColors(SemanticColors):
 
 class FontFamily(BaseModel):
     """Font family definitions."""
+
     sans: str = "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
     serif: str = "ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif"
     mono: str = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, monospace"
@@ -98,6 +102,7 @@ class FontFamily(BaseModel):
 
 class FontSize(BaseModel):
     """Font size scale."""
+
     xs: str = "0.75rem"
     sm: str = "0.875rem"
     base: str = "1rem"
@@ -114,6 +119,7 @@ class FontSize(BaseModel):
 
 class LineHeight(BaseModel):
     """Line height scale."""
+
     none: str = "1"
     tight: str = "1.25"
     snug: str = "1.375"
@@ -124,6 +130,7 @@ class LineHeight(BaseModel):
 
 class FontWeight(BaseModel):
     """Font weight scale."""
+
     thin: str = "100"
     extralight: str = "200"
     light: str = "300"
@@ -137,6 +144,7 @@ class FontWeight(BaseModel):
 
 class Typography(BaseModel):
     """Typography configuration."""
+
     font_family: FontFamily = Field(default_factory=FontFamily)
     font_size: FontSize = Field(default_factory=FontSize)
     line_height: LineHeight = Field(default_factory=LineHeight)
@@ -150,6 +158,7 @@ class Typography(BaseModel):
 
 class Spacing(BaseModel):
     """Spacing scale (matches Tailwind)."""
+
     _0: str = Field(default="0", alias="0")
     px: str = "1px"
     _0_5: str = Field(default="0.125rem", alias="0.5")
@@ -192,6 +201,7 @@ class Spacing(BaseModel):
 
 class BorderRadius(BaseModel):
     """Border radius scale."""
+
     none: str = "0"
     sm: str = "0.125rem"
     default: str = "0.25rem"
@@ -208,6 +218,7 @@ class BorderRadius(BaseModel):
 
 class Shadow(BaseModel):
     """Box shadow scale."""
+
     sm: str = "0 1px 2px 0 rgb(0 0 0 / 0.05)"
     default: str = "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)"
     md: str = "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)"
@@ -223,6 +234,7 @@ class Shadow(BaseModel):
 
 class Breakpoints(BaseModel):
     """Responsive breakpoints."""
+
     sm: str = "640px"
     md: str = "768px"
     lg: str = "1024px"
@@ -235,6 +247,7 @@ class Breakpoints(BaseModel):
 
 class ZIndex(BaseModel):
     """Z-index scale."""
+
     auto: str = "auto"
     _0: str = Field(default="0", alias="0")
     _10: str = Field(default="10", alias="10")
@@ -261,6 +274,7 @@ class ZIndex(BaseModel):
 
 class Animation(BaseModel):
     """Animation configuration."""
+
     duration_fast: str = "150ms"
     duration_normal: str = "200ms"
     duration_slow: str = "300ms"
@@ -294,6 +308,7 @@ class Theme(BaseModel):
         from django_matt.components import set_theme
         set_theme(theme)
     """
+
     name: str = "default"
     colors: SemanticColors = Field(default_factory=SemanticColors)
     dark_colors: DarkColors = Field(default_factory=DarkColors)
@@ -305,7 +320,7 @@ class Theme(BaseModel):
     z_index: ZIndex = Field(default_factory=ZIndex)
     animation: Animation = Field(default_factory=Animation)
 
-    def to_css_variables(self, dark: bool = False) -> Dict[str, str]:
+    def to_css_variables(self, dark: bool = False) -> dict[str, str]:
         """Convert theme to CSS custom properties."""
         colors = self.dark_colors if dark else self.colors
         variables = {}
@@ -320,7 +335,7 @@ class Theme(BaseModel):
 
         return variables
 
-    def to_tailwind_config(self) -> Dict[str, Any]:
+    def to_tailwind_config(self) -> dict[str, Any]:
         """Convert theme to Tailwind config format."""
         return {
             "colors": {
@@ -485,7 +500,7 @@ class ThemeManager:
 
     def __init__(self):
         self._theme: Theme = Theme()
-        self._themes: Dict[str, Theme] = {
+        self._themes: dict[str, Theme] = {
             "default": Theme(),
             "shadcn": create_shadcn_theme(),
             "zinc": create_zinc_theme(),
@@ -513,11 +528,11 @@ class ThemeManager:
         """Register a custom theme preset."""
         self._themes[name] = theme
 
-    def list_presets(self) -> List[str]:
+    def list_presets(self) -> list[str]:
         """List available theme presets."""
         return list(self._themes.keys())
 
-    def get_css_variables(self, dark: bool = False) -> Dict[str, str]:
+    def get_css_variables(self, dark: bool = False) -> dict[str, str]:
         """Get CSS variables for current theme."""
         return self._theme.to_css_variables(dark=dark)
 

@@ -6,9 +6,7 @@ by separating concerns into different modules and supporting multiple environmen
 """
 
 import importlib
-import os
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Optional
 
 from django.conf import settings as django_settings
 
@@ -60,16 +58,12 @@ class ConfigurationManager:
             return self._settings
 
         try:
-            env_module = importlib.import_module(
-                f"django_matt.config.environments.{environment}"
-            )
+            env_module = importlib.import_module(f"django_matt.config.environments.{environment}")
             env_settings = getattr(env_module, "settings", {})
             self._settings.update(env_settings)
             self._loaded_environments.add(environment)
         except ImportError:
-            raise ImportError(
-                f"Could not import environment settings for '{environment}'"
-            )
+            raise ImportError(f"Could not import environment settings for '{environment}'")
 
         return self._settings
 
@@ -90,9 +84,7 @@ class ConfigurationManager:
             return self._settings
 
         try:
-            component_module = importlib.import_module(
-                f"django_matt.config.components.{component}"
-            )
+            component_module = importlib.import_module(f"django_matt.config.components.{component}")
             component_settings = getattr(component_module, "settings", {})
             self._settings.update(component_settings)
             self._loaded_components.add(component)
@@ -223,4 +215,4 @@ def get_settings() -> dict[str, Any]:
     return config.get_settings()
 
 
-__all__ = ["configure", "get_settings", "config"]
+__all__ = ["config", "configure", "get_settings"]

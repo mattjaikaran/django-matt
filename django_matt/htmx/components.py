@@ -5,13 +5,13 @@ Provides reusable patterns for common HTMX interactions like
 infinite scroll, search with debounce, modals, and toasts.
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from dataclasses import dataclass
+from typing import Any
+
 from django.http import HttpRequest, HttpResponse
 from django.template import loader
 
-from django_matt.htmx.response import HtmxResponse, HtmxTemplateResponse
-
+from django_matt.htmx.response import HtmxResponse
 
 # =============================================================================
 # Infinite Scroll
@@ -71,13 +71,13 @@ class InfiniteScrollConfig:
 
 def render_infinite_scroll_page(
     request: HttpRequest,
-    items: List[Any],
+    items: list[Any],
     item_template: str,
     url: str,
     page: int = 1,
     has_more: bool = True,
-    config: Optional[InfiniteScrollConfig] = None,
-    extra_context: Optional[Dict[str, Any]] = None,
+    config: InfiniteScrollConfig | None = None,
+    extra_context: dict[str, Any] | None = None,
 ) -> HtmxResponse:
     """
     Render a page of items for infinite scroll.
@@ -104,7 +104,11 @@ def render_infinite_scroll_page(
     html_parts = []
 
     for item in items:
-        item_context = {**context, "item": item, "htmx": request.htmx if hasattr(request, "htmx") else None}
+        item_context = {
+            **context,
+            "item": item,
+            "htmx": request.htmx if hasattr(request, "htmx") else None,
+        }
         html_parts.append(template.render(item_context, request))
 
     # Add trigger for next page
@@ -181,10 +185,10 @@ class SearchConfig:
 
 def render_search_results(
     request: HttpRequest,
-    results: List[Any],
+    results: list[Any],
     result_template: str,
     empty_message: str = "No results found",
-    extra_context: Optional[Dict[str, Any]] = None,
+    extra_context: dict[str, Any] | None = None,
 ) -> HtmxResponse:
     """
     Render search results.
@@ -240,7 +244,9 @@ class ModalConfig:
 
     def get_container_html(self) -> str:
         """Generate the modal container HTML."""
-        backdrop_close = 'hx-on:click="htmx.trigger(\'#modal\', \'close\')"' if self.close_on_backdrop else ""
+        backdrop_close = (
+            "hx-on:click=\"htmx.trigger('#modal', 'close')\"" if self.close_on_backdrop else ""
+        )
 
         return f'''
         <div id="{self.backdrop_id}"
@@ -256,8 +262,8 @@ class ModalConfig:
 
 def open_modal(
     content: str,
-    title: Optional[str] = None,
-    config: Optional[ModalConfig] = None,
+    title: str | None = None,
+    config: ModalConfig | None = None,
     close_button: bool = True,
 ) -> HtmxResponse:
     """
@@ -272,15 +278,15 @@ def open_modal(
     """
     config = config or ModalConfig()
 
-    close_btn = ''
+    close_btn = ""
     if close_button:
-        close_btn = f'''
+        close_btn = f"""
         <button type="button"
                 class="modal-close"
                 hx-on:click="htmx.trigger('#{config.modal_id}', 'close')">
             &times;
         </button>
-        '''
+        """
 
     title_html = ""
     if title:
@@ -288,12 +294,12 @@ def open_modal(
     elif close_button:
         title_html = f'<div class="modal-header">{close_btn}</div>'
 
-    modal_html = f'''
+    modal_html = f"""
     {title_html}
     <div class="modal-body">
         {content}
     </div>
-    '''
+    """
 
     response = HtmxResponse(modal_html)
     response.retarget(f"#{config.modal_id}")
@@ -303,18 +309,18 @@ def open_modal(
     response.trigger("modalOpened")
 
     # Add script to show modal
-    show_script = f'''
+    show_script = f"""
     <script>
         document.getElementById('{config.modal_id}').classList.remove('hidden');
         document.getElementById('{config.backdrop_id}').classList.remove('hidden');
     </script>
-    '''
+    """
     response.content = response.content + show_script.encode()
 
     return response
 
 
-def close_modal(config: Optional[ModalConfig] = None) -> HtmxResponse:
+def close_modal(config: ModalConfig | None = None) -> HtmxResponse:
     """
     Return response that closes the modal.
 
@@ -380,22 +386,22 @@ class Toast:
 
     message: str
     type: str = "info"
-    title: Optional[str] = None
+    title: str | None = None
     duration: int = 5000
     dismissible: bool = True
-    icon: Optional[str] = None
+    icon: str | None = None
 
     def to_html(self, toast_id: str) -> str:
         """Generate the toast HTML."""
         dismiss_btn = ""
         if self.dismissible:
-            dismiss_btn = f'''
+            dismiss_btn = """
             <button type="button"
                     class="toast-dismiss"
                     hx-on:click="this.closest('.toast').remove()">
                 &times;
             </button>
-            '''
+            """
 
         icon_html = ""
         if self.icon:
@@ -407,14 +413,14 @@ class Toast:
 
         auto_remove = ""
         if self.duration > 0:
-            auto_remove = f'''
+            auto_remove = f"""
             <script>
                 setTimeout(function() {{
                     var el = document.getElementById('{toast_id}');
                     if (el) el.remove();
                 }}, {self.duration});
             </script>
-            '''
+            """
 
         return f'''
         <div id="{toast_id}"
@@ -434,9 +440,9 @@ class Toast:
 def show_toast(
     message: str,
     type: str = "info",
-    title: Optional[str] = None,
+    title: str | None = None,
     duration: int = 5000,
-    config: Optional[ToastConfig] = None,
+    config: ToastConfig | None = None,
 ) -> HtmxResponse:
     """
     Return response that shows a toast notification.
@@ -457,6 +463,7 @@ def show_toast(
     """
     config = config or ToastConfig()
     import uuid
+
     toast_id = f"toast-{uuid.uuid4().hex[:8]}"
 
     toast = Toast(
@@ -479,9 +486,9 @@ def add_toast_oob(
     response: HttpResponse,
     message: str,
     type: str = "info",
-    title: Optional[str] = None,
+    title: str | None = None,
     duration: int = 5000,
-    config: Optional[ToastConfig] = None,
+    config: ToastConfig | None = None,
 ) -> HttpResponse:
     """
     Add a toast notification as an out-of-band swap.
@@ -498,6 +505,7 @@ def add_toast_oob(
     """
     config = config or ToastConfig()
     import uuid
+
     toast_id = f"toast-{uuid.uuid4().hex[:8]}"
 
     toast = Toast(
@@ -587,7 +595,7 @@ class OobBuilder:
 
     def __init__(self):
         self._main_content: str = ""
-        self._oob_parts: List[str] = []
+        self._oob_parts: list[str] = []
 
     def main(self, content: str) -> "OobBuilder":
         """Set the main content."""

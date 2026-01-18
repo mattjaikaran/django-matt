@@ -31,7 +31,6 @@ class BaseSearchEngine(ABC):
         Returns:
             List of matching document IDs or documents
         """
-        pass
 
     @abstractmethod
     def index(self, documents: list[dict], **kwargs) -> None:
@@ -42,11 +41,9 @@ class BaseSearchEngine(ABC):
             documents: List of documents to index
             **kwargs: Additional indexing parameters
         """
-        pass
 
     def delete(self, document_ids: list[Any], **kwargs) -> None:
         """Delete documents from the index."""
-        pass
 
 
 class PostgresSearchBackend(BaseFilterBackend):

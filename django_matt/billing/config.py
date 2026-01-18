@@ -40,10 +40,9 @@ Configuration in settings.py:
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from django.conf import settings
-
 
 ProviderType = Literal["stripe", "paypal", "polar"]
 
@@ -187,7 +186,7 @@ class BillingConfig:
 
 
 # Global config instance (lazy-loaded)
-_billing_config: Optional[BillingConfig] = None
+_billing_config: BillingConfig | None = None
 
 
 def get_billing_config() -> BillingConfig:

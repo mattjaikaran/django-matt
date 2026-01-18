@@ -297,8 +297,8 @@ class QueryParameterVersioning(BaseVersioning):
         Returns:
             URL string with version query param
         """
+
         from django.urls import reverse
-        from urllib.parse import urlencode
 
         url = reverse(viewname, kwargs=kwargs)
         version = version or self.default_version

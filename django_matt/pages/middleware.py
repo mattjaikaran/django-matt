@@ -7,20 +7,20 @@ Detects whether a request is:
 - API (Accept: application/json)
 """
 
+from collections.abc import Callable
 from enum import Enum
-from typing import Callable, Optional
 
-from django.http import HttpRequest, HttpResponse
 from django.conf import settings
+from django.http import HttpRequest, HttpResponse
 
 
 class RequestMode(Enum):
     """The mode of the current request."""
 
-    FULL_HTML = "full_html"      # Initial browser visit
-    PAGE_XHR = "page_xhr"        # SPA navigation (X-Page header)
-    API = "api"                  # JSON API (Accept: application/json)
-    SSR = "ssr"                  # Server-side rendering request
+    FULL_HTML = "full_html"  # Initial browser visit
+    PAGE_XHR = "page_xhr"  # SPA navigation (X-Page header)
+    API = "api"  # JSON API (Accept: application/json)
+    SSR = "ssr"  # Server-side rendering request
 
 
 # Request attribute name for storing mode
@@ -134,6 +134,7 @@ class PageMiddleware:
 
         # Handle PageResponse objects
         from django_matt.pages.response import PageResponse
+
         if isinstance(response, PageResponse):
             response = response.render(request)
 
@@ -143,7 +144,7 @@ class PageMiddleware:
 
         return response
 
-    def _check_version_mismatch(self, request: HttpRequest) -> Optional[HttpResponse]:
+    def _check_version_mismatch(self, request: HttpRequest) -> HttpResponse | None:
         """
         Check if the client's asset version matches the server's.
 
@@ -171,9 +172,7 @@ class PageMiddleware:
 
         return None
 
-    def _handle_page_redirect(
-        self, request: HttpRequest, response: HttpResponse
-    ) -> HttpResponse:
+    def _handle_page_redirect(self, request: HttpRequest, response: HttpResponse) -> HttpResponse:
         """
         Handle redirects for page requests.
 
@@ -212,11 +211,11 @@ class AsyncPageMiddleware:
 
 
 __all__ = [
+    "AsyncPageMiddleware",
+    "PageMiddleware",
     "RequestMode",
     "get_request_mode",
-    "is_page_request",
     "is_api_request",
     "is_initial_request",
-    "PageMiddleware",
-    "AsyncPageMiddleware",
+    "is_page_request",
 ]

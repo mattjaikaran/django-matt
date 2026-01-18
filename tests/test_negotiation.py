@@ -6,57 +6,43 @@ import json
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from unittest.mock import MagicMock, patch
 from uuid import UUID
 
-import pytest
 from django.http import HttpResponse, JsonResponse
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import RequestFactory, TestCase
 
 from django_matt.negotiation import (
-    BaseRenderer,
-    JSONRenderer,
-    XMLRenderer,
-    CSVRenderer,
-    YAMLRenderer,
-    HTMLRenderer,
-    MessagePackRenderer,
-    get_renderer,
-    get_renderer_for_media_type,
-    RENDERERS,
     MEDIA_TYPE_MAP,
-    BaseParser,
-    JSONParser,
-    XMLParser,
-    FormParser,
-    YAMLParser,
-    MessagePackParser,
-    ParseError,
-    get_parser,
-    get_parser_for_media_type,
-    parse_request_body,
     PARSERS,
-    ContentNegotiator,
-    NegotiatedFormat,
-    NotAcceptable,
-    negotiate,
-    render,
-    render_format,
+    RENDERERS,
     ContentNegotiationMiddleware,
-    renders,
-    render_as,
-    content_negotiated,
-    with_template,
+    ContentNegotiator,
+    CSVConfig,
+    CSVRenderer,
+    FormParser,
+    HTMLRenderer,
+    JSONConfig,
+    JSONParser,
+    JSONRenderer,
     NegotiatedResponse,
     NegotiationConfig,
-    JSONConfig,
+    NotAcceptable,
+    ParseError,
     XMLConfig,
-    CSVConfig,
-    YAMLConfig,
-    HTMLConfig,
-    get_negotiation_config,
+    XMLParser,
+    XMLRenderer,
+    YAMLRenderer,
+    content_negotiated,
+    get_parser,
+    get_parser_for_media_type,
+    get_renderer,
+    get_renderer_for_media_type,
+    negotiate,
+    render,
+    render_as,
+    render_format,
+    renders,
 )
-
 
 # =============================================================================
 # Test Fixtures
@@ -531,7 +517,7 @@ class TestJSONParser(TestCase):
 
     def test_parse_list(self):
         """Test parsing JSON list."""
-        data = b'[1, 2, 3]'
+        data = b"[1, 2, 3]"
         result = self.parser.parse(data)
         self.assertEqual(result, [1, 2, 3])
 
@@ -689,19 +675,13 @@ class TestContentNegotiator(TestCase):
 
     def test_negotiate_accept_header(self):
         """Test negotiation via Accept header."""
-        request = self.factory.get(
-            "/api/users/",
-            HTTP_ACCEPT="application/xml"
-        )
+        request = self.factory.get("/api/users/", HTTP_ACCEPT="application/xml")
         result = self.negotiator.negotiate(request)
         self.assertEqual(result.format, "xml")
 
     def test_negotiate_accept_wildcard(self):
         """Test negotiation with wildcard Accept."""
-        request = self.factory.get(
-            "/api/users/",
-            HTTP_ACCEPT="*/*"
-        )
+        request = self.factory.get("/api/users/", HTTP_ACCEPT="*/*")
         result = self.negotiator.negotiate(request)
         # Should return default format
         self.assertEqual(result.format, "json")
@@ -709,8 +689,7 @@ class TestContentNegotiator(TestCase):
     def test_negotiate_accept_with_quality(self):
         """Test negotiation with quality values."""
         request = self.factory.get(
-            "/api/users/",
-            HTTP_ACCEPT="application/xml;q=0.5, application/json;q=0.9"
+            "/api/users/", HTTP_ACCEPT="application/xml;q=0.5, application/json;q=0.9"
         )
         result = self.negotiator.negotiate(request)
         # Should prefer JSON due to higher quality
@@ -718,10 +697,7 @@ class TestContentNegotiator(TestCase):
 
     def test_negotiate_type_wildcard(self):
         """Test negotiation with type wildcard."""
-        request = self.factory.get(
-            "/api/users/",
-            HTTP_ACCEPT="application/*"
-        )
+        request = self.factory.get("/api/users/", HTTP_ACCEPT="application/*")
         result = self.negotiator.negotiate(request)
         # Should return first matching format
         self.assertIsNotNone(result)
@@ -825,6 +801,7 @@ class TestRendersDecorator(TestCase):
 
     def test_renders_allowed_format(self):
         """Test view renders allowed format."""
+
         @renders("json", "xml")
         def my_view(request):
             return {"data": "value"}
@@ -836,6 +813,7 @@ class TestRendersDecorator(TestCase):
 
     def test_renders_disallowed_format(self):
         """Test view returns 406 for disallowed format."""
+
         @renders("json", "xml")
         def my_view(request):
             return {"data": "value"}
@@ -846,6 +824,7 @@ class TestRendersDecorator(TestCase):
 
     def test_renders_preserves_response(self):
         """Test decorator preserves HttpResponse."""
+
         @renders("json")
         def my_view(request):
             return HttpResponse("custom", status=201)
@@ -864,6 +843,7 @@ class TestRenderAsDecorator(TestCase):
 
     def test_render_as_forces_format(self):
         """Test @render_as forces specific format."""
+
         @render_as("csv")
         def export_view(request):
             return [{"name": "John"}, {"name": "Jane"}]
@@ -875,6 +855,7 @@ class TestRenderAsDecorator(TestCase):
 
     def test_render_as_preserves_response(self):
         """Test decorator preserves HttpResponse."""
+
         @render_as("json")
         def my_view(request):
             return HttpResponse("custom", content_type="text/plain")
@@ -892,6 +873,7 @@ class TestContentNegotiatedDecorator(TestCase):
 
     def test_content_negotiated(self):
         """Test @content_negotiated enables negotiation."""
+
         @content_negotiated
         def my_view(request):
             return {"data": "value"}
@@ -902,6 +884,7 @@ class TestContentNegotiatedDecorator(TestCase):
 
     def test_content_negotiated_default(self):
         """Test @content_negotiated defaults to JSON."""
+
         @content_negotiated
         def my_view(request):
             return {"data": "value"}
@@ -945,12 +928,7 @@ class TestNegotiatedResponse(TestCase):
 
     def test_chaining(self):
         """Test method chaining."""
-        response = (
-            NegotiatedResponse({"key": "value"})
-            .with_status(201)
-            .as_format("json")
-            .render()
-        )
+        response = NegotiatedResponse({"key": "value"}).with_status(201).as_format("json").render()
         self.assertEqual(response.status_code, 201)
         self.assertIn("application/json", response["Content-Type"])
 
@@ -968,6 +946,7 @@ class TestContentNegotiationMiddleware(TestCase):
 
     def test_middleware_sets_negotiated_format(self):
         """Test middleware sets negotiated_format on request."""
+
         def get_response(request):
             self.assertTrue(hasattr(request, "negotiated_format"))
             return JsonResponse({"key": "value"})
@@ -978,6 +957,7 @@ class TestContentNegotiationMiddleware(TestCase):
 
     def test_middleware_transforms_json_response(self):
         """Test middleware transforms JsonResponse to negotiated format."""
+
         def get_response(request):
             return JsonResponse({"key": "value"})
 
@@ -988,6 +968,7 @@ class TestContentNegotiationMiddleware(TestCase):
 
     def test_middleware_skips_204_response(self):
         """Test middleware skips 204 No Content responses."""
+
         def get_response(request):
             return HttpResponse(status=204)
 
@@ -998,6 +979,7 @@ class TestContentNegotiationMiddleware(TestCase):
 
     def test_middleware_skips_non_json_response(self):
         """Test middleware skips non-JSON responses."""
+
         def get_response(request):
             return HttpResponse("Plain text", content_type="text/plain")
 
@@ -1008,6 +990,7 @@ class TestContentNegotiationMiddleware(TestCase):
 
     def test_middleware_parses_request_body(self):
         """Test middleware parses request body for POST."""
+
         def get_response(request):
             self.assertTrue(hasattr(request, "parsed_data"))
             return JsonResponse({"status": "ok"})

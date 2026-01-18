@@ -98,9 +98,7 @@ class SoftDeleteManager(models.Manager):
 
     def deleted_only(self) -> SoftDeleteQuerySet:
         """Return queryset with only soft-deleted records."""
-        return self._queryset_class(self.model, using=self._db).filter(
-            deleted_at__isnull=False
-        )
+        return self._queryset_class(self.model, using=self._db).filter(deleted_at__isnull=False)
 
     def hard_delete(self):
         """Hard delete all records in the queryset."""
@@ -301,7 +299,6 @@ def soft_delete_cascade(instance, using=None):
         # Soft delete user and all their posts
         soft_delete_cascade(user)
     """
-    from django.db.models.fields.related import ForeignKey, OneToOneField
 
     now = timezone.now()
 

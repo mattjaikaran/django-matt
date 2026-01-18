@@ -3,12 +3,13 @@ API Key authentication decorators.
 """
 
 import inspect
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 from django.http import HttpRequest, JsonResponse
 
-from .utils import get_api_key_from_request, get_client_ip, api_key_config
+from .utils import api_key_config, get_api_key_from_request, get_client_ip
 
 F = TypeVar("F", bound=Callable)
 

@@ -28,10 +28,9 @@ Usage:
 import asyncio
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
-from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
@@ -49,7 +48,9 @@ class Command(BaseCommand):
         )
         parser.add_argument("--app-name", help="Application name")
         parser.add_argument("--settings-module", help="Django settings module")
-        parser.add_argument("--dry-run", action="store_true", help="Generate config without deploying")
+        parser.add_argument(
+            "--dry-run", action="store_true", help="Generate config without deploying"
+        )
 
         # Config subcommand
         config_parser = subparsers.add_parser("config", help="Generate platform configuration")
@@ -73,10 +74,16 @@ class Command(BaseCommand):
             help="Docker configuration mode",
         )
         docker_parser.add_argument("--output", "-o", help="Output directory")
-        docker_parser.add_argument("--include-db", action="store_true", default=True, help="Include PostgreSQL")
+        docker_parser.add_argument(
+            "--include-db", action="store_true", default=True, help="Include PostgreSQL"
+        )
         docker_parser.add_argument("--include-redis", action="store_true", help="Include Redis")
-        docker_parser.add_argument("--include-celery", action="store_true", help="Include Celery workers")
-        docker_parser.add_argument("--proxy", choices=["caddy", "nginx", "none"], default="caddy", help="Reverse proxy")
+        docker_parser.add_argument(
+            "--include-celery", action="store_true", help="Include Celery workers"
+        )
+        docker_parser.add_argument(
+            "--proxy", choices=["caddy", "nginx", "none"], default="caddy", help="Reverse proxy"
+        )
         docker_parser.add_argument("--domain", help="Domain for SSL")
 
         # Env subcommand
@@ -92,7 +99,9 @@ class Command(BaseCommand):
         env_subparsers.add_parser("list", help="List configured environments")
 
         # env validate
-        env_validate = env_subparsers.add_parser("validate", help="Validate environment configurations")
+        env_validate = env_subparsers.add_parser(
+            "validate", help="Validate environment configurations"
+        )
         env_validate.add_argument("--env", help="Specific environment to validate")
 
         # env generate
@@ -138,11 +147,17 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("\nDjango Matt Deployment Tool\n"))
         self.stdout.write("Usage:\n")
         self.stdout.write("  python manage.py deploy --platform <platform>  Deploy to platform\n")
-        self.stdout.write("  python manage.py deploy config --platform <platform>  Generate config\n")
+        self.stdout.write(
+            "  python manage.py deploy config --platform <platform>  Generate config\n"
+        )
         self.stdout.write("  python manage.py deploy docker [--mode production]  Docker setup\n")
-        self.stdout.write("  python manage.py deploy env init --domain example.com  Initialize environments\n")
+        self.stdout.write(
+            "  python manage.py deploy env init --domain example.com  Initialize environments\n"
+        )
         self.stdout.write("  python manage.py deploy health  Health check info\n")
-        self.stdout.write("\nSupported platforms: fly, railway, render, digitalocean, aws, hetzner\n")
+        self.stdout.write(
+            "\nSupported platforms: fly, railway, render, digitalocean, aws, hetzner\n"
+        )
 
     def handle_deploy(self, **options):
         """Handle main deploy command."""
@@ -153,7 +168,9 @@ class Command(BaseCommand):
 
         platform = options["platform"]
         app_name = options.get("app_name") or self._get_app_name()
-        settings_module = options.get("settings_module") or getattr(settings, "SETTINGS_MODULE", "config.settings")
+        settings_module = options.get("settings_module") or getattr(
+            settings, "SETTINGS_MODULE", "config.settings"
+        )
         dry_run = options.get("dry_run", False)
 
         self.stdout.write(f"\nDeploying to {platform.upper()}...\n")
@@ -201,7 +218,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"  - {error}")
 
         if result.success:
-            self.stdout.write(self.style.SUCCESS(f"\nDeployment successful!"))
+            self.stdout.write(self.style.SUCCESS("\nDeployment successful!"))
             if result.url:
                 self.stdout.write(f"URL: {result.url}")
         else:
@@ -213,7 +230,7 @@ class Command(BaseCommand):
             DeploymentConfig,
             get_provider,
         )
-        from django_matt.deploy.docker import DockerfileGenerator, ComposeGenerator
+        from django_matt.deploy.docker import ComposeGenerator, DockerfileGenerator
 
         platform = options["platform"]
         output_dir = Path(options.get("output") or ".")
@@ -256,7 +273,11 @@ class Command(BaseCommand):
 
     def handle_docker(self, **options):
         """Handle Docker configuration generation."""
-        from django_matt.deploy.docker import DockerfileGenerator, DockerfileConfig, ComposeGenerator
+        from django_matt.deploy.docker import (
+            ComposeGenerator,
+            DockerfileConfig,
+            DockerfileGenerator,
+        )
 
         mode = options["mode"]
         output_dir = Path(options.get("output") or ".")
@@ -317,7 +338,7 @@ class Command(BaseCommand):
 
     def handle_env(self, **options):
         """Handle environment management."""
-        from django_matt.deploy.environments import EnvironmentManager, EnvironmentConfig
+        from django_matt.deploy.environments import EnvironmentManager
 
         action = options.get("env_action")
 
@@ -337,7 +358,7 @@ class Command(BaseCommand):
             for env_name in manager.list_environments():
                 self.stdout.write(f"  Created: {output_dir}/.env.{env_name}")
 
-            self.stdout.write(self.style.SUCCESS(f"\nEnvironments initialized!"))
+            self.stdout.write(self.style.SUCCESS("\nEnvironments initialized!"))
             self.stdout.write("\nRemember to:")
             self.stdout.write("  1. Fill in the SECRET_KEY in each .env file")
             self.stdout.write("  2. Update database credentials")

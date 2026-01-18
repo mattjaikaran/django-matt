@@ -5,7 +5,7 @@ Simple JSON serialization for API responses and debugging.
 """
 
 import json
-from typing import Any, Dict, Optional
+from typing import Any
 
 from django_matt.components.base import Component
 from django_matt.components.renderers.base import (
@@ -34,7 +34,7 @@ class JSONRenderer(BaseRenderer):
 
     def __init__(
         self,
-        indent: Optional[int] = None,
+        indent: int | None = None,
         exclude_none: bool = True,
         exclude_defaults: bool = False,
     ):
@@ -53,12 +53,11 @@ class JSONRenderer(BaseRenderer):
 
     def _register_default_renderers(self) -> None:
         """No special renderers needed for JSON."""
-        pass
 
     def render_component(
         self,
         component: Component,
-        context: Optional[RenderContext] = None,
+        context: RenderContext | None = None,
     ) -> RenderOutput:
         """Render a component to JSON."""
         data = component.model_dump(
@@ -85,9 +84,9 @@ class JSONRenderer(BaseRenderer):
         """Recursively convert enum values to strings."""
         if isinstance(data, dict):
             return {k: self._process_enums(v) for k, v in data.items()}
-        elif isinstance(data, list):
+        if isinstance(data, list):
             return [self._process_enums(item) for item in data]
-        elif hasattr(data, "value"):  # Enum
+        if hasattr(data, "value"):  # Enum
             return data.value
         return data
 

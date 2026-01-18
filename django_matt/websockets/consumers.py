@@ -11,18 +11,16 @@ Provides base classes for building WebSocket consumers with:
 Requires: pip install channels
 """
 
-import asyncio
 import json
 import logging
 import time
-from abc import abstractmethod
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
-from typing import Any, Callable, Coroutine
+from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 
 from django_matt.websockets.config import get_websocket_config
-
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +32,7 @@ MessageHandler = Callable[["BaseConsumer", dict], Coroutine[Any, Any, None]]
 @dataclass
 class ConnectionState:
     """Tracks connection state."""
+
     connected_at: float = 0
     last_message_at: float = 0
     message_count: int = 0
@@ -296,7 +295,6 @@ class BaseConsumer:
 
     async def on_binary_message(self, data: bytes) -> None:
         """Called when binary message is received. Override for custom handling."""
-        pass
 
     async def on_unhandled_message(self, message_type: str, data: dict) -> None:
         """Called when no handler exists for message type."""
@@ -308,7 +306,6 @@ class BaseConsumer:
 
         Override for cleanup logic.
         """
-        pass
 
     # -------------------------------------------------------------------------
     # Sending messages
@@ -316,19 +313,23 @@ class BaseConsumer:
 
     async def accept(self, subprotocol: str | None = None) -> None:
         """Accept the WebSocket connection."""
-        await self._send({
-            "type": "websocket.accept",
-            "subprotocol": subprotocol,
-        })
+        await self._send(
+            {
+                "type": "websocket.accept",
+                "subprotocol": subprotocol,
+            }
+        )
 
     async def close(self, code: int = 1000, reason: str = "") -> None:
         """Close the WebSocket connection."""
         self._closed = True
-        await self._send({
-            "type": "websocket.close",
-            "code": code,
-            "reason": reason,
-        })
+        await self._send(
+            {
+                "type": "websocket.close",
+                "code": code,
+                "reason": reason,
+            }
+        )
 
     async def send(
         self,
@@ -358,12 +359,14 @@ class BaseConsumer:
         data: dict | None = None,
     ) -> None:
         """Send an error message."""
-        await self.send_json({
-            "type": "error",
-            "code": code,
-            "message": message,
-            "data": data or {},
-        })
+        await self.send_json(
+            {
+                "type": "error",
+                "code": code,
+                "message": message,
+                "data": data or {},
+            }
+        )
 
     # -------------------------------------------------------------------------
     # Group/Room management
@@ -454,10 +457,12 @@ class JsonConsumer(BaseConsumer):
     async def on_connect(self) -> None:
         """Accept connection and send welcome message."""
         await self.accept()
-        await self.send_json({
-            "type": "connected",
-            "message": "Connection established",
-        })
+        await self.send_json(
+            {
+                "type": "connected",
+                "message": "Connection established",
+            }
+        )
 
 
 class AuthenticatedConsumer(BaseConsumer):
@@ -476,10 +481,12 @@ class AuthenticatedConsumer(BaseConsumer):
             return
 
         await self.accept()
-        await self.send_json({
-            "type": "authenticated",
-            "user_id": str(self.user.id) if hasattr(self.user, "id") else None,
-        })
+        await self.send_json(
+            {
+                "type": "authenticated",
+                "user_id": str(self.user.id) if hasattr(self.user, "id") else None,
+            }
+        )
 
 
 class RoomConsumer(JsonConsumer):
@@ -529,10 +536,12 @@ class RoomConsumer(JsonConsumer):
         if success:
             self._current_room = room_name
             await self.on_room_join(room_name)
-            await self.send_json({
-                "type": "room_joined",
-                "room": room_name,
-            })
+            await self.send_json(
+                {
+                    "type": "room_joined",
+                    "room": room_name,
+                }
+            )
         return success
 
     async def leave_room(self) -> None:
@@ -542,10 +551,12 @@ class RoomConsumer(JsonConsumer):
             await self.leave_group(room_name)
             self._current_room = None
             await self.on_room_leave(room_name)
-            await self.send_json({
-                "type": "room_left",
-                "room": room_name,
-            })
+            await self.send_json(
+                {
+                    "type": "room_left",
+                    "room": room_name,
+                }
+            )
 
     async def broadcast_to_room(
         self,
@@ -558,11 +569,9 @@ class RoomConsumer(JsonConsumer):
 
     async def on_room_join(self, room_name: str) -> None:
         """Called when joining a room. Override for custom logic."""
-        pass
 
     async def on_room_leave(self, room_name: str) -> None:
         """Called when leaving a room. Override for custom logic."""
-        pass
 
     async def handle_join(self, data: dict) -> None:
         """Handle join room request."""

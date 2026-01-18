@@ -109,9 +109,7 @@ class CursorPagination(BasePagination):
 
         if self.cursor_secret:
             # Add signature for tampering protection
-            sig = hashlib.sha256(
-                f"{encoded}{self.cursor_secret}".encode()
-            ).hexdigest()[:8]
+            sig = hashlib.sha256(f"{encoded}{self.cursor_secret}".encode()).hexdigest()[:8]
             return f"{encoded}.{sig}"
 
         return encoded
@@ -239,9 +237,7 @@ class CursorPagination(BasePagination):
         # Generate cursors
         if results:
             self._next_cursor = (
-                self._encode_cursor(self._get_position(results[-1]))
-                if self._has_next
-                else None
+                self._encode_cursor(self._get_position(results[-1])) if self._has_next else None
             )
             # For previous, we'd need to store the first item's position
             # This is a simplified implementation

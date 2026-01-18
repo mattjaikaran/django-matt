@@ -5,14 +5,16 @@ Provides the foundation for defining UI components in Python that
 can be serialized to JSON and rendered by any frontend framework.
 """
 
-from enum import Enum
-from typing import Any, Callable, Dict, List, Literal, Optional, Type, Union
-from pydantic import BaseModel, Field, ConfigDict
 import uuid
+from enum import Enum
+from typing import Any, Literal, Union
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ComponentType(str, Enum):
     """Component type identifiers."""
+
     # Layout
     CONTAINER = "container"
     CARD = "card"
@@ -65,17 +67,21 @@ class ComponentType(str, Enum):
 
 class ValidationRule(BaseModel):
     """Validation rule for form fields."""
-    type: Literal["required", "min", "max", "minLength", "maxLength", "pattern", "email", "url", "custom"]
-    value: Optional[Any] = None
+
+    type: Literal[
+        "required", "min", "max", "minLength", "maxLength", "pattern", "email", "url", "custom"
+    ]
+    value: Any | None = None
     message: str = ""
 
 
 class EventHandler(BaseModel):
     """Event handler definition."""
+
     event: str  # click, submit, change, etc.
     action: str  # URL or action name
     method: str = "POST"
-    confirm: Optional[str] = None  # Confirmation message
+    confirm: str | None = None  # Confirmation message
     optimistic: bool = False  # Optimistic UI update
 
 
@@ -99,6 +105,7 @@ class Component(BaseModel):
         from django_matt.components.renderers import ReactRenderer
         html = ReactRenderer().render(greeting)
     """
+
     model_config = ConfigDict(extra="allow")
 
     # Core properties
@@ -106,8 +113,8 @@ class Component(BaseModel):
     type: ComponentType
 
     # Styling
-    class_name: Optional[str] = None
-    style: Optional[Dict[str, str]] = None
+    class_name: str | None = None
+    style: dict[str, str] | None = None
 
     # Visibility & state
     visible: bool = True
@@ -115,20 +122,20 @@ class Component(BaseModel):
     loading: bool = False
 
     # Children
-    children: List["Component"] = Field(default_factory=list)
+    children: list["Component"] = Field(default_factory=list)
 
     # Events
-    on: Optional[Dict[str, EventHandler]] = None
+    on: dict[str, EventHandler] | None = None
 
     # Data binding
-    bind: Optional[str] = None  # Bind to a data path
+    bind: str | None = None  # Bind to a data path
 
     # Accessibility
-    aria_label: Optional[str] = None
-    aria_describedby: Optional[str] = None
+    aria_label: str | None = None
+    aria_describedby: str | None = None
 
     # Custom props (passed through to renderer)
-    props: Dict[str, Any] = Field(default_factory=dict)
+    props: dict[str, Any] = Field(default_factory=dict)
 
     def add_child(self, child: "Component") -> "Component":
         """Add a child component."""
@@ -157,13 +164,13 @@ class Component(BaseModel):
         self.on["click"] = EventHandler(event="click", action=action, **kwargs)
         return self
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         """Convert to JSON-serializable dictionary."""
         return self.model_dump(exclude_none=True)
 
 
 # Component type alias for nested components
-ComponentTree = Union[Component, List[Component]]
+ComponentTree = Union[Component, list[Component]]
 
 
 class ComponentRegistry:
@@ -186,10 +193,10 @@ class ComponentRegistry:
     """
 
     def __init__(self):
-        self._components: Dict[str, Type[Component]] = {}
-        self._aliases: Dict[str, str] = {}
+        self._components: dict[str, type[Component]] = {}
+        self._aliases: dict[str, str] = {}
 
-    def register(self, name: str, aliases: Optional[List[str]] = None):
+    def register(self, name: str, aliases: list[str] | None = None):
         """
         Decorator to register a component class.
 
@@ -198,19 +205,21 @@ class ComponentRegistry:
             class MyComponent(Component):
                 ...
         """
-        def decorator(cls: Type[Component]) -> Type[Component]:
+
+        def decorator(cls: type[Component]) -> type[Component]:
             self._components[name] = cls
             if aliases:
                 for alias in aliases:
                     self._aliases[alias] = name
             return cls
+
         return decorator
 
     def register_class(
         self,
         name: str,
-        cls: Type[Component],
-        aliases: Optional[List[str]] = None,
+        cls: type[Component],
+        aliases: list[str] | None = None,
     ) -> None:
         """Register a component class directly."""
         self._components[name] = cls
@@ -218,13 +227,13 @@ class ComponentRegistry:
             for alias in aliases:
                 self._aliases[alias] = name
 
-    def get(self, name: str) -> Optional[Type[Component]]:
+    def get(self, name: str) -> type[Component] | None:
         """Get a component class by name."""
         if name in self._aliases:
             name = self._aliases[name]
         return self._components.get(name)
 
-    def list(self) -> List[str]:
+    def list(self) -> list[str]:
         """List all registered component names."""
         return list(self._components.keys())
 
@@ -254,18 +263,19 @@ class Slot(BaseModel):
             }
         )
     """
+
     name: str
-    content: Optional[ComponentTree] = None
-    fallback: Optional[ComponentTree] = None
+    content: ComponentTree | None = None
+    fallback: ComponentTree | None = None
 
 
 __all__ = [
-    "ComponentType",
-    "ValidationRule",
-    "EventHandler",
     "Component",
-    "ComponentTree",
     "ComponentRegistry",
-    "registry",
+    "ComponentTree",
+    "ComponentType",
+    "EventHandler",
     "Slot",
+    "ValidationRule",
+    "registry",
 ]

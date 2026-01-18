@@ -23,13 +23,9 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
             # If both values are dictionaries, merge them recursively
             result[key] = deep_merge(result[key], value)
-        elif (
-            key in result and isinstance(result[key], list) and isinstance(value, list)
-        ):
+        elif key in result and isinstance(result[key], list) and isinstance(value, list):
             # If both values are lists, extend the base list with the override list
-            result[key] = result[key] + [
-                item for item in value if item not in result[key]
-            ]
+            result[key] = result[key] + [item for item in value if item not in result[key]]
         else:
             # Otherwise, override the base value with the override value
             result[key] = value
@@ -86,9 +82,7 @@ def get_env_float(name: str, default: float = 0.0) -> float:
         return default
 
 
-def get_env_list(
-    name: str, default: list[str] | None = None, separator: str = ","
-) -> list[str]:
+def get_env_list(name: str, default: list[str] | None = None, separator: str = ",") -> list[str]:
     """
     Get a list value from an environment variable.
 

@@ -23,13 +23,13 @@ Usage:
 """
 
 import logging
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 from urllib.parse import parse_qs
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.db import close_old_connections
-
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -123,6 +123,7 @@ class JWTAuthMiddleware(AuthMiddlewareBase):
         """Validate token and get user."""
         try:
             from django_matt.auth.jwt import get_user_from_token
+
             return await get_user_from_token(token)
         except ImportError:
             # django_matt.auth not available, try manual JWT decode
@@ -131,8 +132,9 @@ class JWTAuthMiddleware(AuthMiddlewareBase):
     async def _decode_jwt_manually(self, token: str) -> Any:
         """Manually decode JWT if django_matt.auth not available."""
         try:
-            from django_matt.auth.jwt_builtin import decode_jwt, JWTError
             from django.conf import settings
+
+            from django_matt.auth.jwt_builtin import JWTError, decode_jwt
 
             secret = getattr(settings, "SECRET_KEY", "")
             jwt_settings = getattr(settings, "DJANGO_MATT_JWT", {})
@@ -143,6 +145,7 @@ class JWTAuthMiddleware(AuthMiddlewareBase):
 
             if user_id:
                 from django.contrib.auth import get_user_model
+
                 User = get_user_model()
                 try:
                     return await User.objects.aget(pk=user_id)
@@ -178,6 +181,7 @@ class SessionAuthMiddleware(AuthMiddlewareBase):
         """Authenticate using Django session."""
         try:
             from channels.auth import get_user
+
             return await get_user(scope)
         except ImportError:
             # channels.auth not available

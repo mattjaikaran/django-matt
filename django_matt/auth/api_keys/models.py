@@ -20,7 +20,7 @@ class APIKeyManager(models.Manager):
         Get an API key by its full key value.
         Returns None if not found or inactive.
         """
-        from .utils import hash_api_key, get_key_prefix
+        from .utils import get_key_prefix, hash_api_key
 
         key_hash = hash_api_key(key)
         prefix = get_key_prefix(key)

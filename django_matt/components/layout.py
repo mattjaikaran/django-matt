@@ -5,17 +5,16 @@ Provides containers, cards, modals, tabs, and other
 structural components.
 """
 
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Literal
+
 from pydantic import Field
 
 from django_matt.components.base import (
     Component,
-    ComponentType,
     ComponentTree,
-    Slot,
+    ComponentType,
     registry,
 )
-
 
 # =============================================================================
 # Containers
@@ -33,15 +32,16 @@ class Container(Component):
             class_name="flex gap-4",
         )
     """
+
     type: ComponentType = ComponentType.CONTAINER
     tag: str = "div"  # HTML tag to render
     flex: bool = False
     flex_direction: Literal["row", "column", "row-reverse", "column-reverse"] = "row"
     justify: Literal["start", "end", "center", "between", "around", "evenly"] = "start"
     align: Literal["start", "end", "center", "stretch", "baseline"] = "start"
-    gap: Optional[str] = None  # CSS gap value
-    padding: Optional[str] = None
-    margin: Optional[str] = None
+    gap: str | None = None  # CSS gap value
+    padding: str | None = None
+    margin: str | None = None
 
 
 @registry.register("card")
@@ -57,13 +57,14 @@ class Card(Component):
             footer=[Button(label="Save")],
         )
     """
+
     type: ComponentType = ComponentType.CARD
-    title: Optional[str] = None
-    description: Optional[str] = None
-    header: Optional[ComponentTree] = None
-    footer: Optional[ComponentTree] = None
-    image: Optional[str] = None  # Header image URL
-    image_alt: Optional[str] = None
+    title: str | None = None
+    description: str | None = None
+    header: ComponentTree | None = None
+    footer: ComponentTree | None = None
+    image: str | None = None  # Header image URL
+    image_alt: str | None = None
     variant: Literal["default", "outline", "elevated", "filled"] = "default"
     hoverable: bool = False
     clickable: bool = False
@@ -86,10 +87,11 @@ class Modal(Component):
             ],
         )
     """
+
     type: ComponentType = ComponentType.MODAL
-    title: Optional[str] = None
-    description: Optional[str] = None
-    footer: Optional[ComponentTree] = None
+    title: str | None = None
+    description: str | None = None
+    footer: ComponentTree | None = None
     open: bool = False
     size: Literal["sm", "md", "lg", "xl", "full"] = "md"
     closable: bool = True
@@ -111,10 +113,11 @@ class Drawer(Component):
             children=[...],
         )
     """
+
     type: ComponentType = ComponentType.DRAWER
-    title: Optional[str] = None
-    description: Optional[str] = None
-    footer: Optional[ComponentTree] = None
+    title: str | None = None
+    description: str | None = None
+    footer: ComponentTree | None = None
     open: bool = False
     position: Literal["left", "right", "top", "bottom"] = "right"
     size: Literal["sm", "md", "lg", "xl", "full"] = "md"
@@ -129,12 +132,13 @@ class Drawer(Component):
 
 class TabItem(Component):
     """Individual tab item."""
+
     type: ComponentType = ComponentType.CONTAINER
     value: str
     label: str
-    icon: Optional[str] = None
+    icon: str | None = None
     disabled: bool = False
-    badge: Optional[str] = None
+    badge: str | None = None
 
 
 @registry.register("tabs")
@@ -152,9 +156,10 @@ class Tabs(Component):
             default_value="general",
         )
     """
+
     type: ComponentType = ComponentType.TABS
-    items: List[TabItem] = Field(default_factory=list)
-    default_value: Optional[str] = None
+    items: list[TabItem] = Field(default_factory=list)
+    default_value: str | None = None
     orientation: Literal["horizontal", "vertical"] = "horizontal"
     variant: Literal["default", "outline", "pills"] = "default"
 
@@ -172,11 +177,12 @@ class Tabs(Component):
 
 class AccordionItem(Component):
     """Individual accordion item."""
+
     type: ComponentType = ComponentType.CONTAINER
     value: str
     title: str
-    subtitle: Optional[str] = None
-    icon: Optional[str] = None
+    subtitle: str | None = None
+    icon: str | None = None
     disabled: bool = False
 
 
@@ -194,13 +200,16 @@ class Accordion(Component):
             type="single",
         )
     """
+
     type: ComponentType = ComponentType.ACCORDION
-    items: List[AccordionItem] = Field(default_factory=list)
+    items: list[AccordionItem] = Field(default_factory=list)
     accordion_type: Literal["single", "multiple"] = "single"
     collapsible: bool = True
-    default_value: Optional[Union[str, List[str]]] = None
+    default_value: str | list[str] | None = None
 
-    def add_item(self, value: str, title: str, content: ComponentTree = None, **kwargs) -> "Accordion":
+    def add_item(
+        self, value: str, title: str, content: ComponentTree = None, **kwargs
+    ) -> "Accordion":
         """Add an accordion item."""
         item = AccordionItem(value=value, title=title, **kwargs)
         if content:
@@ -230,13 +239,14 @@ class Alert(Component):
             dismissible=True,
         )
     """
+
     type: ComponentType = ComponentType.ALERT
-    title: Optional[str] = None
+    title: str | None = None
     message: str = ""
     variant: Literal["default", "success", "warning", "error", "info", "destructive"] = "default"
-    icon: Optional[str] = None
+    icon: str | None = None
     dismissible: bool = False
-    action: Optional[Component] = None  # Action button
+    action: Component | None = None  # Action button
 
 
 @registry.register("toast")
@@ -252,13 +262,16 @@ class Toast(Component):
             duration=5000,
         )
     """
+
     type: ComponentType = ComponentType.ALERT  # Reuse alert type
-    title: Optional[str] = None
+    title: str | None = None
     message: str = ""
     variant: Literal["default", "success", "warning", "error", "info"] = "default"
     duration: int = 5000  # Auto-dismiss in ms (0 = no auto-dismiss)
-    position: Literal["top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right"] = "bottom-right"
-    action: Optional[Component] = None
+    position: Literal[
+        "top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right"
+    ] = "bottom-right"
+    action: Component | None = None
 
 
 # =============================================================================
@@ -268,13 +281,14 @@ class Toast(Component):
 
 class NavItem(Component):
     """Navigation item."""
+
     type: ComponentType = ComponentType.LINK
     label: str
     href: str
-    icon: Optional[str] = None
+    icon: str | None = None
     active: bool = False
-    badge: Optional[str] = None
-    children: List["NavItem"] = Field(default_factory=list)  # Nested items
+    badge: str | None = None
+    children: list["NavItem"] = Field(default_factory=list)  # Nested items
 
 
 @registry.register("nav", aliases=["navigation"])
@@ -292,8 +306,9 @@ class Nav(Component):
             orientation="vertical",
         )
     """
+
     type: ComponentType = ComponentType.CONTAINER
-    items: List[NavItem] = Field(default_factory=list)
+    items: list[NavItem] = Field(default_factory=list)
     orientation: Literal["horizontal", "vertical"] = "horizontal"
     variant: Literal["default", "pills", "underline"] = "default"
 
@@ -312,11 +327,14 @@ class Text(Component):
         title = Text(content="Hello World", variant="h1")
         paragraph = Text(content="Some content here", variant="p")
     """
+
     type: ComponentType = ComponentType.TEXT
     content: str
-    variant: Literal["h1", "h2", "h3", "h4", "h5", "h6", "p", "span", "small", "lead", "muted"] = "p"
+    variant: Literal["h1", "h2", "h3", "h4", "h5", "h6", "p", "span", "small", "lead", "muted"] = (
+        "p"
+    )
     truncate: bool = False
-    max_lines: Optional[int] = None
+    max_lines: int | None = None
 
 
 @registry.register("heading", aliases=["h1", "h2", "h3"])
@@ -327,10 +345,11 @@ class Heading(Component):
     Usage:
         title = Heading(content="Page Title", level=1)
     """
+
     type: ComponentType = ComponentType.HEADING
     content: str
     level: Literal[1, 2, 3, 4, 5, 6] = 1
-    subtitle: Optional[str] = None
+    subtitle: str | None = None
 
 
 @registry.register("image", aliases=["img"])
@@ -347,16 +366,17 @@ class Image(Component):
             rounded=True,
         )
     """
+
     type: ComponentType = ComponentType.IMAGE
     src: str
     alt: str = ""
-    width: Optional[int] = None
-    height: Optional[int] = None
+    width: int | None = None
+    height: int | None = None
     rounded: bool = False
-    aspect_ratio: Optional[str] = None  # e.g., "16/9", "1/1"
+    aspect_ratio: str | None = None  # e.g., "16/9", "1/1"
     object_fit: Literal["contain", "cover", "fill", "none", "scale-down"] = "cover"
     loading: Literal["lazy", "eager"] = "lazy"
-    fallback: Optional[str] = None  # Fallback image URL
+    fallback: str | None = None  # Fallback image URL
 
 
 @registry.register("avatar")
@@ -372,12 +392,13 @@ class Avatar(Component):
             size="md",
         )
     """
+
     type: ComponentType = ComponentType.AVATAR
-    src: Optional[str] = None
+    src: str | None = None
     alt: str = ""
-    fallback: Optional[str] = None  # Initials or icon
+    fallback: str | None = None  # Initials or icon
     size: Literal["xs", "sm", "md", "lg", "xl"] = "md"
-    status: Optional[Literal["online", "offline", "away", "busy"]] = None
+    status: Literal["online", "offline", "away", "busy"] | None = None
 
 
 @registry.register("badge")
@@ -388,6 +409,7 @@ class Badge(Component):
     Usage:
         status = Badge(content="Active", variant="success")
     """
+
     type: ComponentType = ComponentType.BADGE
     content: str
     variant: Literal["default", "secondary", "success", "warning", "error", "outline"] = "default"
@@ -403,9 +425,10 @@ class Spinner(Component):
     Usage:
         loading = Spinner(size="md", label="Loading...")
     """
+
     type: ComponentType = ComponentType.SPINNER
     size: Literal["xs", "sm", "md", "lg", "xl"] = "md"
-    label: Optional[str] = None
+    label: str | None = None
 
 
 @registry.register("progress")
@@ -416,6 +439,7 @@ class Progress(Component):
     Usage:
         upload_progress = Progress(value=65, max_value=100, show_label=True)
     """
+
     type: ComponentType = ComponentType.PROGRESS
     value: float = 0
     max_value: float = 100
@@ -434,9 +458,10 @@ class Divider(Component):
     Usage:
         sep = Divider(orientation="horizontal", label="OR")
     """
+
     type: ComponentType = ComponentType.CONTAINER
     orientation: Literal["horizontal", "vertical"] = "horizontal"
-    label: Optional[str] = None
+    label: str | None = None
 
 
 __all__ = [

@@ -16,8 +16,6 @@ Usage:
     gen.generate_all()
 """
 
-from typing import Dict, List, Optional, Type
-
 from django.db import models
 
 from django_matt.codegen.core import (
@@ -26,13 +24,11 @@ from django_matt.codegen.core import (
     Statement,
 )
 from django_matt.codegen.introspection import (
-    ModelIntrospector,
-    ModelInfo,
     FieldInfo,
+    ModelIntrospector,
 )
 from django_matt.codegen.typescript import (
     generate_typescript_interface,
-    django_field_to_typescript,
 )
 
 
@@ -51,8 +47,7 @@ def _field_to_form_input(field: FieldInfo, form_data_accessor: str = "formData")
     # Handle choices with select
     if field.choices:
         options = "\n".join(
-            f'          <option value="{c[0]}">{c[1]}</option>'
-            for c in field.choices
+            f'          <option value="{c[0]}">{c[1]}</option>' for c in field.choices
         )
         return f'''      <div class="form-group">
         <label for="{name}">{label}</label>
@@ -70,12 +65,17 @@ def _field_to_form_input(field: FieldInfo, form_data_accessor: str = "formData")
     # Map field types to input types
     input_type = "text"
     extra_attrs = ""
-    value_handler = f'{form_data_accessor}().{name}'
+    value_handler = f"{form_data_accessor}().{name}"
     change_handler = f"setFormData('{name}', e.currentTarget.value)"
 
-    if field.field_type in ("IntegerField", "SmallIntegerField", "BigIntegerField",
-                            "PositiveIntegerField", "PositiveSmallIntegerField",
-                            "PositiveBigIntegerField"):
+    if field.field_type in (
+        "IntegerField",
+        "SmallIntegerField",
+        "BigIntegerField",
+        "PositiveIntegerField",
+        "PositiveSmallIntegerField",
+        "PositiveBigIntegerField",
+    ):
         input_type = "number"
         extra_attrs = ' step="1"'
         change_handler = f"setFormData('{name}', parseInt(e.currentTarget.value) || 0)"
@@ -128,11 +128,11 @@ def _field_to_form_input(field: FieldInfo, form_data_accessor: str = "formData")
 
     # Add max length
     if field.max_length:
-        extra_attrs += f' maxLength={{{field.max_length}}}'
+        extra_attrs += f" maxLength={{{field.max_length}}}"
 
     # Add required
     if field.is_required:
-        extra_attrs += ' required'
+        extra_attrs += " required"
 
     return f'''      <div class="form-group">
         <label for="{name}">{label}</label>
@@ -150,15 +150,22 @@ def _get_field_default(field: FieldInfo) -> str:
     """Get the default value for a field in JavaScript."""
     if field.field_type == "BooleanField":
         return "false"
-    if field.field_type in ("IntegerField", "SmallIntegerField", "BigIntegerField",
-                            "PositiveIntegerField", "PositiveSmallIntegerField",
-                            "PositiveBigIntegerField", "FloatField", "DecimalField"):
+    if field.field_type in (
+        "IntegerField",
+        "SmallIntegerField",
+        "BigIntegerField",
+        "PositiveIntegerField",
+        "PositiveSmallIntegerField",
+        "PositiveBigIntegerField",
+        "FloatField",
+        "DecimalField",
+    ):
         return "0"
     return "''"
 
 
 def generate_solid_resource(
-    model: Type[models.Model],
+    model: type[models.Model],
     api_base: str = "/api",
 ) -> str:
     """
@@ -179,7 +186,7 @@ def generate_solid_resource(
     name_plural = f"{name_lower}s"
     endpoint = f"{api_base}/{name_plural}"
 
-    return f'''/**
+    return f"""/**
  * SolidJS resources and stores for {name} CRUD operations.
  * Auto-generated from Django model {info.full_name}.
  */
@@ -439,11 +446,11 @@ export function create{name}Store() {{
     reset,
   }};
 }}
-'''
+"""
 
 
 def generate_solid_form(
-    model: Type[models.Model],
+    model: type[models.Model],
     mode: str = "create",
 ) -> str:
     """
@@ -467,9 +474,7 @@ def generate_solid_form(
     form_fields = "\n\n".join(_field_to_form_input(f) for f in fields)
 
     # Generate initial values
-    initial_values = ",\n      ".join(
-        f"{f.name}: {_get_field_default(f)}" for f in fields
-    )
+    initial_values = ",\n      ".join(f"{f.name}: {_get_field_default(f)}" for f in fields)
 
     is_edit = mode == "edit"
     title = f"Edit {name}" if is_edit else f"Create {name}"
@@ -486,13 +491,13 @@ import type {{ {name}CreateInput }} from './types';
 
 interface {name}FormProps {{
   initial?: Partial<{name}CreateInput>;
-  {'id: number | string;' if is_edit else ''}
+  {"id: number | string;" if is_edit else ""}
   onSuccess?: (data: {name}CreateInput) => void;
   onCancel?: () => void;
   onSubmit: (data: {name}CreateInput) => Promise<void>;
 }}
 
-export function {name}{'Edit' if is_edit else ''}Form(props: {name}FormProps) {{
+export function {name}{"Edit" if is_edit else ""}Form(props: {name}FormProps) {{
   const [formData, setFormData] = createStore<{name}CreateInput>({{
     {initial_values},
     ...props.initial,
@@ -545,12 +550,12 @@ export function {name}{'Edit' if is_edit else ''}Form(props: {name}FormProps) {{
   );
 }}
 
-export default {name}{'Edit' if is_edit else ''}Form;
+export default {name}{"Edit" if is_edit else ""}Form;
 '''
 
 
 def generate_solid_list(
-    model: Type[models.Model],
+    model: type[models.Model],
 ) -> str:
     """
     Generate a SolidJS list component for a Django model.
@@ -570,14 +575,10 @@ def generate_solid_list(
     display_fields = [f for f in info.fields if not f.is_auto][:5]
 
     # Generate table headers
-    headers = "\n            ".join(
-        f"<th>{f.verbose_name.title()}</th>" for f in display_fields
-    )
+    headers = "\n            ".join(f"<th>{f.verbose_name.title()}</th>" for f in display_fields)
 
     # Generate table cells
-    cells = "\n              ".join(
-        f"<td>{{item.{f.name}}}</td>" for f in display_fields
-    )
+    cells = "\n              ".join(f"<td>{{item.{f.name}}}</td>" for f in display_fields)
 
     return f'''/**
  * SolidJS list component for {name}.
@@ -745,7 +746,7 @@ export default {name}List;
 
 
 def generate_solid_detail(
-    model: Type[models.Model],
+    model: type[models.Model],
 ) -> str:
     """
     Generate a SolidJS detail component for a Django model.
@@ -762,10 +763,10 @@ def generate_solid_detail(
 
     # Generate field displays
     field_displays = "\n          ".join(
-        f'''<div class="field">
+        f"""<div class="field">
             <dt>{f.verbose_name.title()}</dt>
             <dd>{{resource.data?.{f.name} ?? '-'}}</dd>
-          </div>'''
+          </div>"""
         for f in info.fields
     )
 
@@ -852,22 +853,21 @@ class SolidGenerator(CodeGenerator):
 
     def __init__(
         self,
-        models: List[Type[models.Model]],
+        models: list[type[models.Model]],
         output_dir: str = "./generated",
         api_base: str = "/api",
     ):
         super().__init__(output_dir)
         self.models = models
         self.api_base = api_base
-        self.model_infos = {
-            m._meta.object_name: ModelIntrospector(m).introspect()
-            for m in models
-        }
+        self.model_infos = {m._meta.object_name: ModelIntrospector(m).introspect() for m in models}
 
     def generate_types_file(self) -> CodeFile:
         """Generate a types.ts file with all interfaces."""
         file = CodeFile()
-        file.header_comment = "Auto-generated TypeScript types from Django models.\nDo not edit manually."
+        file.header_comment = (
+            "Auto-generated TypeScript types from Django models.\nDo not edit manually."
+        )
 
         for model in self.models:
             ts_code = generate_typescript_interface(model)
@@ -875,23 +875,23 @@ class SolidGenerator(CodeGenerator):
 
         return file
 
-    def generate_resource_file(self, model: Type[models.Model]) -> str:
+    def generate_resource_file(self, model: type[models.Model]) -> str:
         """Generate resource file for a model."""
         return generate_solid_resource(model, self.api_base)
 
-    def generate_form_component(self, model: Type[models.Model], mode: str = "create") -> str:
+    def generate_form_component(self, model: type[models.Model], mode: str = "create") -> str:
         """Generate form component for a model."""
         return generate_solid_form(model, mode)
 
-    def generate_list_component(self, model: Type[models.Model]) -> str:
+    def generate_list_component(self, model: type[models.Model]) -> str:
         """Generate list component for a model."""
         return generate_solid_list(model)
 
-    def generate_detail_component(self, model: Type[models.Model]) -> str:
+    def generate_detail_component(self, model: type[models.Model]) -> str:
         """Generate detail component for a model."""
         return generate_solid_detail(model)
 
-    def generate_all(self) -> Dict[str, str]:
+    def generate_all(self) -> dict[str, str]:
         """Generate all SolidJS files."""
         files = {}
 
@@ -918,8 +918,8 @@ class SolidGenerator(CodeGenerator):
 
 __all__ = [
     "SolidGenerator",
-    "generate_solid_resource",
+    "generate_solid_detail",
     "generate_solid_form",
     "generate_solid_list",
-    "generate_solid_detail",
+    "generate_solid_resource",
 ]

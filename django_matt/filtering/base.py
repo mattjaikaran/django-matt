@@ -45,7 +45,6 @@ class BaseFilterBackend(ABC):
         Returns:
             Filtered queryset
         """
-        pass
 
     async def afilter_queryset(
         self,

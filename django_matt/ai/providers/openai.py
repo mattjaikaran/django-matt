@@ -6,7 +6,8 @@ Supports GPT-4, GPT-3.5-turbo, and embedding models.
 
 import json
 import os
-from typing import Any, AsyncIterator, Dict, List, Optional, Type, TypeVar
+from collections.abc import AsyncIterator
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
@@ -70,17 +71,15 @@ class OpenAIProvider(LLMProvider, StructuredOutputProvider):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        model: Optional[str] = None,
-        base_url: Optional[str] = None,
-        organization: Optional[str] = None,
+        api_key: str | None = None,
+        model: str | None = None,
+        base_url: str | None = None,
+        organization: str | None = None,
         **kwargs,
     ):
         api_key = api_key or os.environ.get("OPENAI_API_KEY")
         if not api_key:
-            raise ValueError(
-                "OpenAI API key required. Pass api_key or set OPENAI_API_KEY."
-            )
+            raise ValueError("OpenAI API key required. Pass api_key or set OPENAI_API_KEY.")
 
         super().__init__(
             api_key=api_key,
@@ -98,8 +97,7 @@ class OpenAIProvider(LLMProvider, StructuredOutputProvider):
                 import httpx
             except ImportError:
                 raise ImportError(
-                    "httpx is required for OpenAI provider. "
-                    "Install with: pip install httpx"
+                    "httpx is required for OpenAI provider. Install with: pip install httpx"
                 )
 
             headers = {
@@ -116,7 +114,7 @@ class OpenAIProvider(LLMProvider, StructuredOutputProvider):
             )
         return self._client
 
-    def _convert_messages(self, messages: List[Message]) -> List[Dict[str, Any]]:
+    def _convert_messages(self, messages: list[Message]) -> list[dict[str, Any]]:
         """Convert messages to OpenAI format."""
         result = []
         for msg in messages:
@@ -130,9 +128,7 @@ class OpenAIProvider(LLMProvider, StructuredOutputProvider):
             result.append(d)
         return result
 
-    def _convert_tools(
-        self, tools: Optional[List[ToolDefinition]]
-    ) -> Optional[List[Dict[str, Any]]]:
+    def _convert_tools(self, tools: list[ToolDefinition] | None) -> list[dict[str, Any]] | None:
         """Convert tools to OpenAI format."""
         if not tools:
             return None
@@ -150,14 +146,14 @@ class OpenAIProvider(LLMProvider, StructuredOutputProvider):
 
     async def complete(
         self,
-        messages: List[Message],
+        messages: list[Message],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        stop: Optional[List[str]] = None,
-        tools: Optional[List[ToolDefinition]] = None,
-        tool_choice: Optional[str] = None,
+        max_tokens: int | None = None,
+        stop: list[str] | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
         **kwargs,
     ) -> CompletionResponse:
         """Generate a completion."""
@@ -221,12 +217,12 @@ class OpenAIProvider(LLMProvider, StructuredOutputProvider):
 
     async def stream(
         self,
-        messages: List[Message],
+        messages: list[Message],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        stop: Optional[List[str]] = None,
+        max_tokens: int | None = None,
+        stop: list[str] | None = None,
         **kwargs,
     ) -> AsyncIterator[StreamChunk]:
         """Stream a completion."""
@@ -266,10 +262,10 @@ class OpenAIProvider(LLMProvider, StructuredOutputProvider):
 
     async def complete_structured(
         self,
-        messages: List[Message],
-        response_model: Type[T],
+        messages: list[Message],
+        response_model: type[T],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         temperature: float = 0.0,
         max_retries: int = 3,
         **kwargs,
@@ -307,7 +303,7 @@ class OpenAIProvider(LLMProvider, StructuredOutputProvider):
                     )
                 # Add error context for retry
                 augmented_messages.append(
-                    Message.assistant(response.content if 'response' in dir() else "")
+                    Message.assistant(response.content if "response" in dir() else "")
                 )
                 augmented_messages.append(
                     Message.user(f"That was invalid. Error: {e}. Please try again with valid JSON.")
@@ -349,17 +345,15 @@ class OpenAIEmbeddings(EmbeddingProvider):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        model: Optional[str] = None,
-        base_url: Optional[str] = None,
-        dimensions: Optional[int] = None,
+        api_key: str | None = None,
+        model: str | None = None,
+        base_url: str | None = None,
+        dimensions: int | None = None,
         **kwargs,
     ):
         api_key = api_key or os.environ.get("OPENAI_API_KEY")
         if not api_key:
-            raise ValueError(
-                "OpenAI API key required. Pass api_key or set OPENAI_API_KEY."
-            )
+            raise ValueError("OpenAI API key required. Pass api_key or set OPENAI_API_KEY.")
 
         super().__init__(api_key=api_key, model=model, **kwargs)
         self.base_url = base_url or "https://api.openai.com/v1"
@@ -385,9 +379,9 @@ class OpenAIEmbeddings(EmbeddingProvider):
 
     async def embed(
         self,
-        texts: List[str],
+        texts: list[str],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         **kwargs,
     ) -> EmbeddingResponse:
         """Generate embeddings for texts."""
@@ -423,6 +417,6 @@ class OpenAIEmbeddings(EmbeddingProvider):
 
 
 __all__ = [
-    "OpenAIProvider",
     "OpenAIEmbeddings",
+    "OpenAIProvider",
 ]

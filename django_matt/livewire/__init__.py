@@ -30,32 +30,32 @@ Usage:
 
 from django_matt.livewire.component import (
     LiveComponent,
-    reactive,
-    computed,
-    watch,
     action,
-    on_mount,
-    on_hydrate,
+    computed,
     on_dehydrate,
-)
-from django_matt.livewire.state import (
-    State,
-    StateManager,
-    Snapshot,
+    on_hydrate,
+    on_mount,
+    reactive,
+    watch,
 )
 from django_matt.livewire.middleware import (
-    LivewireMiddleware,
     AsyncLivewireMiddleware,
-)
-from django_matt.livewire.views import (
-    livewire_message,
-    livewire_upload,
-    LivewireView,
+    LivewireMiddleware,
 )
 from django_matt.livewire.registry import (
     ComponentRegistry,
-    registry,
     register_component,
+    registry,
+)
+from django_matt.livewire.state import (
+    Snapshot,
+    State,
+    StateManager,
+)
+from django_matt.livewire.views import (
+    LivewireView,
+    livewire_message,
+    livewire_upload,
 )
 from django_matt.livewire.websocket import (
     LivewireConsumer,

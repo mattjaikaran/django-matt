@@ -1,7 +1,8 @@
 import uuid
-from typing import Any, Dict, Tuple, Optional
+from typing import Any, Dict
 
 from django.http import HttpRequest
+
 from ninja_extra import status
 
 from django_matt.core.controller import CRUDController
@@ -45,9 +46,7 @@ class TaskController(CRUDController):
             return {"error": str(e)}, status.HTTP_500_INTERNAL_SERVER_ERROR
 
     @post("", response_model=TaskSchema, status_code=status.HTTP_201_CREATED)
-    async def create_task(
-        self, request: HttpRequest, data: TaskCreate
-    ) -> Dict[str, Any]:
+    async def create_task(self, request: HttpRequest, data: TaskCreate) -> Dict[str, Any]:
         """Create a new task."""
         try:
             result = await self.create(request, data)
@@ -56,9 +55,7 @@ class TaskController(CRUDController):
             return {"error": str(e)}, status.HTTP_500_INTERNAL_SERVER_ERROR
 
     @put("{id}", response_model=TaskSchema)
-    async def update_task(
-        self, request: HttpRequest, id: str, data: TaskUpdate
-    ) -> Dict[str, Any]:
+    async def update_task(self, request: HttpRequest, id: str, data: TaskUpdate) -> Dict[str, Any]:
         """Update an existing task."""
         try:
             task_id = uuid.UUID(id)

@@ -9,8 +9,6 @@ Provides CLI tools for:
 """
 
 import json
-import sys
-from typing import Any, Dict, List, Optional
 
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 
@@ -63,7 +61,8 @@ class Command(BaseCommand):
             help="Renderer to use",
         )
         preview_parser.add_argument(
-            "--output", "-o",
+            "--output",
+            "-o",
             help="Output file path",
         )
 
@@ -76,7 +75,8 @@ class Command(BaseCommand):
             help="Target framework",
         )
         export_parser.add_argument(
-            "--output", "-o",
+            "--output",
+            "-o",
             default="./components",
             help="Output directory",
         )
@@ -94,7 +94,8 @@ class Command(BaseCommand):
             help="Documentation format",
         )
         docs_parser.add_argument(
-            "--output", "-o",
+            "--output",
+            "-o",
             default="./docs/components",
             help="Output directory",
         )
@@ -130,11 +131,13 @@ class Command(BaseCommand):
                 if type_filter and type_filter.lower() not in component_type.lower():
                     continue
 
-                components.append({
-                    "name": name,
-                    "type": component_type,
-                    "module": cls.__module__,
-                })
+                components.append(
+                    {
+                        "name": name,
+                        "type": component_type,
+                        "module": cls.__module__,
+                    }
+                )
 
         if options.get("json"):
             self.stdout.write(json.dumps(components, indent=2))
@@ -202,7 +205,9 @@ class Command(BaseCommand):
             for prop_name, prop_info in info["props"].items():
                 required = "*" if prop_info.get("required") else ""
                 default = f" = {prop_info['default']}" if "default" in prop_info else ""
-                self.stdout.write(f"  {prop_name}{required}: {prop_info.get('type', 'any')}{default}")
+                self.stdout.write(
+                    f"  {prop_name}{required}: {prop_info.get('type', 'any')}{default}"
+                )
                 if prop_info.get("description"):
                     self.stdout.write(f"    {prop_info['description']}")
 
@@ -211,7 +216,7 @@ class Command(BaseCommand):
     def handle_preview(self, **options):
         """Preview a component."""
         from django_matt.components.base import registry
-        from django_matt.components.renderers import ReactRenderer, HTMLRenderer, JSONRenderer
+        from django_matt.components.renderers import HTMLRenderer, JSONRenderer, ReactRenderer
 
         name = options["name"]
         cls = registry.get(name)
@@ -253,6 +258,7 @@ class Command(BaseCommand):
     def handle_export(self, **options):
         """Export components to target framework."""
         import os
+
         from django_matt.components.base import registry
 
         framework = options["framework"]
@@ -332,7 +338,7 @@ class Command(BaseCommand):
 
         props_str = "\n".join(props_interface)
 
-        return f'''import React from 'react';
+        return f"""import React from 'react';
 import {{ useComponent }} from '@django-matt/react';
 
 export interface {component_name}Props {{
@@ -344,13 +350,13 @@ export function {component_name}(props: {component_name}Props) {{
 }}
 
 export default {component_name};
-'''
+"""
 
     def _export_vue(self, name: str, cls) -> str:
         """Generate Vue component wrapper."""
         component_name = "".join(word.title() for word in name.split("_"))
 
-        return f'''<script setup lang="ts">
+        return f"""<script setup lang="ts">
 import {{ useComponent }} from '@django-matt/vue';
 
 const props = defineProps<{{
@@ -363,11 +369,11 @@ const component = useComponent('{name}', props);
 <template>
   <component :is="component" />
 </template>
-'''
+"""
 
     def _export_svelte(self, name: str, cls) -> str:
         """Generate Svelte component wrapper."""
-        return f'''<script lang="ts">
+        return f"""<script lang="ts">
   import {{ useComponent }} from '@django-matt/svelte';
 
   // Add props here
@@ -377,7 +383,7 @@ const component = useComponent('{name}', props);
 </script>
 
 {{@html $component}}
-'''
+"""
 
     def _export_html(self, name: str, cls) -> str:
         """Generate HTML with component placeholder."""
@@ -399,6 +405,7 @@ const component = useComponent('{name}', props);
     def handle_docs(self, **options):
         """Generate component documentation."""
         import os
+
         from django_matt.components.base import registry
 
         output_dir = options["output"]
@@ -410,10 +417,12 @@ const component = useComponent('{name}', props);
         for name in sorted(registry.list()):
             cls = registry.get(name)
             if cls:
-                components.append({
-                    "name": name,
-                    "cls": cls,
-                })
+                components.append(
+                    {
+                        "name": name,
+                        "cls": cls,
+                    }
+                )
 
         if format_type == "markdown":
             self._generate_markdown_docs(components, output_dir)
@@ -424,7 +433,7 @@ const component = useComponent('{name}', props);
 
         self.stdout.write(self.style.SUCCESS(f"Documentation generated in {output_dir}"))
 
-    def _generate_markdown_docs(self, components: List[Dict], output_dir: str):
+    def _generate_markdown_docs(self, components: list[dict], output_dir: str):
         """Generate Markdown documentation."""
         import os
 
@@ -457,12 +466,16 @@ const component = useComponent('{name}', props);
                     continue
 
                 annotation = field.annotation
-                type_name = getattr(annotation, "__name__", str(annotation)) if annotation else "any"
+                type_name = (
+                    getattr(annotation, "__name__", str(annotation)) if annotation else "any"
+                )
                 required = "Yes" if field.is_required() else "No"
                 default = str(field.default) if field.default is not None else "-"
                 description = field.description or "-"
 
-                content += f"| {prop_name} | {type_name} | {required} | {default} | {description} |\n"
+                content += (
+                    f"| {prop_name} | {type_name} | {required} | {default} | {description} |\n"
+                )
 
             content += "\n## Usage\n\n```python\n"
             content += f"from django_matt.components import {cls.__name__}\n\n"
@@ -472,13 +485,13 @@ const component = useComponent('{name}', props);
             with open(os.path.join(output_dir, f"{name}.md"), "w") as f:
                 f.write(content)
 
-    def _generate_html_docs(self, components: List[Dict], output_dir: str):
+    def _generate_html_docs(self, components: list[dict], output_dir: str):
         """Generate HTML documentation."""
         # Would generate full HTML docs
         # For now, just call markdown generator
         self._generate_markdown_docs(components, output_dir)
 
-    def _generate_json_docs(self, components: List[Dict], output_dir: str):
+    def _generate_json_docs(self, components: list[dict], output_dir: str):
         """Generate JSON documentation."""
         import os
 
@@ -501,7 +514,9 @@ const component = useComponent('{name}', props);
 
                 annotation = field.annotation
                 doc["props"][prop_name] = {
-                    "type": getattr(annotation, "__name__", str(annotation)) if annotation else "any",
+                    "type": getattr(annotation, "__name__", str(annotation))
+                    if annotation
+                    else "any",
                     "required": field.is_required(),
                     "default": field.default if field.default is not None else None,
                     "description": field.description or "",
@@ -514,9 +529,9 @@ const component = useComponent('{name}', props);
 
     def handle_playground(self, **options):
         """Launch the component playground."""
-        self.stdout.write(self.style.WARNING(
-            "\nTo use the playground, add this to your urls.py:\n"
-        ))
+        self.stdout.write(
+            self.style.WARNING("\nTo use the playground, add this to your urls.py:\n")
+        )
         self.stdout.write("""
     from django_matt.components.playground import PlaygroundView
 
@@ -525,6 +540,6 @@ const component = useComponent('{name}', props);
         path('playground/', PlaygroundView.as_view(), name='component-playground'),
     ]
 """)
-        self.stdout.write(self.style.SUCCESS(
-            "\nThen visit http://localhost:8000/playground/ in your browser.\n"
-        ))
+        self.stdout.write(
+            self.style.SUCCESS("\nThen visit http://localhost:8000/playground/ in your browser.\n")
+        )

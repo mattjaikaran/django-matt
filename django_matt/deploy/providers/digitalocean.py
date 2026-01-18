@@ -4,13 +4,14 @@ DigitalOcean App Platform deployment provider.
 Provides deployment to DigitalOcean App Platform with automatic configuration generation.
 """
 
-from typing import Any, Dict, List, Optional
 import json
+from typing import Any
+
 import yaml
 
 from django_matt.deploy.base import (
-    DeploymentProvider,
     DeploymentConfig,
+    DeploymentProvider,
     DeploymentResult,
     DeploymentStatus,
     register_provider,
@@ -37,13 +38,15 @@ class DigitalOceanProvider(DeploymentProvider):
     def __init__(self, config: DeploymentConfig):
         super().__init__(config)
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """Validate configuration for DigitalOcean deployment."""
         errors = []
 
         # Check CLI is installed
         if not self.check_cli_installed("doctl"):
-            errors.append("doctl CLI is not installed. Install from https://docs.digitalocean.com/reference/doctl/how-to/install/")
+            errors.append(
+                "doctl CLI is not installed. Install from https://docs.digitalocean.com/reference/doctl/how-to/install/"
+            )
 
         # Validate app name
         if not self.config.app_name:
@@ -57,7 +60,7 @@ class DigitalOceanProvider(DeploymentProvider):
 
         return errors
 
-    def generate_config(self) -> Dict[str, str]:
+    def generate_config(self) -> dict[str, str]:
         """Generate DigitalOcean configuration files."""
         files = {}
 
@@ -71,7 +74,7 @@ class DigitalOceanProvider(DeploymentProvider):
 
     def _generate_app_spec(self) -> str:
         """Generate DigitalOcean App Platform spec."""
-        spec: Dict[str, Any] = {
+        spec: dict[str, Any] = {
             "name": self.config.app_name,
             "region": "nyc",
             "services": [],
@@ -79,7 +82,7 @@ class DigitalOceanProvider(DeploymentProvider):
         }
 
         # Web service
-        service: Dict[str, Any] = {
+        service: dict[str, Any] = {
             "name": "web",
             "dockerfile_path": "Dockerfile",
             "source_dir": "/",
@@ -109,38 +112,46 @@ class DigitalOceanProvider(DeploymentProvider):
 
         # Database
         if self.config.create_database and not self.config.database_url:
-            spec["databases"].append({
-                "name": "db",
-                "engine": "PG",
-                "production": False,
-                "cluster_name": f"{self.config.app_name}-db",
-            })
+            spec["databases"].append(
+                {
+                    "name": "db",
+                    "engine": "PG",
+                    "production": False,
+                    "cluster_name": f"{self.config.app_name}-db",
+                }
+            )
 
         return yaml.dump(spec, default_flow_style=False, sort_keys=False)
 
-    def _get_env_vars_list(self) -> List[Dict[str, Any]]:
+    def _get_env_vars_list(self) -> list[dict[str, Any]]:
         """Get environment variables in DO format."""
         env_vars = []
 
         # Standard Django vars
-        env_vars.extend([
-            {"key": "DJANGO_SETTINGS_MODULE", "value": self.config.django_settings_module},
-            {"key": "DJANGO_ENV", "value": self.config.environment},
-            {"key": "DEBUG", "value": str(self.config.debug).lower()},
-            {"key": "PORT", "value": str(self.config.port)},
-            {"key": "STATIC_URL", "value": self.config.static_url},
-            {"key": "STATIC_ROOT", "value": self.config.static_root},
-        ])
+        env_vars.extend(
+            [
+                {"key": "DJANGO_SETTINGS_MODULE", "value": self.config.django_settings_module},
+                {"key": "DJANGO_ENV", "value": self.config.environment},
+                {"key": "DEBUG", "value": str(self.config.debug).lower()},
+                {"key": "PORT", "value": str(self.config.port)},
+                {"key": "STATIC_URL", "value": self.config.static_url},
+                {"key": "STATIC_ROOT", "value": self.config.static_root},
+            ]
+        )
 
         # Database URL from DO's managed database
         if self.config.create_database and not self.config.database_url:
-            env_vars.append({
-                "key": "DATABASE_URL",
-                "scope": "RUN_AND_BUILD_TIME",
-                "value": "${db.DATABASE_URL}",
-            })
+            env_vars.append(
+                {
+                    "key": "DATABASE_URL",
+                    "scope": "RUN_AND_BUILD_TIME",
+                    "value": "${db.DATABASE_URL}",
+                }
+            )
         elif self.config.database_url:
-            env_vars.append({"key": "DATABASE_URL", "value": self.config.database_url, "type": "SECRET"})
+            env_vars.append(
+                {"key": "DATABASE_URL", "value": self.config.database_url, "type": "SECRET"}
+            )
 
         # Redis URL
         if self.config.redis_url:
@@ -148,7 +159,9 @@ class DigitalOceanProvider(DeploymentProvider):
 
         # Secret key
         if self.config.secret_key:
-            env_vars.append({"key": "SECRET_KEY", "value": self.config.secret_key, "type": "SECRET"})
+            env_vars.append(
+                {"key": "SECRET_KEY", "value": self.config.secret_key, "type": "SECRET"}
+            )
 
         # Allowed hosts
         if self.config.allowed_hosts:
@@ -168,7 +181,7 @@ class DigitalOceanProvider(DeploymentProvider):
 
     def _generate_dockerfile(self) -> str:
         """Generate Dockerfile for DigitalOcean."""
-        return f'''# Dockerfile for DigitalOcean App Platform
+        return f"""# Dockerfile for DigitalOcean App Platform
 FROM python:3.13-slim
 
 # Set environment variables
@@ -196,8 +209,8 @@ COPY . .
 RUN python manage.py collectstatic --noinput
 
 # Run migrations and start server
-CMD python manage.py migrate --noinput && gunicorn {self.config.django_settings_module.rsplit('.', 1)[0]}.wsgi:application --bind 0.0.0.0:$PORT --workers {self.config.workers}
-'''
+CMD python manage.py migrate --noinput && gunicorn {self.config.django_settings_module.rsplit(".", 1)[0]}.wsgi:application --bind 0.0.0.0:$PORT --workers {self.config.workers}
+"""
 
     async def deploy(self) -> DeploymentResult:
         """Deploy to DigitalOcean App Platform."""
@@ -233,7 +246,9 @@ CMD python manage.py migrate --noinput && gunicorn {self.config.django_settings_
                 self.run_command(["doctl", "auth", "init"])
 
             # Check if app exists
-            apps_result = self.run_command(["doctl", "apps", "list", "--format", "ID,Spec.Name", "--no-header"])
+            apps_result = self.run_command(
+                ["doctl", "apps", "list", "--format", "ID,Spec.Name", "--no-header"]
+            )
             app_id = None
 
             if apps_result.returncode == 0:
@@ -249,17 +264,28 @@ CMD python manage.py migrate --noinput && gunicorn {self.config.django_settings_
             if app_id:
                 # Update existing app
                 result.add_log(f"Updating existing app: {self.config.app_name}")
-                deploy_result = self.run_command([
-                    "doctl", "apps", "update", app_id,
-                    "--spec", str(self.config.project_dir / ".do" / "app.yaml"),
-                ])
+                deploy_result = self.run_command(
+                    [
+                        "doctl",
+                        "apps",
+                        "update",
+                        app_id,
+                        "--spec",
+                        str(self.config.project_dir / ".do" / "app.yaml"),
+                    ]
+                )
             else:
                 # Create new app
                 result.add_log(f"Creating new app: {self.config.app_name}")
-                deploy_result = self.run_command([
-                    "doctl", "apps", "create",
-                    "--spec", str(self.config.project_dir / ".do" / "app.yaml"),
-                ])
+                deploy_result = self.run_command(
+                    [
+                        "doctl",
+                        "apps",
+                        "create",
+                        "--spec",
+                        str(self.config.project_dir / ".do" / "app.yaml"),
+                    ]
+                )
 
             if deploy_result.returncode != 0:
                 result.status = DeploymentStatus.FAILED
@@ -267,14 +293,20 @@ CMD python manage.py migrate --noinput && gunicorn {self.config.django_settings_
                 return result
 
             # Get app info
-            apps_result = self.run_command(["doctl", "apps", "list", "--format", "ID,Spec.Name,DefaultIngress", "--no-header"])
+            apps_result = self.run_command(
+                ["doctl", "apps", "list", "--format", "ID,Spec.Name,DefaultIngress", "--no-header"]
+            )
             if apps_result.returncode == 0:
                 for line in apps_result.stdout.strip().split("\n"):
                     if line and self.config.app_name in line:
                         parts = line.split()
                         if len(parts) >= 3:
                             result.deployment_id = parts[0]
-                            result.url = parts[2] if parts[2].startswith("https://") else f"https://{parts[2]}"
+                            result.url = (
+                                parts[2]
+                                if parts[2].startswith("https://")
+                                else f"https://{parts[2]}"
+                            )
                         break
 
             result.status = DeploymentStatus.SUCCESS
@@ -291,9 +323,9 @@ CMD python manage.py migrate --noinput && gunicorn {self.config.django_settings_
         result = DeploymentResult(status=DeploymentStatus.PENDING)
 
         try:
-            status_result = self.run_command([
-                "doctl", "apps", "get", deployment_id, "--format", "json"
-            ])
+            status_result = self.run_command(
+                ["doctl", "apps", "get", deployment_id, "--format", "json"]
+            )
 
             if status_result.returncode == 0:
                 data = json.loads(status_result.stdout)
@@ -327,9 +359,17 @@ CMD python manage.py migrate --noinput && gunicorn {self.config.django_settings_
 
         try:
             # Get deployments
-            deployments_result = self.run_command([
-                "doctl", "apps", "list-deployments", deployment_id, "--format", "ID,Phase", "--no-header"
-            ])
+            deployments_result = self.run_command(
+                [
+                    "doctl",
+                    "apps",
+                    "list-deployments",
+                    deployment_id,
+                    "--format",
+                    "ID,Phase",
+                    "--no-header",
+                ]
+            )
 
             if deployments_result.returncode != 0:
                 result.status = DeploymentStatus.FAILED
@@ -346,9 +386,14 @@ CMD python manage.py migrate --noinput && gunicorn {self.config.django_settings_
             previous_deployment = lines[1].split()[0]
 
             # Create rollback deployment
-            rollback_result = self.run_command([
-                "doctl", "apps", "create-deployment", deployment_id,
-            ])
+            rollback_result = self.run_command(
+                [
+                    "doctl",
+                    "apps",
+                    "create-deployment",
+                    deployment_id,
+                ]
+            )
 
             if rollback_result.returncode == 0:
                 result.status = DeploymentStatus.SUCCESS
@@ -376,12 +421,18 @@ CMD python manage.py migrate --noinput && gunicorn {self.config.django_settings_
         result.status = DeploymentStatus.SUCCESS
         return result
 
-    async def get_logs(self, lines: int = 100) -> List[str]:
+    async def get_logs(self, lines: int = 100) -> list[str]:
         """Get application logs."""
-        result = self.run_command([
-            "doctl", "apps", "logs", self.config.app_name,
-            "--type", "run",
-        ])
+        result = self.run_command(
+            [
+                "doctl",
+                "apps",
+                "logs",
+                self.config.app_name,
+                "--type",
+                "run",
+            ]
+        )
 
         if result.returncode == 0:
             return result.stdout.split("\n")[-lines:]

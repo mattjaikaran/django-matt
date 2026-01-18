@@ -6,7 +6,8 @@ Supports local LLMs via Ollama including Llama, Mistral, CodeLlama, etc.
 
 import json
 import os
-from typing import Any, AsyncIterator, Dict, List, Optional, Type, TypeVar
+from collections.abc import AsyncIterator
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
@@ -22,7 +23,6 @@ from django_matt.ai.base import (
     ToolCall,
     ToolDefinition,
     Usage,
-    messages_to_prompt,
 )
 
 T = TypeVar("T", bound=BaseModel)
@@ -67,8 +67,8 @@ class OllamaProvider(LLMProvider, StructuredOutputProvider):
 
     def __init__(
         self,
-        model: Optional[str] = None,
-        base_url: Optional[str] = None,
+        model: str | None = None,
+        base_url: str | None = None,
         **kwargs,
     ):
         base_url = base_url or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
@@ -88,8 +88,7 @@ class OllamaProvider(LLMProvider, StructuredOutputProvider):
                 import httpx
             except ImportError:
                 raise ImportError(
-                    "httpx is required for Ollama provider. "
-                    "Install with: pip install httpx"
+                    "httpx is required for Ollama provider. Install with: pip install httpx"
                 )
 
             self._client = httpx.AsyncClient(
@@ -99,27 +98,29 @@ class OllamaProvider(LLMProvider, StructuredOutputProvider):
             )
         return self._client
 
-    def _convert_messages(self, messages: List[Message]) -> List[Dict[str, Any]]:
+    def _convert_messages(self, messages: list[Message]) -> list[dict[str, Any]]:
         """Convert messages to Ollama format."""
         result = []
         for msg in messages:
-            result.append({
-                "role": msg.role.value,
-                "content": msg.content,
-            })
+            result.append(
+                {
+                    "role": msg.role.value,
+                    "content": msg.content,
+                }
+            )
         return result
 
     async def complete(
         self,
-        messages: List[Message],
+        messages: list[Message],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        stop: Optional[List[str]] = None,
-        tools: Optional[List[ToolDefinition]] = None,
-        tool_choice: Optional[str] = None,
-        format: Optional[str] = None,
+        max_tokens: int | None = None,
+        stop: list[str] | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
+        format: str | None = None,
         **kwargs,
     ) -> CompletionResponse:
         """Generate a completion."""
@@ -198,12 +199,12 @@ class OllamaProvider(LLMProvider, StructuredOutputProvider):
 
     async def stream(
         self,
-        messages: List[Message],
+        messages: list[Message],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        stop: Optional[List[str]] = None,
+        max_tokens: int | None = None,
+        stop: list[str] | None = None,
         **kwargs,
     ) -> AsyncIterator[StreamChunk]:
         """Stream a completion."""
@@ -243,10 +244,10 @@ class OllamaProvider(LLMProvider, StructuredOutputProvider):
 
     async def complete_structured(
         self,
-        messages: List[Message],
-        response_model: Type[T],
+        messages: list[Message],
+        response_model: type[T],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         temperature: float = 0.0,
         max_retries: int = 3,
         **kwargs,
@@ -283,7 +284,7 @@ class OllamaProvider(LLMProvider, StructuredOutputProvider):
 
     # Ollama-specific methods
 
-    async def list_models(self) -> List[Dict[str, Any]]:
+    async def list_models(self) -> list[dict[str, Any]]:
         """List available models."""
         client = self._get_client()
         response = await client.get("/api/tags")
@@ -296,7 +297,7 @@ class OllamaProvider(LLMProvider, StructuredOutputProvider):
         model: str,
         *,
         insecure: bool = False,
-    ) -> AsyncIterator[Dict[str, Any]]:
+    ) -> AsyncIterator[dict[str, Any]]:
         """
         Pull a model from the Ollama library.
 
@@ -323,7 +324,7 @@ class OllamaProvider(LLMProvider, StructuredOutputProvider):
         response = await client.delete("/api/delete", json={"name": model})
         return response.status_code == 200
 
-    async def show_model(self, model: str) -> Dict[str, Any]:
+    async def show_model(self, model: str) -> dict[str, Any]:
         """Get model information."""
         client = self._get_client()
         response = await client.post("/api/show", json={"name": model})
@@ -334,10 +335,10 @@ class OllamaProvider(LLMProvider, StructuredOutputProvider):
         self,
         prompt: str,
         *,
-        model: Optional[str] = None,
-        system: Optional[str] = None,
-        template: Optional[str] = None,
-        context: Optional[List[int]] = None,
+        model: str | None = None,
+        system: str | None = None,
+        template: str | None = None,
+        context: list[int] | None = None,
         **kwargs,
     ) -> CompletionResponse:
         """
@@ -406,8 +407,8 @@ class OllamaEmbeddings(EmbeddingProvider):
 
     def __init__(
         self,
-        model: Optional[str] = None,
-        base_url: Optional[str] = None,
+        model: str | None = None,
+        base_url: str | None = None,
         **kwargs,
     ):
         base_url = base_url or os.environ.get("OLLAMA_HOST", "http://localhost:11434")
@@ -431,9 +432,9 @@ class OllamaEmbeddings(EmbeddingProvider):
 
     async def embed(
         self,
-        texts: List[str],
+        texts: list[str],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         **kwargs,
     ) -> EmbeddingResponse:
         """Generate embeddings for texts."""
@@ -458,6 +459,6 @@ class OllamaEmbeddings(EmbeddingProvider):
 
 
 __all__ = [
-    "OllamaProvider",
     "OllamaEmbeddings",
+    "OllamaProvider",
 ]

@@ -6,7 +6,7 @@ a React frontend library (like @django-matt/react).
 """
 
 import json
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from django_matt.components.base import Component, ComponentType
 from django_matt.components.renderers.base import (
@@ -44,12 +44,11 @@ class ReactRenderer(BaseRenderer):
 
     def _register_default_renderers(self) -> None:
         """No special per-component renderers needed for JSON output."""
-        pass
 
     def render_component(
         self,
         component: Component,
-        context: Optional[RenderContext] = None,
+        context: RenderContext | None = None,
     ) -> RenderOutput:
         """Render a component to React-consumable JSON."""
         if context is None:
@@ -65,14 +64,16 @@ class ReactRenderer(BaseRenderer):
             metadata={
                 "component_type": component.type.value,
                 "component_id": component.id,
-            } if self.include_metadata else {},
+            }
+            if self.include_metadata
+            else {},
         )
 
     def _component_to_props(
         self,
         component: Component,
         context: RenderContext,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Convert a component to React props dictionary."""
         # Get all component data
         data = component.model_dump(exclude_none=True)
@@ -82,7 +83,7 @@ class ReactRenderer(BaseRenderer):
             data["type"] = data["type"].value if hasattr(data["type"], "value") else data["type"]
 
         # Process children recursively
-        if "children" in data and data["children"]:
+        if data.get("children"):
             data["children"] = [
                 self._component_to_props(child, context.child_context(child.id))
                 for child in component.children
@@ -95,9 +96,9 @@ class ReactRenderer(BaseRenderer):
 
     def _process_nested_components(
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         context: RenderContext,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Process any nested components in the data."""
         result = {}
 
@@ -106,7 +107,8 @@ class ReactRenderer(BaseRenderer):
                 result[key] = self._component_to_props(value, context)
             elif isinstance(value, list):
                 result[key] = [
-                    self._component_to_props(item, context) if isinstance(item, Component)
+                    self._component_to_props(item, context)
+                    if isinstance(item, Component)
                     else self._process_value(item, context)
                     for item in value
                 ]
@@ -121,14 +123,14 @@ class ReactRenderer(BaseRenderer):
         """Process a single value, handling special types."""
         if hasattr(value, "model_dump"):
             return value.model_dump(exclude_none=True)
-        elif hasattr(value, "value"):  # Enum
+        if hasattr(value, "value"):  # Enum
             return value.value
         return value
 
     def render_page(
         self,
-        components: Union[Component, List[Component]],
-        context: Optional[RenderContext] = None,
+        components: Component | list[Component],
+        context: RenderContext | None = None,
         title: str = "",
         description: str = "",
     ) -> RenderOutput:
@@ -148,9 +150,7 @@ class ReactRenderer(BaseRenderer):
                 "title": title,
                 "description": description,
             },
-            "components": [
-                self._component_to_props(c, context) for c in components
-            ],
+            "components": [self._component_to_props(c, context) for c in components],
             "theme": {
                 "name": context.theme.name,
                 "dark_mode": context.dark_mode,
@@ -184,7 +184,7 @@ class ReactHtmlRenderer(BaseRenderer):
         self,
         root_id: str = "root",
         bundle_url: str = "/static/js/components.js",
-        css_url: Optional[str] = None,
+        css_url: str | None = None,
     ):
         self.root_id = root_id
         self.bundle_url = bundle_url
@@ -198,7 +198,7 @@ class ReactHtmlRenderer(BaseRenderer):
     def render_component(
         self,
         component: Component,
-        context: Optional[RenderContext] = None,
+        context: RenderContext | None = None,
     ) -> RenderOutput:
         """Render component as HTML with React bootstrap."""
         if context is None:
@@ -240,8 +240,8 @@ class ReactHtmlRenderer(BaseRenderer):
 
     def render_page(
         self,
-        components: Union[Component, List[Component]],
-        context: Optional[RenderContext] = None,
+        components: Component | list[Component],
+        context: RenderContext | None = None,
         title: str = "",
         include_doctype: bool = True,
     ) -> RenderOutput:
@@ -253,13 +253,11 @@ class ReactHtmlRenderer(BaseRenderer):
             components = [components]
 
         # Get page JSON
-        json_output = self._json_renderer.render_page(
-            components, context, title=title
-        )
+        json_output = self._json_renderer.render_page(components, context, title=title)
 
         # Generate full HTML page
         css_link = f'<link rel="stylesheet" href="{self.css_url}">' if self.css_url else ""
-        theme_css = context.theme.get_full_css() if hasattr(context.theme, 'get_full_css') else ""
+        theme_css = context.theme.get_full_css() if hasattr(context.theme, "get_full_css") else ""
 
         html = f'''{"<!DOCTYPE html>" if include_doctype else ""}
 <html lang="{context.locale}"{' class="dark"' if context.dark_mode else ""}>

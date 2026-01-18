@@ -103,8 +103,7 @@ class PageNumberPagination(BasePagination):
         self._total_pages = max(1, math.ceil(self._count / self._page_size))
 
         # Clamp page to valid range
-        if self._page > self._total_pages:
-            self._page = self._total_pages
+        self._page = min(self._page, self._total_pages)
 
         offset = (self._page - 1) * self._page_size
         return queryset[offset : offset + self._page_size]
@@ -126,8 +125,7 @@ class PageNumberPagination(BasePagination):
 
         self._total_pages = max(1, math.ceil(self._count / self._page_size))
 
-        if self._page > self._total_pages:
-            self._page = self._total_pages
+        self._page = min(self._page, self._total_pages)
 
         offset = (self._page - 1) * self._page_size
         return queryset[offset : offset + self._page_size]

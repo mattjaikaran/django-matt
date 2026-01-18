@@ -5,17 +5,18 @@ Decorators for protecting views with session-based authentication.
 """
 
 import functools
-from typing import Callable, Optional, Union, TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from django.http import HttpRequest, HttpResponse
 
 
 def session_required(
-    view_func: Optional[Callable] = None,
+    view_func: Callable | None = None,
     *,
-    redirect_url: Optional[str] = None,
-    login_url: Optional[str] = None,
+    redirect_url: str | None = None,
+    login_url: str | None = None,
 ):
     """
     Decorator to require session authentication.
@@ -92,10 +93,10 @@ def session_optional(view_func: Callable) -> Callable:
 
 
 def login_required(
-    view_func: Optional[Callable] = None,
+    view_func: Callable | None = None,
     *,
     redirect_field_name: str = "next",
-    login_url: Optional[str] = None,
+    login_url: str | None = None,
 ):
     """
     Decorator similar to Django's login_required.
@@ -138,10 +139,10 @@ def login_required(
 
 
 def fresh_session_required(
-    view_func: Optional[Callable] = None,
+    view_func: Callable | None = None,
     *,
     max_age: int = 300,  # 5 minutes
-    redirect_url: Optional[str] = None,
+    redirect_url: str | None = None,
 ):
     """
     Decorator to require a fresh session for sensitive operations.
@@ -223,7 +224,7 @@ def _is_session_fresh(request: "HttpRequest", max_age: int) -> bool:
 
 def _unauthorized_response(
     request: "HttpRequest",
-    redirect_url: Optional[str] = None,
+    redirect_url: str | None = None,
 ) -> "HttpResponse":
     """Return appropriate unauthorized response."""
     # Check if this is an API request
@@ -249,7 +250,7 @@ def _unauthorized_response(
 
 def _login_redirect(
     request: "HttpRequest",
-    login_url: Optional[str] = None,
+    login_url: str | None = None,
     redirect_field_name: str = "next",
 ) -> "HttpResponse":
     """Redirect to login page with next parameter."""
@@ -280,7 +281,7 @@ def _login_redirect(
 
 def _reauthentication_required(
     request: "HttpRequest",
-    redirect_url: Optional[str] = None,
+    redirect_url: str | None = None,
 ) -> "HttpResponse":
     """Return response requiring re-authentication."""
     if _is_api_request(request):

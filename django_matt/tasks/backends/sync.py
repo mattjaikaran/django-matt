@@ -6,14 +6,15 @@ Useful for development and testing.
 """
 
 import uuid
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, Sequence, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from .base import BaseBackend
 
 if TYPE_CHECKING:
     from ..base import Task, TaskResult
-    from ..primitives import Signature, Group, GroupResult
+    from ..primitives import Group, GroupResult, Signature
 
 
 class SyncBackend(BaseBackend):
@@ -115,7 +116,6 @@ class SyncBackend(BaseBackend):
 
         Since tasks execute immediately, there's nothing to revoke.
         """
-        pass
 
     def send_group(
         self,

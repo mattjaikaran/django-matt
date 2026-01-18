@@ -6,8 +6,9 @@ from __future__ import annotations
 
 import functools
 import warnings
+from collections.abc import Callable
 from datetime import date
-from typing import TYPE_CHECKING, Any, Callable, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from django_matt.versioning.base import BaseVersioning, VersioningError
 
@@ -64,9 +65,10 @@ def version(
                     )
 
                 # Check deprecation
-                if deprecated_in and BaseVersioning.compare_versions(
-                    request_version, deprecated_in
-                ) >= 0:
+                if (
+                    deprecated_in
+                    and BaseVersioning.compare_versions(request_version, deprecated_in) >= 0
+                ):
                     warnings.warn(
                         f"This endpoint is deprecated as of version {deprecated_in}. "
                         f"It will be removed in version {removed_in or 'a future version'}.",
@@ -150,6 +152,7 @@ def deprecated(
                     else:
                         # Assume ISO format string, convert to HTTP date
                         from datetime import datetime
+
                         dt = datetime.fromisoformat(sunset_date)
                         sunset_str = dt.strftime("%a, %d %b %Y 00:00:00 GMT")
                     response["Sunset"] = sunset_str

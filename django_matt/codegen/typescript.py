@@ -18,35 +18,24 @@ Usage:
     gen.generate_types("./frontend/src/types")
 """
 
-from typing import Dict, List, Optional, Type
-
 from django.db import models
 
 from django_matt.codegen.core import (
     CodeFile,
     CodeGenerator,
-    Comment,
-    Import,
     ImportFrom,
     Interface,
     Property,
-    TypeAlias,
-    Variable,
-    ObjectLiteral,
-    Function,
-    Parameter,
     Statement,
-    Return,
+    TypeAlias,
 )
 from django_matt.codegen.introspection import (
-    ModelIntrospector,
-    ModelInfo,
     FieldInfo,
+    ModelIntrospector,
 )
 
-
 # Django field to TypeScript type mapping
-DJANGO_TO_TS: Dict[str, str] = {
+DJANGO_TO_TS: dict[str, str] = {
     "AutoField": "number",
     "BigAutoField": "number",
     "SmallAutoField": "number",
@@ -80,7 +69,7 @@ DJANGO_TO_TS: Dict[str, str] = {
 }
 
 # Django field to Zod schema mapping
-DJANGO_TO_ZOD: Dict[str, str] = {
+DJANGO_TO_ZOD: dict[str, str] = {
     "AutoField": "z.number().int()",
     "BigAutoField": "z.number().int()",
     "SmallAutoField": "z.number().int()",
@@ -153,7 +142,7 @@ def django_field_to_zod(field: FieldInfo) -> str:
 
 
 def generate_typescript_interface(
-    model: Type[models.Model],
+    model: type[models.Model],
     include_relations: bool = False,
 ) -> str:
     """
@@ -171,13 +160,15 @@ def generate_typescript_interface(
     properties = []
     for field in info.fields:
         ts_type = django_field_to_typescript(field)
-        properties.append(Property(
-            name=field.name,
-            type=ts_type,
-            optional=not field.is_required,
-            readonly=not field.is_editable or field.is_auto,
-            comment=field.help_text if field.help_text else None,
-        ))
+        properties.append(
+            Property(
+                name=field.name,
+                type=ts_type,
+                optional=not field.is_required,
+                readonly=not field.is_editable or field.is_auto,
+                comment=field.help_text if field.help_text else None,
+            )
+        )
 
     interface = Interface(
         name=info.name,
@@ -189,8 +180,8 @@ def generate_typescript_interface(
 
 
 def generate_zod_schema(
-    model: Type[models.Model],
-    schema_name: Optional[str] = None,
+    model: type[models.Model],
+    schema_name: str | None = None,
 ) -> str:
     """
     Generate a Zod schema for a Django model.
@@ -220,7 +211,7 @@ def generate_zod_schema(
     return "\n".join(lines)
 
 
-def generate_create_schema(model: Type[models.Model]) -> str:
+def generate_create_schema(model: type[models.Model]) -> str:
     """Generate a Zod schema for creating a model (excludes auto fields)."""
     info = ModelIntrospector(model).introspect()
 
@@ -240,7 +231,7 @@ def generate_create_schema(model: Type[models.Model]) -> str:
     return "\n".join(lines)
 
 
-def generate_update_schema(model: Type[models.Model]) -> str:
+def generate_update_schema(model: type[models.Model]) -> str:
     """Generate a Zod schema for updating a model (all fields optional)."""
     info = ModelIntrospector(model).introspect()
 
@@ -274,7 +265,7 @@ class TypeScriptGenerator(CodeGenerator):
         gen.generate_types("./frontend/src/types")
     """
 
-    def __init__(self, models: List[Type[models.Model]], output_dir: str = "./generated"):
+    def __init__(self, models: list[type[models.Model]], output_dir: str = "./generated"):
         super().__init__(output_dir)
         self.models = models
         self.model_infos = {m._meta.object_name: ModelIntrospector(m).introspect() for m in models}
@@ -282,7 +273,9 @@ class TypeScriptGenerator(CodeGenerator):
     def generate_types_file(self) -> CodeFile:
         """Generate a types.ts file with all interfaces."""
         file = CodeFile()
-        file.header_comment = "Auto-generated TypeScript types from Django models.\nDo not edit manually."
+        file.header_comment = (
+            "Auto-generated TypeScript types from Django models.\nDo not edit manually."
+        )
 
         for model in self.models:
             info = self.model_infos[model._meta.object_name]
@@ -291,13 +284,15 @@ class TypeScriptGenerator(CodeGenerator):
             properties = []
             for field in info.fields:
                 ts_type = django_field_to_typescript(field)
-                properties.append(Property(
-                    name=field.name,
-                    type=ts_type,
-                    optional=not field.is_required,
-                    readonly=not field.is_editable or field.is_auto,
-                    comment=field.help_text if field.help_text else None,
-                ))
+                properties.append(
+                    Property(
+                        name=field.name,
+                        type=ts_type,
+                        optional=not field.is_required,
+                        readonly=not field.is_editable or field.is_auto,
+                        comment=field.help_text if field.help_text else None,
+                    )
+                )
 
             interface = Interface(
                 name=info.name,
@@ -312,11 +307,13 @@ class TypeScriptGenerator(CodeGenerator):
                 # Make all optional for create input (server may have defaults)
                 create_input_props = []
                 for p in create_props:
-                    create_input_props.append(Property(
-                        name=p.name,
-                        type=p.type,
-                        optional=True,  # All optional for input
-                    ))
+                    create_input_props.append(
+                        Property(
+                            name=p.name,
+                            type=p.type,
+                            optional=True,  # All optional for input
+                        )
+                    )
                 create_interface = Interface(
                     name=f"{info.name}CreateInput",
                     properties=create_input_props,
@@ -336,7 +333,9 @@ class TypeScriptGenerator(CodeGenerator):
     def generate_schemas_file(self) -> CodeFile:
         """Generate a schemas.ts file with all Zod schemas."""
         file = CodeFile()
-        file.header_comment = "Auto-generated Zod schemas from Django models.\nDo not edit manually."
+        file.header_comment = (
+            "Auto-generated Zod schemas from Django models.\nDo not edit manually."
+        )
 
         # Add zod import
         file.add_import(ImportFrom("zod", ["z"]))
@@ -357,22 +356,28 @@ class TypeScriptGenerator(CodeGenerator):
             file.add_node(Statement(update_code))
 
             # Infer types
-            file.add_node(TypeAlias(
-                name=f"{info.name}",
-                type=f"z.infer<typeof {info.name}Schema>",
-            ))
-            file.add_node(TypeAlias(
-                name=f"{info.name}Create",
-                type=f"z.infer<typeof {info.name}CreateSchema>",
-            ))
-            file.add_node(TypeAlias(
-                name=f"{info.name}Update",
-                type=f"z.infer<typeof {info.name}UpdateSchema>",
-            ))
+            file.add_node(
+                TypeAlias(
+                    name=f"{info.name}",
+                    type=f"z.infer<typeof {info.name}Schema>",
+                )
+            )
+            file.add_node(
+                TypeAlias(
+                    name=f"{info.name}Create",
+                    type=f"z.infer<typeof {info.name}CreateSchema>",
+                )
+            )
+            file.add_node(
+                TypeAlias(
+                    name=f"{info.name}Update",
+                    type=f"z.infer<typeof {info.name}UpdateSchema>",
+                )
+            )
 
         return file
 
-    def generate_all(self) -> Dict[str, str]:
+    def generate_all(self) -> dict[str, str]:
         """Generate all TypeScript files."""
         self.add_file("types.ts", self.generate_types_file())
         self.add_file("schemas.ts", self.generate_schemas_file())
@@ -380,13 +385,13 @@ class TypeScriptGenerator(CodeGenerator):
 
 
 __all__ = [
-    "TypeScriptGenerator",
-    "generate_typescript_interface",
-    "generate_zod_schema",
-    "generate_create_schema",
-    "generate_update_schema",
-    "django_field_to_typescript",
-    "django_field_to_zod",
     "DJANGO_TO_TS",
     "DJANGO_TO_ZOD",
+    "TypeScriptGenerator",
+    "django_field_to_typescript",
+    "django_field_to_zod",
+    "generate_create_schema",
+    "generate_typescript_interface",
+    "generate_update_schema",
+    "generate_zod_schema",
 ]

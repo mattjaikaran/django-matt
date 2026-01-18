@@ -4,8 +4,8 @@ Throttle middleware for django-matt.
 
 from __future__ import annotations
 
-import json
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from django.http import JsonResponse
 
@@ -53,6 +53,7 @@ class ThrottleMiddleware:
         if self._config is None:
             try:
                 from django.conf import settings
+
                 self._config = getattr(settings, "THROTTLE_MIDDLEWARE", {})
             except Exception:
                 self._config = {}
@@ -115,9 +116,7 @@ class ThrottleMiddleware:
 
         return response
 
-    def throttled_response(
-        self, request: HttpRequest, throttle: BaseThrottle
-    ) -> JsonResponse:
+    def throttled_response(self, request: HttpRequest, throttle: BaseThrottle) -> JsonResponse:
         """
         Create a 429 Too Many Requests response.
 
@@ -178,6 +177,7 @@ class PathSpecificThrottleMiddleware:
         if self._path_rates is None:
             try:
                 from django.conf import settings
+
                 self._path_rates = getattr(settings, "THROTTLE_PATH_RATES", {})
             except Exception:
                 self._path_rates = {}

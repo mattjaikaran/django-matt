@@ -110,12 +110,11 @@ class PasskeyCredential(models.Model):
             self.sign_count = new_count
             self.save(update_fields=["sign_count", "last_used_at"])
             return True
-        elif new_count == 0 and self.sign_count == 0:
+        if new_count == 0 and self.sign_count == 0:
             # Some authenticators don't implement counters
             return True
-        else:
-            # Possible cloned authenticator / replay attack
-            return False
+        # Possible cloned authenticator / replay attack
+        return False
 
 
 class PasskeyChallenge(models.Model):
@@ -176,4 +175,5 @@ class PasskeyChallenge(models.Model):
     def is_expired(self) -> bool:
         """Check if this challenge has expired."""
         from django.utils import timezone
+
         return timezone.now() > self.expires_at

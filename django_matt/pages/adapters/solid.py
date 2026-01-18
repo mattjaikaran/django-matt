@@ -15,7 +15,7 @@ def generate_solid_adapter() -> str:
 
     This can be written to a file and used in SolidJS projects.
     """
-    return '''/**
+    return """/**
  * Django Matt Pages - SolidJS Adapter
  *
  * Auto-generated client-side adapter for Django Matt Pages.
@@ -404,7 +404,7 @@ export default {
   Link,
   PageProvider,
 };
-'''
+"""
 
 
 __all__ = [

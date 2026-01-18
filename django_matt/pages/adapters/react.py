@@ -23,7 +23,7 @@ def generate_react_adapter() -> str:
         with open("src/lib/page-adapter.tsx", "w") as f:
             f.write(adapter_code)
     """
-    return '''/**
+    return """/**
  * Django Matt Pages - React Adapter
  *
  * Auto-generated client-side adapter for Django Matt Pages.
@@ -571,7 +571,7 @@ export default {
   usePageForm,
   Link,
 };
-'''
+"""
 
 
 __all__ = [

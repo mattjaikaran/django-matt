@@ -23,8 +23,8 @@ Note: GitHub requires a separate API call to get user emails if email is private
 
 from django_matt.auth.oauth.providers.base import (
     OAuthProvider,
-    OAuthUserInfo,
     OAuthToken,
+    OAuthUserInfo,
     OAuthUserInfoError,
 )
 
@@ -60,9 +60,7 @@ class GitHubOAuthProvider(OAuthProvider):
             response = await client.get(self.userinfo_url, headers=headers)
 
             if response.status_code != 200:
-                raise OAuthUserInfoError(
-                    f"Failed to fetch GitHub user info: {response.text}"
-                )
+                raise OAuthUserInfoError(f"Failed to fetch GitHub user info: {response.text}")
 
             user_data = response.json()
 

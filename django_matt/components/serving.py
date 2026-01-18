@@ -5,21 +5,19 @@ Provides views, middleware, and helpers for serving component-based
 UIs from Django.
 """
 
-from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Type, Union
 import json
+from collections.abc import Callable
+from functools import wraps
+from typing import Any
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views import View
-from django.template.response import TemplateResponse
 
 from django_matt.components.base import Component, registry
-from django_matt.components.renderers.base import BaseRenderer, RenderContext, RenderOutput
-from django_matt.components.renderers.react import ReactRenderer
+from django_matt.components.renderers.base import BaseRenderer, RenderContext
 from django_matt.components.renderers.html import HTMLRenderer
-from django_matt.components.renderers.json import JSONRenderer
+from django_matt.components.renderers.react import ReactRenderer
 from django_matt.components.theming import Theme, get_theme
-
 
 # =============================================================================
 # Response Classes
@@ -38,9 +36,9 @@ class ComponentResponse(HttpResponse):
 
     def __init__(
         self,
-        component: Union[Component, List[Component]],
-        renderer: Optional[BaseRenderer] = None,
-        context: Optional[RenderContext] = None,
+        component: Component | list[Component],
+        renderer: BaseRenderer | None = None,
+        context: RenderContext | None = None,
         **kwargs,
     ):
         if renderer is None:
@@ -72,8 +70,8 @@ class JsonComponentResponse(JsonResponse):
 
     def __init__(
         self,
-        component: Union[Component, List[Component]],
-        context: Optional[RenderContext] = None,
+        component: Component | list[Component],
+        context: RenderContext | None = None,
         **kwargs,
     ):
         if context is None:
@@ -92,9 +90,9 @@ class JsonComponentResponse(JsonResponse):
     def _process_enums(self, data: Any) -> Any:
         if isinstance(data, dict):
             return {k: self._process_enums(v) for k, v in data.items()}
-        elif isinstance(data, list):
+        if isinstance(data, list):
             return [self._process_enums(item) for item in data]
-        elif hasattr(data, "value"):
+        if hasattr(data, "value"):
             return data.value
         return data
 
@@ -111,10 +109,10 @@ class HtmlComponentResponse(HttpResponse):
 
     def __init__(
         self,
-        component: Union[Component, List[Component]],
+        component: Component | list[Component],
         title: str = "",
-        context: Optional[RenderContext] = None,
-        renderer: Optional[HTMLRenderer] = None,
+        context: RenderContext | None = None,
+        renderer: HTMLRenderer | None = None,
         **kwargs,
     ):
         if renderer is None:
@@ -138,8 +136,8 @@ class HtmlComponentResponse(HttpResponse):
 
 
 def component_view(
-    renderer: Optional[BaseRenderer] = None,
-    theme: Optional[Theme] = None,
+    renderer: BaseRenderer | None = None,
+    theme: Theme | None = None,
 ):
     """
     Decorator that renders component return values.
@@ -153,6 +151,7 @@ def component_view(
         def html_view(request):
             return Container(children=[...])
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(request: HttpRequest, *args, **kwargs):
@@ -179,6 +178,7 @@ def component_view(
             return result
 
         return wrapper
+
     return decorator
 
 
@@ -191,6 +191,7 @@ def json_component_view(func: Callable) -> Callable:
         def api_view(request):
             return DataTable(columns=[...], data=[...])
     """
+
     @wraps(func)
     def wrapper(request: HttpRequest, *args, **kwargs):
         result = func(request, *args, **kwargs)
@@ -212,7 +213,7 @@ def json_component_view(func: Callable) -> Callable:
 
 def html_component_view(
     title: str = "",
-    renderer: Optional[HTMLRenderer] = None,
+    renderer: HTMLRenderer | None = None,
 ):
     """
     Decorator that renders components as HTML.
@@ -222,6 +223,7 @@ def html_component_view(
         def dashboard(request):
             return Container(children=[...])
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(request: HttpRequest, *args, **kwargs):
@@ -245,6 +247,7 @@ def html_component_view(
             return result
 
         return wrapper
+
     return decorator
 
 
@@ -269,8 +272,8 @@ class ComponentView(View):
         path('dashboard/', DashboardView.as_view(), name='dashboard'),
     """
 
-    renderer_class: Type[BaseRenderer] = ReactRenderer
-    theme: Optional[Theme] = None
+    renderer_class: type[BaseRenderer] = ReactRenderer
+    theme: Theme | None = None
 
     def get_renderer(self) -> BaseRenderer:
         """Get the renderer instance."""
@@ -284,7 +287,7 @@ class ComponentView(View):
             user=getattr(request, "user", None),
         )
 
-    def get_component(self, request: HttpRequest) -> Union[Component, List[Component]]:
+    def get_component(self, request: HttpRequest) -> Component | list[Component]:
         """Override this to return the component(s) to render."""
         raise NotImplementedError("Subclasses must implement get_component()")
 
@@ -309,7 +312,7 @@ class JsonComponentView(ComponentView):
 class HtmlComponentView(ComponentView):
     """View that returns components as HTML."""
 
-    renderer_class: Type[BaseRenderer] = HTMLRenderer
+    renderer_class: type[BaseRenderer] = HTMLRenderer
     title: str = ""
 
     def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
@@ -345,15 +348,15 @@ class Page:
         self,
         title: str = "",
         description: str = "",
-        theme: Optional[Theme] = None,
+        theme: Theme | None = None,
     ):
         self.title = title
         self.description = description
         self.theme = theme
-        self.components: List[Component] = []
-        self.head: List[str] = []
-        self.scripts: List[str] = []
-        self.styles: List[str] = []
+        self.components: list[Component] = []
+        self.head: list[str] = []
+        self.scripts: list[str] = []
+        self.styles: list[str] = []
 
     def add(self, component: Component) -> "Page":
         """Add a component to the page."""
@@ -377,8 +380,8 @@ class Page:
 
     def render(
         self,
-        request: Optional[HttpRequest] = None,
-        renderer: Optional[BaseRenderer] = None,
+        request: HttpRequest | None = None,
+        renderer: BaseRenderer | None = None,
         as_json: bool = False,
     ) -> HttpResponse:
         """Render the page."""
@@ -400,7 +403,7 @@ class Page:
             context=context,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert page to dictionary."""
         return {
             "title": self.title,
@@ -435,7 +438,7 @@ def create_component(
     return component_class(**props)
 
 
-def create_from_dict(data: Dict[str, Any]) -> Component:
+def create_from_dict(data: dict[str, Any]) -> Component:
     """
     Create a component from a dictionary.
 
@@ -457,7 +460,7 @@ def create_from_dict(data: Dict[str, Any]) -> Component:
     return component
 
 
-def create_from_json(json_str: str) -> Union[Component, List[Component]]:
+def create_from_json(json_str: str) -> Component | list[Component]:
     """
     Create component(s) from JSON string.
 

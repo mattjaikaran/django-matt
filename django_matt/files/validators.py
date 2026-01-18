@@ -5,7 +5,8 @@ Provides validators for file uploads including size, type, and extension checks.
 """
 
 import mimetypes
-from typing import Sequence, Union, TYPE_CHECKING
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .upload import UploadedFile
@@ -48,8 +49,7 @@ class InvalidFileTypeError(ValidationError):
         self.content_type = content_type
         self.allowed_types = allowed_types
         message = (
-            f"File type '{content_type}' is not allowed. "
-            f"Allowed types: {', '.join(allowed_types)}"
+            f"File type '{content_type}' is not allowed. Allowed types: {', '.join(allowed_types)}"
         )
         super().__init__(message, code="invalid_file_type")
 
@@ -298,9 +298,7 @@ class FileValidator:
         return cls(
             max_size=max_size,
             allowed_types=allowed_types or cls.DOCUMENT_TYPES,
-            allowed_extensions=[
-                "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "csv"
-            ],
+            allowed_extensions=["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "csv"],
         )
 
     @classmethod

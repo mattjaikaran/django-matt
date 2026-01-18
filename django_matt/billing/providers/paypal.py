@@ -7,26 +7,23 @@ Documentation: https://developer.paypal.com/docs/api/subscriptions/v1/
 """
 
 import base64
-import hashlib
-import hmac
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from django_matt.billing.config import PayPalConfig
 from django_matt.billing.providers.base import (
-    BillingProvider,
     BillingAPIError,
+    BillingProvider,
     BillingWebhookError,
-    CustomerData,
-    ProductData,
-    PriceData,
-    SubscriptionData,
     CheckoutSessionData,
-    InvoiceData,
-    WebhookEvent,
+    CustomerData,
+    PriceData,
     PriceInterval,
+    ProductData,
+    SubscriptionData,
     SubscriptionStatus,
+    WebhookEvent,
 )
 
 
@@ -60,7 +57,7 @@ class PayPalProvider(BillingProvider[PayPalConfig]):
 
     async def _get_access_token(self) -> str:
         """Get or refresh OAuth access token."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         if self._access_token and self._token_expires_at and now < self._token_expires_at:
             return self._access_token
@@ -168,7 +165,11 @@ class PayPalProvider(BillingProvider[PayPalConfig]):
                 price_id=sub.get("plan_id"),
                 product_id=None,
                 quantity=sub.get("quantity", 1),
-                current_period_start=self._parse_datetime(billing_info.get("cycle_executions", [{}])[0].get("start_date") if billing_info.get("cycle_executions") else None),
+                current_period_start=self._parse_datetime(
+                    billing_info.get("cycle_executions", [{}])[0].get("start_date")
+                    if billing_info.get("cycle_executions")
+                    else None
+                ),
                 current_period_end=self._parse_datetime(billing_info.get("next_billing_time")),
                 cancel_at_period_end=False,
                 canceled_at=None,
@@ -237,7 +238,9 @@ class PayPalProvider(BillingProvider[PayPalConfig]):
                 product_id=plan.get("product_id", ""),
                 currency=amount.get("currency_code", "USD").lower(),
                 unit_amount=unit_amount,
-                interval=interval_map.get(frequency.get("interval_unit", "MONTH"), PriceInterval.MONTH),
+                interval=interval_map.get(
+                    frequency.get("interval_unit", "MONTH"), PriceInterval.MONTH
+                ),
                 interval_count=frequency.get("interval_count", 1),
                 trial_period_days=trial_days,
                 active=plan.get("status") == "ACTIVE",
@@ -267,7 +270,7 @@ class PayPalProvider(BillingProvider[PayPalConfig]):
                 email=email,
                 name=name,
                 metadata=metadata or {},
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             )
         )
 
@@ -340,11 +343,13 @@ class PayPalProvider(BillingProvider[PayPalConfig]):
     ) -> ProductData:
         patches = []
         if description is not None:
-            patches.append({
-                "op": "replace",
-                "path": "/description",
-                "value": description,
-            })
+            patches.append(
+                {
+                    "op": "replace",
+                    "path": "/description",
+                    "value": description,
+                }
+            )
 
         if patches:
             await self._request("PATCH", f"/v1/catalogs/products/{product_id}", data=patches)
@@ -386,38 +391,42 @@ class PayPalProvider(BillingProvider[PayPalConfig]):
 
         # Add trial if specified
         if trial_period_days:
-            billing_cycles.append({
-                "tenure_type": "TRIAL",
-                "sequence": 1,
-                "total_cycles": 1,
+            billing_cycles.append(
+                {
+                    "tenure_type": "TRIAL",
+                    "sequence": 1,
+                    "total_cycles": 1,
+                    "frequency": {
+                        "interval_unit": "DAY",
+                        "interval_count": trial_period_days,
+                    },
+                    "pricing_scheme": {
+                        "fixed_price": {
+                            "value": "0",
+                            "currency_code": currency.upper(),
+                        },
+                    },
+                }
+            )
+
+        # Regular billing cycle
+        billing_cycles.append(
+            {
+                "tenure_type": "REGULAR",
+                "sequence": len(billing_cycles) + 1,
+                "total_cycles": 0,  # Infinite
                 "frequency": {
-                    "interval_unit": "DAY",
-                    "interval_count": trial_period_days,
+                    "interval_unit": interval_map.get(interval, "MONTH"),
+                    "interval_count": interval_count,
                 },
                 "pricing_scheme": {
                     "fixed_price": {
-                        "value": "0",
+                        "value": str(unit_amount / 100),
                         "currency_code": currency.upper(),
                     },
                 },
-            })
-
-        # Regular billing cycle
-        billing_cycles.append({
-            "tenure_type": "REGULAR",
-            "sequence": len(billing_cycles) + 1,
-            "total_cycles": 0,  # Infinite
-            "frequency": {
-                "interval_unit": interval_map.get(interval, "MONTH"),
-                "interval_count": interval_count,
-            },
-            "pricing_scheme": {
-                "fixed_price": {
-                    "value": str(unit_amount / 100),
-                    "currency_code": currency.upper(),
-                },
-            },
-        })
+            }
+        )
 
         data = {
             "product_id": product_id,

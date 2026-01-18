@@ -36,34 +36,34 @@ from django_matt.auth.sso.config import (
     get_sso_config,
     sso_config,
 )
+from django_matt.auth.sso.controllers import (
+    SSOController,
+)
 from django_matt.auth.sso.providers import (
+    OIDCProvider,
+    SAMLProvider,
+    SSOAuthenticationError,
+    SSOConfigError,
+    SSOError,
     SSOProvider,
     SSOUserInfo,
-    SSOError,
-    SSOConfigError,
-    SSOAuthenticationError,
-    SAMLProvider,
-    OIDCProvider,
     get_provider_class,
     get_provider_for_connection,
 )
 from django_matt.auth.sso.schemas import (
-    SSOConnectionBase,
-    SSOConnectionSAMLConfig,
-    SSOConnectionOIDCConfig,
-    SSOConnectionCreateRequest,
-    SSOConnectionUpdateRequest,
-    SSOConnectionResponse,
-    SSOLoginRequest,
-    SSOLoginResponse,
-    SSOCallbackResponse,
     SPMetadataResponse,
-    SSOStatusResponse,
+    SSOCallbackResponse,
+    SSOConnectionBase,
+    SSOConnectionCreateRequest,
+    SSOConnectionOIDCConfig,
+    SSOConnectionResponse,
+    SSOConnectionSAMLConfig,
+    SSOConnectionUpdateRequest,
     SSODomainCheckRequest,
     SSOErrorResponse,
-)
-from django_matt.auth.sso.controllers import (
-    SSOController,
+    SSOLoginRequest,
+    SSOLoginResponse,
+    SSOStatusResponse,
 )
 
 __all__ = [

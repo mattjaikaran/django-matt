@@ -11,31 +11,27 @@ Provides endpoints for:
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse, HttpResponseRedirect
 
-from django_matt.auth.jwt import create_token_pair
 from django_matt.auth.decorators import jwt_required
+from django_matt.auth.jwt import create_token_pair
 from django_matt.auth.sso.config import get_sso_config
-from django_matt.auth.sso.schemas import (
-    SSOConnectionCreateRequest,
-    SSOConnectionUpdateRequest,
-    SSOConnectionResponse,
-    SSOLoginRequest,
-    SSOLoginResponse,
-    SSOCallbackResponse,
-    SPMetadataResponse,
-    SSOStatusResponse,
-    SSODomainCheckRequest,
-)
 from django_matt.auth.sso.providers import (
-    get_provider_for_connection,
     SSOError,
     SSOUserInfo,
+    get_provider_for_connection,
+)
+from django_matt.auth.sso.schemas import (
+    SPMetadataResponse,
+    SSOCallbackResponse,
+    SSOConnectionCreateRequest,
+    SSOConnectionResponse,
+    SSODomainCheckRequest,
+    SSOLoginResponse,
+    SSOStatusResponse,
 )
 from django_matt.core.errors import (
     NotFoundAPIError,
     ValidationAPIError,
-    PermissionAPIError,
 )
-
 
 User = get_user_model()
 
@@ -162,11 +158,9 @@ class SSOController:
         try:
             login_url = provider.get_login_url()
             return HttpResponseRedirect(login_url)
-        except SSOError as e:
+        except SSOError:
             config = get_sso_config()
-            return HttpResponseRedirect(
-                f"{config.callback_url_base}/login?error=sso_error"
-            )
+            return HttpResponseRedirect(f"{config.callback_url_base}/login?error=sso_error")
 
     # =========================================================================
     # Callback Handling
@@ -291,9 +285,7 @@ class SSOController:
     @staticmethod
     @jwt_required
     async def create_connection(
-        request,
-        org_id: str,
-        data: SSOConnectionCreateRequest
+        request, org_id: str, data: SSOConnectionCreateRequest
     ) -> SSOConnectionResponse:
         """
         Create or update SSO connection (admin only).
@@ -324,23 +316,27 @@ class SSOController:
 
         # Add SAML config
         if data.saml_config:
-            connection_data.update({
-                "idp_entity_id": data.saml_config.idp_entity_id,
-                "idp_sso_url": data.saml_config.idp_sso_url,
-                "idp_slo_url": data.saml_config.idp_slo_url or "",
-                "idp_certificate": data.saml_config.idp_certificate,
-            })
+            connection_data.update(
+                {
+                    "idp_entity_id": data.saml_config.idp_entity_id,
+                    "idp_sso_url": data.saml_config.idp_sso_url,
+                    "idp_slo_url": data.saml_config.idp_slo_url or "",
+                    "idp_certificate": data.saml_config.idp_certificate,
+                }
+            )
 
         # Add OIDC config
         if data.oidc_config:
-            connection_data.update({
-                "client_id": data.oidc_config.client_id,
-                "client_secret": data.oidc_config.client_secret,
-                "discovery_url": data.oidc_config.discovery_url or "",
-                "authorization_url": data.oidc_config.authorization_url or "",
-                "token_url": data.oidc_config.token_url or "",
-                "userinfo_url": data.oidc_config.userinfo_url or "",
-            })
+            connection_data.update(
+                {
+                    "client_id": data.oidc_config.client_id,
+                    "client_secret": data.oidc_config.client_secret,
+                    "discovery_url": data.oidc_config.discovery_url or "",
+                    "authorization_url": data.oidc_config.authorization_url or "",
+                    "token_url": data.oidc_config.token_url or "",
+                    "userinfo_url": data.oidc_config.userinfo_url or "",
+                }
+            )
 
         connection, _ = await _sync_to_async(SSOConnection.objects.update_or_create)(
             organization_id=org_id,
@@ -360,9 +356,7 @@ class SSOController:
         from django_matt.auth.sso.models import SSOConnection
 
         try:
-            connection = await _sync_to_async(SSOConnection.objects.get)(
-                organization_id=org_id
-            )
+            connection = await _sync_to_async(SSOConnection.objects.get)(organization_id=org_id)
         except SSOConnection.DoesNotExist:
             raise NotFoundAPIError(f"SSO not configured for organization: {org_id}")
 
@@ -394,6 +388,7 @@ class SSOController:
 def _sync_to_async(func):
     """Convert sync function to async."""
     from asgiref.sync import sync_to_async
+
     return sync_to_async(func, thread_sensitive=True)
 
 
@@ -409,9 +404,7 @@ async def _get_or_create_sso_user(connection, user_info: SSOUserInfo) -> tuple:
     config = get_sso_config()
 
     # First, check for existing SSO link
-    existing_user = await _sync_to_async(SSOUserLink.get_user)(
-        connection, user_info.idp_user_id
-    )
+    existing_user = await _sync_to_async(SSOUserLink.get_user)(connection, user_info.idp_user_id)
     if existing_user:
         # Optionally update user info
         if config.auto_update_user and user_info.email:
@@ -429,9 +422,8 @@ async def _get_or_create_sso_user(connection, user_info: SSOUserInfo) -> tuple:
     # Create new user if allowed
     if not config.auto_create_user:
         from django_matt.core.errors import ValidationAPIError
-        raise ValidationAPIError(
-            "Account not found. Please contact your administrator."
-        )
+
+        raise ValidationAPIError("Account not found. Please contact your administrator.")
 
     # Generate username
     username = user_info.email or f"sso_{user_info.idp_user_id}"

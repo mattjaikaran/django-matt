@@ -35,50 +35,36 @@ import hmac
 import json
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Union
+from datetime import UTC, datetime
+from typing import Any
 
 
 class JWTError(Exception):
     """Base exception for JWT errors."""
 
-    pass
-
 
 class JWTDecodeError(JWTError):
     """Token could not be decoded."""
-
-    pass
 
 
 class JWTExpiredError(JWTError):
     """Token has expired."""
 
-    pass
-
 
 class JWTNotYetValidError(JWTError):
     """Token is not yet valid (nbf claim)."""
-
-    pass
 
 
 class JWTInvalidSignatureError(JWTError):
     """Token signature is invalid."""
 
-    pass
-
 
 class JWTInvalidClaimError(JWTError):
     """Token has invalid claims."""
 
-    pass
-
 
 class JWTAlgorithmError(JWTError):
     """Unsupported or invalid algorithm."""
-
-    pass
 
 
 # HMAC algorithms and their hash functions
@@ -120,9 +106,10 @@ def _requires_cryptography(algorithm: str) -> bool:
 def _get_cryptography():
     """Import and return cryptography modules, raising helpful error if not available."""
     try:
-        from cryptography.hazmat.primitives import hashes, serialization
-        from cryptography.hazmat.primitives.asymmetric import rsa, ec, padding
         from cryptography.hazmat.backends import default_backend
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
+
         return {
             "hashes": hashes,
             "serialization": serialization,
@@ -152,17 +139,17 @@ def _base64url_decode(data: str) -> bytes:
     return base64.urlsafe_b64decode(data)
 
 
-def _json_encode(obj: Dict[str, Any]) -> bytes:
+def _json_encode(obj: dict[str, Any]) -> bytes:
     """Encode dict to JSON bytes."""
     return json.dumps(obj, separators=(",", ":"), sort_keys=True).encode("utf-8")
 
 
-def _json_decode(data: bytes) -> Dict[str, Any]:
+def _json_decode(data: bytes) -> dict[str, Any]:
     """Decode JSON bytes to dict."""
     return json.loads(data.decode("utf-8"))
 
 
-def _load_private_key(key: Union[str, bytes], password: Optional[bytes] = None):
+def _load_private_key(key: str | bytes, password: bytes | None = None):
     """Load a private key from PEM format."""
     crypto = _get_cryptography()
     if isinstance(key, str):
@@ -173,26 +160,25 @@ def _load_private_key(key: Union[str, bytes], password: Optional[bytes] = None):
     )
 
 
-def _load_public_key(key: Union[str, bytes]):
+def _load_public_key(key: str | bytes):
     """Load a public key from PEM format."""
     crypto = _get_cryptography()
     if isinstance(key, str):
         key = key.encode("utf-8")
 
     try:
-        return crypto["serialization"].load_pem_public_key(
-            key, backend=crypto["default_backend"]()
-        )
+        return crypto["serialization"].load_pem_public_key(key, backend=crypto["default_backend"]())
     except Exception:
         # Try loading as certificate
         from cryptography import x509
+
         cert = x509.load_pem_x509_certificate(key, crypto["default_backend"]())
         return cert.public_key()
 
 
 def _create_signature(
     signing_input: str,
-    secret: Union[str, bytes],
+    secret: str | bytes,
     algorithm: str,
 ) -> bytes:
     """Create signature for the given input using the specified algorithm."""
@@ -228,6 +214,7 @@ def _create_signature(
         hash_class = getattr(crypto["hashes"], hash_name.upper())()
 
         from cryptography.hazmat.primitives.asymmetric import utils as asym_utils
+
         der_sig = private_key.sign(data, crypto["ec"].ECDSA(hash_class))
 
         # Convert DER signature to raw format (r || s)
@@ -240,7 +227,7 @@ def _create_signature(
 def _verify_signature(
     signing_input: str,
     signature: bytes,
-    secret: Union[str, bytes],
+    secret: str | bytes,
     algorithm: str,
 ) -> bool:
     """Verify signature for the given input."""
@@ -280,6 +267,7 @@ def _verify_signature(
 
         # Convert raw signature to DER format
         from cryptography.hazmat.primitives.asymmetric import utils as asym_utils
+
         r = int.from_bytes(signature[:sig_size], byteorder="big")
         s = int.from_bytes(signature[sig_size:], byteorder="big")
         der_sig = asym_utils.encode_dss_signature(r, s)
@@ -294,16 +282,16 @@ def _verify_signature(
 
 
 def encode_jwt(
-    payload: Dict[str, Any],
-    secret: Union[str, bytes],
+    payload: dict[str, Any],
+    secret: str | bytes,
     algorithm: str = "HS256",
-    expires_in: Optional[int] = None,
+    expires_in: int | None = None,
     issued_at: bool = True,
-    not_before: Optional[int] = None,
-    issuer: Optional[str] = None,
-    audience: Optional[Union[str, List[str]]] = None,
-    jwt_id: Optional[str] = None,
-    headers: Optional[Dict[str, Any]] = None,
+    not_before: int | None = None,
+    issuer: str | None = None,
+    audience: str | list[str] | None = None,
+    jwt_id: str | None = None,
+    headers: dict[str, Any] | None = None,
 ) -> str:
     """
     Encode a JWT token.
@@ -332,8 +320,7 @@ def encode_jwt(
     """
     if algorithm not in SUPPORTED_ALGORITHMS:
         raise JWTAlgorithmError(
-            f"Unsupported algorithm: {algorithm}. "
-            f"Supported: {', '.join(SUPPORTED_ALGORITHMS)}"
+            f"Unsupported algorithm: {algorithm}. Supported: {', '.join(SUPPORTED_ALGORITHMS)}"
         )
 
     # Build header
@@ -377,16 +364,16 @@ def encode_jwt(
 
 def decode_jwt(
     token: str,
-    secret: Union[str, bytes],
-    algorithms: Optional[List[str]] = None,
+    secret: str | bytes,
+    algorithms: list[str] | None = None,
     verify_exp: bool = True,
     verify_nbf: bool = True,
     verify_iat: bool = False,
-    verify_iss: Optional[str] = None,
-    verify_aud: Optional[Union[str, List[str]]] = None,
+    verify_iss: str | None = None,
+    verify_aud: str | list[str] | None = None,
     leeway: int = 0,
-    options: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    options: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """
     Decode and verify a JWT token.
 
@@ -443,9 +430,7 @@ def decode_jwt(
     # Check algorithm
     alg = header.get("alg")
     if alg not in algorithms:
-        raise JWTAlgorithmError(
-            f"Algorithm {alg} not allowed. Allowed: {', '.join(algorithms)}"
-        )
+        raise JWTAlgorithmError(f"Algorithm {alg} not allowed. Allowed: {', '.join(algorithms)}")
 
     # Verify signature
     signing_input = f"{header_segment}.{payload_segment}"
@@ -494,9 +479,7 @@ def decode_jwt(
     if verify_iss is not None:
         iss = payload.get("iss")
         if iss != verify_iss:
-            raise JWTInvalidClaimError(
-                f"Invalid issuer. Expected: {verify_iss}, got: {iss}"
-            )
+            raise JWTInvalidClaimError(f"Invalid issuer. Expected: {verify_iss}, got: {iss}")
 
     # Audience
     if verify_aud is not None:
@@ -515,7 +498,7 @@ def decode_jwt(
     return payload
 
 
-def get_unverified_header(token: str) -> Dict[str, Any]:
+def get_unverified_header(token: str) -> dict[str, Any]:
     """
     Get the header from a JWT without verification.
 
@@ -537,7 +520,7 @@ def get_unverified_header(token: str) -> Dict[str, Any]:
         raise JWTDecodeError(f"Invalid token header: {e}")
 
 
-def get_unverified_payload(token: str) -> Dict[str, Any]:
+def get_unverified_payload(token: str) -> dict[str, Any]:
     """
     Get the payload from a JWT without verification.
 
@@ -578,14 +561,14 @@ class JWTToken:
     """
 
     token: str
-    _payload: Optional[Dict[str, Any]] = None
-    _header: Optional[Dict[str, Any]] = None
+    _payload: dict[str, Any] | None = None
+    _header: dict[str, Any] | None = None
 
     @classmethod
     def create(
         cls,
-        payload: Dict[str, Any],
-        secret: Union[str, bytes],
+        payload: dict[str, Any],
+        secret: str | bytes,
         **kwargs,
     ) -> "JWTToken":
         """Create a new JWT token."""
@@ -596,7 +579,7 @@ class JWTToken:
     def from_string(
         cls,
         token: str,
-        secret: Union[str, bytes],
+        secret: str | bytes,
         **kwargs,
     ) -> "JWTToken":
         """Create from existing token string with verification."""
@@ -604,14 +587,14 @@ class JWTToken:
         return cls(token=token, _payload=payload)
 
     @property
-    def payload(self) -> Dict[str, Any]:
+    def payload(self) -> dict[str, Any]:
         """Get the token payload."""
         if self._payload is None:
             self._payload = get_unverified_payload(self.token)
         return self._payload
 
     @property
-    def header(self) -> Dict[str, Any]:
+    def header(self) -> dict[str, Any]:
         """Get the token header."""
         if self._header is None:
             self._header = get_unverified_header(self.token)
@@ -623,19 +606,19 @@ class JWTToken:
         return self.header.get("alg", "unknown")
 
     @property
-    def expires_at(self) -> Optional[datetime]:
+    def expires_at(self) -> datetime | None:
         """Get expiration time as datetime."""
         exp = self.payload.get("exp")
         if exp:
-            return datetime.fromtimestamp(exp, tz=timezone.utc)
+            return datetime.fromtimestamp(exp, tz=UTC)
         return None
 
     @property
-    def issued_at(self) -> Optional[datetime]:
+    def issued_at(self) -> datetime | None:
         """Get issued time as datetime."""
         iat = self.payload.get("iat")
         if iat:
-            return datetime.fromtimestamp(iat, tz=timezone.utc)
+            return datetime.fromtimestamp(iat, tz=UTC)
         return None
 
     @property
@@ -647,7 +630,7 @@ class JWTToken:
         return int(time.time()) > exp
 
     @property
-    def time_until_expiry(self) -> Optional[int]:
+    def time_until_expiry(self) -> int | None:
         """Get seconds until expiration (negative if expired)."""
         exp = self.payload.get("exp")
         if exp is None:
@@ -669,10 +652,10 @@ class JWTToken:
 
 # Utility functions for common operations
 def create_access_token(
-    user_id: Union[str, int],
-    secret: Union[str, bytes],
+    user_id: str | int,
+    secret: str | bytes,
     expires_in: int = 3600,
-    extra_claims: Optional[Dict[str, Any]] = None,
+    extra_claims: dict[str, Any] | None = None,
     **kwargs,
 ) -> str:
     """
@@ -695,10 +678,10 @@ def create_access_token(
 
 
 def create_refresh_token(
-    user_id: Union[str, int],
-    secret: Union[str, bytes],
+    user_id: str | int,
+    secret: str | bytes,
     expires_in: int = 604800,  # 7 days
-    extra_claims: Optional[Dict[str, Any]] = None,
+    extra_claims: dict[str, Any] | None = None,
     **kwargs,
 ) -> str:
     """
@@ -726,7 +709,7 @@ def create_refresh_token(
     return encode_jwt(payload, secret, expires_in=expires_in, **kwargs)
 
 
-def verify_token_type(token: str, expected_type: str, secret: Union[str, bytes]) -> bool:
+def verify_token_type(token: str, expected_type: str, secret: str | bytes) -> bool:
     """
     Verify that a token is of the expected type.
 

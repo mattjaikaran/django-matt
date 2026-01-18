@@ -14,7 +14,7 @@ Usage:
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any
 
 from django.db import models
 
@@ -31,11 +31,11 @@ class FieldInfo:
     blank: bool
     has_default: bool
     default_value: Any
-    max_length: Optional[int]
-    choices: Optional[List[tuple]]
+    max_length: int | None
+    choices: list[tuple] | None
     help_text: str
     verbose_name: str
-    validators: List[str]
+    validators: list[str]
     is_primary_key: bool
     is_unique: bool
     is_editable: bool
@@ -54,7 +54,7 @@ class RelationInfo:
     name: str
     relation_type: str  # "foreign_key", "one_to_one", "many_to_many"
     related_model: str  # "app_label.ModelName"
-    related_name: Optional[str]
+    related_name: str | None
     nullable: bool
     on_delete: str  # CASCADE, SET_NULL, etc.
     is_reverse: bool  # Reverse relation
@@ -69,11 +69,11 @@ class ModelInfo:
     verbose_name: str
     verbose_name_plural: str
     db_table: str
-    fields: List[FieldInfo] = field(default_factory=list)
-    relations: List[RelationInfo] = field(default_factory=list)
-    ordering: List[str] = field(default_factory=list)
-    unique_together: List[tuple] = field(default_factory=list)
-    indexes: List[str] = field(default_factory=list)
+    fields: list[FieldInfo] = field(default_factory=list)
+    relations: list[RelationInfo] = field(default_factory=list)
+    ordering: list[str] = field(default_factory=list)
+    unique_together: list[tuple] = field(default_factory=list)
+    indexes: list[str] = field(default_factory=list)
 
     @property
     def full_name(self) -> str:
@@ -81,12 +81,12 @@ class ModelInfo:
         return f"{self.app_label}.{self.name}"
 
     @property
-    def required_fields(self) -> List[FieldInfo]:
+    def required_fields(self) -> list[FieldInfo]:
         """Fields required for creation."""
         return [f for f in self.fields if f.is_required]
 
     @property
-    def editable_fields(self) -> List[FieldInfo]:
+    def editable_fields(self) -> list[FieldInfo]:
         """Fields that can be edited."""
         return [f for f in self.fields if f.is_editable]
 
@@ -168,7 +168,7 @@ class ModelIntrospector:
         "JSONField": "Record<string, unknown>",
     }
 
-    def __init__(self, model: Type[models.Model]):
+    def __init__(self, model: type[models.Model]):
         self.model = model
         self.meta = model._meta
 
@@ -187,7 +187,7 @@ class ModelIntrospector:
             indexes=[str(idx) for idx in (self.meta.indexes or [])],
         )
 
-    def _get_fields(self) -> List[FieldInfo]:
+    def _get_fields(self) -> list[FieldInfo]:
         """Extract field information."""
         fields = []
 
@@ -226,29 +226,31 @@ class ModelIntrospector:
                 for v in field.validators:
                     validators.append(v.__class__.__name__)
 
-            fields.append(FieldInfo(
-                name=field.name,
-                field_type=field_type,
-                python_type=python_type,
-                typescript_type=ts_type,
-                nullable=getattr(field, "null", False),
-                blank=getattr(field, "blank", False),
-                has_default=field.has_default(),
-                default_value=field.default if field.has_default() else None,
-                max_length=getattr(field, "max_length", None),
-                choices=choices,
-                help_text=str(getattr(field, "help_text", "")),
-                verbose_name=str(getattr(field, "verbose_name", field.name)),
-                validators=validators,
-                is_primary_key=getattr(field, "primary_key", False),
-                is_unique=getattr(field, "unique", False),
-                is_editable=getattr(field, "editable", True),
-                is_auto=self._is_auto_field(field),
-            ))
+            fields.append(
+                FieldInfo(
+                    name=field.name,
+                    field_type=field_type,
+                    python_type=python_type,
+                    typescript_type=ts_type,
+                    nullable=getattr(field, "null", False),
+                    blank=getattr(field, "blank", False),
+                    has_default=field.has_default(),
+                    default_value=field.default if field.has_default() else None,
+                    max_length=getattr(field, "max_length", None),
+                    choices=choices,
+                    help_text=str(getattr(field, "help_text", "")),
+                    verbose_name=str(getattr(field, "verbose_name", field.name)),
+                    validators=validators,
+                    is_primary_key=getattr(field, "primary_key", False),
+                    is_unique=getattr(field, "unique", False),
+                    is_editable=getattr(field, "editable", True),
+                    is_auto=self._is_auto_field(field),
+                )
+            )
 
         return fields
 
-    def _get_relations(self) -> List[RelationInfo]:
+    def _get_relations(self) -> list[RelationInfo]:
         """Extract relationship information."""
         relations = []
 
@@ -263,22 +265,23 @@ class ModelIntrospector:
                 relation_type = "one_to_one"
             elif field.many_to_one:
                 relation_type = "foreign_key"
-            else:
-                # Reverse relation
-                if hasattr(field, "field"):
-                    if field.field.many_to_many:
-                        relation_type = "many_to_many_reverse"
-                    elif field.field.one_to_one:
-                        relation_type = "one_to_one_reverse"
-                    else:
-                        relation_type = "foreign_key_reverse"
+            # Reverse relation
+            elif hasattr(field, "field"):
+                if field.field.many_to_many:
+                    relation_type = "many_to_many_reverse"
+                elif field.field.one_to_one:
+                    relation_type = "one_to_one_reverse"
                 else:
-                    continue
+                    relation_type = "foreign_key_reverse"
+            else:
+                continue
 
             # Get related model
             related_model = field.related_model
             if related_model:
-                related_model_name = f"{related_model._meta.app_label}.{related_model._meta.object_name}"
+                related_model_name = (
+                    f"{related_model._meta.app_label}.{related_model._meta.object_name}"
+                )
             else:
                 related_model_name = "unknown"
 
@@ -287,15 +290,17 @@ class ModelIntrospector:
             if hasattr(field, "remote_field") and hasattr(field.remote_field, "on_delete"):
                 on_delete = field.remote_field.on_delete.__name__
 
-            relations.append(RelationInfo(
-                name=field.name,
-                relation_type=relation_type,
-                related_model=related_model_name,
-                related_name=getattr(field, "related_query_name", None),
-                nullable=getattr(field, "null", False),
-                on_delete=on_delete,
-                is_reverse="_reverse" in relation_type,
-            ))
+            relations.append(
+                RelationInfo(
+                    name=field.name,
+                    relation_type=relation_type,
+                    related_model=related_model_name,
+                    related_name=getattr(field, "related_query_name", None),
+                    nullable=getattr(field, "null", False),
+                    on_delete=on_delete,
+                    is_reverse="_reverse" in relation_type,
+                )
+            )
 
         return relations
 
@@ -316,21 +321,21 @@ class ModelIntrospector:
         return False
 
 
-def introspect_model(model: Type[models.Model]) -> ModelInfo:
+def introspect_model(model: type[models.Model]) -> ModelInfo:
     """Convenience function to introspect a model."""
     return ModelIntrospector(model).introspect()
 
 
-def introspect_models(models: List[Type[models.Model]]) -> Dict[str, ModelInfo]:
+def introspect_models(models: list[type[models.Model]]) -> dict[str, ModelInfo]:
     """Introspect multiple models."""
     return {m._meta.object_name: introspect_model(m) for m in models}
 
 
 __all__ = [
     "FieldInfo",
-    "RelationInfo",
     "ModelInfo",
     "ModelIntrospector",
+    "RelationInfo",
     "introspect_model",
     "introspect_models",
 ]

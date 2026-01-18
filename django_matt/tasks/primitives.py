@@ -8,8 +8,9 @@ Provides building blocks for complex task workflows:
 - Chord: Run tasks in parallel, then a callback
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Sequence, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .base import Task, TaskResult

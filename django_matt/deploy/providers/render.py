@@ -4,13 +4,14 @@ Render deployment provider.
 Provides deployment to Render with automatic configuration generation.
 """
 
-from typing import Any, Dict, List, Optional
 import json
+from typing import Any
+
 import yaml
 
 from django_matt.deploy.base import (
-    DeploymentProvider,
     DeploymentConfig,
+    DeploymentProvider,
     DeploymentResult,
     DeploymentStatus,
     register_provider,
@@ -36,17 +37,20 @@ class RenderProvider(DeploymentProvider):
 
     def __init__(self, config: DeploymentConfig):
         super().__init__(config)
-        self.api_key: Optional[str] = None
+        self.api_key: str | None = None
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """Validate configuration for Render deployment."""
         errors = []
 
         # Render primarily uses render.yaml, but API can be used
         # Check for API key in environment
         import os
+
         if not os.environ.get("RENDER_API_KEY"):
-            errors.append("RENDER_API_KEY environment variable not set (optional for Blueprint deploy)")
+            errors.append(
+                "RENDER_API_KEY environment variable not set (optional for Blueprint deploy)"
+            )
 
         # Validate app name
         if not self.config.app_name:
@@ -58,7 +62,7 @@ class RenderProvider(DeploymentProvider):
 
         return errors
 
-    def generate_config(self) -> Dict[str, str]:
+    def generate_config(self) -> dict[str, str]:
         """Generate Render configuration files."""
         files = {}
 
@@ -100,21 +104,25 @@ class RenderProvider(DeploymentProvider):
         # Database service
         databases = []
         if self.config.create_database and not self.config.database_url:
-            databases.append({
-                "name": f"{self.config.app_name}-db",
-                "databaseName": self.config.app_name.replace("-", "_"),
-                "user": "django",
-                "plan": "starter",
-            })
+            databases.append(
+                {
+                    "name": f"{self.config.app_name}-db",
+                    "databaseName": self.config.app_name.replace("-", "_"),
+                    "user": "django",
+                    "plan": "starter",
+                }
+            )
 
         # Redis service
         if self.config.create_redis and not self.config.redis_url:
-            services.append({
-                "type": "redis",
-                "name": f"{self.config.app_name}-redis",
-                "plan": "starter",
-                "maxmemoryPolicy": "allkeys-lru",
-            })
+            services.append(
+                {
+                    "type": "redis",
+                    "name": f"{self.config.app_name}-redis",
+                    "plan": "starter",
+                    "maxmemoryPolicy": "allkeys-lru",
+                }
+            )
 
         config = {"services": services}
         if databases:
@@ -122,41 +130,47 @@ class RenderProvider(DeploymentProvider):
 
         return yaml.dump(config, default_flow_style=False, sort_keys=False)
 
-    def _get_env_vars_list(self) -> List[Dict[str, Any]]:
+    def _get_env_vars_list(self) -> list[dict[str, Any]]:
         """Get environment variables in Render format."""
         env_vars = []
 
         # Standard Django vars
-        env_vars.extend([
-            {"key": "DJANGO_SETTINGS_MODULE", "value": self.config.django_settings_module},
-            {"key": "DJANGO_ENV", "value": self.config.environment},
-            {"key": "DEBUG", "value": str(self.config.debug).lower()},
-            {"key": "STATIC_URL", "value": self.config.static_url},
-            {"key": "STATIC_ROOT", "value": self.config.static_root},
-        ])
+        env_vars.extend(
+            [
+                {"key": "DJANGO_SETTINGS_MODULE", "value": self.config.django_settings_module},
+                {"key": "DJANGO_ENV", "value": self.config.environment},
+                {"key": "DEBUG", "value": str(self.config.debug).lower()},
+                {"key": "STATIC_URL", "value": self.config.static_url},
+                {"key": "STATIC_ROOT", "value": self.config.static_root},
+            ]
+        )
 
         # Database URL from Render's managed database
         if self.config.create_database and not self.config.database_url:
-            env_vars.append({
-                "key": "DATABASE_URL",
-                "fromDatabase": {
-                    "name": f"{self.config.app_name}-db",
-                    "property": "connectionString",
-                },
-            })
+            env_vars.append(
+                {
+                    "key": "DATABASE_URL",
+                    "fromDatabase": {
+                        "name": f"{self.config.app_name}-db",
+                        "property": "connectionString",
+                    },
+                }
+            )
         elif self.config.database_url:
             env_vars.append({"key": "DATABASE_URL", "value": self.config.database_url})
 
         # Redis URL
         if self.config.create_redis and not self.config.redis_url:
-            env_vars.append({
-                "key": "REDIS_URL",
-                "fromService": {
-                    "type": "redis",
-                    "name": f"{self.config.app_name}-redis",
-                    "property": "connectionString",
-                },
-            })
+            env_vars.append(
+                {
+                    "key": "REDIS_URL",
+                    "fromService": {
+                        "type": "redis",
+                        "name": f"{self.config.app_name}-redis",
+                        "property": "connectionString",
+                    },
+                }
+            )
         elif self.config.redis_url:
             env_vars.append({"key": "REDIS_URL", "value": self.config.redis_url})
 
@@ -185,7 +199,7 @@ class RenderProvider(DeploymentProvider):
 
     def _generate_build_script(self) -> str:
         """Generate build script for Render."""
-        return '''#!/usr/bin/env bash
+        return """#!/usr/bin/env bash
 set -o errexit
 
 # Install dependencies
@@ -196,7 +210,7 @@ python manage.py collectstatic --noinput
 
 # Run migrations
 python manage.py migrate --noinput
-'''
+"""
 
     async def deploy(self) -> DeploymentResult:
         """Deploy to Render using Blueprint."""
@@ -251,6 +265,7 @@ python manage.py migrate --noinput
         result = DeploymentResult(status=DeploymentStatus.PENDING)
 
         import os
+
         api_key = os.environ.get("RENDER_API_KEY")
 
         if not api_key:
@@ -259,8 +274,8 @@ python manage.py migrate --noinput
             return result
 
         try:
-            import urllib.request
             import urllib.error
+            import urllib.request
 
             url = f"https://api.render.com/v1/services/{deployment_id}"
             req = urllib.request.Request(url)
@@ -314,9 +329,10 @@ python manage.py migrate --noinput
         result.status = DeploymentStatus.SUCCESS
         return result
 
-    async def get_logs(self, lines: int = 100) -> List[str]:
+    async def get_logs(self, lines: int = 100) -> list[str]:
         """Get application logs."""
         import os
+
         api_key = os.environ.get("RENDER_API_KEY")
 
         if not api_key:

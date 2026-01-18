@@ -5,7 +5,6 @@ Pydantic schemas for session-based authentication.
 """
 
 from datetime import datetime
-from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -25,11 +24,11 @@ class SessionInfoSchema(BaseModel):
     """Schema for session information response."""
 
     session_key: str = Field(..., description="Session identifier")
-    created: Optional[str] = Field(None, description="Session creation time")
-    last_activity: Optional[str] = Field(None, description="Last activity time")
-    ip_address: Optional[str] = Field(None, description="Client IP address")
-    user_agent: Optional[str] = Field(None, description="Client user agent")
-    expires: Optional[str] = Field(None, description="Session expiration time")
+    created: str | None = Field(None, description="Session creation time")
+    last_activity: str | None = Field(None, description="Last activity time")
+    ip_address: str | None = Field(None, description="Client IP address")
+    user_agent: str | None = Field(None, description="Client user agent")
+    expires: str | None = Field(None, description="Session expiration time")
     is_current: bool = Field(
         default=False,
         description="Whether this is the current session",
@@ -39,7 +38,7 @@ class SessionInfoSchema(BaseModel):
 class SessionListSchema(BaseModel):
     """Schema for list of user sessions."""
 
-    sessions: List[SessionInfoSchema] = Field(
+    sessions: list[SessionInfoSchema] = Field(
         default_factory=list,
         description="List of active sessions",
     )
@@ -57,24 +56,24 @@ class SessionUserSchema(BaseModel):
 
     id: int = Field(..., description="User ID")
     email: str = Field(..., description="User email")
-    username: Optional[str] = Field(None, description="Username")
-    first_name: Optional[str] = Field(None, description="First name")
-    last_name: Optional[str] = Field(None, description="Last name")
+    username: str | None = Field(None, description="Username")
+    first_name: str | None = Field(None, description="First name")
+    last_name: str | None = Field(None, description="Last name")
     is_active: bool = Field(..., description="Whether user is active")
     is_staff: bool = Field(default=False, description="Whether user is staff")
-    date_joined: Optional[datetime] = Field(None, description="Date user joined")
-    last_login: Optional[datetime] = Field(None, description="Last login time")
+    date_joined: datetime | None = Field(None, description="Date user joined")
+    last_login: datetime | None = Field(None, description="Last login time")
 
 
 class SessionStatusSchema(BaseModel):
     """Schema for session status response."""
 
     authenticated: bool = Field(..., description="Whether user is authenticated")
-    user: Optional[SessionUserSchema] = Field(
+    user: SessionUserSchema | None = Field(
         None,
         description="User info if authenticated",
     )
-    session: Optional[SessionInfoSchema] = Field(
+    session: SessionInfoSchema | None = Field(
         None,
         description="Session info if authenticated",
     )

@@ -5,16 +5,17 @@ Provides tools for managing different deployment environments
 (development, staging, production) with environment-specific settings.
 """
 
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, List, Optional, Set
-from pathlib import Path
 import json
 import os
+from dataclasses import dataclass, field
+from enum import Enum
+from pathlib import Path
+from typing import Any
 
 
 class Environment(str, Enum):
     """Standard deployment environments."""
+
     DEVELOPMENT = "development"
     STAGING = "staging"
     PRODUCTION = "production"
@@ -29,34 +30,35 @@ class EnvironmentConfig:
 
     Contains all settings that vary between environments.
     """
+
     name: str
     display_name: str = ""
 
     # Django settings
     debug: bool = False
-    allowed_hosts: List[str] = field(default_factory=list)
-    secret_key: Optional[str] = None
+    allowed_hosts: list[str] = field(default_factory=list)
+    secret_key: str | None = None
 
     # Database
-    database_url: Optional[str] = None
-    database_options: Dict[str, Any] = field(default_factory=dict)
+    database_url: str | None = None
+    database_options: dict[str, Any] = field(default_factory=dict)
 
     # Cache/Redis
-    redis_url: Optional[str] = None
+    redis_url: str | None = None
     cache_backend: str = "django.core.cache.backends.locmem.LocMemCache"
 
     # Email
     email_backend: str = "django.core.mail.backends.console.EmailBackend"
-    email_host: Optional[str] = None
+    email_host: str | None = None
     email_port: int = 587
     email_use_tls: bool = True
-    email_host_user: Optional[str] = None
+    email_host_user: str | None = None
 
     # Storage
     static_url: str = "/static/"
     media_url: str = "/media/"
     use_s3: bool = False
-    aws_storage_bucket_name: Optional[str] = None
+    aws_storage_bucket_name: str | None = None
 
     # Security
     secure_ssl_redirect: bool = False
@@ -73,16 +75,16 @@ class EnvironmentConfig:
     cache_timeout: int = 300
 
     # Custom settings
-    extra_settings: Dict[str, Any] = field(default_factory=dict)
+    extra_settings: dict[str, Any] = field(default_factory=dict)
 
     # Environment variables
-    env_vars: Dict[str, str] = field(default_factory=dict)
+    env_vars: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.display_name:
             self.display_name = self.name.title()
 
-    def to_django_settings(self) -> Dict[str, Any]:
+    def to_django_settings(self) -> dict[str, Any]:
         """Convert to Django settings dictionary."""
         settings = {
             "DEBUG": self.debug,
@@ -116,6 +118,7 @@ class EnvironmentConfig:
 
         if self.database_url:
             import dj_database_url
+
             settings["DATABASES"] = {
                 "default": dj_database_url.parse(
                     self.database_url,
@@ -263,10 +266,10 @@ class EnvironmentManager:
     - Validating configurations
     """
 
-    def __init__(self, project_dir: Optional[Path] = None):
+    def __init__(self, project_dir: Path | None = None):
         self.project_dir = project_dir or Path.cwd()
-        self.environments: Dict[str, EnvironmentConfig] = {}
-        self._current: Optional[str] = None
+        self.environments: dict[str, EnvironmentConfig] = {}
+        self._current: str | None = None
 
     def add(self, config: EnvironmentConfig):
         """Add an environment configuration."""
@@ -277,11 +280,11 @@ class EnvironmentManager:
         if name in self.environments:
             del self.environments[name]
 
-    def get(self, name: str) -> Optional[EnvironmentConfig]:
+    def get(self, name: str) -> EnvironmentConfig | None:
         """Get an environment configuration by name."""
         return self.environments.get(name)
 
-    def current(self) -> Optional[EnvironmentConfig]:
+    def current(self) -> EnvironmentConfig | None:
         """Get the current environment configuration."""
         if self._current:
             return self.environments.get(self._current)
@@ -296,7 +299,7 @@ class EnvironmentManager:
             raise ValueError(f"Unknown environment: {name}")
         self._current = name
 
-    def list_environments(self) -> List[str]:
+    def list_environments(self) -> list[str]:
         """List all configured environments."""
         return list(self.environments.keys())
 
@@ -308,26 +311,32 @@ class EnvironmentManager:
     ):
         """Initialize standard development, staging, and production environments."""
         # Development
-        self.add(EnvironmentConfig.development(
-            database_url=db_url_template.format(env="dev"),
-            redis_url=redis_url_template.format(db=0),
-        ))
+        self.add(
+            EnvironmentConfig.development(
+                database_url=db_url_template.format(env="dev"),
+                redis_url=redis_url_template.format(db=0),
+            )
+        )
 
         # Staging
-        self.add(EnvironmentConfig.staging(
-            domain=f"staging.{domain}",
-            database_url=db_url_template.format(env="staging"),
-            redis_url=redis_url_template.format(db=1),
-        ))
+        self.add(
+            EnvironmentConfig.staging(
+                domain=f"staging.{domain}",
+                database_url=db_url_template.format(env="staging"),
+                redis_url=redis_url_template.format(db=1),
+            )
+        )
 
         # Production
-        self.add(EnvironmentConfig.production(
-            domain=domain,
-            database_url=db_url_template.format(env="prod"),
-            redis_url=redis_url_template.format(db=2),
-        ))
+        self.add(
+            EnvironmentConfig.production(
+                domain=domain,
+                database_url=db_url_template.format(env="prod"),
+                redis_url=redis_url_template.format(db=2),
+            )
+        )
 
-    def generate_env_files(self, output_dir: Optional[Path] = None):
+    def generate_env_files(self, output_dir: Path | None = None):
         """Generate .env files for all environments."""
         output_dir = output_dir or self.project_dir / "envs"
         output_dir.mkdir(exist_ok=True)
@@ -337,7 +346,7 @@ class EnvironmentManager:
             with open(env_file, "w") as f:
                 f.write(config.to_env_file())
 
-    def generate_settings_module(self, output_path: Optional[Path] = None) -> str:
+    def generate_settings_module(self, output_path: Path | None = None) -> str:
         """Generate a Django settings module that loads environment-specific settings."""
         settings_code = '''"""
 Environment-based Django settings.
@@ -423,7 +432,9 @@ if DJANGO_ENV == "{name}":
     ALLOWED_HOSTS = {config.allowed_hosts}
 '''
             if config.secret_key:
-                settings_code += f'    SECRET_KEY = os.environ.get("SECRET_KEY", "{config.secret_key}")\n'
+                settings_code += (
+                    f'    SECRET_KEY = os.environ.get("SECRET_KEY", "{config.secret_key}")\n'
+                )
             else:
                 settings_code += '    SECRET_KEY = os.environ.get("SECRET_KEY")\n'
 
@@ -433,13 +444,13 @@ if DJANGO_ENV == "{name}":
     MEDIA_ROOT = BASE_DIR / "media"
 '''
 
-        settings_code += '''
+        settings_code += """
 # Fallback for unknown environments
 if DJANGO_ENV not in ["development", "staging", "production"]:
     DEBUG = True
     ALLOWED_HOSTS = ["*"]
     SECRET_KEY = "insecure-development-key"
-'''
+"""
 
         if output_path:
             with open(output_path, "w") as f:
@@ -447,7 +458,7 @@ if DJANGO_ENV not in ["development", "staging", "production"]:
 
         return settings_code
 
-    def validate(self, name: str) -> List[str]:
+    def validate(self, name: str) -> list[str]:
         """Validate an environment configuration."""
         errors = []
         config = self.environments.get(name)
@@ -480,15 +491,17 @@ if DJANGO_ENV not in ["development", "staging", "production"]:
                 errors.append("production: CSRF_COOKIE_SECURE should be True")
 
             if config.secure_hsts_seconds < 31536000:
-                errors.append("production: SECURE_HSTS_SECONDS should be at least 31536000 (1 year)")
+                errors.append(
+                    "production: SECURE_HSTS_SECONDS should be at least 31536000 (1 year)"
+                )
 
         return errors
 
-    def validate_all(self) -> Dict[str, List[str]]:
+    def validate_all(self) -> dict[str, list[str]]:
         """Validate all environment configurations."""
         return {name: self.validate(name) for name in self.environments}
 
-    def diff(self, env1: str, env2: str) -> Dict[str, tuple]:
+    def diff(self, env1: str, env2: str) -> dict[str, tuple]:
         """
         Compare two environment configurations.
 
@@ -502,10 +515,18 @@ if DJANGO_ENV not in ["development", "staging", "production"]:
 
         diffs = {}
         fields = [
-            "debug", "allowed_hosts", "database_url", "redis_url",
-            "cache_backend", "email_backend", "use_s3", "log_level",
-            "secure_ssl_redirect", "session_cookie_secure",
-            "csrf_cookie_secure", "secure_hsts_seconds",
+            "debug",
+            "allowed_hosts",
+            "database_url",
+            "redis_url",
+            "cache_backend",
+            "email_backend",
+            "use_s3",
+            "log_level",
+            "secure_ssl_redirect",
+            "session_cookie_secure",
+            "csrf_cookie_secure",
+            "secure_hsts_seconds",
         ]
 
         for field in fields:
@@ -541,7 +562,7 @@ if DJANGO_ENV not in ["development", "staging", "production"]:
         return json.dumps(data, indent=2)
 
     @classmethod
-    def from_json(cls, json_str: str, project_dir: Optional[Path] = None) -> "EnvironmentManager":
+    def from_json(cls, json_str: str, project_dir: Path | None = None) -> "EnvironmentManager":
         """Load environments from JSON."""
         manager = cls(project_dir)
         data = json.loads(json_str)

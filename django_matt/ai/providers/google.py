@@ -6,7 +6,8 @@ Supports Gemini 1.5 Pro, Gemini 1.5 Flash, and embedding models.
 
 import json
 import os
-from typing import Any, AsyncIterator, Dict, List, Optional, Type, TypeVar
+from collections.abc import AsyncIterator
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
@@ -60,15 +61,13 @@ class GeminiProvider(LLMProvider, StructuredOutputProvider):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        model: Optional[str] = None,
+        api_key: str | None = None,
+        model: str | None = None,
         **kwargs,
     ):
         api_key = api_key or os.environ.get("GOOGLE_API_KEY")
         if not api_key:
-            raise ValueError(
-                "Google API key required. Pass api_key or set GOOGLE_API_KEY."
-            )
+            raise ValueError("Google API key required. Pass api_key or set GOOGLE_API_KEY.")
 
         super().__init__(
             api_key=api_key,
@@ -85,8 +84,7 @@ class GeminiProvider(LLMProvider, StructuredOutputProvider):
                 import httpx
             except ImportError:
                 raise ImportError(
-                    "httpx is required for Gemini provider. "
-                    "Install with: pip install httpx"
+                    "httpx is required for Gemini provider. Install with: pip install httpx"
                 )
 
             self._client = httpx.AsyncClient(
@@ -96,9 +94,7 @@ class GeminiProvider(LLMProvider, StructuredOutputProvider):
             )
         return self._client
 
-    def _convert_messages(
-        self, messages: List[Message]
-    ) -> tuple[Optional[str], List[Dict[str, Any]]]:
+    def _convert_messages(self, messages: list[Message]) -> tuple[str | None, list[dict[str, Any]]]:
         """
         Convert messages to Gemini format.
 
@@ -111,31 +107,37 @@ class GeminiProvider(LLMProvider, StructuredOutputProvider):
             if msg.role == Role.SYSTEM:
                 system_instruction = msg.content
             elif msg.role == Role.USER:
-                contents.append({
-                    "role": "user",
-                    "parts": [{"text": msg.content}],
-                })
+                contents.append(
+                    {
+                        "role": "user",
+                        "parts": [{"text": msg.content}],
+                    }
+                )
             elif msg.role == Role.ASSISTANT:
-                contents.append({
-                    "role": "model",
-                    "parts": [{"text": msg.content}],
-                })
+                contents.append(
+                    {
+                        "role": "model",
+                        "parts": [{"text": msg.content}],
+                    }
+                )
             elif msg.role == Role.TOOL:
-                contents.append({
-                    "role": "function",
-                    "parts": [{
-                        "functionResponse": {
-                            "name": msg.name or "tool",
-                            "response": {"result": msg.content},
-                        }
-                    }],
-                })
+                contents.append(
+                    {
+                        "role": "function",
+                        "parts": [
+                            {
+                                "functionResponse": {
+                                    "name": msg.name or "tool",
+                                    "response": {"result": msg.content},
+                                }
+                            }
+                        ],
+                    }
+                )
 
         return system_instruction, contents
 
-    def _convert_tools(
-        self, tools: Optional[List[ToolDefinition]]
-    ) -> Optional[List[Dict[str, Any]]]:
+    def _convert_tools(self, tools: list[ToolDefinition] | None) -> list[dict[str, Any]] | None:
         """Convert tools to Gemini format."""
         if not tools:
             return None
@@ -145,24 +147,26 @@ class GeminiProvider(LLMProvider, StructuredOutputProvider):
             # Convert JSON Schema to Gemini schema format
             params = tool.parameters.copy()
             # Gemini uses different property names
-            function_declarations.append({
-                "name": tool.name,
-                "description": tool.description,
-                "parameters": params,
-            })
+            function_declarations.append(
+                {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": params,
+                }
+            )
 
         return [{"functionDeclarations": function_declarations}]
 
     async def complete(
         self,
-        messages: List[Message],
+        messages: list[Message],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        stop: Optional[List[str]] = None,
-        tools: Optional[List[ToolDefinition]] = None,
-        tool_choice: Optional[str] = None,
+        max_tokens: int | None = None,
+        stop: list[str] | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
         **kwargs,
     ) -> CompletionResponse:
         """Generate a completion."""
@@ -171,7 +175,7 @@ class GeminiProvider(LLMProvider, StructuredOutputProvider):
         system_instruction, contents = self._convert_messages(messages)
         model_name = model or self.model
 
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "contents": contents,
             "generationConfig": {
                 "temperature": temperature,
@@ -243,12 +247,12 @@ class GeminiProvider(LLMProvider, StructuredOutputProvider):
 
     async def stream(
         self,
-        messages: List[Message],
+        messages: list[Message],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        stop: Optional[List[str]] = None,
+        max_tokens: int | None = None,
+        stop: list[str] | None = None,
         **kwargs,
     ) -> AsyncIterator[StreamChunk]:
         """Stream a completion."""
@@ -257,7 +261,7 @@ class GeminiProvider(LLMProvider, StructuredOutputProvider):
         system_instruction, contents = self._convert_messages(messages)
         model_name = model or self.model
 
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "contents": contents,
             "generationConfig": {
                 "temperature": temperature,
@@ -300,10 +304,10 @@ class GeminiProvider(LLMProvider, StructuredOutputProvider):
 
     async def complete_structured(
         self,
-        messages: List[Message],
-        response_model: Type[T],
+        messages: list[Message],
+        response_model: type[T],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         temperature: float = 0.0,
         max_retries: int = 3,
         **kwargs,
@@ -369,15 +373,13 @@ class GeminiEmbeddings(EmbeddingProvider):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        model: Optional[str] = None,
+        api_key: str | None = None,
+        model: str | None = None,
         **kwargs,
     ):
         api_key = api_key or os.environ.get("GOOGLE_API_KEY")
         if not api_key:
-            raise ValueError(
-                "Google API key required. Pass api_key or set GOOGLE_API_KEY."
-            )
+            raise ValueError("Google API key required. Pass api_key or set GOOGLE_API_KEY.")
 
         super().__init__(api_key=api_key, model=model, **kwargs)
         self.base_url = "https://generativelanguage.googleapis.com/v1beta"
@@ -399,9 +401,9 @@ class GeminiEmbeddings(EmbeddingProvider):
 
     async def embed(
         self,
-        texts: List[str],
+        texts: list[str],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         task_type: str = "RETRIEVAL_DOCUMENT",
         **kwargs,
     ) -> EmbeddingResponse:
@@ -435,10 +437,7 @@ class GeminiEmbeddings(EmbeddingProvider):
         response.raise_for_status()
         data = response.json()
 
-        embeddings = [
-            item["values"]
-            for item in data.get("embeddings", [])
-        ]
+        embeddings = [item["values"] for item in data.get("embeddings", [])]
 
         return EmbeddingResponse(
             embeddings=embeddings,
@@ -447,6 +446,6 @@ class GeminiEmbeddings(EmbeddingProvider):
 
 
 __all__ = [
-    "GeminiProvider",
     "GeminiEmbeddings",
+    "GeminiProvider",
 ]

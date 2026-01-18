@@ -4,7 +4,7 @@ Filter backends for django-matt.
 Pluggable backends for filtering, searching, and ordering querysets.
 """
 
-from typing import Any, Type
+from typing import Any
 
 from django.db.models import Q, QuerySet
 from django.http import HttpRequest
@@ -57,7 +57,7 @@ class DjangoFilterBackend(BaseFilterBackend):
         "format",
     }
 
-    def get_filterset_class(self, view: Any) -> Type[FilterSet] | None:
+    def get_filterset_class(self, view: Any) -> type[FilterSet] | None:
         """Get the FilterSet class from the view."""
         return getattr(view, "filterset_class", None)
 
@@ -155,13 +155,15 @@ class DjangoFilterBackend(BaseFilterBackend):
         # Otherwise, document allowed filter fields
         filter_fields = self.get_filter_fields(view) or []
         for field in filter_fields:
-            fields.append({
-                "name": field,
-                "in": "query",
-                "required": False,
-                "schema": {"type": "string"},
-                "description": f"Filter by {field}",
-            })
+            fields.append(
+                {
+                    "name": field,
+                    "in": "query",
+                    "required": False,
+                    "schema": {"type": "string"},
+                    "description": f"Filter by {field}",
+                }
+            )
 
         return fields
 
@@ -256,18 +258,17 @@ class SearchBackend(BaseFilterBackend):
         if field.startswith("^"):
             # Start of string
             return f"{field_name}__istartswith"
-        elif field.startswith("="):
+        if field.startswith("="):
             # Exact match
             return f"{field_name}__iexact"
-        elif field.startswith("@"):
+        if field.startswith("@"):
             # Full-text search (PostgreSQL)
             return f"{field_name}__search"
-        elif field.startswith("$"):
+        if field.startswith("$"):
             # Regex
             return f"{field_name}__iregex"
-        else:
-            # Default: case-insensitive contains
-            return f"{field_name}__icontains"
+        # Default: case-insensitive contains
+        return f"{field_name}__icontains"
 
     def get_schema_fields(self, view: Any = None) -> list[dict[str, Any]]:
         """Get OpenAPI schema for search parameter."""

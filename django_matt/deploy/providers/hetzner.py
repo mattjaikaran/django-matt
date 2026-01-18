@@ -4,12 +4,11 @@ Hetzner Cloud deployment provider.
 Provides deployment to Hetzner Cloud servers with Docker.
 """
 
-from typing import Any, Dict, List, Optional
 import json
 
 from django_matt.deploy.base import (
-    DeploymentProvider,
     DeploymentConfig,
+    DeploymentProvider,
     DeploymentResult,
     DeploymentStatus,
     register_provider,
@@ -38,13 +37,15 @@ class HetznerProvider(DeploymentProvider):
         self.server_type = server_type
         self.location = "nbg1"  # Nuremberg
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """Validate configuration for Hetzner deployment."""
         errors = []
 
         # Check CLI is installed
         if not self.check_cli_installed("hcloud"):
-            errors.append("hcloud CLI is not installed. Install from https://github.com/hetznercloud/cli")
+            errors.append(
+                "hcloud CLI is not installed. Install from https://github.com/hetznercloud/cli"
+            )
 
         # Validate app name
         if not self.config.app_name:
@@ -60,7 +61,7 @@ class HetznerProvider(DeploymentProvider):
 
         return errors
 
-    def generate_config(self) -> Dict[str, str]:
+    def generate_config(self) -> dict[str, str]:
         """Generate Hetzner deployment configuration files."""
         files = {}
 
@@ -86,7 +87,7 @@ class HetznerProvider(DeploymentProvider):
 
     def _generate_docker_compose(self) -> str:
         """Generate docker-compose.yml for Hetzner deployment."""
-        compose = f'''version: '3.8'
+        compose = f"""version: '3.8'
 
 services:
   web:
@@ -99,21 +100,21 @@ services:
       - DATABASE_URL=${{DATABASE_URL}}
       - SECRET_KEY=${{SECRET_KEY}}
       - ALLOWED_HOSTS=${{ALLOWED_HOSTS}}
-'''
+"""
 
         if self.config.redis_url or self.config.create_redis:
-            compose += '      - REDIS_URL=${REDIS_URL}\n'
+            compose += "      - REDIS_URL=${REDIS_URL}\n"
 
-        compose += f'''    depends_on:
-'''
+        compose += """    depends_on:
+"""
 
         if self.config.create_database:
-            compose += '      - db\n'
+            compose += "      - db\n"
 
         if self.config.create_redis:
-            compose += '      - redis\n'
+            compose += "      - redis\n"
 
-        compose += f'''    volumes:
+        compose += f"""    volumes:
       - static_volume:/app/{self.config.static_root}
       - media_volume:/app/{self.config.media_root}
     networks:
@@ -135,25 +136,25 @@ services:
       - web
     networks:
       - app_network
-'''
+"""
 
         if self.config.create_database:
-            compose += f'''
+            compose += f"""
   db:
     image: postgres:16-alpine
     restart: always
     environment:
-      - POSTGRES_DB={self.config.app_name.replace('-', '_')}
+      - POSTGRES_DB={self.config.app_name.replace("-", "_")}
       - POSTGRES_USER=django
       - POSTGRES_PASSWORD=${{POSTGRES_PASSWORD}}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - app_network
-'''
+"""
 
         if self.config.create_redis:
-            compose += '''
+            compose += """
   redis:
     image: redis:7-alpine
     restart: always
@@ -161,9 +162,9 @@ services:
       - redis_data:/data
     networks:
       - app_network
-'''
+"""
 
-        compose += '''
+        compose += """
 volumes:
   postgres_data:
   redis_data:
@@ -175,13 +176,13 @@ volumes:
 networks:
   app_network:
     driver: bridge
-'''
+"""
 
         return compose
 
     def _generate_dockerfile(self) -> str:
         """Generate Dockerfile for Hetzner."""
-        return f'''# Dockerfile for Hetzner deployment
+        return f"""# Dockerfile for Hetzner deployment
 FROM python:3.13-slim
 
 # Set environment variables
@@ -220,14 +221,14 @@ USER appuser
 EXPOSE {self.config.port}
 
 # Run the application
-CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.django_settings_module.rsplit('.', 1)[0]}.wsgi:application --bind 0.0.0.0:{self.config.port} --workers {self.config.workers}"]
-'''
+CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.django_settings_module.rsplit(".", 1)[0]}.wsgi:application --bind 0.0.0.0:{self.config.port} --workers {self.config.workers}"]
+"""
 
     def _generate_caddyfile(self) -> str:
         """Generate Caddyfile for automatic SSL."""
         domain = self.config.allowed_hosts[0] if self.config.allowed_hosts else "localhost"
 
-        return f'''{domain} {{
+        return f"""{domain} {{
     # Enable compression
     encode gzip
 
@@ -261,11 +262,11 @@ CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.dj
         output file /var/log/caddy/access.log
     }}
 }}
-'''
+"""
 
     def _generate_cloud_init(self) -> str:
         """Generate cloud-init configuration for server setup."""
-        return f'''#cloud-config
+        return f"""#cloud-config
 package_update: true
 package_upgrade: true
 
@@ -299,7 +300,7 @@ write_files:
       docker-compose exec -T web python manage.py migrate --noinput
 
 final_message: "Server setup complete. Ready for deployment."
-'''
+"""
 
     def _generate_deploy_script(self) -> str:
         """Generate deployment script."""
@@ -332,39 +333,39 @@ ssh root@$SERVER_IP "cd $REMOTE_DIR && docker-compose pull && docker-compose up 
 ssh root@$SERVER_IP "cd $REMOTE_DIR && docker-compose exec -T web python manage.py migrate --noinput"
 
 echo "Deployment complete!"
-echo "Visit https://{self.config.allowed_hosts[0] if self.config.allowed_hosts else 'your-domain.com'}"
+echo "Visit https://{self.config.allowed_hosts[0] if self.config.allowed_hosts else "your-domain.com"}"
 '''
 
     def _generate_env_template(self) -> str:
         """Generate .env.production template."""
-        template = f'''# Production environment variables
+        template = f"""# Production environment variables
 DJANGO_SETTINGS_MODULE={self.config.django_settings_module}
 DJANGO_ENV=production
 DEBUG=false
 SECRET_KEY=your-secret-key-here
-ALLOWED_HOSTS={','.join(self.config.allowed_hosts) if self.config.allowed_hosts else 'your-domain.com'}
-'''
+ALLOWED_HOSTS={",".join(self.config.allowed_hosts) if self.config.allowed_hosts else "your-domain.com"}
+"""
 
         if self.config.create_database:
-            template += f'''
+            template += f"""
 # Database (internal Docker network)
-DATABASE_URL=postgres://django:your-db-password-here@db:5432/{self.config.app_name.replace('-', '_')}
+DATABASE_URL=postgres://django:your-db-password-here@db:5432/{self.config.app_name.replace("-", "_")}
 POSTGRES_PASSWORD=your-db-password-here
-'''
+"""
         elif self.config.database_url:
-            template += f'''
+            template += f"""
 DATABASE_URL={self.config.database_url}
-'''
+"""
 
         if self.config.create_redis:
-            template += '''
+            template += """
 # Redis (internal Docker network)
 REDIS_URL=redis://redis:6379/0
-'''
+"""
         elif self.config.redis_url:
-            template += f'''
+            template += f"""
 REDIS_URL={self.config.redis_url}
-'''
+"""
 
         return template
 
@@ -395,9 +396,7 @@ REDIS_URL={self.config.redis_url}
             deploy_script.chmod(0o755)
 
             # Check if server exists
-            servers_result = self.run_command([
-                "hcloud", "server", "list", "-o", "json"
-            ])
+            servers_result = self.run_command(["hcloud", "server", "list", "-o", "json"])
 
             server_exists = False
             server_ip = None
@@ -424,7 +423,9 @@ REDIS_URL={self.config.redis_url}
                         ssh_key_name = ssh_keys[0].get("name")
 
                 if not ssh_key_name:
-                    result.add_log("No SSH key found. Please add one via: hcloud ssh-key create --name mykey --public-key-from-file ~/.ssh/id_rsa.pub")
+                    result.add_log(
+                        "No SSH key found. Please add one via: hcloud ssh-key create --name mykey --public-key-from-file ~/.ssh/id_rsa.pub"
+                    )
                     result.status = DeploymentStatus.FAILED
                     result.add_error("SSH key required for server creation")
                     return result
@@ -432,15 +433,25 @@ REDIS_URL={self.config.redis_url}
                 # Create server with cloud-init
                 cloud_init_file = self.config.project_dir / "cloud-init.yml"
 
-                create_result = self.run_command([
-                    "hcloud", "server", "create",
-                    "--name", self.config.app_name,
-                    "--type", self.server_type,
-                    "--image", "ubuntu-22.04",
-                    "--location", self.location,
-                    "--ssh-key", ssh_key_name,
-                    "--user-data-from-file", str(cloud_init_file),
-                ])
+                create_result = self.run_command(
+                    [
+                        "hcloud",
+                        "server",
+                        "create",
+                        "--name",
+                        self.config.app_name,
+                        "--type",
+                        self.server_type,
+                        "--image",
+                        "ubuntu-22.04",
+                        "--location",
+                        self.location,
+                        "--ssh-key",
+                        ssh_key_name,
+                        "--user-data-from-file",
+                        str(cloud_init_file),
+                    ]
+                )
 
                 if create_result.returncode != 0:
                     result.status = DeploymentStatus.FAILED
@@ -448,9 +459,9 @@ REDIS_URL={self.config.redis_url}
                     return result
 
                 # Get server IP
-                server_info = self.run_command([
-                    "hcloud", "server", "describe", self.config.app_name, "-o", "json"
-                ])
+                server_info = self.run_command(
+                    ["hcloud", "server", "describe", self.config.app_name, "-o", "json"]
+                )
 
                 if server_info.returncode == 0:
                     info = json.loads(server_info.stdout)
@@ -466,14 +477,18 @@ REDIS_URL={self.config.redis_url}
                 result.add_log("Configuration files generated successfully!")
                 result.add_log("")
                 result.add_log("To complete deployment:")
-                result.add_log(f"1. Edit .env.production with your secrets")
+                result.add_log("1. Edit .env.production with your secrets")
                 result.add_log(f"2. Run: SERVER_IP={server_ip} ./deploy.sh")
                 result.add_log("")
-                result.add_log(f"Or manually deploy:")
+                result.add_log("Or manually deploy:")
                 result.add_log(f"  rsync -avz ./ root@{server_ip}:/opt/{self.config.app_name}/")
-                result.add_log(f"  ssh root@{server_ip} 'cd /opt/{self.config.app_name} && docker-compose up -d'")
+                result.add_log(
+                    f"  ssh root@{server_ip} 'cd /opt/{self.config.app_name} && docker-compose up -d'"
+                )
 
-                result.url = f"https://{self.config.allowed_hosts[0]}" if self.config.allowed_hosts else None
+                result.url = (
+                    f"https://{self.config.allowed_hosts[0]}" if self.config.allowed_hosts else None
+                )
                 result.metadata = {"server_ip": server_ip}
 
             result.status = DeploymentStatus.SUCCESS
@@ -489,9 +504,9 @@ REDIS_URL={self.config.redis_url}
         result = DeploymentResult(status=DeploymentStatus.PENDING)
 
         try:
-            status_result = self.run_command([
-                "hcloud", "server", "describe", self.config.app_name, "-o", "json"
-            ])
+            status_result = self.run_command(
+                ["hcloud", "server", "describe", self.config.app_name, "-o", "json"]
+            )
 
             if status_result.returncode == 0:
                 data = json.loads(status_result.stdout)
@@ -526,11 +541,15 @@ REDIS_URL={self.config.redis_url}
         result = DeploymentResult(status=DeploymentStatus.PENDING)
 
         result.add_log("To rollback on Hetzner:")
-        result.add_log("1. Create snapshots before deployments: hcloud server create-image --type snapshot")
+        result.add_log(
+            "1. Create snapshots before deployments: hcloud server create-image --type snapshot"
+        )
         result.add_log("2. Rebuild from snapshot: hcloud server rebuild --image <snapshot-id>")
         result.add_log("")
         result.add_log("Or use Docker to rollback:")
-        result.add_log("  ssh root@SERVER_IP 'cd /opt/app && git checkout <previous-commit> && docker-compose up -d --build'")
+        result.add_log(
+            "  ssh root@SERVER_IP 'cd /opt/app && git checkout <previous-commit> && docker-compose up -d --build'"
+        )
 
         result.status = DeploymentStatus.SUCCESS
         return result
@@ -552,17 +571,19 @@ REDIS_URL={self.config.redis_url}
             result.add_log("For vertical scaling, resize the server:")
             result.add_log("  hcloud server change-type --server <server-name> --type <new-type>")
             result.add_log("")
-            result.add_log("Available types: cx22, cx32, cx42, cx52 (shared) or cpx11, cpx21, etc (dedicated)")
+            result.add_log(
+                "Available types: cx22, cx32, cx42, cx52 (shared) or cpx11, cpx21, etc (dedicated)"
+            )
 
         result.status = DeploymentStatus.SUCCESS
         return result
 
-    async def get_logs(self, lines: int = 100) -> List[str]:
+    async def get_logs(self, lines: int = 100) -> list[str]:
         """Get application logs."""
         # Get server IP
-        server_info = self.run_command([
-            "hcloud", "server", "describe", self.config.app_name, "-o", "json"
-        ])
+        server_info = self.run_command(
+            ["hcloud", "server", "describe", self.config.app_name, "-o", "json"]
+        )
 
         if server_info.returncode != 0:
             return ["Failed to get server info"]
@@ -574,10 +595,13 @@ REDIS_URL={self.config.redis_url}
             return ["Server IP not found"]
 
         # Get logs via SSH
-        result = self.run_command([
-            "ssh", f"root@{server_ip}",
-            f"cd /opt/{self.config.app_name} && docker-compose logs --tail={lines}",
-        ])
+        result = self.run_command(
+            [
+                "ssh",
+                f"root@{server_ip}",
+                f"cd /opt/{self.config.app_name} && docker-compose logs --tail={lines}",
+            ]
+        )
 
         if result.returncode == 0:
             return result.stdout.split("\n")

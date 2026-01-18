@@ -2,9 +2,8 @@
 Tests for the pagination module in Django Matt.
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
 from django.test import RequestFactory, TestCase
 
 from django_matt.pagination import (
@@ -14,7 +13,6 @@ from django_matt.pagination import (
     PageNumberPagination,
     PaginationResult,
 )
-
 
 # =============================================================================
 # Mock QuerySet for Testing

@@ -5,7 +5,7 @@ Provides configuration management and storage factory.
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .storage import BaseStorage
@@ -31,8 +31,8 @@ class FileConfig:
     s3_region: str = "us-east-1"
     s3_access_key: str = ""
     s3_secret_key: str = ""
-    s3_endpoint: Optional[str] = None
-    s3_public_url: Optional[str] = None
+    s3_endpoint: str | None = None
+    s3_public_url: str | None = None
 
     # R2-specific
     r2_account_id: str = ""
@@ -90,7 +90,7 @@ class FileConfig:
 
 
 # Global config instance
-_config: Optional[FileConfig] = None
+_config: FileConfig | None = None
 
 
 def get_file_config() -> FileConfig:
@@ -151,7 +151,7 @@ def get_storage(
             base_url=kwargs.get("base_url", config.local_url_prefix),
         )
 
-    elif backend == "s3":
+    if backend == "s3":
         from .s3 import S3Storage
 
         return S3Storage(
@@ -163,7 +163,7 @@ def get_storage(
             public_url=kwargs.get("public_url", config.s3_public_url),
         )
 
-    elif backend == "r2":
+    if backend == "r2":
         from .s3 import R2Storage
 
         return R2Storage(
@@ -174,7 +174,7 @@ def get_storage(
             public_url=kwargs.get("public_url", config.s3_public_url),
         )
 
-    elif backend == "minio":
+    if backend == "minio":
         from .s3 import MinIOStorage
 
         return MinIOStorage(
@@ -185,7 +185,7 @@ def get_storage(
             public_url=kwargs.get("public_url", config.s3_public_url),
         )
 
-    elif backend == "spaces":
+    if backend == "spaces":
         from .s3 import DOSpacesStorage
 
         return DOSpacesStorage(
@@ -196,8 +196,4 @@ def get_storage(
             public_url=kwargs.get("public_url", config.s3_public_url),
         )
 
-    else:
-        raise ValueError(
-            f"Unknown storage backend: {backend}. "
-            f"Supported: local, s3, r2, minio, spaces"
-        )
+    raise ValueError(f"Unknown storage backend: {backend}. Supported: local, s3, r2, minio, spaces")

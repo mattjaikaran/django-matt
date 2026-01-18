@@ -4,14 +4,12 @@ Audit signals.
 Django signals for audit logging events.
 """
 
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django.dispatch import Signal
 
 if TYPE_CHECKING:
-    from django.db import models
-    from .models import AuditLog
-    from .enums import AuditAction
+    pass
 
 
 # Signal sent before an audit log is created
@@ -43,8 +41,7 @@ def connect_audit_signals() -> None:
     if _signals_connected:
         return
 
-    from django.db.models.signals import post_save, post_delete, pre_save
-    from django.contrib.contenttypes.models import ContentType
+    from django.db.models.signals import post_delete, post_save, pre_save
 
     # Connect signals
     pre_save.connect(_pre_save_handler)
@@ -61,7 +58,7 @@ def disconnect_audit_signals() -> None:
     if not _signals_connected:
         return
 
-    from django.db.models.signals import post_save, post_delete, pre_save
+    from django.db.models.signals import post_delete, post_save, pre_save
 
     pre_save.disconnect(_pre_save_handler)
     post_save.disconnect(_post_save_handler)
@@ -101,6 +98,7 @@ def _pre_save_handler(sender, instance, **kwargs):
 
     # Skip if instance has audit mixin (it handles its own logging)
     from .mixins import AuditableMixin
+
     if isinstance(instance, AuditableMixin):
         return
 
@@ -120,12 +118,13 @@ def _post_save_handler(sender, instance, created, **kwargs):
 
     # Skip if instance has audit mixin
     from .mixins import AuditableMixin
+
     if isinstance(instance, AuditableMixin):
         return
 
-    from .models import AuditLog
-    from .enums import AuditAction
     from .context import get_current_user
+    from .enums import AuditAction
+    from .models import AuditLog
 
     user = get_current_user()
 
@@ -200,12 +199,13 @@ def _post_delete_handler(sender, instance, **kwargs):
 
     # Skip if instance has audit mixin
     from .mixins import AuditableMixin
+
     if isinstance(instance, AuditableMixin):
         return
 
-    from .models import AuditLog
-    from .enums import AuditAction
     from .context import get_current_user
+    from .enums import AuditAction
+    from .models import AuditLog
 
     user = get_current_user()
     old_values = _get_model_values(instance)

@@ -14,4 +14,3 @@ class DjangoMattConfig(AppConfig):
 
     def ready(self):
         """Called when Django starts."""
-        pass

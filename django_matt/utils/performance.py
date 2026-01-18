@@ -14,7 +14,7 @@ from typing import Any
 
 from django.conf import settings
 from django.core.cache import cache as django_cache
-from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 
 # Try to import faster JSON libraries
 try:
@@ -75,12 +75,11 @@ class FastJSONRenderer:
             if orjson_options is not None:
                 return orjson.dumps(obj, option=orjson_options)
             return orjson.dumps(obj)
-        elif HAS_UJSON:
+        if HAS_UJSON:
             # ujson is faster than the standard json library
             return ujson.dumps(obj, **kwargs).encode("utf-8")
-        else:
-            # Fall back to the standard json library
-            return json.dumps(obj, **kwargs).encode("utf-8")
+        # Fall back to the standard json library
+        return json.dumps(obj, **kwargs).encode("utf-8")
 
     @staticmethod
     def loads(s: str | bytes, **kwargs) -> Any:
@@ -96,14 +95,13 @@ class FastJSONRenderer:
         """
         if HAS_ORJSON:
             return orjson.loads(s)
-        elif HAS_UJSON:
+        if HAS_UJSON:
             if isinstance(s, bytes):
                 s = s.decode("utf-8")
             return ujson.loads(s, **kwargs)
-        else:
-            if isinstance(s, bytes):
-                s = s.decode("utf-8")
-            return json.loads(s, **kwargs)
+        if isinstance(s, bytes):
+            s = s.decode("utf-8")
+        return json.loads(s, **kwargs)
 
 
 class MessagePackRenderer:
@@ -223,9 +221,7 @@ class CacheManager:
         """
         self.cache = cache or django_cache
         self.enabled = getattr(settings, "DJANGO_MATT_CACHE_ENABLED", True)
-        self.default_timeout = getattr(
-            settings, "DJANGO_MATT_CACHE_TIMEOUT", 300
-        )  # 5 minutes
+        self.default_timeout = getattr(settings, "DJANGO_MATT_CACHE_TIMEOUT", 300)  # 5 minutes
 
     def _get_cache_key(self, prefix: str, *args, **kwargs) -> str:
         """
@@ -348,8 +344,7 @@ class CacheManager:
 
             if asyncio.iscoroutinefunction(func):
                 return async_wrapper
-            else:
-                return sync_wrapper
+            return sync_wrapper
 
         return decorator
 
@@ -414,8 +409,7 @@ class CacheManager:
 
             if asyncio.iscoroutinefunction(func):
                 return async_wrapper
-            else:
-                return sync_wrapper
+            return sync_wrapper
 
         return decorator
 
@@ -506,12 +500,8 @@ class APIBenchmark:
 
         self.measurements[name]["count"] += 1
         self.measurements[name]["total_time"] += duration
-        self.measurements[name]["min_time"] = min(
-            self.measurements[name]["min_time"], duration
-        )
-        self.measurements[name]["max_time"] = max(
-            self.measurements[name]["max_time"], duration
-        )
+        self.measurements[name]["min_time"] = min(self.measurements[name]["min_time"], duration)
+        self.measurements[name]["max_time"] = max(self.measurements[name]["max_time"], duration)
         self.measurements[name]["avg_time"] = (
             self.measurements[name]["total_time"] / self.measurements[name]["count"]
         )
@@ -540,6 +530,7 @@ class _MeasureContext:
 
     def __call__(self, func):
         """Use as a decorator."""
+
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs):
             if not self.benchmark.enabled:
@@ -578,8 +569,7 @@ class _MeasureContext:
 
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
-        else:
-            return sync_wrapper
+        return sync_wrapper
 
     def __enter__(self):
         """Enter context manager."""
@@ -699,7 +689,6 @@ class BenchmarkMiddleware:
 
 # Import asyncio at the end to avoid circular imports
 import asyncio
-
 
 # =============================================================================
 # Distributed Caching Support
@@ -989,8 +978,13 @@ class QueryAnalyzer:
         meta = model._meta
 
         # Get current optimizations
-        current_select_related = list(queryset.query.select_related.keys()) if queryset.query.select_related else []
-        current_prefetch_related = [p.prefetch_through if hasattr(p, 'prefetch_through') else str(p) for p in queryset._prefetch_related_lookups]
+        current_select_related = (
+            list(queryset.query.select_related.keys()) if queryset.query.select_related else []
+        )
+        current_prefetch_related = [
+            p.prefetch_through if hasattr(p, "prefetch_through") else str(p)
+            for p in queryset._prefetch_related_lookups
+        ]
 
         # Find all relations
         foreign_keys = []
@@ -1011,32 +1005,38 @@ class QueryAnalyzer:
         # Suggest select_related for unoptimized foreign keys
         missing_select = [fk for fk in foreign_keys if fk not in current_select_related]
         if missing_select:
-            suggestions.append({
-                "type": "select_related",
-                "fields": missing_select,
-                "reason": "Foreign key fields not using select_related may cause N+1 queries",
-                "fix": f".select_related({', '.join(repr(f) for f in missing_select)})",
-            })
+            suggestions.append(
+                {
+                    "type": "select_related",
+                    "fields": missing_select,
+                    "reason": "Foreign key fields not using select_related may cause N+1 queries",
+                    "fix": f".select_related({', '.join(repr(f) for f in missing_select)})",
+                }
+            )
 
         # Suggest prefetch_related for many-to-many
         missing_prefetch_m2m = [m2m for m2m in many_to_many if m2m not in current_prefetch_related]
         if missing_prefetch_m2m:
-            suggestions.append({
-                "type": "prefetch_related",
-                "fields": missing_prefetch_m2m,
-                "reason": "Many-to-many fields should use prefetch_related",
-                "fix": f".prefetch_related({', '.join(repr(f) for f in missing_prefetch_m2m)})",
-            })
+            suggestions.append(
+                {
+                    "type": "prefetch_related",
+                    "fields": missing_prefetch_m2m,
+                    "reason": "Many-to-many fields should use prefetch_related",
+                    "fix": f".prefetch_related({', '.join(repr(f) for f in missing_prefetch_m2m)})",
+                }
+            )
 
         # Suggest prefetch_related for reverse relations if commonly accessed
         if reverse_relations:
-            suggestions.append({
-                "type": "prefetch_related",
-                "fields": reverse_relations,
-                "reason": "Reverse relations may benefit from prefetch_related if accessed",
-                "fix": f".prefetch_related({', '.join(repr(f) for f in reverse_relations)})",
-                "conditional": True,
-            })
+            suggestions.append(
+                {
+                    "type": "prefetch_related",
+                    "fields": reverse_relations,
+                    "reason": "Reverse relations may benefit from prefetch_related if accessed",
+                    "fix": f".prefetch_related({', '.join(repr(f) for f in reverse_relations)})",
+                    "conditional": True,
+                }
+            )
 
         return {
             "model": model.__name__,
@@ -1096,12 +1096,14 @@ class QueryAnalyzer:
         if not self.enabled:
             return
 
-        self.query_log.append({
-            "sql": sql,
-            "duration_ms": duration * 1000,
-            "params": params,
-            "timestamp": time.time(),
-        })
+        self.query_log.append(
+            {
+                "sql": sql,
+                "duration_ms": duration * 1000,
+                "params": params,
+                "timestamp": time.time(),
+            }
+        )
 
     def get_slow_queries(self, threshold_ms: float = 100) -> list[dict[str, Any]]:
         """
@@ -1129,7 +1131,8 @@ class QueryAnalyzer:
         for q in self.query_log:
             # Simple normalization - remove numbers and quoted strings
             import re
-            sql = re.sub(r'\d+', '?', q["sql"])
+
+            sql = re.sub(r"\d+", "?", q["sql"])
             sql = re.sub(r"'[^']*'", "'?'", sql)
             normalized.append(sql)
 
@@ -1229,11 +1232,13 @@ class PerformanceSuggester:
         if not self.enabled:
             return
 
-        self.observations.append({
-            "category": category,
-            "data": data,
-            "timestamp": time.time(),
-        })
+        self.observations.append(
+            {
+                "category": category,
+                "data": data,
+                "timestamp": time.time(),
+            }
+        )
 
     def get_suggestions(self) -> list[dict[str, Any]]:
         """
@@ -1247,35 +1252,43 @@ class PerformanceSuggester:
         # Analyze serialization performance
         serialization_obs = [o for o in self.observations if o["category"] == "serialization"]
         if serialization_obs:
-            avg_size = sum(o["data"].get("size", 0) for o in serialization_obs) / len(serialization_obs)
-            avg_time = sum(o["data"].get("time_ms", 0) for o in serialization_obs) / len(serialization_obs)
+            avg_size = sum(o["data"].get("size", 0) for o in serialization_obs) / len(
+                serialization_obs
+            )
+            avg_time = sum(o["data"].get("time_ms", 0) for o in serialization_obs) / len(
+                serialization_obs
+            )
 
             if avg_size > 100000:  # > 100KB average
-                suggestions.append({
-                    "category": "serialization",
-                    "priority": "high",
-                    "title": "Large response payloads detected",
-                    "description": f"Average response size is {avg_size / 1000:.1f}KB",
-                    "recommendations": [
-                        "Use pagination to limit response size",
-                        "Consider using StreamingJsonResponse for large datasets",
-                        "Implement field selection to return only needed fields",
-                        "Use MessagePack for binary data transfer",
-                    ],
-                })
+                suggestions.append(
+                    {
+                        "category": "serialization",
+                        "priority": "high",
+                        "title": "Large response payloads detected",
+                        "description": f"Average response size is {avg_size / 1000:.1f}KB",
+                        "recommendations": [
+                            "Use pagination to limit response size",
+                            "Consider using StreamingJsonResponse for large datasets",
+                            "Implement field selection to return only needed fields",
+                            "Use MessagePack for binary data transfer",
+                        ],
+                    }
+                )
 
             if avg_time > 50:  # > 50ms average
                 if not HAS_ORJSON:
-                    suggestions.append({
-                        "category": "serialization",
-                        "priority": "high",
-                        "title": "Slow JSON serialization",
-                        "description": f"Average serialization time is {avg_time:.1f}ms",
-                        "recommendations": [
-                            "Install orjson for 10x faster serialization: pip install orjson",
-                            "Or install ujson as alternative: pip install ujson",
-                        ],
-                    })
+                    suggestions.append(
+                        {
+                            "category": "serialization",
+                            "priority": "high",
+                            "title": "Slow JSON serialization",
+                            "description": f"Average serialization time is {avg_time:.1f}ms",
+                            "recommendations": [
+                                "Install orjson for 10x faster serialization: pip install orjson",
+                                "Or install ujson as alternative: pip install ujson",
+                            ],
+                        }
+                    )
 
         # Analyze query performance
         query_obs = [o for o in self.observations if o["category"] == "query"]
@@ -1284,18 +1297,20 @@ class PerformanceSuggester:
             avg_queries_per_request = total_queries / len(query_obs) if query_obs else 0
 
             if avg_queries_per_request > 10:
-                suggestions.append({
-                    "category": "database",
-                    "priority": "high",
-                    "title": "High query count per request",
-                    "description": f"Average of {avg_queries_per_request:.1f} queries per request",
-                    "recommendations": [
-                        "Use select_related() for foreign key relationships",
-                        "Use prefetch_related() for many-to-many relationships",
-                        "Consider using optimize_queryset() helper",
-                        "Review for N+1 query patterns",
-                    ],
-                })
+                suggestions.append(
+                    {
+                        "category": "database",
+                        "priority": "high",
+                        "title": "High query count per request",
+                        "description": f"Average of {avg_queries_per_request:.1f} queries per request",
+                        "recommendations": [
+                            "Use select_related() for foreign key relationships",
+                            "Use prefetch_related() for many-to-many relationships",
+                            "Consider using optimize_queryset() helper",
+                            "Review for N+1 query patterns",
+                        ],
+                    }
+                )
 
         # Analyze cache usage
         cache_obs = [o for o in self.observations if o["category"] == "cache"]
@@ -1304,43 +1319,49 @@ class PerformanceSuggester:
             hit_rate = hits / len(cache_obs) if cache_obs else 0
 
             if hit_rate < 0.5 and len(cache_obs) > 10:
-                suggestions.append({
-                    "category": "cache",
-                    "priority": "medium",
-                    "title": "Low cache hit rate",
-                    "description": f"Cache hit rate is {hit_rate * 100:.1f}%",
-                    "recommendations": [
-                        "Review cache key generation for consistency",
-                        "Consider increasing cache timeout",
-                        "Implement cache warming for frequently accessed data",
-                        "Use get_or_set() to prevent cache stampedes",
-                    ],
-                })
+                suggestions.append(
+                    {
+                        "category": "cache",
+                        "priority": "medium",
+                        "title": "Low cache hit rate",
+                        "description": f"Cache hit rate is {hit_rate * 100:.1f}%",
+                        "recommendations": [
+                            "Review cache key generation for consistency",
+                            "Consider increasing cache timeout",
+                            "Implement cache warming for frequently accessed data",
+                            "Use get_or_set() to prevent cache stampedes",
+                        ],
+                    }
+                )
 
         # Check for missing optimizations
         if not HAS_ORJSON and not HAS_UJSON:
-            suggestions.append({
-                "category": "dependencies",
-                "priority": "medium",
-                "title": "No fast JSON library installed",
-                "description": "Using standard library json module",
-                "recommendations": [
-                    "Install orjson for best performance: pip install orjson",
-                    "Or install ujson: pip install ujson",
-                ],
-            })
+            suggestions.append(
+                {
+                    "category": "dependencies",
+                    "priority": "medium",
+                    "title": "No fast JSON library installed",
+                    "description": "Using standard library json module",
+                    "recommendations": [
+                        "Install orjson for best performance: pip install orjson",
+                        "Or install ujson: pip install ujson",
+                    ],
+                }
+            )
 
         if not HAS_MSGPACK:
-            suggestions.append({
-                "category": "dependencies",
-                "priority": "low",
-                "title": "MessagePack not available",
-                "description": "Binary serialization not available",
-                "recommendations": [
-                    "Install msgpack for binary serialization: pip install msgpack",
-                    "Useful for internal service communication",
-                ],
-            })
+            suggestions.append(
+                {
+                    "category": "dependencies",
+                    "priority": "low",
+                    "title": "MessagePack not available",
+                    "description": "Binary serialization not available",
+                    "recommendations": [
+                        "Install msgpack for binary serialization: pip install msgpack",
+                        "Useful for internal service communication",
+                    ],
+                }
+            )
 
         return suggestions
 

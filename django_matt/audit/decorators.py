@@ -6,13 +6,14 @@ Decorators for logging specific actions on views/functions.
 
 import functools
 import inspect
-from typing import Any, Callable, Optional, Union
+from collections.abc import Callable
+from typing import Any
 
 from .enums import AuditAction, AuditSeverity
 
 
 def log_action(
-    action: Union[AuditAction, str] = AuditAction.CUSTOM,
+    action: AuditAction | str = AuditAction.CUSTOM,
     description: str = "",
     severity: AuditSeverity = AuditSeverity.INFO,
     include_args: bool = False,
@@ -49,7 +50,6 @@ def log_action(
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs):
             from .models import AuditLog
-            from .context import get_current_user, get_request_ip, get_user_agent
 
             # Build metadata
             metadata = _build_metadata(func, args, kwargs, include_args)
@@ -98,7 +98,6 @@ def log_action(
         @functools.wraps(func)
         def sync_wrapper(*args, **kwargs):
             from .models import AuditLog
-            from .context import get_current_user, get_request_ip, get_user_agent
 
             metadata = _build_metadata(func, args, kwargs, include_args)
             desc = _format_description(description, func, args, kwargs)
@@ -146,7 +145,7 @@ def log_action(
 
 
 def audit_action(
-    action: Union[AuditAction, str],
+    action: AuditAction | str,
     description: str = "",
     **audit_kwargs,
 ):
@@ -210,11 +209,13 @@ class AuditLogContext:
         changes: dict,
     ) -> None:
         """Add a change to be logged."""
-        self.changes.append({
-            "model": model_name,
-            "id": str(object_id),
-            "changes": changes,
-        })
+        self.changes.append(
+            {
+                "model": model_name,
+                "id": str(object_id),
+                "changes": changes,
+            }
+        )
 
     def add_metadata(self, **kwargs) -> None:
         """Add metadata to the audit entry."""
@@ -224,8 +225,8 @@ class AuditLogContext:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        from .models import AuditLog
         from .context import get_current_user
+        from .models import AuditLog
 
         if exc_type is not None:
             # Log error
@@ -276,11 +277,13 @@ class AsyncAuditLogContext:
         self.metadata: dict = {}
 
     def add_change(self, model_name: str, object_id: Any, changes: dict) -> None:
-        self.changes.append({
-            "model": model_name,
-            "id": str(object_id),
-            "changes": changes,
-        })
+        self.changes.append(
+            {
+                "model": model_name,
+                "id": str(object_id),
+                "changes": changes,
+            }
+        )
 
     def add_metadata(self, **kwargs) -> None:
         self.metadata.update(kwargs)
@@ -289,8 +292,8 @@ class AsyncAuditLogContext:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        from .models import AuditLog
         from .context import get_current_user
+        from .models import AuditLog
 
         if exc_type is not None:
             await AuditLog.alog(

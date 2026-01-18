@@ -25,12 +25,12 @@ Usage:
 """
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Type
+from typing import Any
 
-from django_matt.websockets.consumers import BaseConsumer
 from django_matt.websockets.auth import AuthMiddlewareStack
-
+from django_matt.websockets.consumers import BaseConsumer
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +38,9 @@ logger = logging.getLogger(__name__)
 @dataclass
 class WebSocketRoute:
     """Represents a WebSocket route."""
+
     path: str
-    consumer: Type[BaseConsumer]
+    consumer: type[BaseConsumer]
     name: str | None = None
     auth_required: bool = False
     kwargs: dict[str, Any] = field(default_factory=dict)
@@ -80,7 +81,7 @@ class WebSocketRouter:
     def route(
         self,
         path: str,
-        consumer: Type[BaseConsumer],
+        consumer: type[BaseConsumer],
         name: str | None = None,
         auth_required: bool = False,
         **kwargs,
@@ -98,19 +99,21 @@ class WebSocketRouter:
         Returns:
             Self for chaining
         """
-        self.routes.append(WebSocketRoute(
-            path=path,
-            consumer=consumer,
-            name=name,
-            auth_required=auth_required,
-            kwargs=kwargs,
-        ))
+        self.routes.append(
+            WebSocketRoute(
+                path=path,
+                consumer=consumer,
+                name=name,
+                auth_required=auth_required,
+                kwargs=kwargs,
+            )
+        )
         return self
 
     def add_route(
         self,
         path: str,
-        consumer: Type[BaseConsumer],
+        consumer: type[BaseConsumer],
         **kwargs,
     ) -> "WebSocketRouter":
         """Alias for route()."""
@@ -128,13 +131,15 @@ class WebSocketRouter:
             Self for chaining
         """
         for route in router.routes:
-            self.routes.append(WebSocketRoute(
-                path=f"{prefix}{route.path}",
-                consumer=route.consumer,
-                name=route.name,
-                auth_required=route.auth_required,
-                kwargs=route.kwargs,
-            ))
+            self.routes.append(
+                WebSocketRoute(
+                    path=f"{prefix}{route.path}",
+                    consumer=route.consumer,
+                    name=route.name,
+                    auth_required=route.auth_required,
+                    kwargs=route.kwargs,
+                )
+            )
         return self
 
     def get_urlpatterns(self) -> list:
@@ -148,6 +153,7 @@ class WebSocketRouter:
             from django.urls import path, re_path
         except ImportError:
             from django.conf.urls import url as re_path
+
             path = re_path
 
         patterns = []
@@ -177,9 +183,7 @@ class WebSocketRouter:
         try:
             from channels.routing import URLRouter
         except ImportError:
-            raise ImportError(
-                "channels is not installed. Install with: pip install channels"
-            )
+            raise ImportError("channels is not installed. Install with: pip install channels")
 
         urlpatterns = self.get_urlpatterns()
         app = URLRouter(urlpatterns)
@@ -213,7 +217,7 @@ def websocket_route(
         router.route("ws/chat/", ChatConsumer)
     """
 
-    def decorator(cls: Type[BaseConsumer]) -> Type[BaseConsumer]:
+    def decorator(cls: type[BaseConsumer]) -> type[BaseConsumer]:
         cls._websocket_path = path
         cls._websocket_name = name
         cls._websocket_auth_required = auth_required
@@ -222,7 +226,7 @@ def websocket_route(
     return decorator
 
 
-def collect_routes(*consumers: Type[BaseConsumer]) -> WebSocketRouter:
+def collect_routes(*consumers: type[BaseConsumer]) -> WebSocketRouter:
     """
     Collect routes from decorated consumer classes.
 
@@ -272,15 +276,16 @@ def create_asgi_application(
     try:
         from channels.routing import ProtocolTypeRouter
     except ImportError:
-        raise ImportError(
-            "channels is not installed. Install with: pip install channels"
-        )
+        raise ImportError("channels is not installed. Install with: pip install channels")
 
     if http_application is None:
         from django.core.asgi import get_asgi_application
+
         http_application = get_asgi_application()
 
-    return ProtocolTypeRouter({
-        "http": http_application,
-        "websocket": websocket_router.get_application(),
-    })
+    return ProtocolTypeRouter(
+        {
+            "http": http_application,
+            "websocket": websocket_router.get_application(),
+        }
+    )

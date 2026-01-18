@@ -136,9 +136,7 @@ class CustomErrorHandlingController(APIController):
 
     prefix = "custom-handling/"
 
-    def handle_exception(
-        self, exc: Exception, request: HttpRequest = None
-    ) -> JsonResponse:
+    def handle_exception(self, exc: Exception, request: HttpRequest = None) -> JsonResponse:
         """Custom exception handler."""
         # Handle ZeroDivisionError specially
         if isinstance(exc, ZeroDivisionError):

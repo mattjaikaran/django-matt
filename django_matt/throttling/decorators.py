@@ -5,14 +5,15 @@ Throttle decorators for django-matt.
 from __future__ import annotations
 
 import functools
-from typing import TYPE_CHECKING, Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from django_matt.throttling.backends import get_default_backend
 from django_matt.throttling.base import BaseThrottle
 from django_matt.throttling.throttles import AnonRateThrottle, UserRateThrottle
 
 if TYPE_CHECKING:
-    from django.http import HttpRequest, HttpResponse
+    from django.http import HttpRequest
 
 F = TypeVar("F", bound=Callable[..., Any])
 

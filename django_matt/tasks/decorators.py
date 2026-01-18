@@ -4,8 +4,9 @@ Task decorators.
 Provides decorators for defining background tasks.
 """
 
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from .base import Task
 
@@ -28,7 +29,7 @@ def task(
     ignore_result: bool = False,
     bind: bool = False,
     **kwargs,
-) -> Union[Task, Callable[[Callable], Task]]:
+) -> Task | Callable[[Callable], Task]:
     """
     Decorator to define a background task.
 

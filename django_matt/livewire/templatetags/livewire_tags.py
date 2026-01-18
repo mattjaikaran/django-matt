@@ -41,25 +41,20 @@ def livewire_scripts(websocket: str = None, csrf: bool = True) -> str:
 
     # CSRF token
     if csrf:
-        from django.middleware.csrf import get_token
-        html_parts.append(
-            '<meta name="csrf-token" content="{% csrf_token %}">'
-        )
+        html_parts.append('<meta name="csrf-token" content="{% csrf_token %}">')
 
     # Main script
-    html_parts.append(
-        '<script src="{% static \'livewire/livewire.js\' %}"></script>'
-    )
+    html_parts.append("<script src=\"{% static 'livewire/livewire.js' %}\"></script>")
 
     # WebSocket connection
     if websocket:
-        html_parts.append(f'''
+        html_parts.append(f"""
 <script>
     document.addEventListener('DOMContentLoaded', function() {{
         Livewire.connectWebSocket('{websocket}');
     }});
 </script>
-''')
+""")
 
     return mark_safe("\n".join(html_parts))
 
@@ -72,7 +67,7 @@ def livewire_styles() -> str:
     Usage:
         {% livewire_styles %}
     """
-    return mark_safe('''
+    return mark_safe("""
 <style>
     [wire\\:loading] {
         opacity: 0.5;
@@ -109,7 +104,7 @@ def livewire_styles() -> str:
         to { transform: rotate(360deg); }
     }
 </style>
-''')
+""")
 
 
 @register.simple_tag(takes_context=True)
@@ -127,7 +122,7 @@ def livewire(context, component_name: str, **kwargs) -> str:
     """
     component_class = registry.get(component_name)
     if component_class is None:
-        return mark_safe(f'<!-- Unknown component: {component_name} -->')
+        return mark_safe(f"<!-- Unknown component: {component_name} -->")
 
     # Create component with props
     component = component_class(**kwargs)
@@ -225,8 +220,8 @@ def wire_loading(style: str = "opacity") -> str:
         <div {% wire_loading "remove" %}>Hidden when loading</div>
     """
     if style == "opacity":
-        return mark_safe('wire:loading')
-    return format_html('wire:loading.{}', style)
+        return mark_safe("wire:loading")
+    return format_html("wire:loading.{}", style)
 
 
 @register.filter

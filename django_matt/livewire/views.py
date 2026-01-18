@@ -5,17 +5,16 @@ Provides endpoints for component updates, actions, and file uploads.
 """
 
 import json
-from typing import Any, Dict, List, Optional, Type
-from functools import wraps
+from typing import Any
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 
-from django_matt.livewire.registry import registry
-from django_matt.livewire.state import Snapshot, state_manager
 from django_matt.livewire.component import LiveComponent
+from django_matt.livewire.registry import registry
+from django_matt.livewire.state import Snapshot
 
 
 def livewire_message(request: HttpRequest) -> JsonResponse:
@@ -47,7 +46,9 @@ def livewire_message(request: HttpRequest) -> JsonResponse:
 
     try:
         # Parse request data
-        data = json.loads(request.body) if request.content_type == "application/json" else request.POST
+        data = (
+            json.loads(request.body) if request.content_type == "application/json" else request.POST
+        )
 
         snapshot_token = data.get("_snapshot")
         action_name = data.get("_action")
@@ -83,7 +84,7 @@ def livewire_message(request: HttpRequest) -> JsonResponse:
                 setattr(component, key, value)
 
         # Call action if specified
-        effects: Dict[str, Any] = {}
+        effects: dict[str, Any] = {}
         if action_name:
             try:
                 result = component.call_action(action_name, *action_params)
@@ -105,11 +106,13 @@ def livewire_message(request: HttpRequest) -> JsonResponse:
             checksum=component.get_checksum(),
         )
 
-        return JsonResponse({
-            "html": html,
-            "snapshot": new_snapshot.to_token(),
-            "effects": effects,
-        })
+        return JsonResponse(
+            {
+                "html": html,
+                "snapshot": new_snapshot.to_token(),
+                "effects": effects,
+            }
+        )
 
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
@@ -130,9 +133,10 @@ def livewire_upload(request: HttpRequest) -> JsonResponse:
     if not request.FILES:
         return JsonResponse({"error": "No files provided"}, status=400)
 
-    from django.core.files.storage import default_storage
-    from django.core.files.base import ContentFile
     import uuid
+
+    from django.core.files.base import ContentFile
+    from django.core.files.storage import default_storage
 
     uploaded_files = []
 
@@ -144,17 +148,21 @@ def livewire_upload(request: HttpRequest) -> JsonResponse:
         # Save temporarily
         saved_path = default_storage.save(temp_path, ContentFile(uploaded_file.read()))
 
-        uploaded_files.append({
-            "id": temp_id,
-            "name": uploaded_file.name,
-            "size": uploaded_file.size,
-            "type": uploaded_file.content_type,
-            "path": saved_path,
-        })
+        uploaded_files.append(
+            {
+                "id": temp_id,
+                "name": uploaded_file.name,
+                "size": uploaded_file.size,
+                "type": uploaded_file.content_type,
+                "path": saved_path,
+            }
+        )
 
-    return JsonResponse({
-        "files": uploaded_files,
-    })
+    return JsonResponse(
+        {
+            "files": uploaded_files,
+        }
+    )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -171,10 +179,10 @@ class LivewireView(View):
             component_class = Counter
     """
 
-    component_class: Optional[Type[LiveComponent]] = None
-    component_name: Optional[str] = None
+    component_class: type[LiveComponent] | None = None
+    component_name: str | None = None
 
-    def get_component_class(self, request: HttpRequest, **kwargs) -> Type[LiveComponent]:
+    def get_component_class(self, request: HttpRequest, **kwargs) -> type[LiveComponent]:
         """Get the component class to use."""
         if self.component_class:
             return self.component_class
@@ -242,7 +250,7 @@ class LivewireView(View):
 
 def render_component(
     component: LiveComponent,
-    request: Optional[HttpRequest] = None,
+    request: HttpRequest | None = None,
 ) -> str:
     """
     Render a component to HTML with Livewire wrapper.
@@ -278,8 +286,8 @@ def render_component(
 
 
 __all__ = [
+    "LivewireView",
     "livewire_message",
     "livewire_upload",
-    "LivewireView",
     "render_component",
 ]

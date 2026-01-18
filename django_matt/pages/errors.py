@@ -5,16 +5,15 @@ Provides error page handlers and utilities for consistent
 error responses across HTML and JSON modes.
 """
 
-from typing import Any, Callable, Dict, Optional, Type
+from collections.abc import Callable
 
 from django.http import HttpRequest, HttpResponse
 
+from django_matt.pages.middleware import RequestMode, get_request_mode
 from django_matt.pages.response import PageResponse
-from django_matt.pages.middleware import get_request_mode, RequestMode
-
 
 # Registry of error handlers
-_error_handlers: Dict[int, Callable] = {}
+_error_handlers: dict[int, Callable] = {}
 
 
 def error_page(status_code: int) -> Callable:
@@ -40,13 +39,15 @@ def error_page(status_code: int) -> Callable:
     The decorated function should return a dict of props that will
     be passed to an error component (Error404, Error500, etc.).
     """
+
     def decorator(func: Callable) -> Callable:
         _error_handlers[status_code] = func
         return func
+
     return decorator
 
 
-def get_error_handler(status_code: int) -> Optional[Callable]:
+def get_error_handler(status_code: int) -> Callable | None:
     """Get the registered error handler for a status code."""
     return _error_handlers.get(status_code)
 
@@ -54,8 +55,8 @@ def get_error_handler(status_code: int) -> Optional[Callable]:
 def render_error_page(
     request: HttpRequest,
     status_code: int,
-    exception: Optional[Exception] = None,
-    message: Optional[str] = None,
+    exception: Exception | None = None,
+    message: str | None = None,
 ) -> HttpResponse:
     """
     Render an error page.
@@ -86,6 +87,7 @@ def render_error_page(
 
     # Add exception details in debug mode
     from django.conf import settings
+
     if settings.DEBUG and exception:
         props["debug"] = {
             "exception": str(exception),
@@ -98,6 +100,7 @@ def render_error_page(
     # For API mode, return JSON error
     if mode == RequestMode.API:
         from django.http import JsonResponse
+
         return JsonResponse(
             {"error": props.get("message", f"Error {status_code}"), **props},
             status=status_code,
@@ -145,6 +148,7 @@ def _get_default_error_message(status_code: int) -> str:
 
 # Django error handler integration
 
+
 def handler400(request: HttpRequest, exception: Exception) -> HttpResponse:
     """Django 400 error handler."""
     return render_error_page(request, 400, exception)
@@ -168,9 +172,9 @@ def handler500(request: HttpRequest) -> HttpResponse:
 __all__ = [
     "error_page",
     "get_error_handler",
-    "render_error_page",
     "handler400",
     "handler403",
     "handler404",
     "handler500",
+    "render_error_page",
 ]

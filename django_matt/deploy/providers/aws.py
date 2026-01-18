@@ -4,12 +4,11 @@ AWS deployment provider.
 Provides deployment to AWS App Runner and ECS Fargate with configuration generation.
 """
 
-from typing import Any, Dict, List, Optional
 import json
 
 from django_matt.deploy.base import (
-    DeploymentProvider,
     DeploymentConfig,
+    DeploymentProvider,
     DeploymentResult,
     DeploymentStatus,
     register_provider,
@@ -38,7 +37,7 @@ class AWSProvider(DeploymentProvider):
         super().__init__(config)
         self.mode = mode  # "apprunner" or "ecs"
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """Validate configuration for AWS deployment."""
         errors = []
 
@@ -61,7 +60,7 @@ class AWSProvider(DeploymentProvider):
 
         return errors
 
-    def generate_config(self) -> Dict[str, str]:
+    def generate_config(self) -> dict[str, str]:
         """Generate AWS configuration files."""
         files = {}
 
@@ -83,7 +82,7 @@ class AWSProvider(DeploymentProvider):
 
     def _generate_dockerfile(self) -> str:
         """Generate Dockerfile for AWS."""
-        return f'''# Dockerfile for AWS deployment
+        return f"""# Dockerfile for AWS deployment
 FROM python:3.13-slim
 
 # Set environment variables
@@ -120,8 +119,8 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \\
     CMD curl -f http://localhost:$PORT{self.config.health_check_path} || exit 1
 
 # Run the application
-CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.django_settings_module.rsplit('.', 1)[0]}.wsgi:application --bind 0.0.0.0:$PORT --workers {self.config.workers}"]
-'''
+CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.django_settings_module.rsplit(".", 1)[0]}.wsgi:application --bind 0.0.0.0:$PORT --workers {self.config.workers}"]
+"""
 
     def _generate_apprunner_yaml(self) -> str:
         """Generate AWS App Runner configuration."""
@@ -146,9 +145,10 @@ CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.dj
         }
 
         import yaml
+
         return yaml.dump(config, default_flow_style=False, sort_keys=False)
 
-    def _get_env_vars_apprunner(self) -> List[Dict[str, str]]:
+    def _get_env_vars_apprunner(self) -> list[dict[str, str]]:
         """Get environment variables for App Runner."""
         env_vars = [
             {"name": "DJANGO_SETTINGS_MODULE", "value": self.config.django_settings_module},
@@ -197,7 +197,10 @@ CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.dj
                         }
                     ],
                     "environment": [
-                        {"name": "DJANGO_SETTINGS_MODULE", "value": self.config.django_settings_module},
+                        {
+                            "name": "DJANGO_SETTINGS_MODULE",
+                            "value": self.config.django_settings_module,
+                        },
                         {"name": "DJANGO_ENV", "value": self.config.environment},
                         {"name": "DEBUG", "value": str(self.config.debug).lower()},
                         {"name": "PORT", "value": str(self.config.port)},
@@ -214,7 +217,10 @@ CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.dj
                         },
                     },
                     "healthCheck": {
-                        "command": ["CMD-SHELL", f"curl -f http://localhost:{self.config.port}{self.config.health_check_path} || exit 1"],
+                        "command": [
+                            "CMD-SHELL",
+                            f"curl -f http://localhost:{self.config.port}{self.config.health_check_path} || exit 1",
+                        ],
                         "interval": self.config.health_check_interval,
                         "timeout": 5,
                         "retries": 3,
@@ -226,16 +232,20 @@ CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.dj
 
         # Add secrets from Secrets Manager
         if self.config.database_url:
-            task_def["containerDefinitions"][0]["secrets"].append({
-                "name": "DATABASE_URL",
-                "valueFrom": f"arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:{self.config.app_name}/database-url",
-            })
+            task_def["containerDefinitions"][0]["secrets"].append(
+                {
+                    "name": "DATABASE_URL",
+                    "valueFrom": f"arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:{self.config.app_name}/database-url",
+                }
+            )
 
         if self.config.secret_key:
-            task_def["containerDefinitions"][0]["secrets"].append({
-                "name": "SECRET_KEY",
-                "valueFrom": f"arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:{self.config.app_name}/secret-key",
-            })
+            task_def["containerDefinitions"][0]["secrets"].append(
+                {
+                    "name": "SECRET_KEY",
+                    "valueFrom": f"arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:{self.config.app_name}/secret-key",
+                }
+            )
 
         return json.dumps(task_def, indent=2)
 
@@ -272,7 +282,7 @@ CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.dj
 
     def _generate_buildspec(self) -> str:
         """Generate AWS CodeBuild buildspec."""
-        return f'''version: 0.2
+        return f"""version: 0.2
 
 phases:
   pre_build:
@@ -302,7 +312,7 @@ phases:
 artifacts:
   files:
     - imagedefinitions.json
-'''
+"""
 
     async def deploy(self) -> DeploymentResult:
         """Deploy to AWS."""
@@ -342,11 +352,17 @@ artifacts:
         result.add_log("Deploying to AWS App Runner...")
 
         # Check if service exists
-        list_result = self.run_command([
-            "aws", "apprunner", "list-services",
-            "--query", f"ServiceSummaryList[?ServiceName=='{self.config.app_name}']",
-            "--output", "json",
-        ])
+        list_result = self.run_command(
+            [
+                "aws",
+                "apprunner",
+                "list-services",
+                "--query",
+                f"ServiceSummaryList[?ServiceName=='{self.config.app_name}']",
+                "--output",
+                "json",
+            ]
+        )
 
         if list_result.returncode == 0:
             services = json.loads(list_result.stdout)
@@ -357,10 +373,15 @@ artifacts:
                 result.add_log(f"Updating existing service: {service_arn}")
 
                 # Trigger deployment
-                update_result = self.run_command([
-                    "aws", "apprunner", "start-deployment",
-                    "--service-arn", service_arn,
-                ])
+                update_result = self.run_command(
+                    [
+                        "aws",
+                        "apprunner",
+                        "start-deployment",
+                        "--service-arn",
+                        service_arn,
+                    ]
+                )
 
                 if update_result.returncode == 0:
                     result.status = DeploymentStatus.SUCCESS
@@ -378,7 +399,9 @@ artifacts:
                 result.add_log("To create an App Runner service:")
                 result.add_log("1. Build and push Docker image to ECR")
                 result.add_log("2. Create service via AWS Console or CLI:")
-                result.add_log(f"   aws apprunner create-service --service-name {self.config.app_name} ...")
+                result.add_log(
+                    f"   aws apprunner create-service --service-name {self.config.app_name} ..."
+                )
                 result.add_log("")
                 result.add_log("Configuration files have been generated.")
                 result.status = DeploymentStatus.PENDING
@@ -396,10 +419,15 @@ artifacts:
         result.add_log("Registering task definition...")
         task_def_file = self.config.project_dir / "ecs-task-definition.json"
 
-        register_result = self.run_command([
-            "aws", "ecs", "register-task-definition",
-            "--cli-input-json", f"file://{task_def_file}",
-        ])
+        register_result = self.run_command(
+            [
+                "aws",
+                "ecs",
+                "register-task-definition",
+                "--cli-input-json",
+                f"file://{task_def_file}",
+            ]
+        )
 
         if register_result.returncode != 0:
             result.status = DeploymentStatus.FAILED
@@ -410,13 +438,20 @@ artifacts:
         result.status = DeploymentStatus.DEPLOYING
         result.add_log("Updating ECS service...")
 
-        update_result = self.run_command([
-            "aws", "ecs", "update-service",
-            "--cluster", f"{self.config.app_name}-cluster",
-            "--service", self.config.app_name,
-            "--task-definition", self.config.app_name,
-            "--force-new-deployment",
-        ])
+        update_result = self.run_command(
+            [
+                "aws",
+                "ecs",
+                "update-service",
+                "--cluster",
+                f"{self.config.app_name}-cluster",
+                "--service",
+                self.config.app_name,
+                "--task-definition",
+                self.config.app_name,
+                "--force-new-deployment",
+            ]
+        )
 
         if update_result.returncode == 0:
             result.status = DeploymentStatus.SUCCESS
@@ -433,11 +468,17 @@ artifacts:
 
         try:
             if self.mode == "apprunner":
-                status_result = self.run_command([
-                    "aws", "apprunner", "describe-service",
-                    "--service-arn", deployment_id,
-                    "--output", "json",
-                ])
+                status_result = self.run_command(
+                    [
+                        "aws",
+                        "apprunner",
+                        "describe-service",
+                        "--service-arn",
+                        deployment_id,
+                        "--output",
+                        "json",
+                    ]
+                )
 
                 if status_result.returncode == 0:
                     data = json.loads(status_result.stdout)
@@ -458,12 +499,19 @@ artifacts:
                     result.url = f"https://{service.get('ServiceUrl', '')}"
             else:
                 # ECS status check
-                status_result = self.run_command([
-                    "aws", "ecs", "describe-services",
-                    "--cluster", f"{self.config.app_name}-cluster",
-                    "--services", self.config.app_name,
-                    "--output", "json",
-                ])
+                status_result = self.run_command(
+                    [
+                        "aws",
+                        "ecs",
+                        "describe-services",
+                        "--cluster",
+                        f"{self.config.app_name}-cluster",
+                        "--services",
+                        self.config.app_name,
+                        "--output",
+                        "json",
+                    ]
+                )
 
                 if status_result.returncode == 0:
                     data = json.loads(status_result.stdout)
@@ -503,12 +551,19 @@ artifacts:
             try:
                 result.add_log("Rolling back ECS service...")
 
-                rollback_result = self.run_command([
-                    "aws", "ecs", "update-service",
-                    "--cluster", f"{self.config.app_name}-cluster",
-                    "--service", self.config.app_name,
-                    "--deployment-configuration", '{"deploymentCircuitBreaker":{"enable":true,"rollback":true}}',
-                ])
+                rollback_result = self.run_command(
+                    [
+                        "aws",
+                        "ecs",
+                        "update-service",
+                        "--cluster",
+                        f"{self.config.app_name}-cluster",
+                        "--service",
+                        self.config.app_name,
+                        "--deployment-configuration",
+                        '{"deploymentCircuitBreaker":{"enable":true,"rollback":true}}',
+                    ]
+                )
 
                 if rollback_result.returncode == 0:
                     result.status = DeploymentStatus.SUCCESS
@@ -533,12 +588,19 @@ artifacts:
                 result.add_log("Configure min/max instances in the service settings.")
                 result.status = DeploymentStatus.SUCCESS
             else:
-                scale_result = self.run_command([
-                    "aws", "ecs", "update-service",
-                    "--cluster", f"{self.config.app_name}-cluster",
-                    "--service", self.config.app_name,
-                    "--desired-count", str(instances),
-                ])
+                scale_result = self.run_command(
+                    [
+                        "aws",
+                        "ecs",
+                        "update-service",
+                        "--cluster",
+                        f"{self.config.app_name}-cluster",
+                        "--service",
+                        self.config.app_name,
+                        "--desired-count",
+                        str(instances),
+                    ]
+                )
 
                 if scale_result.returncode == 0:
                     result.status = DeploymentStatus.SUCCESS
@@ -553,13 +615,18 @@ artifacts:
 
         return result
 
-    async def get_logs(self, lines: int = 100) -> List[str]:
+    async def get_logs(self, lines: int = 100) -> list[str]:
         """Get application logs from CloudWatch."""
-        result = self.run_command([
-            "aws", "logs", "tail",
-            f"/ecs/{self.config.app_name}",
-            "--since", "1h",
-        ])
+        result = self.run_command(
+            [
+                "aws",
+                "logs",
+                "tail",
+                f"/ecs/{self.config.app_name}",
+                "--since",
+                "1h",
+            ]
+        )
 
         if result.returncode == 0:
             return result.stdout.split("\n")[-lines:]

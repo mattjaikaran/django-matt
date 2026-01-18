@@ -5,17 +5,16 @@ Provides tables, lists, detail views, and pagination
 for displaying structured data.
 """
 
-from typing import Any, Callable, Dict, List, Literal, Optional, Type, Union
+from typing import Any, List, Literal
+
 from pydantic import BaseModel, Field
 
 from django_matt.components.base import (
     Component,
-    ComponentType,
     ComponentTree,
-    EventHandler,
+    ComponentType,
     registry,
 )
-
 
 # =============================================================================
 # Table Components
@@ -24,27 +23,29 @@ from django_matt.components.base import (
 
 class TableColumn(BaseModel):
     """Definition for a table column."""
+
     key: str  # Data key
     label: str  # Header label
     sortable: bool = False
     filterable: bool = False
-    width: Optional[str] = None  # CSS width
+    width: str | None = None  # CSS width
     align: Literal["left", "center", "right"] = "left"
     hidden: bool = False
-    format: Optional[str] = None  # Format string (e.g., "currency", "date", "number")
-    render: Optional[str] = None  # Custom render component type
-    cell_class: Optional[str] = None
-    header_class: Optional[str] = None
+    format: str | None = None  # Format string (e.g., "currency", "date", "number")
+    render: str | None = None  # Custom render component type
+    cell_class: str | None = None
+    header_class: str | None = None
 
 
 class TableAction(BaseModel):
     """Row action for tables."""
+
     label: str
-    icon: Optional[str] = None
+    icon: str | None = None
     action: str  # URL pattern with {id} placeholder
     method: str = "GET"
     variant: Literal["default", "destructive", "outline"] = "default"
-    confirm: Optional[str] = None  # Confirmation message
+    confirm: str | None = None  # Confirmation message
 
 
 @registry.register("data_table", aliases=["table"])
@@ -69,15 +70,16 @@ class DataTable(Component):
             pagination=True,
         )
     """
+
     type: ComponentType = ComponentType.DATA_TABLE
-    columns: List[TableColumn] = Field(default_factory=list)
-    data: List[Dict[str, Any]] = Field(default_factory=list)
+    columns: list[TableColumn] = Field(default_factory=list)
+    data: list[dict[str, Any]] = Field(default_factory=list)
     row_key: str = "id"  # Key for unique row identification
-    actions: List[TableAction] = Field(default_factory=list)
+    actions: list[TableAction] = Field(default_factory=list)
 
     # Features
     sortable: bool = True
-    default_sort: Optional[str] = None
+    default_sort: str | None = None
     default_sort_direction: Literal["asc", "desc"] = "asc"
 
     filterable: bool = True
@@ -85,13 +87,13 @@ class DataTable(Component):
 
     selectable: bool = False
     select_mode: Literal["single", "multiple"] = "multiple"
-    on_selection_change: Optional[str] = None  # Callback URL
+    on_selection_change: str | None = None  # Callback URL
 
     # Pagination
     pagination: bool = True
     page_size: int = 10
-    page_size_options: List[int] = Field(default_factory=lambda: [10, 25, 50, 100])
-    total_count: Optional[int] = None
+    page_size_options: list[int] = Field(default_factory=lambda: [10, 25, 50, 100])
+    total_count: int | None = None
     current_page: int = 1
 
     # Appearance
@@ -104,7 +106,7 @@ class DataTable(Component):
     loading_message: str = "Loading..."
 
     # Data source (for server-side)
-    data_url: Optional[str] = None  # URL for fetching data
+    data_url: str | None = None  # URL for fetching data
     server_side: bool = False  # Enable server-side processing
 
     def add_column(
@@ -146,10 +148,11 @@ class List(Component):
             columns=3,
         )
     """
+
     type: ComponentType = ComponentType.LIST
-    items: List[Dict[str, Any]] = Field(default_factory=list)
+    items: list[dict[str, Any]] = Field(default_factory=list)
     item_key: str = "id"
-    item_template: Optional[str] = None  # Component type for each item
+    item_template: str | None = None  # Component type for each item
     layout: Literal["list", "grid", "masonry"] = "list"
     columns: int = 1  # Grid columns
     gap: str = "1rem"
@@ -158,7 +161,7 @@ class List(Component):
 
     # Infinite scroll
     infinite_scroll: bool = False
-    load_more_url: Optional[str] = None
+    load_more_url: str | None = None
     has_more: bool = False
 
     # Selection
@@ -173,12 +176,13 @@ class List(Component):
 
 class DetailField(BaseModel):
     """Field definition for detail view."""
+
     key: str
     label: str
-    format: Optional[str] = None  # date, currency, boolean, etc.
+    format: str | None = None  # date, currency, boolean, etc.
     hidden: bool = False
     copy_button: bool = False  # Show copy to clipboard
-    link: Optional[str] = None  # Make value a link
+    link: str | None = None  # Make value a link
 
 
 @registry.register("detail_view", aliases=["detail"])
@@ -197,15 +201,16 @@ class DetailView(Component):
             layout="vertical",
         )
     """
+
     type: ComponentType = ComponentType.DETAIL_VIEW
     fields: List[DetailField] = Field(default_factory=list)
-    data: Dict[str, Any] = Field(default_factory=dict)
+    data: dict[str, Any] = Field(default_factory=dict)
     layout: Literal["vertical", "horizontal", "grid"] = "vertical"
     columns: int = 2  # For grid layout
     show_empty: bool = True  # Show fields with empty values
     empty_value: str = "-"
-    title: Optional[str] = None
-    actions: Optional[ComponentTree] = None  # Action buttons
+    title: str | None = None
+    actions: ComponentTree | None = None  # Action buttons
 
     def add_field(self, key: str, label: str, **kwargs) -> "DetailView":
         """Add a field."""
@@ -232,16 +237,17 @@ class Pagination(Component):
             on_change="/users?page={page}",
         )
     """
+
     type: ComponentType = ComponentType.PAGINATION
     current_page: int = 1
     total_pages: int = 1
-    total_items: Optional[int] = None
+    total_items: int | None = None
     page_size: int = 10
     page_size_options: List[int] = Field(default_factory=lambda: [10, 25, 50, 100])
     show_page_size: bool = True
     show_total: bool = True
     show_quick_jump: bool = False  # Jump to page input
-    on_change: Optional[str] = None  # URL pattern with {page} placeholder
+    on_change: str | None = None  # URL pattern with {page} placeholder
     max_visible_pages: int = 5  # Max page buttons to show
     variant: Literal["default", "simple", "minimal"] = "default"
 
@@ -264,18 +270,19 @@ class SearchInput(Component):
             show_suggestions=True,
         )
     """
+
     type: ComponentType = ComponentType.TEXT_FIELD
     placeholder: str = "Search..."
-    search_url: Optional[str] = None  # URL for search requests
+    search_url: str | None = None  # URL for search requests
     param_name: str = "q"  # Query parameter name
     debounce_ms: int = 300
     min_length: int = 2  # Min chars before searching
     show_suggestions: bool = False
-    suggestions_url: Optional[str] = None
+    suggestions_url: str | None = None
     show_clear: bool = True
     show_icon: bool = True
     full_width: bool = False
-    on_search: Optional[str] = None  # Callback URL
+    on_search: str | None = None  # Callback URL
 
 
 # =============================================================================
@@ -285,13 +292,14 @@ class SearchInput(Component):
 
 class StatItem(BaseModel):
     """Individual stat item."""
+
     label: str
-    value: Union[str, int, float]
-    change: Optional[float] = None  # Percentage change
-    change_label: Optional[str] = None
-    icon: Optional[str] = None
-    trend: Optional[Literal["up", "down", "neutral"]] = None
-    format: Optional[str] = None
+    value: str | int | float
+    change: float | None = None  # Percentage change
+    change_label: str | None = None
+    icon: str | None = None
+    trend: Literal["up", "down", "neutral"] | None = None
+    format: str | None = None
 
 
 @registry.register("stats", aliases=["metrics"])
@@ -309,6 +317,7 @@ class Stats(Component):
             columns=4,
         )
     """
+
     type: ComponentType = ComponentType.CONTAINER
     items: List[StatItem] = Field(default_factory=list)
     columns: int = 4
@@ -338,11 +347,12 @@ class EmptyState(Component):
             action=Button(label="Send a message"),
         )
     """
+
     type: ComponentType = ComponentType.CONTAINER
-    icon: Optional[str] = None
+    icon: str | None = None
     title: str = "No data"
-    description: Optional[str] = None
-    action: Optional[Component] = None
+    description: str | None = None
+    action: Component | None = None
 
 
 # =============================================================================
@@ -358,10 +368,11 @@ class Skeleton(Component):
     Usage:
         loading = Skeleton(variant="card", count=3)
     """
+
     type: ComponentType = ComponentType.CONTAINER
     variant: Literal["text", "circle", "rect", "card", "table-row"] = "text"
-    width: Optional[str] = None
-    height: Optional[str] = None
+    width: str | None = None
+    height: str | None = None
     count: int = 1  # Number of skeleton items
     animate: bool = True
 

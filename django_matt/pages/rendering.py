@@ -6,18 +6,19 @@ Generates the HTML shell with page data injected as a script tag
 """
 
 import json
-from typing import Any, Dict, Optional
+from typing import Any
 
-from django.http import HttpRequest
-from django.template import Template, Context
-from django.template.loader import render_to_string, get_template
 from django.conf import settings
+from django.http import HttpRequest
+from django.template import Context, Template
+from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
 from django_matt.pages.response import PageData
 
 try:
     import orjson
+
     HAS_ORJSON = True
 except ImportError:
     HAS_ORJSON = False
@@ -43,7 +44,7 @@ DEFAULT_TEMPLATE = """<!DOCTYPE html>
 </html>"""
 
 
-def get_pages_config() -> Dict[str, Any]:
+def get_pages_config() -> dict[str, Any]:
     """Get pages configuration from settings."""
     defaults = {
         "root_template": None,  # Use default template
@@ -107,7 +108,7 @@ def render_page_html(request: HttpRequest, page_data: PageData) -> str:
     return template.render(Context(context))
 
 
-def _get_head_tags(config: Dict[str, Any]) -> str:
+def _get_head_tags(config: dict[str, Any]) -> str:
     """Get head tags (CSS, etc.) from config or manifest."""
     head_tags = config.get("head_tags", "")
 
@@ -121,7 +122,7 @@ def _get_head_tags(config: Dict[str, Any]) -> str:
     return head_tags
 
 
-def _get_body_scripts(config: Dict[str, Any]) -> str:
+def _get_body_scripts(config: dict[str, Any]) -> str:
     """Get body scripts from config or manifest."""
     body_scripts = config.get("body_scripts", "")
 
@@ -135,13 +136,14 @@ def _get_body_scripts(config: Dict[str, Any]) -> str:
     return body_scripts
 
 
-def _load_manifest(manifest_path: Optional[str]) -> Optional[Dict[str, Any]]:
+def _load_manifest(manifest_path: str | None) -> dict[str, Any] | None:
     """Load Vite/webpack manifest file."""
     if not manifest_path:
         return None
 
     try:
         import os
+
         from django.contrib.staticfiles import finders
 
         # Try to find the manifest file
@@ -151,7 +153,7 @@ def _load_manifest(manifest_path: Optional[str]) -> Optional[Dict[str, Any]]:
             full_path = finders.find(manifest_path)
 
         if full_path and os.path.exists(full_path):
-            with open(full_path, "r") as f:
+            with open(full_path) as f:
                 return json.load(f)
     except Exception:
         pass
@@ -159,7 +161,7 @@ def _load_manifest(manifest_path: Optional[str]) -> Optional[Dict[str, Any]]:
     return None
 
 
-def _get_css_from_manifest(manifest: Dict[str, Any]) -> list:
+def _get_css_from_manifest(manifest: dict[str, Any]) -> list:
     """Extract CSS files from manifest."""
     css_files = []
 
@@ -173,7 +175,7 @@ def _get_css_from_manifest(manifest: Dict[str, Any]) -> list:
     return css_files
 
 
-def _get_js_from_manifest(manifest: Dict[str, Any]) -> list:
+def _get_js_from_manifest(manifest: dict[str, Any]) -> list:
     """Extract JS entry files from manifest."""
     js_files = []
 
@@ -204,13 +206,11 @@ def render_page_script_tag(page_data: PageData) -> str:
     else:
         page_json = json.dumps(page_dict, separators=(",", ":"))
 
-    return mark_safe(
-        f'<script type="application/json" id="page-data">{page_json}</script>'
-    )
+    return mark_safe(f'<script type="application/json" id="page-data">{page_json}</script>')
 
 
 __all__ = [
+    "get_pages_config",
     "render_page_html",
     "render_page_script_tag",
-    "get_pages_config",
 ]

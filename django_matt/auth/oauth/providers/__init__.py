@@ -2,18 +2,18 @@
 OAuth providers for social authentication.
 """
 
+from django_matt.auth.oauth.providers.apple import AppleOAuthProvider
 from django_matt.auth.oauth.providers.base import (
-    OAuthProvider,
-    OAuthUserInfo,
-    OAuthToken,
-    OAuthError,
-    OAuthConfigError,
     OAuthAuthenticationError,
+    OAuthConfigError,
+    OAuthError,
+    OAuthProvider,
+    OAuthToken,
+    OAuthUserInfo,
     OAuthUserInfoError,
 )
-from django_matt.auth.oauth.providers.google import GoogleOAuthProvider
 from django_matt.auth.oauth.providers.github import GitHubOAuthProvider
-from django_matt.auth.oauth.providers.apple import AppleOAuthProvider
+from django_matt.auth.oauth.providers.google import GoogleOAuthProvider
 from django_matt.auth.oauth.providers.microsoft import MicrosoftOAuthProvider
 
 __all__ = [

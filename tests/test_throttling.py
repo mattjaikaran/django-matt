@@ -3,10 +3,9 @@ Tests for the throttling module in Django Matt.
 """
 
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import pytest
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
 from django.test import RequestFactory, TestCase, override_settings
 
 from django_matt.throttling import (
@@ -14,7 +13,6 @@ from django_matt.throttling import (
     BaseThrottle,
     InMemoryBackend,
     ScopedRateThrottle,
-    ThrottleMiddleware,
     UserRateThrottle,
     throttle,
 )
@@ -30,7 +28,6 @@ from django_matt.throttling.decorators import (
     throttle_user,
 )
 from django_matt.throttling.throttles import BurstRateThrottle
-
 
 # =============================================================================
 # BaseThrottle Tests
@@ -753,11 +750,13 @@ class TestGetDefaultBackend(TestCase):
     def tearDown(self):
         """Reset default backend after each test."""
         from django_matt.throttling import backends
+
         backends._default_backend = None
 
     def test_returns_in_memory_by_default(self):
         """Test returns InMemoryBackend when no settings configured."""
         from django_matt.throttling import backends
+
         backends._default_backend = None
 
         backend = get_default_backend()
@@ -775,6 +774,7 @@ class TestGetDefaultBackend(TestCase):
     def test_memory_backend_from_settings(self):
         """Test memory backend from settings string."""
         from django_matt.throttling import backends
+
         backends._default_backend = None
 
         backend = get_default_backend()
@@ -784,6 +784,7 @@ class TestGetDefaultBackend(TestCase):
     def test_cache_backend_from_settings(self):
         """Test Django cache backend from settings string."""
         from django_matt.throttling import backends
+
         backends._default_backend = None
 
         backend = get_default_backend()
@@ -793,6 +794,7 @@ class TestGetDefaultBackend(TestCase):
     def test_cache_backend_from_settings_dict(self):
         """Test Django cache backend from settings dict."""
         from django_matt.throttling import backends
+
         backends._default_backend = None
 
         backend = get_default_backend()

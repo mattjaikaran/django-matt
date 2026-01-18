@@ -4,13 +4,12 @@ State management for Livewire components.
 Provides state serialization, snapshots, and persistence.
 """
 
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
+import base64
 import hashlib
 import json
-import pickle
-import base64
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from django_matt.livewire.component import LiveComponent
@@ -32,12 +31,12 @@ class Snapshot:
 
     component_name: str
     component_id: str
-    state: Dict[str, Any]
+    state: dict[str, Any]
     checksum: str
     timestamp: datetime = field(default_factory=datetime.utcnow)
     version: int = 1
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "name": self.component_name,
@@ -49,7 +48,7 @@ class Snapshot:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Snapshot":
+    def from_dict(cls, data: dict[str, Any]) -> "Snapshot":
         """Create from dictionary."""
         return cls(
             component_name=data["name"],
@@ -82,7 +81,7 @@ class Snapshot:
         return base64.urlsafe_b64encode(payload.encode()).decode()
 
     @classmethod
-    def from_token(cls, token: str, secret: Optional[str] = None) -> "Snapshot":
+    def from_token(cls, token: str, secret: str | None = None) -> "Snapshot":
         """
         Restore snapshot from signed token.
 
@@ -102,9 +101,10 @@ class Snapshot:
             raise ValueError(f"Invalid snapshot token: {e}")
 
     @staticmethod
-    def _sign(data: str, secret: Optional[str] = None) -> str:
+    def _sign(data: str, secret: str | None = None) -> str:
         """Create signature for data."""
         from django.conf import settings
+
         key = secret or getattr(settings, "SECRET_KEY", "insecure-default")
         return hashlib.sha256(f"{data}{key}".encode()).hexdigest()[:16]
 
@@ -127,7 +127,7 @@ class State:
     state transformations.
     """
 
-    data: Dict[str, Any] = field(default_factory=dict)
+    data: dict[str, Any] = field(default_factory=dict)
     dirty_fields: set = field(default_factory=set)
     version: int = 0
 
@@ -142,7 +142,7 @@ class State:
             self.dirty_fields.add(key)
             self.version += 1
 
-    def update(self, values: Dict[str, Any]):
+    def update(self, values: dict[str, Any]):
         """Update multiple values."""
         for key, value in values.items():
             self.set(key, value)
@@ -151,17 +151,17 @@ class State:
         """Clear dirty field tracking."""
         self.dirty_fields.clear()
 
-    def is_dirty(self, field: Optional[str] = None) -> bool:
+    def is_dirty(self, field: str | None = None) -> bool:
         """Check if state (or specific field) is dirty."""
         if field:
             return field in self.dirty_fields
         return len(self.dirty_fields) > 0
 
-    def get_dirty_values(self) -> Dict[str, Any]:
+    def get_dirty_values(self) -> dict[str, Any]:
         """Get only the dirty field values."""
         return {k: self.data[k] for k in self.dirty_fields if k in self.data}
 
-    def diff(self, other: "State") -> Dict[str, Dict[str, Any]]:
+    def diff(self, other: "State") -> dict[str, dict[str, Any]]:
         """
         Get the difference between two states.
 
@@ -189,6 +189,7 @@ class State:
     def clone(self) -> "State":
         """Create a copy of the state."""
         import copy
+
         return State(
             data=copy.deepcopy(self.data),
             dirty_fields=self.dirty_fields.copy(),
@@ -231,7 +232,7 @@ class StateManager:
         self.max_snapshots = max_snapshots
 
         # In-memory storage
-        self._memory_store: Dict[str, List[Snapshot]] = {}
+        self._memory_store: dict[str, list[Snapshot]] = {}
 
     def save(self, component: "LiveComponent") -> Snapshot:
         """
@@ -258,8 +259,8 @@ class StateManager:
     def load(
         self,
         component_id: str,
-        version: Optional[int] = None,
-    ) -> Optional[Snapshot]:
+        version: int | None = None,
+    ) -> Snapshot | None:
         """
         Load a component snapshot.
 
@@ -272,16 +273,16 @@ class StateManager:
         """
         if self.backend == "memory":
             return self._load_memory(component_id, version)
-        elif self.backend == "cache":
+        if self.backend == "cache":
             return self._load_cache(component_id, version)
-        elif self.backend == "database":
+        if self.backend == "database":
             return self._load_database(component_id, version)
         return None
 
     def restore(
         self,
         component: "LiveComponent",
-        snapshot: Optional[Snapshot] = None,
+        snapshot: Snapshot | None = None,
     ) -> bool:
         """
         Restore component state from snapshot.
@@ -301,14 +302,14 @@ class StateManager:
         self,
         component_id: str,
         limit: int = 10,
-    ) -> List[Snapshot]:
+    ) -> list[Snapshot]:
         """Get snapshot history for a component."""
         if self.backend == "memory":
             snapshots = self._memory_store.get(component_id, [])
             return snapshots[-limit:]
         return []
 
-    def clear(self, component_id: Optional[str] = None):
+    def clear(self, component_id: str | None = None):
         """Clear snapshots for a component or all components."""
         if self.backend == "memory":
             if component_id:
@@ -326,13 +327,13 @@ class StateManager:
 
         # Trim to max
         if len(snapshots) > self.max_snapshots:
-            self._memory_store[snapshot.component_id] = snapshots[-self.max_snapshots:]
+            self._memory_store[snapshot.component_id] = snapshots[-self.max_snapshots :]
 
     def _load_memory(
         self,
         component_id: str,
-        version: Optional[int],
-    ) -> Optional[Snapshot]:
+        version: int | None,
+    ) -> Snapshot | None:
         snapshots = self._memory_store.get(component_id, [])
         if not snapshots:
             return None
@@ -359,14 +360,14 @@ class StateManager:
         history = cache.get(history_key, [])
         history.append(snapshot.to_dict())
         if len(history) > self.max_snapshots:
-            history = history[-self.max_snapshots:]
+            history = history[-self.max_snapshots :]
         cache.set(history_key, history, self.ttl)
 
     def _load_cache(
         self,
         component_id: str,
-        version: Optional[int],
-    ) -> Optional[Snapshot]:
+        version: int | None,
+    ) -> Snapshot | None:
         from django.core.cache import cache
 
         if version is not None:
@@ -392,8 +393,8 @@ class StateManager:
     def _load_database(
         self,
         component_id: str,
-        version: Optional[int],
-    ) -> Optional[Snapshot]:
+        version: int | None,
+    ) -> Snapshot | None:
         # Would query ComponentSnapshot model
         return self._load_cache(component_id, version)
 

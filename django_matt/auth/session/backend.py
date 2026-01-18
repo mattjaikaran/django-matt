@@ -5,9 +5,8 @@ Enhanced session management with user tracking and multiple session support.
 """
 
 import hashlib
-import secrets
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, Optional
 
 from django.contrib.sessions.backends.db import SessionStore as DjangoSessionStore
 from django.utils import timezone
@@ -28,7 +27,7 @@ class SessionStore(DjangoSessionStore):
     - Session metadata
     """
 
-    def __init__(self, session_key: Optional[str] = None):
+    def __init__(self, session_key: str | None = None):
         super().__init__(session_key)
         self._user_id = None
 
@@ -39,7 +38,7 @@ class SessionStore(DjangoSessionStore):
         self["_session_created"] = timezone.now().isoformat()
         self["_session_fresh"] = True
 
-    def get_user_id(self) -> Optional[int]:
+    def get_user_id(self) -> int | None:
         """Get the associated user ID."""
         user_id = self.get("_auth_user_id")
         if user_id:
@@ -53,7 +52,7 @@ class SessionStore(DjangoSessionStore):
         """Update last activity timestamp."""
         self["_last_activity"] = timezone.now().isoformat()
 
-    def get_last_activity(self) -> Optional[datetime]:
+    def get_last_activity(self) -> datetime | None:
         """Get last activity time."""
         timestamp = self.get("_last_activity")
         if timestamp:
@@ -101,7 +100,7 @@ class SessionStore(DjangoSessionStore):
 def create_session(
     user: "AbstractUser",
     request: Optional["HttpRequest"] = None,
-    data: Optional[Dict[str, Any]] = None,
+    data: dict[str, Any] | None = None,
 ) -> SessionStore:
     """
     Create a new session for a user.
@@ -147,7 +146,7 @@ def create_session(
     return session
 
 
-def get_session(session_key: str) -> Optional[SessionStore]:
+def get_session(session_key: str) -> SessionStore | None:
     """
     Get an existing session by key.
 
@@ -185,7 +184,7 @@ def delete_session(session_key: str) -> bool:
     return False
 
 
-def refresh_session(session_key: str) -> Optional[str]:
+def refresh_session(session_key: str) -> str | None:
     """
     Refresh a session (create new key, preserve data).
 
@@ -209,7 +208,7 @@ def refresh_session(session_key: str) -> Optional[str]:
     return session.session_key
 
 
-def get_user_sessions(user: "AbstractUser") -> List[Dict[str, Any]]:
+def get_user_sessions(user: "AbstractUser") -> list[dict[str, Any]]:
     """
     Get all active sessions for a user.
 
@@ -230,14 +229,16 @@ def get_user_sessions(user: "AbstractUser") -> List[Dict[str, Any]]:
         try:
             data = session.get_decoded()
             if data.get("_auth_user_id") == user_id_str:
-                sessions.append({
-                    "session_key": session.session_key,
-                    "created": data.get("_session_created"),
-                    "last_activity": data.get("_last_activity"),
-                    "ip_address": data.get("_device_ip"),
-                    "user_agent": data.get("_device_user_agent"),
-                    "expires": session.expire_date.isoformat(),
-                })
+                sessions.append(
+                    {
+                        "session_key": session.session_key,
+                        "created": data.get("_session_created"),
+                        "last_activity": data.get("_last_activity"),
+                        "ip_address": data.get("_device_ip"),
+                        "user_agent": data.get("_device_user_agent"),
+                        "expires": session.expire_date.isoformat(),
+                    }
+                )
         except Exception:
             continue
 
@@ -246,7 +247,7 @@ def get_user_sessions(user: "AbstractUser") -> List[Dict[str, Any]]:
 
 def delete_user_sessions(
     user: "AbstractUser",
-    except_session: Optional[str] = None,
+    except_session: str | None = None,
 ) -> int:
     """
     Delete all sessions for a user.
@@ -312,7 +313,7 @@ def cleanup_expired_sessions() -> int:
     return count
 
 
-async def aget_user_sessions(user: "AbstractUser") -> List[Dict[str, Any]]:
+async def aget_user_sessions(user: "AbstractUser") -> list[dict[str, Any]]:
     """Async version of get_user_sessions."""
     from asgiref.sync import sync_to_async
 
@@ -321,7 +322,7 @@ async def aget_user_sessions(user: "AbstractUser") -> List[Dict[str, Any]]:
 
 async def adelete_user_sessions(
     user: "AbstractUser",
-    except_session: Optional[str] = None,
+    except_session: str | None = None,
 ) -> int:
     """Async version of delete_user_sessions."""
     from asgiref.sync import sync_to_async

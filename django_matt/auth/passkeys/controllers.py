@@ -7,36 +7,29 @@ Provides ready-to-use endpoints for:
 - Credential management (list, delete, rename)
 """
 
-from django.http import JsonResponse
-
-from django_matt.auth.jwt import create_token_pair
 from django_matt.auth.decorators import jwt_required
+from django_matt.auth.jwt import create_token_pair
 from django_matt.auth.passkeys.schemas import (
-    RegistrationOptionsRequest,
-    RegistrationOptionsResponse,
-    RegistrationVerifyRequest,
-    RegistrationVerifyResponse,
     AuthenticationOptionsRequest,
-    AuthenticationOptionsResponse,
     AuthenticationVerifyRequest,
     AuthenticationVerifyResponse,
-    PasskeyCredentialResponse,
     PasskeyCredentialListResponse,
-    PasskeyCredentialDeleteRequest,
+    PasskeyCredentialResponse,
     PasskeyCredentialUpdateRequest,
+    RegistrationOptionsRequest,
+    RegistrationVerifyRequest,
+    RegistrationVerifyResponse,
 )
 from django_matt.auth.passkeys.webauthn import (
-    generate_registration_options,
-    verify_registration_response,
-    generate_authentication_options,
-    verify_authentication_response,
     PasskeyError,
+    generate_authentication_options,
+    generate_registration_options,
+    verify_authentication_response,
+    verify_registration_response,
 )
 from django_matt.core.errors import (
-    APIError,
     NotFoundAPIError,
     ValidationAPIError,
-    PermissionAPIError,
 )
 
 
@@ -89,7 +82,9 @@ class PasskeyController:
 
     @staticmethod
     @jwt_required
-    async def register_verify(request, data: RegistrationVerifyRequest) -> RegistrationVerifyResponse:
+    async def register_verify(
+        request, data: RegistrationVerifyRequest
+    ) -> RegistrationVerifyResponse:
         """
         Verify registration response and store the credential.
 
@@ -135,7 +130,9 @@ class PasskeyController:
             raise ValidationAPIError(str(e))
 
     @staticmethod
-    async def authenticate_verify(request, data: AuthenticationVerifyRequest) -> AuthenticationVerifyResponse:
+    async def authenticate_verify(
+        request, data: AuthenticationVerifyRequest
+    ) -> AuthenticationVerifyResponse:
         """
         Verify authentication response and return tokens.
 
@@ -181,9 +178,7 @@ class PasskeyController:
         credentials = PasskeyCredential.objects.filter(user=request.user).order_by("-created_at")
 
         return PasskeyCredentialListResponse(
-            credentials=[
-                PasskeyCredentialResponse.from_model(cred) for cred in credentials
-            ],
+            credentials=[PasskeyCredentialResponse.from_model(cred) for cred in credentials],
             count=credentials.count(),
         )
 
@@ -206,11 +201,11 @@ class PasskeyController:
             raise NotFoundAPIError("Credential not found")
 
         # Prevent deleting last credential if user has no password
-        remaining = PasskeyCredential.objects.filter(user=request.user).exclude(id=credential_id).count()
+        remaining = (
+            PasskeyCredential.objects.filter(user=request.user).exclude(id=credential_id).count()
+        )
         if remaining == 0 and not request.user.has_usable_password():
-            raise ValidationAPIError(
-                "Cannot delete last passkey when user has no password set"
-            )
+            raise ValidationAPIError("Cannot delete last passkey when user has no password set")
 
         credential.delete()
 
@@ -218,7 +213,9 @@ class PasskeyController:
 
     @staticmethod
     @jwt_required
-    async def update_credential(request, credential_id: int, data: PasskeyCredentialUpdateRequest) -> PasskeyCredentialResponse:
+    async def update_credential(
+        request, credential_id: int, data: PasskeyCredentialUpdateRequest
+    ) -> PasskeyCredentialResponse:
         """
         Update a passkey credential (rename).
 
@@ -252,8 +249,18 @@ class PasskeyController:
             ("authenticate/options", "POST", cls.authenticate_options, "passkey-auth-options"),
             ("authenticate/verify", "POST", cls.authenticate_verify, "passkey-auth-verify"),
             ("credentials", "GET", cls.list_credentials, "passkey-list-credentials"),
-            ("credentials/<int:credential_id>", "DELETE", cls.delete_credential, "passkey-delete-credential"),
-            ("credentials/<int:credential_id>", "PATCH", cls.update_credential, "passkey-update-credential"),
+            (
+                "credentials/<int:credential_id>",
+                "DELETE",
+                cls.delete_credential,
+                "passkey-delete-credential",
+            ),
+            (
+                "credentials/<int:credential_id>",
+                "PATCH",
+                cls.update_credential,
+                "passkey-update-credential",
+            ),
         ]
 
 

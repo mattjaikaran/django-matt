@@ -36,35 +36,35 @@ from django_matt.auth.oauth.config import (
     get_oauth_config,
     oauth_config,
 )
+from django_matt.auth.oauth.controllers import (
+    OAuthController,
+)
 from django_matt.auth.oauth.providers import (
-    OAuthProvider,
-    OAuthUserInfo,
-    OAuthToken,
-    OAuthError,
-    OAuthConfigError,
-    OAuthAuthenticationError,
-    OAuthUserInfoError,
-    GoogleOAuthProvider,
-    GitHubOAuthProvider,
     AppleOAuthProvider,
+    GitHubOAuthProvider,
+    GoogleOAuthProvider,
     MicrosoftOAuthProvider,
+    OAuthAuthenticationError,
+    OAuthConfigError,
+    OAuthError,
+    OAuthProvider,
+    OAuthToken,
+    OAuthUserInfo,
+    OAuthUserInfoError,
     get_provider,
     get_provider_instance,
 )
 from django_matt.auth.oauth.schemas import (
-    OAuthProviderInfo,
-    OAuthProvidersResponse,
-    OAuthLoginRequest,
-    OAuthLoginResponse,
     OAuthCallbackRequest,
     OAuthCallbackResponse,
-    OAuthConnectionResponse,
     OAuthConnectionListResponse,
+    OAuthConnectionResponse,
     OAuthDisconnectRequest,
     OAuthErrorResponse,
-)
-from django_matt.auth.oauth.controllers import (
-    OAuthController,
+    OAuthLoginRequest,
+    OAuthLoginResponse,
+    OAuthProviderInfo,
+    OAuthProvidersResponse,
 )
 
 __all__ = [

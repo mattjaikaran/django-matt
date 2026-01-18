@@ -6,7 +6,8 @@ Supports Claude 3.5 Sonnet, Claude 3 Opus, and other Claude models.
 
 import json
 import os
-from typing import Any, AsyncIterator, Dict, List, Optional, Type, TypeVar
+from collections.abc import AsyncIterator
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
@@ -58,16 +59,14 @@ class AnthropicProvider(LLMProvider, StructuredOutputProvider):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        model: Optional[str] = None,
-        base_url: Optional[str] = None,
+        api_key: str | None = None,
+        model: str | None = None,
+        base_url: str | None = None,
         **kwargs,
     ):
         api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         if not api_key:
-            raise ValueError(
-                "Anthropic API key required. Pass api_key or set ANTHROPIC_API_KEY."
-            )
+            raise ValueError("Anthropic API key required. Pass api_key or set ANTHROPIC_API_KEY.")
 
         super().__init__(
             api_key=api_key,
@@ -84,8 +83,7 @@ class AnthropicProvider(LLMProvider, StructuredOutputProvider):
                 import httpx
             except ImportError:
                 raise ImportError(
-                    "httpx is required for Anthropic provider. "
-                    "Install with: pip install httpx"
+                    "httpx is required for Anthropic provider. Install with: pip install httpx"
                 )
 
             self._client = httpx.AsyncClient(
@@ -99,9 +97,7 @@ class AnthropicProvider(LLMProvider, StructuredOutputProvider):
             )
         return self._client
 
-    def _convert_messages(
-        self, messages: List[Message]
-    ) -> tuple[Optional[str], List[Dict[str, Any]]]:
+    def _convert_messages(self, messages: list[Message]) -> tuple[str | None, list[dict[str, Any]]]:
         """
         Convert messages to Anthropic format.
 
@@ -116,27 +112,29 @@ class AnthropicProvider(LLMProvider, StructuredOutputProvider):
                 system_content = msg.content
             elif msg.role == Role.TOOL:
                 # Anthropic uses tool_result for tool responses
-                converted.append({
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": msg.tool_call_id,
-                            "content": msg.content,
-                        }
-                    ],
-                })
+                converted.append(
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": msg.tool_call_id,
+                                "content": msg.content,
+                            }
+                        ],
+                    }
+                )
             else:
-                converted.append({
-                    "role": msg.role.value,
-                    "content": msg.content,
-                })
+                converted.append(
+                    {
+                        "role": msg.role.value,
+                        "content": msg.content,
+                    }
+                )
 
         return system_content, converted
 
-    def _convert_tools(
-        self, tools: Optional[List[ToolDefinition]]
-    ) -> Optional[List[Dict[str, Any]]]:
+    def _convert_tools(self, tools: list[ToolDefinition] | None) -> list[dict[str, Any]] | None:
         """Convert tools to Anthropic format."""
         if not tools:
             return None
@@ -151,14 +149,14 @@ class AnthropicProvider(LLMProvider, StructuredOutputProvider):
 
     async def complete(
         self,
-        messages: List[Message],
+        messages: list[Message],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        stop: Optional[List[str]] = None,
-        tools: Optional[List[ToolDefinition]] = None,
-        tool_choice: Optional[str] = None,
+        max_tokens: int | None = None,
+        stop: list[str] | None = None,
+        tools: list[ToolDefinition] | None = None,
+        tool_choice: str | None = None,
         **kwargs,
     ) -> CompletionResponse:
         """Generate a completion."""
@@ -232,12 +230,12 @@ class AnthropicProvider(LLMProvider, StructuredOutputProvider):
 
     async def stream(
         self,
-        messages: List[Message],
+        messages: list[Message],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        stop: Optional[List[str]] = None,
+        max_tokens: int | None = None,
+        stop: list[str] | None = None,
         **kwargs,
     ) -> AsyncIterator[StreamChunk]:
         """Stream a completion."""
@@ -278,16 +276,14 @@ class AnthropicProvider(LLMProvider, StructuredOutputProvider):
                             yield StreamChunk(content=delta.get("text", ""))
 
                     elif event_type == "message_delta":
-                        yield StreamChunk(
-                            finish_reason=data.get("delta", {}).get("stop_reason")
-                        )
+                        yield StreamChunk(finish_reason=data.get("delta", {}).get("stop_reason"))
 
     async def complete_structured(
         self,
-        messages: List[Message],
-        response_model: Type[T],
+        messages: list[Message],
+        response_model: type[T],
         *,
-        model: Optional[str] = None,
+        model: str | None = None,
         temperature: float = 0.0,
         max_retries: int = 3,
         **kwargs,

@@ -41,13 +41,13 @@ from typing import Literal
 
 from django.conf import settings
 
-
 AuthMethod = Literal["jwt", "session", "token", "anonymous"]
 
 
 @dataclass
 class RateLimitConfig:
     """Rate limiting configuration."""
+
     enabled: bool = True
     messages_per_second: int = 10
     burst_size: int = 20

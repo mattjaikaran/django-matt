@@ -4,17 +4,18 @@ Base classes for deployment providers.
 Provides the abstract interface that all deployment providers must implement.
 """
 
+import os
+import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type
 from pathlib import Path
-import os
-import subprocess
+from typing import Any
 
 
 class DeploymentStatus(str, Enum):
     """Status of a deployment."""
+
     PENDING = "pending"
     BUILDING = "building"
     DEPLOYING = "deploying"
@@ -31,6 +32,7 @@ class DeploymentConfig:
     Contains all settings needed to deploy an application
     to a specific platform.
     """
+
     # App settings
     app_name: str
     project_dir: Path = field(default_factory=Path.cwd)
@@ -43,12 +45,12 @@ class DeploymentConfig:
     worker_class: str = "uvicorn.workers.UvicornWorker"
 
     # Database
-    database_url: Optional[str] = None
+    database_url: str | None = None
     create_database: bool = True
     database_type: str = "postgresql"
 
     # Redis/Cache
-    redis_url: Optional[str] = None
+    redis_url: str | None = None
     create_redis: bool = False
 
     # Static files
@@ -60,16 +62,16 @@ class DeploymentConfig:
     media_url: str = "/media/"
     media_root: str = "media"
     use_s3: bool = False
-    s3_bucket: Optional[str] = None
+    s3_bucket: str | None = None
 
     # Environment
     environment: str = "production"
     debug: bool = False
-    allowed_hosts: List[str] = field(default_factory=list)
+    allowed_hosts: list[str] = field(default_factory=list)
 
     # Secrets
-    secrets: Dict[str, str] = field(default_factory=dict)
-    secret_key: Optional[str] = None
+    secrets: dict[str, str] = field(default_factory=dict)
+    secret_key: str | None = None
 
     # Scaling
     min_instances: int = 1
@@ -81,10 +83,10 @@ class DeploymentConfig:
     health_check_interval: int = 30
 
     # Custom
-    extra_env: Dict[str, str] = field(default_factory=dict)
-    extra_packages: List[str] = field(default_factory=list)
+    extra_env: dict[str, str] = field(default_factory=dict)
+    extra_packages: list[str] = field(default_factory=list)
 
-    def get_env_vars(self) -> Dict[str, str]:
+    def get_env_vars(self) -> dict[str, str]:
         """Get all environment variables for deployment."""
         env = {
             "DJANGO_SETTINGS_MODULE": self.django_settings_module,
@@ -119,12 +121,13 @@ class DeploymentConfig:
 @dataclass
 class DeploymentResult:
     """Result of a deployment operation."""
+
     status: DeploymentStatus
-    url: Optional[str] = None
-    deployment_id: Optional[str] = None
-    logs: List[str] = field(default_factory=list)
-    errors: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    url: str | None = None
+    deployment_id: str | None = None
+    logs: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def success(self) -> bool:
@@ -152,22 +155,20 @@ class DeploymentProvider(ABC):
         self.config = config
 
     @abstractmethod
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """
         Validate the deployment configuration.
 
         Returns a list of error messages (empty if valid).
         """
-        pass
 
     @abstractmethod
-    def generate_config(self) -> Dict[str, str]:
+    def generate_config(self) -> dict[str, str]:
         """
         Generate platform-specific configuration files.
 
         Returns a dict mapping filename to content.
         """
-        pass
 
     @abstractmethod
     async def deploy(self) -> DeploymentResult:
@@ -176,12 +177,10 @@ class DeploymentProvider(ABC):
 
         Returns the deployment result.
         """
-        pass
 
     @abstractmethod
     async def get_status(self, deployment_id: str) -> DeploymentResult:
         """Get the status of a deployment."""
-        pass
 
     async def rollback(self, deployment_id: str) -> DeploymentResult:
         """Rollback to a previous deployment."""
@@ -191,14 +190,15 @@ class DeploymentProvider(ABC):
         """Scale the application."""
         raise NotImplementedError(f"{self.name} does not support scaling")
 
-    async def get_logs(self, lines: int = 100) -> List[str]:
+    async def get_logs(self, lines: int = 100) -> list[str]:
         """Get application logs."""
         raise NotImplementedError(f"{self.name} does not support logs")
 
-    def run_command(self, command: List[str], capture: bool = True) -> subprocess.CompletedProcess:
+    def run_command(self, command: list[str], capture: bool = True) -> subprocess.CompletedProcess:
         """Run a shell command."""
         return subprocess.run(
             command,
+            check=False,
             cwd=self.config.project_dir,
             capture_output=capture,
             text=True,
@@ -209,6 +209,7 @@ class DeploymentProvider(ABC):
         try:
             result = subprocess.run(
                 ["which", command],
+                check=False,
                 capture_output=True,
                 text=True,
             )
@@ -228,11 +229,11 @@ class SecretManager:
     - Vault/AWS Secrets Manager
     """
 
-    def __init__(self, project_dir: Optional[Path] = None):
+    def __init__(self, project_dir: Path | None = None):
         self.project_dir = project_dir or Path.cwd()
-        self._secrets: Dict[str, str] = {}
+        self._secrets: dict[str, str] = {}
 
-    def load_from_env(self, prefix: str = "") -> Dict[str, str]:
+    def load_from_env(self, prefix: str = "") -> dict[str, str]:
         """Load secrets from environment variables."""
         secrets = {}
         for key, value in os.environ.items():
@@ -242,7 +243,7 @@ class SecretManager:
         self._secrets.update(secrets)
         return secrets
 
-    def load_from_dotenv(self, filename: str = ".env") -> Dict[str, str]:
+    def load_from_dotenv(self, filename: str = ".env") -> dict[str, str]:
         """Load secrets from a .env file."""
         env_path = self.project_dir / filename
         secrets = {}
@@ -260,7 +261,7 @@ class SecretManager:
         self._secrets.update(secrets)
         return secrets
 
-    def get(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get(self, key: str, default: str | None = None) -> str | None:
         """Get a secret value."""
         return self._secrets.get(key, os.environ.get(key, default))
 
@@ -268,7 +269,7 @@ class SecretManager:
         """Set a secret value."""
         self._secrets[key] = value
 
-    def get_all(self) -> Dict[str, str]:
+    def get_all(self) -> dict[str, str]:
         """Get all loaded secrets."""
         return self._secrets.copy()
 
@@ -276,13 +277,18 @@ class SecretManager:
         """Generate a Django secret key."""
         import secrets
         import string
+
         chars = string.ascii_letters + string.digits + "!@#$%^&*(-_=+)"
         return "".join(secrets.choice(chars) for _ in range(length))
 
-    def export_to_file(self, filename: str, keys: Optional[List[str]] = None):
+    def export_to_file(self, filename: str, keys: list[str] | None = None):
         """Export secrets to an env file."""
         env_path = self.project_dir / filename
-        secrets_to_export = self._secrets if keys is None else {k: self._secrets[k] for k in keys if k in self._secrets}
+        secrets_to_export = (
+            self._secrets
+            if keys is None
+            else {k: self._secrets[k] for k in keys if k in self._secrets}
+        )
 
         with open(env_path, "w") as f:
             for key, value in sorted(secrets_to_export.items()):
@@ -293,14 +299,16 @@ class SecretManager:
 
 
 # Provider registry
-_providers: Dict[str, Type[DeploymentProvider]] = {}
+_providers: dict[str, type[DeploymentProvider]] = {}
 
 
 def register_provider(name: str):
     """Decorator to register a deployment provider."""
-    def decorator(cls: Type[DeploymentProvider]):
+
+    def decorator(cls: type[DeploymentProvider]):
         _providers[name] = cls
         return cls
+
     return decorator
 
 
@@ -311,18 +319,18 @@ def get_provider(name: str, config: DeploymentConfig) -> DeploymentProvider:
     return _providers[name](config)
 
 
-def list_providers() -> List[str]:
+def list_providers() -> list[str]:
     """List all registered providers."""
     return list(_providers.keys())
 
 
 __all__ = [
-    "DeploymentStatus",
     "DeploymentConfig",
-    "DeploymentResult",
     "DeploymentProvider",
+    "DeploymentResult",
+    "DeploymentStatus",
     "SecretManager",
-    "register_provider",
     "get_provider",
     "list_providers",
+    "register_provider",
 ]

@@ -35,6 +35,14 @@ Example usage:
 """
 
 from django_matt.versioning.base import BaseVersioning
+from django_matt.versioning.decorators import (
+    deprecated,
+    max_version,
+    min_version,
+    version,
+)
+from django_matt.versioning.middleware import VersioningMiddleware
+from django_matt.versioning.router import VersionedRouter
 from django_matt.versioning.schemes import (
     AcceptHeaderVersioning,
     HeaderVersioning,
@@ -42,14 +50,6 @@ from django_matt.versioning.schemes import (
     QueryParameterVersioning,
     URLPathVersioning,
 )
-from django_matt.versioning.decorators import (
-    version,
-    deprecated,
-    min_version,
-    max_version,
-)
-from django_matt.versioning.middleware import VersioningMiddleware
-from django_matt.versioning.router import VersionedRouter
 
 __all__ = [
     # Base

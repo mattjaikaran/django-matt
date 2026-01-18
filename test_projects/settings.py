@@ -20,31 +20,25 @@ ENVIRONMENT = os.environ.get("DJANGO_ENV", "development")
 settings = configure(
     # Specify the environment (development, staging, production)
     environment=ENVIRONMENT,
-    
     # Specify the components to load
-    components=['database', 'cache', 'security', 'performance'],
-    
+    components=["database", "cache", "security", "performance"],
     # Specify additional settings
     extra_settings={
         # Project-specific settings
         "ROOT_URLCONF": "test_projects.urls",
         "WSGI_APPLICATION": "test_projects.wsgi.application",
-        
         # Add your project's apps
         "INSTALLED_APPS": [
             # Django Matt apps
             "django_matt",
-            
             # Your project's apps
             "test_projects.core",
         ],
-        
         # Add your project's middleware
         "MIDDLEWARE": [
             # Django Matt middleware
             "django_matt.middleware.BenchmarkMiddleware",
         ],
-        
         # Add your project's templates
         "TEMPLATES": [
             {
@@ -53,19 +47,15 @@ settings = configure(
                 ],
             },
         ],
-        
         # Add your project's static files
         "STATICFILES_DIRS": [
             os.path.join(BASE_DIR, "test_projects", "static"),
         ],
-        
         # Add your project's media files
         "MEDIA_ROOT": os.path.join(BASE_DIR, "test_projects", "media"),
-        
         # Database type
         "DB_TYPE": "postgres",
     },
-    
     # Apply the settings to Django's settings module
     apply_to_django=True,
 )

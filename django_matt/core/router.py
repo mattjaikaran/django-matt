@@ -4,6 +4,7 @@ from collections.abc import Callable
 
 from django.http import HttpResponse, JsonResponse
 from django.urls import path
+
 from pydantic import BaseModel, ValidationError
 
 
@@ -224,8 +225,7 @@ class APIRouter:
                     # Return the response
                     if isinstance(result, HttpResponse):
                         return result
-                    else:
-                        return JsonResponse(result, status=status_code, safe=False)
+                    return JsonResponse(result, status=status_code, safe=False)
 
                 return view_func
 
@@ -270,9 +270,7 @@ class APIRouter:
                                 body_data = json.loads(request.body)
                                 kwargs["body"] = body_data
                             except json.JSONDecodeError:
-                                return JsonResponse(
-                                    {"detail": "Invalid JSON"}, status=400
-                                )
+                                return JsonResponse({"detail": "Invalid JSON"}, status=400)
 
                         # Call the method
                         if inspect.iscoroutinefunction(method):
@@ -296,8 +294,7 @@ class APIRouter:
                         # Return the response
                         if isinstance(result, HttpResponse):
                             return result
-                        else:
-                            return JsonResponse(result, status=status_code, safe=False)
+                        return JsonResponse(result, status=status_code, safe=False)
 
                     return view_func
 

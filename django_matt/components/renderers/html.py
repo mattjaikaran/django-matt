@@ -6,7 +6,7 @@ or as a fallback for non-JS environments.
 """
 
 from html import escape
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from django_matt.components.base import Component, ComponentType
 from django_matt.components.renderers.base import (
@@ -85,7 +85,7 @@ class HTMLRenderer(BaseRenderer):
     def render_component(
         self,
         component: Component,
-        context: Optional[RenderContext] = None,
+        context: RenderContext | None = None,
     ) -> RenderOutput:
         """Render a component to HTML."""
         if context is None:
@@ -167,14 +167,16 @@ class HTMLRenderer(BaseRenderer):
         attrs = self._get_attrs(component, classes=classes)
         children = self.render_children(component.children, context)
 
-        parts = [f'<div {attrs}>']
+        parts = [f"<div {attrs}>"]
 
         title = getattr(component, "title", None)
         description = getattr(component, "description", None)
         if title or description:
             parts.append('<div class="flex flex-col space-y-1.5 p-6">')
             if title:
-                parts.append(f'<h3 class="text-2xl font-semibold leading-none tracking-tight">{escape(title)}</h3>')
+                parts.append(
+                    f'<h3 class="text-2xl font-semibold leading-none tracking-tight">{escape(title)}</h3>'
+                )
             if description:
                 parts.append(f'<p class="text-sm text-muted-foreground">{escape(description)}</p>')
             parts.append("</div>")
@@ -183,7 +185,9 @@ class HTMLRenderer(BaseRenderer):
 
         footer = getattr(component, "footer", None)
         if footer:
-            footer_html = self.render_children(footer if isinstance(footer, list) else [footer], context)
+            footer_html = self.render_children(
+                footer if isinstance(footer, list) else [footer], context
+            )
             parts.append(f'<div class="flex items-center p-6 pt-0">{footer_html}</div>')
 
         parts.append("</div>")
@@ -198,7 +202,7 @@ class HTMLRenderer(BaseRenderer):
         description = getattr(component, "description", "")
         children = self.render_children(component.children, context)
 
-        return f'''
+        return f"""
 <div class="fixed inset-0 z-50 bg-black/80" aria-hidden="true"></div>
 <div class="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg sm:rounded-lg">
   <div class="flex flex-col space-y-1.5 text-center sm:text-left">
@@ -207,13 +211,17 @@ class HTMLRenderer(BaseRenderer):
   </div>
   <div>{children}</div>
 </div>
-'''
+"""
 
     def _render_tabs(self, component: Component, context: RenderContext) -> str:
         items = getattr(component, "items", [])
-        default_value = getattr(component, "default_value", None) or (items[0].value if items else "")
+        default_value = getattr(component, "default_value", None) or (
+            items[0].value if items else ""
+        )
 
-        tabs_html = ['<div class="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">']
+        tabs_html = [
+            '<div class="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">'
+        ]
         for item in items:
             active = item.value == default_value
             active_class = "bg-background text-foreground shadow-sm" if active else ""
@@ -238,7 +246,7 @@ class HTMLRenderer(BaseRenderer):
 
         for item in items:
             content = self.render_children(item.children, context) if item.children else ""
-            html_parts.append(f'''
+            html_parts.append(f"""
 <div class="border-b">
   <button class="flex w-full items-center justify-between py-4 font-medium transition-all hover:underline">
     {escape(item.title)}
@@ -250,7 +258,7 @@ class HTMLRenderer(BaseRenderer):
     <div class="pb-4 pt-0">{content}</div>
   </div>
 </div>
-''')
+""")
 
         html_parts.append("</div>")
         return "\n".join(html_parts)
@@ -268,15 +276,17 @@ class HTMLRenderer(BaseRenderer):
             "info": "border-blue-500/50 text-blue-700 dark:text-blue-400",
         }
 
-        classes = ["relative", "w-full", "rounded-lg", "border", "p-4"] + [variant_classes.get(variant, "")]
+        classes = ["relative", "w-full", "rounded-lg", "border", "p-4"] + [
+            variant_classes.get(variant, "")
+        ]
         attrs = self._get_attrs(component, classes=classes, role="alert")
 
-        return f'''
+        return f"""
 <div {attrs}>
-  {f'<h5 class="mb-1 font-medium leading-none tracking-tight">{escape(title)}</h5>' if title else ''}
+  {f'<h5 class="mb-1 font-medium leading-none tracking-tight">{escape(title)}</h5>' if title else ""}
   <div class="text-sm">{escape(message)}</div>
 </div>
-'''
+"""
 
     # =========================================================================
     # Display Components
@@ -364,8 +374,7 @@ class HTMLRenderer(BaseRenderer):
 
         if src:
             return f'<span {attrs}><img class="aspect-square h-full w-full" src="{escape(src)}" alt="{escape(alt)}" /></span>'
-        else:
-            return f'<span {attrs}><span class="flex h-full w-full items-center justify-center rounded-full bg-muted">{escape(fallback)}</span></span>'
+        return f'<span {attrs}><span class="flex h-full w-full items-center justify-center rounded-full bg-muted">{escape(fallback)}</span></span>'
 
     def _render_badge(self, component: Component, context: RenderContext) -> str:
         content = getattr(component, "content", "")
@@ -381,8 +390,15 @@ class HTMLRenderer(BaseRenderer):
         }
 
         classes = [
-            "inline-flex", "items-center", "rounded-full", "border", "px-2.5", "py-0.5",
-            "text-xs", "font-semibold", "transition-colors",
+            "inline-flex",
+            "items-center",
+            "rounded-full",
+            "border",
+            "px-2.5",
+            "py-0.5",
+            "text-xs",
+            "font-semibold",
+            "transition-colors",
             variant_classes.get(variant, ""),
         ]
         attrs = self._get_attrs(component, classes=classes)
@@ -400,12 +416,12 @@ class HTMLRenderer(BaseRenderer):
         size = getattr(component, "size", "md")
         size_class = size_classes.get(size, size_classes["md"])
 
-        return f'''
+        return f"""
 <svg class="animate-spin {size_class}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 </svg>
-'''
+"""
 
     def _render_progress(self, component: Component, context: RenderContext) -> str:
         value = getattr(component, "value", 0)
@@ -415,11 +431,11 @@ class HTMLRenderer(BaseRenderer):
         classes = ["relative", "h-4", "w-full", "overflow-hidden", "rounded-full", "bg-secondary"]
         attrs = self._get_attrs(component, classes=classes)
 
-        return f'''
+        return f"""
 <div {attrs}>
   <div class="h-full w-full flex-1 bg-primary transition-all" style="transform: translateX(-{100 - percent}%)"></div>
 </div>
-'''
+"""
 
     # =========================================================================
     # Button & Link
@@ -448,11 +464,21 @@ class HTMLRenderer(BaseRenderer):
         }
 
         classes = [
-            "inline-flex", "items-center", "justify-center", "whitespace-nowrap",
-            "rounded-md", "text-sm", "font-medium", "ring-offset-background",
-            "transition-colors", "focus-visible:outline-none", "focus-visible:ring-2",
-            "focus-visible:ring-ring", "focus-visible:ring-offset-2",
-            "disabled:pointer-events-none", "disabled:opacity-50",
+            "inline-flex",
+            "items-center",
+            "justify-center",
+            "whitespace-nowrap",
+            "rounded-md",
+            "text-sm",
+            "font-medium",
+            "ring-offset-background",
+            "transition-colors",
+            "focus-visible:outline-none",
+            "focus-visible:ring-2",
+            "focus-visible:ring-ring",
+            "focus-visible:ring-offset-2",
+            "disabled:pointer-events-none",
+            "disabled:opacity-50",
             variant_classes.get(variant, ""),
             size_classes.get(size, ""),
         ]
@@ -507,7 +533,7 @@ class HTMLRenderer(BaseRenderer):
             req = '<span class="text-destructive">*</span>' if required else ""
             parts.append(
                 f'<label for="{escape(name)}" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">'
-                f'{escape(label)}{req}</label>'
+                f"{escape(label)}{req}</label>"
             )
 
         parts.append(input_html)
@@ -528,12 +554,28 @@ class HTMLRenderer(BaseRenderer):
         readonly = getattr(component, "readonly", False)
 
         classes = [
-            "flex", "h-10", "w-full", "rounded-md", "border", "border-input",
-            "bg-background", "px-3", "py-2", "text-sm", "ring-offset-background",
-            "file:border-0", "file:bg-transparent", "file:text-sm", "file:font-medium",
-            "placeholder:text-muted-foreground", "focus-visible:outline-none",
-            "focus-visible:ring-2", "focus-visible:ring-ring", "focus-visible:ring-offset-2",
-            "disabled:cursor-not-allowed", "disabled:opacity-50",
+            "flex",
+            "h-10",
+            "w-full",
+            "rounded-md",
+            "border",
+            "border-input",
+            "bg-background",
+            "px-3",
+            "py-2",
+            "text-sm",
+            "ring-offset-background",
+            "file:border-0",
+            "file:bg-transparent",
+            "file:text-sm",
+            "file:font-medium",
+            "placeholder:text-muted-foreground",
+            "focus-visible:outline-none",
+            "focus-visible:ring-2",
+            "focus-visible:ring-ring",
+            "focus-visible:ring-offset-2",
+            "disabled:cursor-not-allowed",
+            "disabled:opacity-50",
         ]
 
         input_html = f'<input type="text" {self._get_attrs(component, classes=classes, name=name, placeholder=placeholder, value=default_value, required=required, readonly=readonly)} />'
@@ -545,8 +587,16 @@ class HTMLRenderer(BaseRenderer):
         default_value = getattr(component, "default_value", "")
 
         classes = [
-            "flex", "h-10", "w-full", "rounded-md", "border", "border-input",
-            "bg-background", "px-3", "py-2", "text-sm",
+            "flex",
+            "h-10",
+            "w-full",
+            "rounded-md",
+            "border",
+            "border-input",
+            "bg-background",
+            "px-3",
+            "py-2",
+            "text-sm",
         ]
 
         input_html = f'<input type="email" {self._get_attrs(component, classes=classes, name=name, placeholder=placeholder, value=default_value)} />'
@@ -557,8 +607,16 @@ class HTMLRenderer(BaseRenderer):
         placeholder = getattr(component, "placeholder", "")
 
         classes = [
-            "flex", "h-10", "w-full", "rounded-md", "border", "border-input",
-            "bg-background", "px-3", "py-2", "text-sm",
+            "flex",
+            "h-10",
+            "w-full",
+            "rounded-md",
+            "border",
+            "border-input",
+            "bg-background",
+            "px-3",
+            "py-2",
+            "text-sm",
         ]
 
         input_html = f'<input type="password" {self._get_attrs(component, classes=classes, name=name, placeholder=placeholder)} />'
@@ -571,8 +629,16 @@ class HTMLRenderer(BaseRenderer):
         step = getattr(component, "step", None)
 
         classes = [
-            "flex", "h-10", "w-full", "rounded-md", "border", "border-input",
-            "bg-background", "px-3", "py-2", "text-sm",
+            "flex",
+            "h-10",
+            "w-full",
+            "rounded-md",
+            "border",
+            "border-input",
+            "bg-background",
+            "px-3",
+            "py-2",
+            "text-sm",
         ]
 
         input_html = f'<input type="number" {self._get_attrs(component, classes=classes, name=name, min=min_value, max=max_value, step=step)} />'
@@ -585,11 +651,19 @@ class HTMLRenderer(BaseRenderer):
         default_value = getattr(component, "default_value", "")
 
         classes = [
-            "flex", "min-h-[80px]", "w-full", "rounded-md", "border", "border-input",
-            "bg-background", "px-3", "py-2", "text-sm",
+            "flex",
+            "min-h-[80px]",
+            "w-full",
+            "rounded-md",
+            "border",
+            "border-input",
+            "bg-background",
+            "px-3",
+            "py-2",
+            "text-sm",
         ]
 
-        input_html = f'<textarea {self._get_attrs(component, classes=classes, name=name, placeholder=placeholder, rows=rows)}>{escape(default_value or "")}</textarea>'
+        input_html = f"<textarea {self._get_attrs(component, classes=classes, name=name, placeholder=placeholder, rows=rows)}>{escape(default_value or '')}</textarea>"
         return self._render_field_wrapper(component, input_html)
 
     def _render_select(self, component: Component, context: RenderContext) -> str:
@@ -598,17 +672,28 @@ class HTMLRenderer(BaseRenderer):
         empty_label = getattr(component, "empty_label", "Select...")
 
         classes = [
-            "flex", "h-10", "w-full", "items-center", "justify-between",
-            "rounded-md", "border", "border-input", "bg-background",
-            "px-3", "py-2", "text-sm",
+            "flex",
+            "h-10",
+            "w-full",
+            "items-center",
+            "justify-between",
+            "rounded-md",
+            "border",
+            "border-input",
+            "bg-background",
+            "px-3",
+            "py-2",
+            "text-sm",
         ]
 
         options_html = [f'<option value="">{escape(empty_label)}</option>']
         for opt in options:
             disabled = "disabled" if opt.disabled else ""
-            options_html.append(f'<option value="{escape(opt.value)}" {disabled}>{escape(opt.label)}</option>')
+            options_html.append(
+                f'<option value="{escape(opt.value)}" {disabled}>{escape(opt.label)}</option>'
+            )
 
-        select_html = f'<select {self._get_attrs(component, classes=classes, name=name)}>{"".join(options_html)}</select>'
+        select_html = f"<select {self._get_attrs(component, classes=classes, name=name)}>{''.join(options_html)}</select>"
         return self._render_field_wrapper(component, select_html)
 
     def _render_checkbox(self, component: Component, context: RenderContext) -> str:
@@ -641,8 +726,7 @@ class HTMLRenderer(BaseRenderer):
 ''')
 
         return self._render_field_wrapper(
-            component,
-            f'<div class="flex {flex_class}">{"".join(items_html)}</div>'
+            component, f'<div class="flex {flex_class}">{"".join(items_html)}</div>'
         )
 
     def _render_switch(self, component: Component, context: RenderContext) -> str:
@@ -655,8 +739,8 @@ class HTMLRenderer(BaseRenderer):
         return f'''
 <div class="flex items-center space-x-2">
   <button type="button" role="switch" aria-checked="{str(checked).lower()}"
-    class="peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 {'bg-primary' if checked else 'bg-input'}">
-    <span class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform {'translate-x-5' if checked else 'translate-x-0'}"></span>
+    class="peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 {"bg-primary" if checked else "bg-input"}">
+    <span class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform {"translate-x-5" if checked else "translate-x-0"}"></span>
   </button>
   <input type="checkbox" name="{escape(name)}" class="hidden" {checked_attr} />
   <label class="text-sm font-medium leading-none">{escape(label)}</label>
@@ -672,7 +756,10 @@ class HTMLRenderer(BaseRenderer):
         data = getattr(component, "data", [])
         empty_message = getattr(component, "empty_message", "No data available")
 
-        parts = ['<div class="relative w-full overflow-auto">', '<table class="w-full caption-bottom text-sm">']
+        parts = [
+            '<div class="relative w-full overflow-auto">',
+            '<table class="w-full caption-bottom text-sm">',
+        ]
 
         # Header
         parts.append("<thead>")
@@ -680,7 +767,9 @@ class HTMLRenderer(BaseRenderer):
         for col in columns:
             if not col.hidden:
                 align_class = f"text-{col.align}" if col.align != "left" else ""
-                parts.append(f'<th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground {align_class}">{escape(col.label)}</th>')
+                parts.append(
+                    f'<th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground {align_class}">{escape(col.label)}</th>'
+                )
         parts.append("</tr>")
         parts.append("</thead>")
 
@@ -696,7 +785,9 @@ class HTMLRenderer(BaseRenderer):
                 parts.append("</tr>")
         else:
             col_count = len([c for c in columns if not c.hidden])
-            parts.append(f'<tr><td colspan="{col_count}" class="h-24 text-center">{escape(empty_message)}</td></tr>')
+            parts.append(
+                f'<tr><td colspan="{col_count}" class="h-24 text-center">{escape(empty_message)}</td></tr>'
+            )
         parts.append("</tbody>")
 
         parts.append("</table>")
@@ -715,21 +806,29 @@ class HTMLRenderer(BaseRenderer):
         prev_disabled = current_page <= 1
         prev_url = on_change.replace("{page}", str(current_page - 1)) if not prev_disabled else "#"
         prev_class = "opacity-50 cursor-not-allowed" if prev_disabled else ""
-        parts.append(f'<a href="{prev_url}" class="inline-flex items-center justify-center h-10 px-4 py-2 rounded-md border {prev_class}">Previous</a>')
+        parts.append(
+            f'<a href="{prev_url}" class="inline-flex items-center justify-center h-10 px-4 py-2 rounded-md border {prev_class}">Previous</a>'
+        )
 
         # Page numbers
         for page in range(1, total_pages + 1):
             if page == current_page:
-                parts.append(f'<span class="inline-flex items-center justify-center h-10 w-10 rounded-md bg-primary text-primary-foreground">{page}</span>')
+                parts.append(
+                    f'<span class="inline-flex items-center justify-center h-10 w-10 rounded-md bg-primary text-primary-foreground">{page}</span>'
+                )
             else:
                 url = on_change.replace("{page}", str(page))
-                parts.append(f'<a href="{url}" class="inline-flex items-center justify-center h-10 w-10 rounded-md border hover:bg-accent">{page}</a>')
+                parts.append(
+                    f'<a href="{url}" class="inline-flex items-center justify-center h-10 w-10 rounded-md border hover:bg-accent">{page}</a>'
+                )
 
         # Next
         next_disabled = current_page >= total_pages
         next_url = on_change.replace("{page}", str(current_page + 1)) if not next_disabled else "#"
         next_class = "opacity-50 cursor-not-allowed" if next_disabled else ""
-        parts.append(f'<a href="{next_url}" class="inline-flex items-center justify-center h-10 px-4 py-2 rounded-md border {next_class}">Next</a>')
+        parts.append(
+            f'<a href="{next_url}" class="inline-flex items-center justify-center h-10 px-4 py-2 rounded-md border {next_class}">Next</a>'
+        )
 
         parts.append("</nav>")
 

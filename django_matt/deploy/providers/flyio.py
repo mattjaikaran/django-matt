@@ -4,13 +4,14 @@ Fly.io deployment provider.
 Provides deployment to Fly.io with automatic configuration generation.
 """
 
-from typing import Any, Dict, List, Optional
 import json
+from typing import Any
+
 import toml
 
 from django_matt.deploy.base import (
-    DeploymentProvider,
     DeploymentConfig,
+    DeploymentProvider,
     DeploymentResult,
     DeploymentStatus,
     register_provider,
@@ -36,15 +37,17 @@ class FlyioProvider(DeploymentProvider):
 
     def __init__(self, config: DeploymentConfig):
         super().__init__(config)
-        self.fly_config: Dict[str, Any] = {}
+        self.fly_config: dict[str, Any] = {}
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """Validate configuration for Fly.io deployment."""
         errors = []
 
         # Check CLI is installed
         if not self.check_cli_installed("flyctl"):
-            errors.append("flyctl CLI is not installed. Install from https://fly.io/docs/hands-on/install-flyctl/")
+            errors.append(
+                "flyctl CLI is not installed. Install from https://fly.io/docs/hands-on/install-flyctl/"
+            )
 
         # Validate app name
         if not self.config.app_name:
@@ -58,7 +61,7 @@ class FlyioProvider(DeploymentProvider):
 
         return errors
 
-    def generate_config(self) -> Dict[str, str]:
+    def generate_config(self) -> dict[str, str]:
         """Generate Fly.io configuration files."""
         files = {}
 
@@ -132,7 +135,7 @@ class FlyioProvider(DeploymentProvider):
 
     def _generate_dockerfile(self) -> str:
         """Generate Dockerfile for Fly.io."""
-        return f'''# Dockerfile for Fly.io deployment
+        return f"""# Dockerfile for Fly.io deployment
 FROM python:3.13-slim
 
 # Set environment variables
@@ -165,12 +168,12 @@ RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Run gunicorn
-CMD ["sh", "-c", "gunicorn {self.config.django_settings_module.rsplit('.', 1)[0]}.wsgi:application --bind 0.0.0.0:$PORT --workers {self.config.workers} --worker-class {self.config.worker_class}"]
-'''
+CMD ["sh", "-c", "gunicorn {self.config.django_settings_module.rsplit(".", 1)[0]}.wsgi:application --bind 0.0.0.0:$PORT --workers {self.config.workers} --worker-class {self.config.worker_class}"]
+"""
 
     def _generate_dockerignore(self) -> str:
         """Generate .dockerignore file."""
-        return '''# Python
+        return """# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -213,18 +216,18 @@ htmlcov/
 .env.*
 !.env.example
 .DS_Store
-'''
+"""
 
     def _generate_release_script(self) -> str:
         """Generate release script for migrations."""
-        return '''#!/bin/sh
+        return """#!/bin/sh
 set -e
 
 echo "Running database migrations..."
 python manage.py migrate --noinput
 
 echo "Release complete!"
-'''
+"""
 
     async def deploy(self) -> DeploymentResult:
         """Deploy to Fly.io."""
@@ -256,10 +259,16 @@ echo "Release complete!"
             if not app_exists:
                 # Create app
                 result.add_log(f"Creating app: {self.config.app_name}")
-                create_result = self.run_command([
-                    "flyctl", "apps", "create", self.config.app_name,
-                    "--org", "personal",
-                ])
+                create_result = self.run_command(
+                    [
+                        "flyctl",
+                        "apps",
+                        "create",
+                        self.config.app_name,
+                        "--org",
+                        "personal",
+                    ]
+                )
                 if create_result.returncode != 0:
                     result.status = DeploymentStatus.FAILED
                     result.add_error(f"Failed to create app: {create_result.stderr}")
@@ -268,30 +277,49 @@ echo "Release complete!"
             # Create database if needed
             if self.config.create_database and not self.config.database_url:
                 result.add_log("Creating PostgreSQL database...")
-                db_result = self.run_command([
-                    "flyctl", "postgres", "create",
-                    "--name", f"{self.config.app_name}-db",
-                    "--region", "iad",
-                    "--vm-size", "shared-cpu-1x",
-                    "--volume-size", "1",
-                ])
+                db_result = self.run_command(
+                    [
+                        "flyctl",
+                        "postgres",
+                        "create",
+                        "--name",
+                        f"{self.config.app_name}-db",
+                        "--region",
+                        "iad",
+                        "--vm-size",
+                        "shared-cpu-1x",
+                        "--volume-size",
+                        "1",
+                    ]
+                )
                 if db_result.returncode == 0:
                     # Attach database
-                    self.run_command([
-                        "flyctl", "postgres", "attach",
-                        f"{self.config.app_name}-db",
-                        "--app", self.config.app_name,
-                    ])
+                    self.run_command(
+                        [
+                            "flyctl",
+                            "postgres",
+                            "attach",
+                            f"{self.config.app_name}-db",
+                            "--app",
+                            self.config.app_name,
+                        ]
+                    )
                     result.add_log("Database created and attached")
 
             # Create Redis if needed
             if self.config.create_redis and not self.config.redis_url:
                 result.add_log("Creating Redis...")
-                redis_result = self.run_command([
-                    "flyctl", "redis", "create",
-                    "--name", f"{self.config.app_name}-redis",
-                    "--region", "iad",
-                ])
+                redis_result = self.run_command(
+                    [
+                        "flyctl",
+                        "redis",
+                        "create",
+                        "--name",
+                        f"{self.config.app_name}-redis",
+                        "--region",
+                        "iad",
+                    ]
+                )
                 if redis_result.returncode == 0:
                     result.add_log("Redis created")
 
@@ -301,15 +329,21 @@ echo "Release complete!"
             if secrets:
                 result.add_log("Setting secrets...")
                 secrets_args = [f"{k}={v}" for k, v in secrets.items()]
-                self.run_command(["flyctl", "secrets", "set", "--app", self.config.app_name] + secrets_args)
+                self.run_command(
+                    ["flyctl", "secrets", "set", "--app", self.config.app_name] + secrets_args
+                )
 
             # Deploy
             result.add_log("Deploying application...")
-            deploy_result = self.run_command([
-                "flyctl", "deploy",
-                "--app", self.config.app_name,
-                "--remote-only",
-            ])
+            deploy_result = self.run_command(
+                [
+                    "flyctl",
+                    "deploy",
+                    "--app",
+                    self.config.app_name,
+                    "--remote-only",
+                ]
+            )
 
             if deploy_result.returncode != 0:
                 result.status = DeploymentStatus.FAILED
@@ -322,7 +356,9 @@ echo "Release complete!"
             result.add_log(f"Deployment successful! App available at {result.url}")
 
             # Get deployment info
-            info_result = self.run_command(["flyctl", "info", "--app", self.config.app_name, "--json"])
+            info_result = self.run_command(
+                ["flyctl", "info", "--app", self.config.app_name, "--json"]
+            )
             if info_result.returncode == 0:
                 info = json.loads(info_result.stdout)
                 result.deployment_id = info.get("ID", "")
@@ -339,9 +375,9 @@ echo "Release complete!"
         result = DeploymentResult(status=DeploymentStatus.PENDING)
 
         try:
-            status_result = self.run_command([
-                "flyctl", "status", "--app", self.config.app_name, "--json"
-            ])
+            status_result = self.run_command(
+                ["flyctl", "status", "--app", self.config.app_name, "--json"]
+            )
 
             if status_result.returncode == 0:
                 status = json.loads(status_result.stdout)
@@ -352,7 +388,9 @@ echo "Release complete!"
                 machines = status.get("Machines", [])
                 if machines:
                     all_running = all(m.get("state") == "started" for m in machines)
-                    result.status = DeploymentStatus.SUCCESS if all_running else DeploymentStatus.DEPLOYING
+                    result.status = (
+                        DeploymentStatus.SUCCESS if all_running else DeploymentStatus.DEPLOYING
+                    )
                 else:
                     result.status = DeploymentStatus.PENDING
 
@@ -373,9 +411,9 @@ echo "Release complete!"
 
         try:
             # Get previous release
-            releases_result = self.run_command([
-                "flyctl", "releases", "--app", self.config.app_name, "--json"
-            ])
+            releases_result = self.run_command(
+                ["flyctl", "releases", "--app", self.config.app_name, "--json"]
+            )
 
             if releases_result.returncode != 0:
                 result.status = DeploymentStatus.FAILED
@@ -390,11 +428,16 @@ echo "Release complete!"
 
             # Rollback to previous version
             previous = releases[1]
-            rollback_result = self.run_command([
-                "flyctl", "deploy",
-                "--app", self.config.app_name,
-                "--image", previous.get("ImageRef", ""),
-            ])
+            rollback_result = self.run_command(
+                [
+                    "flyctl",
+                    "deploy",
+                    "--app",
+                    self.config.app_name,
+                    "--image",
+                    previous.get("ImageRef", ""),
+                ]
+            )
 
             if rollback_result.returncode == 0:
                 result.status = DeploymentStatus.SUCCESS
@@ -415,10 +458,16 @@ echo "Release complete!"
         result = DeploymentResult(status=DeploymentStatus.PENDING)
 
         try:
-            scale_result = self.run_command([
-                "flyctl", "scale", "count", str(instances),
-                "--app", self.config.app_name,
-            ])
+            scale_result = self.run_command(
+                [
+                    "flyctl",
+                    "scale",
+                    "count",
+                    str(instances),
+                    "--app",
+                    self.config.app_name,
+                ]
+            )
 
             if scale_result.returncode == 0:
                 result.status = DeploymentStatus.SUCCESS
@@ -433,13 +482,17 @@ echo "Release complete!"
 
         return result
 
-    async def get_logs(self, lines: int = 100) -> List[str]:
+    async def get_logs(self, lines: int = 100) -> list[str]:
         """Get application logs."""
-        result = self.run_command([
-            "flyctl", "logs",
-            "--app", self.config.app_name,
-            "--no-tail",
-        ])
+        result = self.run_command(
+            [
+                "flyctl",
+                "logs",
+                "--app",
+                self.config.app_name,
+                "--no-tail",
+            ]
+        )
 
         if result.returncode == 0:
             return result.stdout.split("\n")[-lines:]

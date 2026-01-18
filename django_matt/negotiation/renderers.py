@@ -17,18 +17,18 @@ from abc import ABC, abstractmethod
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Sequence
+from typing import Any
 from uuid import UUID
 
 from django.http import HttpResponse
 
 from django_matt.negotiation.config import (
-    get_negotiation_config,
+    CSVConfig,
+    HTMLConfig,
     JSONConfig,
     XMLConfig,
-    CSVConfig,
     YAMLConfig,
-    HTMLConfig,
+    get_negotiation_config,
 )
 
 
@@ -42,7 +42,6 @@ class BaseRenderer(ABC):
     @abstractmethod
     def render(self, data: Any, **kwargs) -> bytes:
         """Render data to bytes."""
-        pass
 
     def to_response(self, data: Any, status: int = 200, **kwargs) -> HttpResponse:
         """Render data to HttpResponse."""
@@ -72,12 +71,14 @@ class JSONRenderer(BaseRenderer):
         """Get the best available JSON encoder."""
         try:
             import orjson
+
             return "orjson"
         except ImportError:
             pass
 
         try:
             import ujson
+
             return "ujson"
         except ImportError:
             pass
@@ -86,23 +87,21 @@ class JSONRenderer(BaseRenderer):
 
     def _serialize_value(self, obj: Any) -> Any:
         """Serialize non-standard types for JSON."""
-        if isinstance(obj, datetime):
+        if isinstance(obj, datetime) or isinstance(obj, date):
             return obj.isoformat()
-        elif isinstance(obj, date):
-            return obj.isoformat()
-        elif isinstance(obj, Decimal):
+        if isinstance(obj, Decimal):
             return float(obj)
-        elif isinstance(obj, UUID):
+        if isinstance(obj, UUID):
             return str(obj)
-        elif isinstance(obj, Enum):
+        if isinstance(obj, Enum):
             return obj.value
-        elif isinstance(obj, bytes):
+        if isinstance(obj, bytes):
             return obj.decode("utf-8", errors="replace")
-        elif hasattr(obj, "model_dump"):  # Pydantic v2
+        if hasattr(obj, "model_dump"):  # Pydantic v2
             return obj.model_dump()
-        elif hasattr(obj, "dict"):  # Pydantic v1
+        if hasattr(obj, "dict"):  # Pydantic v1
             return obj.dict()
-        elif hasattr(obj, "__dict__"):
+        if hasattr(obj, "__dict__"):
             return obj.__dict__
         raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
 
@@ -113,6 +112,7 @@ class JSONRenderer(BaseRenderer):
 
         if self._encoder == "orjson":
             import orjson
+
             options = orjson.OPT_NON_STR_KEYS
             if indent:
                 options |= orjson.OPT_INDENT_2
@@ -120,8 +120,9 @@ class JSONRenderer(BaseRenderer):
                 options |= orjson.OPT_SORT_KEYS
             return orjson.dumps(data, default=self._serialize_value, option=options)
 
-        elif self._encoder == "ujson":
+        if self._encoder == "ujson":
             import ujson
+
             return ujson.dumps(
                 data,
                 indent=indent,
@@ -129,14 +130,13 @@ class JSONRenderer(BaseRenderer):
                 default=self._serialize_value,
             ).encode(self.charset)
 
-        else:
-            return json.dumps(
-                data,
-                indent=indent,
-                ensure_ascii=ensure_ascii,
-                default=self._serialize_value,
-                sort_keys=self.config.sort_keys,
-            ).encode(self.charset)
+        return json.dumps(
+            data,
+            indent=indent,
+            ensure_ascii=ensure_ascii,
+            default=self._serialize_value,
+            sort_keys=self.config.sort_keys,
+        ).encode(self.charset)
 
 
 class XMLRenderer(BaseRenderer):
@@ -156,19 +156,17 @@ class XMLRenderer(BaseRenderer):
         """Convert value to string for XML."""
         if value is None:
             return ""
-        elif isinstance(value, bool):
+        if isinstance(value, bool):
             return "true" if value else "false"
-        elif isinstance(value, (datetime, date)):
+        if isinstance(value, (datetime, date)):
             return value.isoformat()
-        elif isinstance(value, Decimal):
+        if isinstance(value, Decimal) or isinstance(value, UUID):
             return str(value)
-        elif isinstance(value, UUID):
-            return str(value)
-        elif isinstance(value, Enum):
+        if isinstance(value, Enum):
             return str(value.value)
-        elif hasattr(value, "model_dump"):
+        if hasattr(value, "model_dump"):
             return self._dict_to_xml(value.model_dump())
-        elif hasattr(value, "dict"):
+        if hasattr(value, "dict"):
             return self._dict_to_xml(value.dict())
         return str(value)
 
@@ -206,22 +204,34 @@ class XMLRenderer(BaseRenderer):
                     if isinstance(item, dict):
                         inner = self._dict_to_xml(item, indent + 2)
                         if self.config.pretty_print:
-                            items.append(f"{prefix}  <{self.config.item_tag}>\n{inner}{prefix}  </{self.config.item_tag}>")
+                            items.append(
+                                f"{prefix}  <{self.config.item_tag}>\n{inner}{prefix}  </{self.config.item_tag}>"
+                            )
                         else:
-                            items.append(f"<{self.config.item_tag}>{inner}</{self.config.item_tag}>")
+                            items.append(
+                                f"<{self.config.item_tag}>{inner}</{self.config.item_tag}>"
+                            )
                     else:
-                        items.append(f"{prefix}  <{self.config.item_tag}>{self._escape_xml(self._serialize_value(item))}</{self.config.item_tag}>")
+                        items.append(
+                            f"{prefix}  <{self.config.item_tag}>{self._escape_xml(self._serialize_value(item))}</{self.config.item_tag}>"
+                        )
 
                 if self.config.pretty_print:
-                    xml_parts.append(f"{prefix}<{tag}>\n" + "\n".join(items) + f"\n{prefix}</{tag}>")
+                    xml_parts.append(
+                        f"{prefix}<{tag}>\n" + "\n".join(items) + f"\n{prefix}</{tag}>"
+                    )
                 else:
                     xml_parts.append(f"<{tag}>{''.join(items)}</{tag}>")
 
             else:
-                xml_parts.append(f"{prefix}<{tag}>{self._escape_xml(self._serialize_value(value))}</{tag}>")
+                xml_parts.append(
+                    f"{prefix}<{tag}>{self._escape_xml(self._serialize_value(value))}</{tag}>"
+                )
 
         separator = "\n" if self.config.pretty_print else ""
-        return separator.join(xml_parts) + (separator if self.config.pretty_print and xml_parts else "")
+        return separator.join(xml_parts) + (
+            separator if self.config.pretty_print and xml_parts else ""
+        )
 
     def render(self, data: Any, **kwargs) -> bytes:
         """Render data to XML bytes."""
@@ -300,17 +310,17 @@ class CSVRenderer(BaseRenderer):
         """Convert value to string for CSV."""
         if value is None:
             return ""
-        elif isinstance(value, bool):
+        if isinstance(value, bool):
             return "true" if value else "false"
-        elif isinstance(value, (datetime, date)):
+        if isinstance(value, (datetime, date)):
             return value.isoformat()
-        elif isinstance(value, (list, tuple)):
+        if isinstance(value, (list, tuple)):
             return "|".join(str(v) for v in value)
-        elif isinstance(value, dict):
+        if isinstance(value, dict):
             return json.dumps(value)
-        elif hasattr(value, "model_dump"):
+        if hasattr(value, "model_dump"):
             return json.dumps(value.model_dump())
-        elif hasattr(value, "dict"):
+        if hasattr(value, "dict"):
             return json.dumps(value.dict())
         return str(value)
 
@@ -391,21 +401,21 @@ class YAMLRenderer(BaseRenderer):
         """Prepare data for YAML serialization."""
         if hasattr(data, "model_dump"):
             return self._prepare_data(data.model_dump())
-        elif hasattr(data, "dict"):
+        if hasattr(data, "dict"):
             return self._prepare_data(data.dict())
-        elif isinstance(data, dict):
+        if isinstance(data, dict):
             return {k: self._prepare_data(v) for k, v in data.items()}
-        elif isinstance(data, (list, tuple)):
+        if isinstance(data, (list, tuple)):
             return [self._prepare_data(item) for item in data]
-        elif isinstance(data, (datetime, date)):
+        if isinstance(data, (datetime, date)):
             return data.isoformat()
-        elif isinstance(data, Decimal):
+        if isinstance(data, Decimal):
             return float(data)
-        elif isinstance(data, UUID):
+        if isinstance(data, UUID):
             return str(data)
-        elif isinstance(data, Enum):
+        if isinstance(data, Enum):
             return data.value
-        elif isinstance(data, bytes):
+        if isinstance(data, bytes):
             return data.decode("utf-8", errors="replace")
         return data
 
@@ -414,9 +424,7 @@ class YAMLRenderer(BaseRenderer):
         try:
             import yaml
         except ImportError:
-            raise ImportError(
-                "PyYAML is not installed. Install with: pip install pyyaml"
-            )
+            raise ImportError("PyYAML is not installed. Install with: pip install pyyaml")
 
         prepared = self._prepare_data(data)
 
@@ -443,19 +451,19 @@ class MessagePackRenderer(BaseRenderer):
         """Prepare data for MessagePack serialization."""
         if hasattr(data, "model_dump"):
             return self._prepare_data(data.model_dump())
-        elif hasattr(data, "dict"):
+        if hasattr(data, "dict"):
             return self._prepare_data(data.dict())
-        elif isinstance(data, dict):
+        if isinstance(data, dict):
             return {k: self._prepare_data(v) for k, v in data.items()}
-        elif isinstance(data, (list, tuple)):
+        if isinstance(data, (list, tuple)):
             return [self._prepare_data(item) for item in data]
-        elif isinstance(data, (datetime, date)):
+        if isinstance(data, (datetime, date)):
             return data.isoformat()
-        elif isinstance(data, Decimal):
+        if isinstance(data, Decimal):
             return float(data)
-        elif isinstance(data, UUID):
+        if isinstance(data, UUID):
             return str(data)
-        elif isinstance(data, Enum):
+        if isinstance(data, Enum):
             return data.value
         return data
 
@@ -464,9 +472,7 @@ class MessagePackRenderer(BaseRenderer):
         try:
             import msgpack
         except ImportError:
-            raise ImportError(
-                "msgpack is not installed. Install with: pip install msgpack"
-            )
+            raise ImportError("msgpack is not installed. Install with: pip install msgpack")
 
         prepared = self._prepare_data(data)
         return msgpack.packb(prepared, use_bin_type=True)
@@ -487,8 +493,7 @@ class HTMLRenderer(BaseRenderer):
 
     def render(self, data: Any, **kwargs) -> bytes:
         """Render data to HTML bytes using Django templates."""
-        from django.template import loader, TemplateDoesNotExist
-        from django.template.response import SimpleTemplateResponse
+        from django.template import TemplateDoesNotExist, loader
 
         template_name = kwargs.get("template_name", self.config.template_name)
 

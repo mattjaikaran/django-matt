@@ -8,6 +8,7 @@ import traceback
 from typing import Any
 
 from django.http import HttpRequest, JsonResponse
+
 from pydantic import ValidationError
 
 logger = logging.getLogger("django_matt.errors")
@@ -75,14 +76,10 @@ class ErrorDetail:
 
         return result
 
-    def to_json(
-        self, include_traceback: bool = False, include_snippet: bool = False
-    ) -> str:
+    def to_json(self, include_traceback: bool = False, include_snippet: bool = False) -> str:
         """Convert error details to JSON."""
         return json.dumps(
-            self.to_dict(
-                include_traceback=include_traceback, include_snippet=include_snippet
-            ),
+            self.to_dict(include_traceback=include_traceback, include_snippet=include_snippet),
             indent=2,
         )
 
@@ -91,9 +88,7 @@ class ErrorDetail:
     ) -> JsonResponse:
         """Convert error details to a JsonResponse."""
         return JsonResponse(
-            self.to_dict(
-                include_traceback=include_traceback, include_snippet=include_snippet
-            ),
+            self.to_dict(include_traceback=include_traceback, include_snippet=include_snippet),
             status=self.status_code,
         )
 
@@ -109,9 +104,7 @@ class ErrorHandler:
     def __init__(self, debug: bool = False):
         self.debug = debug
 
-    def capture_exception(
-        self, exc: Exception, request: HttpRequest | None = None
-    ) -> ErrorDetail:
+    def capture_exception(self, exc: Exception, request: HttpRequest | None = None) -> ErrorDetail:
         """
         Capture an exception and create detailed error information.
 
@@ -146,9 +139,7 @@ class ErrorHandler:
         # Format traceback
         traceback_str = None
         if self.debug:
-            traceback_str = "".join(
-                traceback.format_exception(type(exc), exc, sys.exc_info()[2])
-            )
+            traceback_str = "".join(traceback.format_exception(type(exc), exc, sys.exc_info()[2]))
 
         # Build context
         context = {}
@@ -199,17 +190,17 @@ class ErrorHandler:
         # Map common exceptions to status codes
         if isinstance(exc, ValidationError):
             return 422  # Unprocessable Entity
-        elif isinstance(exc, PermissionError):
+        if isinstance(exc, PermissionError):
             return 403  # Forbidden
-        elif isinstance(exc, FileNotFoundError):
+        if isinstance(exc, FileNotFoundError):
             return 404  # Not Found
-        elif (
+        if (
             isinstance(exc, json.JSONDecodeError)
             or isinstance(exc, KeyError)
             or isinstance(exc, AttributeError)
         ):
             return 400  # Bad Request
-        elif isinstance(exc, NotImplementedError):
+        if isinstance(exc, NotImplementedError):
             return 501  # Not Implemented
 
         # Default to 500 Internal Server Error
@@ -223,9 +214,7 @@ class ErrorHandler:
         # Generate a code based on the exception type
         return exc.__class__.__name__.lower()
 
-    def _get_code_snippet(
-        self, path: str, line_number: int, context_lines: int = 5
-    ) -> list[str]:
+    def _get_code_snippet(self, path: str, line_number: int, context_lines: int = 5) -> list[str]:
         """Get a code snippet around the error location."""
         try:
             if not os.path.exists(path):
@@ -237,9 +226,7 @@ class ErrorHandler:
             start_line = max(0, line_number - context_lines - 1)
             end_line = min(len(lines), line_number + context_lines)
 
-            return [
-                f"{i + 1}: {lines[i].rstrip()}" for i in range(start_line, end_line)
-            ]
+            return [f"{i + 1}: {lines[i].rstrip()}" for i in range(start_line, end_line)]
         except Exception:
             return None
 
@@ -247,17 +234,19 @@ class ErrorHandler:
         """Generate a helpful suggestion for fixing the error."""
         if isinstance(exc, ValidationError):
             return "Check the request data against the schema requirements."
-        elif isinstance(exc, PermissionError):
+        if isinstance(exc, PermissionError):
             return "Ensure the user has the necessary permissions for this action."
-        elif isinstance(exc, FileNotFoundError):
-            return f"The file '{exc.filename}' could not be found. Check the path and file existence."
-        elif isinstance(exc, json.JSONDecodeError):
+        if isinstance(exc, FileNotFoundError):
+            return (
+                f"The file '{exc.filename}' could not be found. Check the path and file existence."
+            )
+        if isinstance(exc, json.JSONDecodeError):
             return "The JSON data is invalid. Check the syntax and structure."
-        elif isinstance(exc, KeyError):
+        if isinstance(exc, KeyError):
             return f"The key '{exc.args[0]}' was not found in the dictionary."
-        elif isinstance(exc, AttributeError):
+        if isinstance(exc, AttributeError):
             return "Check that you're accessing a valid attribute on the object."
-        elif isinstance(exc, NotImplementedError):
+        if isinstance(exc, NotImplementedError):
             return "This feature is not yet implemented."
 
         # Default suggestion
@@ -307,8 +296,7 @@ class ValidationAPIError(APIError):
             status_code=status_code,
             code=code,
             context=context,
-            suggestion=suggestion
-            or "Check the request data against the schema requirements.",
+            suggestion=suggestion or "Check the request data against the schema requirements.",
         )
 
 
@@ -411,8 +399,7 @@ def handle_exceptions(func):
         try:
             if inspect.iscoroutinefunction(func):
                 return await func(request, *args, **kwargs)
-            else:
-                return func(request, *args, **kwargs)
+            return func(request, *args, **kwargs)
         except Exception as exc:
             error_handler = ErrorHandler(
                 debug=os.environ.get("DJANGO_DEBUG", "False").lower() == "true"

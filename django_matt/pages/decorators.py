@@ -6,8 +6,9 @@ server-driven SPA views.
 """
 
 import asyncio
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 
@@ -17,10 +18,10 @@ from django_matt.pages.response import PageResponse
 def page(
     component: str,
     *,
-    title: Optional[str] = None,
-    meta: Optional[Dict[str, str]] = None,
-    layout: Optional[Callable] = None,
-    props_schema: Optional[Type] = None,
+    title: str | None = None,
+    meta: dict[str, str] | None = None,
+    layout: Callable | None = None,
+    props_schema: type | None = None,
 ) -> Callable:
     """
     Decorator to define a page view.
@@ -54,15 +55,20 @@ def page(
     Returns:
         Decorated view function that returns PageResponse
     """
+
     def decorator(func: Callable) -> Callable:
         # Check if async
         is_async = asyncio.iscoroutinefunction(func)
 
         if is_async:
+
             @wraps(func)
             async def async_wrapper(request: HttpRequest, *args, **kwargs) -> HttpResponse:
                 return await _handle_page_view(
-                    func, request, args, kwargs,
+                    func,
+                    request,
+                    args,
+                    kwargs,
                     component=component,
                     title=title,
                     meta=meta,
@@ -70,21 +76,26 @@ def page(
                     props_schema=props_schema,
                     is_async=True,
                 )
+
             return async_wrapper
-        else:
-            @wraps(func)
-            def sync_wrapper(request: HttpRequest, *args, **kwargs) -> HttpResponse:
-                # Run sync version
-                result = _handle_page_view_sync(
-                    func, request, args, kwargs,
-                    component=component,
-                    title=title,
-                    meta=meta,
-                    layout=layout,
-                    props_schema=props_schema,
-                )
-                return result
-            return sync_wrapper
+
+        @wraps(func)
+        def sync_wrapper(request: HttpRequest, *args, **kwargs) -> HttpResponse:
+            # Run sync version
+            result = _handle_page_view_sync(
+                func,
+                request,
+                args,
+                kwargs,
+                component=component,
+                title=title,
+                meta=meta,
+                layout=layout,
+                props_schema=props_schema,
+            )
+            return result
+
+        return sync_wrapper
 
     return decorator
 
@@ -96,10 +107,10 @@ def _handle_page_view_sync(
     kwargs: dict,
     *,
     component: str,
-    title: Optional[str],
-    meta: Optional[Dict[str, str]],
-    layout: Optional[Callable],
-    props_schema: Optional[Type],
+    title: str | None,
+    meta: dict[str, str] | None,
+    layout: Callable | None,
+    props_schema: type | None,
 ) -> HttpResponse:
     """Handle a sync page view."""
     # Call the view function
@@ -150,10 +161,10 @@ async def _handle_page_view(
     kwargs: dict,
     *,
     component: str,
-    title: Optional[str],
-    meta: Optional[Dict[str, str]],
-    layout: Optional[Callable],
-    props_schema: Optional[Type],
+    title: str | None,
+    meta: dict[str, str] | None,
+    layout: Callable | None,
+    props_schema: type | None,
     is_async: bool,
 ) -> HttpResponse:
     """Handle an async page view."""
@@ -204,7 +215,7 @@ async def _handle_page_view(
     return response.render(request)
 
 
-def _validate_props(props: Dict[str, Any], schema: Type) -> Dict[str, Any]:
+def _validate_props(props: dict[str, Any], schema: type) -> dict[str, Any]:
     """Validate props against a Pydantic schema."""
     try:
         from pydantic import BaseModel
@@ -246,24 +257,27 @@ def layout(component: str) -> Callable:
     Returns:
         Decorated layout function
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
-        def wrapper(request: HttpRequest) -> Dict[str, Any]:
+        def wrapper(request: HttpRequest) -> dict[str, Any]:
             result = func(request)
             # Add layout component info
             if result is None:
                 result = {}
             result["_layout"] = component
             return result
+
         return wrapper
+
     return decorator
 
 
 def hybrid(
     component: str,
     *,
-    title: Optional[str] = None,
-    api_schema: Optional[Type] = None,
+    title: str | None = None,
+    api_schema: type | None = None,
 ) -> Callable:
     """
     Decorator for hybrid API/Page endpoints.
@@ -290,13 +304,15 @@ def hybrid(
     Returns:
         Decorated view function
     """
+
     def decorator(func: Callable) -> Callable:
         is_async = asyncio.iscoroutinefunction(func)
 
         if is_async:
+
             @wraps(func)
             async def async_wrapper(request: HttpRequest, *args, **kwargs) -> HttpResponse:
-                from django_matt.pages.middleware import get_request_mode, RequestMode
+                from django_matt.pages.middleware import RequestMode, get_request_mode
 
                 mode = get_request_mode(request)
 
@@ -310,6 +326,7 @@ def hybrid(
                 # For API mode, return JSON directly
                 if mode == RequestMode.API:
                     from django.http import JsonResponse
+
                     return JsonResponse(result)
 
                 # For page mode, wrap in PageResponse
@@ -317,36 +334,37 @@ def hybrid(
                 return response.render(request)
 
             return async_wrapper
-        else:
-            @wraps(func)
-            def sync_wrapper(request: HttpRequest, *args, **kwargs) -> HttpResponse:
-                from django_matt.pages.middleware import get_request_mode, RequestMode
 
-                mode = get_request_mode(request)
+        @wraps(func)
+        def sync_wrapper(request: HttpRequest, *args, **kwargs) -> HttpResponse:
+            from django_matt.pages.middleware import RequestMode, get_request_mode
 
-                # Call the view function
-                result = func(request, *args, **kwargs)
+            mode = get_request_mode(request)
 
-                # If already a response, return it
-                if isinstance(result, HttpResponse):
-                    return result
+            # Call the view function
+            result = func(request, *args, **kwargs)
 
-                # For API mode, return JSON directly
-                if mode == RequestMode.API:
-                    from django.http import JsonResponse
-                    return JsonResponse(result)
+            # If already a response, return it
+            if isinstance(result, HttpResponse):
+                return result
 
-                # For page mode, wrap in PageResponse
-                response = PageResponse(component, props=result, title=title)
-                return response.render(request)
+            # For API mode, return JSON directly
+            if mode == RequestMode.API:
+                from django.http import JsonResponse
 
-            return sync_wrapper
+                return JsonResponse(result)
+
+            # For page mode, wrap in PageResponse
+            response = PageResponse(component, props=result, title=title)
+            return response.render(request)
+
+        return sync_wrapper
 
     return decorator
 
 
 __all__ = [
-    "page",
-    "layout",
     "hybrid",
+    "layout",
+    "page",
 ]

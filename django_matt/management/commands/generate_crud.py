@@ -106,9 +106,7 @@ class Command(BaseCommand):
         try:
             app_label, model_name = model_path.split(".")
         except ValueError:
-            raise CommandError(
-                "Model must be specified in the format app_name.ModelName"
-            )
+            raise CommandError("Model must be specified in the format app_name.ModelName")
 
         try:
             model = apps.get_model(app_label, model_name)
@@ -157,7 +155,9 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.NOTICE("\n=== controllers.py ==="))
                 self.stdout.write(content)
             else:
-                self._write_file(output_dir / "controllers.py", content, model_name, force, "Controller")
+                self._write_file(
+                    output_dir / "controllers.py", content, model_name, force, "Controller"
+                )
 
         if "test" in components:
             content = self._generate_test_content(context)
@@ -187,10 +187,9 @@ class Command(BaseCommand):
         """Simple pluralization."""
         if word.endswith("y"):
             return word[:-1] + "ies"
-        elif word.endswith(("s", "x", "z", "ch", "sh")):
+        if word.endswith(("s", "x", "z", "ch", "sh")):
             return word + "es"
-        else:
-            return word + "s"
+        return word + "s"
 
     def _write_file(self, path: Path, content: str, model_name: str, force: bool, component: str):
         """Write content to file, handling existing files."""
@@ -236,7 +235,9 @@ class Command(BaseCommand):
                 "has_default": field.has_default(),
                 "default": field.default if field.has_default() else None,
                 "is_pk": field.primary_key,
-                "is_auto": field.primary_key and hasattr(field, 'auto_created') and field.auto_created,
+                "is_auto": field.primary_key
+                and hasattr(field, "auto_created")
+                and field.auto_created,
                 "is_relation": isinstance(field, (ForeignKey, OneToOneField)),
                 "is_m2m": False,
                 "relation_type": self._get_relation_type(field),
@@ -315,10 +316,10 @@ class Command(BaseCommand):
 
         # Add Field constraints for certain types
         if isinstance(field, models.CharField) and field.max_length:
-            return f"str"  # Will add Field(max_length=...) separately
-        elif isinstance(field, models.EmailField):
+            return "str"  # Will add Field(max_length=...) separately
+        if isinstance(field, models.EmailField):
             return "EmailStr"
-        elif isinstance(field, models.URLField):
+        if isinstance(field, models.URLField):
             return "HttpUrl"
 
         return base_type
@@ -327,9 +328,9 @@ class Command(BaseCommand):
         """Get the type of relation for a field."""
         if isinstance(field, ForeignKey):
             return "foreign_key"
-        elif isinstance(field, OneToOneField):
+        if isinstance(field, OneToOneField):
             return "one_to_one"
-        elif isinstance(field, ManyToManyField):
+        if isinstance(field, ManyToManyField):
             return "many_to_many"
         return None
 
@@ -380,7 +381,9 @@ class Command(BaseCommand):
 
             if field["required"]:
                 if field["max_length"]:
-                    lines.append(f"    {field['name']}: str = Field(max_length={field['max_length']})")
+                    lines.append(
+                        f"    {field['name']}: str = Field(max_length={field['max_length']})"
+                    )
                 else:
                     lines.append(f"    {field['name']}: {field['pydantic_type']}")
             else:
@@ -458,8 +461,9 @@ class Command(BaseCommand):
             pydantic_extras.append("HttpUrl")
 
         if pydantic_extras:
-            imports[imports.index("from pydantic import BaseModel, Field")] = \
+            imports[imports.index("from pydantic import BaseModel, Field")] = (
                 f"from pydantic import BaseModel, Field, {', '.join(pydantic_extras)}"
+            )
 
         return "\n".join(imports)
 
@@ -487,7 +491,7 @@ class Command(BaseCommand):
 
         lines.append("")
         lines.append(f"from .models import {model_name}")
-        lines.append(f"from .schemas import (")
+        lines.append("from .schemas import (")
         lines.append(f"    {model_name}Schema,")
         lines.append(f"    {model_name}CreateSchema,")
         lines.append(f"    {model_name}UpdateSchema,")
@@ -509,7 +513,7 @@ class Command(BaseCommand):
         lines.append("")
 
         # List endpoint
-        lines.append("    @get(\"/\")")
+        lines.append('    @get("/")')
         lines.append(f"    async def list_{prefix}(")
         lines.append("        self,")
         lines.append("        request,")
@@ -534,10 +538,14 @@ class Command(BaseCommand):
             lines.append("")
             lines.append("        # Apply pagination")
             lines.append("        offset = (page - 1) * page_size")
-            lines.append("        items = [item async for item in queryset[offset:offset + page_size]]")
+            lines.append(
+                "        items = [item async for item in queryset[offset:offset + page_size]]"
+            )
             lines.append("")
             lines.append(f"        return {model_name}ListSchema(")
-            lines.append(f"            items=[{model_name}Schema.model_validate(item) for item in items],")
+            lines.append(
+                f"            items=[{model_name}Schema.model_validate(item) for item in items],"
+            )
             lines.append("            total=total,")
             lines.append("            page=page,")
             lines.append("            page_size=page_size,")
@@ -545,15 +553,19 @@ class Command(BaseCommand):
         else:
             lines.append("        items = [item async for item in queryset]")
             lines.append(f"        return {model_name}ListSchema(")
-            lines.append(f"            items=[{model_name}Schema.model_validate(item) for item in items],")
+            lines.append(
+                f"            items=[{model_name}Schema.model_validate(item) for item in items],"
+            )
             lines.append("            total=len(items),")
             lines.append("        )")
 
         lines.append("")
 
         # Get single endpoint
-        lines.append("    @get(\"/{id}\")")
-        lines.append(f"    async def get_{model_name.lower()}(self, request, id: int) -> {model_name}Schema:")
+        lines.append('    @get("/{id}")')
+        lines.append(
+            f"    async def get_{model_name.lower()}(self, request, id: int) -> {model_name}Schema:"
+        )
         lines.append(f'        """Get a single {model_name} by ID."""')
         lines.append("        try:")
         lines.append(f"            item = await {model_name}.objects.aget(pk=id)")
@@ -563,7 +575,7 @@ class Command(BaseCommand):
         lines.append("")
 
         # Create endpoint
-        lines.append("    @post(\"/\")")
+        lines.append('    @post("/")')
         lines.append(f"    async def create_{model_name.lower()}(")
         lines.append("        self,")
         lines.append("        request,")
@@ -575,7 +587,7 @@ class Command(BaseCommand):
         lines.append("")
 
         # Update endpoint (PUT - full update)
-        lines.append("    @put(\"/{id}\")")
+        lines.append('    @put("/{id}")')
         lines.append(f"    async def update_{model_name.lower()}(")
         lines.append("        self,")
         lines.append("        request,")
@@ -595,7 +607,7 @@ class Command(BaseCommand):
         lines.append("")
 
         # Patch endpoint (partial update)
-        lines.append("    @patch(\"/{id}\")")
+        lines.append('    @patch("/{id}")')
         lines.append(f"    async def patch_{model_name.lower()}(")
         lines.append("        self,")
         lines.append("        request,")
@@ -616,7 +628,7 @@ class Command(BaseCommand):
         lines.append("")
 
         # Delete endpoint
-        lines.append("    @delete(\"/{id}\")")
+        lines.append('    @delete("/{id}")')
         lines.append(f"    async def delete_{model_name.lower()}(self, request, id: int) -> dict:")
         lines.append(f'        """Delete a {model_name}."""')
         lines.append("        try:")
@@ -667,17 +679,19 @@ class Command(BaseCommand):
         lines.append(f'        """Test listing {model_name} objects."""')
         lines.append("        response = await async_client.get(self.base_url)")
         lines.append("        assert response.status_code == 200")
-        lines.append('        data = response.json()')
+        lines.append("        data = response.json()")
         lines.append('        assert "items" in data')
         lines.append('        assert "total" in data')
         lines.append("")
 
         # Test create
         lines.append("    @pytest.mark.asyncio")
-        lines.append(f"    async def test_create_{model_name.lower()}(self, async_client: AsyncClient):")
+        lines.append(
+            f"    async def test_create_{model_name.lower()}(self, async_client: AsyncClient):"
+        )
         lines.append(f'        """Test creating a {model_name}."""')
         lines.append("        payload = {")
-        lines.append('            # Add required fields here')
+        lines.append("            # Add required fields here")
         lines.append("        }")
         lines.append("        response = await async_client.post(self.base_url, json=payload)")
         lines.append("        assert response.status_code in [200, 201]")
@@ -685,7 +699,9 @@ class Command(BaseCommand):
 
         # Test get
         lines.append("    @pytest.mark.asyncio")
-        lines.append(f"    async def test_get_{model_name.lower()}(self, async_client: AsyncClient):")
+        lines.append(
+            f"    async def test_get_{model_name.lower()}(self, async_client: AsyncClient):"
+        )
         lines.append(f'        """Test getting a single {model_name}."""')
         lines.append(f"        # Create a {model_name} first")
         lines.append(f"        item = await {model_name}.objects.acreate(")
@@ -697,7 +713,9 @@ class Command(BaseCommand):
 
         # Test update
         lines.append("    @pytest.mark.asyncio")
-        lines.append(f"    async def test_update_{model_name.lower()}(self, async_client: AsyncClient):")
+        lines.append(
+            f"    async def test_update_{model_name.lower()}(self, async_client: AsyncClient):"
+        )
         lines.append(f'        """Test updating a {model_name}."""')
         lines.append(f"        item = await {model_name}.objects.acreate(")
         lines.append("            # Add required fields here")
@@ -705,13 +723,17 @@ class Command(BaseCommand):
         lines.append("        payload = {")
         lines.append("            # Add fields to update")
         lines.append("        }")
-        lines.append('        response = await async_client.put(f"{self.base_url}/{item.pk}", json=payload)')
+        lines.append(
+            '        response = await async_client.put(f"{self.base_url}/{item.pk}", json=payload)'
+        )
         lines.append("        assert response.status_code == 200")
         lines.append("")
 
         # Test delete
         lines.append("    @pytest.mark.asyncio")
-        lines.append(f"    async def test_delete_{model_name.lower()}(self, async_client: AsyncClient):")
+        lines.append(
+            f"    async def test_delete_{model_name.lower()}(self, async_client: AsyncClient):"
+        )
         lines.append(f'        """Test deleting a {model_name}."""')
         lines.append(f"        item = await {model_name}.objects.acreate(")
         lines.append("            # Add required fields here")
@@ -722,7 +744,9 @@ class Command(BaseCommand):
 
         # Test not found
         lines.append("    @pytest.mark.asyncio")
-        lines.append(f"    async def test_{model_name.lower()}_not_found(self, async_client: AsyncClient):")
+        lines.append(
+            f"    async def test_{model_name.lower()}_not_found(self, async_client: AsyncClient):"
+        )
         lines.append(f'        """Test 404 for non-existent {model_name}."""')
         lines.append('        response = await async_client.get(f"{self.base_url}/99999")')
         lines.append("        assert response.status_code == 404")

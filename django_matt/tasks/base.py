@@ -5,14 +5,15 @@ Provides the core abstractions for background tasks.
 """
 
 import uuid
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
-    from .retry import RetryPolicy
     from .backends import BaseBackend
+    from .retry import RetryPolicy
 
 
 class TaskStatus(Enum):
@@ -38,10 +39,10 @@ class TaskResult:
     task_id: str
     status: TaskStatus = TaskStatus.PENDING
     result: Any = None
-    error: Optional[str] = None
-    traceback: Optional[str] = None
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    error: str | None = None
+    traceback: str | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
     retries: int = 0
 
     @property
@@ -89,18 +90,18 @@ class TaskResult:
 class TaskOptions:
     """Options for task execution."""
 
-    queue: Optional[str] = None
+    queue: str | None = None
     priority: int = 0
-    timeout: Optional[int] = None
+    timeout: int | None = None
     retry: int = 0
     retry_delay: int = 0
     retry_policy: Optional["RetryPolicy"] = None
-    rate_limit: Optional[str] = None
+    rate_limit: str | None = None
     ignore_result: bool = False
     store_errors_even_if_ignored: bool = False
     track_started: bool = False
     acks_late: bool = False
-    expires: Optional[int] = None
+    expires: int | None = None
 
 
 class Task:
@@ -179,7 +180,7 @@ class Task:
         task_registry.register(self)
 
         # Backend will be set later
-        self._backend: Optional["BaseBackend"] = None
+        self._backend: BaseBackend | None = None
 
     @property
     def backend(self) -> "BaseBackend":
@@ -379,7 +380,7 @@ class TaskRegistry:
         """Register a task."""
         self._tasks[task.name] = task
 
-    def get(self, name: str) -> Optional[Task]:
+    def get(self, name: str) -> Task | None:
         """Get a task by name."""
         return self._tasks.get(name)
 

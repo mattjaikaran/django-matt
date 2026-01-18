@@ -4,7 +4,7 @@ Component registry for Livewire components.
 Manages registration and lookup of component classes.
 """
 
-from typing import Dict, List, Optional, Type, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from django_matt.livewire.component import LiveComponent
@@ -30,10 +30,10 @@ class ComponentRegistry:
     """
 
     def __init__(self):
-        self._components: Dict[str, Type["LiveComponent"]] = {}
-        self._aliases: Dict[str, str] = {}
+        self._components: dict[str, type[LiveComponent]] = {}
+        self._aliases: dict[str, str] = {}
 
-    def register(self, name: str, aliases: Optional[List[str]] = None):
+    def register(self, name: str, aliases: list[str] | None = None):
         """
         Decorator to register a component class.
 
@@ -42,16 +42,18 @@ class ComponentRegistry:
             class TodoList(LiveComponent):
                 ...
         """
-        def decorator(cls: Type["LiveComponent"]) -> Type["LiveComponent"]:
+
+        def decorator(cls: type["LiveComponent"]) -> type["LiveComponent"]:
             self.register_class(name, cls, aliases=aliases)
             return cls
+
         return decorator
 
     def register_class(
         self,
         name: str,
-        cls: Type["LiveComponent"],
-        aliases: Optional[List[str]] = None,
+        cls: type["LiveComponent"],
+        aliases: list[str] | None = None,
     ):
         """Register a component class directly."""
         self._components[name] = cls
@@ -60,7 +62,7 @@ class ComponentRegistry:
             for alias in aliases:
                 self._aliases[alias] = name
 
-    def get(self, name: str) -> Optional[Type["LiveComponent"]]:
+    def get(self, name: str) -> type["LiveComponent"] | None:
         """Get a component class by name."""
         # Check aliases first
         if name in self._aliases:
@@ -75,7 +77,7 @@ class ComponentRegistry:
             raise ValueError(f"Unknown component: {name}")
         return cls(**kwargs)
 
-    def list(self) -> List[str]:
+    def list(self) -> list[str]:
         """List all registered component names."""
         return list(self._components.keys())
 
@@ -103,13 +105,13 @@ class ComponentRegistry:
 registry = ComponentRegistry()
 
 
-def register_component(name: str, aliases: Optional[List[str]] = None):
+def register_component(name: str, aliases: list[str] | None = None):
     """Convenience decorator for registering components."""
     return registry.register(name, aliases=aliases)
 
 
 __all__ = [
     "ComponentRegistry",
-    "registry",
     "register_component",
+    "registry",
 ]

@@ -51,18 +51,20 @@ class OAuthConfig:
     state_timeout: int = 600  # 10 minutes
 
     # Provider configurations
-    google: OAuthProviderConfig = field(default_factory=lambda: OAuthProviderConfig(
-        scopes=["openid", "email", "profile"]
-    ))
-    github: OAuthProviderConfig = field(default_factory=lambda: OAuthProviderConfig(
-        scopes=["user:email", "read:user"]
-    ))
-    apple: OAuthProviderConfig = field(default_factory=lambda: OAuthProviderConfig(
-        scopes=["name", "email"]
-    ))
-    microsoft: OAuthProviderConfig = field(default_factory=lambda: OAuthProviderConfig(
-        scopes=["openid", "email", "profile", "User.Read"]
-    ))
+    google: OAuthProviderConfig = field(
+        default_factory=lambda: OAuthProviderConfig(scopes=["openid", "email", "profile"])
+    )
+    github: OAuthProviderConfig = field(
+        default_factory=lambda: OAuthProviderConfig(scopes=["user:email", "read:user"])
+    )
+    apple: OAuthProviderConfig = field(
+        default_factory=lambda: OAuthProviderConfig(scopes=["name", "email"])
+    )
+    microsoft: OAuthProviderConfig = field(
+        default_factory=lambda: OAuthProviderConfig(
+            scopes=["openid", "email", "profile", "User.Read"]
+        )
+    )
 
     @classmethod
     def from_settings(cls) -> "OAuthConfig":
@@ -130,8 +132,7 @@ class OAuthConfig:
 
     @staticmethod
     def _load_provider_config(
-        config_dict: dict[str, Any],
-        default: OAuthProviderConfig
+        config_dict: dict[str, Any], default: OAuthProviderConfig
     ) -> OAuthProviderConfig:
         """Load a provider config from a dictionary."""
         return OAuthProviderConfig(

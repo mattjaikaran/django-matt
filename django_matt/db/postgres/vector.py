@@ -134,9 +134,7 @@ class VectorManager:
     """
 
     @staticmethod
-    def similarity_search(
-        queryset, field_name, query_vector, distance_func="cosine", limit=10
-    ):
+    def similarity_search(queryset, field_name, query_vector, distance_func="cosine", limit=10):
         """
         Perform a similarity search on a queryset.
 
@@ -172,12 +170,12 @@ vector_manager = VectorManager()
 
 
 __all__ = [
-    "VectorField",
-    "L2Distance",
-    "CosineDistance",
-    "MaxInnerProduct",
-    "setup_pgvector",
-    "create_vector_index",
-    "vector_manager",
     "HAS_PGVECTOR",
+    "CosineDistance",
+    "L2Distance",
+    "MaxInnerProduct",
+    "VectorField",
+    "create_vector_index",
+    "setup_pgvector",
+    "vector_manager",
 ]

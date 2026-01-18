@@ -7,14 +7,13 @@ import decimal
 import inspect
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Type, Union, get_args, get_origin
+from typing import Any, Union, get_args, get_origin
 
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
 
-
 # Python type to Swift type mapping
-PYTHON_TO_SWIFT: Dict[type, str] = {
+PYTHON_TO_SWIFT: dict[type, str] = {
     str: "String",
     int: "Int",
     float: "Double",
@@ -37,42 +36,43 @@ PYTHON_TO_SWIFT: Dict[type, str] = {
 
 def python_type_to_swift(
     python_type: type,
-    schema_names: Optional[Set[str]] = None,
+    schema_names: set[str] | None = None,
 ) -> str:
     """
     Convert a Python type to its Swift equivalent.
-    
+
     Args:
         python_type: The Python type to convert
         schema_names: Set of known schema names (for references)
-    
+
     Returns:
         Swift type string
     """
     schema_names = schema_names or set()
-    
+
     # Handle None type
     if python_type is None or python_type is type(None):
         return "nil"
-    
+
     # Handle basic types
     if python_type in PYTHON_TO_SWIFT:
         return PYTHON_TO_SWIFT[python_type]
-    
+
     # Handle Pydantic models
     if inspect.isclass(python_type) and issubclass(python_type, BaseModel):
         return python_type.__name__
-    
+
     # Handle Enums
     from enum import Enum
+
     if inspect.isclass(python_type) and issubclass(python_type, Enum):
         return python_type.__name__
-    
+
     # Handle generic types
     origin = get_origin(python_type)
     if origin is not None:
         args = get_args(python_type)
-        
+
         # Union types (including Optional)
         if origin is Union:
             non_none_args = [a for a in args if a is not type(None)]
@@ -80,36 +80,36 @@ def python_type_to_swift(
                 # Optional type
                 inner_type = python_type_to_swift(non_none_args[0], schema_names)
                 return f"{inner_type}?"
-            
+
             # Swift doesn't have union types, use Any
             return "Any"
-        
+
         # List types
-        if origin is list or origin is List:
+        if origin is list or origin is list:
             if args:
                 inner_type = python_type_to_swift(args[0], schema_names)
                 return f"[{inner_type}]"
             return "[Any]"
-        
+
         # Dict types
-        if origin is dict or origin is Dict:
+        if origin is dict or origin is dict:
             if args and len(args) == 2:
                 key_type = python_type_to_swift(args[0], schema_names)
                 value_type = python_type_to_swift(args[1], schema_names)
                 return f"[{key_type}: {value_type}]"
             return "[String: Any]"
-        
+
         # Set types
-        if origin is set or origin is Set:
+        if origin is set or origin is set:
             if args:
                 inner_type = python_type_to_swift(args[0], schema_names)
                 return f"Set<{inner_type}>"
             return "Set<Any>"
-    
+
     # Check if it's a known schema name
     if hasattr(python_type, "__name__") and python_type.__name__ in schema_names:
         return python_type.__name__
-    
+
     # Default to Any
     return "Any"
 
@@ -117,11 +117,11 @@ def python_type_to_swift(
 class SwiftGenerator:
     """
     Generate Swift Codable structs from Pydantic schemas.
-    
+
     Example:
         generator = SwiftGenerator()
         swift_code = generator.generate([UserSchema, PostSchema])
-        
+
         # With options
         generator = SwiftGenerator(
             use_class=False,     # Use struct (default) or class
@@ -130,7 +130,7 @@ class SwiftGenerator:
             add_hashable=False,  # Add Hashable conformance
         )
     """
-    
+
     def __init__(
         self,
         use_class: bool = False,
@@ -142,7 +142,7 @@ class SwiftGenerator:
     ):
         """
         Initialize Swift generator.
-        
+
         Args:
             use_class: Use `class` instead of `struct`
             add_codable: Add Codable protocol conformance
@@ -157,30 +157,30 @@ class SwiftGenerator:
         self.add_hashable = add_hashable
         self.add_identifiable = add_identifiable
         self.use_coding_keys = use_coding_keys
-        
-        self._generated: Set[str] = set()
-        self._schema_names: Set[str] = set()
-    
+
+        self._generated: set[str] = set()
+        self._schema_names: set[str] = set()
+
     def generate(
         self,
-        schemas: List[Type[BaseModel]],
-        header: Optional[str] = None,
+        schemas: list[type[BaseModel]],
+        header: str | None = None,
     ) -> str:
         """
         Generate Swift code from Pydantic schemas.
-        
+
         Args:
             schemas: List of Pydantic BaseModel classes
             header: Optional header comment
-        
+
         Returns:
             Swift code as string
         """
         self._generated.clear()
         self._schema_names = {s.__name__ for s in schemas}
-        
+
         lines = []
-        
+
         # Add header
         if header:
             lines.append(f"// {header}")
@@ -188,28 +188,28 @@ class SwiftGenerator:
             lines.append("// Auto-generated Swift types from Pydantic schemas")
             lines.append("// Do not edit manually - regenerate with sync_types command")
         lines.append("")
-        
+
         # Import Foundation
         lines.append("import Foundation")
         lines.append("")
-        
+
         # Generate structs/classes for each schema
         for schema in schemas:
             if schema.__name__ not in self._generated:
                 struct_code = self._generate_struct(schema)
                 lines.append(struct_code)
                 lines.append("")
-        
+
         return "\n".join(lines)
-    
-    def _generate_struct(self, schema: Type[BaseModel]) -> str:
+
+    def _generate_struct(self, schema: type[BaseModel]) -> str:
         """Generate Swift struct/class for a single schema."""
         self._generated.add(schema.__name__)
-        
+
         name = schema.__name__
-        
+
         lines = []
-        
+
         # Add doc comment
         doc = schema.__doc__
         if doc:
@@ -217,7 +217,7 @@ class SwiftGenerator:
             for line in doc.strip().split("\n"):
                 lines.append(f" * {line.strip()}")
             lines.append(" */")
-        
+
         # Build protocols
         protocols = []
         if self.add_codable:
@@ -226,18 +226,18 @@ class SwiftGenerator:
             protocols.append("Equatable")
         if self.add_hashable:
             protocols.append("Hashable")
-        
+
         # Check for id field for Identifiable
         has_id = "id" in schema.model_fields
         if self.add_identifiable and has_id:
             protocols.append("Identifiable")
-        
+
         # Struct/class declaration
         keyword = "class" if self.use_class else "struct"
         protocol_str = f": {', '.join(protocols)}" if protocols else ""
-        
+
         lines.append(f"public {keyword} {name}{protocol_str} {{")
-        
+
         # Generate properties
         fields_info = []
         for field_name, field_info in schema.model_fields.items():
@@ -245,19 +245,17 @@ class SwiftGenerator:
                 field_name, field_info, schema
             )
             fields_info.append((field_name, swift_name, swift_type, is_optional))
-            
+
             # Add property doc if available
             if field_info.description:
                 lines.append(f"    /// {field_info.description}")
-            
+
             lines.append(f"    public let {swift_name}: {swift_type}")
-        
+
         # Add CodingKeys if needed
         needs_coding_keys = self.use_coding_keys and self.add_codable
-        has_snake_case = any(
-            "_" in field_name for field_name, _, _, _ in fields_info
-        )
-        
+        has_snake_case = any("_" in field_name for field_name, _, _, _ in fields_info)
+
         if needs_coding_keys and has_snake_case:
             lines.append("")
             lines.append("    enum CodingKeys: String, CodingKey {")
@@ -267,7 +265,7 @@ class SwiftGenerator:
                 else:
                     lines.append(f"        case {swift_name}")
             lines.append("    }")
-        
+
         # Add initializer for class
         if self.use_class:
             lines.append("")
@@ -279,54 +277,54 @@ class SwiftGenerator:
             for _, swift_name, _, _ in fields_info:
                 lines.append(f"        self.{swift_name} = {swift_name}")
             lines.append("    }")
-        
+
         lines.append("}")
-        
+
         return "\n".join(lines)
-    
+
     def _generate_property(
         self,
         field_name: str,
         field_info: FieldInfo,
-        schema: Type[BaseModel],
+        schema: type[BaseModel],
     ) -> tuple:
         """Generate Swift property declaration."""
         # Get field type from annotation
         annotations = schema.__annotations__
         python_type = annotations.get(field_name, Any)
-        
+
         # Convert to Swift type
         swift_type = python_type_to_swift(python_type, self._schema_names)
-        
+
         # Convert snake_case to camelCase
         swift_name = self._snake_to_camel(field_name)
-        
+
         # Check if optional
         is_optional = not field_info.is_required()
-        
+
         # Handle optional wrapping
         if is_optional and not swift_type.endswith("?"):
             swift_type = f"{swift_type}?"
-        
+
         return swift_name, swift_type, is_optional
-    
+
     def _snake_to_camel(self, name: str) -> str:
         """Convert snake_case to camelCase."""
-        components = name.split('_')
-        return components[0] + ''.join(x.title() for x in components[1:])
-    
+        components = name.split("_")
+        return components[0] + "".join(x.title() for x in components[1:])
+
     def generate_api_client(
         self,
         base_url: str = "",
-        schemas: Optional[List[Type[BaseModel]]] = None,
+        schemas: list[type[BaseModel]] | None = None,
     ) -> str:
         """
         Generate Swift API client using URLSession.
-        
+
         Args:
             base_url: Base URL for API requests
             schemas: List of schemas (optional, for type imports)
-        
+
         Returns:
             Swift API client code
         """
@@ -338,11 +336,11 @@ class SwiftGenerator:
             "",
             "/// HTTP method enumeration",
             "public enum HTTPMethod: String {",
-            "    case get = \"GET\"",
-            "    case post = \"POST\"",
-            "    case put = \"PUT\"",
-            "    case patch = \"PATCH\"",
-            "    case delete = \"DELETE\"",
+            '    case get = "GET"',
+            '    case post = "POST"',
+            '    case put = "PUT"',
+            '    case patch = "PATCH"',
+            '    case delete = "DELETE"',
             "}",
             "",
             "/// API error types",
@@ -363,7 +361,7 @@ class SwiftGenerator:
             "",
             "/// API Client for making network requests",
             "public class APIClient {",
-            f'    private let baseURL: String',
+            "    private let baseURL: String",
             "    private var headers: [String: String] = [:]",
             "    private let decoder: JSONDecoder",
             "    private let encoder: JSONEncoder",
@@ -507,48 +505,48 @@ class SwiftGenerator:
             "    }",
             "}",
         ]
-        
+
         return "\n".join(lines)
 
 
 def generate_swift(
-    schemas: List[Type[BaseModel]],
-    output_path: Optional[str] = None,
+    schemas: list[type[BaseModel]],
+    output_path: str | None = None,
     **kwargs,
 ) -> str:
     """
     Convenience function to generate Swift code.
-    
+
     Args:
         schemas: List of Pydantic BaseModel classes
         output_path: Optional path to write the output file
         **kwargs: Additional options passed to SwiftGenerator
-    
+
     Returns:
         Swift code as string
     """
     generator = SwiftGenerator(**kwargs)
     code = generator.generate(schemas)
-    
+
     if output_path:
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(code)
-    
+
     return code
 
 
 def pydantic_to_swift(
-    schema: Type[BaseModel],
+    schema: type[BaseModel],
     **kwargs,
 ) -> str:
     """
     Convert a single Pydantic schema to Swift struct.
-    
+
     Args:
         schema: Pydantic BaseModel class
         **kwargs: Additional options passed to SwiftGenerator
-    
+
     Returns:
         Swift struct code
     """

@@ -20,19 +20,19 @@ Example usage:
         return {"message": "Hello user"}
 """
 
-from django_matt.throttling.base import BaseThrottle
-from django_matt.throttling.throttles import (
-    AnonRateThrottle,
-    ScopedRateThrottle,
-    UserRateThrottle,
-)
-from django_matt.throttling.decorators import throttle
 from django_matt.throttling.backends import (
     BaseBackend,
     InMemoryBackend,
     RedisBackend,
 )
+from django_matt.throttling.base import BaseThrottle
+from django_matt.throttling.decorators import throttle
 from django_matt.throttling.middleware import ThrottleMiddleware
+from django_matt.throttling.throttles import (
+    AnonRateThrottle,
+    ScopedRateThrottle,
+    UserRateThrottle,
+)
 
 __all__ = [
     # Base

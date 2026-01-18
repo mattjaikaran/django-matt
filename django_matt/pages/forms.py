@@ -5,9 +5,7 @@ Provides form validation that works seamlessly with frontend
 Zod schemas generated from Pydantic models.
 """
 
-from typing import Any, Dict, List, Optional, Type, Union
-
-from django.http import HttpRequest
+from typing import Any
 
 
 class PageForm:
@@ -46,10 +44,10 @@ class PageForm:
 
     def __init__(
         self,
-        schema: Type,
-        data: Optional[Dict[str, Any]] = None,
+        schema: type,
+        data: dict[str, Any] | None = None,
         *,
-        instance: Optional[Any] = None,
+        instance: Any | None = None,
     ):
         """
         Initialize the form.
@@ -62,8 +60,8 @@ class PageForm:
         self.schema = schema
         self.data = dict(data) if data else {}
         self.instance = instance
-        self._validated_data: Optional[Dict[str, Any]] = None
-        self._errors: Dict[str, List[str]] = {}
+        self._validated_data: dict[str, Any] | None = None
+        self._errors: dict[str, list[str]] = {}
         self._is_validated = False
 
     def is_valid(self) -> bool:
@@ -108,7 +106,7 @@ class PageForm:
             return False
 
     @property
-    def validated_data(self) -> Dict[str, Any]:
+    def validated_data(self) -> dict[str, Any]:
         """
         Get the validated data.
 
@@ -122,7 +120,7 @@ class PageForm:
         return self._validated_data
 
     @property
-    def errors(self) -> Dict[str, List[str]]:
+    def errors(self) -> dict[str, list[str]]:
         """
         Get validation errors.
 
@@ -132,7 +130,7 @@ class PageForm:
             self.is_valid()
         return self._errors
 
-    def get_initial_values(self) -> Dict[str, Any]:
+    def get_initial_values(self) -> dict[str, Any]:
         """
         Get initial values for the form.
 
@@ -150,8 +148,7 @@ class PageForm:
                 # Django model
                 if hasattr(self.instance, "__dict__"):
                     return {
-                        k: v for k, v in self.instance.__dict__.items()
-                        if not k.startswith("_")
+                        k: v for k, v in self.instance.__dict__.items() if not k.startswith("_")
                     }
             except Exception:
                 pass
@@ -208,27 +205,25 @@ class PageFormSet:
 
     def __init__(
         self,
-        schema: Type,
-        data: Optional[List[Dict[str, Any]]] = None,
+        schema: type,
+        data: list[dict[str, Any]] | None = None,
         *,
         min_items: int = 0,
-        max_items: Optional[int] = None,
+        max_items: int | None = None,
     ):
         self.schema = schema
         self.data = list(data) if data else []
         self.min_items = min_items
         self.max_items = max_items
-        self._validated_data: Optional[List[Dict[str, Any]]] = None
-        self._errors: List[Dict[str, List[str]]] = []
-        self._global_errors: List[str] = []
+        self._validated_data: list[dict[str, Any]] | None = None
+        self._errors: list[dict[str, list[str]]] = []
+        self._global_errors: list[str] = []
         self._is_validated = False
 
     def is_valid(self) -> bool:
         """Validate all items in the formset."""
         if self._is_validated:
-            return len(self._global_errors) == 0 and all(
-                len(e) == 0 for e in self._errors
-            )
+            return len(self._global_errors) == 0 and all(len(e) == 0 for e in self._errors)
 
         self._is_validated = True
         self._errors = []
@@ -237,14 +232,10 @@ class PageFormSet:
 
         # Check item count
         if len(self.data) < self.min_items:
-            self._global_errors.append(
-                f"At least {self.min_items} items required"
-            )
+            self._global_errors.append(f"At least {self.min_items} items required")
 
         if self.max_items and len(self.data) > self.max_items:
-            self._global_errors.append(
-                f"At most {self.max_items} items allowed"
-            )
+            self._global_errors.append(f"At most {self.max_items} items allowed")
 
         # Validate each item
         for item_data in self.data:
@@ -255,12 +246,10 @@ class PageFormSet:
             else:
                 self._errors.append(form.errors)
 
-        return len(self._global_errors) == 0 and all(
-            len(e) == 0 for e in self._errors
-        )
+        return len(self._global_errors) == 0 and all(len(e) == 0 for e in self._errors)
 
     @property
-    def validated_data(self) -> List[Dict[str, Any]]:
+    def validated_data(self) -> list[dict[str, Any]]:
         """Get validated data for all items."""
         if not self._is_validated:
             raise ValueError("Call is_valid() before accessing validated_data")
@@ -269,23 +258,21 @@ class PageFormSet:
         return self._validated_data
 
     @property
-    def errors(self) -> List[Dict[str, List[str]]]:
+    def errors(self) -> list[dict[str, list[str]]]:
         """Get errors for each item."""
         if not self._is_validated:
             self.is_valid()
         return self._errors
 
     @property
-    def global_errors(self) -> List[str]:
+    def global_errors(self) -> list[str]:
         """Get global formset errors (not per-item)."""
         if not self._is_validated:
             self.is_valid()
         return self._global_errors
 
 
-def form_errors_to_dict(
-    errors: Union[Dict[str, Any], List[Any], Exception]
-) -> Dict[str, List[str]]:
+def form_errors_to_dict(errors: dict[str, Any] | list[Any] | Exception) -> dict[str, list[str]]:
     """
     Convert various error formats to the standard page errors format.
 
@@ -295,7 +282,7 @@ def form_errors_to_dict(
     - Dict of errors
     - Exception with message
     """
-    result: Dict[str, List[str]] = {}
+    result: dict[str, list[str]] = {}
 
     # Django form errors
     if hasattr(errors, "get_json_data"):
@@ -306,6 +293,7 @@ def form_errors_to_dict(
     # Pydantic ValidationError
     try:
         from pydantic import ValidationError
+
         if isinstance(errors, ValidationError):
             for error in errors.errors():
                 field = ".".join(str(loc) for loc in error["loc"])

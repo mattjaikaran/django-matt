@@ -5,7 +5,6 @@ Provides configuration for session authentication.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional
 
 
 @dataclass
@@ -19,7 +18,7 @@ class SessionConfig:
     # Session cookie settings
     cookie_name: str = "sessionid"
     cookie_age: int = 86400 * 14  # 14 days in seconds
-    cookie_domain: Optional[str] = None
+    cookie_domain: str | None = None
     cookie_path: str = "/"
     cookie_secure: bool = True  # Require HTTPS
     cookie_httponly: bool = True  # Not accessible via JavaScript
@@ -33,7 +32,7 @@ class SessionConfig:
     csrf_cookie_httponly: bool = False  # JS needs access for AJAX
     csrf_cookie_samesite: str = "Lax"
     csrf_header_name: str = "X-CSRFToken"
-    csrf_trusted_origins: List[str] = field(default_factory=list)
+    csrf_trusted_origins: list[str] = field(default_factory=list)
 
     # Session behavior
     session_engine: str = "django.contrib.sessions.backends.db"
@@ -93,9 +92,9 @@ class SessionConfig:
                 "csrf_cookie_secure": getattr(settings, "CSRF_COOKIE_SECURE", True),
                 "csrf_cookie_httponly": getattr(settings, "CSRF_COOKIE_HTTPONLY", False),
                 "csrf_cookie_samesite": getattr(settings, "CSRF_COOKIE_SAMESITE", "Lax"),
-                "csrf_header_name": getattr(
-                    settings, "CSRF_HEADER_NAME", "HTTP_X_CSRFTOKEN"
-                ).replace("HTTP_", "").replace("_", "-"),
+                "csrf_header_name": getattr(settings, "CSRF_HEADER_NAME", "HTTP_X_CSRFTOKEN")
+                .replace("HTTP_", "")
+                .replace("_", "-"),
                 "csrf_trusted_origins": getattr(settings, "CSRF_TRUSTED_ORIGINS", []),
             }
 
@@ -126,13 +125,9 @@ class SessionConfig:
             csrf_cookie_samesite=merged.get("csrf_cookie_samesite", "Lax"),
             csrf_header_name=merged.get("csrf_header_name", "X-CSRFToken"),
             csrf_trusted_origins=merged.get("csrf_trusted_origins", []),
-            session_engine=merged.get(
-                "session_engine", "django.contrib.sessions.backends.db"
-            ),
+            session_engine=merged.get("session_engine", "django.contrib.sessions.backends.db"),
             session_save_every_request=merged.get("session_save_every_request", False),
-            session_expire_at_browser_close=merged.get(
-                "session_expire_at_browser_close", False
-            ),
+            session_expire_at_browser_close=merged.get("session_expire_at_browser_close", False),
             rotate_session_on_login=merged.get("rotate_session_on_login", True),
             clear_session_on_logout=merged.get("clear_session_on_logout", True),
             single_session_per_user=merged.get("single_session_per_user", False),
@@ -143,7 +138,7 @@ class SessionConfig:
 
 
 # Global config instance
-_config: Optional[SessionConfig] = None
+_config: SessionConfig | None = None
 
 
 def get_session_config() -> SessionConfig:

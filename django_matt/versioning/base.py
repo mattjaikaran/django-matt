@@ -171,10 +171,9 @@ class BaseVersioning(ABC):
 
         if p1 < p2:
             return -1
-        elif p1 > p2:
+        if p1 > p2:
             return 1
-        else:
-            return 0
+        return 0
 
     def reverse(
         self,
@@ -196,4 +195,5 @@ class BaseVersioning(ABC):
             URL string with version
         """
         from django.urls import reverse
+
         return reverse(viewname, kwargs=kwargs)

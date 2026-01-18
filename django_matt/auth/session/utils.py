@@ -4,7 +4,7 @@ Session utility functions.
 Helper functions for session management.
 """
 
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
@@ -37,7 +37,7 @@ def get_client_ip(request: "HttpRequest") -> str:
 def login_session(
     request: "HttpRequest",
     user: "AbstractUser",
-    backend: Optional[str] = None,
+    backend: str | None = None,
 ) -> None:
     """
     Log a user in via session.
@@ -253,7 +253,7 @@ def flash_message(
     request.session.modified = True
 
 
-def get_flash_messages(request: "HttpRequest") -> List[Dict[str, str]]:
+def get_flash_messages(request: "HttpRequest") -> list[dict[str, str]]:
     """
     Get and clear flash messages from the session.
 
@@ -273,7 +273,7 @@ def get_flash_messages(request: "HttpRequest") -> List[Dict[str, str]]:
     return messages
 
 
-def get_session_info(request: "HttpRequest") -> Dict[str, Any]:
+def get_session_info(request: "HttpRequest") -> dict[str, Any]:
     """
     Get information about the current session.
 
@@ -296,14 +296,16 @@ def get_session_info(request: "HttpRequest") -> Dict[str, Any]:
         "fresh": session.get("_session_fresh", False),
         "ip_address": session.get("_device_ip"),
         "user_agent": session.get("_device_user_agent"),
-        "expires": session.get_expiry_date().isoformat() if hasattr(session, "get_expiry_date") else None,
+        "expires": session.get_expiry_date().isoformat()
+        if hasattr(session, "get_expiry_date")
+        else None,
     }
 
 
 async def alogin_session(
     request: "HttpRequest",
     user: "AbstractUser",
-    backend: Optional[str] = None,
+    backend: str | None = None,
 ) -> None:
     """Async version of login_session."""
     from asgiref.sync import sync_to_async

@@ -30,35 +30,35 @@ from django_matt.auth.passkeys.config import (
     PasskeyConfig,
     passkey_config,
 )
-from django_matt.auth.passkeys.webauthn import (
-    generate_registration_options,
-    verify_registration_response,
-    generate_authentication_options,
-    verify_authentication_response,
-    PasskeyError,
-    PasskeyRegistrationError,
-    PasskeyAuthenticationError,
-    PasskeyCredentialNotFoundError,
+from django_matt.auth.passkeys.controllers import (
+    MinimalPasskeyController,
+    PasskeyController,
 )
 from django_matt.auth.passkeys.schemas import (
-    # Registration
-    RegistrationOptionsRequest,
-    RegistrationOptionsResponse,
-    RegistrationVerifyRequest,
-    RegistrationVerifyResponse,
     # Authentication
     AuthenticationOptionsRequest,
     AuthenticationOptionsResponse,
     AuthenticationVerifyRequest,
     AuthenticationVerifyResponse,
+    PasskeyCredentialDeleteRequest,
+    PasskeyCredentialListResponse,
     # Credential management
     PasskeyCredentialResponse,
-    PasskeyCredentialListResponse,
-    PasskeyCredentialDeleteRequest,
+    # Registration
+    RegistrationOptionsRequest,
+    RegistrationOptionsResponse,
+    RegistrationVerifyRequest,
+    RegistrationVerifyResponse,
 )
-from django_matt.auth.passkeys.controllers import (
-    PasskeyController,
-    MinimalPasskeyController,
+from django_matt.auth.passkeys.webauthn import (
+    PasskeyAuthenticationError,
+    PasskeyCredentialNotFoundError,
+    PasskeyError,
+    PasskeyRegistrationError,
+    generate_authentication_options,
+    generate_registration_options,
+    verify_authentication_response,
+    verify_registration_response,
 )
 
 __all__ = [

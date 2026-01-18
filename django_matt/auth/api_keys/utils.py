@@ -240,7 +240,7 @@ def create_api_key(
         )
         # raw_key is only available now - save it securely!
     """
-    from .models import APIKey, PLAN_RATE_LIMITS
+    from .models import PLAN_RATE_LIMITS, APIKey
 
     # Generate the key
     raw_key = generate_api_key(is_test=is_test)
@@ -278,7 +278,7 @@ async def acreate_api_key(
     allowed_ips: list[str] | None = None,
 ) -> tuple["APIKey", str]:
     """Async version of create_api_key."""
-    from .models import APIKey, PLAN_RATE_LIMITS
+    from .models import PLAN_RATE_LIMITS, APIKey
 
     raw_key = generate_api_key(is_test=is_test)
     key_hash = hash_api_key(raw_key)

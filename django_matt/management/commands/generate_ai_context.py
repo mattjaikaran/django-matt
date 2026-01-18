@@ -34,13 +34,15 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--output", "-o",
+            "--output",
+            "-o",
             type=str,
             default=".",
             help="Output directory for generated files (default: current directory)",
         )
         parser.add_argument(
-            "--format", "-f",
+            "--format",
+            "-f",
             type=str,
             choices=["all", "claude", "cursor"],
             default="all",
@@ -64,14 +66,14 @@ class Command(BaseCommand):
             help="Show what would be generated without writing files",
         )
         parser.add_argument(
-            "--quiet", "-q",
+            "--quiet",
+            "-q",
             action="store_true",
             help="Minimal output",
         )
 
     def handle(self, *args, **options):
         from django_matt.ai.ide import (
-            AIContextGenerator,
             ClaudeMdGenerator,
             CursorRulesGenerator,
             ProjectIntrospector,
@@ -125,9 +127,7 @@ class Command(BaseCommand):
                 generated_files.append(file_path)
 
                 if not quiet:
-                    self.stdout.write(
-                        self.style.SUCCESS(f"  Generated: {file_path}")
-                    )
+                    self.stdout.write(self.style.SUCCESS(f"  Generated: {file_path}"))
 
         # Generate .cursorrules
         if format_type in ("all", "cursor"):
@@ -143,9 +143,7 @@ class Command(BaseCommand):
                 generated_files.append(file_path)
 
                 if not quiet:
-                    self.stdout.write(
-                        self.style.SUCCESS(f"  Generated: {file_path}")
-                    )
+                    self.stdout.write(self.style.SUCCESS(f"  Generated: {file_path}"))
 
         # Summary
         if not dry_run and not quiet:

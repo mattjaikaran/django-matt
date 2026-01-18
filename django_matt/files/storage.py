@@ -5,9 +5,10 @@ Defines the abstract interface that all storage backends must implement.
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from dataclasses import dataclass
 from datetime import datetime
-from typing import BinaryIO, Iterator, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, BinaryIO, Union
 
 if TYPE_CHECKING:
     from .upload import UploadedFile
@@ -52,8 +53,8 @@ class FileInfo:
     key: str
     size: int
     content_type: str
-    last_modified: Optional[datetime] = None
-    etag: Optional[str] = None
+    last_modified: datetime | None = None
+    etag: str | None = None
     metadata: dict = None
 
     def __post_init__(self):
@@ -123,7 +124,6 @@ class BaseStorage(ABC):
             FileExistsError: If file exists and overwrite=False
             StorageError: On other storage errors
         """
-        pass
 
     @abstractmethod
     async def get(self, key: str) -> bytes:
@@ -139,7 +139,6 @@ class BaseStorage(ABC):
         Raises:
             FileNotFoundError: If the file doesn't exist
         """
-        pass
 
     @abstractmethod
     async def get_stream(self, key: str, chunk_size: int = 8192) -> Iterator[bytes]:
@@ -156,7 +155,6 @@ class BaseStorage(ABC):
         Raises:
             FileNotFoundError: If the file doesn't exist
         """
-        pass
 
     @abstractmethod
     async def delete(self, key: str) -> None:
@@ -169,7 +167,6 @@ class BaseStorage(ABC):
         Raises:
             FileNotFoundError: If the file doesn't exist
         """
-        pass
 
     @abstractmethod
     async def exists(self, key: str) -> bool:
@@ -182,7 +179,6 @@ class BaseStorage(ABC):
         Returns:
             True if the file exists
         """
-        pass
 
     @abstractmethod
     async def info(self, key: str) -> FileInfo:
@@ -198,7 +194,6 @@ class BaseStorage(ABC):
         Raises:
             FileNotFoundError: If the file doesn't exist
         """
-        pass
 
     @abstractmethod
     async def list(
@@ -206,7 +201,7 @@ class BaseStorage(ABC):
         prefix: str = "",
         limit: int = None,
         cursor: str = None,
-    ) -> tuple[list[FileInfo], Optional[str]]:
+    ) -> tuple[list[FileInfo], str | None]:
         """
         List files in storage.
 
@@ -218,7 +213,6 @@ class BaseStorage(ABC):
         Returns:
             Tuple of (list of FileInfo, next cursor or None)
         """
-        pass
 
     @abstractmethod
     def url(self, key: str) -> str:
@@ -235,7 +229,6 @@ class BaseStorage(ABC):
             This may not work for private storage backends.
             Use presigned_download_url() for private files.
         """
-        pass
 
     @abstractmethod
     async def presigned_upload_url(
@@ -259,7 +252,6 @@ class BaseStorage(ABC):
         Returns:
             PresignedUrl with upload URL and required fields/headers
         """
-        pass
 
     @abstractmethod
     async def presigned_download_url(
@@ -279,7 +271,6 @@ class BaseStorage(ABC):
         Returns:
             PresignedUrl with download URL
         """
-        pass
 
     async def copy(
         self,

@@ -4,7 +4,8 @@ Versioned router for django-matt.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, TypeVar
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
@@ -138,9 +139,12 @@ class VersionedRouter:
             endpoint = route["endpoint"]
             methods = route["methods"]
 
-            def view_wrapper(request: HttpRequest, _endpoint: Callable = endpoint, _methods: list = methods) -> Any:
+            def view_wrapper(
+                request: HttpRequest, _endpoint: Callable = endpoint, _methods: list = methods
+            ) -> Any:
                 if request.method not in _methods:
                     from django.http import HttpResponseNotAllowed
+
                     return HttpResponseNotAllowed(_methods)
                 return _endpoint(request)
 
@@ -236,9 +240,7 @@ class VersionedAPI:
 
         patterns = []
         for version, router in self._routers.items():
-            patterns.append(
-                path(f"v{version}/", include(router.get_urls()))
-            )
+            patterns.append(path(f"v{version}/", include(router.get_urls())))
 
         return patterns
 

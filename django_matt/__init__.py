@@ -13,19 +13,53 @@ __version__ = "0.1.0"
 # Import main API class
 from django_matt.api import MattAPI
 
+# Import auth module
+# Core auth features use built-in JWT implementation (no external dependencies)
+# Users should import from django_matt.auth for full auth functionality
+from django_matt.auth import (
+    JWTAuthenticationMiddleware,
+    admin_required,
+    create_token_pair,
+    jwt_optional,
+    jwt_required,
+    requires_auth,
+    superuser_required,
+    with_permission,
+    with_roles,
+)
+
 # Import core components for easy access
 from django_matt.core.controller import APIController, Controller, CRUDController
 from django_matt.core.router import APIRouter, delete, get, patch, post, put
 from django_matt.core.schema import (
     ModelSchema,
     Schema,
-    create_schema_from_model,
     create_model_from_schema,
+    create_schema_from_model,
     model_validator,
 )
 
 # Import OpenAPI components
-from django_matt.openapi import OpenAPISchema, get_swagger_ui, get_redoc
+from django_matt.openapi import OpenAPISchema, get_redoc, get_swagger_ui
+
+# Import permissions module
+from django_matt.permissions import (
+    AllowAny,
+    BasePermission,
+    HasPermission,
+    HasRole,
+    IsAdmin,
+    IsAuthenticated,
+    IsOwner,
+    IsStaff,
+    IsSuperUser,
+    Permission,
+    allow_any,
+    authenticated,
+    requires_permission,
+    requires_permissions,
+    requires_role,
+)
 
 # Import utility components
 from django_matt.utils.errors import ErrorHandler, ErrorMiddleware, error_handler
@@ -48,48 +82,14 @@ from django_matt.utils.performance import (
 from django_matt.views import (
     APIView,
     APIViewSet,
-    ViewSet,
-    ListView,
     CreateView,
+    DeleteView,
+    ListView,
+    PatchView,
     ReadView,
     RetrieveView,
     UpdateView,
-    DeleteView,
-    PatchView,
-)
-
-# Import permissions module
-from django_matt.permissions import (
-    BasePermission,
-    Permission,
-    AllowAny,
-    IsAuthenticated,
-    IsAdmin,
-    IsStaff,
-    IsSuperUser,
-    IsOwner,
-    HasRole,
-    HasPermission,
-    requires_permission,
-    requires_permissions,
-    requires_role,
-    authenticated,
-    allow_any,
-)
-
-# Import auth module
-# Core auth features use built-in JWT implementation (no external dependencies)
-# Users should import from django_matt.auth for full auth functionality
-from django_matt.auth import (
-    jwt_required,
-    jwt_optional,
-    requires_auth,
-    admin_required,
-    superuser_required,
-    with_roles,
-    with_permission,
-    create_token_pair,
-    JWTAuthenticationMiddleware,
+    ViewSet,
 )
 
 # Import billing module (lazy import to handle optional dependencies)
@@ -98,9 +98,10 @@ try:
     from django_matt.billing import (
         BillingController,
         WebhookController,
-        get_provider,
         get_billing_config,
+        get_provider,
     )
+
     _billing_available = True
 except ImportError:
     _billing_available = False
@@ -108,75 +109,75 @@ except ImportError:
     get_provider = get_billing_config = None
 
 # Import content negotiation module
-from django_matt.negotiation import (
-    ContentNegotiationMiddleware,
-    ContentNegotiator,
-    renders,
-    render_as,
-    content_negotiated,
-    render,
-    render_format,
-    negotiate,
-)
-
-# Import pagination module
-from django_matt.pagination import (
-    BasePagination,
-    PageNumberPagination,
-    LimitOffsetPagination,
-    CursorPagination,
+# Import dependency injection module
+from django_matt.di import (
+    Container,
+    CurrentOrg,
+    CurrentRequest,
+    CurrentUser,
+    DependencyInjectionMiddleware,
+    Depends,
+    Scoped,
+    Singleton,
+    Transient,
+    container,
+    inject,
+    injectable,
 )
 
 # Import filtering module
 from django_matt.filtering import (
     BaseFilterBackend,
-    DjangoFilterBackend,
-    SearchBackend,
-    OrderingBackend,
-    FilterSet,
-    Filter,
-    CharFilter,
-    IntegerFilter,
     BooleanFilter,
+    CharFilter,
     DateFilter,
     DateTimeFilter,
+    DjangoFilterBackend,
+    Filter,
+    FilterSet,
     InFilter,
+    IntegerFilter,
+    OrderingBackend,
     PostgresSearchBackend,
+    SearchBackend,
+)
+from django_matt.negotiation import (
+    ContentNegotiationMiddleware,
+    ContentNegotiator,
+    content_negotiated,
+    negotiate,
+    render,
+    render_as,
+    render_format,
+    renders,
 )
 
-# Import dependency injection module
-from django_matt.di import (
-    Container,
-    container,
-    Singleton,
-    Scoped,
-    Transient,
-    Depends,
-    CurrentUser,
-    CurrentRequest,
-    CurrentOrg,
-    injectable,
-    inject,
-    DependencyInjectionMiddleware,
+# Import pagination module
+from django_matt.pagination import (
+    BasePagination,
+    CursorPagination,
+    LimitOffsetPagination,
+    PageNumberPagination,
 )
 
 # Import WebSocket module (lazy import to handle optional channels dependency)
 # Users should import from django_matt.websockets for full WebSocket functionality
 try:
     from django_matt.websockets import (
+        AuthenticatedConsumer,
+        AuthMiddlewareStack,
         BaseConsumer,
         JsonConsumer,
-        AuthenticatedConsumer,
-        RoomConsumer,
         JWTAuthMiddleware,
-        SessionAuthMiddleware,
-        AuthMiddlewareStack,
-        WebSocketRouter,
-        create_asgi_application,
-        broadcast,
-        send_to_user,
         PresenceManager,
+        RoomConsumer,
+        SessionAuthMiddleware,
+        WebSocketRouter,
+        broadcast,
+        create_asgi_application,
+        send_to_user,
     )
+
     _websockets_available = True
 except ImportError:
     _websockets_available = False

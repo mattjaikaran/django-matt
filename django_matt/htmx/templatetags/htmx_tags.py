@@ -11,9 +11,9 @@ Usage:
     {% if htmx %}This is an HTMX request{% endif %}
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
+
 from django import template
-from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 register = template.Library()
@@ -22,8 +22,8 @@ register = template.Library()
 @register.simple_tag
 def htmx_script(
     version: str = "1.9.10",
-    extensions: Optional[str] = None,
-    integrity: Optional[str] = None,
+    extensions: str | None = None,
+    integrity: str | None = None,
 ) -> str:
     """
     Include the HTMX script tag.
@@ -46,9 +46,7 @@ def htmx_script(
         ext_scripts = []
         for ext in extensions.split(","):
             ext = ext.strip()
-            ext_scripts.append(
-                f'<script src="{base_url}/dist/ext/{ext}.js"></script>'
-            )
+            ext_scripts.append(f'<script src="{base_url}/dist/ext/{ext}.js"></script>')
         script += "\n" + "\n".join(ext_scripts)
 
     return mark_safe(script)
@@ -58,16 +56,16 @@ def htmx_script(
 def htmx_attrs(
     method: str,
     url: str,
-    target: Optional[str] = None,
-    swap: Optional[str] = None,
-    trigger: Optional[str] = None,
-    indicator: Optional[str] = None,
-    confirm: Optional[str] = None,
+    target: str | None = None,
+    swap: str | None = None,
+    trigger: str | None = None,
+    indicator: str | None = None,
+    confirm: str | None = None,
     boost: bool = False,
-    push_url: Optional[str] = None,
-    select: Optional[str] = None,
-    vals: Optional[str] = None,
-    headers: Optional[str] = None,
+    push_url: str | None = None,
+    select: str | None = None,
+    vals: str | None = None,
+    headers: str | None = None,
     **kwargs,
 ) -> str:
     """
@@ -156,7 +154,7 @@ def hx_delete(url: str, **kwargs) -> str:
 @register.simple_tag
 def hx_trigger(
     event: str,
-    modifiers: Optional[str] = None,
+    modifiers: str | None = None,
 ) -> str:
     """
     Generate hx-trigger attribute.
@@ -172,7 +170,7 @@ def hx_trigger(
 
 
 @register.simple_tag
-def hx_vals(values: Dict[str, Any]) -> str:
+def hx_vals(values: dict[str, Any]) -> str:
     """
     Generate hx-vals attribute from a dictionary.
 
@@ -186,7 +184,7 @@ def hx_vals(values: Dict[str, Any]) -> str:
 
 
 @register.simple_tag
-def hx_headers(headers: Dict[str, str]) -> str:
+def hx_headers(headers: dict[str, str]) -> str:
     """
     Generate hx-headers attribute from a dictionary.
 
@@ -204,7 +202,7 @@ def htmx_loading(
     id: str = "loading",
     text: str = "Loading...",
     spinner: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Render a loading indicator.
 
@@ -238,7 +236,7 @@ def htmx_csrf(context) -> str:
         from django.middleware.csrf import get_token
 
         token = get_token(request)
-        return mark_safe(f"hx-headers='{{\"X-CSRFToken\": \"{token}\"}}'")
+        return mark_safe(f'hx-headers=\'{{"X-CSRFToken": "{token}"}}\'')
     return ""
 
 
@@ -262,10 +260,8 @@ def htmx_fragment(parser, token):
     """
     bits = token.split_contents()
     if len(bits) != 2:
-        raise template.TemplateSyntaxError(
-            f"'{bits[0]}' tag requires exactly one argument"
-        )
-    fragment_name = bits[1].strip('"\'')
+        raise template.TemplateSyntaxError(f"'{bits[0]}' tag requires exactly one argument")
+    fragment_name = bits[1].strip("\"'")
     nodelist = parser.parse(("end_htmx_fragment",))
     parser.delete_first_token()
     return HtmxFragmentNode(fragment_name, nodelist)
@@ -312,19 +308,19 @@ def htmx_safe_id(value: Any) -> str:
 
 
 __all__ = [
-    "htmx_script",
     "htmx_attrs",
-    "hx_get",
-    "hx_post",
-    "hx_put",
-    "hx_patch",
-    "hx_delete",
-    "hx_trigger",
-    "hx_vals",
-    "hx_headers",
-    "htmx_loading",
     "htmx_csrf",
     "htmx_fragment",
+    "htmx_loading",
     "htmx_oob",
     "htmx_safe_id",
+    "htmx_script",
+    "hx_delete",
+    "hx_get",
+    "hx_headers",
+    "hx_patch",
+    "hx_post",
+    "hx_put",
+    "hx_trigger",
+    "hx_vals",
 ]

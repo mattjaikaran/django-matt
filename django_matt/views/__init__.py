@@ -7,13 +7,13 @@ Create complete CRUD APIs with minimal code using the ViewSet pattern.
 Example:
     from django_matt import MattAPI
     from django_matt.views import APIViewSet, ListView, CreateView, ReadView, UpdateView, DeleteView
-    
+
     class UserViewSet(APIViewSet):
         api = api
         model = User
         default_response_schema = UserSchema
         default_request_schema = UserCreateSchema
-        
+
         list_users = ListView()
         create_user = CreateView()
         read_user = ReadView()
@@ -22,11 +22,11 @@ Example:
 """
 
 from django_matt.views.base import APIView
-from django_matt.views.list import ListView
 from django_matt.views.create import CreateView
-from django_matt.views.read import ReadView, RetrieveView
-from django_matt.views.update import UpdateView, PatchView
 from django_matt.views.delete import DeleteView
+from django_matt.views.list import ListView
+from django_matt.views.read import ReadView, RetrieveView
+from django_matt.views.update import PatchView, UpdateView
 from django_matt.views.viewset import APIViewSet, ViewSet
 
 __all__ = [

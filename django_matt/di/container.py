@@ -6,9 +6,10 @@ Provides service registration and resolution with different lifetimes.
 
 import inspect
 import threading
+from collections.abc import Callable
 from contextvars import ContextVar
 from enum import Enum
-from typing import Any, Callable, TypeVar, Generic, get_type_hints, Union
+from typing import Any, TypeVar, get_type_hints
 
 T = TypeVar("T")
 
@@ -17,7 +18,7 @@ class ServiceLifetime(Enum):
     """Lifetime options for registered services."""
 
     SINGLETON = "singleton"  # One instance for the entire application
-    SCOPED = "scoped"        # One instance per request/scope
+    SCOPED = "scoped"  # One instance per request/scope
     TRANSIENT = "transient"  # New instance every time
 
 
@@ -50,7 +51,7 @@ class ServiceDescriptor:
     def __init__(
         self,
         service_type: type,
-        implementation: Union[type, Callable, None] = None,
+        implementation: type | Callable | None = None,
         lifetime: ServiceLifetime = ServiceLifetime.TRANSIENT,
         factory: Callable[..., Any] = None,
         instance: Any = None,
@@ -71,9 +72,7 @@ class ServiceDescriptor:
 
 
 # Context variable for scoped instances
-_scoped_instances: ContextVar[dict[type, Any]] = ContextVar(
-    "scoped_instances", default=None
-)
+_scoped_instances: ContextVar[dict[type, Any]] = ContextVar("scoped_instances", default=None)
 
 
 class Container:
@@ -116,7 +115,7 @@ class Container:
     def register(
         self,
         service_type: type[T],
-        implementation: Union[type[T], None] = None,
+        implementation: type[T] | None = None,
         *,
         lifetime: ServiceLifetime = ServiceLifetime.TRANSIENT,
         factory: Callable[..., T] = None,
@@ -321,7 +320,7 @@ class Container:
 
         return callable_obj(**kwargs)
 
-    def try_resolve(self, service_type: type[T]) -> Union[T, None]:
+    def try_resolve(self, service_type: type[T]) -> T | None:
         """
         Try to resolve a service, returning None if not found.
 
@@ -340,7 +339,7 @@ class Container:
         """Check if a service type is registered."""
         return service_type in self._services
 
-    def get_descriptor(self, service_type: type) -> Union[ServiceDescriptor, None]:
+    def get_descriptor(self, service_type: type) -> ServiceDescriptor | None:
         """Get the service descriptor for a type."""
         return self._services.get(service_type)
 
