@@ -778,59 +778,56 @@ python = "3.13"
 
 > Goal: First-class ML/AI support for modern Django applications.
 
-### Phase 10A: ML Utilities
-- [ ] **10A.1** - Model serving utilities
-  - `MLModel` base class for inference
-  - Async inference support
-  - Batch prediction endpoints
-- [ ] **10A.2** - Vector storage integration
-  - pgvector utilities (already started in `db/`)
-  - Pinecone integration
-  - Weaviate integration
-  - Qdrant integration
-- [ ] **10A.3** - Embedding utilities
-  - OpenAI embeddings helper
-  - Sentence transformers integration
-  - Caching for embeddings
+### Phase 10A: ML Utilities ✅
+- [x] **10A.1** - Embedding utilities
+  - `EmbeddingProvider` base class with async support
+  - `CachedEmbeddings` - caching layer for any provider
+  - `BatchEmbeddings` - efficient bulk embedding with concurrency
+  - Similarity functions: `cosine_similarity`, `euclidean_distance`, `dot_product`
+- [x] **10A.2** - Vector storage integration
+  - `VectorStore` unified interface
+  - `InMemoryVectorStore` - development/testing
+  - `PgVectorStore` - PostgreSQL with pgvector extension
+  - `PineconeVectorStore` - Pinecone cloud integration
+  - `QdrantVectorStore` - Qdrant vector DB integration
+- [x] **10A.3** - Embedding providers
+  - `OpenAIEmbeddings` - text-embedding-3-small/large, ada-002
+  - `GeminiEmbeddings` - text-embedding-004
+  - `OllamaEmbeddings` - nomic-embed-text, mxbai-embed-large
 
-### Phase 10B: LLM Integration (Cloud Providers)
-- [ ] **10B.1** - LLM client utilities
-  - OpenAI client wrapper
-  - Anthropic client wrapper
-  - Google Gemini client wrapper
-  - Unified interface for multiple providers
-- [ ] **10B.2** - RAG (Retrieval Augmented Generation)
-  - Document chunking utilities
-  - Vector search + LLM pipelines
-  - Conversation memory
-- [ ] **10B.3** - Structured output
-  - Pydantic model extraction from LLM responses
-  - JSON mode helpers
+### Phase 10B: LLM Integration (Cloud Providers) ✅
+- [x] **10B.1** - LLM client utilities
+  - `LLMProvider` base class with unified interface
+  - `OpenAIProvider` - GPT-4o, GPT-4, GPT-3.5-turbo
+  - `AnthropicProvider` - Claude 3.5 Sonnet, Claude 3 Opus/Haiku
+  - `GeminiProvider` - Gemini 1.5 Pro/Flash
+  - `get_provider(name)` factory function
+- [x] **10B.2** - RAG (Retrieval Augmented Generation)
+  - Text splitters: `CharacterSplitter`, `RecursiveSplitter`, `SentenceSplitter`
+  - `ConversationMemory` - window-based history
+  - `SummaryMemory` - LLM-summarized history
+  - `RAGChain` - standard RAG pipeline
+  - `MultiQueryRAG` - query expansion for better retrieval
+- [x] **10B.3** - Structured output
+  - `StructuredOutputProvider` mixin
+  - `complete_structured()` with Pydantic models
+  - JSON mode helpers for all providers
   - Validation and retry logic
 
-### Phase 10C: Self-Hosted LLMs
-- [ ] **10C.1** - Ollama integration
-  - Ollama client wrapper
-  - Model management (pull, list, delete)
-  - Streaming responses
-  - Embeddings via Ollama
-- [ ] **10C.2** - vLLM integration
+### Phase 10C: Self-Hosted LLMs ✅
+- [x] **10C.1** - Ollama integration
+  - `OllamaProvider` - full chat completion support
+  - Model management: `list_models()`, `pull_model()`, `delete_model()`
+  - Streaming responses with async iterators
+  - `OllamaEmbeddings` for local embeddings
+  - JSON mode for structured output
+- [ ] **10C.2** - vLLM integration (future)
   - vLLM server client
   - OpenAI-compatible API support
-  - Batch inference
-- [ ] **10C.3** - llama.cpp integration
+- [ ] **10C.3** - llama.cpp integration (future)
   - Direct llama-cpp-python bindings
-  - GGUF model loading
-  - Quantization options
-- [ ] **10C.4** - LocalAI integration
+- [ ] **10C.4** - LocalAI integration (future)
   - LocalAI client wrapper
-  - Drop-in OpenAI replacement
-  - Multiple model backends
-- [ ] **10C.5** - Self-hosted infrastructure
-  - Docker Compose for local LLM stack
-  - GPU passthrough configuration
-  - Model download/caching utilities
-  - Health checks for LLM services
 
 ### Phase 10D: AI IDE Integration
 - [ ] **10D.1** - Context file generation
