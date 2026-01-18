@@ -848,20 +848,24 @@ python = "3.13"
 
 > Goal: Seamless integration with modern frontend frameworks.
 
-### Phase 11A: HTMX Integration
-- [ ] **11A.1** - HTMX view helpers
-  - `@htmx_view` decorator
-  - Partial template rendering
-  - Out-of-band swaps support
-- [ ] **11A.2** - HTMX response utilities
-  - `HtmxResponse` with triggers
-  - Push URL, redirect helpers
-  - Retarget/reswap utilities
-- [ ] **11A.3** - Component library
-  - Infinite scroll
-  - Search with debounce
-  - Modal dialogs
-  - Toast notifications
+### Phase 11A: HTMX Integration ✅
+- [x] **11A.1** - HTMX view helpers
+  - `@htmx_view` decorator with automatic template switching
+  - `@htmx_partial`, `@htmx_only` decorators
+  - Out-of-band swaps via `oob_swap()`, `OobBuilder`
+- [x] **11A.2** - HTMX response utilities
+  - `HtmxResponse` with chainable `trigger()`, `push_url()`, `retarget()`
+  - `HtmxTemplateResponse` for template rendering
+  - `HtmxRedirectResponse`, `HtmxRefreshResponse`, `StopPolling`
+- [x] **11A.3** - Component library
+  - `InfiniteScrollConfig` + `render_infinite_scroll_page()`
+  - `SearchConfig` + `render_search_results()` with debounce
+  - `ModalConfig` + `open_modal()`, `close_modal()`
+  - `ToastConfig` + `show_toast()`, `add_toast_oob()`
+- [x] **11A.4** - Template tags and middleware
+  - `{% htmx_script %}`, `{% htmx_attrs %}`, `{% htmx_csrf %}`
+  - `HtmxMiddleware` adds `request.htmx` attribute
+  - `htmx_context_processor` for templates
 
 ### Phase 11B: Django Matt Pages (Server-Driven SPA) ✅
 
