@@ -37,6 +37,9 @@ dependencies = [
     "pyyaml>=6.0.3",
     "toml>=0.10.2",
     "watchdog>=6.0.0",
+    # CLI enhancements
+    "rich>=13.0.0",
+    "questionary>=2.0.0",
 ]
 
 [project.optional-dependencies]
