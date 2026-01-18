@@ -11,6 +11,7 @@ Usage:
     file_path = path("Enter file path:")
 """
 
+from collections.abc import Callable
 from pathlib import Path as PathLib
 from typing import Any
 
@@ -37,7 +38,7 @@ MATT_STYLE = Style(
 def text(
     message: str,
     default: str = "",
-    validate: callable | None = None,
+    validate: Callable | None = None,
     instruction: str = "",
 ) -> str:
     """
@@ -63,7 +64,7 @@ def text(
 
 def password(
     message: str,
-    validate: callable | None = None,
+    validate: Callable | None = None,
 ) -> str:
     """
     Prompt for password input (hidden).
@@ -114,7 +115,7 @@ def multiselect(
     choices: list[str] | list[dict[str, Any]],
     default: list[str] | None = None,
     instruction: str = "(Space to select, Enter to confirm)",
-    validate: callable | None = None,
+    validate: Callable | None = None,
 ) -> list[str]:
     """
     Prompt to select multiple options.
@@ -167,8 +168,8 @@ def path(
     message: str,
     default: str = "",
     only_directories: bool = False,
-    file_filter: callable | None = None,
-    validate: callable | None = None,
+    file_filter: Callable | None = None,
+    validate: Callable | None = None,
 ) -> str:
     """
     Prompt for file/directory path with autocomplete.
@@ -197,7 +198,7 @@ def autocomplete(
     message: str,
     choices: list[str],
     default: str = "",
-    validate: callable | None = None,
+    validate: Callable | None = None,
     match_middle: bool = True,
 ) -> str:
     """

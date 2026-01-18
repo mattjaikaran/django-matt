@@ -28,6 +28,7 @@ Usage:
             self.show_summary()
 """
 
+from collections.abc import Callable
 from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
@@ -75,11 +76,7 @@ class MattCommand(BaseCommand):
             action="store_true",
             help="Suppress non-essential output",
         )
-        parser.add_argument(
-            "--no-color",
-            action="store_true",
-            help="Disable colored output",
-        )
+        # Note: --no-color is already provided by Django's BaseCommand
 
     def execute(self, *args, **options):
         """Execute with console configuration."""
@@ -181,7 +178,7 @@ class InteractiveCommand(MattCommand):
         message: str,
         default: str = "",
         required: bool = False,
-        validate: callable | None = None,
+        validate: Callable | None = None,
     ) -> str:
         """Prompt for text input."""
         if required and not validate:
