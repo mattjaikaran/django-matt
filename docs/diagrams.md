@@ -325,6 +325,123 @@ flowchart LR
     REACT --> PROPS
 ```
 
+## Dependency Injection
+
+```mermaid
+flowchart TB
+    subgraph "Registration"
+        REG[container.register]
+        INST[register_instance]
+        FACT[register_factory]
+    end
+
+    subgraph "Lifetimes"
+        SING[Singleton<br/>App lifetime]
+        SCOPED[Scoped<br/>Request lifetime]
+        TRANS[Transient<br/>Always new]
+    end
+
+    subgraph "Resolution"
+        RES[container.resolve]
+        DEP[Depends marker]
+        AUTO[Auto-injection]
+    end
+
+    REG --> SING & SCOPED & TRANS
+    INST --> SING
+    FACT --> SING & SCOPED & TRANS
+    SING & SCOPED & TRANS --> RES
+    RES --> DEP --> AUTO
+```
+
+## Content Negotiation
+
+```mermaid
+flowchart LR
+    subgraph "Input"
+        ACCEPT[Accept Header]
+        QUERY[?format=xml]
+        SUFFIX[/users.csv]
+    end
+
+    subgraph "Negotiator"
+        NEG[ContentNegotiator]
+    end
+
+    subgraph "Renderers"
+        JSON[JSON]
+        XML[XML]
+        CSV[CSV]
+        YAML[YAML]
+        MSG[MessagePack]
+    end
+
+    ACCEPT & QUERY & SUFFIX --> NEG
+    NEG --> JSON & XML & CSV & YAML & MSG
+```
+
+## RBAC Hierarchy
+
+```mermaid
+flowchart TB
+    SUPER[Super Admin<br/>level: 100] --> ADMIN
+    ADMIN[Admin<br/>level: 80] --> MANAGER
+    MANAGER[Manager<br/>level: 60] --> MEMBER
+    MEMBER[Member<br/>level: 40] --> GUEST
+    GUEST[Guest<br/>level: 20]
+
+    SUPER -.-> |"*"| ALL[All Permissions]
+    ADMIN -.-> |"users:*, admin:*"| ADMIN_PERMS[Admin Perms]
+    MANAGER -.-> |"users:read, team:*"| MGR_PERMS[Manager Perms]
+```
+
+## AI/RAG Pipeline
+
+```mermaid
+flowchart TB
+    subgraph "Input"
+        DOCS[Documents]
+        QUERY[User Query]
+    end
+
+    subgraph "Processing"
+        SPLIT[Text Splitter]
+        EMBED[Embeddings]
+        STORE[Vector Store]
+        RETRIEVE[Retrieval]
+    end
+
+    subgraph "Generation"
+        LLM[LLM Provider]
+        RESP[Response]
+    end
+
+    DOCS --> SPLIT --> EMBED --> STORE
+    QUERY --> EMBED --> RETRIEVE
+    STORE --> RETRIEVE
+    RETRIEVE --> LLM --> RESP
+```
+
+## Audit Trail
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant M as Middleware
+    participant V as View
+    participant A as AuditLog
+    participant DB as Database
+
+    U->>M: Request
+    M->>M: Set audit context (IP, User-Agent)
+    M->>V: Handle request
+    V->>DB: Model.save()
+    DB->>A: Signal: post_save
+    A->>A: Create audit entry
+    A->>DB: Save AuditLog
+    V->>U: Response
+```
+
 ## Related Documentation
 
 - [Architecture Overview](./architecture/overview.md)
@@ -334,3 +451,13 @@ flowchart LR
 - [Notifications](./notifications/overview.md)
 - [Email](./email/overview.md)
 - [Deployment](./deployment/overview.md)
+- [Dependency Injection](./di/overview.md)
+- [Content Negotiation](./negotiation/overview.md)
+- [RBAC](./auth/rbac.md)
+- [Admin Interface](./admin/overview.md)
+- [Audit Logging](./audit/overview.md)
+- [AI/ML](./ai/overview.md)
+- [HTMX](./htmx/overview.md)
+- [Livewire](./livewire/overview.md)
+- [Code Generation](./codegen/overview.md)
+- [OpenAPI](./openapi/overview.md)
