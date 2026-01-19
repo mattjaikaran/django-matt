@@ -1,11 +1,41 @@
 # Django Matt - Development Commands
 # ===================================
 # Run `make` or `make help` to see all available commands
+#
+# Commands with arguments:
+#   make startapp NAME=myapp        - Create a new Django app
+#   make startproject NAME=myproj   - Create a new Django Matt project
+#   make crud MODEL=myapp.MyModel   - Generate CRUD for a model
+#   make test FILE=test_auth.py     - Run specific test file
+#   make migrate APP=myapp          - Migrate specific app
+#
+# Consolidated commands (accept multiple args):
+#   make run                        - Start dev server (default)
+#   make run MODE=shell             - Open Django shell
+#   make run MODE=test              - Run tests
+#   make run PORT=8080              - Start dev server on port 8080
+#
+#   make db                         - Run migrations (default)
+#   make db OP=make                 - Create migrations
+#   make db OP=show                 - Show migration status
+#   make db OP=reset                - Reset database
+#   make db APP=myapp               - Migrate specific app
+#
+#   make gen TYPE=crud MODEL=...    - Generate CRUD
+#   make gen TYPE=types             - Generate TypeScript types
+#   make gen TYPE=swift             - Generate Swift types
+#   make gen TYPE=zod               - Generate Zod schemas
+#
+#   make quality                    - Run all checks (lint + typecheck + test)
+#   make quality OP=fix             - Auto-fix issues
+#   make quality OP=lint            - Just lint
+#   make quality OP=format          - Just format
 
 .PHONY: help install dev test lint format check clean docs serve build \
         shell routes models migrate makemigrations crud admin \
         docker-build docker-up docker-down docker-logs \
-        release version
+        release version startapp startproject startapi \
+        run db gen quality setup
 
 # Colors for terminal output
 BLUE := \033[34m
@@ -91,23 +121,47 @@ doctor: ## Check project health
 ## Database
 # ============================================================================
 
-migrate: ## Run database migrations
+migrate: ## Run migrations (usage: make migrate [APP=myapp])
 	@echo "$(CYAN)Running migrations...$(RESET)"
-	uv run python manage.py migrate
+	@if [ -n "$(APP)" ]; then \
+		uv run python manage.py migrate $(APP); \
+	else \
+		uv run python manage.py migrate; \
+	fi
 	@echo "$(GREEN)Done!$(RESET)"
 
-makemigrations: ## Create new migrations
+makemigrations: ## Create migrations (usage: make makemigrations [APP=myapp])
 	@echo "$(CYAN)Creating migrations...$(RESET)"
-	uv run python manage.py makemigrations
+	@if [ -n "$(APP)" ]; then \
+		uv run python manage.py makemigrations $(APP); \
+	else \
+		uv run python manage.py makemigrations; \
+	fi
 	@echo "$(GREEN)Done!$(RESET)"
 
 migrations: makemigrations migrate ## Create and run migrations
+
+showmigrations: ## Show migration status
+	@echo "$(CYAN)Migration status:$(RESET)"
+	uv run python manage.py showmigrations
 
 resetdb: ## Reset database (WARNING: destroys data)
 	@echo "$(RED)$(BOLD)WARNING: This will destroy all data!$(RESET)"
 	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
 	uv run python manage.py flush --no-input
 	@echo "$(GREEN)Database reset!$(RESET)"
+
+superuser: ## Create a superuser (usage: make superuser [EMAIL=admin@example.com])
+	@echo "$(CYAN)Creating superuser...$(RESET)"
+	@if [ -n "$(EMAIL)" ]; then \
+		uv run python manage.py createsuperuser --email $(EMAIL); \
+	else \
+		uv run python manage.py createsuperuser; \
+	fi
+
+seed: ## Seed database with sample data
+	@echo "$(CYAN)Seeding database...$(RESET)"
+	@uv run python manage.py seed 2>/dev/null || echo "$(YELLOW)Seed command not configured$(RESET)"
 
 # ============================================================================
 ## Code Quality
@@ -143,9 +197,13 @@ fix: lint-fix format ## Fix all auto-fixable issues
 ## Testing
 # ============================================================================
 
-test: ## Run all tests
+test: ## Run tests (usage: make test [FILE=test_auth.py] [ARGS="-k test_login"])
 	@echo "$(CYAN)Running tests...$(RESET)"
-	uv run pytest tests/ -v
+	@if [ -n "$(FILE)" ]; then \
+		uv run pytest tests/$(FILE) -v $(ARGS); \
+	else \
+		uv run pytest tests/ -v $(ARGS); \
+	fi
 	@echo "$(GREEN)Tests passed!$(RESET)"
 
 test-fast: ## Run tests without slow tests
@@ -160,6 +218,48 @@ test-cov: ## Run tests with coverage
 test-watch: ## Run tests in watch mode
 	@echo "$(CYAN)Running tests in watch mode...$(RESET)"
 	uv run pytest-watch tests/ -- -v
+
+test-file: ## Run a specific test file (usage: make test-file FILE=test_auth.py)
+	@if [ -z "$(FILE)" ]; then \
+		echo "$(RED)Error: FILE is required$(RESET)"; \
+		echo "Usage: make test-file FILE=test_auth.py"; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)Running tests in $(FILE)...$(RESET)"
+	uv run pytest tests/$(FILE) -v
+
+# ============================================================================
+## Scaffolding
+# ============================================================================
+
+startapp: ## Create a new Django app (usage: make startapp NAME=myapp)
+	@if [ -z "$(NAME)" ]; then \
+		echo "$(RED)Error: NAME is required$(RESET)"; \
+		echo "Usage: make startapp NAME=myapp"; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)Creating app '$(NAME)'...$(RESET)"
+	@uv run python manage.py startapp $(NAME)
+	@echo "$(GREEN)App '$(NAME)' created!$(RESET)"
+	@echo ""
+	@echo "$(YELLOW)Next steps:$(RESET)"
+	@echo "  1. Add '$(NAME)' to INSTALLED_APPS in settings.py"
+	@echo "  2. Create models in $(NAME)/models.py"
+	@echo "  3. Run: make crud MODEL=$(NAME).YourModel"
+
+startproject: ## Create a new Django Matt project (usage: make startproject NAME=myproject)
+	@if [ -z "$(NAME)" ]; then \
+		echo "$(RED)Error: NAME is required$(RESET)"; \
+		echo "Usage: make startproject NAME=myproject"; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)Creating project '$(NAME)'...$(RESET)"
+	@uv run python manage.py startapi $(NAME) $(if $(TEMPLATE),--template $(TEMPLATE),)
+	@echo "$(GREEN)Project '$(NAME)' created!$(RESET)"
+
+startapi: startproject ## Alias for startproject
+
+newapp: startapp ## Alias for startapp
 
 # ============================================================================
 ## Code Generation
@@ -195,14 +295,33 @@ admin: ## Generate admin for a model (usage: make admin MODEL=app.Model)
 	uv run python manage.py generate_crud $(MODEL) --no-service --with-admin
 	@echo "$(GREEN)Done!$(RESET)"
 
-types: ## Generate TypeScript types
+types: ## Generate TypeScript types (usage: make types [OUTPUT=frontend/src/types])
 	@echo "$(CYAN)Generating TypeScript types...$(RESET)"
-	uv run python manage.py sync_types --target typescript --output frontend/src/types
+	uv run python manage.py sync_types --target typescript --output $(or $(OUTPUT),frontend/src/types)
+	@echo "$(GREEN)Done!$(RESET)"
+
+types-swift: ## Generate Swift types (usage: make types-swift [OUTPUT=ios/Models])
+	@echo "$(CYAN)Generating Swift types...$(RESET)"
+	uv run python manage.py sync_types --target swift --output $(or $(OUTPUT),ios/Models)
+	@echo "$(GREEN)Done!$(RESET)"
+
+types-zod: ## Generate Zod schemas (usage: make types-zod [OUTPUT=frontend/src/schemas])
+	@echo "$(CYAN)Generating Zod schemas...$(RESET)"
+	uv run python manage.py sync_types --target typescript --zod --output $(or $(OUTPUT),frontend/src/schemas)
 	@echo "$(GREEN)Done!$(RESET)"
 
 types-watch: ## Watch and generate TypeScript types
 	@echo "$(CYAN)Watching for type changes...$(RESET)"
-	uv run python manage.py sync_types --target typescript --output frontend/src/types --watch
+	uv run python manage.py sync_types --target typescript --output $(or $(OUTPUT),frontend/src/types) --watch
+
+schema: ## Generate model schema (usage: make schema MODEL=myapp.MyModel)
+	@if [ -z "$(MODEL)" ]; then \
+		echo "$(RED)Error: MODEL is required$(RESET)"; \
+		echo "Usage: make schema MODEL=myapp.MyModel"; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)Generating schema for $(MODEL)...$(RESET)"
+	uv run python -c "from django_matt.core.schema import create_schema_from_model; from $(shell echo $(MODEL) | cut -d. -f1).models import $(shell echo $(MODEL) | cut -d. -f2); print(create_schema_from_model($(shell echo $(MODEL) | cut -d. -f2)).schema_json(indent=2))"
 
 # ============================================================================
 ## Documentation
@@ -305,3 +424,223 @@ ci: install lint typecheck test ## Run full CI pipeline locally
 
 pre-commit: fix test ## Run before committing (fix + test)
 	@echo "$(GREEN)$(BOLD)Ready to commit!$(RESET)"
+
+# ============================================================================
+## Consolidated Commands (Multi-purpose with arguments)
+# ============================================================================
+
+# Unified run command: make run [MODE=dev|shell|dbshell|test] [PORT=8000] [ARGS=...]
+run: ## Unified run command (MODE=dev|shell|dbshell|test, PORT=8000)
+	@if [ "$(MODE)" = "shell" ]; then \
+		echo "$(CYAN)Opening Django shell...$(RESET)"; \
+		uv run python manage.py shell $(ARGS); \
+	elif [ "$(MODE)" = "dbshell" ]; then \
+		echo "$(CYAN)Opening database shell...$(RESET)"; \
+		uv run python manage.py dbshell; \
+	elif [ "$(MODE)" = "test" ]; then \
+		echo "$(CYAN)Running tests...$(RESET)"; \
+		if [ -n "$(FILE)" ]; then \
+			uv run pytest tests/$(FILE) -v $(ARGS); \
+		else \
+			uv run pytest tests/ -v $(ARGS); \
+		fi; \
+	elif [ "$(MODE)" = "docs" ]; then \
+		echo "$(CYAN)Serving documentation...$(RESET)"; \
+		uv run mkdocs serve -a localhost:$(or $(PORT),8001); \
+	else \
+		echo "$(CYAN)Starting development server on port $(or $(PORT),8000)...$(RESET)"; \
+		if [ "$(HOT)" = "false" ]; then \
+			uv run python manage.py runserver $(or $(PORT),8000) --no-hot $(ARGS); \
+		else \
+			uv run python manage.py runserver $(or $(PORT),8000) $(ARGS); \
+		fi; \
+	fi
+
+# Unified database command: make db [OP=migrate|make|show|reset|seed|super] [APP=myapp]
+db: ## Unified database command (OP=migrate|make|show|reset|seed|super)
+	@if [ "$(OP)" = "make" ]; then \
+		echo "$(CYAN)Creating migrations...$(RESET)"; \
+		if [ -n "$(APP)" ]; then \
+			uv run python manage.py makemigrations $(APP) $(ARGS); \
+		else \
+			uv run python manage.py makemigrations $(ARGS); \
+		fi; \
+	elif [ "$(OP)" = "show" ]; then \
+		echo "$(CYAN)Migration status:$(RESET)"; \
+		uv run python manage.py showmigrations $(APP); \
+	elif [ "$(OP)" = "reset" ]; then \
+		echo "$(RED)$(BOLD)WARNING: This will destroy all data!$(RESET)"; \
+		read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1; \
+		uv run python manage.py flush --no-input; \
+		echo "$(GREEN)Database reset!$(RESET)"; \
+	elif [ "$(OP)" = "seed" ]; then \
+		echo "$(CYAN)Seeding database...$(RESET)"; \
+		uv run python manage.py seed $(ARGS) 2>/dev/null || echo "$(YELLOW)Seed command not configured$(RESET)"; \
+	elif [ "$(OP)" = "super" ]; then \
+		echo "$(CYAN)Creating superuser...$(RESET)"; \
+		if [ -n "$(EMAIL)" ]; then \
+			uv run python manage.py createsuperuser --email $(EMAIL); \
+		else \
+			uv run python manage.py createsuperuser; \
+		fi; \
+	elif [ "$(OP)" = "all" ]; then \
+		echo "$(CYAN)Creating and running migrations...$(RESET)"; \
+		if [ -n "$(APP)" ]; then \
+			uv run python manage.py makemigrations $(APP) && uv run python manage.py migrate $(APP); \
+		else \
+			uv run python manage.py makemigrations && uv run python manage.py migrate; \
+		fi; \
+		echo "$(GREEN)Done!$(RESET)"; \
+	else \
+		echo "$(CYAN)Running migrations...$(RESET)"; \
+		if [ -n "$(APP)" ]; then \
+			uv run python manage.py migrate $(APP) $(ARGS); \
+		else \
+			uv run python manage.py migrate $(ARGS); \
+		fi; \
+		echo "$(GREEN)Done!$(RESET)"; \
+	fi
+
+# Unified generation command: make gen TYPE=crud|types|swift|zod|schema|admin [MODEL=...] [OUTPUT=...]
+gen: ## Unified code generation (TYPE=crud|types|swift|zod|schema|admin)
+	@if [ "$(TYPE)" = "crud" ]; then \
+		if [ -z "$(MODEL)" ]; then \
+			echo "$(RED)Error: MODEL is required for crud generation$(RESET)"; \
+			echo "Usage: make gen TYPE=crud MODEL=myapp.MyModel"; \
+			exit 1; \
+		fi; \
+		echo "$(CYAN)Generating CRUD for $(MODEL)...$(RESET)"; \
+		if [ "$(FULL)" = "true" ]; then \
+			uv run python manage.py generate_crud $(MODEL) --full $(ARGS); \
+		else \
+			uv run python manage.py generate_crud $(MODEL) $(ARGS); \
+		fi; \
+	elif [ "$(TYPE)" = "types" ] || [ "$(TYPE)" = "ts" ] || [ "$(TYPE)" = "typescript" ]; then \
+		echo "$(CYAN)Generating TypeScript types...$(RESET)"; \
+		if [ "$(WATCH)" = "true" ]; then \
+			uv run python manage.py sync_types --target typescript --output $(or $(OUTPUT),frontend/src/types) --watch; \
+		else \
+			uv run python manage.py sync_types --target typescript --output $(or $(OUTPUT),frontend/src/types) $(ARGS); \
+		fi; \
+	elif [ "$(TYPE)" = "swift" ]; then \
+		echo "$(CYAN)Generating Swift types...$(RESET)"; \
+		uv run python manage.py sync_types --target swift --output $(or $(OUTPUT),ios/Models) $(ARGS); \
+	elif [ "$(TYPE)" = "zod" ]; then \
+		echo "$(CYAN)Generating Zod schemas...$(RESET)"; \
+		uv run python manage.py sync_types --target typescript --zod --output $(or $(OUTPUT),frontend/src/schemas) $(ARGS); \
+	elif [ "$(TYPE)" = "schema" ]; then \
+		if [ -z "$(MODEL)" ]; then \
+			echo "$(RED)Error: MODEL is required for schema generation$(RESET)"; \
+			echo "Usage: make gen TYPE=schema MODEL=myapp.MyModel"; \
+			exit 1; \
+		fi; \
+		echo "$(CYAN)Generating schema for $(MODEL)...$(RESET)"; \
+		uv run python -c "from django_matt.core.schema import create_schema_from_model; from $(shell echo $(MODEL) | cut -d. -f1).models import $(shell echo $(MODEL) | cut -d. -f2); print(create_schema_from_model($(shell echo $(MODEL) | cut -d. -f2)).schema_json(indent=2))"; \
+	elif [ "$(TYPE)" = "admin" ]; then \
+		if [ -z "$(MODEL)" ]; then \
+			echo "$(RED)Error: MODEL is required for admin generation$(RESET)"; \
+			echo "Usage: make gen TYPE=admin MODEL=myapp.MyModel"; \
+			exit 1; \
+		fi; \
+		echo "$(CYAN)Generating admin for $(MODEL)...$(RESET)"; \
+		uv run python manage.py generate_crud $(MODEL) --no-service --with-admin $(ARGS); \
+	else \
+		echo "$(RED)Error: Unknown TYPE '$(TYPE)'$(RESET)"; \
+		echo "Available: crud, types, swift, zod, schema, admin"; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)Done!$(RESET)"
+
+# Unified quality command: make quality [OP=all|lint|format|typecheck|fix|test]
+quality: ## Unified code quality (OP=all|lint|format|typecheck|fix|test)
+	@if [ "$(OP)" = "lint" ]; then \
+		echo "$(CYAN)Running linter...$(RESET)"; \
+		uv run ruff check . $(ARGS); \
+	elif [ "$(OP)" = "format" ]; then \
+		echo "$(CYAN)Formatting code...$(RESET)"; \
+		uv run ruff format . $(ARGS); \
+	elif [ "$(OP)" = "typecheck" ]; then \
+		echo "$(CYAN)Running type checker...$(RESET)"; \
+		uv run pyright django_matt $(ARGS); \
+	elif [ "$(OP)" = "fix" ]; then \
+		echo "$(CYAN)Fixing issues...$(RESET)"; \
+		uv run ruff check . --fix; \
+		uv run ruff format .; \
+		echo "$(GREEN)$(BOLD)All fixes applied!$(RESET)"; \
+	elif [ "$(OP)" = "test" ]; then \
+		echo "$(CYAN)Running tests...$(RESET)"; \
+		if [ -n "$(FILE)" ]; then \
+			uv run pytest tests/$(FILE) -v $(ARGS); \
+		else \
+			uv run pytest tests/ -v $(ARGS); \
+		fi; \
+	else \
+		echo "$(CYAN)Running all quality checks...$(RESET)"; \
+		uv run ruff check .; \
+		uv run pyright django_matt; \
+		uv run pytest tests/ -v; \
+		echo "$(GREEN)$(BOLD)All checks passed!$(RESET)"; \
+	fi
+
+# Unified setup command: make setup [PROFILE=minimal|dev|full|docker]
+setup: ## Project setup (PROFILE=minimal|dev|full|docker)
+	@if [ "$(PROFILE)" = "minimal" ]; then \
+		echo "$(CYAN)Minimal setup...$(RESET)"; \
+		uv sync; \
+	elif [ "$(PROFILE)" = "docker" ]; then \
+		echo "$(CYAN)Docker setup...$(RESET)"; \
+		docker compose build; \
+		docker compose up -d; \
+		echo "$(GREEN)Docker environment ready!$(RESET)"; \
+	elif [ "$(PROFILE)" = "full" ]; then \
+		echo "$(CYAN)Full setup (deps + migrations + superuser)...$(RESET)"; \
+		uv sync --all-extras --dev; \
+		uv run python manage.py migrate; \
+		echo "$(YELLOW)Create superuser:$(RESET)"; \
+		uv run python manage.py createsuperuser; \
+		echo "$(GREEN)$(BOLD)Full setup complete!$(RESET)"; \
+	else \
+		echo "$(CYAN)Development setup...$(RESET)"; \
+		uv sync --all-extras --dev; \
+		uv run python manage.py migrate; \
+		echo "$(GREEN)$(BOLD)Dev setup complete!$(RESET)"; \
+	fi
+
+# Unified docker command: make dk [OP=up|down|build|logs|shell|restart]
+dk: ## Docker operations (OP=up|down|build|logs|shell|restart)
+	@if [ "$(OP)" = "build" ]; then \
+		echo "$(CYAN)Building Docker images...$(RESET)"; \
+		docker compose build $(ARGS); \
+	elif [ "$(OP)" = "down" ]; then \
+		echo "$(CYAN)Stopping containers...$(RESET)"; \
+		docker compose down $(ARGS); \
+	elif [ "$(OP)" = "logs" ]; then \
+		docker compose logs -f $(SERVICE); \
+	elif [ "$(OP)" = "shell" ]; then \
+		docker compose exec $(or $(SERVICE),web) bash; \
+	elif [ "$(OP)" = "restart" ]; then \
+		echo "$(CYAN)Restarting containers...$(RESET)"; \
+		docker compose restart $(SERVICE); \
+	elif [ "$(OP)" = "ps" ]; then \
+		docker compose ps; \
+	else \
+		echo "$(CYAN)Starting containers...$(RESET)"; \
+		docker compose up -d $(ARGS); \
+		echo "$(GREEN)Containers started!$(RESET)"; \
+	fi
+
+# Quick shortcuts using consolidated commands
+s: ## Shortcut: start dev server (alias for run)
+	@$(MAKE) run PORT=$(PORT) ARGS="$(ARGS)"
+
+t: ## Shortcut: run tests (alias for run MODE=test)
+	@$(MAKE) run MODE=test FILE=$(FILE) ARGS="$(ARGS)"
+
+m: ## Shortcut: run migrations (alias for db)
+	@$(MAKE) db APP=$(APP)
+
+mm: ## Shortcut: make migrations (alias for db OP=make)
+	@$(MAKE) db OP=make APP=$(APP)
+
+f: ## Shortcut: fix code (alias for quality OP=fix)
+	@$(MAKE) quality OP=fix
