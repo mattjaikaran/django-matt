@@ -17,20 +17,19 @@ from pydantic import BaseModel, Field
 class ColorScale(BaseModel):
     """Color scale with shades from 50 to 950."""
 
-    _50: str = Field(alias="50")
-    _100: str = Field(alias="100")
-    _200: str = Field(alias="200")
-    _300: str = Field(alias="300")
-    _400: str = Field(alias="400")
-    _500: str = Field(alias="500")
-    _600: str = Field(alias="600")
-    _700: str = Field(alias="700")
-    _800: str = Field(alias="800")
-    _900: str = Field(alias="900")
-    _950: str = Field(alias="950")
+    shade_50: str = Field(default="", alias="50")
+    shade_100: str = Field(default="", alias="100")
+    shade_200: str = Field(default="", alias="200")
+    shade_300: str = Field(default="", alias="300")
+    shade_400: str = Field(default="", alias="400")
+    shade_500: str = Field(default="", alias="500")
+    shade_600: str = Field(default="", alias="600")
+    shade_700: str = Field(default="", alias="700")
+    shade_800: str = Field(default="", alias="800")
+    shade_900: str = Field(default="", alias="900")
+    shade_950: str = Field(default="", alias="950")
 
-    class Config:
-        populate_by_name = True
+    model_config = {"populate_by_name": True}
 
 
 class SemanticColors(BaseModel):
@@ -108,13 +107,12 @@ class FontSize(BaseModel):
     base: str = "1rem"
     lg: str = "1.125rem"
     xl: str = "1.25rem"
-    _2xl: str = Field(default="1.5rem", alias="2xl")
-    _3xl: str = Field(default="1.875rem", alias="3xl")
-    _4xl: str = Field(default="2.25rem", alias="4xl")
-    _5xl: str = Field(default="3rem", alias="5xl")
+    xxl: str = Field(default="1.5rem", alias="2xl")
+    xxxl: str = Field(default="1.875rem", alias="3xl")
+    xxxxl: str = Field(default="2.25rem", alias="4xl")
+    xxxxxl: str = Field(default="3rem", alias="5xl")
 
-    class Config:
-        populate_by_name = True
+    model_config = {"populate_by_name": True}
 
 
 class LineHeight(BaseModel):
@@ -159,44 +157,43 @@ class Typography(BaseModel):
 class Spacing(BaseModel):
     """Spacing scale (matches Tailwind)."""
 
-    _0: str = Field(default="0", alias="0")
+    s0: str = Field(default="0", alias="0")
     px: str = "1px"
-    _0_5: str = Field(default="0.125rem", alias="0.5")
-    _1: str = Field(default="0.25rem", alias="1")
-    _1_5: str = Field(default="0.375rem", alias="1.5")
-    _2: str = Field(default="0.5rem", alias="2")
-    _2_5: str = Field(default="0.625rem", alias="2.5")
-    _3: str = Field(default="0.75rem", alias="3")
-    _3_5: str = Field(default="0.875rem", alias="3.5")
-    _4: str = Field(default="1rem", alias="4")
-    _5: str = Field(default="1.25rem", alias="5")
-    _6: str = Field(default="1.5rem", alias="6")
-    _7: str = Field(default="1.75rem", alias="7")
-    _8: str = Field(default="2rem", alias="8")
-    _9: str = Field(default="2.25rem", alias="9")
-    _10: str = Field(default="2.5rem", alias="10")
-    _11: str = Field(default="2.75rem", alias="11")
-    _12: str = Field(default="3rem", alias="12")
-    _14: str = Field(default="3.5rem", alias="14")
-    _16: str = Field(default="4rem", alias="16")
-    _20: str = Field(default="5rem", alias="20")
-    _24: str = Field(default="6rem", alias="24")
-    _28: str = Field(default="7rem", alias="28")
-    _32: str = Field(default="8rem", alias="32")
-    _36: str = Field(default="9rem", alias="36")
-    _40: str = Field(default="10rem", alias="40")
-    _44: str = Field(default="11rem", alias="44")
-    _48: str = Field(default="12rem", alias="48")
-    _52: str = Field(default="13rem", alias="52")
-    _56: str = Field(default="14rem", alias="56")
-    _60: str = Field(default="15rem", alias="60")
-    _64: str = Field(default="16rem", alias="64")
-    _72: str = Field(default="18rem", alias="72")
-    _80: str = Field(default="20rem", alias="80")
-    _96: str = Field(default="24rem", alias="96")
+    s0_5: str = Field(default="0.125rem", alias="0.5")
+    s1: str = Field(default="0.25rem", alias="1")
+    s1_5: str = Field(default="0.375rem", alias="1.5")
+    s2: str = Field(default="0.5rem", alias="2")
+    s2_5: str = Field(default="0.625rem", alias="2.5")
+    s3: str = Field(default="0.75rem", alias="3")
+    s3_5: str = Field(default="0.875rem", alias="3.5")
+    s4: str = Field(default="1rem", alias="4")
+    s5: str = Field(default="1.25rem", alias="5")
+    s6: str = Field(default="1.5rem", alias="6")
+    s7: str = Field(default="1.75rem", alias="7")
+    s8: str = Field(default="2rem", alias="8")
+    s9: str = Field(default="2.25rem", alias="9")
+    s10: str = Field(default="2.5rem", alias="10")
+    s11: str = Field(default="2.75rem", alias="11")
+    s12: str = Field(default="3rem", alias="12")
+    s14: str = Field(default="3.5rem", alias="14")
+    s16: str = Field(default="4rem", alias="16")
+    s20: str = Field(default="5rem", alias="20")
+    s24: str = Field(default="6rem", alias="24")
+    s28: str = Field(default="7rem", alias="28")
+    s32: str = Field(default="8rem", alias="32")
+    s36: str = Field(default="9rem", alias="36")
+    s40: str = Field(default="10rem", alias="40")
+    s44: str = Field(default="11rem", alias="44")
+    s48: str = Field(default="12rem", alias="48")
+    s52: str = Field(default="13rem", alias="52")
+    s56: str = Field(default="14rem", alias="56")
+    s60: str = Field(default="15rem", alias="60")
+    s64: str = Field(default="16rem", alias="64")
+    s72: str = Field(default="18rem", alias="72")
+    s80: str = Field(default="20rem", alias="80")
+    s96: str = Field(default="24rem", alias="96")
 
-    class Config:
-        populate_by_name = True
+    model_config = {"populate_by_name": True}
 
 
 class BorderRadius(BaseModel):
@@ -208,12 +205,11 @@ class BorderRadius(BaseModel):
     md: str = "0.375rem"
     lg: str = "0.5rem"
     xl: str = "0.75rem"
-    _2xl: str = Field(default="1rem", alias="2xl")
-    _3xl: str = Field(default="1.5rem", alias="3xl")
+    xxl: str = Field(default="1rem", alias="2xl")
+    xxxl: str = Field(default="1.5rem", alias="3xl")
     full: str = "9999px"
 
-    class Config:
-        populate_by_name = True
+    model_config = {"populate_by_name": True}
 
 
 class Shadow(BaseModel):
@@ -224,12 +220,11 @@ class Shadow(BaseModel):
     md: str = "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)"
     lg: str = "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)"
     xl: str = "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)"
-    _2xl: str = Field(default="0 25px 50px -12px rgb(0 0 0 / 0.25)", alias="2xl")
+    xxl: str = Field(default="0 25px 50px -12px rgb(0 0 0 / 0.25)", alias="2xl")
     inner: str = "inset 0 2px 4px 0 rgb(0 0 0 / 0.05)"
     none: str = "none"
 
-    class Config:
-        populate_by_name = True
+    model_config = {"populate_by_name": True}
 
 
 class Breakpoints(BaseModel):
@@ -239,22 +234,21 @@ class Breakpoints(BaseModel):
     md: str = "768px"
     lg: str = "1024px"
     xl: str = "1280px"
-    _2xl: str = Field(default="1536px", alias="2xl")
+    xxl: str = Field(default="1536px", alias="2xl")
 
-    class Config:
-        populate_by_name = True
+    model_config = {"populate_by_name": True}
 
 
 class ZIndex(BaseModel):
     """Z-index scale."""
 
     auto: str = "auto"
-    _0: str = Field(default="0", alias="0")
-    _10: str = Field(default="10", alias="10")
-    _20: str = Field(default="20", alias="20")
-    _30: str = Field(default="30", alias="30")
-    _40: str = Field(default="40", alias="40")
-    _50: str = Field(default="50", alias="50")
+    z0: str = Field(default="0", alias="0")
+    z10: str = Field(default="10", alias="10")
+    z20: str = Field(default="20", alias="20")
+    z30: str = Field(default="30", alias="30")
+    z40: str = Field(default="40", alias="40")
+    z50: str = Field(default="50", alias="50")
     dropdown: str = "1000"
     sticky: str = "1020"
     fixed: str = "1030"
@@ -263,8 +257,7 @@ class ZIndex(BaseModel):
     popover: str = "1060"
     tooltip: str = "1070"
 
-    class Config:
-        populate_by_name = True
+    model_config = {"populate_by_name": True}
 
 
 # =============================================================================

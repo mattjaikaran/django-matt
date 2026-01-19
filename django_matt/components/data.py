@@ -5,7 +5,7 @@ Provides tables, lists, detail views, and pagination
 for displaying structured data.
 """
 
-from typing import Any, List, Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -203,7 +203,7 @@ class DetailView(Component):
     """
 
     type: ComponentType = ComponentType.DETAIL_VIEW
-    fields: List[DetailField] = Field(default_factory=list)
+    fields: list[DetailField] = Field(default_factory=list)
     data: dict[str, Any] = Field(default_factory=dict)
     layout: Literal["vertical", "horizontal", "grid"] = "vertical"
     columns: int = 2  # For grid layout
@@ -243,7 +243,7 @@ class Pagination(Component):
     total_pages: int = 1
     total_items: int | None = None
     page_size: int = 10
-    page_size_options: List[int] = Field(default_factory=lambda: [10, 25, 50, 100])
+    page_size_options: list[int] = Field(default_factory=lambda: [10, 25, 50, 100])
     show_page_size: bool = True
     show_total: bool = True
     show_quick_jump: bool = False  # Jump to page input
@@ -319,7 +319,7 @@ class Stats(Component):
     """
 
     type: ComponentType = ComponentType.CONTAINER
-    items: List[StatItem] = Field(default_factory=list)
+    items: list[StatItem] = Field(default_factory=list)
     columns: int = 4
     variant: Literal["default", "card", "minimal"] = "default"
 
