@@ -82,7 +82,7 @@ services:
       target: celery-worker
     container_name: saas-celery
     restart: unless-stopped
-    command: celery -A saas_project worker -l INFO --concurrency 4
+    command: uv run celery -A saas_project worker -l INFO --concurrency 4
     environment:
       - DEBUG=${DEBUG:-false}
       - DJANGO_SETTINGS_MODULE=saas_project.settings
@@ -115,7 +115,7 @@ services:
       target: celery-beat
     container_name: saas-celery-beat
     restart: unless-stopped
-    command: celery -A saas_project beat -l INFO
+    command: uv run celery -A saas_project beat -l INFO
     environment:
       - DEBUG=${DEBUG:-false}
       - DJANGO_SETTINGS_MODULE=saas_project.settings
@@ -214,7 +214,7 @@ services:
       target: runtime
     container_name: saas-flower
     restart: unless-stopped
-    command: celery -A saas_project flower --port=5555 --broker=redis://redis:6379/0
+    command: uv run celery -A saas_project flower --port=5555 --broker=redis://redis:6379/0
     ports:
       - "5555:5555"
     environment:

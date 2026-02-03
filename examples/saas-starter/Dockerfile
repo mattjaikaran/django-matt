@@ -12,7 +12,10 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Build dependencies
 # -----------------------------------------------------------------------------
-FROM python:3.12-slim AS builder
+FROM python:3.13-slim AS builder
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -27,30 +30,32 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-
 WORKDIR /app
 
-# Copy dependency files first for better caching
-COPY pyproject.toml uv.lock* ./
-
-# Install dependencies (without dev dependencies)
+# Install dependencies (without dev dependencies) using cache mounts
 RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project --no-dev
+
+# Copy application code and complete install
+COPY . .
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
 
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime image
 # -----------------------------------------------------------------------------
-FROM python:3.12-slim AS runtime
+FROM python:3.13-slim AS runtime
+
+# Install uv for runtime commands
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=saas_project.settings \
-    # Default to production settings
     DEBUG=false \
-    # Path to virtual environment
     PATH="/app/.venv/bin:$PATH"
 
 # Install runtime dependencies
@@ -65,13 +70,10 @@ RUN groupadd --gid 1000 appuser \
 
 WORKDIR /app
 
-# Copy virtual environment from builder
-COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
+# Copy virtual environment and application from builder
+COPY --from=builder --chown=appuser:appuser /app /app
 
-# Copy application code
-COPY --chown=appuser:appuser . .
-
-# Collect static files (run as root temporarily)
+# Collect static files
 RUN python manage.py collectstatic --no-input --clear 2>/dev/null || true
 
 # Switch to non-root user
@@ -85,7 +87,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8000/api/health/ || exit 1
 
 # Default command - Gunicorn with Uvicorn workers for ASGI support
-CMD ["gunicorn", "saas_project.asgi:application", \
+CMD ["uv", "run", "gunicorn", "saas_project.asgi:application", \
      "-k", "uvicorn.workers.UvicornWorker", \
      "-b", "0.0.0.0:8000", \
      "--workers", "4", \
@@ -103,19 +105,17 @@ FROM runtime AS development
 # Switch back to root to install dev dependencies
 USER root
 
-# Install uv for development
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-
 # Install dev dependencies
-COPY pyproject.toml uv.lock* ./
 RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project
 
 # Switch back to non-root user
 USER appuser
 
 # Development command
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["uv", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]
 
 # -----------------------------------------------------------------------------
 # Stage 4: Celery worker image
@@ -123,7 +123,7 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 FROM runtime AS celery-worker
 
 # Celery worker command
-CMD ["celery", "-A", "saas_project", "worker", "-l", "INFO", "--concurrency", "4"]
+CMD ["uv", "run", "celery", "-A", "saas_project", "worker", "-l", "INFO", "--concurrency", "4"]
 
 # -----------------------------------------------------------------------------
 # Stage 5: Celery beat image
@@ -131,4 +131,4 @@ CMD ["celery", "-A", "saas_project", "worker", "-l", "INFO", "--concurrency", "4
 FROM runtime AS celery-beat
 
 # Celery beat command
-CMD ["celery", "-A", "saas_project", "beat", "-l", "INFO", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
+CMD ["uv", "run", "celery", "-A", "saas_project", "beat", "-l", "INFO", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
