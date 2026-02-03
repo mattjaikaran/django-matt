@@ -1,33 +1,67 @@
 # generate_crud Command
 
-Generate CRUD API from Django models.
+!!! note "Comprehensive Documentation"
+    For complete documentation, see [Management: generate_crud](../management/generate-crud.md).
 
-## Usage
+## Quick Reference
 
-```bash
-python manage.py generate_crud myapp.MyModel
-```
-
-## Options
-
-| Option | Description |
-|--------|-------------|
-| `--output-dir` | Output directory |
-| `--components` | Components to generate (`all`, `controller`, `schemas`, `tests`) |
-| `--with-tests` | Include test files |
-| `--permissions` | Permission class to use |
-| `--soft-delete` | Use soft delete |
-| `--dry-run` | Preview without writing |
-
-## Examples
+Generate CRUD operations for a Django model:
 
 ```bash
-# Basic generation
+# Basic CRUD (schemas + controller)
 python manage.py generate_crud myapp.Product
 
-# Full generation with tests
-python manage.py generate_crud myapp.Product --components all --with-tests
+# Full generation (all components)
+python manage.py generate_crud myapp.Product --full
 
-# Preview changes
-python manage.py generate_crud myapp.Product --dry-run
+# Interactive wizard
+python manage.py generate_crud --wizard
 ```
+
+## CLI Equivalent
+
+```bash
+matt crud myapp.Product --full
+matt crud myapp.Product --wizard
+```
+
+## Options Summary
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--full`, `-f` | `false` | Generate all: controller, schema, service, admin, tests |
+| `--with-tests`, `-t` | `false` | Generate test file |
+| `--with-admin` | `false` | Generate Django Unfold admin |
+| `--no-service` | `false` | Skip service layer |
+| `--soft-delete` | `false` | Use soft delete |
+| `--permissions` | None | Permission classes |
+| `--dry-run` | `false` | Preview without writing |
+| `--wizard`, `-w` | `false` | Interactive wizard |
+
+## Generated Components
+
+With `--full`, generates:
+
+| File | Description |
+|------|-------------|
+| `schemas.py` | Pydantic schemas (Create, Update, Response, List) |
+| `controllers.py` | API controller with all CRUD endpoints |
+| `services.py` | Business logic layer |
+| `admin.py` | Django Unfold admin configuration |
+| `tests.py` | Pytest test cases |
+
+## Example
+
+```bash
+python manage.py generate_crud myapp.Product \
+  --permissions IsAuthenticated \
+  --with-tests \
+  --with-admin \
+  --soft-delete
+```
+
+## See Also
+
+- [Complete generate_crud Documentation](../management/generate-crud.md)
+- [CLI: matt crud](generate.md#matt-crud)
+- [Controllers Guide](../core/controllers.md)

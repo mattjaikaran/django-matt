@@ -9,7 +9,7 @@ site_url: https://github.com/mattjaikaran/django-matt
 repo_name: mattjaikaran/django-matt
 repo_url: https://github.com/mattjaikaran/django-matt
 
-copyright: Copyright &copy; 2025 Matt Jaikaran
+copyright: Copyright &copy; 2025-2026 Matt Jaikaran
 
 theme:
   name: material
@@ -131,6 +131,18 @@ nav:
       - Schemas: core/schemas.md
       - Error Handling: core/errors.md
 
+  - Views:
+      - views/index.md
+      - APIView: views/api-view.md
+      - CRUD Views: views/crud-views.md
+      - ViewSet: views/viewset.md
+      - Lifecycle Hooks: views/hooks.md
+      - Decorators: views/decorators.md
+      - Pagination: views/pagination.md
+      - Filtering: views/filtering.md
+      - Permissions: views/permissions.md
+      - Throttling: views/throttling.md
+
   - Authentication:
       - auth/overview.md
       - JWT: auth/jwt.md
@@ -141,15 +153,101 @@ nav:
       - SSO: auth/sso.md
       - RBAC: auth/rbac.md
 
-  - Features:
-      - CRUD Views: features/views.md
-      - Permissions: features/permissions.md
-      - Pagination & Filtering: features/pagination.md
-      - Rate Limiting: features/throttling.md
-      - API Versioning: features/versioning.md
-      - File Handling: features/files.md
-      - Background Tasks: features/tasks.md
-      - WebSockets: features/websockets.md
+  - GraphQL:
+      - graphql/index.md
+      - Quick Start: graphql/quickstart.md
+      - Schema: graphql/schema.md
+      - Types: graphql/types.md
+      - Queries: graphql/queries.md
+      - Mutations: graphql/mutations.md
+      - Subscriptions: graphql/subscriptions.md
+      - DataLoaders: graphql/dataloaders.md
+      - Authentication: graphql/authentication.md
+      - Middleware: graphql/middleware.md
+      - Code Generation: graphql/codegen.md
+      - Advanced: graphql/advanced.md
+
+  - Feature Flags:
+      - flags/index.md
+      - Quick Start: flags/quickstart.md
+      - Models: flags/models.md
+      - Flag Types: flags/types.md
+      - Targeting: flags/targeting.md
+      - Decorators: flags/decorators.md
+      - REST API: flags/api.md
+      - Backends: flags/backends.md
+      - Admin: flags/admin.md
+      - Best Practices: flags/best-practices.md
+
+  - Observability:
+      - observability/index.md
+      - Quick Start: observability/quickstart.md
+      - Tracing: observability/tracing.md
+      - Metrics: observability/metrics.md
+      - Logging: observability/logging.md
+      - Middleware: observability/middleware.md
+      - Decorators: observability/decorators.md
+      - Endpoints: observability/endpoints.md
+      - Integrations: observability/integrations.md
+
+  - Configuration:
+      - config/index.md
+      - Settings Reference: config/settings.md
+      - Environments: config/environments.md
+      - Database: config/database.md
+      - Cache: config/cache.md
+      - Security: config/security.md
+      - Performance: config/performance.md
+
+  - CLI:
+      - cli/index.md
+      - matt Command: cli/matt-command.md
+      - Development:
+          - matt serve: cli/serve.md
+          - matt db: cli/database.md
+      - Code Generation:
+          - matt new/crud: cli/generate.md
+          - matt types: cli/types.md
+      - Analysis:
+          - matt analyze: cli/analyze.md
+      - Deployment:
+          - matt deploy: cli/deploy.md
+
+  - Management Commands:
+      - management/index.md
+      - startapi: management/startapi.md
+      - generate_crud: management/generate-crud.md
+      - sync_types: management/sync-types.md
+      - benchmark: management/benchmark.md
+      - generate_ai_context: management/generate-ai-context.md
+
+  - Deployment:
+      - deployment/index.md
+      - Docker: deployment/docker.md
+      - Fly.io: deployment/fly-io.md
+      - Railway: deployment/railway.md
+      - Render: deployment/render.md
+      - AWS: deployment/aws.md
+      - Hetzner: deployment/hetzner.md
+      - Kubernetes: deployment/kubernetes.md
+      - Production Checklist: deployment/production-checklist.md
+      - Environment Variables: deployment/environment-variables.md
+
+  - Performance:
+      - performance/index.md
+      - Serialization: performance/serialization.md
+      - Caching: performance/caching.md
+      - Database: performance/database.md
+      - Async: performance/async.md
+      - Query Optimization: performance/optimization.md
+
+  - Benchmarks:
+      - benchmarks/index.md
+      - Running Benchmarks: benchmarks/running.md
+      - Scenarios: benchmarks/scenarios.md
+      - Comparison: benchmarks/comparison.md
+      - Custom Benchmarks: benchmarks/custom.md
+      - CI Integration: benchmarks/ci-integration.md
 
   - Multi-Tenancy:
       - multitenancy/overview.md
@@ -166,21 +264,10 @@ nav:
       - TypeScript: typegen/typescript.md
       - Swift: typegen/swift.md
 
-  - Performance:
-      - performance/optimization.md
-      - Caching: performance/caching.md
-      - Serialization: performance/serialization.md
-
   - Testing:
       - testing/client.md
       - Factories: testing/factories.md
       - Assertions: testing/assertions.md
-
-  - CLI Tools:
-      - startapi: cli/startapi.md
-      - generate_crud: cli/generate-crud.md
-      - sync_types: cli/sync-types.md
-      - testing: cli/testing.md
 
   - Cookbook:
       - cookbook/index.md

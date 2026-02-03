@@ -2,6 +2,9 @@
 
 Synchronize types between Django and frontend with automatic code generation.
 
+!!! tip "See Also"
+    For CLI equivalent commands, see [matt types](types.md).
+
 ## Usage
 
 ```bash
