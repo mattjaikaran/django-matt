@@ -18,12 +18,33 @@ A production-quality e-commerce backend API built with **django-matt**, demonstr
 ## Tech Stack
 
 - **Framework**: Django 5.2+ with django-matt
+- **Package Manager**: [uv](https://docs.astral.sh/uv/) (fast Python package manager)
 - **Database**: PostgreSQL 16 with full-text search
 - **Cache**: Redis
 - **Task Queue**: Celery with Redis broker
 - **Payments**: Stripe
 - **Admin**: Django Unfold
 - **API Docs**: OpenAPI/Swagger
+
+## Prerequisites
+
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/) package manager
+- Docker and Docker Compose (for containerized setup)
+- PostgreSQL 16+ and Redis (for local development without Docker)
+
+### Installing uv
+
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or with Homebrew
+brew install uv
+
+# Windows
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
 
 ## Quick Start
 
@@ -40,13 +61,13 @@ cp .env.example .env
 docker-compose up -d
 
 # Run migrations
-docker-compose exec web python manage.py migrate
+docker-compose exec web uv run python manage.py migrate
 
 # Seed sample data
-docker-compose exec web python manage.py seed_data
+docker-compose exec web uv run python manage.py seed_data
 
 # Create admin user
-docker-compose exec web python manage.py createsuperuser
+docker-compose exec web uv run python manage.py createsuperuser
 ```
 
 Visit:
@@ -56,20 +77,36 @@ Visit:
 ### Local Development
 
 ```bash
-# Install dependencies
-pip install -e ".[dev]"
+# Install dependencies with uv
+uv sync
 
 # Start PostgreSQL and Redis (or use Docker)
 docker-compose up -d db redis
 
 # Run migrations
-python manage.py migrate
+uv run python manage.py migrate
 
 # Seed data
-python manage.py seed_data
+uv run python manage.py seed_data
 
 # Start server
-python manage.py runserver
+uv run python manage.py runserver
+```
+
+Or use Make commands:
+
+```bash
+# Install dependencies
+make install
+
+# Run migrations
+make migrate
+
+# Seed data
+make seed
+
+# Start development server
+make dev
 ```
 
 ## API Endpoints
@@ -308,8 +345,8 @@ make seed-clear
 ### Docker Production
 
 ```bash
-# Build production image
-docker build -t ecommerce-api .
+# Build production image (uses multi-stage build)
+docker build --target production -t ecommerce-api .
 
 # Run with production settings
 docker run -e DEBUG=False -e SECRET_KEY=xxx ecommerce-api

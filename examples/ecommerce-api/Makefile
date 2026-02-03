@@ -5,7 +5,7 @@ help:
 	@echo "E-Commerce API - Available commands:"
 	@echo ""
 	@echo "Development:"
-	@echo "  make install      - Install dependencies"
+	@echo "  make install      - Install dependencies with uv"
 	@echo "  make dev          - Run development server"
 	@echo "  make run          - Run production server"
 	@echo "  make shell        - Open Django shell"
@@ -37,50 +37,50 @@ help:
 	@echo "Cleanup:"
 	@echo "  make clean        - Clean up generated files"
 
-# Install dependencies
+# Install dependencies using uv
 install:
-	uv pip install -e ".[dev]"
+	uv sync
 
 # Development server
 dev:
-	python manage.py runserver 0.0.0.0:8000
+	uv run python manage.py runserver 0.0.0.0:8000
 
 # Production server
 run:
-	uvicorn config.asgi:application --host 0.0.0.0 --port 8000
+	uv run uvicorn config.asgi:application --host 0.0.0.0 --port 8000
 
 # Migrations
 migrate:
-	python manage.py migrate
+	uv run python manage.py migrate
 
 makemigrations:
-	python manage.py makemigrations
+	uv run python manage.py makemigrations
 
 # Seed data
 seed:
-	python manage.py seed_data
+	uv run python manage.py seed_data
 
 seed-clear:
-	python manage.py seed_data --clear
+	uv run python manage.py seed_data --clear
 
 # Shell
 shell:
-	python manage.py shell_plus
+	uv run python manage.py shell_plus
 
 # Tests
 test:
-	pytest tests/ -v
+	uv run pytest tests/ -v
 
 test-cov:
-	pytest tests/ --cov=ecommerce --cov-report=html
+	uv run pytest tests/ --cov=ecommerce --cov-report=html
 
 # Linting
 lint:
-	ruff check .
+	uv run ruff check .
 
 format:
-	ruff format .
-	ruff check --fix .
+	uv run ruff format .
+	uv run ruff check --fix .
 
 # Docker commands
 docker-up:
@@ -100,10 +100,10 @@ docker-shell:
 
 # Celery
 celery:
-	celery -A config worker -l INFO
+	uv run celery -A config worker -l INFO
 
 beat:
-	celery -A config beat -l INFO
+	uv run celery -A config beat -l INFO
 
 # Stripe webhook listener (requires Stripe CLI)
 stripe-listen:
@@ -111,11 +111,11 @@ stripe-listen:
 
 # Superuser
 superuser:
-	python manage.py createsuperuser
+	uv run python manage.py createsuperuser
 
 # Static files
 collectstatic:
-	python manage.py collectstatic --noinput
+	uv run python manage.py collectstatic --noinput
 
 # Clean up
 clean:
@@ -123,6 +123,7 @@ clean:
 	find . -type f -name "*.pyc" -delete 2>/dev/null || true
 	rm -rf .pytest_cache htmlcov .coverage 2>/dev/null || true
 	rm -rf staticfiles 2>/dev/null || true
+	rm -rf .venv 2>/dev/null || true
 
 # Initial setup
 setup: install migrate seed
@@ -130,6 +131,6 @@ setup: install migrate seed
 
 # Full Docker setup
 docker-setup: docker-build docker-up
-	docker-compose exec web python manage.py migrate
-	docker-compose exec web python manage.py seed_data
+	docker-compose exec web uv run python manage.py migrate
+	docker-compose exec web uv run python manage.py seed_data
 	@echo "Docker setup complete!"
