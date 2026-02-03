@@ -1,0 +1,87 @@
+# DevContainer Docker Compose
+# Services: app, PostgreSQL 16 with pgvector, Redis 7, Mailhog
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspace:cached
+      - vscode-extensions:/home/vscode/.vscode-server/extensions
+      - vscode-extensions-insiders:/home/vscode/.vscode-server-insiders/extensions
+    command: sleep infinity
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=tests.settings
+      - DATABASE_URL=postgres://django_matt:django_matt@db:5432/django_matt
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - EMAIL_HOST=mailhog
+      - EMAIL_PORT=1025
+      - DEBUG=true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    networks:
+      - django-matt-net
+
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    environment:
+      POSTGRES_USER: django_matt
+      POSTGRES_PASSWORD: django_matt
+      POSTGRES_DB: django_matt
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U django_matt -d django_matt"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - django-matt-net
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - django-matt-net
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - django-matt-net
+
+volumes:
+  postgres-data:
+  redis-data:
+  vscode-extensions:
+  vscode-extensions-insiders:
+
+networks:
+  django-matt-net:
+    driver: bridge

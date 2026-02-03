@@ -1,0 +1,52 @@
+# Example pre-commit configuration for django-matt AI context generation
+#
+# This shows how to automatically regenerate AI context files on commit.
+# Copy the relevant sections to your project's .pre-commit-config.yaml
+#
+# Usage:
+#   1. Install pre-commit: pip install pre-commit
+#   2. Copy this configuration to .pre-commit-config.yaml
+#   3. Run: pre-commit install
+#
+# Alternative: Use the built-in hook installer:
+#   python manage.py generate_ai_context --install-hook
+
+repos:
+  # Option 1: Use local hook (recommended)
+  - repo: local
+    hooks:
+      - id: update-ai-context
+        name: Update AI Context Files
+        entry: python manage.py generate_ai_context --quiet
+        language: python
+        pass_filenames: false
+        stages: [commit]
+        # Only run when Python files change
+        files: '\.py$'
+        # Skip if no Django project
+        require_serial: true
+
+  # Standard pre-commit hooks (optional but recommended)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+
+  # Ruff for Python linting (optional)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+# Configuration for the AI context hook
+# Add this to your pyproject.toml to customize behavior:
+#
+# [tool.django-matt.ai-context]
+# formats = ["claude", "cursor", "copilot"]
+# include_examples = true
+# exclude_apps = ["django.contrib.admin"]

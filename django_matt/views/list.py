@@ -1,5 +1,9 @@
 """
 ListView for listing resources with pagination, filtering, and search.
+
+Supports lifecycle hooks:
+- before_list: Called before querying, receives queryset, can modify/replace it
+- after_list: Called after serialization, receives response dict, can modify it
 """
 
 from typing import Any
@@ -8,6 +12,7 @@ from django.db import models
 from django.http import HttpRequest
 
 from django_matt.views.base import APIView
+from django_matt.views.hooks import HookType
 
 
 class ListView(APIView):
@@ -154,6 +159,14 @@ class ListView(APIView):
         """Handle GET request to list resources."""
         queryset = self.get_queryset(request)
 
+        # Run before_list hooks - allows modifying queryset
+        queryset = await self._run_hooks(
+            HookType.BEFORE_LIST,
+            request,
+            value=queryset,
+            queryset=queryset,
+        )
+
         # Apply filter backends if configured
         filter_backends = self._get_filter_backends()
         if filter_backends:
@@ -195,6 +208,14 @@ class ListView(APIView):
                 "count": len(items),
                 "total": total,
             }
+
+        # Run after_list hooks - allows modifying response
+        response = await self._run_hooks(
+            HookType.AFTER_LIST,
+            request,
+            value=response,
+            queryset=queryset,
+        )
 
         return response
 

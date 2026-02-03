@@ -1,5 +1,9 @@
 """
 UpdateView and PatchView for updating resources.
+
+Supports lifecycle hooks:
+- before_update: Called before update, receives (instance, data) tuple, can modify both
+- after_update: Called after update, receives updated instance, can modify response
 """
 
 from typing import Any
@@ -9,6 +13,7 @@ from django.http import HttpRequest
 
 from django_matt.core.errors import NotFoundAPIError
 from django_matt.views.base import APIView
+from django_matt.views.hooks import HookType
 
 
 class UpdateView(APIView):
@@ -47,12 +52,33 @@ class UpdateView(APIView):
         instance = await self._get_instance(lookup_value)
         data_dict = data.model_dump(exclude_unset=True)
 
+        # Run before_update hooks - allows modifying instance and data
+        # Returns tuple of (instance, data_dict)
+        hook_result = await self._run_hooks(
+            HookType.BEFORE_UPDATE,
+            request,
+            value=(instance, data_dict),
+            instance=instance,
+            data=data_dict,
+        )
+        if isinstance(hook_result, tuple) and len(hook_result) == 2:
+            instance, data_dict = hook_result
+
         if self._viewset and hasattr(self._viewset, "perform_update"):
             instance = await self._viewset.perform_update(instance, data_dict, request)
         else:
             for key, value in data_dict.items():
                 setattr(instance, key, value)
             await self._save_instance(instance)
+
+        # Run after_update hooks - allows modifying instance or response
+        instance = await self._run_hooks(
+            HookType.AFTER_UPDATE,
+            request,
+            value=instance,
+            instance=instance,
+            data=data_dict,
+        )
 
         return self.serialize(instance)
 
@@ -114,11 +140,32 @@ class PatchView(UpdateView):
         # Only update provided fields (exclude_none for partial updates)
         data_dict = data.model_dump(exclude_unset=True, exclude_none=True)
 
+        # Run before_update hooks - allows modifying instance and data
+        # Returns tuple of (instance, data_dict)
+        hook_result = await self._run_hooks(
+            HookType.BEFORE_UPDATE,
+            request,
+            value=(instance, data_dict),
+            instance=instance,
+            data=data_dict,
+        )
+        if isinstance(hook_result, tuple) and len(hook_result) == 2:
+            instance, data_dict = hook_result
+
         if self._viewset and hasattr(self._viewset, "perform_update"):
             instance = await self._viewset.perform_update(instance, data_dict, request)
         else:
             for key, value in data_dict.items():
                 setattr(instance, key, value)
             await self._save_instance(instance)
+
+        # Run after_update hooks - allows modifying instance or response
+        instance = await self._run_hooks(
+            HookType.AFTER_UPDATE,
+            request,
+            value=instance,
+            instance=instance,
+            data=data_dict,
+        )
 
         return self.serialize(instance)

@@ -2,6 +2,7 @@
 Base view classes for Django Matt.
 
 Provides the foundational APIView class that all other views inherit from.
+Includes lifecycle hook support for before/after operations.
 """
 
 from typing import Any, Generic, TypeVar
@@ -15,6 +16,17 @@ from django_matt.core.errors import APIError, NotFoundAPIError
 
 ModelT = TypeVar("ModelT", bound=models.Model)
 SchemaT = TypeVar("SchemaT", bound=BaseModel)
+
+
+# Import hook system
+from django_matt.views.hooks import (
+    HookContext,
+    HookType,
+    StopHookChain,
+    create_hook_context,
+    hook_manager,
+    run_hooks,
+)
 
 
 class APIView(Generic[ModelT, SchemaT]):
@@ -34,6 +46,7 @@ class APIView(Generic[ModelT, SchemaT]):
         description: OpenAPI description for this endpoint
         tags: OpenAPI tags for this endpoint
         operation_id: OpenAPI operation ID
+        enable_hooks: Whether to enable lifecycle hooks (default: True)
     """
 
     path: str = ""
@@ -44,6 +57,7 @@ class APIView(Generic[ModelT, SchemaT]):
     description: str | None = None
     tags: list[str] | None = None
     operation_id: str | None = None
+    enable_hooks: bool = True
 
     # Set by the ViewSet when attached
     _viewset: "ViewSet | None" = None
@@ -58,6 +72,7 @@ class APIView(Generic[ModelT, SchemaT]):
         description: str | None = None,
         tags: list[str] | None = None,
         operation_id: str | None = None,
+        enable_hooks: bool | None = None,
         **kwargs,
     ):
         """
@@ -71,6 +86,7 @@ class APIView(Generic[ModelT, SchemaT]):
             description: OpenAPI description
             tags: OpenAPI tags
             operation_id: OpenAPI operation ID
+            enable_hooks: Whether to enable lifecycle hooks (default: True)
         """
         if path is not None:
             self.path = path
@@ -86,6 +102,8 @@ class APIView(Generic[ModelT, SchemaT]):
             self.tags = tags
         if operation_id is not None:
             self.operation_id = operation_id
+        if enable_hooks is not None:
+            self.enable_hooks = enable_hooks
 
         # Store any additional kwargs for subclass customization
         for key, value in kwargs.items():
@@ -242,13 +260,125 @@ class APIView(Generic[ModelT, SchemaT]):
             return self._viewset_attr_name
         return self.__class__.__name__.lower()
 
+    def _create_hook_context(
+        self,
+        request: HttpRequest,
+        hook_type: HookType | None = None,
+        instance: models.Model | None = None,
+        data: dict[str, Any] | BaseModel | None = None,
+        queryset: models.QuerySet | None = None,
+        **extra: Any,
+    ) -> HookContext:
+        """
+        Create a HookContext for this view.
+
+        This is used internally by view handlers to create contexts
+        for hook execution.
+        """
+        return create_hook_context(
+            request=request,
+            viewset=self._viewset,
+            view_class=self.__class__,
+            hook_type=hook_type,
+            instance=instance,
+            data=data,
+            queryset=queryset,
+            **extra,
+        )
+
+    async def _run_hooks(
+        self,
+        hook_type: HookType | str,
+        request: HttpRequest,
+        value: Any = None,
+        instance: models.Model | None = None,
+        data: dict[str, Any] | BaseModel | None = None,
+        queryset: models.QuerySet | None = None,
+        **extra: Any,
+    ) -> Any:
+        """
+        Execute hooks for this view.
+
+        Args:
+            hook_type: The type of hook to execute
+            request: The HTTP request
+            value: The value to pass through the hook chain
+            instance: Optional model instance
+            data: Optional request data
+            queryset: Optional queryset
+            **extra: Additional context data
+
+        Returns:
+            The transformed value after hooks execute
+        """
+        if not self.enable_hooks:
+            return value
+
+        if isinstance(hook_type, str):
+            hook_type = HookType(hook_type)
+
+        context = self._create_hook_context(
+            request=request,
+            hook_type=hook_type,
+            instance=instance,
+            data=data,
+            queryset=queryset,
+            **extra,
+        )
+
+        return await run_hooks(
+            hook_type=hook_type,
+            context=context,
+            value=value,
+            include_class_hooks=True,
+        )
+
+    async def _handle_error(
+        self,
+        request: HttpRequest,
+        error: Exception,
+        instance: models.Model | None = None,
+    ) -> None:
+        """
+        Execute error hooks when an exception occurs.
+
+        Args:
+            request: The HTTP request
+            error: The exception that occurred
+            instance: Optional model instance involved
+        """
+        if not self.enable_hooks:
+            return
+
+        context = self._create_hook_context(
+            request=request,
+            hook_type=HookType.ON_ERROR,
+            instance=instance,
+            error=error,
+        )
+        context.error = error
+
+        try:
+            await run_hooks(
+                hook_type=HookType.ON_ERROR,
+                context=context,
+                value=error,
+                include_class_hooks=True,
+            )
+        except StopHookChain:
+            # Error hooks can stop the chain
+            pass
+        except Exception:
+            # Don't let error hooks cause additional failures
+            pass
+
 
 class BoundView:
     """
     A view bound to a specific ViewSet instance.
 
     This allows views to access the ViewSet's configuration
-    when handling requests.
+    when handling requests. Also handles lifecycle hook error handling.
     """
 
     def __init__(self, view: APIView, viewset: "ViewSet"):
@@ -267,28 +397,41 @@ class BoundView:
 
             return JsonResponse(result, safe=False)
 
+        except StopHookChain as e:
+            # Hook chain was stopped early - use the stored value
+            if e.value is not None:
+                if isinstance(e.value, JsonResponse):
+                    return e.value
+                return JsonResponse(e.value, safe=False)
+            return JsonResponse({"detail": "Operation cancelled"}, status=200)
+
         except ValidationError as e:
+            await self.view._handle_error(request, e)
             return JsonResponse(
                 {"detail": "Validation error", "errors": e.errors()},
                 status=422,
             )
         except NotFoundAPIError as e:
+            await self.view._handle_error(request, e)
             return JsonResponse(
                 {"detail": str(e), "code": "not_found"},
                 status=404,
             )
         except APIError as e:
+            await self.view._handle_error(request, e)
             return JsonResponse(
                 {"detail": str(e), "code": getattr(e, "code", "error")},
                 status=getattr(e, "status_code", 500),
             )
         except ValueError as e:
+            await self.view._handle_error(request, e)
             return JsonResponse(
                 {"detail": str(e)},
                 status=400,
             )
         except Exception as e:
             # Log the error in production
+            await self.view._handle_error(request, e)
             return JsonResponse(
                 {"detail": str(e)},
                 status=500,

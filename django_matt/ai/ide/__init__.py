@@ -7,6 +7,7 @@ understand Django projects.
 Generates:
 - CLAUDE.md - Project context for Claude Code
 - .cursorrules - Rules for Cursor IDE
+- .copilot-instructions - Instructions for GitHub Copilot
 - API documentation for AI consumption
 
 Usage:
@@ -28,10 +29,32 @@ Usage:
     info = introspector.introspect()
     print(f"Found {len(info.apps)} apps")
 
+Enhanced Context Generation:
+    For enhanced introspection with endpoints, schemas, and watch mode,
+    use the context submodule:
+
+    from django_matt.ai.context import (
+        ContextGenerator,
+        EnhancedIntrospector,
+        ContextWatcher,
+    )
+
+    # Generate all context files with enhanced introspection
+    generator = ContextGenerator()
+    files = generator.generate_all()
+
+    # Watch for file changes
+    watcher = ContextWatcher()
+    watcher.start()
+
 Management Command:
     python manage.py generate_ai_context
     python manage.py generate_ai_context --output ./docs
     python manage.py generate_ai_context --format claude
+    python manage.py generate_ai_context --format all  # All formats + JSON
+    python manage.py generate_ai_context --watch       # Auto-update on changes
+    python manage.py generate_ai_context --include-examples
+    python manage.py generate_ai_context --output-json # Machine-readable
 """
 
 from django_matt.ai.ide.generators import (

@@ -1,0 +1,153 @@
+{
+  "name": "django-matt",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+
+  // Features to install
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "moby": true
+    }
+  },
+
+  // VS Code / Cursor settings
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Python
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy",
+        "charliermarsh.ruff",
+
+        // Django
+        "batisteo.vscode-django",
+        "shamanu4.django-intellisense",
+
+        // Database
+        "cweijan.vscode-postgresql-client2",
+        "cweijan.vscode-redis-client",
+
+        // General
+        "eamodio.gitlens",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "humao.rest-client",
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml",
+        "tamasfe.even-better-toml",
+        "editorconfig.editorconfig",
+
+        // AI
+        "github.copilot",
+        "github.copilot-chat"
+      ],
+      "settings": {
+        // Python
+        "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
+        "python.terminal.activateEnvironment": true,
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+          }
+        },
+
+        // Ruff
+        "ruff.importStrategy": "fromEnvironment",
+        "ruff.fixAll": true,
+        "ruff.organizeImports": true,
+
+        // Testing
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": ["tests"],
+        "python.testing.unittestEnabled": false,
+
+        // Django
+        "files.associations": {
+          "**/templates/**/*.html": "django-html",
+          "**/templates/**/*": "django-txt"
+        },
+
+        // Editor
+        "editor.rulers": [100],
+        "editor.tabSize": 4,
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+
+        // Terminal
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.cwd": "/workspace"
+      }
+    }
+  },
+
+  // Port forwarding
+  "forwardPorts": [
+    8000,  // Django
+    5432,  // PostgreSQL
+    6379,  // Redis
+    8025,  // Mailhog UI
+    1025   // Mailhog SMTP
+  ],
+  "portsAttributes": {
+    "8000": {
+      "label": "Django",
+      "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent"
+    },
+    "6379": {
+      "label": "Redis",
+      "onAutoForward": "silent"
+    },
+    "8025": {
+      "label": "Mailhog UI",
+      "onAutoForward": "notify"
+    },
+    "1025": {
+      "label": "Mailhog SMTP",
+      "onAutoForward": "silent"
+    }
+  },
+
+  // Lifecycle scripts
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postStartCommand": "bash -c 'redis-cli -h redis ping && pg_isready -h db -U django_matt'",
+
+  // Environment variables
+  "containerEnv": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONUNBUFFERED": "1",
+    "DJANGO_SETTINGS_MODULE": "tests.settings",
+    "DATABASE_URL": "postgres://django_matt:django_matt@db:5432/django_matt",
+    "REDIS_URL": "redis://redis:6379/0",
+    "EMAIL_HOST": "mailhog",
+    "EMAIL_PORT": "1025"
+  },
+
+  // User settings
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": true,
+
+  // Mount settings for hot reload
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+  ],
+
+  // GitHub Codespaces optimizations
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb",
+    "storage": "32gb"
+  }
+}

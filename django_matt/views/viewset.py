@@ -2,6 +2,7 @@
 ViewSet classes for Django Matt.
 
 Provides the APIViewSet class for grouping related views together.
+Includes support for lifecycle hooks via class methods or decorators.
 """
 
 from typing import Any, ClassVar
@@ -10,6 +11,8 @@ from django.db import models
 from django.http import HttpRequest
 
 from pydantic import BaseModel
+
+from django_matt.views.hooks import HooksMixin
 
 
 class ViewSetMeta(type):
@@ -150,12 +153,27 @@ class ViewSet(metaclass=ViewSetMeta):
         return patterns
 
 
-class APIViewSet(ViewSet):
+class APIViewSet(HooksMixin, ViewSet):
     """
     ViewSet specifically for API endpoints.
 
     Provides additional functionality for API-specific concerns
-    like authentication, permissions, and response formatting.
+    like authentication, permissions, response formatting, and lifecycle hooks.
+
+    Lifecycle Hooks:
+        Override these methods to hook into CRUD operations:
+
+        - before_list(request, queryset) -> queryset
+        - after_list(request, result) -> result
+        - before_create(request, data) -> data
+        - after_create(request, instance) -> instance
+        - before_read(request, lookup_value) -> lookup_value
+        - after_read(request, instance) -> instance
+        - before_update(request, instance, data) -> (instance, data)
+        - after_update(request, instance) -> instance
+        - before_delete(request, instance) -> instance
+        - after_delete(request, instance) -> None
+        - on_error(request, error) -> None
 
     Example:
         from django_matt.views import APIViewSet, ListView, CreateView, ReadView, UpdateView, DeleteView
@@ -178,6 +196,15 @@ class APIViewSet(ViewSet):
             update_user = UpdateView(request_schema=UserUpdateSchema)
             delete_user = DeleteView()
 
+            # Lifecycle hooks as class methods
+            async def before_create(self, request, data):
+                data["created_by_id"] = request.user.id
+                return data
+
+            async def after_create(self, request, instance):
+                await send_notification(f"User {instance.email} created")
+                return instance
+
         # In urls.py:
         urlpatterns = [
             path("api/", include(UserViewSet.as_urls())),
@@ -187,6 +214,9 @@ class APIViewSet(ViewSet):
     # Authentication and permissions (for future implementation)
     authentication_classes: ClassVar[list] = []
     permission_classes: ClassVar[list] = []
+
+    # Enable/disable hooks for all views in this viewset
+    enable_hooks: ClassVar[bool] = True
 
     async def perform_create(self, data: dict[str, Any], request: HttpRequest) -> models.Model:
         """

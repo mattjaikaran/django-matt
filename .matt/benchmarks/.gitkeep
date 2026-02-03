@@ -1,0 +1,7 @@
+# This directory stores benchmark results for historical comparison
+# Files in this directory:
+#   - latest.json: Most recent benchmark run
+#   - benchmark_YYYYMMDD_HHMMSS.json: Timestamped results
+#
+# To exclude results from git, add to .gitignore:
+#   .matt/benchmarks/*.json

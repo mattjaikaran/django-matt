@@ -1,0 +1,199 @@
+# Docker Compose Development Configuration
+# Standalone development setup with all services
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up
+#   docker compose -f docker-compose.dev.yml up -d  # Detached mode
+#   docker compose -f docker-compose.dev.yml down -v  # Stop and remove volumes
+
+services:
+  # =============================================================================
+  # Django Application
+  # =============================================================================
+  app:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      # Hot reload: mount source code
+      - .:/workspace:cached
+      # Persist virtual environment
+      - venv-data:/workspace/.venv
+    ports:
+      - "8000:8000"   # Django
+      - "5678:5678"   # debugpy (Python debugging)
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=tests.settings
+      - DEBUG=true
+      - DATABASE_URL=postgres://django_matt:django_matt@db:5432/django_matt
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - EMAIL_HOST=mailhog
+      - EMAIL_PORT=1025
+      # Enable debugpy for remote debugging
+      - DEBUGPY_ENABLE=true
+    command: >
+      bash -c "
+        cd /workspace &&
+        uv venv .venv --python 3.13 2>/dev/null || true &&
+        source .venv/bin/activate &&
+        uv pip install -e '.[dev,all]' &&
+        python -m debugpy --listen 0.0.0.0:5678 -m django runserver 0.0.0.0:8000 --noreload
+      "
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - django-matt-net
+    # OrbStack optimizations for Mac
+    x-orbstack:
+      rosetta: true
+      virtiofs: true
+
+  # =============================================================================
+  # PostgreSQL 16 with pgvector
+  # =============================================================================
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./.devcontainer/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    environment:
+      POSTGRES_USER: django_matt
+      POSTGRES_PASSWORD: django_matt
+      POSTGRES_DB: django_matt
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U django_matt -d django_matt"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - django-matt-net
+
+  # =============================================================================
+  # Redis 7
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - django-matt-net
+
+  # =============================================================================
+  # Email Testing (Mailhog)
+  # =============================================================================
+  mailhog:
+    image: mailhog/mailhog:latest
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    networks:
+      - django-matt-net
+
+  # =============================================================================
+  # Database Management (pgAdmin 4)
+  # =============================================================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@django-matt.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - db
+    networks:
+      - django-matt-net
+    profiles:
+      - tools
+
+  # =============================================================================
+  # Lightweight Database Management (Adminer)
+  # =============================================================================
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+      ADMINER_DESIGN: pepa-linha-dark
+    depends_on:
+      - db
+    networks:
+      - django-matt-net
+    profiles:
+      - tools
+
+  # =============================================================================
+  # Redis Management (Redis Commander)
+  # =============================================================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - django-matt-net
+    profiles:
+      - tools
+
+  # =============================================================================
+  # Local SSL Proxy (Caddy)
+  # =============================================================================
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+    networks:
+      - django-matt-net
+    profiles:
+      - ssl
+
+volumes:
+  postgres-data:
+  redis-data:
+  venv-data:
+  pgadmin-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  django-matt-net:
+    driver: bridge

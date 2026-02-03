@@ -1,5 +1,9 @@
 """
 ReadView for retrieving a single resource.
+
+Supports lifecycle hooks:
+- before_read: Called before fetching, receives lookup_value, can modify it
+- after_read: Called after fetching, receives instance, can modify response
 """
 
 from typing import Any
@@ -9,6 +13,7 @@ from django.http import HttpRequest
 
 from django_matt.core.errors import NotFoundAPIError
 from django_matt.views.base import APIView
+from django_matt.views.hooks import HookType
 
 
 class ReadView(APIView):
@@ -39,7 +44,23 @@ class ReadView(APIView):
         if lookup_value is None:
             raise ValueError(f"Missing {self.lookup_field} in URL")
 
+        # Run before_read hooks - allows modifying lookup value
+        lookup_value = await self._run_hooks(
+            HookType.BEFORE_READ,
+            request,
+            value=lookup_value,
+        )
+
         instance = await self._get_instance(lookup_value)
+
+        # Run after_read hooks - allows modifying instance or response
+        instance = await self._run_hooks(
+            HookType.AFTER_READ,
+            request,
+            value=instance,
+            instance=instance,
+        )
+
         return self.serialize(instance)
 
     async def _get_instance(self, lookup_value: Any) -> models.Model:

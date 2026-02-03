@@ -1,0 +1,105 @@
+# Production Dockerfile for Django-Matt
+# Multi-stage build for minimal image size
+
+# =============================================================================
+# Stage 1: Builder
+# =============================================================================
+FROM python:3.13-slim-bookworm AS builder
+
+# Build arguments
+ARG UV_VERSION=0.5.14
+
+# Environment
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_SYSTEM_PYTHON=1 \
+    UV_LINK_MODE=copy
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && ln -sf /root/.local/bin/uv /usr/local/bin/uv
+
+# Create app directory
+WORKDIR /app
+
+# Copy dependency files first (for layer caching)
+COPY pyproject.toml ./
+COPY README.md ./
+
+# Create virtual environment and install dependencies
+RUN uv venv /opt/venv --python 3.13
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install production dependencies only
+RUN uv pip install --no-cache ".[full]" gunicorn uvicorn[standard]
+
+# Copy application code
+COPY django_matt/ ./django_matt/
+
+# Install the package itself
+RUN uv pip install --no-cache -e .
+
+# =============================================================================
+# Stage 2: Production Runtime
+# =============================================================================
+FROM python:3.13-slim-bookworm AS production
+
+# Labels
+LABEL org.opencontainers.image.title="Django-Matt" \
+      org.opencontainers.image.description="Modern Django API Framework" \
+      org.opencontainers.image.vendor="Matt Jaikaran" \
+      org.opencontainers.image.source="https://github.com/mattjaikaran/django-matt"
+
+# Environment
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONFAULTHANDLER=1 \
+    PATH="/opt/venv/bin:$PATH" \
+    # Gunicorn settings
+    GUNICORN_WORKERS=4 \
+    GUNICORN_THREADS=2
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Create non-root user
+RUN groupadd --gid 1000 django \
+    && useradd --uid 1000 --gid django --shell /bin/bash --create-home django
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+
+# Create app directory
+WORKDIR /app
+
+# Copy application code
+COPY --from=builder /app/django_matt ./django_matt
+COPY --chown=django:django . .
+
+# Create directories for static/media files
+RUN mkdir -p /app/staticfiles /app/mediafiles \
+    && chown -R django:django /app
+
+# Switch to non-root user
+USER django
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health/ || exit 1
+
+# Default command
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--threads", "2"]

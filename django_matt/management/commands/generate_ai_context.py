@@ -1,36 +1,52 @@
 """
 Management command for generating AI assistant context files.
 
-Generates CLAUDE.md, .cursorrules, and other files that help
-AI assistants understand your Django project.
+Generates CLAUDE.md, .cursorrules, .copilot-instructions, and other files
+that help AI assistants understand your Django project.
 
 Usage:
-    # Generate all context files
+    # Generate all context files (claude, cursor, copilot)
     python manage.py generate_ai_context
+
+    # Generate all formats including JSON
+    python manage.py generate_ai_context --format all
+
+    # Generate specific format
+    python manage.py generate_ai_context --format claude
+    python manage.py generate_ai_context --format cursor
+    python manage.py generate_ai_context --format copilot
 
     # Generate to specific directory
     python manage.py generate_ai_context --output ./docs
 
-    # Generate only CLAUDE.md
-    python manage.py generate_ai_context --format claude
+    # Include code examples from codebase
+    python manage.py generate_ai_context --include-examples
 
-    # Generate only .cursorrules
-    python manage.py generate_ai_context --format cursor
+    # Output machine-readable JSON
+    python manage.py generate_ai_context --output-json
+
+    # Watch mode - auto-update on file changes
+    python manage.py generate_ai_context --watch
 
     # Include third-party apps
     python manage.py generate_ai_context --include-third-party
 
     # Dry run (show what would be generated)
     python manage.py generate_ai_context --dry-run
+
+    # Install pre-commit hook
+    python manage.py generate_ai_context --install-hook
 """
 
+import signal
+import sys
 from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
-    help = "Generate AI assistant context files (CLAUDE.md, .cursorrules)"
+    help = "Generate AI assistant context files (CLAUDE.md, .cursorrules, .copilot-instructions)"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -44,9 +60,13 @@ class Command(BaseCommand):
             "--format",
             "-f",
             type=str,
-            choices=["all", "claude", "cursor"],
-            default="all",
-            help="Format to generate: all, claude (CLAUDE.md), cursor (.cursorrules)",
+            choices=["all", "claude", "cursor", "copilot", "json"],
+            default="default",
+            help=(
+                "Format to generate: all (all formats), claude (CLAUDE.md), "
+                "cursor (.cursorrules), copilot (.copilot-instructions), json (introspection.json). "
+                "Default generates claude, cursor, and copilot."
+            ),
         )
         parser.add_argument(
             "--include-third-party",
@@ -61,6 +81,38 @@ class Command(BaseCommand):
             help="Apps to exclude from analysis",
         )
         parser.add_argument(
+            "--include-examples",
+            action="store_true",
+            help="Include code examples from the codebase",
+        )
+        parser.add_argument(
+            "--output-json",
+            action="store_true",
+            help="Output machine-readable JSON introspection data",
+        )
+        parser.add_argument(
+            "--watch",
+            "-w",
+            action="store_true",
+            help="Watch for file changes and auto-regenerate",
+        )
+        parser.add_argument(
+            "--debounce",
+            type=float,
+            default=1.0,
+            help="Debounce delay in seconds for watch mode (default: 1.0)",
+        )
+        parser.add_argument(
+            "--install-hook",
+            action="store_true",
+            help="Install pre-commit hook for auto-regeneration",
+        )
+        parser.add_argument(
+            "--show-hook",
+            action="store_true",
+            help="Show pre-commit hook script without installing",
+        )
+        parser.add_argument(
             "--dry-run",
             action="store_true",
             help="Show what would be generated without writing files",
@@ -73,27 +125,98 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        from django_matt.ai.ide import (
-            ClaudeMdGenerator,
-            CursorRulesGenerator,
-            ProjectIntrospector,
-        )
-
         output_dir = Path(options["output"])
         format_type = options["format"]
         include_third_party = options["include_third_party"]
         exclude_apps = options["exclude_apps"]
+        include_examples = options["include_examples"]
+        output_json = options["output_json"]
+        watch_mode = options["watch"]
+        debounce_delay = options["debounce"]
+        install_hook = options["install_hook"]
+        show_hook = options["show_hook"]
         dry_run = options["dry_run"]
         quiet = options["quiet"]
+
+        # Handle hook commands
+        if show_hook:
+            self._show_hook()
+            return
+
+        if install_hook:
+            self._install_hook(output_dir, quiet)
+            return
+
+        # Handle watch mode
+        if watch_mode:
+            self._run_watch_mode(
+                output_dir=output_dir,
+                formats=self._get_formats(format_type),
+                debounce_delay=debounce_delay,
+                include_third_party=include_third_party,
+                exclude_apps=exclude_apps,
+                include_examples=include_examples,
+                quiet=quiet,
+            )
+            return
+
+        # Handle JSON output
+        if output_json:
+            self._output_json(
+                include_third_party=include_third_party,
+                exclude_apps=exclude_apps,
+                include_examples=include_examples,
+            )
+            return
+
+        # Normal generation
+        self._generate(
+            output_dir=output_dir,
+            format_type=format_type,
+            include_third_party=include_third_party,
+            exclude_apps=exclude_apps,
+            include_examples=include_examples,
+            dry_run=dry_run,
+            quiet=quiet,
+        )
+
+    def _get_formats(self, format_type: str) -> list[str]:
+        """Get list of formats to generate."""
+        if format_type == "all":
+            return ["claude", "cursor", "copilot", "json"]
+        elif format_type == "default":
+            return ["claude", "cursor", "copilot"]
+        else:
+            return [format_type]
+
+    def _generate(
+        self,
+        output_dir: Path,
+        format_type: str,
+        include_third_party: bool,
+        exclude_apps: list[str],
+        include_examples: bool,
+        dry_run: bool,
+        quiet: bool,
+    ):
+        """Generate context files."""
+        from django_matt.ai.context import (
+            ClaudeMdGenerator,
+            CopilotInstructionsGenerator,
+            CursorRulesGenerator,
+            EnhancedIntrospector,
+            JsonIntrospectionGenerator,
+        )
 
         # Ensure output directory exists
         if not dry_run:
             output_dir.mkdir(parents=True, exist_ok=True)
 
         # Create introspector
-        introspector = ProjectIntrospector(
+        introspector = EnhancedIntrospector(
             include_third_party=include_third_party,
             exclude_apps=exclude_apps,
+            include_examples=include_examples,
         )
 
         if not quiet:
@@ -107,15 +230,20 @@ class Command(BaseCommand):
 
         if not quiet:
             self.stdout.write(
-                f"  Found {len(project_info.apps)} apps, "
-                f"{sum(len(a.models) for a in project_info.apps)} models"
+                f"  Found {len(project_info.endpoints)} endpoints, "
+                f"{len(project_info.models)} models, "
+                f"{len(project_info.schemas)} schemas"
             )
 
+        formats = self._get_formats(format_type)
         generated_files = []
 
         # Generate CLAUDE.md
-        if format_type in ("all", "claude"):
-            generator = ClaudeMdGenerator(introspector=introspector)
+        if "claude" in formats:
+            generator = ClaudeMdGenerator(
+                introspector=introspector,
+                include_examples=include_examples,
+            )
             content = generator.generate(project_info)
 
             if dry_run:
@@ -130,7 +258,7 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.SUCCESS(f"  Generated: {file_path}"))
 
         # Generate .cursorrules
-        if format_type in ("all", "cursor"):
+        if "cursor" in formats:
             generator = CursorRulesGenerator(introspector=introspector)
             content = generator.generate(project_info)
 
@@ -139,6 +267,38 @@ class Command(BaseCommand):
                 self.stdout.write(content[:1500] + "..." if len(content) > 1500 else content)
             else:
                 file_path = output_dir / ".cursorrules"
+                file_path.write_text(content)
+                generated_files.append(file_path)
+
+                if not quiet:
+                    self.stdout.write(self.style.SUCCESS(f"  Generated: {file_path}"))
+
+        # Generate .copilot-instructions
+        if "copilot" in formats:
+            generator = CopilotInstructionsGenerator(introspector=introspector)
+            content = generator.generate(project_info)
+
+            if dry_run:
+                self.stdout.write("\n--- .copilot-instructions ---")
+                self.stdout.write(content[:1500] + "..." if len(content) > 1500 else content)
+            else:
+                file_path = output_dir / ".copilot-instructions"
+                file_path.write_text(content)
+                generated_files.append(file_path)
+
+                if not quiet:
+                    self.stdout.write(self.style.SUCCESS(f"  Generated: {file_path}"))
+
+        # Generate introspection.json
+        if "json" in formats:
+            generator = JsonIntrospectionGenerator(introspector=introspector)
+            content = generator.generate_json(project_info)
+
+            if dry_run:
+                self.stdout.write("\n--- introspection.json ---")
+                self.stdout.write(content[:2000] + "..." if len(content) > 2000 else content)
+            else:
+                file_path = output_dir / "introspection.json"
                 file_path.write_text(content)
                 generated_files.append(file_path)
 
@@ -158,3 +318,121 @@ class Command(BaseCommand):
             self.stdout.write("  1. Review the generated files")
             self.stdout.write("  2. Add project-specific instructions")
             self.stdout.write("  3. Commit to version control")
+            self.stdout.write(
+                "  4. Run with --watch for auto-updates during development"
+            )
+
+    def _run_watch_mode(
+        self,
+        output_dir: Path,
+        formats: list[str],
+        debounce_delay: float,
+        include_third_party: bool,
+        exclude_apps: list[str],
+        include_examples: bool,
+        quiet: bool,
+    ):
+        """Run in watch mode."""
+        from django_matt.ai.context import ContextWatcher
+
+        # Ensure output directory exists
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create watcher
+        watcher = ContextWatcher(
+            project_root=output_dir,
+            formats=formats,
+            debounce_delay=debounce_delay,
+            quiet=quiet,
+        )
+
+        # Handle Ctrl+C
+        def signal_handler(sig, frame):
+            watcher.stop()
+            self.stdout.write("\nWatch mode stopped.")
+            sys.exit(0)
+
+        signal.signal(signal.SIGINT, signal_handler)
+
+        # Generate initial files
+        if not quiet:
+            self.stdout.write("Generating initial context files...")
+
+        self._generate(
+            output_dir=output_dir,
+            format_type="all" if "json" in formats else "default",
+            include_third_party=include_third_party,
+            exclude_apps=exclude_apps,
+            include_examples=include_examples,
+            dry_run=False,
+            quiet=quiet,
+        )
+
+        # Start watching
+        if not quiet:
+            self.stdout.write("")
+            self.stdout.write(self.style.SUCCESS("Starting watch mode..."))
+
+        watcher.start()
+
+        # Keep running
+        try:
+            while True:
+                signal.pause()
+        except KeyboardInterrupt:
+            watcher.stop()
+
+    def _output_json(
+        self,
+        include_third_party: bool,
+        exclude_apps: list[str],
+        include_examples: bool,
+    ):
+        """Output JSON introspection data to stdout."""
+        from django_matt.ai.context import EnhancedIntrospector, JsonIntrospectionGenerator
+
+        introspector = EnhancedIntrospector(
+            include_third_party=include_third_party,
+            exclude_apps=exclude_apps,
+            include_examples=include_examples,
+        )
+
+        generator = JsonIntrospectionGenerator(introspector=introspector)
+        json_output = generator.generate_json()
+
+        self.stdout.write(json_output)
+
+    def _show_hook(self):
+        """Show pre-commit hook script."""
+        from django_matt.ai.context.watcher import (
+            generate_precommit_config,
+            generate_precommit_hook,
+        )
+
+        self.stdout.write("# Pre-commit hook script:")
+        self.stdout.write("# Save this to .git/hooks/pre-commit and make it executable")
+        self.stdout.write("")
+        self.stdout.write(generate_precommit_hook())
+
+        self.stdout.write("")
+        self.stdout.write("# Or add this to .pre-commit-config.yaml:")
+        self.stdout.write("")
+        self.stdout.write(generate_precommit_config())
+
+    def _install_hook(self, output_dir: Path, quiet: bool):
+        """Install pre-commit hook."""
+        from django_matt.ai.context.watcher import install_precommit_hook
+
+        try:
+            hook_path = install_precommit_hook(output_dir)
+            if not quiet:
+                self.stdout.write(
+                    self.style.SUCCESS(f"Pre-commit hook installed: {hook_path}")
+                )
+                self.stdout.write(
+                    "AI context files will be regenerated on each commit."
+                )
+        except FileNotFoundError as e:
+            raise CommandError(str(e))
+        except Exception as e:
+            raise CommandError(f"Failed to install hook: {e}")

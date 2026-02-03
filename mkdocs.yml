@@ -117,23 +117,30 @@ watch:
 
 nav:
   - Home: index.md
+
   - Getting Started:
+      - getting-started/index.md
       - Installation: getting-started/installation.md
       - Quick Start: getting-started/quickstart.md
       - Configuration: getting-started/configuration.md
+
   - Core Concepts:
+      - core/index.md
       - API & Routing: core/routing.md
       - Controllers: core/controllers.md
       - Schemas: core/schemas.md
       - Error Handling: core/errors.md
+
   - Authentication:
-      - Overview: auth/overview.md
+      - auth/overview.md
       - JWT: auth/jwt.md
       - Session: auth/session.md
       - API Keys: auth/api-keys.md
       - OAuth: auth/oauth.md
       - Passkeys: auth/passkeys.md
       - SSO: auth/sso.md
+      - RBAC: auth/rbac.md
+
   - Features:
       - CRUD Views: features/views.md
       - Permissions: features/permissions.md
@@ -143,34 +150,67 @@ nav:
       - File Handling: features/files.md
       - Background Tasks: features/tasks.md
       - WebSockets: features/websockets.md
+
   - Multi-Tenancy:
-      - Overview: multitenancy/overview.md
+      - multitenancy/overview.md
       - Organizations: multitenancy/organizations.md
       - Teams: multitenancy/teams.md
+
   - Billing:
-      - Overview: billing/overview.md
+      - billing/overview.md
       - Stripe: billing/stripe.md
       - PayPal: billing/paypal.md
       - Polar: billing/polar.md
+
   - Type Generation:
       - TypeScript: typegen/typescript.md
       - Swift: typegen/swift.md
+
   - Performance:
+      - performance/optimization.md
       - Caching: performance/caching.md
-      - Optimization: performance/optimization.md
       - Serialization: performance/serialization.md
+
   - Testing:
-      - Test Client: testing/client.md
+      - testing/client.md
       - Factories: testing/factories.md
       - Assertions: testing/assertions.md
+
   - CLI Tools:
       - startapi: cli/startapi.md
       - generate_crud: cli/generate-crud.md
       - sync_types: cli/sync-types.md
+      - testing: cli/testing.md
+
+  - Cookbook:
+      - cookbook/index.md
+      - Common Patterns: cookbook/common-patterns.md
+      - Authentication: cookbook/authentication.md
+      - Database: cookbook/database.md
+      - Testing: cookbook/testing.md
+
+  - Migration Guides:
+      - From DRF: migration/from-drf.md
+      - From Django Ninja: migration/from-django-ninja.md
+
   - API Reference:
       - Core: api/core.md
       - Auth: api/auth.md
       - Views: api/views.md
       - Permissions: api/permissions.md
+
+  - Advanced:
+      - Dependency Injection: di/overview.md
+      - Content Negotiation: negotiation/overview.md
+      - Admin Integration: admin/overview.md
+      - Audit Logging: audit/overview.md
+      - OpenAPI: openapi/overview.md
+
+  - Architecture:
+      - architecture/overview.md
+      - Core Architecture: architecture/core.md
+      - Authentication Flow: architecture/authentication.md
+      - Data Flow: architecture/data-flow.md
+
   - Contributing: contributing.md
   - Changelog: changelog.md

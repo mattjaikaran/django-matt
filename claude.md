@@ -120,6 +120,30 @@ django_matt/
 - Routing: `WebSocketRouter`, `create_asgi_application()`
 - Schemas: `ChatMessage`, `NotificationMessage`, `PresenceMessage`, etc.
 
+### Feature Flags (`django_matt.flags`)
+- Models: `FeatureFlag`, `FlagOverride`, `FlagAuditLog`
+- Types: Boolean, percentage rollout, and variant (A/B testing) flags
+- Backends: `DatabaseBackend`, `RedisBackend`, `LaunchDarklyBackend`, `UnleashBackend`
+- Functions: `feature_enabled()`, `get_variant()`, `get_all_flags()`
+- Decorators: `@feature_flag()`, `@requires_flag()`, `@variant_flag()`
+- Context: `FlagContext` for evaluation with user/org context
+- Middleware: `FlagMiddleware` for automatic context setup
+- Controllers: `FlagController` - Full REST API for flag management
+- Admin: Django admin integration for flag management
+
+### GraphQL (`django_matt.graphql`)
+- **schema.py**: `GraphQLSchema`, `generate_schema()` - Auto-generate schema from Django models
+- **types.py**: `DjangoModelType`, `create_type_from_model()`, `ConnectionType`, `NodeInterface`
+- **queries.py**: `QueryGenerator`, `generate_list_query()`, `generate_detail_query()`
+- **mutations.py**: `MutationGenerator`, CRUD mutations generator
+- **subscriptions.py**: `SubscriptionManager`, `SubscriptionGenerator` - WebSocket subscriptions
+- **dataloaders.py**: `DataLoaderRegistry`, `ModelDataLoader`, `RelatedDataLoader` - N+1 prevention
+- **middleware.py**: `AuthMiddleware`, `RateLimitMiddleware`, `ComplexityMiddleware`, `PersistedQueryMiddleware`
+- **decorators.py**: `@graphql_type`, `@graphql_input`, `@resolver`, `@mutation`, `@subscription`
+- **views.py**: `GraphQLView`, `AsyncGraphQLView`, `GraphQLAPI`
+- **codegen.py**: `TypeScriptGenerator`, `generate_typescript_types()`, `generate_typescript_client()`
+- Requires: `pip install strawberry-graphql[django]`
+
 ### Admin (`django_matt.admin`)
 Django Unfold admin integration with dashboard builder and custom page support.
 
@@ -160,6 +184,39 @@ Django Unfold admin integration with dashboard builder and custom page support.
 - `AdminPageRegistry` - `@pages.register()` decorator for page registration
 - `PageBuilderMixin` - Add custom pages to any AdminSite
 
+### AI IDE Context (`django_matt.ai.context`)
+Enhanced AI IDE integration for generating context files.
+
+**Generators:**
+- `ClaudeMdGenerator` - CLAUDE.md for Claude Code
+- `CursorRulesGenerator` - .cursorrules for Cursor IDE
+- `CopilotInstructionsGenerator` - .copilot-instructions for GitHub Copilot
+- `JsonIntrospectionGenerator` - Machine-readable JSON introspection
+- `ContextGenerator` - Unified generator for all formats
+
+**Introspection:**
+- `EnhancedIntrospector` - Deep project introspection
+- `EndpointInfo` - API endpoint with method, auth, schemas
+- `AuthRequirement` - Auth type (jwt_required, jwt_optional, api_key, etc.)
+- `PydanticSchemaInfo` - Schema with field types and constraints
+- `TestPatternInfo` - Test framework and fixture detection
+
+**Watch Mode:**
+- `ContextWatcher` - File watcher with debounced auto-updates
+- `DebouncedCallback` - Batches rapid file changes
+- `FileChangeHandler` - Filters relevant file changes
+
+**Pre-commit Integration:**
+- `generate_precommit_hook()` - Shell script for pre-commit
+- `generate_precommit_config()` - YAML configuration
+- `install_precommit_hook()` - Auto-install hook
+
+**HTTP Endpoint:**
+- `/_matt/introspection` - JSON introspection endpoint
+- `/_matt/introspection/endpoints` - List all API endpoints
+- `/_matt/introspection/schemas` - List all Pydantic schemas
+- `/_matt/introspection/models` - List all Django models
+
 ## CLI Commands
 
 ```bash
@@ -186,6 +243,18 @@ python manage.py generate_crud myapp.MyModel --with-admin # Add Django Unfold ad
 python manage.py generate_crud myapp.MyModel --full       # All: controller, schema, service, admin, tests
 python manage.py generate_crud myapp.MyModel --permissions IsAuthenticated --soft-delete
 python manage.py generate_crud myapp.MyModel --dry-run    # Preview without writing
+
+# AI Context Generation (for IDE integration)
+python manage.py generate_ai_context                     # Generate claude, cursor, copilot files
+python manage.py generate_ai_context --format all        # All formats including JSON
+python manage.py generate_ai_context --format claude     # Only CLAUDE.md
+python manage.py generate_ai_context --format cursor     # Only .cursorrules
+python manage.py generate_ai_context --format copilot    # Only .copilot-instructions
+python manage.py generate_ai_context --watch             # Auto-update on file changes
+python manage.py generate_ai_context --include-examples  # Include code examples
+python manage.py generate_ai_context --output-json       # Output JSON to stdout
+python manage.py generate_ai_context --install-hook      # Install pre-commit hook
+python manage.py generate_ai_context --show-hook         # Show hook script
 ```
 
 ## Development Progress
@@ -228,6 +297,8 @@ python manage.py generate_crud myapp.MyModel --dry-run    # Preview without writ
 | CRUD generator CLI | Done | `management/commands/generate_crud.py` |
 | Billing (Stripe, PayPal, Polar) | Done | `billing/` |
 | Content negotiation | Done | `negotiation/` |
+| Feature flags | Done | `flags/` |
+| GraphQL (Strawberry) | Done | `graphql/` |
 
 ### In Progress / Next Up
 
@@ -484,6 +555,180 @@ report_page = AdminPage(
 @report_page.view
 def analytics_view(request):
     return report_page.render(request, {"charts": get_charts()})
+```
+
+### GraphQL
+
+```python
+from django_matt.graphql import (
+    GraphQLAPI, generate_schema, graphql_type, graphql_input,
+    GraphQLView, create_type_from_model,
+)
+
+# Auto-generate schema from Django models
+schema = generate_schema(
+    models=[User, Post, Comment],
+    auto_mutations=True,  # Generate CRUD mutations
+    auto_subscriptions=False,  # Generate subscriptions
+)
+
+# Add GraphQL to your API
+api = MattAPI()
+graphql = GraphQLAPI(schema=schema, graphiql=True)
+# Include in urls: path("graphql/", include(graphql.urls))
+
+# Or manual type definition
+@graphql_type
+class UserType:
+    id: int
+    email: str
+    username: str
+
+    @staticmethod
+    def from_orm(user):
+        return UserType(id=user.id, email=user.email, username=user.username)
+
+# Create types from Django models
+PostType = create_type_from_model(Post, fields=["id", "title", "content"])
+
+# Input types
+@graphql_input
+class CreateUserInput:
+    email: str
+    username: str
+    password: str
+
+# Using DataLoaders for N+1 prevention
+from django_matt.graphql import DataLoaderRegistry
+
+registry = DataLoaderRegistry()
+registry.register_model(User, UserType)
+registry.register_model(Post, PostType)
+
+# In resolver
+async def resolve_users(info):
+    loader = info.context["dataloaders"].get_loader(User)
+    users = await loader.load_many([1, 2, 3])
+    return users
+
+# TypeScript client generation
+from django_matt.graphql import generate_typescript_client
+
+generate_typescript_client(schema, output_path="frontend/src/graphql/client.ts")
+```
+
+### AI IDE Context Generation
+
+```python
+from django_matt.ai.context import (
+    ContextGenerator,
+    EnhancedIntrospector,
+    ContextWatcher,
+)
+
+# Generate all context files (CLAUDE.md, .cursorrules, .copilot-instructions)
+generator = ContextGenerator(output_dir=".")
+files = generator.generate_all()
+
+# Generate specific formats
+generator.generate_claude_md()
+generator.generate_cursorrules()
+generator.generate_copilot_instructions()
+generator.generate_json()  # Machine-readable introspection
+
+# Use enhanced introspector directly
+introspector = EnhancedIntrospector(include_examples=True)
+info = introspector.introspect()
+
+# Access detailed information
+for endpoint in info.endpoints:
+    print(f"{endpoint.method} {endpoint.path} - {endpoint.auth_requirement}")
+
+for schema in info.schemas:
+    print(f"{schema.name}: {[f.name for f in schema.fields]}")
+
+# Watch mode for auto-updates during development
+watcher = ContextWatcher(
+    project_root=".",
+    formats=["claude", "cursor", "copilot"],
+    debounce_delay=1.0,
+)
+watcher.start()
+# ... do development work ...
+watcher.stop()
+
+# Or use as context manager
+with ContextWatcher() as watcher:
+    # Files auto-regenerate on Python file changes
+    pass
+```
+
+Add introspection endpoint to urls.py:
+```python
+from django_matt.ai.context.views import urlpatterns as ai_context_urls
+
+urlpatterns = [
+    ...
+    path("", include(ai_context_urls)),  # Adds /_matt/introspection
+]
+```
+
+Generate pre-commit hook:
+```python
+from django_matt.ai.context import generate_precommit_hook, install_precommit_hook
+
+# View the hook script
+print(generate_precommit_hook())
+
+# Install automatically
+install_precommit_hook(".")
+```
+
+### Feature Flags
+
+```python
+from django_matt.flags import feature_enabled, feature_flag, get_variant
+
+# Check flag
+if feature_enabled("new_checkout", user=request.user):
+    return new_checkout_flow()
+
+# Decorator
+@feature_flag("beta_feature", default=False)
+async def beta_endpoint(request):
+    ...
+
+# Require flag (404 if disabled)
+@requires_flag("admin_tools")
+async def admin_endpoint(request):
+    ...
+
+# Variants for A/B testing
+variant = get_variant("checkout_experiment", user=request.user)
+if variant == "control":
+    return control_flow()
+elif variant == "treatment_a":
+    return treatment_flow()
+
+# Using context
+from django_matt.flags import FlagContext
+
+ctx = FlagContext.from_request(request)
+if ctx.is_enabled("feature"):
+    ...
+
+# Register API controller
+from django_matt.flags import FlagController
+api.register_controller(FlagController)
+
+# Configuration (settings.py)
+FEATURE_FLAG_BACKEND = "database"  # or "redis", "launchdarkly", "unleash"
+
+MIDDLEWARE = [
+    ...
+    'django_matt.flags.FlagMiddleware',
+    ...
+]
 ```
 
 ## Testing

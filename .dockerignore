@@ -1,0 +1,114 @@
+# Docker build context exclusions
+# Reduces build time and image size
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea
+.vscode
+.cursor
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+ENV
+env
+.env
+.env.*
+!.env.example
+
+# Testing
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.nox
+coverage.xml
+*.cover
+.hypothesis
+
+# Build artifacts
+build
+dist
+*.egg-info
+*.egg
+.eggs
+wheels
+
+# Documentation
+docs/_build
+site
+
+# Node (if frontend exists)
+node_modules
+.npm
+.bun
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+
+# DevContainer (don't include in prod builds)
+.devcontainer
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+!Dockerfile.prod
+.docker
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Misc
+*.log
+*.tmp
+*.temp
+*.bak
+.cache
+tmp
+temp
+
+# Secrets (never include)
+*.pem
+*.key
+*.crt
+secrets
+credentials
+
+# Local development files
+Makefile
+CLAUDE.md
+ROADMAP.md
+todos.md
+*.md
+!README.md
+
+# Test files
+tests
+test_*
+*_test.py
+
+# Backups
+backups
+*.sql
+*.dump

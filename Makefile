@@ -644,3 +644,143 @@ mm: ## Shortcut: make migrations (alias for db OP=make)
 
 f: ## Shortcut: fix code (alias for quality OP=fix)
 	@$(MAKE) quality OP=fix
+
+# ============================================================================
+## AI & Context Generation
+# ============================================================================
+
+ai-context: ## Generate AI IDE context files (CLAUDE.md, .cursorrules)
+	@echo "$(CYAN)Generating AI context files...$(RESET)"
+	@uv run python manage.py generate_ai_context 2>/dev/null || echo "$(YELLOW)Command not yet implemented$(RESET)"
+	@echo "$(GREEN)Done!$(RESET)"
+
+ai-context-all: ## Generate all AI context formats
+	@echo "$(CYAN)Generating all AI context files...$(RESET)"
+	@uv run python manage.py generate_ai_context --format all 2>/dev/null || echo "$(YELLOW)Command not yet implemented$(RESET)"
+	@echo "$(GREEN)Done!$(RESET)"
+
+# ============================================================================
+## Performance & Benchmarking
+# ============================================================================
+
+benchmark: ## Run performance benchmarks
+	@echo "$(CYAN)Running benchmarks...$(RESET)"
+	@uv run pytest tests/benchmarks/ --benchmark-only 2>/dev/null || echo "$(YELLOW)Benchmarks not configured$(RESET)"
+
+profile: ## Profile the application
+	@echo "$(CYAN)Starting profiler...$(RESET)"
+	@uv run python -m cProfile -o profile.pstats manage.py runserver --noreload &
+	@echo "$(YELLOW)Use 'snakeviz profile.pstats' to view results$(RESET)"
+
+# ============================================================================
+## Advanced Development
+# ============================================================================
+
+tunnel: ## Start dev server with ngrok tunnel
+	@echo "$(CYAN)Starting server with tunnel...$(RESET)"
+	@which ngrok > /dev/null || (echo "$(RED)ngrok not installed. Install from https://ngrok.com$(RESET)" && exit 1)
+	@uv run python manage.py runserver 8000 &
+	@sleep 2 && ngrok http 8000
+
+serve-https: ## Start dev server with HTTPS (requires mkcert)
+	@echo "$(CYAN)Starting HTTPS server...$(RESET)"
+	@which mkcert > /dev/null || (echo "$(RED)mkcert not installed. Run: brew install mkcert$(RESET)" && exit 1)
+	@mkdir -p .certs
+	@test -f .certs/localhost.pem || mkcert -cert-file .certs/localhost.pem -key-file .certs/localhost-key.pem localhost 127.0.0.1
+	@uv run python manage.py runserver_plus --cert-file .certs/localhost.pem --key-file .certs/localhost-key.pem 2>/dev/null || \
+		echo "$(YELLOW)runserver_plus not available. Install django-extensions.$(RESET)"
+
+request: ## Make an authenticated API request (URL=... [METHOD=GET] [DATA=...])
+	@if [ -z "$(URL)" ]; then \
+		echo "$(RED)Error: URL is required$(RESET)"; \
+		echo "Usage: make request URL=/api/users METHOD=GET"; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)Making $(or $(METHOD),GET) request to $(URL)...$(RESET)"
+	@uv run python -c "from django_matt.testing import APITestClient; c = APITestClient(); print(c.$(shell echo $(or $(METHOD),get) | tr '[:upper:]' '[:lower:]')('$(URL)').json())" 2>/dev/null || \
+		curl -s "http://localhost:8000$(URL)"
+
+# ============================================================================
+## Maintenance & Cleanup
+# ============================================================================
+
+cleanup-tokens: ## Clean up expired tokens and sessions
+	@echo "$(CYAN)Cleaning up expired tokens...$(RESET)"
+	@uv run python manage.py clearsessions 2>/dev/null || true
+	@echo "$(GREEN)Done!$(RESET)"
+
+cleanup-logs: ## Clean up old audit logs (DAYS=30)
+	@echo "$(CYAN)Cleaning up logs older than $(or $(DAYS),30) days...$(RESET)"
+	@uv run python -c "from django_matt.audit import cleanup_old_logs; cleanup_old_logs(days=$(or $(DAYS),30))" 2>/dev/null || \
+		echo "$(YELLOW)Audit module not configured$(RESET)"
+
+backup-db: ## Create database backup
+	@echo "$(CYAN)Creating database backup...$(RESET)"
+	@mkdir -p backups
+	@uv run python manage.py dumpdata --natural-primary --natural-foreign -o backups/backup_$$(date +%Y%m%d_%H%M%S).json
+	@echo "$(GREEN)Backup created in backups/$(RESET)"
+
+restore-db: ## Restore database from backup (FILE=backups/backup.json)
+	@if [ -z "$(FILE)" ]; then \
+		echo "$(RED)Error: FILE is required$(RESET)"; \
+		echo "Usage: make restore-db FILE=backups/backup_20240101.json"; \
+		exit 1; \
+	fi
+	@echo "$(RED)$(BOLD)WARNING: This will overwrite current data!$(RESET)"
+	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
+	@uv run python manage.py loaddata $(FILE)
+	@echo "$(GREEN)Database restored!$(RESET)"
+
+# ============================================================================
+## Dependency Management
+# ============================================================================
+
+deps-check: ## Check for dependency updates
+	@echo "$(CYAN)Checking for updates...$(RESET)"
+	@uv pip list --outdated 2>/dev/null || uv run pip list --outdated
+	@echo "$(GREEN)Done!$(RESET)"
+
+deps-audit: ## Security audit of dependencies
+	@echo "$(CYAN)Running security audit...$(RESET)"
+	@uv pip audit 2>/dev/null || uv run pip-audit
+	@echo "$(GREEN)Done!$(RESET)"
+
+deps-tree: ## Show dependency tree
+	@echo "$(CYAN)Dependency tree:$(RESET)"
+	@uv pip tree 2>/dev/null || uv run pipdeptree
+
+# ============================================================================
+## Quick Analysis
+# ============================================================================
+
+analyze: ## Analyze codebase structure
+	@echo "$(CYAN)$(BOLD)Codebase Analysis$(RESET)"
+	@echo ""
+	@echo "$(YELLOW)Python files:$(RESET)"
+	@find django_matt -name "*.py" | wc -l | xargs echo "  Total:"
+	@echo ""
+	@echo "$(YELLOW)Lines of code:$(RESET)"
+	@find django_matt -name "*.py" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print "  Total: " $$1}'
+	@echo ""
+	@echo "$(YELLOW)Test files:$(RESET)"
+	@find tests -name "test_*.py" | wc -l | xargs echo "  Total:"
+	@echo ""
+	@echo "$(YELLOW)Test lines:$(RESET)"
+	@find tests -name "test_*.py" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print "  Total: " $$1}'
+	@echo ""
+	@echo "$(YELLOW)Modules:$(RESET)"
+	@ls -d django_matt/*/ 2>/dev/null | wc -l | xargs echo "  Total:"
+
+endpoints: ## List all API endpoints (requires running server or introspection)
+	@echo "$(CYAN)API Endpoints:$(RESET)"
+	@uv run python manage.py matt routes 2>/dev/null || \
+		uv run python -c "from django.urls import get_resolver; [print(f'  {p.pattern}') for p in get_resolver().url_patterns]" 2>/dev/null || \
+		echo "$(YELLOW)Could not introspect endpoints$(RESET)"
+
+schemas-list: ## List all Pydantic schemas
+	@echo "$(CYAN)Pydantic Schemas:$(RESET)"
+	@grep -r "class.*Schema.*:" django_matt --include="*.py" | grep -v "__pycache__" | head -30 || true
+
+models-list: ## List all Django models
+	@echo "$(CYAN)Django Models:$(RESET)"
+	@grep -r "class.*models.Model" django_matt --include="*.py" | grep -v "__pycache__" | head -30 || true

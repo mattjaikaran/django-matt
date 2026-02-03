@@ -1,5 +1,9 @@
 """
 DeleteView for deleting resources.
+
+Supports lifecycle hooks:
+- before_delete: Called before deletion, receives instance, can cancel or modify
+- after_delete: Called after deletion, receives deleted instance for logging/cleanup
 """
 
 from typing import Any
@@ -9,6 +13,7 @@ from django.http import HttpRequest
 
 from django_matt.core.errors import NotFoundAPIError
 from django_matt.views.base import APIView
+from django_matt.views.hooks import HookType
 
 
 class DeleteView(APIView):
@@ -48,16 +53,35 @@ class DeleteView(APIView):
 
         instance = await self._get_instance(lookup_value)
 
+        # Run before_delete hooks - allows cancellation or modification
+        instance = await self._run_hooks(
+            HookType.BEFORE_DELETE,
+            request,
+            value=instance,
+            instance=instance,
+        )
+
         # Optionally serialize before deletion
         deleted_data = None
         if self.return_deleted:
             deleted_data = self.serialize(instance)
+
+        # Store reference for after_delete hook
+        deleted_instance = instance
 
         # Allow ViewSet to customize deletion
         if self._viewset and hasattr(self._viewset, "perform_delete"):
             await self._viewset.perform_delete(instance, request)
         else:
             await self._delete_instance(instance)
+
+        # Run after_delete hooks - for logging, cleanup, etc.
+        await self._run_hooks(
+            HookType.AFTER_DELETE,
+            request,
+            value=deleted_instance,
+            instance=deleted_instance,
+        )
 
         if self.return_deleted and deleted_data:
             return {"deleted": True, "data": deleted_data}

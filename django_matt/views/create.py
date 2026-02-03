@@ -1,5 +1,9 @@
 """
 CreateView for creating new resources.
+
+Supports lifecycle hooks:
+- before_create: Called before creation, receives data dict, can modify it
+- after_create: Called after creation, receives instance, can modify response
 """
 
 from typing import Any
@@ -8,6 +12,7 @@ from django.db import models
 from django.http import HttpRequest
 
 from django_matt.views.base import APIView
+from django_matt.views.hooks import HookType
 
 
 class CreateView(APIView):
@@ -39,12 +44,29 @@ class CreateView(APIView):
         # Create the instance
         data_dict = data.model_dump(exclude_unset=True)
 
+        # Run before_create hooks - allows modifying data
+        data_dict = await self._run_hooks(
+            HookType.BEFORE_CREATE,
+            request,
+            value=data_dict,
+            data=data_dict,
+        )
+
         # Allow ViewSet to customize creation
         if self._viewset and hasattr(self._viewset, "perform_create"):
             instance = await self._viewset.perform_create(data_dict, request)
         else:
             instance = model(**data_dict)
             await self._save_instance(instance)
+
+        # Run after_create hooks - allows modifying instance or response
+        instance = await self._run_hooks(
+            HookType.AFTER_CREATE,
+            request,
+            value=instance,
+            instance=instance,
+            data=data_dict,
+        )
 
         # Serialize and return
         return self.serialize(instance)

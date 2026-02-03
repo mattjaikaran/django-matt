@@ -1,0 +1,47 @@
+# Caddy Development Configuration
+# Local HTTPS with automatic certificates
+
+{
+    # Development mode - use internal CA
+    local_certs
+    auto_https disable_redirects
+}
+
+# Main application
+https://localhost {
+    reverse_proxy app:8000
+
+    # Enable compression
+    encode gzip zstd
+
+    # Log requests
+    log {
+        output stdout
+        format console
+    }
+}
+
+# HTTP to HTTPS redirect
+http://localhost {
+    redir https://localhost{uri} permanent
+}
+
+# pgAdmin
+https://pgadmin.localhost {
+    reverse_proxy pgadmin:80
+}
+
+# Adminer
+https://adminer.localhost {
+    reverse_proxy adminer:8080
+}
+
+# Redis Commander
+https://redis.localhost {
+    reverse_proxy redis-commander:8081
+}
+
+# Mailhog
+https://mail.localhost {
+    reverse_proxy mailhog:8025
+}
