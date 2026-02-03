@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Request Inspector{% endblock %} - Django Matt</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        {% block extra_css %}{% endblock %}
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    {% block body %}
+    <div class="flex h-screen">
+        {% block content %}{% endblock %}
+    </div>
+    {% endblock %}
+
+    <script>
+        {% block extra_js %}{% endblock %}
+    </script>
+</body>
+</html>

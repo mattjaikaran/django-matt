@@ -210,6 +210,15 @@ _LAZY_IMPORTS = {
     "DataLoaderRegistry": "django_matt.graphql",
     "generate_typescript_types": "django_matt.graphql",
     "generate_typescript_client": "django_matt.graphql",
+    # Experiments / A/B Testing (lazy - has model dependencies)
+    "get_experiment_variant": "django_matt.experiments",
+    "track_experiment_conversion": "django_matt.experiments",
+    "experiment": "django_matt.experiments",
+    "requires_experiment": "django_matt.experiments",
+    "ExperimentMiddleware": "django_matt.experiments",
+    "ExperimentContext": "django_matt.experiments",
+    "ExperimentController": "django_matt.experiments",
+    "analyze_experiment": "django_matt.experiments",
 }
 
 # Cache for imported modules
@@ -423,4 +432,13 @@ __all__ = [
     "DataLoaderRegistry",
     "generate_typescript_types",
     "generate_typescript_client",
+    # Experiments / A/B Testing
+    "get_experiment_variant",
+    "track_experiment_conversion",
+    "experiment",
+    "requires_experiment",
+    "ExperimentMiddleware",
+    "ExperimentContext",
+    "ExperimentController",
+    "analyze_experiment",
 ]

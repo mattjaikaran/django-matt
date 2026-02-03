@@ -30,6 +30,8 @@ django_matt/
 ├── testing/                # Test client, factories, fixtures, assertions
 ├── utils/                  # Performance, hot reload, errors
 ├── admin/                  # Django Unfold admin integration, dashboards, widgets
+├── inspector/              # Request/response capture and inspection tool
+├── analytics/              # Event tracking, sessions, funnels, metrics
 └── management/commands/    # CLI: startapi, config, sync_types, generate_crud
 ```
 
@@ -131,6 +133,115 @@ django_matt/
 - Controllers: `FlagController` - Full REST API for flag management
 - Admin: Django admin integration for flag management
 
+### Analytics (`django_matt.analytics`)
+Event tracking and analytics system with multiple backends.
+
+**Models:**
+- `AnalyticsSession` - User session tracking with device, geo, UTM data
+- `AnalyticsEvent` - Generic event tracking with properties
+- `PageView` - Page view tracking with timing and engagement metrics
+- `UserMetric` - Aggregated metrics per user (daily/weekly/monthly rollups)
+- `Funnel` - Conversion funnel definitions
+- `FunnelStep` - Steps within a funnel (event or page_view match types)
+- `FunnelConversion` - Individual funnel conversion tracking
+- `UserIdentity` - Links anonymous IDs to user accounts
+
+**Enums:**
+- `EventCategory` - page_view, user_action, system, conversion, error, custom
+- `SessionStatus` - active, ended, expired
+- `AnonymizationLevel` - none, partial, full (for GDPR compliance)
+
+**Tracker (`tracker.py`):**
+- `EventTracker` - Main tracking interface with batched writes
+- `BatchContext` - Context manager for batch tracking
+- `get_tracker()` - Get default tracker instance
+- `track_event()`, `track_page_view()`, `identify()` - Convenience functions
+
+**Backends (`backends.py`):**
+- `DatabaseBackend` - Django ORM storage (default)
+- `RedisBackend` - Real-time counters with database flush
+- `SegmentBackend` - Forward to Segment.io
+- `MixpanelBackend` - Forward to Mixpanel
+- `PostHogBackend` - Forward to PostHog
+- `AmplitudeBackend` - Forward to Amplitude
+- `get_backend()` - Factory function for backend instances
+
+**Middleware (`middleware.py`):**
+- `AnalyticsMiddleware` - Auto-tracking of sessions, page views, timing
+- `AsyncAnalyticsMiddleware` - Async version for ASGI applications
+- Features: session cookies, bot filtering, DNT support, IP anonymization, UTM extraction
+
+**Controllers (`controllers.py`):**
+- `AnalyticsController` - Track events, page views, identify users
+- `MetricsController` - Dashboard metrics, real-time metrics, reports
+- `FunnelController` - CRUD for funnels, funnel analysis
+
+**Aggregations (`aggregations.py`):**
+- `Aggregator` - Metrics computation engine
+- `get_event_metrics()` - Event counts, by name/category, time series
+- `get_page_metrics()` - Page views, unique visitors, bounce rate, top pages
+- `get_session_metrics()` - Sessions, duration, pages/session, by device/country
+- `get_traffic_metrics()` - UTM sources, mediums, campaigns, referrers
+- `get_realtime_metrics()` - Active users, live events/page views
+- `analyze_funnel()` - Funnel conversion analysis
+- `get_cohort_retention()` - Cohort retention analysis
+- `create_daily_rollup()` - Scheduled aggregation
+
+**Decorators (`decorators.py`):**
+- `@track_event()` - Track event on function call
+- `@track_timing()` - Track execution time
+- `@track_page_view()` - Track page view on view call
+- `TrackedMixin` - Mixin for class-based views
+
+**Privacy Features:**
+- DNT (Do Not Track) header support
+- IP anonymization (hashing)
+- GDPR-compliant data anonymization levels
+- Consent tracking
+- Bot filtering
+
+### Experiments / A/B Testing (`django_matt.experiments`)
+Comprehensive A/B testing system with statistical analysis and multi-armed bandit algorithms.
+
+**Models:**
+- `Experiment` - A/B test with lifecycle (draft, running, paused, completed)
+- `Variant` - Treatment variant with weight and payload
+- `ExperimentAssignment` - User assignment to variant
+- `ExperimentResult` - Conversion/revenue events
+- `ExperimentAuditLog` - Audit trail
+
+**Assignment Strategies:**
+- `RANDOM` - Standard random assignment by weight
+- `EPSILON_GREEDY` - Explore with epsilon, exploit best
+- `UCB` - Upper Confidence Bound algorithm
+- `THOMPSON` - Thompson Sampling with Beta distribution
+
+**Statistical Analysis:**
+- Chi-square tests for conversion comparisons
+- T-tests for continuous metrics
+- Wilson score confidence intervals
+- Power analysis and sample size calculations
+- Automatic winner detection with significance testing
+
+**Functions:**
+- `get_variant()` - Get assigned variant key
+- `get_assignment()` - Get full assignment object
+- `track_conversion()` - Track conversion event
+- `track_revenue()` - Track revenue event
+- `analyze_experiment()` - Get full statistical analysis
+
+**Decorators:**
+- `@experiment()` - Route to variant handlers
+- `@requires_experiment()` - Require experiment assignment
+- `@track_conversion()` - Auto-track conversions
+
+**Features:**
+- Mutual exclusion groups (user in one experiment per group)
+- Holdout groups for long-term analysis
+- Integration with feature flags module
+- Targeting rules for eligibility
+- Backends: Database, Redis, Memory
+
 ### GraphQL (`django_matt.graphql`)
 - **schema.py**: `GraphQLSchema`, `generate_schema()` - Auto-generate schema from Django models
 - **types.py**: `DjangoModelType`, `create_type_from_model()`, `ConnectionType`, `NodeInterface`
@@ -217,6 +328,82 @@ Enhanced AI IDE integration for generating context files.
 - `/_matt/introspection/schemas` - List all Pydantic schemas
 - `/_matt/introspection/models` - List all Django models
 
+### Request Inspector (`django_matt.inspector`)
+Development tool for capturing and inspecting HTTP requests/responses during development.
+
+**Storage Backends:**
+- `MemoryStorage` - In-memory storage with bounded deque (default)
+- `RedisStorage` - Redis storage with automatic TTL expiration
+- `get_storage()` - Factory function to get configured storage instance
+- `reset_storage()` - Reset global storage (useful for testing)
+
+**Models:**
+- `CapturedRequest` - Dataclass representing a captured HTTP request/response pair
+  - Request data: method, path, full_url, query_string, headers, body, content_type
+  - Response data: status, headers, body, content_type
+  - Metadata: timestamp, duration_ms, client_ip, user_id, user_email
+  - Exception tracking: exception message and traceback
+  - Helpers: `is_success`, `is_redirect`, `is_client_error`, `is_server_error`, `status_category`
+
+**Middleware:**
+- `RequestCaptureMiddleware` - Captures requests/responses for inspection
+  - Automatic body truncation for large payloads
+  - Configurable path and extension filtering
+  - Exception capture with traceback
+  - User tracking for authenticated requests
+
+**Controllers:**
+- `InspectorController` - Full REST API for programmatic access
+  - `GET /inspector` - List captured requests with filtering
+  - `GET /inspector/{id}` - Get request detail
+  - `DELETE /inspector` - Clear all requests
+  - `POST /inspector/{id}/export` - Export request in various formats
+  - `GET /inspector/stats` - Get statistics (counts, avg duration, etc.)
+  - `GET /inspector/status` - Get capture status and storage info
+  - `POST /inspector/pause` - Pause request capture
+  - `POST /inspector/resume` - Resume request capture
+
+**Views:**
+- `InspectorDashboardView` - Web UI dashboard for browsing requests
+- `InspectorAPIView` - JSON API endpoints for dashboard JavaScript
+- `include_inspector()` - Helper function to include all inspector URLs
+- `urlpatterns` - Pre-configured URL patterns for direct inclusion
+
+**Export Formats:**
+- `export_as_curl()` - Export as curl command
+- `export_as_httpie()` - Export as HTTPie command
+- `export_as_python()` - Export as Python requests code
+- `export_as_fetch()` - Export as JavaScript fetch code
+- `export_request()` - Unified export function with format selection
+- `ExportFormat` - Type literal for export formats
+
+**Schemas:**
+- `CapturedRequestSchema` - Full request/response details
+- `CapturedRequestListSchema` - Paginated list of requests
+- `InspectorStatsSchema` - Statistics (total, success, error counts, durations)
+- `CaptureStatusSchema` - Capture status and storage info
+- `ExportRequestSchema` - Export request body
+- `ExportResponseSchema` - Export response with content and content_type
+- `MessageResponseSchema`, `ErrorResponseSchema` - Standard responses
+
+**Configuration Options (settings.py):**
+```python
+DJANGO_MATT_INSPECTOR = {
+    'ENABLED': DEBUG,              # Enable/disable inspector
+    'MAX_REQUESTS': 100,           # Maximum requests to store
+    'MAX_BODY_SIZE': 65536,        # Max request/response body size (bytes)
+    'IGNORE_PATHS': ['/_matt/', '/static/', '/media/'],  # Paths to ignore
+    'IGNORE_EXTENSIONS': ['.css', '.js', '.png', '.jpg', '.gif', '.ico'],
+    'CAPTURE_HEADERS': True,       # Capture request/response headers
+    'CAPTURE_BODY': True,          # Capture request body
+    'CAPTURE_RESPONSE': True,      # Capture response body
+    'REQUIRE_STAFF': False,        # Require staff access for dashboard
+    'STORAGE_BACKEND': 'memory',   # Storage backend: 'memory' or 'redis'
+    'REDIS_URL': 'redis://localhost:6379/0',  # Redis URL (if using Redis)
+    'TTL_SECONDS': 3600,           # TTL for Redis storage
+}
+```
+
 ## CLI Commands
 
 ```bash
@@ -299,6 +486,9 @@ python manage.py generate_ai_context --show-hook         # Show hook script
 | Content negotiation | Done | `negotiation/` |
 | Feature flags | Done | `flags/` |
 | GraphQL (Strawberry) | Done | `graphql/` |
+| A/B Testing / Experiments | Done | `experiments/` |
+| Request Inspector | Done | `inspector/` |
+| Analytics | Done | `analytics/` |
 
 ### In Progress / Next Up
 
@@ -729,6 +919,244 @@ MIDDLEWARE = [
     'django_matt.flags.FlagMiddleware',
     ...
 ]
+```
+
+### Request Inspector
+
+```python
+# settings.py - Enable the inspector
+DJANGO_MATT_INSPECTOR = {
+    'ENABLED': DEBUG,
+    'MAX_REQUESTS': 100,
+    'IGNORE_PATHS': ['/_matt/', '/static/', '/media/'],
+    'STORAGE_BACKEND': 'memory',  # or 'redis'
+}
+
+MIDDLEWARE = [
+    'django_matt.inspector.RequestCaptureMiddleware',
+    ...
+]
+
+# urls.py - Add inspector routes
+from django.urls import include, path
+
+urlpatterns = [
+    ...
+    path("_matt/inspector/", include("django_matt.inspector.urls")),
+]
+
+# Access the dashboard at: http://localhost:8000/_matt/inspector/
+
+# Or register the API controller with MattAPI
+from django_matt import MattAPI
+from django_matt.inspector import InspectorController
+
+api = MattAPI()
+api.register_controller(InspectorController)
+
+# Programmatic access
+from django_matt.inspector import get_storage, export_request
+
+storage = get_storage()
+
+# List captured requests
+requests = storage.list(limit=50, method="POST", status_min=400)
+
+# Get a specific request
+request = storage.get("request-uuid")
+
+# Export to curl command
+curl_cmd = export_request(request, format="curl", include_response=True)
+
+# Pause/resume capture
+storage.pause_capture()
+storage.resume_capture()
+
+# Clear all captured requests
+storage.clear()
+```
+
+### Analytics
+
+```python
+# settings.py - Configure analytics
+DJANGO_MATT_ANALYTICS = {
+    "BACKEND": "database",  # or "redis", "segment", "mixpanel", "posthog", "amplitude"
+    "BATCH_SIZE": 100,
+    "BATCH_TIMEOUT": 5.0,
+    "ANONYMIZE_IP": False,
+    "RESPECT_DNT": True,
+
+    "BACKEND_SETTINGS": {
+        "segment": {"write_key": "YOUR_SEGMENT_KEY"},
+        "mixpanel": {"token": "YOUR_MIXPANEL_TOKEN"},
+        "posthog": {"api_key": "YOUR_POSTHOG_KEY", "host": "https://app.posthog.com"},
+        "amplitude": {"api_key": "YOUR_AMPLITUDE_KEY"},
+    },
+
+    "MIDDLEWARE": {
+        "track_sessions": True,
+        "track_page_views": True,
+        "track_timing": True,
+        "session_timeout_minutes": 30,
+        "exclude_paths": ["/health", "/static"],
+        "exclude_bots": True,
+        "anonymize_ip": False,
+        "respect_dnt": True,
+    },
+}
+
+MIDDLEWARE = [
+    ...
+    'django_matt.analytics.AnalyticsMiddleware',
+    ...
+]
+
+# Track events using convenience functions
+from django_matt.analytics import track_event, track_page_view, identify
+
+track_event("button_click", properties={"button_id": "signup"})
+track_page_view("/pricing", title="Pricing Page")
+identify(user=request.user, traits={"plan": "pro"})
+
+# Or use the tracker directly
+from django_matt.analytics import EventTracker, get_tracker
+
+tracker = get_tracker()
+tracker.track_event("purchase", properties={"amount": 99.99}, user=request.user)
+
+# Batch tracking for better performance
+with tracker.batch() as batch:
+    batch.track_event("event1", {"key": "value"})
+    batch.track_event("event2", {"key": "value"})
+    batch.track_page_view("/page1")
+
+# Using decorators
+from django_matt.analytics import track_event_decorator, track_timing, track_page_view_decorator
+
+@track_event_decorator("api_called", properties={"endpoint": "users"})
+async def get_users(request):
+    ...
+
+@track_timing("db_query", threshold_ms=100)  # Only track if > 100ms
+def expensive_query():
+    ...
+
+@track_page_view_decorator(title="Dashboard")
+def dashboard_view(request):
+    ...
+
+# Register API controllers
+from django_matt.analytics import AnalyticsController, MetricsController, FunnelController
+
+api.register_controller(AnalyticsController, prefix="/analytics")
+api.register_controller(MetricsController, prefix="/analytics")
+api.register_controller(FunnelController, prefix="/analytics")
+
+# Get aggregated metrics
+from django_matt.analytics import get_aggregator
+from datetime import timedelta
+from django.utils import timezone
+
+aggregator = get_aggregator()
+start = timezone.now() - timedelta(days=7)
+end = timezone.now()
+
+# Dashboard metrics
+event_metrics = await aggregator.get_event_metrics(start, end)
+page_metrics = await aggregator.get_page_metrics(start, end)
+session_metrics = await aggregator.get_session_metrics(start, end)
+realtime = await aggregator.get_realtime_metrics(minutes=30)
+
+# Funnel analysis
+from django_matt.analytics.models import Funnel
+funnel = await Funnel.objects.aget(name="Signup Funnel")
+analysis = await aggregator.analyze_funnel(funnel, start, end)
+print(f"Conversion rate: {analysis['overall_conversion_rate']:.1f}%")
+
+# Cohort retention analysis
+cohorts = await aggregator.get_cohort_retention(start, end, cohort_period="week")
+```
+
+### Experiments / A/B Testing
+
+```python
+from django_matt.experiments import (
+    get_variant,
+    track_conversion,
+    track_revenue,
+    experiment,
+    analyze_experiment,
+    ExperimentController,
+)
+
+# Get variant assignment for user
+variant = get_variant("checkout_experiment", user=request.user)
+if variant == "control":
+    return old_checkout()
+elif variant == "treatment":
+    return new_checkout()
+
+# Track conversion after successful action
+track_conversion("checkout_experiment", user=request.user)
+
+# Track revenue
+track_revenue("checkout_experiment", amount=99.99, user=request.user)
+
+# Using decorator for variant routing
+@experiment(
+    "checkout_test",
+    variant_handlers={
+        "control": checkout_v1,
+        "treatment": checkout_v2,
+    },
+)
+async def checkout(request):
+    # Default if no variant matches
+    return checkout_v1(request)
+
+# Require experiment assignment
+from django_matt.experiments import requires_experiment
+
+@requires_experiment("beta_feature")
+async def beta_endpoint(request):
+    ...
+
+# Using context
+from django_matt.experiments import ExperimentContext
+
+ctx = ExperimentContext.from_request(request)
+variant = ctx.get_variant("my_experiment")
+ctx.track_conversion("my_experiment")
+
+# Get statistical analysis
+from django_matt.experiments.models import Experiment
+
+experiment = Experiment.objects.get(key="checkout_test")
+analysis = analyze_experiment(experiment)
+
+if analysis.has_winner:
+    print(f"Winner: {analysis.winner_variant_key}")
+    print(f"Confidence: {analysis.winner_confidence:.1%}")
+    print(f"Lift: {analysis.comparisons[0].relative_lift:.1%}")
+
+# Register API controller
+api.register_controller(ExperimentController)
+
+# Configuration (settings.py)
+EXPERIMENT_BACKEND = "database"  # or "redis"
+
+MIDDLEWARE = [
+    ...
+    'django_matt.experiments.ExperimentMiddleware',
+    ...
+]
+
+# Multi-armed bandit configuration
+# In Experiment model:
+#   strategy = "epsilon_greedy"  # or "ucb", "thompson", "random"
+#   epsilon = 0.1  # Exploration rate
+#   exploration_weight = 2.0  # UCB exploration weight
 ```
 
 ## Testing
