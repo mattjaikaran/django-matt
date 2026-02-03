@@ -1,0 +1,29 @@
+Order Confirmation - {{ order.order_number }}
+
+Thank you for your order!
+
+Order Number: {{ order.order_number }}
+Date: {{ order.created_at|date:"F d, Y" }}
+
+Items:
+{% for item in items %}
+- {{ item.product_name }}{% if item.variant_name %} ({{ item.variant_name }}){% endif %}
+  Qty: {{ item.quantity }} x ${{ item.unit_price }} = ${{ item.total }}
+{% endfor %}
+
+Subtotal: ${{ order.subtotal }}
+{% if order.discount_amount %}Discount: -${{ order.discount_amount }}{% endif %}
+Tax: ${{ order.tax_amount }}
+Shipping: ${{ order.shipping_amount }}
+Total: ${{ order.total }}
+
+Shipping Address:
+{{ order.shipping_address.first_name }} {{ order.shipping_address.last_name }}
+{{ order.shipping_address.address_line_1 }}
+{% if order.shipping_address.address_line_2 %}{{ order.shipping_address.address_line_2 }}{% endif %}
+{{ order.shipping_address.city }}, {{ order.shipping_address.state }} {{ order.shipping_address.postal_code }}
+{{ order.shipping_address.country }}
+
+View your order: {{ order_url }}
+
+Thank you for shopping with us!

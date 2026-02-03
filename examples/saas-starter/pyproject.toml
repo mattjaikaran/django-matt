@@ -1,0 +1,177 @@
+[project]
+name = "saas-starter"
+version = "1.0.0"
+description = "A comprehensive SaaS example application showcasing django-matt features"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12"
+authors = [
+    { name = "Django Matt Team" }
+]
+keywords = ["django", "saas", "api", "django-matt", "multi-tenancy", "billing"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: Django :: 5.2",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    # Django & Core
+    "django>=5.2",
+    "django-matt>=0.1.0",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "python-dotenv>=1.0.0",
+
+    # Database
+    "psycopg[binary]>=3.1",
+
+    # Cache & Message Broker
+    "redis>=5.0",
+    "hiredis>=2.3",
+
+    # Background Tasks
+    "celery>=5.3",
+    "celery[redis]>=5.3",
+
+    # WebSockets
+    "channels>=4.0",
+    "channels-redis>=4.2",
+    "daphne>=4.0",
+
+    # Billing
+    "stripe>=10.0",
+
+    # Performance
+    "orjson>=3.9",
+    "uvicorn[standard]>=0.27",
+    "gunicorn>=21.0",
+
+    # Utilities
+    "httpx>=0.27",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-django>=4.8",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=4.1",
+    "pytest-xdist>=3.5",
+    "factory-boy>=3.3",
+    "httpx>=0.27",
+    "ruff>=0.2",
+    "mypy>=1.8",
+    "django-stubs>=4.2",
+    "ipython>=8.0",
+    "watchfiles>=0.21",
+]
+
+docs = [
+    "mkdocs>=1.5",
+    "mkdocs-material>=9.5",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["saas_project", "core", "projects", "billing", "notifications", "api"]
+
+# =============================================================================
+# UV Configuration
+# =============================================================================
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0",
+    "pytest-django>=4.8",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=4.1",
+    "pytest-xdist>=3.5",
+    "factory-boy>=3.3",
+    "httpx>=0.27",
+    "ruff>=0.2",
+    "mypy>=1.8",
+    "django-stubs>=4.2",
+    "ipython>=8.0",
+    "watchfiles>=0.21",
+]
+
+# =============================================================================
+# Pytest Configuration
+# =============================================================================
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "saas_project.settings"
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = [
+    "-v",
+    "--tb=short",
+    "-ra",
+    "--strict-markers",
+]
+markers = [
+    "slow: marks tests as slow",
+    "integration: marks tests as integration tests",
+]
+
+# =============================================================================
+# Ruff Configuration
+# =============================================================================
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "migrations",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+ignore = ["E501", "B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["core", "projects", "billing", "notifications", "api", "saas_project"]
+
+# =============================================================================
+# MyPy Configuration
+# =============================================================================
+[tool.mypy]
+python_version = "3.12"
+plugins = ["mypy_django_plugin.main", "pydantic.mypy"]
+strict = false
+warn_return_any = true
+warn_unused_ignores = true
+exclude = ["migrations/", "build/", "dist/"]
+
+[tool.django-stubs]
+django_settings_module = "saas_project.settings"
+
+# =============================================================================
+# Coverage Configuration
+# =============================================================================
+[tool.coverage.run]
+source = ["core", "projects", "billing", "notifications", "api"]
+branch = true
+omit = ["*/migrations/*", "*/__pycache__/*", "*/tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
+show_missing = true

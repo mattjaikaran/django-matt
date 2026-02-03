@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ workspace.name }} - Real-Time Chat</title>
+    <link rel="stylesheet" href="/static/chat/chat.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <a href="{% url 'chat:index' %}" class="back-link">&larr; Workspaces</a>
+            <h1>{{ workspace.name }}</h1>
+        </header>
+
+        <main class="main-content">
+            {% if is_member %}
+                <section class="channels-section">
+                    <h2>Channels</h2>
+                    {% if channels %}
+                        <ul class="channel-list-full">
+                            {% for channel in channels %}
+                                <li class="channel-item-full">
+                                    <a href="{% url 'chat:channel' workspace.id channel.id %}">
+                                        <span class="channel-prefix">{% if channel.is_private %}&#128274;{% else %}#{% endif %}</span>
+                                        <span class="channel-name">{{ channel.name }}</span>
+                                        {% if channel.description %}
+                                            <span class="channel-description">{{ channel.description|truncatechars:50 }}</span>
+                                        {% endif %}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="no-channels">No channels yet.</p>
+                    {% endif %}
+
+                    <button id="createChannelBtn" class="btn btn-primary">Create Channel</button>
+                </section>
+
+                <!-- Create Channel Modal -->
+                <div id="createChannelModal" class="modal hidden">
+                    <div class="modal-content">
+                        <h3>Create Channel</h3>
+                        <form id="createChannelForm">
+                            <div class="form-group">
+                                <label for="channelName">Name</label>
+                                <input type="text" id="channelName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="channelDescription">Description</label>
+                                <textarea id="channelDescription"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="channelPrivate">
+                                    Private channel
+                                </label>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Create</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            {% else %}
+                <section class="join-section">
+                    <p>You are not a member of this workspace.</p>
+                    {% if user.is_authenticated %}
+                        <p>Ask the workspace owner to invite you.</p>
+                    {% else %}
+                        <p><a href="{% url 'chat:index' %}">Login</a> to join workspaces.</p>
+                    {% endif %}
+                </section>
+            {% endif %}
+        </main>
+    </div>
+
+    <script>
+        const workspaceId = '{{ workspace.id }}';
+
+        // Create channel
+        const createChannelBtn = document.getElementById('createChannelBtn');
+        const createChannelModal = document.getElementById('createChannelModal');
+        const createChannelForm = document.getElementById('createChannelForm');
+
+        if (createChannelBtn) {
+            createChannelBtn.addEventListener('click', () => {
+                createChannelModal.classList.remove('hidden');
+            });
+        }
+
+        window.closeModal = function() {
+            createChannelModal.classList.add('hidden');
+        };
+
+        if (createChannelForm) {
+            createChannelForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('channelName').value;
+                const description = document.getElementById('channelDescription').value;
+                const is_private = document.getElementById('channelPrivate').checked;
+
+                try {
+                    const response = await fetch(`/api/workspaces/${workspaceId}/channels/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        },
+                        body: JSON.stringify({ name, description, is_private })
+                    });
+
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        const error = await response.json();
+                        alert(error.detail || 'Failed to create channel');
+                    }
+                } catch (err) {
+                    alert('Network error');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

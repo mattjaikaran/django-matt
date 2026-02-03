@@ -1,0 +1,29 @@
+# Django and django-matt
+django>=5.2
+django-matt @ file:../..  # Install from parent directory
+
+# ASGI server
+daphne>=4.0
+uvicorn[standard]>=0.27
+
+# Channels for WebSockets
+channels>=4.0
+channels-redis>=4.2
+
+# Database
+psycopg[binary]>=3.1  # PostgreSQL adapter
+
+# Redis
+redis>=5.0
+
+# JWT (included in django-matt, but listing for clarity)
+PyJWT>=2.8
+
+# File uploads
+python-magic>=0.4  # File type detection
+
+# Search (optional)
+django-filter>=24.0
+
+# Development
+python-dotenv>=1.0

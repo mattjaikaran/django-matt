@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Complete Your Purchase</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2>Hi {{ user.first_name|default:user.email }},</h2>
+
+    <p>You left some items in your cart!</p>
+
+    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        {% for item in items %}
+        <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #ddd;">{{ item.product.name }}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #ddd;">Qty: {{ item.quantity }}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">${{ item.unit_price }}</td>
+        </tr>
+        {% endfor %}
+        <tr>
+            <td colspan="2" style="padding: 10px; font-weight: bold;">Subtotal</td>
+            <td style="padding: 10px; text-align: right; font-weight: bold;">${{ subtotal }}</td>
+        </tr>
+    </table>
+
+    <p style="text-align: center; margin: 30px 0;">
+        <a href="{{ cart_url }}" style="display: inline-block; background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Complete Your Purchase</a>
+    </p>
+
+    <p style="color: #666; font-size: 12px;">Items in your cart are subject to availability.</p>
+</body>
+</html>

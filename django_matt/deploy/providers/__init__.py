@@ -16,4 +16,17 @@ __all__ = [
     "HetznerProvider",
     "RailwayProvider",
     "RenderProvider",
+    "get_k3s_provider",
 ]
+
+
+def get_k3s_provider():
+    """
+    Lazy import for K3sProvider to avoid circular import.
+
+    K3sProvider is in django_matt.deployment.kubernetes which depends
+    on django_matt.deploy.base.
+    """
+    from django_matt.deployment.kubernetes import K3sProvider
+
+    return K3sProvider

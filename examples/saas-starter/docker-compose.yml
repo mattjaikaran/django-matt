@@ -1,0 +1,297 @@
+# =============================================================================
+# SaaS Starter - Docker Compose Configuration
+# =============================================================================
+#
+# Services:
+#   - app:      Django API server (ASGI with Uvicorn)
+#   - celery:   Celery worker for background tasks
+#   - beat:     Celery beat for scheduled tasks
+#   - db:       PostgreSQL database
+#   - redis:    Redis for caching and message broker
+#   - mailpit:  Email testing server (development)
+#
+# Usage:
+#   docker compose up -d          # Start all services
+#   docker compose logs -f app    # View app logs
+#   docker compose down           # Stop all services
+#
+# =============================================================================
+
+name: saas-starter
+
+services:
+  # ---------------------------------------------------------------------------
+  # Django Application (ASGI)
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: saas-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=${DEBUG:-false}
+      - DJANGO_SETTINGS_MODULE=saas_project.settings
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-your-secret-key-change-in-production}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/saas_starter
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=saas_starter
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - EMAIL_HOST=mailpit
+      - EMAIL_PORT=1025
+    volumes:
+      - static_files:/app/staticfiles
+      - media_files:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - saas-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`api.localhost`)"
+      - "traefik.http.services.app.loadbalancer.server.port=8000"
+
+  # ---------------------------------------------------------------------------
+  # Celery Worker
+  # ---------------------------------------------------------------------------
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: celery-worker
+    container_name: saas-celery
+    restart: unless-stopped
+    command: celery -A saas_project worker -l INFO --concurrency 4
+    environment:
+      - DEBUG=${DEBUG:-false}
+      - DJANGO_SETTINGS_MODULE=saas_project.settings
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-your-secret-key-change-in-production}
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/saas_starter
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=saas_starter
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas-network
+
+  # ---------------------------------------------------------------------------
+  # Celery Beat (Scheduler)
+  # ---------------------------------------------------------------------------
+  beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: celery-beat
+    container_name: saas-celery-beat
+    restart: unless-stopped
+    command: celery -A saas_project beat -l INFO
+    environment:
+      - DEBUG=${DEBUG:-false}
+      - DJANGO_SETTINGS_MODULE=saas_project.settings
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY:-your-secret-key-change-in-production}
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/saas_starter
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=saas_starter
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - saas-network
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: saas-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=saas_starter
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d saas_starter"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - saas-network
+
+  # ---------------------------------------------------------------------------
+  # Redis
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: saas-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - saas-network
+
+  # ---------------------------------------------------------------------------
+  # Mailpit (Email Testing) - Development Only
+  # ---------------------------------------------------------------------------
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: saas-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    environment:
+      - MP_MAX_MESSAGES=5000
+      - MP_DATABASE=/data/mailpit.db
+      - MP_SMTP_AUTH_ACCEPT_ANY=true
+      - MP_SMTP_AUTH_ALLOW_INSECURE=true
+    volumes:
+      - mailpit_data:/data
+    networks:
+      - saas-network
+    profiles:
+      - dev
+
+  # ---------------------------------------------------------------------------
+  # Flower (Celery Monitoring) - Development Only
+  # ---------------------------------------------------------------------------
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: saas-flower
+    restart: unless-stopped
+    command: celery -A saas_project flower --port=5555 --broker=redis://redis:6379/0
+    ports:
+      - "5555:5555"
+    environment:
+      - DEBUG=${DEBUG:-false}
+      - DJANGO_SETTINGS_MODULE=saas_project.settings
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+      - celery
+    networks:
+      - saas-network
+    profiles:
+      - dev
+      - monitoring
+
+  # ---------------------------------------------------------------------------
+  # pgAdmin (Database Admin) - Development Only
+  # ---------------------------------------------------------------------------
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: saas-pgadmin
+    restart: unless-stopped
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@example.com}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - db
+    networks:
+      - saas-network
+    profiles:
+      - dev
+      - admin
+
+  # ---------------------------------------------------------------------------
+  # Redis Commander - Development Only
+  # ---------------------------------------------------------------------------
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: saas-redis-commander
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - saas-network
+    profiles:
+      - dev
+      - admin
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  static_files:
+    driver: local
+  media_files:
+    driver: local
+  mailpit_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  saas-network:
+    driver: bridge

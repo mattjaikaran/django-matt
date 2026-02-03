@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Order Confirmation</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #4F46E5; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background: #f9f9f9; }
+        .order-number { font-size: 24px; font-weight: bold; margin: 10px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f0f0f0; }
+        .total { font-size: 18px; font-weight: bold; }
+        .address { background: white; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .button { display: inline-block; background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; }
+        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Thank You for Your Order!</h1>
+        </div>
+        <div class="content">
+            <p class="order-number">Order #{{ order.order_number }}</p>
+            <p>Order Date: {{ order.created_at|date:"F d, Y" }}</p>
+
+            <h3>Order Details</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>{{ item.product_name }}{% if item.variant_name %} ({{ item.variant_name }}){% endif %}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>${{ item.total }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <table>
+                <tr>
+                    <td>Subtotal</td>
+                    <td style="text-align: right;">${{ order.subtotal }}</td>
+                </tr>
+                {% if order.discount_amount %}
+                <tr>
+                    <td>Discount</td>
+                    <td style="text-align: right; color: green;">-${{ order.discount_amount }}</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td>Tax</td>
+                    <td style="text-align: right;">${{ order.tax_amount }}</td>
+                </tr>
+                <tr>
+                    <td>Shipping</td>
+                    <td style="text-align: right;">${{ order.shipping_amount }}</td>
+                </tr>
+                <tr class="total">
+                    <td>Total</td>
+                    <td style="text-align: right;">${{ order.total }}</td>
+                </tr>
+            </table>
+
+            <h3>Shipping Address</h3>
+            <div class="address">
+                {{ order.shipping_address.first_name }} {{ order.shipping_address.last_name }}<br>
+                {{ order.shipping_address.address_line_1 }}<br>
+                {% if order.shipping_address.address_line_2 %}{{ order.shipping_address.address_line_2 }}<br>{% endif %}
+                {{ order.shipping_address.city }}, {{ order.shipping_address.state }} {{ order.shipping_address.postal_code }}<br>
+                {{ order.shipping_address.country }}
+            </div>
+
+            <p style="text-align: center; margin-top: 30px;">
+                <a href="{{ order_url }}" class="button">View Order</a>
+            </p>
+        </div>
+        <div class="footer">
+            <p>Thank you for shopping with us!</p>
+        </div>
+    </div>
+</body>
+</html>

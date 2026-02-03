@@ -3,6 +3,7 @@ Database utilities for Django Matt.
 
 This module provides database utilities for Django Matt, including:
 - PostgreSQL support with pgvector
+- PlanetScale serverless MySQL support
 - Connection pooling
 - Database inspection tools
 - Query optimization
@@ -21,6 +22,41 @@ from .soft_delete import (
     restore_cascade,
     soft_delete_cascade,
 )
+
+# Import PlanetScale support
+from .planetscale import (
+    # Exceptions
+    PlanetScaleError,
+    PlanetScaleConnectionError,
+    PlanetScaleBranchError,
+    PlanetScaleMigrationError,
+    PlanetScaleDDLError,
+    # Connection parsing
+    PlanetScaleConnectionInfo,
+    parse_database_url as parse_planetscale_url,
+    is_planetscale_host,
+    # Branch management
+    BranchInfo as PlanetScaleBranchInfo,
+    PlanetScaleBranch,
+    get_branch_connection as get_planetscale_branch_connection,
+    detect_current_branch as detect_planetscale_branch,
+    is_production_branch as is_planetscale_production,
+    # Migration handling
+    PlanetScaleMigrationRouter,
+    PlanetScaleDeployWorkflow,
+    SchemaDiff as PlanetScaleSchemaDiff,
+    DeployRequestInfo as PlanetScaleDeployRequest,
+    is_ddl_statement,
+    safe_migrate as planetscale_safe_migrate,
+    # Configuration
+    configure_planetscale,
+    get_planetscale_config,
+    # Health check
+    check_planetscale_connection,
+    acheck_planetscale_connection,
+)
+
+HAS_PLANETSCALE = True
 
 # Import PostgreSQL support if available
 try:
@@ -179,6 +215,31 @@ __all__ = [
     "SoftDeleteQuerySet",
     "soft_delete_cascade",
     "restore_cascade",
+    # PlanetScale support
+    "HAS_PLANETSCALE",
+    "PlanetScaleError",
+    "PlanetScaleConnectionError",
+    "PlanetScaleBranchError",
+    "PlanetScaleMigrationError",
+    "PlanetScaleDDLError",
+    "PlanetScaleConnectionInfo",
+    "parse_planetscale_url",
+    "is_planetscale_host",
+    "PlanetScaleBranchInfo",
+    "PlanetScaleBranch",
+    "get_planetscale_branch_connection",
+    "detect_planetscale_branch",
+    "is_planetscale_production",
+    "PlanetScaleMigrationRouter",
+    "PlanetScaleDeployWorkflow",
+    "PlanetScaleSchemaDiff",
+    "PlanetScaleDeployRequest",
+    "is_ddl_statement",
+    "planetscale_safe_migrate",
+    "configure_planetscale",
+    "get_planetscale_config",
+    "check_planetscale_connection",
+    "acheck_planetscale_connection",
 ]
 
 # Add PostgreSQL-specific exports if available

@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # Redis for WebSocket pub/sub and caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL database (optional - SQLite works for development)
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: realtime_chat
+      POSTGRES_USER: chatuser
+      POSTGRES_PASSWORD: chatpass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatuser -d realtime_chat"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Django application (uncomment for full Docker deployment)
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "8000:8000"
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #     db:
+  #       condition: service_healthy
+  #   environment:
+  #     - DEBUG=False
+  #     - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+  #     - DATABASE_URL=postgres://chatuser:chatpass@db:5432/realtime_chat
+  #     - REDIS_URL=redis://redis:6379/0
+  #     - ALLOWED_HOSTS=localhost,127.0.0.1
+  #   volumes:
+  #     - ./static:/app/static
+  #     - ./media:/app/media
+  #   command: >
+  #     sh -c "python manage.py migrate &&
+  #            python manage.py collectstatic --noinput &&
+  #            daphne -b 0.0.0.0 -p 8000 config.asgi:application"
+
+volumes:
+  redis_data:
+  postgres_data:

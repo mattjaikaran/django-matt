@@ -1,0 +1,15 @@
+Hi {{ user.first_name|default:user.email }},
+
+You left some items in your cart!
+
+{% for item in items %}
+- {{ item.product.name }} (Qty: {{ item.quantity }}) - ${{ item.unit_price }}
+{% endfor %}
+
+Subtotal: ${{ subtotal }}
+
+Complete your purchase: {{ cart_url }}
+
+Items in your cart are subject to availability.
+
+Thanks for shopping with us!

@@ -8,6 +8,7 @@ Usage:
     python manage.py deploy --platform fly
     python manage.py deploy --platform railway
     python manage.py deploy --platform render
+    python manage.py deploy --platform k3s
 
     # Generate configuration files only
     python manage.py deploy config --platform fly
@@ -15,6 +16,11 @@ Usage:
 
     # Initialize Docker setup
     python manage.py deploy docker --mode production
+
+    # Kubernetes/Helm deployment
+    python manage.py deploy kubernetes helm --output ./charts
+    python manage.py deploy kubernetes manifests --output ./k8s
+    python manage.py deploy kubernetes kustomize --output ./k8s
 
     # Manage environments
     python manage.py deploy env init --domain example.com
@@ -43,7 +49,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--platform",
             "-p",
-            choices=["fly", "railway", "render", "digitalocean", "aws", "hetzner"],
+            choices=["fly", "railway", "render", "digitalocean", "aws", "hetzner", "k3s"],
             help="Target deployment platform",
         )
         parser.add_argument("--app-name", help="Application name")
@@ -58,7 +64,7 @@ class Command(BaseCommand):
             "--platform",
             "-p",
             required=True,
-            choices=["fly", "railway", "render", "digitalocean", "aws", "hetzner", "docker"],
+            choices=["fly", "railway", "render", "digitalocean", "aws", "hetzner", "docker", "k3s"],
             help="Target platform",
         )
         config_parser.add_argument("--output", "-o", help="Output directory")
@@ -122,6 +128,46 @@ class Command(BaseCommand):
         logs_parser.add_argument("--platform", "-p", required=True, help="Platform")
         logs_parser.add_argument("--lines", "-n", type=int, default=100, help="Number of lines")
 
+        # Kubernetes subcommand
+        k8s_parser = subparsers.add_parser("kubernetes", help="Kubernetes deployment tools")
+        k8s_subparsers = k8s_parser.add_subparsers(dest="k8s_action", help="Kubernetes actions")
+
+        # kubernetes helm
+        k8s_helm = k8s_subparsers.add_parser("helm", help="Generate Helm chart")
+        k8s_helm.add_argument("--output", "-o", default="./charts", help="Output directory")
+        k8s_helm.add_argument("--app-name", help="Application name")
+        k8s_helm.add_argument("--version", default="0.1.0", help="Chart version")
+        k8s_helm.add_argument("--app-version", default="1.0.0", help="Application version")
+        k8s_helm.add_argument("--description", help="Chart description")
+        k8s_helm.add_argument("--image", help="Container image repository")
+
+        # kubernetes manifests
+        k8s_manifests = k8s_subparsers.add_parser("manifests", help="Generate Kubernetes manifests")
+        k8s_manifests.add_argument("--output", "-o", default="./k8s", help="Output directory")
+        k8s_manifests.add_argument("--app-name", help="Application name")
+        k8s_manifests.add_argument("--namespace", default="default", help="Kubernetes namespace")
+        k8s_manifests.add_argument("--image", help="Container image (e.g., myapp:latest)")
+        k8s_manifests.add_argument("--replicas", type=int, default=2, help="Number of replicas")
+        k8s_manifests.add_argument("--port", type=int, default=8000, help="Container port")
+        k8s_manifests.add_argument("--host", help="Ingress hostname")
+        k8s_manifests.add_argument(
+            "--ingress-class",
+            choices=["nginx", "traefik", "contour", "istio"],
+            default="nginx",
+            help="Ingress controller class",
+        )
+        k8s_manifests.add_argument("--no-hpa", action="store_true", help="Disable HPA generation")
+        k8s_manifests.add_argument("--no-pdb", action="store_true", help="Disable PDB generation")
+        k8s_manifests.add_argument("--no-ingress", action="store_true", help="Disable ingress")
+
+        # kubernetes kustomize
+        k8s_kustomize = k8s_subparsers.add_parser(
+            "kustomize", help="Generate Kustomize configuration"
+        )
+        k8s_kustomize.add_argument("--output", "-o", default=".", help="Output directory")
+        k8s_kustomize.add_argument("--app-name", help="Application name")
+        k8s_kustomize.add_argument("--namespace", default="default", help="Base namespace")
+
     def handle(self, *args, **options):
         subcommand = options.get("subcommand")
 
@@ -137,6 +183,8 @@ class Command(BaseCommand):
             self.handle_status(**options)
         elif subcommand == "logs":
             self.handle_logs(**options)
+        elif subcommand == "kubernetes":
+            self.handle_kubernetes(**options)
         elif options.get("platform"):
             self.handle_deploy(**options)
         else:
@@ -155,8 +203,12 @@ class Command(BaseCommand):
             "  python manage.py deploy env init --domain example.com  Initialize environments\n"
         )
         self.stdout.write("  python manage.py deploy health  Health check info\n")
+        self.stdout.write("\nKubernetes commands:\n")
+        self.stdout.write("  python manage.py deploy kubernetes helm      Generate Helm chart\n")
+        self.stdout.write("  python manage.py deploy kubernetes manifests Generate K8s manifests\n")
+        self.stdout.write("  python manage.py deploy kubernetes kustomize Generate Kustomize config\n")
         self.stdout.write(
-            "\nSupported platforms: fly, railway, render, digitalocean, aws, hetzner\n"
+            "\nSupported platforms: fly, railway, render, digitalocean, aws, hetzner, k3s\n"
         )
 
     def handle_deploy(self, **options):
@@ -172,6 +224,12 @@ class Command(BaseCommand):
             settings, "SETTINGS_MODULE", "config.settings"
         )
         dry_run = options.get("dry_run", False)
+
+        # Register K3s provider if needed
+        if platform == "k3s":
+            from django_matt.deployment import register_k3s_provider
+
+            register_k3s_provider()
 
         self.stdout.write(f"\nDeploying to {platform.upper()}...\n")
 
@@ -235,6 +293,12 @@ class Command(BaseCommand):
         platform = options["platform"]
         output_dir = Path(options.get("output") or ".")
         app_name = options.get("app_name") or self._get_app_name()
+
+        # Register K3s provider if needed
+        if platform == "k3s":
+            from django_matt.deployment import register_k3s_provider
+
+            register_k3s_provider()
 
         self.stdout.write(f"\nGenerating {platform} configuration...\n")
 
@@ -459,6 +523,12 @@ def check_my_service():
         platform = options["platform"]
         deployment_id = options.get("deployment_id")
 
+        # Register K3s provider if needed
+        if platform == "k3s":
+            from django_matt.deployment import register_k3s_provider
+
+            register_k3s_provider()
+
         config = DeploymentConfig(
             app_name=self._get_app_name(),
             project_dir=Path.cwd(),
@@ -482,6 +552,12 @@ def check_my_service():
         platform = options["platform"]
         lines = options.get("lines", 100)
 
+        # Register K3s provider if needed
+        if platform == "k3s":
+            from django_matt.deployment import register_k3s_provider
+
+            register_k3s_provider()
+
         config = DeploymentConfig(
             app_name=self._get_app_name(),
             project_dir=Path.cwd(),
@@ -493,6 +569,158 @@ def check_my_service():
         self.stdout.write(f"\nLast {lines} lines:\n")
         for line in logs:
             self.stdout.write(line)
+
+    def handle_kubernetes(self, **options):
+        """Handle Kubernetes deployment commands."""
+        action = options.get("k8s_action")
+
+        if action == "helm":
+            self.handle_k8s_helm(**options)
+        elif action == "manifests":
+            self.handle_k8s_manifests(**options)
+        elif action == "kustomize":
+            self.handle_k8s_kustomize(**options)
+        else:
+            self.stdout.write("Usage: python manage.py deploy kubernetes <helm|manifests|kustomize>")
+
+    def handle_k8s_helm(self, **options):
+        """Generate Helm chart."""
+        from django_matt.deployment import HelmChartGenerator, HelmValues, generate_helm_chart
+
+        output_dir = Path(options.get("output") or "./charts")
+        app_name = options.get("app_name") or self._get_app_name()
+        version = options.get("version", "0.1.0")
+        app_version = options.get("app_version", "1.0.0")
+        description = options.get("description") or f"Helm chart for {app_name}"
+        image = options.get("image") or app_name
+
+        self.stdout.write(f"\nGenerating Helm chart for {app_name}...\n")
+
+        # Create custom values if image is specified
+        values = HelmValues(image_repository=image)
+
+        chart_path = generate_helm_chart(
+            app_name=app_name,
+            output_dir=output_dir,
+            version=version,
+            app_version=app_version,
+            description=description,
+            values=values,
+        )
+
+        self.stdout.write(f"  Created: {chart_path}/Chart.yaml")
+        self.stdout.write(f"  Created: {chart_path}/values.yaml")
+        self.stdout.write(f"  Created: {chart_path}/templates/deployment.yaml")
+        self.stdout.write(f"  Created: {chart_path}/templates/service.yaml")
+        self.stdout.write(f"  Created: {chart_path}/templates/ingress.yaml")
+        self.stdout.write(f"  Created: {chart_path}/templates/configmap.yaml")
+        self.stdout.write(f"  Created: {chart_path}/templates/secret.yaml")
+        self.stdout.write(f"  Created: {chart_path}/templates/hpa.yaml")
+        self.stdout.write(f"  Created: {chart_path}/templates/pdb.yaml")
+        self.stdout.write(f"  Created: {chart_path}/templates/serviceaccount.yaml")
+        self.stdout.write(f"  Created: {chart_path}/templates/_helpers.tpl")
+        self.stdout.write(f"  Created: {chart_path}/templates/NOTES.txt")
+
+        self.stdout.write(self.style.SUCCESS(f"\nHelm chart generated in {chart_path}"))
+        self.stdout.write("\nTo install:")
+        self.stdout.write(f"  helm install {app_name} {chart_path}")
+        self.stdout.write(f"\nTo upgrade:")
+        self.stdout.write(f"  helm upgrade {app_name} {chart_path}")
+
+    def handle_k8s_manifests(self, **options):
+        """Generate Kubernetes manifests."""
+        from django_matt.deployment import (
+            IngressClass,
+            KubernetesConfig,
+            KubernetesManifestGenerator,
+        )
+
+        output_dir = Path(options.get("output") or "./k8s")
+        app_name = options.get("app_name") or self._get_app_name()
+        namespace = options.get("namespace", "default")
+        image = options.get("image") or f"{app_name}:latest"
+        replicas = options.get("replicas", 2)
+        port = options.get("port", 8000)
+        host = options.get("host", "")
+        ingress_class_str = options.get("ingress_class", "nginx")
+        no_hpa = options.get("no_hpa", False)
+        no_pdb = options.get("no_pdb", False)
+        no_ingress = options.get("no_ingress", False)
+
+        # Parse image into repository and tag
+        image_parts = image.rsplit(":", 1)
+        image_name = image_parts[0]
+        image_tag = image_parts[1] if len(image_parts) > 1 else "latest"
+
+        # Map ingress class string to enum
+        ingress_class_map = {
+            "nginx": IngressClass.NGINX,
+            "traefik": IngressClass.TRAEFIK,
+            "contour": IngressClass.CONTOUR,
+            "istio": IngressClass.ISTIO,
+        }
+        ingress_class = ingress_class_map.get(ingress_class_str, IngressClass.NGINX)
+
+        self.stdout.write(f"\nGenerating Kubernetes manifests for {app_name}...\n")
+
+        config = KubernetesConfig(
+            app_name=app_name,
+            namespace=namespace,
+            image=image_name,
+            image_tag=image_tag,
+            replicas=replicas,
+            port=port,
+            ingress_enabled=not no_ingress and bool(host),
+            ingress_host=host,
+            ingress_class=ingress_class,
+            hpa_enabled=not no_hpa,
+            pdb_enabled=not no_pdb,
+        )
+
+        generator = KubernetesManifestGenerator(config)
+        manifests = generator.generate_all()
+
+        # Write manifests
+        output_dir.mkdir(parents=True, exist_ok=True)
+        for filename, content in manifests.items():
+            file_path = output_dir / filename
+            with open(file_path, "w") as f:
+                f.write(content)
+            self.stdout.write(f"  Created: {file_path}")
+
+        self.stdout.write(self.style.SUCCESS(f"\nKubernetes manifests generated in {output_dir}"))
+        self.stdout.write("\nTo apply:")
+        self.stdout.write(f"  kubectl apply -f {output_dir}")
+
+    def handle_k8s_kustomize(self, **options):
+        """Generate Kustomize configuration."""
+        from django_matt.deployment import KustomizeGenerator, generate_kustomization
+
+        output_dir = Path(options.get("output") or ".")
+        app_name = options.get("app_name") or self._get_app_name()
+        namespace = options.get("namespace", "default")
+
+        self.stdout.write(f"\nGenerating Kustomize configuration for {app_name}...\n")
+
+        kustomize_dir = generate_kustomization(
+            app_name=app_name,
+            output_dir=output_dir,
+            namespace=namespace,
+        )
+
+        self.stdout.write(f"  Created: {kustomize_dir}/base/kustomization.yaml")
+        self.stdout.write(f"  Created: {kustomize_dir}/base/deployment.yaml")
+        self.stdout.write(f"  Created: {kustomize_dir}/base/service.yaml")
+        self.stdout.write(f"  Created: {kustomize_dir}/base/configmap.yaml")
+        self.stdout.write(f"  Created: {kustomize_dir}/overlays/dev/kustomization.yaml")
+        self.stdout.write(f"  Created: {kustomize_dir}/overlays/staging/kustomization.yaml")
+        self.stdout.write(f"  Created: {kustomize_dir}/overlays/prod/kustomization.yaml")
+
+        self.stdout.write(self.style.SUCCESS(f"\nKustomize configuration generated in {kustomize_dir}"))
+        self.stdout.write("\nTo apply:")
+        self.stdout.write(f"  kubectl apply -k {kustomize_dir}/overlays/dev     # Development")
+        self.stdout.write(f"  kubectl apply -k {kustomize_dir}/overlays/staging # Staging")
+        self.stdout.write(f"  kubectl apply -k {kustomize_dir}/overlays/prod    # Production")
 
     def _get_app_name(self) -> str:
         """Get application name from settings or directory."""

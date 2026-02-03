@@ -67,6 +67,53 @@ pip install orjson
 python examples/performance_demo.py
 ```
 
+### 5. Real-Time Chat Application
+
+A comprehensive Slack-like chat application demonstrating django-matt WebSocket and real-time messaging features:
+- WebSocket connections with JWT authentication
+- Real-time message delivery
+- Typing indicators
+- Online presence tracking
+- Message reactions
+- Message threading
+- Read receipts
+- Channel and workspace management
+- Direct messages
+
+**Location:** `examples/realtime-chat/`
+
+**To run:**
+```bash
+cd examples/realtime-chat
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Start Redis (required for WebSockets)
+docker-compose up -d redis
+
+# Run migrations
+python manage.py migrate
+
+# Create a test user
+python manage.py createsuperuser
+
+# Start the ASGI server
+daphne -p 8000 config.asgi:application
+
+# Or use uvicorn
+uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload
+```
+
+Then visit http://localhost:8000/chat/ to access the demo.
+
+**Features demonstrated:**
+- `django_matt.websockets` module (consumers, routing, auth middleware)
+- `django_matt.auth` JWT integration with WebSockets
+- Real-time event broadcasting
+- Presence tracking with Redis
+- REST API with controllers
+
 ## Prerequisites
 
 Before running the examples, make sure you have installed Django Matt and its dependencies:

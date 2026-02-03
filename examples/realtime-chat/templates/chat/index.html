@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Chat - django-matt Demo</title>
+    <link rel="stylesheet" href="/static/chat/chat.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>Real-Time Chat</h1>
+            <p>django-matt WebSocket Demo</p>
+        </header>
+
+        <main class="main-content">
+            {% if user.is_authenticated %}
+                <div class="user-info">
+                    <p>Logged in as: <strong>{{ user.username }}</strong></p>
+                    <a href="/admin/logout/" class="btn btn-secondary">Logout</a>
+                </div>
+
+                <section class="workspaces-section">
+                    <h2>Your Workspaces</h2>
+                    {% if workspaces %}
+                        <ul class="workspace-list">
+                            {% for workspace in workspaces %}
+                                <li class="workspace-item">
+                                    <a href="{% url 'chat:workspace' workspace.id %}">
+                                        <span class="workspace-icon">{{ workspace.name|slice:":1"|upper }}</span>
+                                        <span class="workspace-name">{{ workspace.name }}</span>
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="no-workspaces">You haven't joined any workspaces yet.</p>
+                    {% endif %}
+
+                    <button id="createWorkspaceBtn" class="btn btn-primary">Create Workspace</button>
+                </section>
+
+                <!-- Create Workspace Modal -->
+                <div id="createWorkspaceModal" class="modal hidden">
+                    <div class="modal-content">
+                        <h3>Create Workspace</h3>
+                        <form id="createWorkspaceForm">
+                            <div class="form-group">
+                                <label for="workspaceName">Name</label>
+                                <input type="text" id="workspaceName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="workspaceSlug">Slug</label>
+                                <input type="text" id="workspaceSlug" pattern="[a-z0-9-]+" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="workspaceDescription">Description</label>
+                                <textarea id="workspaceDescription"></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Create</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            {% else %}
+                <section class="auth-section">
+                    <h2>Welcome to Real-Time Chat</h2>
+                    <p>A Slack-like chat application demonstrating django-matt WebSocket features.</p>
+
+                    <div class="auth-tabs">
+                        <button class="tab-btn active" data-tab="login">Login</button>
+                        <button class="tab-btn" data-tab="register">Register</button>
+                    </div>
+
+                    <div id="loginTab" class="tab-content active">
+                        <form id="loginForm">
+                            <div class="form-group">
+                                <label for="loginEmail">Email</label>
+                                <input type="email" id="loginEmail" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="loginPassword">Password</label>
+                                <input type="password" id="loginPassword" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Login</button>
+                        </form>
+                    </div>
+
+                    <div id="registerTab" class="tab-content">
+                        <form id="registerForm">
+                            <div class="form-group">
+                                <label for="registerEmail">Email</label>
+                                <input type="email" id="registerEmail" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="registerPassword">Password</label>
+                                <input type="password" id="registerPassword" required minlength="6">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Register</button>
+                        </form>
+                    </div>
+
+                    <div id="authError" class="error-message hidden"></div>
+                </section>
+            {% endif %}
+        </main>
+
+        <footer class="app-footer">
+            <p>Built with <a href="https://github.com/your-repo/django-matt">django-matt</a></p>
+        </footer>
+    </div>
+
+    <script src="/static/chat/chat.js"></script>
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab + 'Tab').classList.add('active');
+            });
+        });
+
+        // Login form
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+
+                try {
+                    const response = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        localStorage.setItem('access_token', data.access_token);
+                        localStorage.setItem('refresh_token', data.refresh_token);
+                        window.location.reload();
+                    } else {
+                        const error = await response.json();
+                        showError(error.detail || 'Login failed');
+                    }
+                } catch (err) {
+                    showError('Network error');
+                }
+            });
+        }
+
+        // Register form
+        const registerForm = document.getElementById('registerForm');
+        if (registerForm) {
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('registerEmail').value;
+                const password = document.getElementById('registerPassword').value;
+
+                try {
+                    const response = await fetch('/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        localStorage.setItem('access_token', data.access_token);
+                        localStorage.setItem('refresh_token', data.refresh_token);
+                        window.location.reload();
+                    } else {
+                        const error = await response.json();
+                        showError(error.detail || 'Registration failed');
+                    }
+                } catch (err) {
+                    showError('Network error');
+                }
+            });
+        }
+
+        // Create workspace
+        const createWorkspaceBtn = document.getElementById('createWorkspaceBtn');
+        const createWorkspaceModal = document.getElementById('createWorkspaceModal');
+        const createWorkspaceForm = document.getElementById('createWorkspaceForm');
+
+        if (createWorkspaceBtn) {
+            createWorkspaceBtn.addEventListener('click', () => {
+                createWorkspaceModal.classList.remove('hidden');
+            });
+        }
+
+        window.closeModal = function() {
+            createWorkspaceModal.classList.add('hidden');
+        };
+
+        if (createWorkspaceForm) {
+            createWorkspaceForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('workspaceName').value;
+                const slug = document.getElementById('workspaceSlug').value;
+                const description = document.getElementById('workspaceDescription').value;
+
+                try {
+                    const response = await fetch('/api/workspaces/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                        },
+                        body: JSON.stringify({ name, slug, description })
+                    });
+
+                    if (response.ok) {
+                        window.location.reload();
+                    } else {
+                        const error = await response.json();
+                        alert(error.detail || 'Failed to create workspace');
+                    }
+                } catch (err) {
+                    alert('Network error');
+                }
+            });
+        }
+
+        // Auto-generate slug from name
+        const workspaceName = document.getElementById('workspaceName');
+        const workspaceSlug = document.getElementById('workspaceSlug');
+        if (workspaceName && workspaceSlug) {
+            workspaceName.addEventListener('input', () => {
+                workspaceSlug.value = workspaceName.value
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-|-$/g, '');
+            });
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('authError');
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+            setTimeout(() => errorEl.classList.add('hidden'), 5000);
+        }
+    </script>
+</body>
+</html>

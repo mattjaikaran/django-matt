@@ -8,8 +8,16 @@ Usage:
     # Deploy to Fly.io
     python manage.py deploy --platform fly
 
+    # Deploy to K3s
+    python manage.py deploy --platform k3s
+
     # Generate Docker configuration
     python manage.py deploy docker --output ./docker
+
+    # Generate Kubernetes/Helm configuration
+    python manage.py deploy kubernetes helm --output ./charts
+    python manage.py deploy kubernetes manifests --output ./k8s
+    python manage.py deploy kubernetes kustomize --output ./k8s
 
     # Configure environments
     python manage.py deploy env init --environments dev,staging,prod
@@ -84,4 +92,22 @@ __all__ = [
     "liveness_check_view",
     "get_health_urls",
     "configure_health_check",
+    # K3s (lazy import)
+    "get_k3s_provider",
 ]
+
+
+def get_k3s_provider():
+    """
+    Lazy import for K3sProvider to avoid circular import.
+
+    K3sProvider is in django_matt.deployment.kubernetes which depends
+    on this module (django_matt.deploy).
+
+    Usage:
+        K3sProvider = get_k3s_provider()
+        provider = K3sProvider(config)
+    """
+    from django_matt.deployment.kubernetes import K3sProvider
+
+    return K3sProvider

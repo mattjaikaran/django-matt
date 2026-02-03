@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>#{{ channel.name }} - {{ workspace.name }}</title>
+    <link rel="stylesheet" href="/static/chat/chat.css">
+</head>
+<body>
+    <div class="chat-app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="workspace-header">
+                <h2>{{ workspace.name }}</h2>
+            </div>
+
+            <nav class="channel-nav">
+                <h3>Channels</h3>
+                <ul id="channelList" class="channel-list">
+                    <!-- Populated by JS -->
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-status">
+                    <span class="status-indicator online"></span>
+                    <span id="currentUsername">{{ user.username }}</span>
+                </div>
+                <select id="statusSelect">
+                    <option value="online">Online</option>
+                    <option value="away">Away</option>
+                    <option value="dnd">Do Not Disturb</option>
+                    <option value="offline">Offline</option>
+                </select>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="chat-main">
+            <!-- Channel Header -->
+            <header class="channel-header">
+                <div class="channel-info">
+                    <h2>#{{ channel.name }}</h2>
+                    <p class="channel-topic" id="channelTopic">{{ channel.topic|default:"No topic set" }}</p>
+                </div>
+                <div class="channel-actions">
+                    <button id="membersBtn" class="btn btn-icon" title="View members">
+                        <span class="icon">&#128101;</span>
+                        <span id="memberCount">0</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Messages Container -->
+            <div class="messages-container" id="messagesContainer">
+                <div class="messages-list" id="messagesList">
+                    <!-- Messages loaded here -->
+                </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div class="typing-indicator" id="typingIndicator">
+                <!-- Populated when users are typing -->
+            </div>
+
+            <!-- Message Input -->
+            <div class="message-input-container">
+                <form id="messageForm" class="message-form">
+                    <div class="input-wrapper">
+                        <button type="button" class="btn btn-icon" id="attachBtn" title="Attach file">
+                            &#128206;
+                        </button>
+                        <input
+                            type="text"
+                            id="messageInput"
+                            placeholder="Message #{{ channel.name }}"
+                            autocomplete="off"
+                        >
+                        <button type="button" class="btn btn-icon" id="emojiBtn" title="Add emoji">
+                            &#128578;
+                        </button>
+                        <button type="submit" class="btn btn-primary">Send</button>
+                    </div>
+                </form>
+            </div>
+        </main>
+
+        <!-- Members Sidebar (hidden by default) -->
+        <aside class="members-sidebar hidden" id="membersSidebar">
+            <header class="members-header">
+                <h3>Members</h3>
+                <button class="btn btn-icon" onclick="toggleMembersSidebar()">&#10005;</button>
+            </header>
+            <div class="members-list" id="membersList">
+                <!-- Members loaded here -->
+            </div>
+        </aside>
+    </div>
+
+    <!-- Thread Modal -->
+    <div id="threadModal" class="modal hidden">
+        <div class="modal-content thread-modal">
+            <header class="thread-header">
+                <h3>Thread</h3>
+                <button class="btn btn-icon" onclick="closeThread()">&#10005;</button>
+            </header>
+            <div class="thread-parent" id="threadParent">
+                <!-- Parent message -->
+            </div>
+            <div class="thread-replies" id="threadReplies">
+                <!-- Thread replies -->
+            </div>
+            <form id="threadReplyForm" class="message-form">
+                <input type="hidden" id="threadParentId">
+                <input
+                    type="text"
+                    id="threadInput"
+                    placeholder="Reply in thread..."
+                    autocomplete="off"
+                >
+                <button type="submit" class="btn btn-primary">Reply</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Reaction Picker Modal -->
+    <div id="reactionPicker" class="reaction-picker hidden">
+        <div class="emoji-grid">
+            <button class="emoji-btn" data-emoji="thumbsup">&#128077;</button>
+            <button class="emoji-btn" data-emoji="thumbsdown">&#128078;</button>
+            <button class="emoji-btn" data-emoji="heart">&#10084;</button>
+            <button class="emoji-btn" data-emoji="laugh">&#128514;</button>
+            <button class="emoji-btn" data-emoji="wow">&#128558;</button>
+            <button class="emoji-btn" data-emoji="sad">&#128546;</button>
+            <button class="emoji-btn" data-emoji="fire">&#128293;</button>
+            <button class="emoji-btn" data-emoji="check">&#9989;</button>
+            <button class="emoji-btn" data-emoji="eyes">&#128064;</button>
+            <button class="emoji-btn" data-emoji="pray">&#128591;</button>
+        </div>
+    </div>
+
+    <script src="/static/chat/chat.js"></script>
+    <script>
+        // Configuration
+        const CONFIG = {
+            workspaceId: '{{ workspace.id }}',
+            channelId: '{{ channel.id }}',
+            channelName: '{{ channel.name }}',
+            userId: {{ user.id }},
+            username: '{{ user.username }}',
+            wsUrl: `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws/chat/`,
+            apiUrl: '/api'
+        };
+
+        // Initialize chat
+        const chat = new ChatClient(CONFIG);
+        chat.connect();
+
+        // Load channels for sidebar
+        async function loadChannels() {
+            try {
+                const response = await chat.api(`/workspaces/${CONFIG.workspaceId}/channels`);
+                const channels = await response.json();
+
+                const channelList = document.getElementById('channelList');
+                channelList.innerHTML = channels.map(ch => `
+                    <li class="channel-item ${ch.id === CONFIG.channelId ? 'active' : ''}">
+                        <a href="/chat/workspace/${CONFIG.workspaceId}/channel/${ch.id}/">
+                            ${ch.is_private ? '&#128274;' : '#'} ${ch.name}
+                        </a>
+                    </li>
+                `).join('');
+            } catch (err) {
+                console.error('Failed to load channels:', err);
+            }
+        }
+
+        loadChannels();
+
+        // Message form submission
+        document.getElementById('messageForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+
+            if (content) {
+                chat.sendMessage(content);
+                input.value = '';
+            }
+        });
+
+        // Typing indicator
+        let typingTimeout;
+        document.getElementById('messageInput').addEventListener('input', () => {
+            chat.startTyping();
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => chat.stopTyping(), 2000);
+        });
+
+        // Status change
+        document.getElementById('statusSelect').addEventListener('change', (e) => {
+            chat.updatePresence(e.target.value);
+        });
+
+        // Members sidebar toggle
+        document.getElementById('membersBtn').addEventListener('click', toggleMembersSidebar);
+
+        function toggleMembersSidebar() {
+            document.getElementById('membersSidebar').classList.toggle('hidden');
+        }
+
+        // Thread handling
+        function openThread(messageId) {
+            document.getElementById('threadParentId').value = messageId;
+            document.getElementById('threadModal').classList.remove('hidden');
+            loadThread(messageId);
+        }
+
+        window.closeThread = function() {
+            document.getElementById('threadModal').classList.add('hidden');
+        };
+
+        async function loadThread(messageId) {
+            try {
+                const response = await chat.api(`/messages/${messageId}/thread`);
+                const thread = await response.json();
+
+                document.getElementById('threadParent').innerHTML = renderMessage(thread.parent_message);
+                document.getElementById('threadReplies').innerHTML = thread.replies
+                    .map(m => renderMessage(m))
+                    .join('');
+            } catch (err) {
+                console.error('Failed to load thread:', err);
+            }
+        }
+
+        document.getElementById('threadReplyForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const input = document.getElementById('threadInput');
+            const content = input.value.trim();
+            const parentId = document.getElementById('threadParentId').value;
+
+            if (content && parentId) {
+                chat.sendMessage(content, parentId);
+                input.value = '';
+            }
+        });
+
+        // Reaction picker
+        let reactionTargetMessage = null;
+
+        function showReactionPicker(messageId, event) {
+            reactionTargetMessage = messageId;
+            const picker = document.getElementById('reactionPicker');
+            picker.style.left = event.clientX + 'px';
+            picker.style.top = event.clientY + 'px';
+            picker.classList.remove('hidden');
+        }
+
+        document.querySelectorAll('.emoji-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (reactionTargetMessage) {
+                    chat.addReaction(reactionTargetMessage, btn.dataset.emoji);
+                    document.getElementById('reactionPicker').classList.add('hidden');
+                    reactionTargetMessage = null;
+                }
+            });
+        });
+
+        // Close picker on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.reaction-picker') && !e.target.closest('.react-btn')) {
+                document.getElementById('reactionPicker').classList.add('hidden');
+            }
+        });
+
+        // Render message helper
+        function renderMessage(msg) {
+            const reactions = msg.reactions.map(r => `
+                <button class="reaction ${r.reacted_by_me ? 'reacted' : ''}"
+                        onclick="toggleReaction('${msg.id}', '${r.emoji}', ${r.reacted_by_me})">
+                    ${getEmojiChar(r.emoji)} ${r.count}
+                </button>
+            `).join('');
+
+            const time = new Date(msg.created_at).toLocaleTimeString();
+
+            return `
+                <div class="message" data-message-id="${msg.id}">
+                    <div class="message-avatar">
+                        ${msg.author?.username?.charAt(0).toUpperCase() || '?'}
+                    </div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-author">${msg.author?.username || 'Unknown'}</span>
+                            <span class="message-time">${time}</span>
+                            ${msg.is_edited ? '<span class="edited">(edited)</span>' : ''}
+                        </div>
+                        <div class="message-text">${escapeHtml(msg.content)}</div>
+                        ${msg.reply_count > 0 ? `
+                            <button class="thread-link" onclick="openThread('${msg.id}')">
+                                ${msg.reply_count} ${msg.reply_count === 1 ? 'reply' : 'replies'}
+                            </button>
+                        ` : ''}
+                        <div class="message-reactions">${reactions}</div>
+                    </div>
+                    <div class="message-actions">
+                        <button class="btn btn-icon react-btn" onclick="showReactionPicker('${msg.id}', event)">
+                            &#128578;
+                        </button>
+                        <button class="btn btn-icon" onclick="openThread('${msg.id}')">
+                            &#128172;
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleReaction(messageId, emoji, hasReacted) {
+            if (hasReacted) {
+                chat.removeReaction(messageId, emoji);
+            } else {
+                chat.addReaction(messageId, emoji);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function getEmojiChar(name) {
+            const emojis = {
+                thumbsup: '&#128077;',
+                thumbsdown: '&#128078;',
+                heart: '&#10084;',
+                laugh: '&#128514;',
+                wow: '&#128558;',
+                sad: '&#128546;',
+                fire: '&#128293;',
+                check: '&#9989;',
+                eyes: '&#128064;',
+                pray: '&#128591;'
+            };
+            return emojis[name] || name;
+        }
+
+        // Make renderMessage available globally for chat.js
+        window.renderMessage = renderMessage;
+    </script>
+</body>
+</html>
