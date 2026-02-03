@@ -25,6 +25,7 @@ A Slack-like real-time chat application showcasing django-matt WebSocket and mes
 - **Database**: PostgreSQL (SQLite for development)
 - **Cache/Pub-Sub**: Redis
 - **Frontend**: Simple HTML/JS demo client
+- **Package Manager**: uv
 
 ## Project Structure
 
@@ -49,27 +50,50 @@ realtime-chat/
 │       ├── chat.js         # WebSocket client
 │       └── chat.css        # Styles
 ├── docker-compose.yml      # Docker services (Redis, PostgreSQL)
-├── requirements.txt        # Python dependencies
+├── Dockerfile              # Container configuration
+├── Makefile                # Development commands
+├── pyproject.toml          # Python dependencies (uv)
 └── README.md               # This file
 ```
 
 ## Quick Start
 
-### 1. Install Dependencies
+### Prerequisites
+
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/) package manager
+- Docker and Docker Compose (for Redis)
+
+### 1. Install uv (if not already installed)
 
 ```bash
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install dependencies
-pip install -r requirements.txt
+# Or with Homebrew
+brew install uv
+
+# Windows
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-### 2. Start Redis (required for WebSockets)
+### 2. Install Dependencies
 
 ```bash
-# Using Docker
+# Using make
+make install
+
+# Or directly with uv
+uv sync
+```
+
+### 3. Start Redis (required for WebSockets)
+
+```bash
+# Using Docker Compose
+make docker-up
+
+# Or start only Redis
 docker-compose up -d redis
 
 # Or install locally
@@ -77,41 +101,63 @@ docker-compose up -d redis
 # Ubuntu: sudo apt install redis-server && sudo systemctl start redis
 ```
 
-### 3. Configure Environment
+### 4. Configure Environment
 
 ```bash
 cp .env.example .env
 # Edit .env with your settings
 ```
 
-### 4. Run Migrations
+### 5. Run Migrations
 
 ```bash
-python manage.py migrate
+make migrate
 ```
 
-### 5. Create Test User
+### 6. Create Test User
 
 ```bash
-python manage.py shell
+make shell
 >>> from django.contrib.auth import get_user_model
 >>> User = get_user_model()
 >>> User.objects.create_user('demo', 'demo@example.com', 'demo123')
 ```
 
-### 6. Start Development Server
+### 7. Start Development Server
 
 ```bash
-# Using Daphne (ASGI server)
-daphne -p 8000 config.asgi:application
+# Using Django development server
+make dev
 
-# Or using Uvicorn
-uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload
+# Using Daphne (ASGI server, recommended for WebSockets)
+make run-daphne
+
+# Using Uvicorn
+make run-uvicorn
 ```
 
-### 7. Open the Demo
+### 8. Open the Demo
 
 Visit http://localhost:8000/chat/ to see the demo application.
+
+## Available Make Commands
+
+| Command | Description |
+|---------|-------------|
+| `make install` | Install dependencies with uv |
+| `make dev` | Start Django development server |
+| `make run-daphne` | Start with Daphne (WebSocket support) |
+| `make run-uvicorn` | Start with Uvicorn (WebSocket support) |
+| `make migrate` | Run database migrations |
+| `make makemigrations` | Create new migrations |
+| `make test` | Run tests |
+| `make shell` | Open Django shell |
+| `make createsuperuser` | Create admin user |
+| `make collectstatic` | Collect static files |
+| `make docker-up` | Start Docker services |
+| `make docker-down` | Stop Docker services |
+| `make setup` | Full setup (install + docker + migrate) |
+| `make clean` | Remove compiled Python files |
 
 ## WebSocket Events
 
@@ -364,39 +410,30 @@ DJANGO_MATT_JWT = {
 
 ## Docker Deployment
 
-```yaml
-# docker-compose.yml
-version: '3.8'
+### Full Stack Deployment
 
-services:
-  app:
-    build: .
-    command: daphne -b 0.0.0.0 -p 8000 config.asgi:application
-    ports:
-      - "8000:8000"
-    depends_on:
-      - redis
-      - db
-    environment:
-      - DATABASE_URL=postgres://user:pass@db:5432/chat
-      - REDIS_URL=redis://redis:6379/0
+```bash
+# Build and start all services
+docker-compose up --build
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
+# Or run in background
+docker-compose up -d --build
 
-  db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: chat
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+# View logs
+docker-compose logs -f app
 
-volumes:
-  postgres_data:
+# Stop services
+docker-compose down
+```
+
+### Development (Redis only)
+
+```bash
+# Start only Redis for local development
+docker-compose up -d redis
+
+# Run the app locally with uv
+make dev
 ```
 
 ## Performance Considerations

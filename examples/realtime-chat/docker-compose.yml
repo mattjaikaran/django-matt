@@ -1,6 +1,32 @@
 version: '3.8'
 
 services:
+  # Django application with uv
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DATABASE_URL=postgres://chatuser:chatpass@db:5432/realtime_chat
+      - REDIS_URL=redis://redis:6379/0
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+    volumes:
+      - ./static:/app/static
+      - ./media:/app/media
+    command: >
+      sh -c "uv run python manage.py migrate &&
+             uv run python manage.py collectstatic --noinput &&
+             uv run daphne -b 0.0.0.0 -p 8000 config.asgi:application"
+
   # Redis for WebSocket pub/sub and caching
   redis:
     image: redis:7-alpine
@@ -31,32 +57,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  # Django application (uncomment for full Docker deployment)
-  # app:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "8000:8000"
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
-  #     db:
-  #       condition: service_healthy
-  #   environment:
-  #     - DEBUG=False
-  #     - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
-  #     - DATABASE_URL=postgres://chatuser:chatpass@db:5432/realtime_chat
-  #     - REDIS_URL=redis://redis:6379/0
-  #     - ALLOWED_HOSTS=localhost,127.0.0.1
-  #   volumes:
-  #     - ./static:/app/static
-  #     - ./media:/app/media
-  #   command: >
-  #     sh -c "python manage.py migrate &&
-  #            python manage.py collectstatic --noinput &&
-  #            daphne -b 0.0.0.0 -p 8000 config.asgi:application"
 
 volumes:
   redis_data:

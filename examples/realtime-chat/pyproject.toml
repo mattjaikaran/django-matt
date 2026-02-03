@@ -1,0 +1,55 @@
+[project]
+name = "realtime-chat"
+version = "0.1.0"
+description = "A Slack-like real-time chat application showcasing django-matt WebSocket and messaging features"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    # Django and django-matt
+    "django>=5.2",
+    "django-matt",
+    # ASGI servers
+    "daphne>=4.0",
+    "uvicorn[standard]>=0.27",
+    # Channels for WebSockets
+    "channels>=4.0",
+    "channels-redis>=4.2",
+    # Database
+    "psycopg[binary]>=3.1",
+    # Redis
+    "redis>=5.0",
+    # JWT (included in django-matt, but listing for clarity)
+    "PyJWT>=2.8",
+    # File uploads
+    "python-magic>=0.4",
+    # Search (optional)
+    "django-filter>=24.0",
+    # Environment
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-django>=4.8",
+    "pytest-asyncio>=0.23",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0",
+    "pytest-django>=4.8",
+    "pytest-asyncio>=0.23",
+]
+
+[tool.uv.sources]
+django-matt = { path = "../..", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["test_*.py", "*_test.py"]
+asyncio_mode = "auto"
