@@ -141,6 +141,17 @@ Changelog = "https://github.com/mattjaikaran/django-matt/blob/main/CHANGELOG.md"
 # UV Dependency Groups (for uv sync --group)
 # =============================================================================
 [dependency-groups]
+dev = [
+    "ruff>=0.8.0",
+    "pytest>=8.0.0",
+    "pytest-django>=4.8.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=4.1.0",
+    "httpx>=0.27.0",
+    "mypy>=1.11.0",
+    "django-stubs>=5.0.0",
+]
+
 docs = [
     "mkdocs>=1.6.0",
     "mkdocs-material>=9.5.0",
