@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any, Callable
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 
 @dataclass
@@ -62,11 +62,13 @@ class MockPromptSession:
         Returns:
             self for chaining
         """
-        self.responses.append(PromptResponse(
-            prompt_type=prompt_type,
-            message=message or "",
-            response=response,
-        ))
+        self.responses.append(
+            PromptResponse(
+                prompt_type=prompt_type,
+                message=message or "",
+                response=response,
+            )
+        )
         return self
 
     def text(self, message: str | None = None, response: str = "") -> MockPromptSession:
@@ -99,13 +101,15 @@ class MockPromptSession:
 
     def _get_next_response(self, prompt_type: str, message: str) -> Any:
         """Get next response for a prompt."""
-        self._recorded_prompts.append({
-            "type": prompt_type,
-            "message": message,
-        })
+        self._recorded_prompts.append(
+            {
+                "type": prompt_type,
+                "message": message,
+            }
+        )
 
         # Find matching response
-        for i, resp in enumerate(self.responses[self._response_index:], self._response_index):
+        for i, resp in enumerate(self.responses[self._response_index :], self._response_index):
             if resp.prompt_type == prompt_type:
                 if not resp.message or resp.message in message:
                     self._response_index = i + 1
@@ -114,7 +118,7 @@ class MockPromptSession:
         # No matching response found
         raise ValueError(
             f"No mock response for {prompt_type} prompt: '{message}'\n"
-            f"Available responses: {self.responses[self._response_index:]}"
+            f"Available responses: {self.responses[self._response_index :]}"
         )
 
     def _mock_text(self, message: str, **kwargs) -> str:
@@ -179,9 +183,7 @@ class MockPromptSession:
         """Assert a prompt with given message was NOT shown."""
         for prompt in self._recorded_prompts:
             if message in prompt["message"]:
-                raise AssertionError(
-                    f"Expected NO prompt containing '{message}' but found one"
-                )
+                raise AssertionError(f"Expected NO prompt containing '{message}' but found one")
         return self
 
     def assert_prompt_count(self, count: int) -> MockPromptSession:
@@ -237,6 +239,7 @@ def mock_prompts(**responses: Any):
             result = runner.invoke("mycommand")
             assert result.success
     """
+
     def decorator(func: Callable):
         def wrapper(*args, **kwargs):
             session = MockPromptSession()
@@ -250,5 +253,7 @@ def mock_prompts(**responses: Any):
 
             with session.patch():
                 return func(*args, **kwargs)
+
         return wrapper
+
     return decorator

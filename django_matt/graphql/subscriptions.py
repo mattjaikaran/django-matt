@@ -18,6 +18,7 @@ from django.db.models.signals import post_delete, post_save
 try:
     import strawberry
     from strawberry.types import Info
+
     STRAWBERRY_AVAILABLE = True
 except ImportError:
     STRAWBERRY_AVAILABLE = False
@@ -38,6 +39,7 @@ def _require_strawberry():
 
 class SubscriptionEvent(str, Enum):
     """Types of subscription events."""
+
     CREATED = "created"
     UPDATED = "updated"
     DELETED = "deleted"
@@ -46,6 +48,7 @@ class SubscriptionEvent(str, Enum):
 @dataclass
 class SubscriptionMessage(Generic[T]):
     """Message sent through subscriptions."""
+
     event: SubscriptionEvent
     data: T
     model_name: str
@@ -67,7 +70,7 @@ class SubscriptionManager:
                 yield message.data
     """
 
-    _instance: "SubscriptionManager | None" = None
+    _instance: SubscriptionManager | None = None
 
     def __new__(cls):
         if cls._instance is None:
@@ -326,7 +329,9 @@ class SubscriptionGenerator:
                 events=[SubscriptionEvent.DELETED],
             ):
                 yield DeletedEvent(
-                    id=strawberry.ID(str(message.data.id if hasattr(message.data, "id") else message.data)),
+                    id=strawberry.ID(
+                        str(message.data.id if hasattr(message.data, "id") else message.data)
+                    ),
                     model_name=message.model_name,
                 )
 
@@ -395,11 +400,11 @@ def generate_subscription(
 
     if events is None or len(events) > 1:
         return generator.all_events_subscription(name=name, description=description)
-    elif events[0] == SubscriptionEvent.CREATED:
+    if events[0] == SubscriptionEvent.CREATED:
         return generator.created_subscription(name=name, description=description)
-    elif events[0] == SubscriptionEvent.UPDATED:
+    if events[0] == SubscriptionEvent.UPDATED:
         return generator.updated_subscription(name=name, description=description)
-    elif events[0] == SubscriptionEvent.DELETED:
+    if events[0] == SubscriptionEvent.DELETED:
         return generator.deleted_subscription(name=name, description=description)
 
     return generator.all_events_subscription(name=name, description=description)

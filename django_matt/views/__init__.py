@@ -48,11 +48,21 @@ Example:
 
 from django_matt.views.base import APIView
 from django_matt.views.create import CreateView
+
+# Decorators
+from django_matt.views.decorators import (
+    catch_and_continue,
+    compose_hooks,
+    hook_method,
+    log_hook,
+    priority,
+    retry,
+    timed_hook,
+    unless,
+    when,
+    with_hooks,
+)
 from django_matt.views.delete import DeleteView
-from django_matt.views.list import ListView
-from django_matt.views.read import ReadView, RetrieveView
-from django_matt.views.update import PatchView, UpdateView
-from django_matt.views.viewset import APIViewSet, ViewSet
 
 # Hook system
 from django_matt.views.hooks import (
@@ -79,20 +89,10 @@ from django_matt.views.hooks import (
     register_hook,
     run_hooks,
 )
-
-# Decorators
-from django_matt.views.decorators import (
-    catch_and_continue,
-    compose_hooks,
-    hook_method,
-    log_hook,
-    priority,
-    retry,
-    timed_hook,
-    unless,
-    when,
-    with_hooks,
-)
+from django_matt.views.list import ListView
+from django_matt.views.read import ReadView, RetrieveView
+from django_matt.views.update import PatchView, UpdateView
+from django_matt.views.viewset import APIViewSet, ViewSet
 
 __all__ = [
     # Base
@@ -148,4 +148,3 @@ __all__ = [
     "log_hook",
     "timed_hook",
 ]
-

@@ -206,7 +206,9 @@ class Command(BaseCommand):
         self.stdout.write("\nKubernetes commands:\n")
         self.stdout.write("  python manage.py deploy kubernetes helm      Generate Helm chart\n")
         self.stdout.write("  python manage.py deploy kubernetes manifests Generate K8s manifests\n")
-        self.stdout.write("  python manage.py deploy kubernetes kustomize Generate Kustomize config\n")
+        self.stdout.write(
+            "  python manage.py deploy kubernetes kustomize Generate Kustomize config\n"
+        )
         self.stdout.write(
             "\nSupported platforms: fly, railway, render, digitalocean, aws, hetzner, k3s\n"
         )
@@ -581,11 +583,13 @@ def check_my_service():
         elif action == "kustomize":
             self.handle_k8s_kustomize(**options)
         else:
-            self.stdout.write("Usage: python manage.py deploy kubernetes <helm|manifests|kustomize>")
+            self.stdout.write(
+                "Usage: python manage.py deploy kubernetes <helm|manifests|kustomize>"
+            )
 
     def handle_k8s_helm(self, **options):
         """Generate Helm chart."""
-        from django_matt.deployment import HelmChartGenerator, HelmValues, generate_helm_chart
+        from django_matt.deployment import HelmValues, generate_helm_chart
 
         output_dir = Path(options.get("output") or "./charts")
         app_name = options.get("app_name") or self._get_app_name()
@@ -624,7 +628,7 @@ def check_my_service():
         self.stdout.write(self.style.SUCCESS(f"\nHelm chart generated in {chart_path}"))
         self.stdout.write("\nTo install:")
         self.stdout.write(f"  helm install {app_name} {chart_path}")
-        self.stdout.write(f"\nTo upgrade:")
+        self.stdout.write("\nTo upgrade:")
         self.stdout.write(f"  helm upgrade {app_name} {chart_path}")
 
     def handle_k8s_manifests(self, **options):
@@ -694,7 +698,7 @@ def check_my_service():
 
     def handle_k8s_kustomize(self, **options):
         """Generate Kustomize configuration."""
-        from django_matt.deployment import KustomizeGenerator, generate_kustomization
+        from django_matt.deployment import generate_kustomization
 
         output_dir = Path(options.get("output") or ".")
         app_name = options.get("app_name") or self._get_app_name()
@@ -716,7 +720,9 @@ def check_my_service():
         self.stdout.write(f"  Created: {kustomize_dir}/overlays/staging/kustomization.yaml")
         self.stdout.write(f"  Created: {kustomize_dir}/overlays/prod/kustomization.yaml")
 
-        self.stdout.write(self.style.SUCCESS(f"\nKustomize configuration generated in {kustomize_dir}"))
+        self.stdout.write(
+            self.style.SUCCESS(f"\nKustomize configuration generated in {kustomize_dir}")
+        )
         self.stdout.write("\nTo apply:")
         self.stdout.write(f"  kubectl apply -k {kustomize_dir}/overlays/dev     # Development")
         self.stdout.write(f"  kubectl apply -k {kustomize_dir}/overlays/staging # Staging")

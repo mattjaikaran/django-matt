@@ -69,10 +69,14 @@ def generate(ctx: typer.Context):
 
 @app.command()
 def new(
-    component: str = typer.Argument(..., help="Component type: controller, schema, service, model, test"),
+    component: str = typer.Argument(
+        ..., help="Component type: controller, schema, service, model, test"
+    ),
     name: str = typer.Argument(..., help="Component name (e.g., User, Product)"),
     app: Optional[str] = typer.Option(None, "--app", "-a", help="Target Django app"),
-    crud: bool = typer.Option(False, "--crud", help="Generate full CRUD endpoints (for controllers)"),
+    crud: bool = typer.Option(
+        False, "--crud", help="Generate full CRUD endpoints (for controllers)"
+    ),
 ):
     """
     Generate a new component.
@@ -104,7 +108,9 @@ def crud(
     model: str = typer.Argument(..., help="Model path (e.g., myapp.MyModel)"),
     output_dir: Optional[str] = typer.Option(None, "--output", "-o", help="Output directory"),
     prefix: Optional[str] = typer.Option(None, "--prefix", help="URL prefix"),
-    permissions: Optional[list[str]] = typer.Option(None, "--permissions", "-p", help="Permission classes"),
+    permissions: Optional[list[str]] = typer.Option(
+        None, "--permissions", "-p", help="Permission classes"
+    ),
     with_tests: bool = typer.Option(False, "--with-tests", "-t", help="Generate tests"),
     with_admin: bool = typer.Option(False, "--with-admin", help="Generate admin configuration"),
     no_service: bool = typer.Option(False, "--no-service", help="Skip service layer"),

@@ -234,7 +234,9 @@ class InspectorController(APIController):
         include_response = body.get("include_response", False)
 
         try:
-            content = export_request(captured, format=export_format, include_response=include_response)
+            content = export_request(
+                captured, format=export_format, include_response=include_response
+            )
         except ValueError as e:
             return JsonResponse(
                 ErrorResponseSchema(detail=str(e), code="invalid_format").model_dump(),

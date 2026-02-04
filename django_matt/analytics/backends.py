@@ -17,18 +17,17 @@ Usage:
 """
 
 import asyncio
-import hashlib
 import json
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.utils import timezone
 
 if TYPE_CHECKING:
-    from django.contrib.auth.models import AbstractUser
+    pass
 
 logger = logging.getLogger("django_matt.analytics")
 
@@ -47,7 +46,6 @@ class AnalyticsBackend(ABC):
         Returns:
             Event ID
         """
-        pass
 
     @abstractmethod
     def track_events_batch(self, events: list[dict]) -> list[str]:
@@ -60,7 +58,6 @@ class AnalyticsBackend(ABC):
         Returns:
             List of event IDs
         """
-        pass
 
     @abstractmethod
     def track_page_view(self, page_view_data: dict) -> str:
@@ -73,12 +70,10 @@ class AnalyticsBackend(ABC):
         Returns:
             Page view ID
         """
-        pass
 
     @abstractmethod
     def track_page_views_batch(self, page_views: list[dict]) -> list[str]:
         """Track multiple page views in batch."""
-        pass
 
     @abstractmethod
     def identify(
@@ -90,12 +85,10 @@ class AnalyticsBackend(ABC):
         timestamp: datetime | None = None,
     ):
         """Identify a user."""
-        pass
 
     @abstractmethod
     def alias(self, previous_id: str, user_id: str):
         """Create an alias between IDs."""
-        pass
 
     @abstractmethod
     def group(
@@ -105,7 +98,6 @@ class AnalyticsBackend(ABC):
         traits: dict | None = None,
     ):
         """Associate user with a group."""
-        pass
 
     # Async methods with default implementations
     async def track_event_async(self, event_data: dict) -> str:
@@ -126,7 +118,6 @@ class AnalyticsBackend(ABC):
 
     def close(self):
         """Clean up resources."""
-        pass
 
 
 class DatabaseBackend(AnalyticsBackend):
@@ -171,26 +162,28 @@ class DatabaseBackend(AnalyticsBackend):
 
         event_objs = []
         for event_data in events:
-            event_objs.append(AnalyticsEvent(
-                id=event_data.get("id"),
-                name=event_data["name"],
-                category=event_data.get("category", "custom"),
-                properties=event_data.get("properties", {}),
-                user_id=event_data.get("user_id"),
-                session_id=event_data.get("session_id"),
-                anonymous_id=event_data.get("anonymous_id", ""),
-                context=event_data.get("context", {}),
-                timestamp=event_data.get("timestamp", timezone.now()),
-                page_url=event_data.get("page_url", ""),
-                page_title=event_data.get("page_title", ""),
-                page_path=event_data.get("page_path", ""),
-                element_id=event_data.get("element_id", ""),
-                element_class=event_data.get("element_class", ""),
-                element_text=event_data.get("element_text", ""),
-                revenue=event_data.get("revenue"),
-                currency=event_data.get("currency", ""),
-                organization_id=event_data.get("organization_id", ""),
-            ))
+            event_objs.append(
+                AnalyticsEvent(
+                    id=event_data.get("id"),
+                    name=event_data["name"],
+                    category=event_data.get("category", "custom"),
+                    properties=event_data.get("properties", {}),
+                    user_id=event_data.get("user_id"),
+                    session_id=event_data.get("session_id"),
+                    anonymous_id=event_data.get("anonymous_id", ""),
+                    context=event_data.get("context", {}),
+                    timestamp=event_data.get("timestamp", timezone.now()),
+                    page_url=event_data.get("page_url", ""),
+                    page_title=event_data.get("page_title", ""),
+                    page_path=event_data.get("page_path", ""),
+                    element_id=event_data.get("element_id", ""),
+                    element_class=event_data.get("element_class", ""),
+                    element_text=event_data.get("element_text", ""),
+                    revenue=event_data.get("revenue"),
+                    currency=event_data.get("currency", ""),
+                    organization_id=event_data.get("organization_id", ""),
+                )
+            )
 
         created = AnalyticsEvent.objects.bulk_create(
             event_objs,
@@ -225,21 +218,23 @@ class DatabaseBackend(AnalyticsBackend):
 
         pv_objs = []
         for pv_data in page_views:
-            pv_objs.append(PageView(
-                id=pv_data.get("id"),
-                path=pv_data["path"],
-                url=pv_data.get("url", ""),
-                title=pv_data.get("title", ""),
-                user_id=pv_data.get("user_id"),
-                session_id=pv_data.get("session_id"),
-                anonymous_id=pv_data.get("anonymous_id", ""),
-                referrer=pv_data.get("referrer"),
-                timestamp=pv_data.get("timestamp", timezone.now()),
-                time_on_page=pv_data.get("time_on_page"),
-                scroll_depth=pv_data.get("scroll_depth", 0),
-                load_time_ms=pv_data.get("load_time_ms"),
-                organization_id=pv_data.get("organization_id", ""),
-            ))
+            pv_objs.append(
+                PageView(
+                    id=pv_data.get("id"),
+                    path=pv_data["path"],
+                    url=pv_data.get("url", ""),
+                    title=pv_data.get("title", ""),
+                    user_id=pv_data.get("user_id"),
+                    session_id=pv_data.get("session_id"),
+                    anonymous_id=pv_data.get("anonymous_id", ""),
+                    referrer=pv_data.get("referrer"),
+                    timestamp=pv_data.get("timestamp", timezone.now()),
+                    time_on_page=pv_data.get("time_on_page"),
+                    scroll_depth=pv_data.get("scroll_depth", 0),
+                    load_time_ms=pv_data.get("load_time_ms"),
+                    organization_id=pv_data.get("organization_id", ""),
+                )
+            )
 
         created = PageView.objects.bulk_create(
             pv_objs,
@@ -300,7 +295,6 @@ class DatabaseBackend(AnalyticsBackend):
     def alias(self, previous_id: str, user_id: str):
         """Create an alias between IDs."""
         # For database backend, this is handled by identify()
-        pass
 
     def group(
         self,
@@ -309,7 +303,7 @@ class DatabaseBackend(AnalyticsBackend):
         traits: dict | None = None,
     ):
         """Associate user with a group (organization)."""
-        from .models import AnalyticsEvent, AnalyticsSession
+        from .models import AnalyticsSession
 
         # Update organization_id on user's sessions
         AnalyticsSession.objects.filter(
@@ -318,15 +312,17 @@ class DatabaseBackend(AnalyticsBackend):
         ).update(organization_id=group_id)
 
         # Track group event
-        self.track_event({
-            "name": "user_grouped",
-            "category": "system",
-            "user_id": user_id,
-            "properties": {
-                "group_id": group_id,
-                "traits": traits or {},
-            },
-        })
+        self.track_event(
+            {
+                "name": "user_grouped",
+                "category": "system",
+                "user_id": user_id,
+                "properties": {
+                    "group_id": group_id,
+                    "traits": traits or {},
+                },
+            }
+        )
 
 
 class RedisBackend(AnalyticsBackend):
@@ -344,9 +340,7 @@ class RedisBackend(AnalyticsBackend):
         buffer_size: int = 1000,
         flush_interval: int = 60,
     ):
-        self.redis_url = redis_url or getattr(
-            settings, "REDIS_URL", "redis://localhost:6379/0"
-        )
+        self.redis_url = redis_url or getattr(settings, "REDIS_URL", "redis://localhost:6379/0")
         self.key_prefix = key_prefix
         self.buffer_size = buffer_size
         self.flush_interval = flush_interval
@@ -358,11 +352,11 @@ class RedisBackend(AnalyticsBackend):
         if self._client is None:
             try:
                 import redis
+
                 self._client = redis.from_url(self.redis_url)
             except ImportError:
                 raise ImportError(
-                    "redis package is required for RedisBackend. "
-                    "Install with: pip install redis"
+                    "redis package is required for RedisBackend. Install with: pip install redis"
                 )
         return self._client
 
@@ -553,12 +547,12 @@ class RedisBackend(AnalyticsBackend):
 
         return {
             "active_sessions": len(active_sessions),
-            "events_by_name": {
-                k.decode(): int(v) for k, v in event_counts.items()
-            } if event_counts else {},
-            "pages_by_path": {
-                k.decode(): int(v) for k, v in page_counts.items()
-            } if page_counts else {},
+            "events_by_name": {k.decode(): int(v) for k, v in event_counts.items()}
+            if event_counts
+            else {},
+            "pages_by_path": {k.decode(): int(v) for k, v in page_counts.items()}
+            if page_counts
+            else {},
         }
 
     def incr_counter(self, name: str, amount: int = 1) -> int:
@@ -606,6 +600,7 @@ class SegmentBackend(AnalyticsBackend):
         if self._client is None:
             try:
                 import analytics
+
                 analytics.write_key = self.write_key
                 analytics.debug = self.debug
                 if self.on_error:
@@ -740,17 +735,21 @@ class MixpanelBackend(AnalyticsBackend):
         if self._client is None:
             try:
                 from mixpanel import Mixpanel
+
                 self._client = Mixpanel(self.token)
             except ImportError:
                 raise ImportError(
-                    "mixpanel is required for MixpanelBackend. "
-                    "Install with: pip install mixpanel"
+                    "mixpanel is required for MixpanelBackend. Install with: pip install mixpanel"
                 )
         return self._client
 
     def _get_distinct_id(self, event_data: dict) -> str:
         """Get distinct ID for Mixpanel."""
-        return event_data.get("user_id") or event_data.get("anonymous_id") or str(__import__("uuid").uuid4())
+        return (
+            event_data.get("user_id")
+            or event_data.get("anonymous_id")
+            or str(__import__("uuid").uuid4())
+        )
 
     def track_event(self, event_data: dict) -> str:
         """Track event to Mixpanel."""
@@ -861,14 +860,14 @@ class PostHogBackend(AnalyticsBackend):
         if self._client is None:
             try:
                 from posthog import Posthog
+
                 self._client = Posthog(
                     project_api_key=self.api_key,
                     host=self.host,
                 )
             except ImportError:
                 raise ImportError(
-                    "posthog is required for PostHogBackend. "
-                    "Install with: pip install posthog"
+                    "posthog is required for PostHogBackend. Install with: pip install posthog"
                 )
         return self._client
 
@@ -988,6 +987,7 @@ class AmplitudeBackend(AnalyticsBackend):
         if self._client is None:
             try:
                 from amplitude import Amplitude
+
                 self._client = Amplitude(self.api_key)
             except ImportError:
                 raise ImportError(
@@ -1077,7 +1077,6 @@ class AmplitudeBackend(AnalyticsBackend):
 
     def alias(self, previous_id: str, user_id: str):
         """Amplitude uses user_id mapping, not aliases."""
-        pass
 
     def group(
         self,

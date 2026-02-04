@@ -35,8 +35,7 @@ Example:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from functools import wraps
-from typing import Any, Callable, TypeVar, Union
+from typing import Any, Callable, TypeVar
 
 from django.db import models
 from django.http import HttpRequest
@@ -209,11 +208,10 @@ class HookManager:
             if hook in self._global_hooks[hook.hook_type]:
                 self._global_hooks[hook.hook_type].remove(hook)
                 return True
-        else:
-            if hook.viewset_class in self._viewset_hooks:
-                if hook in self._viewset_hooks[hook.viewset_class][hook.hook_type]:
-                    self._viewset_hooks[hook.viewset_class][hook.hook_type].remove(hook)
-                    return True
+        elif hook.viewset_class in self._viewset_hooks:
+            if hook in self._viewset_hooks[hook.viewset_class][hook.hook_type]:
+                self._viewset_hooks[hook.viewset_class][hook.hook_type].remove(hook)
+                return True
         return False
 
     def get_hooks(
@@ -635,39 +633,27 @@ class HooksMixin:
     # Class-based hook methods (override in subclasses)
     # These have the signature: async def hook_name(self, request, value) -> value
 
-    async def before_list(
-        self, request: HttpRequest, queryset: models.QuerySet
-    ) -> models.QuerySet:
+    async def before_list(self, request: HttpRequest, queryset: models.QuerySet) -> models.QuerySet:
         """Hook called before listing resources."""
         return queryset
 
-    async def after_list(
-        self, request: HttpRequest, result: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def after_list(self, request: HttpRequest, result: dict[str, Any]) -> dict[str, Any]:
         """Hook called after listing resources."""
         return result
 
-    async def before_create(
-        self, request: HttpRequest, data: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def before_create(self, request: HttpRequest, data: dict[str, Any]) -> dict[str, Any]:
         """Hook called before creating a resource."""
         return data
 
-    async def after_create(
-        self, request: HttpRequest, instance: models.Model
-    ) -> models.Model:
+    async def after_create(self, request: HttpRequest, instance: models.Model) -> models.Model:
         """Hook called after creating a resource."""
         return instance
 
-    async def before_read(
-        self, request: HttpRequest, lookup_value: Any
-    ) -> Any:
+    async def before_read(self, request: HttpRequest, lookup_value: Any) -> Any:
         """Hook called before reading a resource."""
         return lookup_value
 
-    async def after_read(
-        self, request: HttpRequest, instance: models.Model
-    ) -> models.Model:
+    async def after_read(self, request: HttpRequest, instance: models.Model) -> models.Model:
         """Hook called after reading a resource."""
         return instance
 
@@ -677,29 +663,19 @@ class HooksMixin:
         """Hook called before updating a resource."""
         return instance, data
 
-    async def after_update(
-        self, request: HttpRequest, instance: models.Model
-    ) -> models.Model:
+    async def after_update(self, request: HttpRequest, instance: models.Model) -> models.Model:
         """Hook called after updating a resource."""
         return instance
 
-    async def before_delete(
-        self, request: HttpRequest, instance: models.Model
-    ) -> models.Model:
+    async def before_delete(self, request: HttpRequest, instance: models.Model) -> models.Model:
         """Hook called before deleting a resource."""
         return instance
 
-    async def after_delete(
-        self, request: HttpRequest, instance: models.Model
-    ) -> None:
+    async def after_delete(self, request: HttpRequest, instance: models.Model) -> None:
         """Hook called after deleting a resource."""
-        pass
 
-    async def on_error(
-        self, request: HttpRequest, error: Exception
-    ) -> None:
+    async def on_error(self, request: HttpRequest, error: Exception) -> None:
         """Hook called when an error occurs."""
-        pass
 
 
 # ============================================================================

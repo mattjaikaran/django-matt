@@ -24,7 +24,7 @@ import functools
 import inspect
 from typing import TYPE_CHECKING, Any, Callable
 
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
@@ -329,7 +329,9 @@ class ExperimentMixin:
             return None
         return self.experiment_context.get_assignment(key)
 
-    def get_variant(self, experiment_key: str | None = None, default: str | None = None) -> str | None:
+    def get_variant(
+        self, experiment_key: str | None = None, default: str | None = None
+    ) -> str | None:
         """Get variant key for the experiment."""
         key = experiment_key or self.experiment_key
         if not key:

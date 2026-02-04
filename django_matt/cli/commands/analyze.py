@@ -31,6 +31,7 @@ def setup_django():
             try:
                 os.environ["DJANGO_SETTINGS_MODULE"] = pattern
                 import django
+
                 django.setup()
                 return True
             except Exception:
@@ -42,6 +43,7 @@ def setup_django():
 
     try:
         import django
+
         django.setup()
         return True
     except Exception as e:
@@ -152,7 +154,9 @@ def models(
 
 @app.command()
 def routes(
-    filter_pattern: Optional[str] = typer.Option(None, "--filter", "-f", help="Filter routes by pattern"),
+    filter_pattern: Optional[str] = typer.Option(
+        None, "--filter", "-f", help="Filter routes by pattern"
+    ),
     method: Optional[str] = typer.Option(None, "--method", "-m", help="Filter by HTTP method"),
 ):
     """List all API routes in the project."""
@@ -192,12 +196,14 @@ def routes(
                         m.upper() for m in callback.http_method_names if m != "options"
                     )
 
-                routes_list.append({
-                    "methods": methods,
-                    "path": "/" + path.lstrip("^").rstrip("$"),
-                    "name": pattern.name or "-",
-                    "view": view_name or "-",
-                })
+                routes_list.append(
+                    {
+                        "methods": methods,
+                        "path": "/" + path.lstrip("^").rstrip("$"),
+                        "name": pattern.name or "-",
+                        "view": view_name or "-",
+                    }
+                )
 
         return routes_list
 
@@ -228,7 +234,9 @@ def routes(
 # Alias for routes
 @app.command(name="endpoints")
 def endpoints_command(
-    filter_pattern: Optional[str] = typer.Option(None, "--filter", "-f", help="Filter endpoints by pattern"),
+    filter_pattern: Optional[str] = typer.Option(
+        None, "--filter", "-f", help="Filter endpoints by pattern"
+    ),
     method: Optional[str] = typer.Option(None, "--method", "-m", help="Filter by HTTP method"),
 ):
     """List all API endpoints (alias for 'routes')."""

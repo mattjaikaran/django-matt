@@ -10,7 +10,7 @@ import re
 from dataclasses import dataclass, field
 from io import StringIO
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from rich.console import Console as RichConsole
 
@@ -58,9 +58,7 @@ class CapturedOutput:
     def assert_contains(self, text: str, msg: str | None = None) -> CapturedOutput:
         """Assert output contains text."""
         if text not in self.text:
-            raise AssertionError(
-                msg or f"Expected output to contain '{text}'\nActual: {self.text}"
-            )
+            raise AssertionError(msg or f"Expected output to contain '{text}'\nActual: {self.text}")
         return self
 
     def assert_not_contains(self, text: str, msg: str | None = None) -> CapturedOutput:
@@ -91,9 +89,7 @@ class CapturedOutput:
     def assert_empty(self, msg: str | None = None) -> CapturedOutput:
         """Assert output is empty."""
         if self.text.strip():
-            raise AssertionError(
-                msg or f"Expected empty output\nActual: {self.text}"
-            )
+            raise AssertionError(msg or f"Expected empty output\nActual: {self.text}")
         return self
 
     def assert_not_empty(self, msg: str | None = None) -> CapturedOutput:
@@ -110,9 +106,7 @@ class CapturedOutput:
             return self.assert_contains(text)
         # Check for common success indicators
         if not self.contains_any("✓", "Success", "success", "Done", "done", "✔"):
-            raise AssertionError(
-                f"Expected success message in output\nActual: {self.text}"
-            )
+            raise AssertionError(f"Expected success message in output\nActual: {self.text}")
         return self
 
     def assert_error_message(self, text: str | None = None) -> CapturedOutput:
@@ -120,9 +114,7 @@ class CapturedOutput:
         if text:
             return self.assert_contains(text)
         if not self.contains_any("✗", "Error", "error", "Failed", "failed", "✘"):
-            raise AssertionError(
-                f"Expected error message in output\nActual: {self.text}"
-            )
+            raise AssertionError(f"Expected error message in output\nActual: {self.text}")
         return self
 
     def assert_warning_message(self, text: str | None = None) -> CapturedOutput:
@@ -130,9 +122,7 @@ class CapturedOutput:
         if text:
             return self.assert_contains(text)
         if not self.contains_any("⚠", "Warning", "warning", "Warn"):
-            raise AssertionError(
-                f"Expected warning message in output\nActual: {self.text}"
-            )
+            raise AssertionError(f"Expected warning message in output\nActual: {self.text}")
         return self
 
     def assert_info_message(self, text: str | None = None) -> CapturedOutput:
@@ -140,9 +130,7 @@ class CapturedOutput:
         if text:
             return self.assert_contains(text)
         if not self.contains_any("ℹ", "Info", "info", "Note"):
-            raise AssertionError(
-                f"Expected info message in output\nActual: {self.text}"
-            )
+            raise AssertionError(f"Expected info message in output\nActual: {self.text}")
         return self
 
 
@@ -218,6 +206,7 @@ class ConsoleCapture:
     def __enter__(self) -> ConsoleCapture:
         """Start capturing."""
         import sys
+
         self._original_stdout = sys.stdout
         self._original_stderr = sys.stderr
         sys.stdout = self._buffer
@@ -227,6 +216,7 @@ class ConsoleCapture:
     def __exit__(self, *args) -> None:
         """Stop capturing."""
         import sys
+
         sys.stdout = self._original_stdout
         sys.stderr = self._original_stderr
 
@@ -234,17 +224,13 @@ class ConsoleCapture:
 def assert_output_contains(output: str, text: str, msg: str | None = None) -> None:
     """Assert that output contains text."""
     if text not in output:
-        raise AssertionError(
-            msg or f"Expected output to contain '{text}'\nActual: {output}"
-        )
+        raise AssertionError(msg or f"Expected output to contain '{text}'\nActual: {output}")
 
 
 def assert_output_matches(output: str, pattern: str, msg: str | None = None) -> None:
     """Assert that output matches regex pattern."""
     if not re.search(pattern, output):
-        raise AssertionError(
-            msg or f"Expected output to match '{pattern}'\nActual: {output}"
-        )
+        raise AssertionError(msg or f"Expected output to match '{pattern}'\nActual: {output}")
 
 
 def strip_ansi(text: str) -> str:

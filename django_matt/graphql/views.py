@@ -6,13 +6,8 @@ Provides Django views for serving GraphQL endpoints.
 
 from __future__ import annotations
 
-import json
-from typing import Any
-
-from django.conf import settings
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import HttpRequest, HttpResponse
 from django.urls import path
-from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
@@ -22,6 +17,7 @@ try:
     from strawberry.django.views import GraphQLView as StrawberryGraphQLView
     from strawberry.http import GraphQLHTTPResponse
     from strawberry.types import ExecutionResult
+
     STRAWBERRY_AVAILABLE = True
 except ImportError:
     STRAWBERRY_AVAILABLE = False
@@ -57,6 +53,7 @@ class GraphQLView(StrawberryGraphQLView if STRAWBERRY_AVAILABLE else View):
         _require_strawberry()
 
         from django_matt.graphql.config import get_graphql_config
+
         config = get_graphql_config()
 
         if graphiql is None:
@@ -106,6 +103,7 @@ class AsyncGraphQLView(StrawberryAsyncGraphQLView if STRAWBERRY_AVAILABLE else V
         _require_strawberry()
 
         from django_matt.graphql.config import get_graphql_config
+
         config = get_graphql_config()
 
         if graphiql is None:
@@ -190,6 +188,7 @@ class GraphQLAPI:
         # Build schema if models provided
         if schema is None and models is not None:
             from django_matt.graphql.schema import generate_schema
+
             schema = generate_schema(models=models)
 
         self.schema = schema
@@ -201,7 +200,7 @@ class GraphQLAPI:
         auto_mutations: bool = True,
         auto_subscriptions: bool = False,
         **kwargs,
-    ) -> "GraphQLAPI":
+    ) -> GraphQLAPI:
         """
         Create a GraphQL API from Django models.
 
@@ -258,15 +257,11 @@ class GraphQLAPI:
 
         # Main GraphQL endpoint
         endpoint_path = self.prefix.lstrip("/")
-        patterns.append(
-            path(endpoint_path, self.get_view(), name="graphql")
-        )
+        patterns.append(path(endpoint_path, self.get_view(), name="graphql"))
 
         # GraphQL endpoint with trailing slash
         if not endpoint_path.endswith("/"):
-            patterns.append(
-                path(f"{endpoint_path}/", self.get_view(), name="graphql-slash")
-            )
+            patterns.append(path(f"{endpoint_path}/", self.get_view(), name="graphql-slash"))
 
         return patterns
 

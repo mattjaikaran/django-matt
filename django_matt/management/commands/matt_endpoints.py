@@ -101,9 +101,7 @@ class Command(MattCommand):
                 ]
 
         if app_filter:
-            endpoints = [
-                e for e in endpoints if e.get("app", "").lower() == app_filter.lower()
-            ]
+            endpoints = [e for e in endpoints if e.get("app", "").lower() == app_filter.lower()]
 
         # Output in requested format
         if openapi:

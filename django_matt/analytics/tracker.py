@@ -33,15 +33,14 @@ Usage:
         batch.track_page_view("/page1", {...})
 """
 
-import asyncio
 import hashlib
 import logging
 import threading
 import uuid
 from collections import deque
 from contextlib import asynccontextmanager, contextmanager
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Callable
+from datetime import datetime
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.utils import timezone
@@ -50,7 +49,7 @@ if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
     from django.http import HttpRequest
 
-    from .models import AnalyticsEvent, AnalyticsSession, PageView
+    from .models import AnalyticsSession
 
 logger = logging.getLogger("django_matt.analytics")
 
@@ -70,11 +69,13 @@ class BatchContext:
         **kwargs,
     ):
         """Queue an event for batch tracking."""
-        self.events.append({
-            "name": name,
-            "properties": properties or {},
-            **kwargs,
-        })
+        self.events.append(
+            {
+                "name": name,
+                "properties": properties or {},
+                **kwargs,
+            }
+        )
 
     def track_page_view(
         self,
@@ -82,10 +83,12 @@ class BatchContext:
         **kwargs,
     ):
         """Queue a page view for batch tracking."""
-        self.page_views.append({
-            "path": path,
-            **kwargs,
-        })
+        self.page_views.append(
+            {
+                "path": path,
+                **kwargs,
+            }
+        )
 
 
 class EventTracker:
@@ -152,6 +155,7 @@ class EventTracker:
         """Lazy backend initialization."""
         if self._backend is None:
             from .backends import get_backend
+
             self._backend = get_backend(self._backend_name)
         return self._backend
 

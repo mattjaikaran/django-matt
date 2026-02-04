@@ -25,7 +25,7 @@ Usage:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from django.contrib import admin
 from django.contrib.admin.views.decorators import staff_member_required
@@ -70,7 +70,7 @@ class InspectorAdminView(View):
                 <tr>
                     <td>{timestamp}</td>
                     <td><span class="badge {method_class}">{req.method}</span></td>
-                    <td title="{req.full_url}">{req.path[:50]}{'...' if len(req.path) > 50 else ''}</td>
+                    <td title="{req.full_url}">{req.path[:50]}{"..." if len(req.path) > 50 else ""}</td>
                     <td><span class="badge {status_class}">{req.response_status}</span></td>
                     <td>{req.duration_ms:.2f}ms</td>
                     <td>{req.client_ip}</td>
@@ -80,9 +80,13 @@ class InspectorAdminView(View):
                 </tr>
             ''')
 
-        table_content = "\n".join(rows) if rows else '<tr><td colspan="7" style="text-align:center;">No requests captured</td></tr>'
+        table_content = (
+            "\n".join(rows)
+            if rows
+            else '<tr><td colspan="7" style="text-align:center;">No requests captured</td></tr>'
+        )
 
-        return f'''
+        return f"""
 <!DOCTYPE html>
 <html>
 <head>
@@ -167,7 +171,7 @@ class InspectorAdminView(View):
                         <div class="stat-label">Errors (4xx/5xx)</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">{'Capturing' if storage.is_capturing() else 'Paused'}</div>
+                        <div class="stat-value">{"Capturing" if storage.is_capturing() else "Paused"}</div>
                         <div class="stat-label">Status</div>
                     </div>
                 </div>
@@ -198,7 +202,7 @@ class InspectorAdminView(View):
     </div>
 </body>
 </html>
-'''
+"""
 
     def _get_status_class(self, status: int) -> str:
         """Get CSS class for status code."""
@@ -275,7 +279,6 @@ def register_with_admin_site(admin_site=None):
     # 3. Add the inspector URLs alongside admin URLs
 
     # For now, we just provide the URL patterns
-    pass
 
 
 __all__ = [

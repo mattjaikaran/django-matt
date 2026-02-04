@@ -528,9 +528,7 @@ class VLLMClient:
         response.raise_for_status()
         return response.json()
 
-    async def completions_stream(
-        self, payload: dict[str, Any]
-    ) -> AsyncIterator[dict[str, Any]]:
+    async def completions_stream(self, payload: dict[str, Any]) -> AsyncIterator[dict[str, Any]]:
         """
         Stream from /v1/completions endpoint.
 
@@ -581,9 +579,7 @@ class VLLMClient:
         client = self._get_client()
         payload = {**payload, "stream": True}
 
-        async with client.stream(
-            "POST", "/v1/chat/completions", json=payload
-        ) as response:
+        async with client.stream("POST", "/v1/chat/completions", json=payload) as response:
             response.raise_for_status()
             async for line in response.aiter_lines():
                 if not line or line == "data: [DONE]":
@@ -800,9 +796,7 @@ class VLLMProvider(LLMProvider, StructuredOutputProvider):
             result.append(d)
         return result
 
-    def _convert_tools(
-        self, tools: list[ToolDefinition] | None
-    ) -> list[dict[str, Any]] | None:
+    def _convert_tools(self, tools: list[ToolDefinition] | None) -> list[dict[str, Any]] | None:
         """Convert tools to OpenAI format."""
         if not tools:
             return None

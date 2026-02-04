@@ -40,7 +40,6 @@ class BenchmarkReporter(ABC):
         Returns:
             The formatted report string
         """
-        pass
 
     def save(
         self,
@@ -92,35 +91,30 @@ class ConsoleReporter(BenchmarkReporter):
 
     def _format_time(self, ms: float) -> str:
         """Format time in milliseconds."""
-        if ms < 0.001:
+        if ms < 0.001 or ms < 1:
             return f"{ms * 1000:.2f}us"
-        elif ms < 1:
-            return f"{ms * 1000:.2f}us"
-        elif ms < 1000:
+        if ms < 1000:
             return f"{ms:.3f}ms"
-        else:
-            return f"{ms / 1000:.3f}s"
+        return f"{ms / 1000:.3f}s"
 
     def _format_ops(self, ops: float) -> str:
         """Format operations per second."""
         if ops >= 1_000_000:
             return f"{ops / 1_000_000:.2f}M"
-        elif ops >= 1_000:
+        if ops >= 1_000:
             return f"{ops / 1_000:.2f}K"
-        else:
-            return f"{ops:.2f}"
+        return f"{ops:.2f}"
 
     def _format_diff(self, diff: float) -> str:
         """Format percentage difference with color."""
         if diff < -5:
             # Faster (improvement)
             return self._color(f"{diff:+.1f}%", self.GREEN)
-        elif diff > 5:
+        if diff > 5:
             # Slower (regression)
             return self._color(f"{diff:+.1f}%", self.RED)
-        else:
-            # Same
-            return self._color(f"{diff:+.1f}%", self.DIM)
+        # Same
+        return self._color(f"{diff:+.1f}%", self.DIM)
 
     def report(
         self,
@@ -300,19 +294,17 @@ class MarkdownReporter(BenchmarkReporter):
         """Format time in milliseconds."""
         if ms < 1:
             return f"{ms * 1000:.2f}us"
-        elif ms < 1000:
+        if ms < 1000:
             return f"{ms:.3f}ms"
-        else:
-            return f"{ms / 1000:.3f}s"
+        return f"{ms / 1000:.3f}s"
 
     def _format_ops(self, ops: float) -> str:
         """Format operations per second."""
         if ops >= 1_000_000:
             return f"{ops / 1_000_000:.2f}M ops/s"
-        elif ops >= 1_000:
+        if ops >= 1_000:
             return f"{ops / 1_000:.2f}K ops/s"
-        else:
-            return f"{ops:.2f} ops/s"
+        return f"{ops:.2f} ops/s"
 
     def report(
         self,
@@ -425,7 +417,7 @@ class MarkdownReporter(BenchmarkReporter):
         """Get emoji for comparison status."""
         if status == "faster":
             return "faster"
-        elif status == "slower":
+        if status == "slower":
             return "slower"
         return "same"
 
@@ -528,7 +520,7 @@ class HTMLReporter(BenchmarkReporter):
 <body>
     <div class="container">
         <h1>Django Matt Benchmark Report</h1>
-        <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p>Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
 """
 
         # Metadata
@@ -577,12 +569,12 @@ class HTMLReporter(BenchmarkReporter):
                     comp = comparison_map[result.name]
                     diff = f"{comp.mean_diff_percent:+.1f}%"
                     status_class = comp.status
-                    html += f'<tr><td>{result.name}</td><td>{mean}</td><td>{ops}</td>'
+                    html += f"<tr><td>{result.name}</td><td>{mean}</td><td>{ops}</td>"
                     html += f'<td class="{status_class}">{diff}</td><td class="{status_class}">{comp.status}</td></tr>'
                 else:
                     min_t = self._format_time(result.min_time_ms)
                     max_t = self._format_time(result.max_time_ms)
-                    html += f'<tr><td>{result.name}</td><td>{mean}</td><td>{min_t}</td><td>{max_t}</td><td>{ops}</td></tr>'
+                    html += f"<tr><td>{result.name}</td><td>{mean}</td><td>{min_t}</td><td>{max_t}</td><td>{ops}</td></tr>"
 
             html += "</tbody></table></div>"
 
@@ -597,16 +589,14 @@ class HTMLReporter(BenchmarkReporter):
         """Format time in milliseconds."""
         if ms < 1:
             return f"{ms * 1000:.2f}us"
-        elif ms < 1000:
+        if ms < 1000:
             return f"{ms:.3f}ms"
-        else:
-            return f"{ms / 1000:.3f}s"
+        return f"{ms / 1000:.3f}s"
 
     def _format_ops(self, ops: float) -> str:
         """Format operations per second."""
         if ops >= 1_000_000:
             return f"{ops / 1_000_000:.2f}M"
-        elif ops >= 1_000:
+        if ops >= 1_000:
             return f"{ops / 1_000:.2f}K"
-        else:
-            return f"{ops:.2f}"
+        return f"{ops:.2f}"

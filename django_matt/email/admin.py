@@ -109,7 +109,6 @@ class EmailMessageAdmin(admin.ModelAdmin):
 
     @admin.action(description="Resend selected emails")
     def resend_emails(self, request, queryset):
-
         count = 0
         for email in queryset:
             if email.status in ["failed", "bounced"]:
@@ -177,19 +176,31 @@ class EmailTemplateAdmin(admin.ModelAdmin):
         return subject
 
     fieldsets = (
-        (None, {
-            "fields": ("name", "description", "is_active"),
-        }),
-        ("Content", {
-            "fields": ("subject", "html_body", "text_body"),
-        }),
-        ("Settings", {
-            "fields": ("email_type", "category", "variables", "default_context"),
-        }),
-        ("Metadata", {
-            "fields": ("version", "created_at", "updated_at", "created_by"),
-            "classes": ("collapse",),
-        }),
+        (
+            None,
+            {
+                "fields": ("name", "description", "is_active"),
+            },
+        ),
+        (
+            "Content",
+            {
+                "fields": ("subject", "html_body", "text_body"),
+            },
+        ),
+        (
+            "Settings",
+            {
+                "fields": ("email_type", "category", "variables", "default_context"),
+            },
+        ),
+        (
+            "Metadata",
+            {
+                "fields": ("version", "created_at", "updated_at", "created_by"),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
 

@@ -409,7 +409,8 @@ class RateLimitAPIError(APIError):
             status_code=status_code,
             code=code,
             context=context,
-            suggestion=suggestion or f"Please wait {retry_after or 'some time'} seconds before retrying.",
+            suggestion=suggestion
+            or f"Please wait {retry_after or 'some time'} seconds before retrying.",
         )
 
 

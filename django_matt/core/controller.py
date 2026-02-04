@@ -27,6 +27,7 @@ def _get_error_config() -> dict[str, Any]:
         "include_snippet": config.get("INCLUDE_SNIPPET", getattr(settings, "DEBUG", False)),
     }
 
+
 # Django version detection for compatibility
 DJANGO_VERSION = tuple(map(int, django.__version__.split(".")[:2]))
 DJANGO_5_2_PLUS = DJANGO_VERSION >= (5, 2)
@@ -486,7 +487,9 @@ class CRUDController(APIController):
                 resource_id=str(id),
             )
 
-    async def partial_update(self, request: HttpRequest, id: str, data: BaseModel) -> dict[str, Any]:
+    async def partial_update(
+        self, request: HttpRequest, id: str, data: BaseModel
+    ) -> dict[str, Any]:
         """
         Partially update an existing instance (PATCH semantics).
 
@@ -544,10 +547,7 @@ class CRUDController(APIController):
             raise NotImplementedError("Model not specified")
 
         # Convert Pydantic models to model instances
-        model_instances = [
-            self.model(**item.model_dump(exclude_unset=True))
-            for item in items
-        ]
+        model_instances = [self.model(**item.model_dump(exclude_unset=True)) for item in items]
 
         # Use async bulk_create (Django 4.1+)
         created = await self.model.objects.abulk_create(model_instances)
@@ -670,11 +670,13 @@ class CRUDController(APIController):
             "auto_optimize": self.auto_optimize,
             "select_related_fields": (
                 self.select_related_fields or self._get_foreign_key_fields()
-                if self.auto_optimize else []
+                if self.auto_optimize
+                else []
             ),
             "prefetch_related_fields": (
                 self.prefetch_related_fields or self._get_many_to_many_fields()
-                if self.auto_optimize else []
+                if self.auto_optimize
+                else []
             ),
             "include_reverse_relations": self.include_reverse_relations,
             "ordering": self.ordering,

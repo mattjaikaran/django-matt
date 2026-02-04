@@ -11,7 +11,7 @@ import threading
 import time
 from abc import ABC, abstractmethod
 from collections import deque
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
@@ -48,7 +48,7 @@ class CapturedRequest:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CapturedRequest":
+    def from_dict(cls, data: Dict[str, Any]) -> CapturedRequest:
         """Create from dictionary."""
         return cls(**data)
 
@@ -97,12 +97,10 @@ class InspectorStorage(ABC):
     @abstractmethod
     def add(self, request: CapturedRequest) -> None:
         """Add a captured request to storage."""
-        pass
 
     @abstractmethod
     def get(self, request_id: str) -> Optional[CapturedRequest]:
         """Get a specific captured request by ID."""
-        pass
 
     @abstractmethod
     def list(
@@ -118,32 +116,26 @@ class InspectorStorage(ABC):
         until: Optional[float] = None,
     ) -> List[CapturedRequest]:
         """List captured requests with optional filtering."""
-        pass
 
     @abstractmethod
     def clear(self) -> int:
         """Clear all captured requests. Returns number of cleared requests."""
-        pass
 
     @abstractmethod
     def count(self) -> int:
         """Get total number of captured requests."""
-        pass
 
     @abstractmethod
     def is_capturing(self) -> bool:
         """Check if capture is currently enabled."""
-        pass
 
     @abstractmethod
     def pause_capture(self) -> None:
         """Pause request capture."""
-        pass
 
     @abstractmethod
     def resume_capture(self) -> None:
         """Resume request capture."""
-        pass
 
 
 class MemoryStorage(InspectorStorage):
@@ -264,8 +256,7 @@ class RedisStorage(InspectorStorage):
             import redis
         except ImportError:
             raise ImportError(
-                "Redis package is required for RedisStorage. "
-                "Install it with: pip install redis"
+                "Redis package is required for RedisStorage. Install it with: pip install redis"
             )
 
         # Get Redis URL from settings or parameter
@@ -338,7 +329,11 @@ class RedisStorage(InspectorStorage):
         # Fetch all requests in a pipeline
         pipe = self._redis.pipeline()
         for request_id in request_ids:
-            pipe.get(self._request_key(request_id.decode() if isinstance(request_id, bytes) else request_id))
+            pipe.get(
+                self._request_key(
+                    request_id.decode() if isinstance(request_id, bytes) else request_id
+                )
+            )
 
         results = pipe.execute()
 
@@ -382,7 +377,9 @@ class RedisStorage(InspectorStorage):
             pipe = self._redis.pipeline()
             for request_id in request_ids:
                 pipe.delete(
-                    self._request_key(request_id.decode() if isinstance(request_id, bytes) else request_id)
+                    self._request_key(
+                        request_id.decode() if isinstance(request_id, bytes) else request_id
+                    )
                 )
             pipe.delete(self._list_key)
             pipe.execute()

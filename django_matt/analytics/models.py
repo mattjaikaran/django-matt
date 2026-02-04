@@ -14,7 +14,7 @@ import hashlib
 import uuid
 from datetime import timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.db import models
@@ -60,7 +60,7 @@ class AnonymizationLevel(str, Enum):
 
     @classmethod
     def choices(cls):
-        return [(l.value, l.name.title()) for l in cls]
+        return [(level.value, level.name.title()) for level in cls]
 
 
 class AnalyticsSessionManager(models.Manager):

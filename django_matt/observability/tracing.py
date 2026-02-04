@@ -166,7 +166,9 @@ class NullSpan:
     def set_status(self, status: Any, description: Optional[str] = None) -> "NullSpan":
         return self
 
-    def record_exception(self, exception: Exception, attributes: Optional[dict] = None) -> "NullSpan":
+    def record_exception(
+        self, exception: Exception, attributes: Optional[dict] = None
+    ) -> "NullSpan":
         return self
 
     def end(self, end_time: Optional[int] = None) -> None:
@@ -298,7 +300,7 @@ class TracingManager:
 
             return ConsoleSpanExporter()
 
-        elif exporter_type == "jaeger":
+        if exporter_type == "jaeger":
             if not HAS_JAEGER:
                 logger.warning(
                     "Jaeger exporter not installed. Install with: "
@@ -310,7 +312,7 @@ class TracingManager:
                 agent_port=int(endpoint.split(":")[1]) if endpoint and ":" in endpoint else 6831,
             )
 
-        elif exporter_type == "otlp":
+        if exporter_type == "otlp":
             if not HAS_OTLP:
                 logger.warning(
                     "OTLP exporter not installed. Install with: "
@@ -324,7 +326,7 @@ class TracingManager:
                 kwargs["headers"] = tracing_config.headers
             return OTLPSpanExporter(**kwargs)
 
-        elif exporter_type == "zipkin":
+        if exporter_type == "zipkin":
             if not HAS_ZIPKIN:
                 logger.warning(
                     "Zipkin exporter not installed. Install with: "
@@ -333,20 +335,16 @@ class TracingManager:
                 return None
             return ZipkinExporter(endpoint=endpoint or "http://localhost:9411/api/v2/spans")
 
-        elif exporter_type == "datadog":
+        if exporter_type == "datadog":
             if not HAS_DATADOG:
-                logger.warning(
-                    "Datadog not installed. Install with: pip install ddtrace"
-                )
+                logger.warning("Datadog not installed. Install with: pip install ddtrace")
                 return None
             # Datadog uses its own tracer, return None for OTEL exporter
             return None
 
-        elif exporter_type == "newrelic":
+        if exporter_type == "newrelic":
             if not HAS_NEWRELIC:
-                logger.warning(
-                    "New Relic not installed. Install with: pip install newrelic"
-                )
+                logger.warning("New Relic not installed. Install with: pip install newrelic")
                 return None
             # New Relic has its own agent, OTEL integration is separate
             from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -355,9 +353,8 @@ class TracingManager:
             nr_headers = tracing_config.headers or {}
             return OTLPSpanExporter(endpoint=nr_endpoint, headers=nr_headers)
 
-        else:
-            logger.warning(f"Unknown exporter type: {exporter_type}")
-            return None
+        logger.warning(f"Unknown exporter type: {exporter_type}")
+        return None
 
     def _setup_propagators(self) -> None:
         """Set up context propagators."""
@@ -581,6 +578,7 @@ def datadog_trace(name: str, service: Optional[str] = None, resource: Optional[s
     Returns:
         Decorated function
     """
+
     def decorator(func: F) -> F:
         if not HAS_DATADOG:
             return func
@@ -596,6 +594,7 @@ def datadog_trace(name: str, service: Optional[str] = None, resource: Optional[s
                 return await func(*args, **kwargs)
 
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
         return wrapper  # type: ignore
@@ -614,25 +613,23 @@ def newrelic_trace(name: str):
     Returns:
         Decorated function
     """
+
     def decorator(func: F) -> F:
         if not HAS_NEWRELIC:
             return func
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            with newrelic.agent.BackgroundTask(
-                newrelic.agent.application(), name=name
-            ):
+            with newrelic.agent.BackgroundTask(newrelic.agent.application(), name=name):
                 return func(*args, **kwargs)
 
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs):
-            with newrelic.agent.BackgroundTask(
-                newrelic.agent.application(), name=name
-            ):
+            with newrelic.agent.BackgroundTask(newrelic.agent.application(), name=name):
                 return await func(*args, **kwargs)
 
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
         return wrapper  # type: ignore

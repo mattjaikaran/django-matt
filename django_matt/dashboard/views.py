@@ -94,30 +94,30 @@ class DashboardView(DashboardAccessMixin, View):
     <div class="container mx-auto px-4 py-8">
         <header class="mb-8">
             <h1 class="text-3xl font-bold">Performance Dashboard</h1>
-            <p class="text-gray-400">Uptime: {summary['uptime_formatted']}</p>
+            <p class="text-gray-400">Uptime: {summary["uptime_formatted"]}</p>
         </header>
 
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div class="metric-card rounded-lg p-6 text-white">
                 <h3 class="text-sm font-medium opacity-80">Total Requests</h3>
-                <p class="text-3xl font-bold mt-2">{summary['total_requests']:,}</p>
-                <p class="text-sm opacity-60 mt-1">{summary['requests_per_minute']:.1f} req/min</p>
+                <p class="text-3xl font-bold mt-2">{summary["total_requests"]:,}</p>
+                <p class="text-sm opacity-60 mt-1">{summary["requests_per_minute"]:.1f} req/min</p>
             </div>
             <div class="metric-card green rounded-lg p-6 text-white">
                 <h3 class="text-sm font-medium opacity-80">Avg Response Time</h3>
-                <p class="text-3xl font-bold mt-2">{summary['avg_response_time_ms']:.1f}ms</p>
-                <p class="text-sm opacity-60 mt-1">p95: {summary['p95_response_time_ms']:.1f}ms</p>
+                <p class="text-3xl font-bold mt-2">{summary["avg_response_time_ms"]:.1f}ms</p>
+                <p class="text-sm opacity-60 mt-1">p95: {summary["p95_response_time_ms"]:.1f}ms</p>
             </div>
             <div class="metric-card orange rounded-lg p-6 text-white">
                 <h3 class="text-sm font-medium opacity-80">Error Rate</h3>
-                <p class="text-3xl font-bold mt-2">{summary['error_rate']:.2f}%</p>
-                <p class="text-sm opacity-60 mt-1">{summary['total_errors']:,} errors</p>
+                <p class="text-3xl font-bold mt-2">{summary["error_rate"]:.2f}%</p>
+                <p class="text-sm opacity-60 mt-1">{summary["total_errors"]:,} errors</p>
             </div>
             <div class="metric-card blue rounded-lg p-6 text-white">
                 <h3 class="text-sm font-medium opacity-80">p99 Response Time</h3>
-                <p class="text-3xl font-bold mt-2">{summary['p99_response_time_ms']:.1f}ms</p>
-                <p class="text-sm opacity-60 mt-1">p50: {summary['p50_response_time_ms']:.1f}ms</p>
+                <p class="text-3xl font-bold mt-2">{summary["p99_response_time_ms"]:.1f}ms</p>
+                <p class="text-sm opacity-60 mt-1">p50: {summary["p50_response_time_ms"]:.1f}ms</p>
             </div>
         </div>
 
@@ -137,7 +137,7 @@ class DashboardView(DashboardAccessMixin, View):
         <div class="bg-gray-800 rounded-lg p-6 mb-8">
             <h3 class="text-lg font-semibold mb-4">Status Codes</h3>
             <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {self._render_status_codes(summary['status_codes'])}
+                {self._render_status_codes(summary["status_codes"])}
             </div>
         </div>
 
@@ -388,7 +388,7 @@ class DashboardView(DashboardAccessMixin, View):
                 f'<div class="{color} rounded px-3 py-2 text-center">'
                 f'<span class="font-bold">{code}</span>'
                 f'<span class="text-sm opacity-80 ml-2">{count:,}</span>'
-                f'</div>'
+                f"</div>"
             )
         return "\n".join(badges) if badges else '<p class="text-gray-500">No requests yet</p>'
 
@@ -453,12 +453,39 @@ def include_dashboard():
     """
     return [
         path("", DashboardView.as_view(), name="dashboard"),
-        path("api/summary", MetricsAPIView.as_view(), {"action": "summary"}, name="dashboard-summary"),
-        path("api/endpoints", MetricsAPIView.as_view(), {"action": "endpoints"}, name="dashboard-endpoints"),
-        path("api/endpoints/slow", MetricsAPIView.as_view(), {"action": "slow"}, name="dashboard-slow"),
-        path("api/endpoints/errors", MetricsAPIView.as_view(), {"action": "errors"}, name="dashboard-errors"),
-        path("api/requests", MetricsAPIView.as_view(), {"action": "requests"}, name="dashboard-requests"),
-        path("api/time-series", MetricsAPIView.as_view(), {"action": "time-series"}, name="dashboard-time-series"),
+        path(
+            "api/summary", MetricsAPIView.as_view(), {"action": "summary"}, name="dashboard-summary"
+        ),
+        path(
+            "api/endpoints",
+            MetricsAPIView.as_view(),
+            {"action": "endpoints"},
+            name="dashboard-endpoints",
+        ),
+        path(
+            "api/endpoints/slow",
+            MetricsAPIView.as_view(),
+            {"action": "slow"},
+            name="dashboard-slow",
+        ),
+        path(
+            "api/endpoints/errors",
+            MetricsAPIView.as_view(),
+            {"action": "errors"},
+            name="dashboard-errors",
+        ),
+        path(
+            "api/requests",
+            MetricsAPIView.as_view(),
+            {"action": "requests"},
+            name="dashboard-requests",
+        ),
+        path(
+            "api/time-series",
+            MetricsAPIView.as_view(),
+            {"action": "time-series"},
+            name="dashboard-time-series",
+        ),
         path("api/reset", MetricsAPIView.as_view(), {"action": "reset"}, name="dashboard-reset"),
     ]
 

@@ -13,19 +13,16 @@ Usage:
 
 import json
 from datetime import datetime, timedelta
-from typing import Any
 
 from django.http import HttpRequest, JsonResponse
 from django.utils import timezone
 
 from django_matt.core.controller import APIController
-from django_matt.core.router import delete, get, patch, post, put
+from django_matt.core.router import delete, get, post, put
 
 from .schemas import (
     BatchTrackRequest,
     BatchTrackResponse,
-    CohortAnalysis,
-    CohortQuery,
     DashboardMetrics,
     ErrorResponse,
     EventListResponse,
@@ -40,7 +37,6 @@ from .schemas import (
     IdentifyRequest,
     IdentifyResponse,
     MessageResponse,
-    MetricsQuery,
     PageMetrics,
     PageViewListResponse,
     PageViewResponse,
@@ -277,7 +273,7 @@ class AnalyticsController(APIController):
                 )
                 events_tracked += 1
             except Exception as e:
-                errors.append(f"Event '{event.name}': {str(e)}")
+                errors.append(f"Event '{event.name}': {e!s}")
 
         # Track page views
         for pv in data.page_views:
@@ -293,7 +289,7 @@ class AnalyticsController(APIController):
                 )
                 page_views_tracked += 1
             except Exception as e:
-                errors.append(f"Page view '{pv.path}': {str(e)}")
+                errors.append(f"Page view '{pv.path}': {e!s}")
 
         response = BatchTrackResponse(
             events_tracked=events_tracked,
@@ -350,25 +346,27 @@ class AnalyticsController(APIController):
 
         total = await qs.acount()
         offset = (page - 1) * page_size
-        events = [e async for e in qs.order_by("-timestamp")[offset:offset + page_size]]
+        events = [e async for e in qs.order_by("-timestamp")[offset : offset + page_size]]
 
         items = []
         for event in events:
-            items.append(EventResponse(
-                id=str(event.id),
-                name=event.name,
-                category=event.category,
-                properties=event.properties,
-                context=event.context,
-                timestamp=event.timestamp,
-                user_id=str(event.user_id) if event.user_id else None,
-                session_id=str(event.session_id) if event.session_id else None,
-                anonymous_id=event.anonymous_id,
-                page_url=event.page_url,
-                page_title=event.page_title,
-                revenue=float(event.revenue) if event.revenue else None,
-                currency=event.currency,
-            ).model_dump())
+            items.append(
+                EventResponse(
+                    id=str(event.id),
+                    name=event.name,
+                    category=event.category,
+                    properties=event.properties,
+                    context=event.context,
+                    timestamp=event.timestamp,
+                    user_id=str(event.user_id) if event.user_id else None,
+                    session_id=str(event.session_id) if event.session_id else None,
+                    anonymous_id=event.anonymous_id,
+                    page_url=event.page_url,
+                    page_title=event.page_title,
+                    revenue=float(event.revenue) if event.revenue else None,
+                    currency=event.currency,
+                ).model_dump()
+            )
 
         response = EventListResponse(items=items, total=total, page=page, page_size=page_size)
         return JsonResponse(response.model_dump())
@@ -434,25 +432,27 @@ class AnalyticsController(APIController):
 
         total = await qs.acount()
         offset = (page - 1) * page_size
-        page_views = [pv async for pv in qs.order_by("-timestamp")[offset:offset + page_size]]
+        page_views = [pv async for pv in qs.order_by("-timestamp")[offset : offset + page_size]]
 
         items = []
         for pv in page_views:
-            items.append(PageViewResponse(
-                id=str(pv.id),
-                path=pv.path,
-                url=pv.url,
-                title=pv.title,
-                timestamp=pv.timestamp,
-                user_id=str(pv.user_id) if pv.user_id else None,
-                session_id=str(pv.session_id) if pv.session_id else None,
-                referrer=pv.referrer,
-                time_on_page=pv.time_on_page,
-                scroll_depth=pv.scroll_depth,
-                is_bounce=pv.is_bounce,
-                is_entrance=pv.is_entrance,
-                is_exit=pv.is_exit,
-            ).model_dump())
+            items.append(
+                PageViewResponse(
+                    id=str(pv.id),
+                    path=pv.path,
+                    url=pv.url,
+                    title=pv.title,
+                    timestamp=pv.timestamp,
+                    user_id=str(pv.user_id) if pv.user_id else None,
+                    session_id=str(pv.session_id) if pv.session_id else None,
+                    referrer=pv.referrer,
+                    time_on_page=pv.time_on_page,
+                    scroll_depth=pv.scroll_depth,
+                    is_bounce=pv.is_bounce,
+                    is_entrance=pv.is_entrance,
+                    is_exit=pv.is_exit,
+                ).model_dump()
+            )
 
         response = PageViewListResponse(items=items, total=total, page=page, page_size=page_size)
         return JsonResponse(response.model_dump())
@@ -488,34 +488,36 @@ class AnalyticsController(APIController):
 
         total = await qs.acount()
         offset = (page - 1) * page_size
-        sessions = [s async for s in qs.order_by("-started_at")[offset:offset + page_size]]
+        sessions = [s async for s in qs.order_by("-started_at")[offset : offset + page_size]]
 
         items = []
         for session in sessions:
-            items.append(SessionResponse(
-                id=str(session.id),
-                session_id=session.session_id,
-                user_id=str(session.user_id) if session.user_id else None,
-                anonymous_id=session.anonymous_id,
-                status=session.status,
-                started_at=session.started_at,
-                last_activity_at=session.last_activity_at,
-                ended_at=session.ended_at,
-                device_type=session.device_type,
-                browser=session.browser,
-                os=session.os,
-                country=session.country,
-                city=session.city,
-                referrer=session.referrer,
-                landing_page=session.landing_page,
-                exit_page=session.exit_page,
-                page_views=session.page_views,
-                events_count=session.events_count,
-                duration_seconds=session.duration_seconds,
-                utm_source=session.utm_source,
-                utm_medium=session.utm_medium,
-                utm_campaign=session.utm_campaign,
-            ).model_dump())
+            items.append(
+                SessionResponse(
+                    id=str(session.id),
+                    session_id=session.session_id,
+                    user_id=str(session.user_id) if session.user_id else None,
+                    anonymous_id=session.anonymous_id,
+                    status=session.status,
+                    started_at=session.started_at,
+                    last_activity_at=session.last_activity_at,
+                    ended_at=session.ended_at,
+                    device_type=session.device_type,
+                    browser=session.browser,
+                    os=session.os,
+                    country=session.country,
+                    city=session.city,
+                    referrer=session.referrer,
+                    landing_page=session.landing_page,
+                    exit_page=session.exit_page,
+                    page_views=session.page_views,
+                    events_count=session.events_count,
+                    duration_seconds=session.duration_seconds,
+                    utm_source=session.utm_source,
+                    utm_medium=session.utm_medium,
+                    utm_campaign=session.utm_campaign,
+                ).model_dump()
+            )
 
         response = SessionListResponse(items=items, total=total, page=page, page_size=page_size)
         return JsonResponse(response.model_dump())
@@ -558,13 +560,12 @@ class MetricsController(APIController):
         # Parse dates
         if start_date:
             start = datetime.fromisoformat(start_date)
+        elif period == "day":
+            start = timezone.now() - timedelta(days=1)
+        elif period == "week":
+            start = timezone.now() - timedelta(weeks=1)
         else:
-            if period == "day":
-                start = timezone.now() - timedelta(days=1)
-            elif period == "week":
-                start = timezone.now() - timedelta(weeks=1)
-            else:
-                start = timezone.now() - timedelta(days=30)
+            start = timezone.now() - timedelta(days=30)
 
         if end_date:
             end = datetime.fromisoformat(end_date)
@@ -727,27 +728,32 @@ class FunnelController(APIController):
         items = []
         for funnel in funnels:
             steps = [s async for s in funnel.steps.all().order_by("order")]
-            items.append(FunnelResponse(
-                id=str(funnel.id),
-                name=funnel.name,
-                description=funnel.description,
-                is_active=funnel.is_active,
-                conversion_window_hours=funnel.conversion_window_hours,
-                strict_order=funnel.strict_order,
-                steps=[{
-                    "id": str(s.id),
-                    "name": s.name,
-                    "order": s.order,
-                    "match_type": s.match_type,
-                    "event_name": s.event_name,
-                    "page_path": s.page_path,
-                    "conditions": s.conditions,
-                    "timeout_hours": s.timeout_hours,
-                } for s in steps],
-                step_count=len(steps),
-                created_at=funnel.created_at,
-                updated_at=funnel.updated_at,
-            ).model_dump())
+            items.append(
+                FunnelResponse(
+                    id=str(funnel.id),
+                    name=funnel.name,
+                    description=funnel.description,
+                    is_active=funnel.is_active,
+                    conversion_window_hours=funnel.conversion_window_hours,
+                    strict_order=funnel.strict_order,
+                    steps=[
+                        {
+                            "id": str(s.id),
+                            "name": s.name,
+                            "order": s.order,
+                            "match_type": s.match_type,
+                            "event_name": s.event_name,
+                            "page_path": s.page_path,
+                            "conditions": s.conditions,
+                            "timeout_hours": s.timeout_hours,
+                        }
+                        for s in steps
+                    ],
+                    step_count=len(steps),
+                    created_at=funnel.created_at,
+                    updated_at=funnel.updated_at,
+                ).model_dump()
+            )
 
         response = FunnelListResponse(items=items, total=len(items))
         return JsonResponse(response.model_dump())
@@ -812,16 +818,19 @@ class FunnelController(APIController):
             is_active=funnel.is_active,
             conversion_window_hours=funnel.conversion_window_hours,
             strict_order=funnel.strict_order,
-            steps=[{
-                "id": str(s.id),
-                "name": s.name,
-                "order": s.order,
-                "match_type": s.match_type,
-                "event_name": s.event_name,
-                "page_path": s.page_path,
-                "conditions": s.conditions,
-                "timeout_hours": s.timeout_hours,
-            } for s in steps],
+            steps=[
+                {
+                    "id": str(s.id),
+                    "name": s.name,
+                    "order": s.order,
+                    "match_type": s.match_type,
+                    "event_name": s.event_name,
+                    "page_path": s.page_path,
+                    "conditions": s.conditions,
+                    "timeout_hours": s.timeout_hours,
+                }
+                for s in steps
+            ],
             step_count=len(steps),
             created_at=funnel.created_at,
             updated_at=funnel.updated_at,
@@ -850,16 +859,19 @@ class FunnelController(APIController):
             is_active=funnel.is_active,
             conversion_window_hours=funnel.conversion_window_hours,
             strict_order=funnel.strict_order,
-            steps=[{
-                "id": str(s.id),
-                "name": s.name,
-                "order": s.order,
-                "match_type": s.match_type,
-                "event_name": s.event_name,
-                "page_path": s.page_path,
-                "conditions": s.conditions,
-                "timeout_hours": s.timeout_hours,
-            } for s in steps],
+            steps=[
+                {
+                    "id": str(s.id),
+                    "name": s.name,
+                    "order": s.order,
+                    "match_type": s.match_type,
+                    "event_name": s.event_name,
+                    "page_path": s.page_path,
+                    "conditions": s.conditions,
+                    "timeout_hours": s.timeout_hours,
+                }
+                for s in steps
+            ],
             step_count=len(steps),
             created_at=funnel.created_at,
             updated_at=funnel.updated_at,
@@ -916,16 +928,19 @@ class FunnelController(APIController):
             is_active=funnel.is_active,
             conversion_window_hours=funnel.conversion_window_hours,
             strict_order=funnel.strict_order,
-            steps=[{
-                "id": str(s.id),
-                "name": s.name,
-                "order": s.order,
-                "match_type": s.match_type,
-                "event_name": s.event_name,
-                "page_path": s.page_path,
-                "conditions": s.conditions,
-                "timeout_hours": s.timeout_hours,
-            } for s in steps],
+            steps=[
+                {
+                    "id": str(s.id),
+                    "name": s.name,
+                    "order": s.order,
+                    "match_type": s.match_type,
+                    "event_name": s.event_name,
+                    "page_path": s.page_path,
+                    "conditions": s.conditions,
+                    "timeout_hours": s.timeout_hours,
+                }
+                for s in steps
+            ],
             step_count=len(steps),
             created_at=funnel.created_at,
             updated_at=funnel.updated_at,

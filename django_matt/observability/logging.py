@@ -27,7 +27,7 @@ import logging
 import sys
 import traceback
 from contextvars import ContextVar
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Optional
 
 from django.conf import settings
@@ -148,10 +148,12 @@ class JSONFormatter(logging.Formatter):
         """Sanitize sensitive values."""
         if isinstance(value, dict):
             return {
-                k: "[REDACTED]" if any(sf in k.lower() for sf in self.sensitive_fields) else self._sanitize_value(v)
+                k: "[REDACTED]"
+                if any(sf in k.lower() for sf in self.sensitive_fields)
+                else self._sanitize_value(v)
                 for k, v in value.items()
             }
-        elif isinstance(value, list):
+        if isinstance(value, list):
             return [self._sanitize_value(v) for v in value]
         return value
 
@@ -165,9 +167,7 @@ class JSONFormatter(logging.Formatter):
 
         # Add timestamp
         if self.include_timestamp:
-            log_data["timestamp"] = datetime.fromtimestamp(
-                record.created, tz=timezone.utc
-            ).isoformat()
+            log_data["timestamp"] = datetime.fromtimestamp(record.created, tz=UTC).isoformat()
 
         # Add location info
         log_data["location"] = {
@@ -203,7 +203,9 @@ class JSONFormatter(logging.Formatter):
             log_data["exception"] = {
                 "type": record.exc_info[0].__name__ if record.exc_info[0] else None,
                 "message": str(record.exc_info[1]) if record.exc_info[1] else None,
-                "traceback": traceback.format_exception(*record.exc_info) if record.exc_info[2] else None,
+                "traceback": traceback.format_exception(*record.exc_info)
+                if record.exc_info[2]
+                else None,
             }
 
         # Add extra fields from record
@@ -212,11 +214,28 @@ class JSONFormatter(logging.Formatter):
 
         # Add any additional attributes on the record
         standard_attrs = {
-            "name", "msg", "args", "created", "filename", "funcName",
-            "levelname", "levelno", "lineno", "module", "msecs",
-            "pathname", "process", "processName", "relativeCreated",
-            "stack_info", "exc_info", "exc_text", "thread", "threadName",
-            "message", "extra",
+            "name",
+            "msg",
+            "args",
+            "created",
+            "filename",
+            "funcName",
+            "levelname",
+            "levelno",
+            "lineno",
+            "module",
+            "msecs",
+            "pathname",
+            "process",
+            "processName",
+            "relativeCreated",
+            "stack_info",
+            "exc_info",
+            "exc_text",
+            "thread",
+            "threadName",
+            "message",
+            "extra",
         }
         custom_attrs = {
             k: self._sanitize_value(v)
@@ -256,11 +275,11 @@ class ColoredTextFormatter(logging.Formatter):
     """
 
     COLORS = {
-        "DEBUG": "\033[36m",    # Cyan
-        "INFO": "\033[32m",     # Green
+        "DEBUG": "\033[36m",  # Cyan
+        "INFO": "\033[32m",  # Green
         "WARNING": "\033[33m",  # Yellow
-        "ERROR": "\033[31m",    # Red
-        "CRITICAL": "\033[35m", # Magenta
+        "ERROR": "\033[31m",  # Red
+        "CRITICAL": "\033[35m",  # Magenta
     }
     RESET = "\033[0m"
 
@@ -509,23 +528,25 @@ def get_logging_config(
     }
 
     if include_django:
-        config["loggers"].update({
-            "django": {
-                "handlers": ["console"],
-                "level": level,
-                "propagate": False,
-            },
-            "django.request": {
-                "handlers": ["console"],
-                "level": level,
-                "propagate": False,
-            },
-            "django.db.backends": {
-                "handlers": ["console"],
-                "level": "WARNING",
-                "propagate": False,
-            },
-        })
+        config["loggers"].update(
+            {
+                "django": {
+                    "handlers": ["console"],
+                    "level": level,
+                    "propagate": False,
+                },
+                "django.request": {
+                    "handlers": ["console"],
+                    "level": level,
+                    "propagate": False,
+                },
+                "django.db.backends": {
+                    "handlers": ["console"],
+                    "level": "WARNING",
+                    "propagate": False,
+                },
+            }
+        )
 
     return config
 

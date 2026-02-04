@@ -40,10 +40,7 @@ class MailgunProvider(EmailProviderBase):
     def _get_api_url(self) -> str:
         """Get the API URL for sending."""
         if not self.domain:
-            raise ValueError(
-                "MAILGUN_DOMAIN is required. "
-                "Set it in Django settings."
-            )
+            raise ValueError("MAILGUN_DOMAIN is required. Set it in Django settings.")
         return f"{self.api_url}/{self.domain}/messages"
 
     def send(
@@ -66,10 +63,7 @@ class MailgunProvider(EmailProviderBase):
             import requests
 
             if not self.api_key:
-                raise ValueError(
-                    "MAILGUN_API_KEY is required. "
-                    "Set it in Django settings."
-                )
+                raise ValueError("MAILGUN_API_KEY is required. Set it in Django settings.")
 
             # Filter suppressed emails
             to = self.filter_suppressed(to)
@@ -121,14 +115,16 @@ class MailgunProvider(EmailProviderBase):
                     content = att["content"]
                     if isinstance(content, str):
                         content = content.encode()
-                    files.append((
-                        "attachment",
+                    files.append(
                         (
-                            att.get("filename", "attachment"),
-                            content,
-                            att.get("content_type", "application/octet-stream"),
-                        ),
-                    ))
+                            "attachment",
+                            (
+                                att.get("filename", "attachment"),
+                                content,
+                                att.get("content_type", "application/octet-stream"),
+                            ),
+                        )
+                    )
 
             # Send request
             response = requests.post(
@@ -198,6 +194,7 @@ class MailgunProvider(EmailProviderBase):
             # Add template variables
             if context:
                 import json
+
                 data["h:X-Mailgun-Variables"] = json.dumps(context)
 
             response = requests.post(

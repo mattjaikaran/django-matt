@@ -27,7 +27,7 @@ Or use the included URL patterns:
 import json
 import logging
 import time
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from django.http import HttpRequest, HttpResponse
 from django.urls import path
@@ -85,9 +85,7 @@ class ReadinessChecker:
     def __init__(self):
         self._checks: dict[str, Callable[[], tuple[bool, str]]] = {}
 
-    def register(
-        self, name: str, check: Callable[[], tuple[bool, str]]
-    ) -> None:
+    def register(self, name: str, check: Callable[[], tuple[bool, str]]) -> None:
         """
         Register a readiness check.
 

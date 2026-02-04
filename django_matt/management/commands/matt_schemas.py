@@ -107,7 +107,9 @@ class Command(MattCommand):
                         continue
 
                     try:
-                        file_schemas = self._parse_schema_file(file_path, app_config.label, base_dir)
+                        file_schemas = self._parse_schema_file(
+                            file_path, app_config.label, base_dir
+                        )
                         schemas.extend(file_schemas)
                     except Exception as e:
                         self.warning(f"Error parsing {file_path}: {e}")
@@ -128,7 +130,9 @@ class Command(MattCommand):
 
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
-                schema_info = self._extract_schema_info(node, file_path, app_label, base_dir, content)
+                schema_info = self._extract_schema_info(
+                    node, file_path, app_label, base_dir, content
+                )
                 if schema_info:
                     schemas.append(schema_info)
 
@@ -158,7 +162,10 @@ class Command(MattCommand):
         if not is_schema and base_names:
             # If it ends with "Schema" or "Model", assume it's a schema
             is_schema = any(
-                b.endswith("Schema") or b.endswith("Base") or b.endswith("Create") or b.endswith("Update")
+                b.endswith("Schema")
+                or b.endswith("Base")
+                or b.endswith("Create")
+                or b.endswith("Update")
                 for b in base_names
             )
 
@@ -189,7 +196,12 @@ class Command(MattCommand):
                         elif isinstance(decorator.func, ast.Attribute):
                             decorator_name = decorator.func.attr
 
-                    if decorator_name in ("validator", "field_validator", "model_validator", "root_validator"):
+                    if decorator_name in (
+                        "validator",
+                        "field_validator",
+                        "model_validator",
+                        "root_validator",
+                    ):
                         validators.append(
                             {
                                 "name": item.name,
@@ -297,18 +309,18 @@ class Command(MattCommand):
         """Convert an AST annotation node to a string."""
         if isinstance(annotation, ast.Name):
             return annotation.id
-        elif isinstance(annotation, ast.Constant):
+        if isinstance(annotation, ast.Constant):
             return str(annotation.value)
-        elif isinstance(annotation, ast.Subscript):
+        if isinstance(annotation, ast.Subscript):
             base = self._get_annotation_str(annotation.value)
             if isinstance(annotation.slice, ast.Tuple):
                 args = ", ".join(self._get_annotation_str(e) for e in annotation.slice.elts)
             else:
                 args = self._get_annotation_str(annotation.slice)
             return f"{base}[{args}]"
-        elif isinstance(annotation, ast.Attribute):
+        if isinstance(annotation, ast.Attribute):
             return f"{self._get_annotation_str(annotation.value)}.{annotation.attr}"
-        elif isinstance(annotation, ast.BinOp):
+        if isinstance(annotation, ast.BinOp):
             if isinstance(annotation.op, ast.BitOr):
                 left = self._get_annotation_str(annotation.left)
                 right = self._get_annotation_str(annotation.right)
@@ -321,11 +333,11 @@ class Command(MattCommand):
         """Convert an AST value node to a string."""
         if isinstance(value, ast.Constant):
             return str(value.value)
-        elif isinstance(value, ast.Name):
+        if isinstance(value, ast.Name):
             return value.id
-        elif isinstance(value, ast.List):
+        if isinstance(value, ast.List):
             return "[]"
-        elif isinstance(value, ast.Dict):
+        if isinstance(value, ast.Dict):
             return "{}"
         return "..."
 
@@ -365,12 +377,16 @@ class Command(MattCommand):
                     # Look for schema imports and usages
                     # Import patterns
                     import_matches = list(
-                        __import__("re").finditer(r"from\s+[\w.]+schemas?\s+import\s+([^#\n]+)", content)
+                        __import__("re").finditer(
+                            r"from\s+[\w.]+schemas?\s+import\s+([^#\n]+)", content
+                        )
                     )
                     for match in import_matches:
                         imports = match.group(1)
                         # Extract schema names
-                        names = __import__("re").findall(r"\b(\w+Schema|\w+Base|\w+Create|\w+Update)\b", imports)
+                        names = __import__("re").findall(
+                            r"\b(\w+Schema|\w+Base|\w+Create|\w+Update)\b", imports
+                        )
                         used.update(names)
 
                     # Type hint usages
@@ -378,7 +394,9 @@ class Command(MattCommand):
                     used.update(type_matches)
 
                     # Response model usages
-                    response_matches = __import__("re").findall(r"response_model\s*=\s*(\w+)", content)
+                    response_matches = __import__("re").findall(
+                        r"response_model\s*=\s*(\w+)", content
+                    )
                     used.update(response_matches)
 
                 except Exception:
@@ -471,9 +489,7 @@ class Command(MattCommand):
         if schema.get("validators"):
             self.console.print("\n  [bold]Validators:[/]")
             for validator in schema["validators"]:
-                self.console.print(
-                    f"    @{validator['type']} {validator['name']}"
-                )
+                self.console.print(f"    @{validator['type']} {validator['name']}")
 
         # Config
         if schema.get("config"):

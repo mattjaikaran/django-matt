@@ -118,9 +118,7 @@ class MetricsMiddleware:
     @property
     def _enabled(self) -> bool:
         """Check if metrics collection is enabled."""
-        return self._config.get("ENABLED", True) and self._config.get(
-            "COLLECT_METRICS", True
-        )
+        return self._config.get("ENABLED", True) and self._config.get("COLLECT_METRICS", True)
 
     @property
     def _track_queries(self) -> bool:

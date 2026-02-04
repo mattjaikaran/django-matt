@@ -11,7 +11,6 @@ import json
 import secrets
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
 
 
 @dataclass
@@ -127,9 +126,7 @@ class PlaygroundSession:
             base_url=data.get("base_url", ""),
             created_at=datetime.fromisoformat(data["created_at"]),
         )
-        session.requests = [
-            PlaygroundRequest.from_dict(r) for r in data.get("requests", [])
-        ]
+        session.requests = [PlaygroundRequest.from_dict(r) for r in data.get("requests", [])]
         return session
 
 
@@ -191,9 +188,9 @@ class CodeGenerator:
 
         # Determine if async
         if self.method in ("GET", "DELETE"):
-            lines.append(f'response = httpx.{self.method.lower()}(')
+            lines.append(f"response = httpx.{self.method.lower()}(")
         else:
-            lines.append(f'response = httpx.{self.method.lower()}(')
+            lines.append(f"response = httpx.{self.method.lower()}(")
 
         lines.append(f'    "{self.url}",')
 
@@ -230,7 +227,7 @@ class CodeGenerator:
             "    async with httpx.AsyncClient() as client:",
         ]
 
-        lines.append(f'        response = await client.{self.method.lower()}(')
+        lines.append(f"        response = await client.{self.method.lower()}(")
         lines.append(f'            "{self.url}",')
 
         # Add headers
@@ -358,12 +355,14 @@ class CodeGenerator:
             lines.append(f'let body = """{body}"""')
             lines.append("request.httpBody = body.data(using: .utf8)")
 
-        lines.extend([
-            "",
-            "let (data, response) = try await URLSession.shared.data(for: request)",
-            "let json = try JSONSerialization.jsonObject(with: data)",
-            "print(json)",
-        ])
+        lines.extend(
+            [
+                "",
+                "let (data, response) = try await URLSession.shared.data(for: request)",
+                "let json = try JSONSerialization.jsonObject(with: data)",
+                "print(json)",
+            ]
+        )
 
         return "\n".join(lines)
 
@@ -386,35 +385,41 @@ class CodeGenerator:
         # Add body
         body = self._format_body()
         if body and self.method in ("POST", "PUT", "PATCH"):
-            lines.append(f'    body := []byte(`{body}`)')
-            lines.append(f'    req, err := http.NewRequest("{self.method}", "{self.url}", bytes.NewBuffer(body))')
+            lines.append(f"    body := []byte(`{body}`)")
+            lines.append(
+                f'    req, err := http.NewRequest("{self.method}", "{self.url}", bytes.NewBuffer(body))'
+            )
         else:
             lines.append(f'    req, err := http.NewRequest("{self.method}", "{self.url}", nil)')
 
-        lines.extend([
-            "    if err != nil {",
-            "        panic(err)",
-            "    }",
-            "",
-        ])
+        lines.extend(
+            [
+                "    if err != nil {",
+                "        panic(err)",
+                "    }",
+                "",
+            ]
+        )
 
         # Add headers
         for key, value in self.headers.items():
             lines.append(f'    req.Header.Set("{key}", "{value}")')
 
-        lines.extend([
-            "",
-            "    client := &http.Client{}",
-            "    resp, err := client.Do(req)",
-            "    if err != nil {",
-            "        panic(err)",
-            "    }",
-            "    defer resp.Body.Close()",
-            "",
-            "    body, _ := io.ReadAll(resp.Body)",
-            '    fmt.Printf("%s\\n", body)',
-            "}",
-        ])
+        lines.extend(
+            [
+                "",
+                "    client := &http.Client{}",
+                "    resp, err := client.Do(req)",
+                "    if err != nil {",
+                "        panic(err)",
+                "    }",
+                "    defer resp.Body.Close()",
+                "",
+                "    body, _ := io.ReadAll(resp.Body)",
+                '    fmt.Printf("%s\\n", body)',
+                "}",
+            ]
+        )
 
         return "\n".join(lines)
 

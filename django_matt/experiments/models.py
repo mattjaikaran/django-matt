@@ -5,13 +5,10 @@ Provides Experiment, Variant, ExperimentAssignment, and ExperimentResult models
 for comprehensive A/B testing and experimentation.
 """
 
-import hashlib
-import secrets
 import uuid
-from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.db import models
@@ -339,10 +336,16 @@ class Experiment(models.Model):
             self.winner_confidence = confidence
             self.winner_detected_at = timezone.now()
 
-        self.save(update_fields=[
-            "status", "end_date", "winner_variant_id",
-            "winner_confidence", "winner_detected_at", "updated_at"
-        ])
+        self.save(
+            update_fields=[
+                "status",
+                "end_date",
+                "winner_variant_id",
+                "winner_confidence",
+                "winner_detected_at",
+                "updated_at",
+            ]
+        )
 
 
 class Variant(models.Model):

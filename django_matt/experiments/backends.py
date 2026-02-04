@@ -6,7 +6,6 @@ Provides different storage backends for experiment data:
 - RedisBackend: Uses Redis for high-performance assignment lookups
 """
 
-import hashlib
 import json
 import logging
 from abc import ABC, abstractmethod
@@ -33,7 +32,6 @@ class ExperimentBackend(ABC):
     @abstractmethod
     def get_experiment(self, key: str) -> "Experiment | None":
         """Get an experiment by key."""
-        pass
 
     @abstractmethod
     def get_assignment(
@@ -43,7 +41,6 @@ class ExperimentBackend(ABC):
         anonymous_id: str | None = None,
     ) -> "ExperimentAssignment | None":
         """Get an existing assignment."""
-        pass
 
     @abstractmethod
     def create_assignment(
@@ -56,7 +53,6 @@ class ExperimentBackend(ABC):
         context: dict[str, Any] | None = None,
     ) -> "ExperimentAssignment":
         """Create a new assignment."""
-        pass
 
     @abstractmethod
     def get_all_experiments(
@@ -64,11 +60,9 @@ class ExperimentBackend(ABC):
         status: str | None = None,
     ) -> list["Experiment"]:
         """Get all experiments, optionally filtered by status."""
-        pass
 
     def close(self):
         """Clean up resources."""
-        pass
 
 
 class DatabaseBackend(ExperimentBackend):
@@ -136,9 +130,7 @@ class DatabaseBackend(ExperimentBackend):
         # Check cache
         if self.use_cache:
             user_id = str(user.pk) if user else None
-            cache_key = self._get_assignment_cache_key(
-                experiment_key, user_id, anonymous_id
-            )
+            cache_key = self._get_assignment_cache_key(experiment_key, user_id, anonymous_id)
             assignment = cache.get(cache_key)
             if assignment is not None:
                 if assignment == "__NOT_FOUND__":
@@ -199,9 +191,7 @@ class DatabaseBackend(ExperimentBackend):
         # Update cache
         if self.use_cache:
             user_id = str(user.pk) if user else None
-            cache_key = self._get_assignment_cache_key(
-                experiment.key, user_id, anonymous_id
-            )
+            cache_key = self._get_assignment_cache_key(experiment.key, user_id, anonymous_id)
             cache.set(cache_key, assignment, self.cache_timeout)
 
         return assignment
@@ -241,9 +231,7 @@ class RedisBackend(ExperimentBackend):
         cache_timeout: int = 300,
         key_prefix: str = "experiments:",
     ):
-        self.redis_url = redis_url or getattr(
-            settings, "REDIS_URL", "redis://localhost:6379/0"
-        )
+        self.redis_url = redis_url or getattr(settings, "REDIS_URL", "redis://localhost:6379/0")
         self.cache_timeout = cache_timeout
         self.key_prefix = key_prefix
         self._client = None
@@ -280,14 +268,16 @@ class RedisBackend(ExperimentBackend):
         """Serialize experiment to JSON."""
         variants_data = []
         for v in experiment.variants.all():
-            variants_data.append({
-                "id": str(v.id),
-                "key": v.key,
-                "name": v.name,
-                "is_control": v.is_control,
-                "weight": v.weight,
-                "payload": v.payload,
-            })
+            variants_data.append(
+                {
+                    "id": str(v.id),
+                    "key": v.key,
+                    "name": v.name,
+                    "is_control": v.is_control,
+                    "weight": v.weight,
+                    "payload": v.payload,
+                }
+            )
 
         data = {
             "id": str(experiment.id),
@@ -363,13 +353,13 @@ class RedisBackend(ExperimentBackend):
             # Return actual database object
             try:
                 if user:
-                    return ExperimentAssignment.objects.select_related(
-                        "experiment", "variant"
-                    ).get(experiment__key=experiment_key, user=user)
-                elif anonymous_id:
-                    return ExperimentAssignment.objects.select_related(
-                        "experiment", "variant"
-                    ).get(experiment__key=experiment_key, anonymous_id=anonymous_id)
+                    return ExperimentAssignment.objects.select_related("experiment", "variant").get(
+                        experiment__key=experiment_key, user=user
+                    )
+                if anonymous_id:
+                    return ExperimentAssignment.objects.select_related("experiment", "variant").get(
+                        experiment__key=experiment_key, anonymous_id=anonymous_id
+                    )
             except ExperimentAssignment.DoesNotExist:
                 return None
 
@@ -473,8 +463,8 @@ class MemoryBackend(ExperimentBackend):
     """
 
     def __init__(self):
-        self._experiments: dict[str, "Experiment"] = {}
-        self._assignments: dict[str, "ExperimentAssignment"] = {}
+        self._experiments: dict[str, Experiment] = {}
+        self._assignments: dict[str, ExperimentAssignment] = {}
 
     def add_experiment(self, experiment: "Experiment"):
         """Add an experiment to memory."""

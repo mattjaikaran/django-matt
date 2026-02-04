@@ -39,8 +39,8 @@ Management Command:
 
 from django_matt.ai.context.generators import (
     ClaudeMdGenerator,
-    CopilotInstructionsGenerator,
     ContextGenerator,
+    CopilotInstructionsGenerator,
     CursorRulesGenerator,
     JsonIntrospectionGenerator,
 )

@@ -120,9 +120,7 @@ class Command(BaseCommand):
             available = suite.list_scenarios()
             for s in scenarios:
                 if s not in available:
-                    raise CommandError(
-                        f"Unknown scenario: {s}. Available: {', '.join(available)}"
-                    )
+                    raise CommandError(f"Unknown scenario: {s}. Available: {', '.join(available)}")
 
         # Apply warmup setting to all scenarios
         warmup = options["warmup"]
@@ -170,9 +168,7 @@ class Command(BaseCommand):
 
             if not baseline:
                 self.stdout.write(
-                    self.style.WARNING(
-                        f"No baseline found at .matt/benchmarks/{baseline_file}"
-                    )
+                    self.style.WARNING(f"No baseline found at .matt/benchmarks/{baseline_file}")
                 )
             else:
                 comparisons = runner.compare(
@@ -213,9 +209,7 @@ class Command(BaseCommand):
             runner.save_results()
             if not options["quiet"]:
                 self.stdout.write(
-                    self.style.SUCCESS(
-                        "Results saved to .matt/benchmarks/ for future comparison"
-                    )
+                    self.style.SUCCESS("Results saved to .matt/benchmarks/ for future comparison")
                 )
 
         # Show summary for console output
@@ -248,9 +242,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"Completed {len(non_skipped)} benchmarks"))
 
         if skipped:
-            self.stdout.write(
-                self.style.WARNING(f"Skipped {len(skipped)} benchmarks")
-            )
+            self.stdout.write(self.style.WARNING(f"Skipped {len(skipped)} benchmarks"))
 
         if comparisons:
             faster = len([c for c in comparisons if c.status == "faster"])
@@ -271,11 +263,7 @@ class Command(BaseCommand):
             slowest = max(non_skipped, key=lambda r: r.mean_time_ms)
 
             self.stdout.write("")
-            self.stdout.write(
-                f"Fastest: {fastest.name} ({fastest.ops_per_second:,.0f} ops/s)"
-            )
-            self.stdout.write(
-                f"Slowest: {slowest.name} ({slowest.ops_per_second:,.0f} ops/s)"
-            )
+            self.stdout.write(f"Fastest: {fastest.name} ({fastest.ops_per_second:,.0f} ops/s)")
+            self.stdout.write(f"Slowest: {slowest.name} ({slowest.ops_per_second:,.0f} ops/s)")
 
         self.stdout.write("")

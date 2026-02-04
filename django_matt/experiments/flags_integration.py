@@ -168,6 +168,7 @@ def sync_experiment_to_flag(
     # Get winning variant
     try:
         from django_matt.experiments.models import Variant
+
         winner = Variant.objects.get(id=experiment.winner_variant_id)
     except Variant.DoesNotExist:
         logger.warning(f"Winner variant not found: {experiment.winner_variant_id}")
@@ -179,7 +180,7 @@ def sync_experiment_to_flag(
         defaults={
             "name": f"{experiment.name} - Winner",
             "description": f"Auto-created from experiment '{experiment_key}'. "
-                          f"Winner: {winner.key} (confidence: {experiment.winner_confidence:.2%})",
+            f"Winner: {winner.key} (confidence: {experiment.winner_confidence:.2%})",
             "flag_type": FlagType.BOOLEAN.value,
             "status": FlagStatus.ACTIVE.value if enable_flag else FlagStatus.INACTIVE.value,
             "enabled_by_default": enable_flag and not winner.is_control,
@@ -344,6 +345,7 @@ def get_experiment_flag_status(
         # Get flag status if linked
         if experiment.feature_flag_key:
             from django_matt.flags import feature_enabled
+
             result["flag_enabled"] = feature_enabled(
                 experiment.feature_flag_key,
                 user=user,

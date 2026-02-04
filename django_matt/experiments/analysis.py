@@ -5,12 +5,9 @@ Provides chi-square tests, t-tests, confidence intervals, and significance testi
 for A/B test experiments.
 """
 
+import logging
 import math
 from dataclasses import dataclass, field
-from decimal import Decimal
-from typing import Any
-
-import logging
 
 logger = logging.getLogger("django_matt.experiments")
 
@@ -233,18 +230,19 @@ class StatisticalAnalyzer:
 
         if samples_needed > 0:
             should_continue = True
-            recommendation = f"Continue collecting data. Need ~{samples_needed} more samples per variant."
+            recommendation = (
+                f"Continue collecting data. Need ~{samples_needed} more samples per variant."
+            )
         elif has_winner:
             should_continue = False
             recommendation = f"Winner found: {winner_variant_key}. Consider stopping experiment."
+        # Check if we should continue based on power
+        elif any(c.statistical_power < 0.8 for c in comparisons):
+            should_continue = True
+            recommendation = "Low statistical power. Continue to increase sample size."
         else:
-            # Check if we should continue based on power
-            if any(c.statistical_power < 0.8 for c in comparisons):
-                should_continue = True
-                recommendation = "Low statistical power. Continue to increase sample size."
-            else:
-                should_continue = False
-                recommendation = "No significant difference detected. Consider stopping or redesigning."
+            should_continue = False
+            recommendation = "No significant difference detected. Consider stopping or redesigning."
 
         return ExperimentAnalysis(
             experiment_id=str(experiment.id),
@@ -252,7 +250,9 @@ class StatisticalAnalyzer:
             status=experiment.status,
             total_participants=total_participants,
             total_conversions=total_conversions,
-            overall_conversion_rate=total_conversions / total_participants if total_participants > 0 else 0.0,
+            overall_conversion_rate=total_conversions / total_participants
+            if total_participants > 0
+            else 0.0,
             variant_stats=variant_stats_list,
             comparisons=comparisons,
             has_winner=has_winner,
@@ -279,24 +279,30 @@ class StatisticalAnalyzer:
         """
         # Calculate lifts
         if control.conversion_rate > 0:
-            relative_lift = (treatment.conversion_rate - control.conversion_rate) / control.conversion_rate
+            relative_lift = (
+                treatment.conversion_rate - control.conversion_rate
+            ) / control.conversion_rate
         else:
-            relative_lift = 0.0 if treatment.conversion_rate == 0 else float('inf')
+            relative_lift = 0.0 if treatment.conversion_rate == 0 else float("inf")
 
         absolute_lift = treatment.conversion_rate - control.conversion_rate
 
         # Chi-square test
         p_value, z_score = self._chi_square_test(
-            treatment.conversions, treatment.sample_size,
-            control.conversions, control.sample_size,
+            treatment.conversions,
+            treatment.sample_size,
+            control.conversions,
+            control.sample_size,
         )
 
         is_significant = p_value < self.alpha
 
         # Calculate lift confidence interval
         lift_ci = self._lift_confidence_interval(
-            treatment.conversions, treatment.sample_size,
-            control.conversions, control.sample_size,
+            treatment.conversions,
+            treatment.sample_size,
+            control.conversions,
+            control.sample_size,
         )
 
         # Calculate statistical power
@@ -310,7 +316,9 @@ class StatisticalAnalyzer:
         # Calculate required sample size for 80% power
         required_n = self._required_sample_size(
             control.conversion_rate,
-            treatment.conversion_rate if treatment.conversion_rate != control.conversion_rate else control.conversion_rate * 1.1,
+            treatment.conversion_rate
+            if treatment.conversion_rate != control.conversion_rate
+            else control.conversion_rate * 1.1,
             power=0.8,
         )
 
@@ -352,7 +360,7 @@ class StatisticalAnalyzer:
             return 1.0, 0.0
 
         # Standard error
-        se = math.sqrt(p_pool * (1 - p_pool) * (1/total_a + 1/total_b))
+        se = math.sqrt(p_pool * (1 - p_pool) * (1 / total_a + 1 / total_b))
 
         if se == 0:
             return 1.0, 0.0
@@ -413,9 +421,7 @@ class StatisticalAnalyzer:
         diff = p_a - p_b
 
         # Standard error of difference
-        se = math.sqrt(
-            (p_a * (1 - p_a) / total_a) + (p_b * (1 - p_b) / total_b)
-        )
+        se = math.sqrt((p_a * (1 - p_a) / total_a) + (p_b * (1 - p_b) / total_b))
 
         z = self._normal_ppf(1 - (1 - confidence) / 2)
         margin = z * se
@@ -467,7 +473,7 @@ class StatisticalAnalyzer:
         Calculate required sample size per group for desired power.
         """
         if p_control == p_treatment:
-            return float('inf')
+            return float("inf")
 
         z_alpha = self._normal_ppf(1 - alpha / 2)
         z_beta = self._normal_ppf(power)
@@ -475,9 +481,11 @@ class StatisticalAnalyzer:
         p_avg = (p_control + p_treatment) / 2
         effect = abs(p_treatment - p_control)
 
-        numerator = (z_alpha * math.sqrt(2 * p_avg * (1 - p_avg)) +
-                     z_beta * math.sqrt(p_control * (1 - p_control) + p_treatment * (1 - p_treatment))) ** 2
-        denominator = effect ** 2
+        numerator = (
+            z_alpha * math.sqrt(2 * p_avg * (1 - p_avg))
+            + z_beta * math.sqrt(p_control * (1 - p_control) + p_treatment * (1 - p_treatment))
+        ) ** 2
+        denominator = effect**2
 
         return int(math.ceil(numerator / denominator))
 
@@ -494,9 +502,9 @@ class StatisticalAnalyzer:
         Uses rational approximation from Abramowitz and Stegun.
         """
         if p <= 0:
-            return float('-inf')
+            return float("-inf")
         if p >= 1:
-            return float('inf')
+            return float("inf")
         if p == 0.5:
             return 0.0
 
@@ -566,13 +574,12 @@ class StatisticalAnalyzer:
         """
         # Use normal approximation for simplicity
         # For more accuracy, use scipy.stats.t
-        x = df / (df + t ** 2)
+        x = df / (df + t**2)
         # Beta regularized incomplete function approximation
         if df > 30:
             return 2 * (1 - self._normal_cdf(abs(t)))
-        else:
-            # Rough approximation
-            return 2 * (1 - self._normal_cdf(abs(t) * math.sqrt(df / (df + 2))))
+        # Rough approximation
+        return 2 * (1 - self._normal_cdf(abs(t) * math.sqrt(df / (df + 2))))
 
 
 def analyze_experiment(

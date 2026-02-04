@@ -176,9 +176,7 @@ class CachedLLM:
 
     def _get_messages_text(self, messages: list[Message]) -> str:
         """Extract text content from messages for semantic comparison."""
-        return " ".join(
-            msg.content for msg in messages if msg.role in (Role.USER, Role.SYSTEM)
-        )
+        return " ".join(msg.content for msg in messages if msg.role in (Role.USER, Role.SYSTEM))
 
     async def _get_cached(self, key: str) -> CompletionResponse | None:
         """Get value from cache."""
@@ -188,8 +186,7 @@ class CachedLLM:
             if not entry.is_expired:
                 entry.hit_count += 1
                 return entry.response
-            else:
-                del self._local_cache[key]
+            del self._local_cache[key]
 
         # Try external cache
         if self.cache:

@@ -12,7 +12,6 @@ Usage:
 
 import json
 from datetime import timedelta
-from typing import Any
 
 from django.http import HttpRequest, JsonResponse
 from django.utils import timezone
@@ -35,7 +34,6 @@ from .schemas import (
     FlagOverrideCreate,
     FlagOverrideListResponse,
     FlagOverrideResponse,
-    FlagOverrideUpdate,
     FlagStatsResponse,
     MessageResponse,
 )
@@ -147,14 +145,20 @@ class FlagController(APIController):
             body = json.loads(request.body) if request.body else {}
             data = FeatureFlagCreate.model_validate(body)
         except json.JSONDecodeError:
-            return JsonResponse(ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400)
+            return JsonResponse(
+                ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
+            )
         except Exception as e:
-            return JsonResponse(ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422)
+            return JsonResponse(
+                ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422
+            )
 
         # Check if key already exists
         if await FeatureFlag.objects.filter(key=data.key).aexists():
             return JsonResponse(
-                ErrorResponse(detail=f"Flag with key '{data.key}' already exists", code="key_exists").model_dump(),
+                ErrorResponse(
+                    detail=f"Flag with key '{data.key}' already exists", code="key_exists"
+                ).model_dump(),
                 status=400,
             )
 
@@ -259,9 +263,13 @@ class FlagController(APIController):
             body = json.loads(request.body) if request.body else {}
             data = FeatureFlagUpdate.model_validate(body)
         except json.JSONDecodeError:
-            return JsonResponse(ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400)
+            return JsonResponse(
+                ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
+            )
         except Exception as e:
-            return JsonResponse(ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422)
+            return JsonResponse(
+                ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422
+            )
 
         # Track changes
         old_values = {
@@ -509,9 +517,13 @@ class FlagController(APIController):
             body = json.loads(request.body) if request.body else {}
             data = FlagOverrideCreate.model_validate(body)
         except json.JSONDecodeError:
-            return JsonResponse(ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400)
+            return JsonResponse(
+                ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
+            )
         except Exception as e:
-            return JsonResponse(ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422)
+            return JsonResponse(
+                ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422
+            )
 
         override = FlagOverride(
             flag=flag,
@@ -562,7 +574,9 @@ class FlagController(APIController):
         return JsonResponse(response.model_dump(), status=201)
 
     @delete("{key}/overrides/{override_id}")
-    async def delete_override(self, request: HttpRequest, key: str, override_id: str) -> JsonResponse:
+    async def delete_override(
+        self, request: HttpRequest, key: str, override_id: str
+    ) -> JsonResponse:
         """Delete an override."""
         from .models import FeatureFlag, FlagAuditLog, FlagOverride
 
@@ -616,9 +630,13 @@ class FlagController(APIController):
             body = json.loads(request.body) if request.body else {}
             data = FlagEvaluationRequest.model_validate(body)
         except json.JSONDecodeError:
-            return JsonResponse(ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400)
+            return JsonResponse(
+                ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
+            )
         except Exception as e:
-            return JsonResponse(ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422)
+            return JsonResponse(
+                ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422
+            )
 
         from .backends import get_backend
 
@@ -677,9 +695,13 @@ class FlagController(APIController):
             body = json.loads(request.body) if request.body else {}
             data = BulkEvaluationRequest.model_validate(body)
         except json.JSONDecodeError:
-            return JsonResponse(ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400)
+            return JsonResponse(
+                ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
+            )
         except Exception as e:
-            return JsonResponse(ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422)
+            return JsonResponse(
+                ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422
+            )
 
         from .backends import get_backend
 
@@ -710,7 +732,9 @@ class FlagController(APIController):
             attributes["email"] = data.context.email
 
         if data.include_all:
-            flags = backend.get_all_flags(user=user, organization=organization, attributes=attributes)
+            flags = backend.get_all_flags(
+                user=user, organization=organization, attributes=attributes
+            )
         else:
             flags = {}
             for key in data.flag_keys:
@@ -721,7 +745,9 @@ class FlagController(APIController):
         # Get variants for variant-type flags
         variants = {}
         for key in flags:
-            variant = backend.get_variant(key, user=user, organization=organization, attributes=attributes)
+            variant = backend.get_variant(
+                key, user=user, organization=organization, attributes=attributes
+            )
             if variant:
                 variants[key] = variant
 
@@ -735,7 +761,6 @@ class FlagController(APIController):
     @get("stats")
     async def get_stats(self, request: HttpRequest) -> JsonResponse:
         """Get feature flag statistics."""
-        from django.db.models import Count
 
         from .models import FeatureFlag, FlagAuditLog, FlagOverride, FlagStatus, FlagType
 
@@ -797,7 +822,9 @@ class FlagController(APIController):
                 }
             )
 
-        response = FlagAuditLogListResponse(items=items, total=total, page=page, page_size=page_size)
+        response = FlagAuditLogListResponse(
+            items=items, total=total, page=page, page_size=page_size
+        )
         return JsonResponse(response.model_dump())
 
 

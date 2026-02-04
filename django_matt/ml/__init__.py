@@ -156,32 +156,34 @@ from django_matt.ai.base import (
 # llama.cpp imports (with graceful fallback if not installed)
 try:
     from django_matt.ml.llamacpp import (
-        # Main classes
-        LlamaCppProvider,
+        # Chat templates
+        CHAT_TEMPLATES,
+        # Grammar
+        GBNF_GRAMMARS,
+        # Availability flag
+        LLAMA_CPP_AVAILABLE,
+        ChatTemplate,
+        GPUBackend,
         LlamaCppEmbeddings,
         LlamaCppModel,
         # Configuration
         LlamaCppModelConfig,
-        SamplingParams as LlamaCppSamplingParams,
+        # Main classes
+        LlamaCppProvider,
         # Enums
         QuantizationLevel,
-        GPUBackend,
-        ChatTemplate,
-        # Chat templates
-        CHAT_TEMPLATES,
         apply_chat_template,
-        # Grammar
-        GBNF_GRAMMARS,
         create_grammar,
-        pydantic_to_gbnf,
+        detect_gpu_backend,
         # Utilities
         detect_quantization,
         estimate_memory_usage,
         get_optimal_threads,
-        detect_gpu_backend,
         list_available_models,
-        # Availability flag
-        LLAMA_CPP_AVAILABLE,
+        pydantic_to_gbnf,
+    )
+    from django_matt.ml.llamacpp import (
+        SamplingParams as LlamaCppSamplingParams,
     )
 except ImportError:
     # llama-cpp-python not installed
@@ -225,11 +227,13 @@ from django_matt.ml.vllm import (
     GuidedDecodingParams,
     GuidedDecodingType,
     LoRAConfig,
-    ModelInfo as VLLMModelInfo,
     SamplingParams,
     ServerMetrics,
     VLLMClient,
     VLLMProvider,
+)
+from django_matt.ml.vllm import (
+    ModelInfo as VLLMModelInfo,
 )
 
 __all__ = [

@@ -12,7 +12,6 @@ import random
 import secrets
 from typing import TYPE_CHECKING, Any
 
-from django.db import transaction
 from django.utils import timezone
 
 if TYPE_CHECKING:
@@ -81,7 +80,6 @@ class ExperimentManager:
         from django_matt.experiments.models import (
             Experiment,
             ExperimentAssignment,
-            ExperimentStatus,
         )
 
         # Get experiment
@@ -233,8 +231,6 @@ class ExperimentManager:
         from decimal import Decimal
 
         from django_matt.experiments.models import (
-            Experiment,
-            ExperimentAssignment,
             ExperimentResult,
             MetricType,
         )
@@ -334,9 +330,7 @@ class ExperimentManager:
             if hasattr(user, "is_staff"):
                 context["is_staff"] = user.is_staff
             if hasattr(user, "date_joined"):
-                context["days_since_signup"] = (
-                    timezone.now() - user.date_joined
-                ).days
+                context["days_since_signup"] = (timezone.now() - user.date_joined).days
 
         # Evaluate targeting rules
         for rule in experiment.targeting_rules:
@@ -358,21 +352,21 @@ class ExperimentManager:
 
         if operator == "eq":
             return attr_value == value
-        elif operator == "neq":
+        if operator == "neq":
             return attr_value != value
-        elif operator == "gt":
+        if operator == "gt":
             return attr_value > value
-        elif operator == "gte":
+        if operator == "gte":
             return attr_value >= value
-        elif operator == "lt":
+        if operator == "lt":
             return attr_value < value
-        elif operator == "lte":
+        if operator == "lte":
             return attr_value <= value
-        elif operator == "in":
+        if operator == "in":
             return attr_value in value
-        elif operator == "not_in":
+        if operator == "not_in":
             return attr_value not in value
-        elif operator == "contains":
+        if operator == "contains":
             return value in str(attr_value)
 
         return True
@@ -431,7 +425,6 @@ class ExperimentManager:
     ) -> "ExperimentAssignment":
         """Create a new assignment for a user."""
         from django_matt.experiments.models import (
-            AssignmentStrategy,
             ExperimentAssignment,
         )
 
@@ -502,14 +495,13 @@ class ExperimentManager:
 
         if strategy == AssignmentStrategy.RANDOM.value:
             return self._random_assignment(variants, experiment, user, anonymous_id)
-        elif strategy == AssignmentStrategy.EPSILON_GREEDY.value:
+        if strategy == AssignmentStrategy.EPSILON_GREEDY.value:
             return self._epsilon_greedy_assignment(variants, experiment)
-        elif strategy == AssignmentStrategy.UCB.value:
+        if strategy == AssignmentStrategy.UCB.value:
             return self._ucb_assignment(variants, experiment)
-        elif strategy == AssignmentStrategy.THOMPSON.value:
+        if strategy == AssignmentStrategy.THOMPSON.value:
             return self._thompson_assignment(variants, experiment)
-        else:
-            return self._random_assignment(variants, experiment, user, anonymous_id)
+        return self._random_assignment(variants, experiment, user, anonymous_id)
 
     def _random_assignment(
         self,
@@ -588,9 +580,7 @@ class ExperimentManager:
 
             # UCB formula: mean + exploration_weight * sqrt(ln(total) / n)
             mean = variant.conversion_rate
-            exploration = experiment.exploration_weight * math.sqrt(
-                math.log(total_assignments) / n
-            )
+            exploration = experiment.exploration_weight * math.sqrt(math.log(total_assignments) / n)
             ucb = mean + exploration
 
             if ucb > best_ucb:
@@ -658,7 +648,7 @@ class ExperimentManager:
                 return {str(v.id): 1.0 / len(variants) for v in variants}
             return {str(v.id): v.weight / total for v in variants}
 
-        elif strategy == AssignmentStrategy.EPSILON_GREEDY.value:
+        if strategy == AssignmentStrategy.EPSILON_GREEDY.value:
             # During exploration phase, weights are equal
             # During exploitation, best variant gets (1 - epsilon) + epsilon/n
             n = len(variants)
@@ -675,7 +665,7 @@ class ExperimentManager:
 
             return weights
 
-        elif strategy == AssignmentStrategy.UCB.value:
+        if strategy == AssignmentStrategy.UCB.value:
             total_assignments = sum(v.assignment_count for v in variants)
             if total_assignments == 0:
                 return {str(v.id): 1.0 / len(variants) for v in variants}
@@ -684,7 +674,7 @@ class ExperimentManager:
             for v in variants:
                 n = v.assignment_count
                 if n == 0:
-                    ucb_values[str(v.id)] = float('inf')
+                    ucb_values[str(v.id)] = float("inf")
                 else:
                     mean = v.conversion_rate
                     exploration = experiment.exploration_weight * math.sqrt(
@@ -694,8 +684,12 @@ class ExperimentManager:
 
             # Normalize (handle infinity)
             max_ucb = max(ucb_values.values())
-            if max_ucb == float('inf'):
-                return {str(v.id): (1.0 if ucb_values[str(v.id)] == float('inf') else 0.0) / sum(1 for u in ucb_values.values() if u == float('inf')) for v in variants}
+            if max_ucb == float("inf"):
+                return {
+                    str(v.id): (1.0 if ucb_values[str(v.id)] == float("inf") else 0.0)
+                    / sum(1 for u in ucb_values.values() if u == float("inf"))
+                    for v in variants
+                }
 
             total = sum(ucb_values.values())
             if total == 0:
@@ -703,7 +697,7 @@ class ExperimentManager:
 
             return {k: v / total for k, v in ucb_values.items()}
 
-        elif strategy == AssignmentStrategy.THOMPSON.value:
+        if strategy == AssignmentStrategy.THOMPSON.value:
             # For Thompson, weights are based on expected probability of being best
             # Approximate with samples
             n_samples = 1000

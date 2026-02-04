@@ -7,13 +7,12 @@ Provides HTML views for browsing and inspecting captured requests.
 from __future__ import annotations
 
 import json
-import time
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
-from django.urls import path, reverse
+from django.http import HttpResponse, JsonResponse
+from django.urls import path
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
@@ -112,7 +111,7 @@ class InspectorDashboardView(InspectorAccessMixin, View):
 
     def _render_dashboard(self) -> str:
         """Render the dashboard HTML."""
-        return '''<!DOCTYPE html>
+        return """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -636,7 +635,7 @@ class InspectorDashboardView(InspectorAccessMixin, View):
         }, 5000);
     </script>
 </body>
-</html>'''
+</html>"""
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -726,7 +725,7 @@ class InspectorAPIView(InspectorAccessMixin, View):
             )
 
         if action == "status":
-            from .storage import MemoryStorage, RedisStorage
+            from .storage import RedisStorage
 
             storage_type = "redis" if isinstance(storage, RedisStorage) else "memory"
             return JsonResponse(
@@ -757,7 +756,9 @@ class InspectorAPIView(InspectorAccessMixin, View):
             include_response = body.get("include_response", False)
 
             try:
-                content = export_request(captured, format=export_format, include_response=include_response)
+                content = export_request(
+                    captured, format=export_format, include_response=include_response
+                )
             except ValueError as e:
                 return JsonResponse({"error": str(e)}, status=400)
 
@@ -787,7 +788,9 @@ class InspectorAPIView(InspectorAccessMixin, View):
         return {
             "id": req.id,
             "timestamp": req.timestamp,
-            "timestamp_formatted": datetime.fromtimestamp(req.timestamp).strftime("%Y-%m-%d %H:%M:%S"),
+            "timestamp_formatted": datetime.fromtimestamp(req.timestamp).strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
             "method": req.method,
             "path": req.path,
             "full_url": req.full_url,
@@ -824,7 +827,12 @@ def include_inspector():
     """
     return [
         path("", InspectorDashboardView.as_view(), name="inspector-dashboard"),
-        path("api/requests", InspectorAPIView.as_view(), {"action": "requests"}, name="inspector-list"),
+        path(
+            "api/requests",
+            InspectorAPIView.as_view(),
+            {"action": "requests"},
+            name="inspector-list",
+        ),
         path(
             "api/requests/<str:request_id>",
             InspectorAPIView.as_view(),
@@ -838,9 +846,13 @@ def include_inspector():
             name="inspector-export",
         ),
         path("api/stats", InspectorAPIView.as_view(), {"action": "stats"}, name="inspector-stats"),
-        path("api/status", InspectorAPIView.as_view(), {"action": "status"}, name="inspector-status"),
+        path(
+            "api/status", InspectorAPIView.as_view(), {"action": "status"}, name="inspector-status"
+        ),
         path("api/pause", InspectorAPIView.as_view(), {"action": "pause"}, name="inspector-pause"),
-        path("api/resume", InspectorAPIView.as_view(), {"action": "resume"}, name="inspector-resume"),
+        path(
+            "api/resume", InspectorAPIView.as_view(), {"action": "resume"}, name="inspector-resume"
+        ),
     ]
 
 

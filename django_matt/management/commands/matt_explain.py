@@ -13,7 +13,6 @@ Usage:
 import ast
 import inspect
 import json
-import re
 from pathlib import Path
 from typing import Any
 
@@ -102,14 +101,10 @@ class Command(MattCommand):
             # Get view class if available
             view_class = getattr(callback, "view_class", None)
             view_name = (
-                view_class.__name__
-                if view_class
-                else getattr(callback, "__name__", str(callback))
+                view_class.__name__ if view_class else getattr(callback, "__name__", str(callback))
             )
             view_module = (
-                view_class.__module__
-                if view_class
-                else getattr(callback, "__module__", "")
+                view_class.__module__ if view_class else getattr(callback, "__module__", "")
             )
 
             return {
@@ -196,9 +191,7 @@ class Command(MattCommand):
         def search_patterns(patterns, prefix=""):
             for pattern in patterns:
                 if isinstance(pattern, URLResolver):
-                    result = search_patterns(
-                        pattern.url_patterns, prefix + str(pattern.pattern)
-                    )
+                    result = search_patterns(pattern.url_patterns, prefix + str(pattern.pattern))
                     if result:
                         return result
                 elif isinstance(pattern, URLPattern):
@@ -378,7 +371,18 @@ class Command(MattCommand):
                 )
 
             # Check for method-level permissions (decorators)
-            for method_name in ("get", "post", "put", "patch", "delete", "list", "create", "retrieve", "update", "destroy"):
+            for method_name in (
+                "get",
+                "post",
+                "put",
+                "patch",
+                "delete",
+                "list",
+                "create",
+                "retrieve",
+                "update",
+                "destroy",
+            ):
                 method = getattr(view_class, method_name, None)
                 if method:
                     # Check for permission decorators
@@ -479,9 +483,7 @@ class Command(MattCommand):
                 caching["settings"]["timeout"] = obj._cache_timeout
 
         # Check global cache settings
-        caching["settings"]["default_timeout"] = getattr(
-            settings, "DJANGO_MATT_CACHE_TIMEOUT", 300
-        )
+        caching["settings"]["default_timeout"] = getattr(settings, "DJANGO_MATT_CACHE_TIMEOUT", 300)
 
         return caching
 

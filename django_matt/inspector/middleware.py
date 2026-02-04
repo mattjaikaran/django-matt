@@ -113,7 +113,10 @@ class RequestCaptureMiddleware:
             # Limit body size
             max_size = self._config["max_body_size"]
             if len(body) > max_size:
-                return body[:max_size].decode("utf-8", errors="replace") + f"... [truncated, total {len(body)} bytes]"
+                return (
+                    body[:max_size].decode("utf-8", errors="replace")
+                    + f"... [truncated, total {len(body)} bytes]"
+                )
 
             return body.decode("utf-8", errors="replace")
         except Exception:
@@ -222,7 +225,7 @@ class RequestCaptureMiddleware:
     def process_exception(self, request: HttpRequest, exception: Exception):
         """Process exceptions (for additional capture if needed)."""
         # Exception handling is done in __call__
-        return None
+        return
 
 
 __all__ = ["RequestCaptureMiddleware"]

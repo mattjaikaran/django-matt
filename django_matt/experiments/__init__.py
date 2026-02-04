@@ -104,118 +104,151 @@ def __getattr__(name: str):
     # Models
     if name == "Experiment":
         from django_matt.experiments.models import Experiment
+
         return Experiment
-    elif name == "Variant":
+    if name == "Variant":
         from django_matt.experiments.models import Variant
+
         return Variant
-    elif name == "ExperimentAssignment":
+    if name == "ExperimentAssignment":
         from django_matt.experiments.models import ExperimentAssignment
+
         return ExperimentAssignment
-    elif name == "ExperimentResult":
+    if name == "ExperimentResult":
         from django_matt.experiments.models import ExperimentResult
+
         return ExperimentResult
-    elif name == "ExperimentAuditLog":
+    if name == "ExperimentAuditLog":
         from django_matt.experiments.models import ExperimentAuditLog
+
         return ExperimentAuditLog
-    elif name == "ExperimentStatus":
+    if name == "ExperimentStatus":
         from django_matt.experiments.models import ExperimentStatus
+
         return ExperimentStatus
-    elif name == "AssignmentStrategy":
+    if name == "AssignmentStrategy":
         from django_matt.experiments.models import AssignmentStrategy
+
         return AssignmentStrategy
-    elif name == "MetricType":
+    if name == "MetricType":
         from django_matt.experiments.models import MetricType
+
         return MetricType
 
     # Context
-    elif name == "ExperimentContext":
+    if name == "ExperimentContext":
         from django_matt.experiments.context import ExperimentContext
+
         return ExperimentContext
-    elif name == "get_current_context":
+    if name == "get_current_context":
         from django_matt.experiments.context import get_current_context
+
         return get_current_context
 
     # Manager
-    elif name == "ExperimentManager":
+    if name == "ExperimentManager":
         from django_matt.experiments.manager import ExperimentManager
+
         return ExperimentManager
-    elif name == "get_manager":
+    if name == "get_manager":
         from django_matt.experiments.manager import get_manager
+
         return get_manager
 
     # Decorators
-    elif name == "experiment":
+    if name == "experiment":
         from django_matt.experiments.decorators import experiment
+
         return experiment
-    elif name == "requires_experiment":
+    if name == "requires_experiment":
         from django_matt.experiments.decorators import requires_experiment
+
         return requires_experiment
-    elif name == "with_experiment_context":
+    if name == "with_experiment_context":
         from django_matt.experiments.decorators import with_experiment_context
+
         return with_experiment_context
-    elif name == "track_conversion_decorator":
+    if name == "track_conversion_decorator":
         from django_matt.experiments.decorators import track_conversion
+
         return track_conversion
-    elif name == "ExperimentMixin":
+    if name == "ExperimentMixin":
         from django_matt.experiments.decorators import ExperimentMixin
+
         return ExperimentMixin
 
     # Middleware
-    elif name == "ExperimentMiddleware":
+    if name == "ExperimentMiddleware":
         from django_matt.experiments.middleware import ExperimentMiddleware
+
         return ExperimentMiddleware
-    elif name == "AsyncExperimentMiddleware":
+    if name == "AsyncExperimentMiddleware":
         from django_matt.experiments.middleware import AsyncExperimentMiddleware
+
         return AsyncExperimentMiddleware
 
     # Backends
-    elif name == "ExperimentBackend":
+    if name == "ExperimentBackend":
         from django_matt.experiments.backends import ExperimentBackend
+
         return ExperimentBackend
-    elif name == "DatabaseBackend":
+    if name == "DatabaseBackend":
         from django_matt.experiments.backends import DatabaseBackend
+
         return DatabaseBackend
-    elif name == "RedisBackend":
+    if name == "RedisBackend":
         from django_matt.experiments.backends import RedisBackend
+
         return RedisBackend
-    elif name == "MemoryBackend":
+    if name == "MemoryBackend":
         from django_matt.experiments.backends import MemoryBackend
+
         return MemoryBackend
-    elif name == "get_backend":
+    if name == "get_backend":
         from django_matt.experiments.backends import get_backend
+
         return get_backend
 
     # Analysis
-    elif name == "StatisticalAnalyzer":
+    if name == "StatisticalAnalyzer":
         from django_matt.experiments.analysis import StatisticalAnalyzer
+
         return StatisticalAnalyzer
-    elif name == "ExperimentAnalysis":
+    if name == "ExperimentAnalysis":
         from django_matt.experiments.analysis import ExperimentAnalysis
+
         return ExperimentAnalysis
-    elif name == "VariantStats":
+    if name == "VariantStats":
         from django_matt.experiments.analysis import VariantStats
+
         return VariantStats
-    elif name == "ComparisonResult":
+    if name == "ComparisonResult":
         from django_matt.experiments.analysis import ComparisonResult
+
         return ComparisonResult
-    elif name == "analyze_experiment":
+    if name == "analyze_experiment":
         from django_matt.experiments.analysis import analyze_experiment
+
         return analyze_experiment
 
     # Controllers
-    elif name == "ExperimentController":
+    if name == "ExperimentController":
         from django_matt.experiments.controllers import ExperimentController
+
         return ExperimentController
-    elif name == "ExperimentAssignmentController":
+    if name == "ExperimentAssignmentController":
         from django_matt.experiments.controllers import ExperimentAssignmentController
+
         return ExperimentAssignmentController
 
     # Aliases for main module exports
-    elif name == "get_experiment_variant":
+    if name == "get_experiment_variant":
         from django_matt.experiments.manager import get_variant_key
+
         return get_variant_key
-    elif name == "track_experiment_conversion":
+    if name == "track_experiment_conversion":
         from django_matt.experiments.manager import track_conversion
+
         return track_conversion
 
     raise AttributeError(f"module 'django_matt.experiments' has no attribute {name!r}")
@@ -250,6 +283,7 @@ def get_assignment(
             print(f"Assigned to: {assignment.variant.key}")
     """
     from django_matt.experiments.manager import get_assignment as _get_assignment
+
     return _get_assignment(
         experiment_key=experiment_key,
         user=user,
@@ -289,6 +323,7 @@ def get_variant(
             return checkout_v2()
     """
     from django_matt.experiments.manager import get_variant_key
+
     return get_variant_key(
         experiment_key=experiment_key,
         user=user,
@@ -333,6 +368,7 @@ def track_conversion(
         )
     """
     from django_matt.experiments.manager import track_conversion as _track_conversion
+
     return _track_conversion(
         experiment_key=experiment_key,
         user=user,
@@ -373,6 +409,7 @@ def track_revenue(
         )
     """
     from django_matt.experiments.manager import track_revenue as _track_revenue
+
     return _track_revenue(
         experiment_key=experiment_key,
         amount=amount,

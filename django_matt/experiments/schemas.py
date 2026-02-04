@@ -5,12 +5,10 @@ Provides request/response schemas for the experiments REST API.
 """
 
 from datetime import datetime
-from decimal import Decimal
 from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field
-
 
 # -----------------------------------------------------------------------------
 # Enums
@@ -64,8 +62,6 @@ class VariantBase(BaseModel):
 class VariantCreate(VariantBase):
     """Schema for creating a variant."""
 
-    pass
-
 
 class VariantUpdate(BaseModel):
     """Schema for updating a variant."""
@@ -118,15 +114,11 @@ class ExperimentBase(BaseModel):
     primary_metric: str = Field(default="conversion", description="Primary metric")
     secondary_metrics: list[str] = Field(default_factory=list, description="Secondary metrics")
     exclusion_group: str = Field(default="", description="Mutual exclusion group")
-    holdout_percentage: float = Field(
-        default=0.0, ge=0.0, le=1.0, description="Holdout percentage"
-    )
+    holdout_percentage: float = Field(default=0.0, ge=0.0, le=1.0, description="Holdout percentage")
     targeting_rules: list[TargetingRule] = Field(
         default_factory=list, description="Targeting rules"
     )
-    epsilon: float = Field(
-        default=0.1, ge=0.0, le=1.0, description="Epsilon for epsilon-greedy"
-    )
+    epsilon: float = Field(default=0.1, ge=0.0, le=1.0, description="Epsilon for epsilon-greedy")
     exploration_weight: float = Field(default=2.0, ge=0.0, description="UCB exploration weight")
     feature_flag_key: str = Field(default="", description="Associated feature flag")
     metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
@@ -135,9 +127,7 @@ class ExperimentBase(BaseModel):
 class ExperimentCreate(ExperimentBase):
     """Schema for creating an experiment."""
 
-    variants: list[VariantCreate] = Field(
-        default_factory=list, description="Initial variants"
-    )
+    variants: list[VariantCreate] = Field(default_factory=list, description="Initial variants")
     scheduled_start: datetime | None = Field(default=None, description="Scheduled start")
     scheduled_end: datetime | None = Field(default=None, description="Scheduled end")
 

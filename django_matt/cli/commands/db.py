@@ -215,7 +215,9 @@ def seed(
         run_manage_command(command)
     else:
         console.print("[yellow]No seed command found.[/]")
-        console.print("[dim]Create a 'seed' management command or use --fixture to load fixtures.[/]")
+        console.print(
+            "[dim]Create a 'seed' management command or use --fixture to load fixtures.[/]"
+        )
         console.print()
         console.print("Example seed command:")
         console.print("  [cyan]python manage.py loaddata fixtures/initial_data.json[/]")
@@ -235,8 +237,12 @@ def dump(
     output: str = typer.Option("dump.json", "--output", "-o", help="Output file"),
     app_label: Optional[str] = typer.Argument(None, help="App to dump"),
     indent: int = typer.Option(2, "--indent", help="JSON indentation"),
-    natural_foreign: bool = typer.Option(False, "--natural-foreign", help="Use natural foreign keys"),
-    natural_primary: bool = typer.Option(False, "--natural-primary", help="Use natural primary keys"),
+    natural_foreign: bool = typer.Option(
+        False, "--natural-foreign", help="Use natural foreign keys"
+    ),
+    natural_primary: bool = typer.Option(
+        False, "--natural-primary", help="Use natural primary keys"
+    ),
 ):
     """
     Dump database data to a fixture file.

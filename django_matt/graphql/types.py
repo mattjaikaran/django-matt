@@ -17,6 +17,7 @@ try:
     import strawberry
     from strawberry import UNSET
     from strawberry.types import Info
+
     STRAWBERRY_AVAILABLE = True
 except ImportError:
     STRAWBERRY_AVAILABLE = False
@@ -143,6 +144,7 @@ def get_graphql_type_for_python_type(python_type: type) -> type:
 
 
 if STRAWBERRY_AVAILABLE:
+
     @strawberry.interface
     class NodeInterface:
         """
@@ -150,6 +152,7 @@ if STRAWBERRY_AVAILABLE:
 
         All types that implement this interface can be fetched by their global ID.
         """
+
         id: strawberry.ID
 
         @classmethod
@@ -157,33 +160,33 @@ if STRAWBERRY_AVAILABLE:
             """Resolve the concrete type for a node."""
             return obj.__class__.__name__
 
-
     @strawberry.type
     class PageInfoType:
         """
         Relay PageInfo type for cursor-based pagination.
         """
+
         has_next_page: bool
         has_previous_page: bool
         start_cursor: str | None = None
         end_cursor: str | None = None
         total_count: int | None = None
 
-
     @strawberry.type
     class EdgeType(Generic[T]):
         """
         Relay Edge type for cursor-based pagination.
         """
+
         node: T
         cursor: str
-
 
     @strawberry.type
     class ConnectionType(Generic[T]):
         """
         Relay Connection type for cursor-based pagination.
         """
+
         page_info: PageInfoType
         edges: list[EdgeType[T]]
         total_count: int | None = None
@@ -196,7 +199,7 @@ if STRAWBERRY_AVAILABLE:
             after: str | None = None,
             last: int | None = None,
             before: str | None = None,
-        ) -> "ConnectionType[T]":
+        ) -> ConnectionType[T]:
             """
             Create a connection from a Django queryset.
 
@@ -292,7 +295,7 @@ class DjangoModelType:
     _field_map: dict[str, str] = {}
 
     @classmethod
-    def from_orm(cls, obj: models.Model) -> "DjangoModelType":
+    def from_orm(cls, obj: models.Model) -> DjangoModelType:
         """Create a GraphQL type instance from a Django model."""
         data = {}
         for field_name in cls.__annotations__:
@@ -305,12 +308,12 @@ class DjangoModelType:
         return cls(**data)
 
     @classmethod
-    def from_django(cls, obj: models.Model) -> "DjangoModelType":
+    def from_django(cls, obj: models.Model) -> DjangoModelType:
         """Alias for from_orm."""
         return cls.from_orm(obj)
 
     @classmethod
-    def from_queryset(cls, queryset) -> list["DjangoModelType"]:
+    def from_queryset(cls, queryset) -> list[DjangoModelType]:
         """Create a list of GraphQL types from a queryset."""
         return [cls.from_orm(obj) for obj in queryset]
 
@@ -458,10 +461,7 @@ def create_input_from_model(
 
         # Make optional if needed
         is_optional = (
-            field_name in optional_fields
-            or field.null
-            or field.blank
-            or field.has_default()
+            field_name in optional_fields or field.null or field.blank or field.has_default()
         )
 
         if is_optional:
@@ -551,13 +551,16 @@ def create_filter_input_from_model(
             defaults[f"{field_name}_endswith"] = UNSET
 
         # For numeric/date fields, add gt, gte, lt, lte
-        if isinstance(field, (
-            models.IntegerField,
-            models.FloatField,
-            models.DecimalField,
-            models.DateField,
-            models.DateTimeField,
-        )):
+        if isinstance(
+            field,
+            (
+                models.IntegerField,
+                models.FloatField,
+                models.DecimalField,
+                models.DateField,
+                models.DateTimeField,
+            ),
+        ):
             base_type = get_graphql_type_for_field(field, nullable=True)
             annotations[f"{field_name}_gt"] = base_type | None
             annotations[f"{field_name}_gte"] = base_type | None

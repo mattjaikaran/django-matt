@@ -14,6 +14,7 @@ try:
     import strawberry
     from strawberry import UNSET
     from strawberry.types import Info
+
     STRAWBERRY_AVAILABLE = True
 except ImportError:
     STRAWBERRY_AVAILABLE = False
@@ -34,25 +35,27 @@ def _require_strawberry():
 
 
 if STRAWBERRY_AVAILABLE:
+
     @strawberry.type
     class MutationResult:
         """Generic mutation result type."""
+
         success: bool
         message: str | None = None
         errors: list[str] | None = None
 
-
     @strawberry.type
     class DeleteResult:
         """Result of a delete mutation."""
+
         success: bool
         deleted_id: strawberry.ID | None = None
         message: str | None = None
 
-
     @strawberry.type
     class BulkDeleteResult:
         """Result of a bulk delete mutation."""
+
         success: bool
         deleted_count: int = 0
         deleted_ids: list[strawberry.ID] | None = None
@@ -123,6 +126,7 @@ class MutationGenerator:
 
         if input_class is None:
             from django_matt.graphql.types import create_input_from_model
+
             input_class = create_input_from_model(model, name=f"Create{model.__name__}Input")
 
         def resolver(
@@ -189,6 +193,7 @@ class MutationGenerator:
 
         if input_class is None:
             from django_matt.graphql.types import create_input_from_model
+
             input_class = create_input_from_model(
                 model,
                 name=f"Update{model.__name__}Input",
@@ -333,6 +338,7 @@ class MutationGenerator:
 
         if input_class is None:
             from django_matt.graphql.types import create_input_from_model
+
             input_class = create_input_from_model(model, name=f"Create{model.__name__}Input")
 
         def resolver(

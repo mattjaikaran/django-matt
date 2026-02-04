@@ -36,14 +36,11 @@ Example:
 """
 
 from functools import wraps
-from typing import Any, Callable, TypeVar, overload
-
-from django.http import HttpRequest
+from typing import Any, Callable, TypeVar
 
 from django_matt.views.hooks import (
     HookContext,
     HookType,
-    RegisteredHook,
     hook_manager,
 )
 
@@ -70,7 +67,6 @@ from django_matt.views.hooks import (
     register_global_hook,
     register_hook,
 )
-
 
 # ============================================================================
 # Class decorator for applying multiple hooks

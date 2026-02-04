@@ -6,13 +6,14 @@ These work with Strawberry when available, or provide helpful error messages oth
 """
 
 from functools import wraps
-from typing import Any, Callable, TypeVar, overload
+from typing import Any, Callable, TypeVar
 
 # Check for strawberry availability
 try:
     import strawberry
     from strawberry.permission import BasePermission
     from strawberry.types import Info
+
     STRAWBERRY_AVAILABLE = True
 except ImportError:
     STRAWBERRY_AVAILABLE = False
@@ -33,7 +34,9 @@ def _require_strawberry(feature: str = "this feature"):
         )
 
 
-def graphql_type(cls: type[T] | None = None, *, name: str | None = None, description: str | None = None) -> type[T] | Callable[[type[T]], type[T]]:
+def graphql_type(
+    cls: type[T] | None = None, *, name: str | None = None, description: str | None = None
+) -> type[T] | Callable[[type[T]], type[T]]:
     """
     Decorator to mark a class as a GraphQL type.
 
@@ -58,7 +61,9 @@ def graphql_type(cls: type[T] | None = None, *, name: str | None = None, descrip
     return decorator(cls)
 
 
-def graphql_input(cls: type[T] | None = None, *, name: str | None = None, description: str | None = None) -> type[T] | Callable[[type[T]], type[T]]:
+def graphql_input(
+    cls: type[T] | None = None, *, name: str | None = None, description: str | None = None
+) -> type[T] | Callable[[type[T]], type[T]]:
     """
     Decorator to mark a class as a GraphQL input type.
 
@@ -78,7 +83,9 @@ def graphql_input(cls: type[T] | None = None, *, name: str | None = None, descri
     return decorator(cls)
 
 
-def graphql_interface(cls: type[T] | None = None, *, name: str | None = None, description: str | None = None) -> type[T] | Callable[[type[T]], type[T]]:
+def graphql_interface(
+    cls: type[T] | None = None, *, name: str | None = None, description: str | None = None
+) -> type[T] | Callable[[type[T]], type[T]]:
     """
     Decorator to mark a class as a GraphQL interface.
 
@@ -97,7 +104,9 @@ def graphql_interface(cls: type[T] | None = None, *, name: str | None = None, de
     return decorator(cls)
 
 
-def graphql_enum(cls: type[T] | None = None, *, name: str | None = None, description: str | None = None) -> type[T] | Callable[[type[T]], type[T]]:
+def graphql_enum(
+    cls: type[T] | None = None, *, name: str | None = None, description: str | None = None
+) -> type[T] | Callable[[type[T]], type[T]]:
     """
     Decorator to mark an Enum as a GraphQL enum.
 
@@ -141,7 +150,9 @@ def resolver(func: F | None = None, *, name: str | None = None) -> F | Callable[
     return decorator(func)
 
 
-def mutation(func: F | None = None, *, name: str | None = None, description: str | None = None) -> F | Callable[[F], F]:
+def mutation(
+    func: F | None = None, *, name: str | None = None, description: str | None = None
+) -> F | Callable[[F], F]:
     """
     Decorator to mark a method as a GraphQL mutation.
 
@@ -163,7 +174,9 @@ def mutation(func: F | None = None, *, name: str | None = None, description: str
     return decorator(func)
 
 
-def subscription(func: F | None = None, *, name: str | None = None, description: str | None = None) -> F | Callable[[F], F]:
+def subscription(
+    func: F | None = None, *, name: str | None = None, description: str | None = None
+) -> F | Callable[[F], F]:
     """
     Decorator to mark a method as a GraphQL subscription.
 
@@ -224,6 +237,7 @@ def field(
 
 class IsAuthenticated(BasePermission if STRAWBERRY_AVAILABLE else object):
     """Permission class that requires authentication."""
+
     message = "User must be authenticated"
 
     def has_permission(self, source: Any, info: Info, **kwargs) -> bool:
@@ -237,6 +251,7 @@ class IsAuthenticated(BasePermission if STRAWBERRY_AVAILABLE else object):
 
 class IsAdmin(BasePermission if STRAWBERRY_AVAILABLE else object):
     """Permission class that requires admin status."""
+
     message = "User must be an admin"
 
     def has_permission(self, source: Any, info: Info, **kwargs) -> bool:
@@ -252,6 +267,7 @@ class IsAdmin(BasePermission if STRAWBERRY_AVAILABLE else object):
 
 class HasPermission(BasePermission if STRAWBERRY_AVAILABLE else object):
     """Permission class that requires a specific Django permission."""
+
     message = "User does not have required permission"
 
     def __init__(self, permission: str):
@@ -268,6 +284,7 @@ class HasPermission(BasePermission if STRAWBERRY_AVAILABLE else object):
 
 class HasRole(BasePermission if STRAWBERRY_AVAILABLE else object):
     """Permission class that requires a specific role (group)."""
+
     message = "User does not have required role"
 
     def __init__(self, *roles: str):
@@ -345,6 +362,7 @@ def complexity(value: int) -> Callable[[F], F]:
             def expensive_query(self) -> list[DataType]:
                 return expensive_computation()
     """
+
     def decorator(func: F) -> F:
         _complexity_registry[func] = value
         return func
@@ -372,6 +390,7 @@ def rate_limited(max_calls: int, period_seconds: int = 60) -> Callable[[F], F]:
             def send_email(self, to: str, subject: str) -> bool:
                 ...
     """
+
     def decorator(func: F) -> F:
         _rate_limit_registry[func] = (max_calls, period_seconds)
 

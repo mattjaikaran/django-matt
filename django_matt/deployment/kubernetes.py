@@ -10,7 +10,6 @@ Provides comprehensive Kubernetes deployment capabilities including:
 
 import base64
 import json
-import os
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -24,7 +23,6 @@ from django_matt.deploy.base import (
     DeploymentResult,
     DeploymentStatus,
 )
-
 
 # =============================================================================
 # Configuration Classes
@@ -249,7 +247,9 @@ class HelmValues:
                 "className": self.ingress_class_name,
                 "annotations": self.ingress_annotations,
                 "hosts": self.ingress_hosts
-                or [{"host": "chart-example.local", "paths": [{"path": "/", "pathType": "Prefix"}]}],
+                or [
+                    {"host": "chart-example.local", "paths": [{"path": "/", "pathType": "Prefix"}]}
+                ],
                 "tls": self.ingress_tls,
             },
             "resources": {
@@ -995,27 +995,27 @@ class HelmChartGenerator:
         values = self.values.to_dict()
 
         # Add header comment
-        header = """# Default values for {app_name}.
+        header = f"""# Default values for {self.app_name}.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-""".format(app_name=self.app_name)
+"""
 
         return header + yaml.dump(values, default_flow_style=False, sort_keys=False)
 
     def _generate_helpers(self) -> str:
         """Generate _helpers.tpl template functions."""
-        return '''{{/*
+        return f'''{{/*
 Expand the name of the chart.
 */}}
-{{{{- define "{app_name}.name" -}}}}
+{{{{- define "{self.app_name}.name" -}}}}
 {{{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}}}
 {{{{- end }}}}
 
 {{/*
 Create a default fully qualified app name.
 */}}
-{{{{- define "{app_name}.fullname" -}}}}
+{{{{- define "{self.app_name}.fullname" -}}}}
 {{{{- if .Values.fullnameOverride }}}}
 {{{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}}}
 {{{{- else }}}}
@@ -1031,16 +1031,16 @@ Create a default fully qualified app name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{{{- define "{app_name}.chart" -}}}}
+{{{{- define "{self.app_name}.chart" -}}}}
 {{{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}}}
 {{{{- end }}}}
 
 {{/*
 Common labels
 */}}
-{{{{- define "{app_name}.labels" -}}}}
-helm.sh/chart: {{{{ include "{app_name}.chart" . }}}}
-{{{{ include "{app_name}.selectorLabels" . }}}}
+{{{{- define "{self.app_name}.labels" -}}}}
+helm.sh/chart: {{{{ include "{self.app_name}.chart" . }}}}
+{{{{ include "{self.app_name}.selectorLabels" . }}}}
 {{{{- if .Chart.AppVersion }}}}
 app.kubernetes.io/version: {{{{ .Chart.AppVersion | quote }}}}
 {{{{- end }}}}
@@ -1050,38 +1050,38 @@ app.kubernetes.io/managed-by: {{{{ .Release.Service }}}}
 {{/*
 Selector labels
 */}}
-{{{{- define "{app_name}.selectorLabels" -}}}}
-app.kubernetes.io/name: {{{{ include "{app_name}.name" . }}}}
+{{{{- define "{self.app_name}.selectorLabels" -}}}}
+app.kubernetes.io/name: {{{{ include "{self.app_name}.name" . }}}}
 app.kubernetes.io/instance: {{{{ .Release.Name }}}}
 {{{{- end }}}}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{{{- define "{app_name}.serviceAccountName" -}}}}
+{{{{- define "{self.app_name}.serviceAccountName" -}}}}
 {{{{- if .Values.serviceAccount.create }}}}
-{{{{- default (include "{app_name}.fullname" .) .Values.serviceAccount.name }}}}
+{{{{- default (include "{self.app_name}.fullname" .) .Values.serviceAccount.name }}}}
 {{{{- else }}}}
 {{{{- default "default" .Values.serviceAccount.name }}}}
 {{{{- end }}}}
 {{{{- end }}}}
-'''.format(app_name=self.app_name)
+'''
 
     def _generate_deployment_template(self) -> str:
         """Generate deployment.yaml template."""
-        return '''apiVersion: apps/v1
+        return f'''apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{{{ include "{app_name}.fullname" . }}}}
+  name: {{{{ include "{self.app_name}.fullname" . }}}}
   labels:
-    {{{{- include "{app_name}.labels" . | nindent 4 }}}}
+    {{{{- include "{self.app_name}.labels" . | nindent 4 }}}}
 spec:
   {{{{- if not .Values.autoscaling.enabled }}}}
   replicas: {{{{ .Values.replicaCount }}}}
   {{{{- end }}}}
   selector:
     matchLabels:
-      {{{{- include "{app_name}.selectorLabels" . | nindent 6 }}}}
+      {{{{- include "{self.app_name}.selectorLabels" . | nindent 6 }}}}
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -1094,7 +1094,7 @@ spec:
         {{{{- toYaml . | nindent 8 }}}}
       {{{{- end }}}}
       labels:
-        {{{{- include "{app_name}.selectorLabels" . | nindent 8 }}}}
+        {{{{- include "{self.app_name}.selectorLabels" . | nindent 8 }}}}
         {{{{- with .Values.podLabels }}}}
         {{{{- toYaml . | nindent 8 }}}}
         {{{{- end }}}}
@@ -1103,7 +1103,7 @@ spec:
       imagePullSecrets:
         {{{{- toYaml . | nindent 8 }}}}
       {{{{- end }}}}
-      serviceAccountName: {{{{ include "{app_name}.serviceAccountName" . }}}}
+      serviceAccountName: {{{{ include "{self.app_name}.serviceAccountName" . }}}}
       {{{{- if .Values.podSecurityContext.enabled }}}}
       securityContext:
         fsGroup: {{{{ .Values.podSecurityContext.fsGroup }}}}
@@ -1151,16 +1151,16 @@ spec:
       tolerations:
         {{{{- toYaml . | nindent 8 }}}}
       {{{{- end }}}}
-'''.format(app_name=self.app_name)
+'''
 
     def _generate_service_template(self) -> str:
         """Generate service.yaml template."""
-        return '''apiVersion: v1
+        return f'''apiVersion: v1
 kind: Service
 metadata:
-  name: {{{{ include "{app_name}.fullname" . }}}}
+  name: {{{{ include "{self.app_name}.fullname" . }}}}
   labels:
-    {{{{- include "{app_name}.labels" . | nindent 4 }}}}
+    {{{{- include "{self.app_name}.labels" . | nindent 4 }}}}
   {{{{- with .Values.service.annotations }}}}
   annotations:
     {{{{- toYaml . | nindent 4 }}}}
@@ -1173,18 +1173,18 @@ spec:
       protocol: TCP
       name: http
   selector:
-    {{{{- include "{app_name}.selectorLabels" . | nindent 4 }}}}
-'''.format(app_name=self.app_name)
+    {{{{- include "{self.app_name}.selectorLabels" . | nindent 4 }}}}
+'''
 
     def _generate_ingress_template(self) -> str:
         """Generate ingress.yaml template."""
-        return '''{{{{- if .Values.ingress.enabled -}}}}
+        return f'''{{{{- if .Values.ingress.enabled -}}}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{{{ include "{app_name}.fullname" . }}}}
+  name: {{{{ include "{self.app_name}.fullname" . }}}}
   labels:
-    {{{{- include "{app_name}.labels" . | nindent 4 }}}}
+    {{{{- include "{self.app_name}.labels" . | nindent 4 }}}}
   {{{{- with .Values.ingress.annotations }}}}
   annotations:
     {{{{- toYaml . | nindent 4 }}}}
@@ -1213,59 +1213,59 @@ spec:
             pathType: {{{{ .pathType }}}}
             backend:
               service:
-                name: {{{{ include "{app_name}.fullname" $ }}}}
+                name: {{{{ include "{self.app_name}.fullname" $ }}}}
                 port:
                   number: {{{{ $.Values.service.port }}}}
           {{{{- end }}}}
     {{{{- end }}}}
 {{{{- end }}}}
-'''.format(app_name=self.app_name)
+'''
 
     def _generate_configmap_template(self) -> str:
         """Generate configmap.yaml template."""
-        return '''{{{{- if .Values.configMap.data }}}}
+        return f'''{{{{- if .Values.configMap.data }}}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{{{ include "{app_name}.fullname" . }}}}-config
+  name: {{{{ include "{self.app_name}.fullname" . }}}}-config
   labels:
-    {{{{- include "{app_name}.labels" . | nindent 4 }}}}
+    {{{{- include "{self.app_name}.labels" . | nindent 4 }}}}
 data:
   {{{{- toYaml .Values.configMap.data | nindent 2 }}}}
 {{{{- end }}}}
-'''.format(app_name=self.app_name)
+'''
 
     def _generate_secret_template(self) -> str:
         """Generate secret.yaml template."""
-        return '''{{{{- if .Values.secret.data }}}}
+        return f'''{{{{- if .Values.secret.data }}}}
 apiVersion: v1
 kind: Secret
 metadata:
-  name: {{{{ include "{app_name}.fullname" . }}}}-secret
+  name: {{{{ include "{self.app_name}.fullname" . }}}}-secret
   labels:
-    {{{{- include "{app_name}.labels" . | nindent 4 }}}}
+    {{{{- include "{self.app_name}.labels" . | nindent 4 }}}}
 type: Opaque
 data:
   {{{{- range $key, $val := .Values.secret.data }}}}
   {{{{ $key }}}}: {{{{ $val | b64enc | quote }}}}
   {{{{- end }}}}
 {{{{- end }}}}
-'''.format(app_name=self.app_name)
+'''
 
     def _generate_hpa_template(self) -> str:
         """Generate hpa.yaml template."""
-        return '''{{{{- if .Values.autoscaling.enabled }}}}
+        return f'''{{{{- if .Values.autoscaling.enabled }}}}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{{{ include "{app_name}.fullname" . }}}}
+  name: {{{{ include "{self.app_name}.fullname" . }}}}
   labels:
-    {{{{- include "{app_name}.labels" . | nindent 4 }}}}
+    {{{{- include "{self.app_name}.labels" . | nindent 4 }}}}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{{{ include "{app_name}.fullname" . }}}}
+    name: {{{{ include "{self.app_name}.fullname" . }}}}
   minReplicas: {{{{ .Values.autoscaling.minReplicas }}}}
   maxReplicas: {{{{ .Values.autoscaling.maxReplicas }}}}
   metrics:
@@ -1303,17 +1303,17 @@ spec:
           periodSeconds: 15
       selectPolicy: Max
 {{{{- end }}}}
-'''.format(app_name=self.app_name)
+'''
 
     def _generate_pdb_template(self) -> str:
         """Generate pdb.yaml template."""
-        return '''{{{{- if .Values.podDisruptionBudget.enabled }}}}
+        return f'''{{{{- if .Values.podDisruptionBudget.enabled }}}}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{{{ include "{app_name}.fullname" . }}}}
+  name: {{{{ include "{self.app_name}.fullname" . }}}}
   labels:
-    {{{{- include "{app_name}.labels" . | nindent 4 }}}}
+    {{{{- include "{self.app_name}.labels" . | nindent 4 }}}}
 spec:
   {{{{- if .Values.podDisruptionBudget.minAvailable }}}}
   minAvailable: {{{{ .Values.podDisruptionBudget.minAvailable }}}}
@@ -1323,29 +1323,29 @@ spec:
   {{{{- end }}}}
   selector:
     matchLabels:
-      {{{{- include "{app_name}.selectorLabels" . | nindent 6 }}}}
+      {{{{- include "{self.app_name}.selectorLabels" . | nindent 6 }}}}
 {{{{- end }}}}
-'''.format(app_name=self.app_name)
+'''
 
     def _generate_serviceaccount_template(self) -> str:
         """Generate serviceaccount.yaml template."""
-        return '''{{{{- if .Values.serviceAccount.create -}}}}
+        return f'''{{{{- if .Values.serviceAccount.create -}}}}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{{{ include "{app_name}.serviceAccountName" . }}}}
+  name: {{{{ include "{self.app_name}.serviceAccountName" . }}}}
   labels:
-    {{{{- include "{app_name}.labels" . | nindent 4 }}}}
+    {{{{- include "{self.app_name}.labels" . | nindent 4 }}}}
   {{{{- with .Values.serviceAccount.annotations }}}}
   annotations:
     {{{{- toYaml . | nindent 4 }}}}
   {{{{- end }}}}
 {{{{- end }}}}
-'''.format(app_name=self.app_name)
+'''
 
     def _generate_notes(self) -> str:
         """Generate NOTES.txt for post-install instructions."""
-        return '''1. Get the application URL by running these commands:
+        return f'''1. Get the application URL by running these commands:
 {{{{- if .Values.ingress.enabled }}}}
 {{{{- range $host := .Values.ingress.hosts }}}}
   {{{{- range .paths }}}}
@@ -1353,27 +1353,27 @@ metadata:
   {{{{- end }}}}
 {{{{- end }}}}
 {{{{- else if contains "NodePort" .Values.service.type }}}}
-  export NODE_PORT=$(kubectl get --namespace {{{{ .Release.Namespace }}}} -o jsonpath="{{{{.spec.ports[0].nodePort}}}}" services {{{{ include "{app_name}.fullname" . }}}})
+  export NODE_PORT=$(kubectl get --namespace {{{{ .Release.Namespace }}}} -o jsonpath="{{{{.spec.ports[0].nodePort}}}}" services {{{{ include "{self.app_name}.fullname" . }}}})
   export NODE_IP=$(kubectl get nodes --namespace {{{{ .Release.Namespace }}}} -o jsonpath="{{{{.items[0].status.addresses[0].address}}}}")
   echo http://$NODE_IP:$NODE_PORT
 {{{{- else if contains "LoadBalancer" .Values.service.type }}}}
      NOTE: It may take a few minutes for the LoadBalancer IP to be available.
-           You can watch the status of by running 'kubectl get --namespace {{{{ .Release.Namespace }}}} svc -w {{{{ include "{app_name}.fullname" . }}}}'
-  export SERVICE_IP=$(kubectl get svc --namespace {{{{ .Release.Namespace }}}} {{{{ include "{app_name}.fullname" . }}}} --template "{{{{ range (index .status.loadBalancer.ingress 0) }}}}{{{{.}}}}{{{{ end }}}}")
+           You can watch the status of by running 'kubectl get --namespace {{{{ .Release.Namespace }}}} svc -w {{{{ include "{self.app_name}.fullname" . }}}}'
+  export SERVICE_IP=$(kubectl get svc --namespace {{{{ .Release.Namespace }}}} {{{{ include "{self.app_name}.fullname" . }}}} --template "{{{{ range (index .status.loadBalancer.ingress 0) }}}}{{{{.}}}}{{{{ end }}}}")
   echo http://$SERVICE_IP:{{{{ .Values.service.port }}}}
 {{{{- else if contains "ClusterIP" .Values.service.type }}}}
-  export POD_NAME=$(kubectl get pods --namespace {{{{ .Release.Namespace }}}} -l "app.kubernetes.io/name={{{{ include "{app_name}.name" . }}}},app.kubernetes.io/instance={{{{ .Release.Name }}}}" -o jsonpath="{{{{.items[0].metadata.name}}}}")
+  export POD_NAME=$(kubectl get pods --namespace {{{{ .Release.Namespace }}}} -l "app.kubernetes.io/name={{{{ include "{self.app_name}.name" . }}}},app.kubernetes.io/instance={{{{ .Release.Name }}}}" -o jsonpath="{{{{.items[0].metadata.name}}}}")
   export CONTAINER_PORT=$(kubectl get pod --namespace {{{{ .Release.Namespace }}}} $POD_NAME -o jsonpath="{{{{.spec.containers[0].ports[0].containerPort}}}}")
   echo "Visit http://127.0.0.1:8080 to use your application"
   kubectl --namespace {{{{ .Release.Namespace }}}} port-forward $POD_NAME 8080:$CONTAINER_PORT
 {{{{- end }}}}
 
 2. Check the application status:
-  kubectl get pods -l app.kubernetes.io/name={{{{ include "{app_name}.name" . }}}} -n {{{{ .Release.Namespace }}}}
+  kubectl get pods -l app.kubernetes.io/name={{{{ include "{self.app_name}.name" . }}}} -n {{{{ .Release.Namespace }}}}
 
 3. View application logs:
-  kubectl logs -f -l app.kubernetes.io/name={{{{ include "{app_name}.name" . }}}} -n {{{{ .Release.Namespace }}}}
-'''.format(app_name=self.app_name)
+  kubectl logs -f -l app.kubernetes.io/name={{{{ include "{self.app_name}.name" . }}}} -n {{{{ .Release.Namespace }}}}
+'''
 
     def _generate_helmignore(self) -> str:
         """Generate .helmignore file."""
@@ -1958,7 +1958,11 @@ class KustomizeGenerator:
 
     def _generate_ingress(self, env: str) -> str:
         """Generate ingress for environment."""
-        host = f"{self.app_name}.example.com" if env == "prod" else f"{env}.{self.app_name}.example.com"
+        host = (
+            f"{self.app_name}.example.com"
+            if env == "prod"
+            else f"{env}.{self.app_name}.example.com"
+        )
 
         ingress = {
             "apiVersion": "networking.k8s.io/v1",

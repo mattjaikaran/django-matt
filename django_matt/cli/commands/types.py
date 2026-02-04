@@ -69,7 +69,9 @@ def types(ctx: typer.Context):
 def typescript(
     output: Optional[str] = typer.Option(None, "--output", "-o", help="Output file path"),
     apps: Optional[str] = typer.Option(None, "--apps", "-a", help="Comma-separated app names"),
-    modules: Optional[str] = typer.Option(None, "--modules", "-m", help="Comma-separated module paths"),
+    modules: Optional[str] = typer.Option(
+        None, "--modules", "-m", help="Comma-separated module paths"
+    ),
     models: bool = typer.Option(False, "--models", help="Include Django models"),
     camel_case: bool = typer.Option(False, "--camel-case", help="Convert to camelCase"),
 ):
@@ -100,7 +102,9 @@ def typescript(
 def zod(
     output: Optional[str] = typer.Option(None, "--output", "-o", help="Output file path"),
     apps: Optional[str] = typer.Option(None, "--apps", "-a", help="Comma-separated app names"),
-    modules: Optional[str] = typer.Option(None, "--modules", "-m", help="Comma-separated module paths"),
+    modules: Optional[str] = typer.Option(
+        None, "--modules", "-m", help="Comma-separated module paths"
+    ),
     camel_case: bool = typer.Option(False, "--camel-case", help="Convert to camelCase"),
 ):
     """
@@ -128,7 +132,9 @@ def zod(
 def swift(
     output: Optional[str] = typer.Option(None, "--output", "-o", help="Output file path"),
     apps: Optional[str] = typer.Option(None, "--apps", "-a", help="Comma-separated app names"),
-    modules: Optional[str] = typer.Option(None, "--modules", "-m", help="Comma-separated module paths"),
+    modules: Optional[str] = typer.Option(
+        None, "--modules", "-m", help="Comma-separated module paths"
+    ),
 ):
     """
     Generate Swift Codable structs from Pydantic models.
@@ -185,10 +191,14 @@ def client(
 
 @app.command()
 def watch(
-    target: str = typer.Option("typescript", "--target", "-t", help="Target: typescript, zod, swift"),
+    target: str = typer.Option(
+        "typescript", "--target", "-t", help="Target: typescript, zod, swift"
+    ),
     output: Optional[str] = typer.Option(None, "--output", "-o", help="Output file path"),
     apps: Optional[str] = typer.Option(None, "--apps", "-a", help="Comma-separated app names"),
-    modules: Optional[str] = typer.Option(None, "--modules", "-m", help="Comma-separated module paths"),
+    modules: Optional[str] = typer.Option(
+        None, "--modules", "-m", help="Comma-separated module paths"
+    ),
     watch_dirs: Optional[str] = typer.Option(None, "--watch-dirs", help="Directories to watch"),
     interval: float = typer.Option(1.0, "--interval", help="Watch interval in seconds"),
     clear: bool = typer.Option(False, "--clear", help="Clear screen on regeneration"),

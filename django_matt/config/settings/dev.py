@@ -20,8 +20,7 @@ import os
 import secrets
 from typing import Any
 
-from django_matt.config.settings.common import DJANGO_5_2_PLUS, DJANGO_6_0_PLUS
-
+from django_matt.config.settings.common import DJANGO_5_2_PLUS
 
 # Development-specific settings
 settings: dict[str, Any] = {
@@ -29,21 +28,18 @@ settings: dict[str, Any] = {
     # Debug Mode
     # ==========================================================================
     "DEBUG": True,
-
     # ==========================================================================
     # Security (relaxed for development)
     # ==========================================================================
     "SECRET_KEY": os.environ.get(
         "DJANGO_SECRET_KEY",
-        secrets.token_hex(32)  # Auto-generate for dev if not set
+        secrets.token_hex(32),  # Auto-generate for dev if not set
     ),
     "ALLOWED_HOSTS": ["localhost", "127.0.0.1", "[::1]", "0.0.0.0"],
-
     # ==========================================================================
     # Email (console backend for development)
     # ==========================================================================
     "EMAIL_BACKEND": "django.core.mail.backends.console.EmailBackend",
-
     # ==========================================================================
     # Additional Apps for Development
     # ==========================================================================
@@ -51,7 +47,6 @@ settings: dict[str, Any] = {
         # Uncomment if using django-debug-toolbar
         # "debug_toolbar",
     ],
-
     # ==========================================================================
     # Additional Middleware for Development
     # ==========================================================================
@@ -59,12 +54,10 @@ settings: dict[str, Any] = {
         # Uncomment if using django-debug-toolbar
         # "debug_toolbar.middleware.DebugToolbarMiddleware",
     ],
-
     # ==========================================================================
     # Debug Toolbar Settings
     # ==========================================================================
     "INTERNAL_IPS": ["127.0.0.1", "localhost"],
-
     # ==========================================================================
     # Database (PostgreSQL for dev, using env vars or defaults)
     # ==========================================================================
@@ -82,7 +75,6 @@ settings: dict[str, Any] = {
             "OPTIONS": {},
         }
     },
-
     # ==========================================================================
     # Cache (local memory for development)
     # ==========================================================================
@@ -92,12 +84,10 @@ settings: dict[str, Any] = {
             "LOCATION": "django-matt-dev",
         }
     },
-
     # ==========================================================================
     # Password Validation (disabled for dev convenience)
     # ==========================================================================
     "AUTH_PASSWORD_VALIDATORS": [],
-
     # ==========================================================================
     # Logging (verbose for development)
     # ==========================================================================
@@ -139,7 +129,6 @@ settings: dict[str, Any] = {
             },
         },
     },
-
     # ==========================================================================
     # Django Matt Settings for Development
     # ==========================================================================

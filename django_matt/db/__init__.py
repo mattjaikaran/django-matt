@@ -13,6 +13,56 @@ from django.db import connection, connections
 from django.db.models import ExpressionWrapper, F, Func, Q, Value
 from django.db.models.functions import Cast, Coalesce
 
+from .planetscale import (
+    # Branch management
+    BranchInfo as PlanetScaleBranchInfo,
+)
+from .planetscale import (
+    DeployRequestInfo as PlanetScaleDeployRequest,
+)
+
+# Import PlanetScale support
+from .planetscale import (
+    PlanetScaleBranch,
+    PlanetScaleBranchError,
+    PlanetScaleConnectionError,
+    # Connection parsing
+    PlanetScaleConnectionInfo,
+    PlanetScaleDDLError,
+    PlanetScaleDeployWorkflow,
+    # Exceptions
+    PlanetScaleError,
+    PlanetScaleMigrationError,
+    # Migration handling
+    PlanetScaleMigrationRouter,
+    acheck_planetscale_connection,
+    # Health check
+    check_planetscale_connection,
+    # Configuration
+    configure_planetscale,
+    get_planetscale_config,
+    is_ddl_statement,
+    is_planetscale_host,
+)
+from .planetscale import (
+    SchemaDiff as PlanetScaleSchemaDiff,
+)
+from .planetscale import (
+    detect_current_branch as detect_planetscale_branch,
+)
+from .planetscale import (
+    get_branch_connection as get_planetscale_branch_connection,
+)
+from .planetscale import (
+    is_production_branch as is_planetscale_production,
+)
+from .planetscale import (
+    parse_database_url as parse_planetscale_url,
+)
+from .planetscale import (
+    safe_migrate as planetscale_safe_migrate,
+)
+
 # Import soft delete support
 from .soft_delete import (
     SoftDeleteManager,
@@ -21,39 +71,6 @@ from .soft_delete import (
     SoftDeleteWithUserMixin,
     restore_cascade,
     soft_delete_cascade,
-)
-
-# Import PlanetScale support
-from .planetscale import (
-    # Exceptions
-    PlanetScaleError,
-    PlanetScaleConnectionError,
-    PlanetScaleBranchError,
-    PlanetScaleMigrationError,
-    PlanetScaleDDLError,
-    # Connection parsing
-    PlanetScaleConnectionInfo,
-    parse_database_url as parse_planetscale_url,
-    is_planetscale_host,
-    # Branch management
-    BranchInfo as PlanetScaleBranchInfo,
-    PlanetScaleBranch,
-    get_branch_connection as get_planetscale_branch_connection,
-    detect_current_branch as detect_planetscale_branch,
-    is_production_branch as is_planetscale_production,
-    # Migration handling
-    PlanetScaleMigrationRouter,
-    PlanetScaleDeployWorkflow,
-    SchemaDiff as PlanetScaleSchemaDiff,
-    DeployRequestInfo as PlanetScaleDeployRequest,
-    is_ddl_statement,
-    safe_migrate as planetscale_safe_migrate,
-    # Configuration
-    configure_planetscale,
-    get_planetscale_config,
-    # Health check
-    check_planetscale_connection,
-    acheck_planetscale_connection,
 )
 
 HAS_PLANETSCALE = True

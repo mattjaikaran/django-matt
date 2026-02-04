@@ -14,6 +14,7 @@ try:
     import strawberry
     from strawberry import Schema
     from strawberry.types import Info
+
     STRAWBERRY_AVAILABLE = True
 except ImportError:
     STRAWBERRY_AVAILABLE = False
@@ -101,7 +102,7 @@ class GraphQLSchema:
         include_mutations: bool = True,
         include_subscriptions: bool = False,
         soft_delete: bool = False,
-    ) -> "GraphQLSchema":
+    ) -> GraphQLSchema:
         """
         Add a Django model to the schema.
 
@@ -125,6 +126,7 @@ class GraphQLSchema:
         # Generate type if not provided
         if type_class is None:
             from django_matt.graphql.types import create_type_from_model
+
             type_class = create_type_from_model(model)
 
         self._types[model] = type_class
@@ -144,7 +146,7 @@ class GraphQLSchema:
 
         return self
 
-    def add_query(self, name: str, resolver: Callable) -> "GraphQLSchema":
+    def add_query(self, name: str, resolver: Callable) -> GraphQLSchema:
         """
         Add a custom query field.
 
@@ -158,7 +160,7 @@ class GraphQLSchema:
         self._query_fields[name] = resolver
         return self
 
-    def add_mutation(self, name: str, resolver: Callable) -> "GraphQLSchema":
+    def add_mutation(self, name: str, resolver: Callable) -> GraphQLSchema:
         """
         Add a custom mutation field.
 
@@ -172,7 +174,7 @@ class GraphQLSchema:
         self._mutation_fields[name] = resolver
         return self
 
-    def add_subscription(self, name: str, resolver: Callable) -> "GraphQLSchema":
+    def add_subscription(self, name: str, resolver: Callable) -> GraphQLSchema:
         """
         Add a custom subscription field.
 

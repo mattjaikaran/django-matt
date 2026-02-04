@@ -9,12 +9,12 @@ Provides the core building blocks for the Django Matt framework:
 """
 
 from django_matt.core.controller import (
-    APIController,
-    Controller,
-    CRUDController,
     DJANGO_5_2_PLUS,
     DJANGO_6_0_PLUS,
     DJANGO_VERSION,
+    APIController,
+    Controller,
+    CRUDController,
 )
 from django_matt.core.errors import (
     APIError,

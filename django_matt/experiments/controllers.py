@@ -11,11 +11,8 @@ Usage:
 """
 
 import json
-from datetime import timedelta
-from typing import Any
 
 from django.http import HttpRequest, JsonResponse
-from django.utils import timezone
 
 from django_matt.core.controller import APIController
 from django_matt.core.router import delete, get, patch, post, put
@@ -40,7 +37,6 @@ from .schemas import (
     RevenueEvent,
     VariantCreate,
     VariantResponse,
-    VariantUpdate,
 )
 
 
@@ -109,6 +105,7 @@ class ExperimentController(APIController):
         search = request.GET.get("search")
         if search:
             from django.db.models import Q
+
             qs = qs.filter(Q(key__icontains=search) | Q(name__icontains=search))
 
         # Pagination
@@ -118,7 +115,7 @@ class ExperimentController(APIController):
 
         total = await qs.acount()
         offset = (page - 1) * page_size
-        experiments = [e async for e in qs[offset:offset + page_size]]
+        experiments = [e async for e in qs[offset : offset + page_size]]
 
         # Build response
         items = []
@@ -185,14 +182,20 @@ class ExperimentController(APIController):
             body = json.loads(request.body) if request.body else {}
             data = ExperimentCreate.model_validate(body)
         except json.JSONDecodeError:
-            return JsonResponse(ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400)
+            return JsonResponse(
+                ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
+            )
         except Exception as e:
-            return JsonResponse(ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422)
+            return JsonResponse(
+                ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422
+            )
 
         # Check if key already exists
         if await Experiment.objects.filter(key=data.key).aexists():
             return JsonResponse(
-                ErrorResponse(detail=f"Experiment with key '{data.key}' already exists", code="key_exists").model_dump(),
+                ErrorResponse(
+                    detail=f"Experiment with key '{data.key}' already exists", code="key_exists"
+                ).model_dump(),
                 status=400,
             )
 
@@ -286,7 +289,9 @@ class ExperimentController(APIController):
             experiment = await Experiment.objects.prefetch_related("variants").aget(key=key)
         except Experiment.DoesNotExist:
             return JsonResponse(
-                ErrorResponse(detail=f"Experiment '{key}' not found", code="not_found").model_dump(),
+                ErrorResponse(
+                    detail=f"Experiment '{key}' not found", code="not_found"
+                ).model_dump(),
                 status=404,
             )
 
@@ -326,7 +331,9 @@ class ExperimentController(APIController):
             metadata=experiment.metadata,
             start_date=experiment.start_date,
             end_date=experiment.end_date,
-            winner_variant_id=str(experiment.winner_variant_id) if experiment.winner_variant_id else None,
+            winner_variant_id=str(experiment.winner_variant_id)
+            if experiment.winner_variant_id
+            else None,
             winner_confidence=experiment.winner_confidence,
             winner_detected_at=experiment.winner_detected_at,
             created_at=experiment.created_at,
@@ -348,7 +355,9 @@ class ExperimentController(APIController):
             experiment = await Experiment.objects.aget(key=key)
         except Experiment.DoesNotExist:
             return JsonResponse(
-                ErrorResponse(detail=f"Experiment '{key}' not found", code="not_found").model_dump(),
+                ErrorResponse(
+                    detail=f"Experiment '{key}' not found", code="not_found"
+                ).model_dump(),
                 status=404,
             )
 
@@ -356,9 +365,13 @@ class ExperimentController(APIController):
             body = json.loads(request.body) if request.body else {}
             data = ExperimentUpdate.model_validate(body)
         except json.JSONDecodeError:
-            return JsonResponse(ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400)
+            return JsonResponse(
+                ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
+            )
         except Exception as e:
-            return JsonResponse(ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422)
+            return JsonResponse(
+                ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422
+            )
 
         # Track changes
         old_values = {"status": experiment.status}
@@ -421,7 +434,9 @@ class ExperimentController(APIController):
             experiment = await Experiment.objects.aget(key=key)
         except Experiment.DoesNotExist:
             return JsonResponse(
-                ErrorResponse(detail=f"Experiment '{key}' not found", code="not_found").model_dump(),
+                ErrorResponse(
+                    detail=f"Experiment '{key}' not found", code="not_found"
+                ).model_dump(),
                 status=404,
             )
 
@@ -444,13 +459,15 @@ class ExperimentController(APIController):
     @post("{key}/start")
     async def start_experiment(self, request: HttpRequest, key: str) -> JsonResponse:
         """Start an experiment."""
-        from .models import Experiment, ExperimentAuditLog, ExperimentStatus
+        from .models import Experiment, ExperimentAuditLog
 
         try:
             experiment = await Experiment.objects.prefetch_related("variants").aget(key=key)
         except Experiment.DoesNotExist:
             return JsonResponse(
-                ErrorResponse(detail=f"Experiment '{key}' not found", code="not_found").model_dump(),
+                ErrorResponse(
+                    detail=f"Experiment '{key}' not found", code="not_found"
+                ).model_dump(),
                 status=404,
             )
 
@@ -469,7 +486,9 @@ class ExperimentController(APIController):
 
             return JsonResponse(MessageResponse(message=f"Experiment '{key}' started").model_dump())
         except ValueError as e:
-            return JsonResponse(ErrorResponse(detail=str(e), code="invalid_state").model_dump(), status=400)
+            return JsonResponse(
+                ErrorResponse(detail=str(e), code="invalid_state").model_dump(), status=400
+            )
 
     @post("{key}/pause")
     async def pause_experiment(self, request: HttpRequest, key: str) -> JsonResponse:
@@ -480,7 +499,9 @@ class ExperimentController(APIController):
             experiment = await Experiment.objects.aget(key=key)
         except Experiment.DoesNotExist:
             return JsonResponse(
-                ErrorResponse(detail=f"Experiment '{key}' not found", code="not_found").model_dump(),
+                ErrorResponse(
+                    detail=f"Experiment '{key}' not found", code="not_found"
+                ).model_dump(),
                 status=404,
             )
 
@@ -499,7 +520,9 @@ class ExperimentController(APIController):
 
             return JsonResponse(MessageResponse(message=f"Experiment '{key}' paused").model_dump())
         except ValueError as e:
-            return JsonResponse(ErrorResponse(detail=str(e), code="invalid_state").model_dump(), status=400)
+            return JsonResponse(
+                ErrorResponse(detail=str(e), code="invalid_state").model_dump(), status=400
+            )
 
     @post("{key}/resume")
     async def resume_experiment(self, request: HttpRequest, key: str) -> JsonResponse:
@@ -510,7 +533,9 @@ class ExperimentController(APIController):
             experiment = await Experiment.objects.aget(key=key)
         except Experiment.DoesNotExist:
             return JsonResponse(
-                ErrorResponse(detail=f"Experiment '{key}' not found", code="not_found").model_dump(),
+                ErrorResponse(
+                    detail=f"Experiment '{key}' not found", code="not_found"
+                ).model_dump(),
                 status=404,
             )
 
@@ -529,7 +554,9 @@ class ExperimentController(APIController):
 
             return JsonResponse(MessageResponse(message=f"Experiment '{key}' resumed").model_dump())
         except ValueError as e:
-            return JsonResponse(ErrorResponse(detail=str(e), code="invalid_state").model_dump(), status=400)
+            return JsonResponse(
+                ErrorResponse(detail=str(e), code="invalid_state").model_dump(), status=400
+            )
 
     @post("{key}/complete")
     async def complete_experiment(self, request: HttpRequest, key: str) -> JsonResponse:
@@ -540,7 +567,9 @@ class ExperimentController(APIController):
             experiment = await Experiment.objects.prefetch_related("variants").aget(key=key)
         except Experiment.DoesNotExist:
             return JsonResponse(
-                ErrorResponse(detail=f"Experiment '{key}' not found", code="not_found").model_dump(),
+                ErrorResponse(
+                    detail=f"Experiment '{key}' not found", code="not_found"
+                ).model_dump(),
                 status=404,
             )
 
@@ -558,7 +587,9 @@ class ExperimentController(APIController):
                 )
             except Variant.DoesNotExist:
                 return JsonResponse(
-                    ErrorResponse(detail=f"Variant '{winner_variant_key}' not found", code="not_found").model_dump(),
+                    ErrorResponse(
+                        detail=f"Variant '{winner_variant_key}' not found", code="not_found"
+                    ).model_dump(),
                     status=404,
                 )
 
@@ -595,7 +626,9 @@ class ExperimentController(APIController):
             experiment = await Experiment.objects.prefetch_related("variants").aget(key=key)
         except Experiment.DoesNotExist:
             return JsonResponse(
-                ErrorResponse(detail=f"Experiment '{key}' not found", code="not_found").model_dump(),
+                ErrorResponse(
+                    detail=f"Experiment '{key}' not found", code="not_found"
+                ).model_dump(),
                 status=404,
             )
 
@@ -626,7 +659,9 @@ class ExperimentController(APIController):
             experiment = await Experiment.objects.aget(key=key)
         except Experiment.DoesNotExist:
             return JsonResponse(
-                ErrorResponse(detail=f"Experiment '{key}' not found", code="not_found").model_dump(),
+                ErrorResponse(
+                    detail=f"Experiment '{key}' not found", code="not_found"
+                ).model_dump(),
                 status=404,
             )
 
@@ -634,14 +669,20 @@ class ExperimentController(APIController):
             body = json.loads(request.body) if request.body else {}
             data = VariantCreate.model_validate(body)
         except json.JSONDecodeError:
-            return JsonResponse(ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400)
+            return JsonResponse(
+                ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
+            )
         except Exception as e:
-            return JsonResponse(ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422)
+            return JsonResponse(
+                ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422
+            )
 
         # Check if variant key exists
         if await Variant.objects.filter(experiment=experiment, key=data.key).aexists():
             return JsonResponse(
-                ErrorResponse(detail=f"Variant '{data.key}' already exists", code="key_exists").model_dump(),
+                ErrorResponse(
+                    detail=f"Variant '{data.key}' already exists", code="key_exists"
+                ).model_dump(),
                 status=400,
             )
 
@@ -685,7 +726,9 @@ class ExperimentController(APIController):
             experiment = await Experiment.objects.aget(key=key)
         except Experiment.DoesNotExist:
             return JsonResponse(
-                ErrorResponse(detail=f"Experiment '{key}' not found", code="not_found").model_dump(),
+                ErrorResponse(
+                    detail=f"Experiment '{key}' not found", code="not_found"
+                ).model_dump(),
                 status=404,
             )
 
@@ -723,7 +766,9 @@ class ExperimentController(APIController):
             experiment = await Experiment.objects.prefetch_related("variants").aget(key=key)
         except Experiment.DoesNotExist:
             return JsonResponse(
-                ErrorResponse(detail=f"Experiment '{key}' not found", code="not_found").model_dump(),
+                ErrorResponse(
+                    detail=f"Experiment '{key}' not found", code="not_found"
+                ).model_dump(),
                 status=404,
             )
 
@@ -764,9 +809,13 @@ class ExperimentController(APIController):
             body = json.loads(request.body) if request.body else {}
             data = AssignmentRequest.model_validate(body)
         except json.JSONDecodeError:
-            return JsonResponse(ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400)
+            return JsonResponse(
+                ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
+            )
         except Exception as e:
-            return JsonResponse(ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422)
+            return JsonResponse(
+                ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422
+            )
 
         from .manager import get_manager
 
@@ -776,6 +825,7 @@ class ExperimentController(APIController):
         user = None
         if data.context.user_id:
             from django.contrib.auth import get_user_model
+
             User = get_user_model()
             try:
                 user = await User.objects.aget(pk=data.context.user_id)
@@ -817,9 +867,13 @@ class ExperimentController(APIController):
             body = json.loads(request.body) if request.body else {}
             data = BulkAssignmentRequest.model_validate(body)
         except json.JSONDecodeError:
-            return JsonResponse(ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400)
+            return JsonResponse(
+                ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
+            )
         except Exception as e:
-            return JsonResponse(ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422)
+            return JsonResponse(
+                ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422
+            )
 
         from .manager import get_manager
         from .models import Experiment, ExperimentStatus
@@ -830,6 +884,7 @@ class ExperimentController(APIController):
         user = None
         if data.context.user_id:
             from django.contrib.auth import get_user_model
+
             User = get_user_model()
             try:
                 user = await User.objects.aget(pk=data.context.user_id)
@@ -839,7 +894,8 @@ class ExperimentController(APIController):
         experiment_keys = data.experiment_keys
         if data.include_all_running:
             running_keys = [
-                e.key async for e in Experiment.objects.filter(status=ExperimentStatus.RUNNING.value)
+                e.key
+                async for e in Experiment.objects.filter(status=ExperimentStatus.RUNNING.value)
             ]
             experiment_keys = list(set(experiment_keys + running_keys))
 
@@ -856,7 +912,9 @@ class ExperimentController(APIController):
             assignments[exp_key] = AssignmentResponse(
                 experiment_key=exp_key,
                 variant_key=assignment.variant.key if assignment and assignment.variant else None,
-                variant_id=str(assignment.variant.id) if assignment and assignment.variant else None,
+                variant_id=str(assignment.variant.id)
+                if assignment and assignment.variant
+                else None,
                 is_holdout=assignment.is_holdout if assignment else False,
                 assigned_at=assignment.assigned_at if assignment else None,
                 payload=assignment.variant.payload if assignment and assignment.variant else {},
@@ -872,9 +930,13 @@ class ExperimentController(APIController):
             body = json.loads(request.body) if request.body else {}
             data = ConversionEvent.model_validate(body)
         except json.JSONDecodeError:
-            return JsonResponse(ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400)
+            return JsonResponse(
+                ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
+            )
         except Exception as e:
-            return JsonResponse(ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422)
+            return JsonResponse(
+                ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422
+            )
 
         from .manager import get_manager
 
@@ -884,6 +946,7 @@ class ExperimentController(APIController):
         user = None
         if data.user_id:
             from django.contrib.auth import get_user_model
+
             User = get_user_model()
             try:
                 user = await User.objects.aget(pk=data.user_id)
@@ -908,9 +971,13 @@ class ExperimentController(APIController):
             body = json.loads(request.body) if request.body else {}
             data = RevenueEvent.model_validate(body)
         except json.JSONDecodeError:
-            return JsonResponse(ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400)
+            return JsonResponse(
+                ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
+            )
         except Exception as e:
-            return JsonResponse(ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422)
+            return JsonResponse(
+                ErrorResponse(detail=str(e), code="validation_error").model_dump(), status=422
+            )
 
         from .manager import get_manager
 
@@ -920,6 +987,7 @@ class ExperimentController(APIController):
         user = None
         if data.user_id:
             from django.contrib.auth import get_user_model
+
             User = get_user_model()
             try:
                 user = await User.objects.aget(pk=data.user_id)
@@ -944,13 +1012,21 @@ class ExperimentController(APIController):
     @get("stats")
     async def get_stats(self, request: HttpRequest) -> JsonResponse:
         """Get experiment statistics."""
-        from .models import Experiment, ExperimentAssignment, ExperimentResult, ExperimentStatus, AssignmentStrategy
+        from .models import (
+            AssignmentStrategy,
+            Experiment,
+            ExperimentAssignment,
+            ExperimentResult,
+            ExperimentStatus,
+        )
 
         total = await Experiment.objects.acount()
         draft = await Experiment.objects.filter(status=ExperimentStatus.DRAFT.value).acount()
         running = await Experiment.objects.filter(status=ExperimentStatus.RUNNING.value).acount()
         paused = await Experiment.objects.filter(status=ExperimentStatus.PAUSED.value).acount()
-        completed = await Experiment.objects.filter(status=ExperimentStatus.COMPLETED.value).acount()
+        completed = await Experiment.objects.filter(
+            status=ExperimentStatus.COMPLETED.value
+        ).acount()
         assignments = await ExperimentAssignment.objects.acount()
         conversions = await ExperimentResult.objects.filter(metric_name="conversion").acount()
 
@@ -985,21 +1061,23 @@ class ExperimentController(APIController):
         total = await qs.acount()
 
         offset = (page - 1) * page_size
-        logs = [log async for log in qs[offset:offset + page_size]]
+        logs = [log async for log in qs[offset : offset + page_size]]
 
         items = []
         for log in logs:
-            items.append({
-                "id": str(log.id),
-                "experiment_key": log.experiment_key,
-                "action": log.action,
-                "changes": log.changes,
-                "old_values": log.old_values,
-                "new_values": log.new_values,
-                "user_id": str(log.user_id) if log.user_id else None,
-                "ip_address": log.ip_address,
-                "created_at": log.created_at.isoformat(),
-            })
+            items.append(
+                {
+                    "id": str(log.id),
+                    "experiment_key": log.experiment_key,
+                    "action": log.action,
+                    "changes": log.changes,
+                    "old_values": log.old_values,
+                    "new_values": log.new_values,
+                    "user_id": str(log.user_id) if log.user_id else None,
+                    "ip_address": log.ip_address,
+                    "created_at": log.created_at.isoformat(),
+                }
+            )
 
         response = AuditLogListResponse(items=items, total=total, page=page, page_size=page_size)
         return JsonResponse(response.model_dump())
@@ -1026,10 +1104,12 @@ class ExperimentAssignmentController(APIController):
         variant = ctx.get_variant(experiment_key)
         payload = ctx.get_variant_payload(experiment_key) if variant else {}
 
-        return JsonResponse({
-            "variant": variant,
-            "payload": payload,
-        })
+        return JsonResponse(
+            {
+                "variant": variant,
+                "payload": payload,
+            }
+        )
 
     @get("all")
     async def get_all_experiments(self, request: HttpRequest) -> JsonResponse:

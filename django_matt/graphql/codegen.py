@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
 
 try:
     import strawberry
     from strawberry import Schema
     from strawberry.printer import print_schema
+
     STRAWBERRY_AVAILABLE = True
 except ImportError:
     STRAWBERRY_AVAILABLE = False
@@ -134,7 +134,7 @@ class TypeScriptGenerator:
         lines = ["// Object Types"]
 
         # Parse types from SDL
-        type_pattern = r'type\s+(\w+)\s*(?:implements\s+[\w\s&]+)?\s*\{([^}]+)\}'
+        type_pattern = r"type\s+(\w+)\s*(?:implements\s+[\w\s&]+)?\s*\{([^}]+)\}"
         matches = re.findall(type_pattern, self.sdl)
 
         for type_name, fields_str in matches:
@@ -166,7 +166,7 @@ class TypeScriptGenerator:
         lines = ["// Input Types"]
 
         # Parse input types from SDL
-        input_pattern = r'input\s+(\w+)\s*\{([^}]+)\}'
+        input_pattern = r"input\s+(\w+)\s*\{([^}]+)\}"
         matches = re.findall(input_pattern, self.sdl)
 
         for type_name, fields_str in matches:
@@ -191,7 +191,7 @@ class TypeScriptGenerator:
         lines = ["// Enums"]
 
         # Parse enums from SDL
-        enum_pattern = r'enum\s+(\w+)\s*\{([^}]+)\}'
+        enum_pattern = r"enum\s+(\w+)\s*\{([^}]+)\}"
         matches = re.findall(enum_pattern, self.sdl)
 
         for enum_name, values_str in matches:
@@ -218,7 +218,7 @@ class TypeScriptGenerator:
         lines = ["// Operations"]
 
         # Parse Query type
-        query_pattern = r'type\s+Query\s*\{([^}]+)\}'
+        query_pattern = r"type\s+Query\s*\{([^}]+)\}"
         query_match = re.search(query_pattern, self.sdl)
 
         if query_match:
@@ -231,7 +231,7 @@ class TypeScriptGenerator:
             lines.append("")
 
         # Parse Mutation type
-        mutation_pattern = r'type\s+Mutation\s*\{([^}]+)\}'
+        mutation_pattern = r"type\s+Mutation\s*\{([^}]+)\}"
         mutation_match = re.search(mutation_pattern, self.sdl)
 
         if mutation_match:
@@ -244,7 +244,7 @@ class TypeScriptGenerator:
             lines.append("")
 
         # Parse Subscription type
-        subscription_pattern = r'type\s+Subscription\s*\{([^}]+)\}'
+        subscription_pattern = r"type\s+Subscription\s*\{([^}]+)\}"
         subscription_match = re.search(subscription_pattern, self.sdl)
 
         if subscription_match:
@@ -261,7 +261,7 @@ class TypeScriptGenerator:
     def _parse_fields(self, fields_str: str) -> dict[str, str]:
         """Parse fields from a type definition."""
         fields = {}
-        field_pattern = r'(\w+)(?:\([^)]*\))?\s*:\s*([^\n]+)'
+        field_pattern = r"(\w+)(?:\([^)]*\))?\s*:\s*([^\n]+)"
         matches = re.findall(field_pattern, fields_str)
 
         for field_name, field_type in matches:
@@ -465,13 +465,13 @@ def generate_graphql_operations(
     ]
 
     # Extract Query operations
-    query_pattern = r'type\s+Query\s*\{([^}]+)\}'
+    query_pattern = r"type\s+Query\s*\{([^}]+)\}"
     query_match = re.search(query_pattern, sdl)
 
     if query_match:
         lines.append("// Queries")
         fields_str = query_match.group(1)
-        field_pattern = r'(\w+)(?:\(([^)]*)\))?\s*:\s*([^\n]+)'
+        field_pattern = r"(\w+)(?:\(([^)]*)\))?\s*:\s*([^\n]+)"
         matches = re.findall(field_pattern, fields_str)
 
         for field_name, args_str, return_type in matches:
@@ -480,7 +480,7 @@ def generate_graphql_operations(
 
             if args_str:
                 # Parse arguments
-                arg_pattern = r'(\w+)\s*:\s*(\S+)'
+                arg_pattern = r"(\w+)\s*:\s*(\S+)"
                 args = re.findall(arg_pattern, args_str)
                 variables = ", ".join(f"${name}: {atype}" for name, atype in args)
                 field_args = ", ".join(f"{name}: ${name}" for name, _ in args)
@@ -506,20 +506,20 @@ export const {operation_name}Query = `
             lines.append(query)
 
     # Extract Mutation operations
-    mutation_pattern = r'type\s+Mutation\s*\{([^}]+)\}'
+    mutation_pattern = r"type\s+Mutation\s*\{([^}]+)\}"
     mutation_match = re.search(mutation_pattern, sdl)
 
     if mutation_match:
         lines.append("// Mutations")
         fields_str = mutation_match.group(1)
-        field_pattern = r'(\w+)(?:\(([^)]*)\))?\s*:\s*([^\n]+)'
+        field_pattern = r"(\w+)(?:\(([^)]*)\))?\s*:\s*([^\n]+)"
         matches = re.findall(field_pattern, fields_str)
 
         for field_name, args_str, return_type in matches:
             operation_name = _to_pascal_case(field_name)
 
             if args_str:
-                arg_pattern = r'(\w+)\s*:\s*(\S+)'
+                arg_pattern = r"(\w+)\s*:\s*(\S+)"
                 args = re.findall(arg_pattern, args_str)
                 variables = ", ".join(f"${name}: {atype}" for name, atype in args)
                 field_args = ", ".join(f"{name}: ${name}" for name, _ in args)

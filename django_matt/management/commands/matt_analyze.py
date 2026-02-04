@@ -17,14 +17,13 @@ Usage:
 
 import ast
 import json
-import os
 import re
 from pathlib import Path
 from typing import Any
 
 from django.apps import apps
 from django.conf import settings
-from django.db.models import ForeignKey, ManyToManyField
+from django.db.models import ForeignKey
 
 from django_matt.cli import MattCommand
 
@@ -132,8 +131,7 @@ class Command(MattCommand):
                 "many_to_many": [],
                 "has_created_at": False,
                 "has_updated_at": False,
-                "has_str_method": hasattr(model, "__str__")
-                and model.__str__ is not object.__str__,
+                "has_str_method": hasattr(model, "__str__") and model.__str__ is not object.__str__,
             }
 
             # Analyze fields
@@ -686,9 +684,7 @@ class Command(MattCommand):
         if health_score >= 80:
             self.console.box_success(f"Health Score: {health_score}/100", title="Project Health")
         elif health_score >= 50:
-            self.console.box_warning(
-                f"Health Score: {health_score}/100", title="Project Health"
-            )
+            self.console.box_warning(f"Health Score: {health_score}/100", title="Project Health")
         else:
             self.console.box_error(f"Health Score: {health_score}/100", title="Project Health")
 
@@ -759,7 +755,9 @@ class Command(MattCommand):
                 if queries["loop_queries"]:
                     self.warning(f"Potential N+1 patterns: {len(queries['loop_queries'])}")
                     for item in queries["loop_queries"][:3]:
-                        self.console.list_item(f"{item['file']}: {item['suggestion']}", style="yellow")
+                        self.console.list_item(
+                            f"{item['file']}: {item['suggestion']}", style="yellow"
+                        )
 
         # Issues section
         issues = summary.get("issues", [])
@@ -794,4 +792,6 @@ class Command(MattCommand):
                     )
 
         self.console.newline()
-        self.console.muted("Run with --verbose for more details or --json for machine-readable output")
+        self.console.muted(
+            "Run with --verbose for more details or --json for machine-readable output"
+        )

@@ -56,15 +56,15 @@ except ImportError:
         content: str
 
         @classmethod
-        def system(cls, content: str) -> "Message":
+        def system(cls, content: str) -> Message:
             return cls(role=Role.SYSTEM, content=content)
 
         @classmethod
-        def user(cls, content: str) -> "Message":
+        def user(cls, content: str) -> Message:
             return cls(role=Role.USER, content=content)
 
         @classmethod
-        def assistant(cls, content: str) -> "Message":
+        def assistant(cls, content: str) -> Message:
             return cls(role=Role.ASSISTANT, content=content)
 
     @dc
@@ -111,12 +111,14 @@ except ImportError:
     class StructuredOutputProvider(ABC):
         pass
 
+
 T = TypeVar("T", bound=BaseModel)
 
 # Check for llama-cpp-python availability
 LLAMA_CPP_AVAILABLE = False
 try:
     from llama_cpp import Llama, LlamaGrammar
+
     LLAMA_CPP_AVAILABLE = True
 except ImportError:
     Llama = None
@@ -130,6 +132,7 @@ except ImportError:
 
 class QuantizationLevel(str, Enum):
     """Quantization levels for GGUF models."""
+
     Q2_K = "Q2_K"
     Q3_K_S = "Q3_K_S"
     Q3_K_M = "Q3_K_M"
@@ -151,6 +154,7 @@ class QuantizationLevel(str, Enum):
 
 class GPUBackend(str, Enum):
     """Available GPU acceleration backends."""
+
     NONE = "none"
     METAL = "metal"
     CUDA = "cuda"
@@ -160,6 +164,7 @@ class GPUBackend(str, Enum):
 
 class ChatTemplate(str, Enum):
     """Built-in chat templates."""
+
     LLAMA = "llama"
     LLAMA3 = "llama3"
     CHATML = "chatml"
@@ -328,8 +333,10 @@ def apply_chat_template(
 
     # Handle remaining system message for templates that didn't use it
     if system_content:
-        parts.insert(1 if tmpl.get("bos") else 0,
-                     tmpl["system_prefix"] + system_content + tmpl["system_suffix"])
+        parts.insert(
+            1 if tmpl.get("bos") else 0,
+            tmpl["system_prefix"] + system_content + tmpl["system_suffix"],
+        )
 
     # Add generation prompt
     if add_generation_prompt:
@@ -345,7 +352,7 @@ def apply_chat_template(
 
 # Common GBNF grammar patterns
 GBNF_GRAMMARS = {
-    "json": r'''
+    "json": r"""
 root ::= object
 value ::= object | array | string | number | ("true" | "false" | "null") ws
 
@@ -370,8 +377,8 @@ string ::=
 number ::= ("-"? ([0-9] | [1-9] [0-9]*)) ("." [0-9]+)? ([eE] [-+]? [0-9]+)? ws
 
 ws ::= ([ \t\n] ws)?
-''',
-    "json_object": r'''
+""",
+    "json_object": r"""
 root ::= "{" ws members "}" ws
 members ::= pair ("," ws pair)*
 pair ::= string ":" ws value
@@ -381,26 +388,26 @@ array ::= "[" ws (value ("," ws value)*)? "]" ws
 string ::= "\"" ([^"\\] | "\\" .)* "\""
 number ::= "-"? [0-9]+ ("." [0-9]+)?
 ws ::= [ \t\n]*
-''',
-    "list": r'''
+""",
+    "list": r"""
 root ::= "[" ws (item ("," ws item)*)? "]" ws
 item ::= string
 string ::= "\"" [a-zA-Z0-9 ]* "\""
 ws ::= [ \t\n]*
-''',
-    "yes_no": r'''
+""",
+    "yes_no": r"""
 root ::= ("yes" | "no")
-''',
-    "integer": r'''
+""",
+    "integer": r"""
 root ::= "-"? [0-9]+
-''',
-    "float": r'''
+""",
+    "float": r"""
 root ::= "-"? [0-9]+ ("." [0-9]+)?
-''',
+""",
 }
 
 
-def create_grammar(grammar_str: str) -> "LlamaGrammar | None":
+def create_grammar(grammar_str: str) -> LlamaGrammar | None:
     """
     Create a LlamaGrammar from a GBNF grammar string.
 
@@ -437,7 +444,7 @@ def pydantic_to_gbnf(model: type[BaseModel]) -> str:
 def _json_schema_to_gbnf(schema: dict[str, Any], root_name: str = "root") -> str:
     """Convert JSON Schema to GBNF grammar."""
     rules = []
-    rules.append('ws ::= ([ \\t\\n] ws)?')
+    rules.append("ws ::= ([ \\t\\n] ws)?")
     rules.append('string ::= "\\"" ([^"\\\\] | "\\\\" .)* "\\""')
     rules.append('number ::= "-"? [0-9]+ ("." [0-9]+)?')
     rules.append('integer ::= "-"? [0-9]+')
@@ -470,33 +477,32 @@ def _json_schema_to_gbnf(schema: dict[str, Any], root_name: str = "root") -> str
 
             return f'{name} ::= "{{" ws {" ".join(parts)} "}}" ws'
 
-        elif schema_type == "array":
+        if schema_type == "array":
             items = s.get("items", {"type": "string"})
             item_rule = f"{name}_item"
             rules.append(process_schema(items, item_rule))
             return f'{name} ::= "[" ws ({item_rule} ("," ws {item_rule})*)? "]" ws'
 
-        elif schema_type == "string":
+        if schema_type == "string":
             if "enum" in s:
                 enum_vals = " | ".join(f'"\\""{v}"\\""' for v in s["enum"])
                 return f"{name} ::= ({enum_vals})"
             return f"{name} ::= string ws"
 
-        elif schema_type == "integer":
+        if schema_type == "integer":
             return f"{name} ::= integer ws"
 
-        elif schema_type == "number":
+        if schema_type == "number":
             return f"{name} ::= number ws"
 
-        elif schema_type == "boolean":
+        if schema_type == "boolean":
             return f"{name} ::= boolean ws"
 
-        elif schema_type == "null":
+        if schema_type == "null":
             return f"{name} ::= null ws"
 
-        else:
-            # Default to string
-            return f"{name} ::= string ws"
+        # Default to string
+        return f"{name} ::= string ws"
 
     main_rule = process_schema(schema, root_name)
     rules.insert(0, main_rule)
@@ -661,7 +667,7 @@ class LlamaCppModel:
 
     def __init__(
         self,
-        llama: "Llama",
+        llama: Llama,
         config: LlamaCppModelConfig,
         model_path: str,
     ):
@@ -682,7 +688,7 @@ class LlamaCppModel:
         use_mmap: bool = True,
         verbose: bool = False,
         **kwargs,
-    ) -> "LlamaCppModel":
+    ) -> LlamaCppModel:
         """
         Load a model from a GGUF file.
 
@@ -733,7 +739,7 @@ class LlamaCppModel:
         *,
         cache_dir: str | None = None,
         **kwargs,
-    ) -> "LlamaCppModel":
+    ) -> LlamaCppModel:
         """
         Load a model from Hugging Face Hub.
 
@@ -766,7 +772,7 @@ class LlamaCppModel:
         return cls.from_file(model_path, **kwargs)
 
     @property
-    def llama(self) -> "Llama":
+    def llama(self) -> Llama:
         """Get the underlying Llama instance."""
         return self._llama
 
@@ -951,10 +957,7 @@ class LlamaCppModel:
             List of embedding vectors
         """
         if not self._config.embedding:
-            raise ValueError(
-                "Model not loaded in embedding mode. "
-                "Reload with embedding=True"
-            )
+            raise ValueError("Model not loaded in embedding mode. Reload with embedding=True")
 
         texts = [text] if isinstance(text, str) else text
 
@@ -1548,7 +1551,7 @@ class LlamaCppEmbeddings(EmbeddingProvider):
         self._verbose = verbose
         self._extra_kwargs = kwargs
 
-        self._llama: "Llama | None" = None
+        self._llama: Llama | None = None
         self._dimensions: int | None = None
         self._lock = threading.Lock()
 
@@ -1564,7 +1567,7 @@ class LlamaCppEmbeddings(EmbeddingProvider):
             self._ensure_model()
         return self._dimensions or 4096  # Default fallback
 
-    def _ensure_model(self) -> "Llama":
+    def _ensure_model(self) -> Llama:
         """Ensure the embedding model is loaded."""
         if self._llama is None:
             if not LLAMA_CPP_AVAILABLE:
@@ -1767,6 +1770,7 @@ def get_optimal_threads() -> int:
     try:
         # Try to get physical core count
         import subprocess
+
         if os.uname().sysname == "Darwin":  # macOS
             result = subprocess.run(
                 ["sysctl", "-n", "hw.physicalcpu"],
@@ -1797,6 +1801,7 @@ def detect_gpu_backend() -> GPUBackend:
     # Check for CUDA
     try:
         import subprocess
+
         result = subprocess.run(
             ["nvidia-smi"],
             capture_output=True,
@@ -1810,6 +1815,7 @@ def detect_gpu_backend() -> GPUBackend:
     # Check for ROCm (AMD)
     try:
         import subprocess
+
         result = subprocess.run(
             ["rocm-smi"],
             capture_output=True,
@@ -1841,12 +1847,14 @@ def list_available_models(directory: str) -> list[dict[str, Any]]:
 
     for path in dir_path.glob("**/*.gguf"):
         size_mb = path.stat().st_size / (1024 * 1024)
-        models.append({
-            "path": str(path),
-            "name": path.name,
-            "size_mb": round(size_mb, 2),
-            "quantization": detect_quantization(str(path)).value,
-        })
+        models.append(
+            {
+                "path": str(path),
+                "name": path.name,
+                "size_mb": round(size_mb, 2),
+                "quantization": detect_quantization(str(path)).value,
+            }
+        )
 
     return sorted(models, key=lambda x: x["name"])
 

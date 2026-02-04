@@ -117,169 +117,169 @@ def __getattr__(name: str):
         from django_matt.analytics.models import AnalyticsSession
 
         return AnalyticsSession
-    elif name == "AnalyticsEvent":
+    if name == "AnalyticsEvent":
         from django_matt.analytics.models import AnalyticsEvent
 
         return AnalyticsEvent
-    elif name == "PageView":
+    if name == "PageView":
         from django_matt.analytics.models import PageView
 
         return PageView
-    elif name == "UserMetric":
+    if name == "UserMetric":
         from django_matt.analytics.models import UserMetric
 
         return UserMetric
-    elif name == "Funnel":
+    if name == "Funnel":
         from django_matt.analytics.models import Funnel
 
         return Funnel
-    elif name == "FunnelStep":
+    if name == "FunnelStep":
         from django_matt.analytics.models import FunnelStep
 
         return FunnelStep
-    elif name == "FunnelConversion":
+    if name == "FunnelConversion":
         from django_matt.analytics.models import FunnelConversion
 
         return FunnelConversion
-    elif name == "UserIdentity":
+    if name == "UserIdentity":
         from django_matt.analytics.models import UserIdentity
 
         return UserIdentity
-    elif name == "EventCategory":
+    if name == "EventCategory":
         from django_matt.analytics.models import EventCategory
 
         return EventCategory
-    elif name == "SessionStatus":
+    if name == "SessionStatus":
         from django_matt.analytics.models import SessionStatus
 
         return SessionStatus
-    elif name == "AnonymizationLevel":
+    if name == "AnonymizationLevel":
         from django_matt.analytics.models import AnonymizationLevel
 
         return AnonymizationLevel
 
     # Tracker
-    elif name == "EventTracker":
+    if name == "EventTracker":
         from django_matt.analytics.tracker import EventTracker
 
         return EventTracker
-    elif name == "get_tracker":
+    if name == "get_tracker":
         from django_matt.analytics.tracker import get_tracker
 
         return get_tracker
 
     # Backends
-    elif name == "AnalyticsBackend":
+    if name == "AnalyticsBackend":
         from django_matt.analytics.backends import AnalyticsBackend
 
         return AnalyticsBackend
-    elif name == "DatabaseBackend":
+    if name == "DatabaseBackend":
         from django_matt.analytics.backends import DatabaseBackend
 
         return DatabaseBackend
-    elif name == "RedisBackend":
+    if name == "RedisBackend":
         from django_matt.analytics.backends import RedisBackend
 
         return RedisBackend
-    elif name == "SegmentBackend":
+    if name == "SegmentBackend":
         from django_matt.analytics.backends import SegmentBackend
 
         return SegmentBackend
-    elif name == "MixpanelBackend":
+    if name == "MixpanelBackend":
         from django_matt.analytics.backends import MixpanelBackend
 
         return MixpanelBackend
-    elif name == "PostHogBackend":
+    if name == "PostHogBackend":
         from django_matt.analytics.backends import PostHogBackend
 
         return PostHogBackend
-    elif name == "AmplitudeBackend":
+    if name == "AmplitudeBackend":
         from django_matt.analytics.backends import AmplitudeBackend
 
         return AmplitudeBackend
-    elif name == "get_backend":
+    if name == "get_backend":
         from django_matt.analytics.backends import get_backend
 
         return get_backend
 
     # Middleware
-    elif name == "AnalyticsMiddleware":
+    if name == "AnalyticsMiddleware":
         from django_matt.analytics.middleware import AnalyticsMiddleware
 
         return AnalyticsMiddleware
-    elif name == "AsyncAnalyticsMiddleware":
+    if name == "AsyncAnalyticsMiddleware":
         from django_matt.analytics.middleware import AsyncAnalyticsMiddleware
 
         return AsyncAnalyticsMiddleware
 
     # Controllers
-    elif name == "AnalyticsController":
+    if name == "AnalyticsController":
         from django_matt.analytics.controllers import AnalyticsController
 
         return AnalyticsController
-    elif name == "MetricsController":
+    if name == "MetricsController":
         from django_matt.analytics.controllers import MetricsController
 
         return MetricsController
-    elif name == "FunnelController":
+    if name == "FunnelController":
         from django_matt.analytics.controllers import FunnelController
 
         return FunnelController
 
     # Decorators
-    elif name == "track_event_decorator":
+    if name == "track_event_decorator":
         from django_matt.analytics.decorators import track_event
 
         return track_event
-    elif name == "track_timing":
+    if name == "track_timing":
         from django_matt.analytics.decorators import track_timing
 
         return track_timing
-    elif name == "track_page_view_decorator":
+    if name == "track_page_view_decorator":
         from django_matt.analytics.decorators import track_page_view
 
         return track_page_view
-    elif name == "TrackedMixin":
+    if name == "TrackedMixin":
         from django_matt.analytics.decorators import TrackedMixin
 
         return TrackedMixin
 
     # Aggregations
-    elif name == "Aggregator":
+    if name == "Aggregator":
         from django_matt.analytics.aggregations import Aggregator
 
         return Aggregator
-    elif name == "get_aggregator":
+    if name == "get_aggregator":
         from django_matt.analytics.aggregations import get_aggregator
 
         return get_aggregator
 
     # Tasks
-    elif name == "create_daily_rollups":
+    if name == "create_daily_rollups":
         from django_matt.analytics.tasks import create_daily_rollups
 
         return create_daily_rollups
-    elif name == "create_weekly_rollups":
+    if name == "create_weekly_rollups":
         from django_matt.analytics.tasks import create_weekly_rollups
 
         return create_weekly_rollups
-    elif name == "create_monthly_rollups":
+    if name == "create_monthly_rollups":
         from django_matt.analytics.tasks import create_monthly_rollups
 
         return create_monthly_rollups
-    elif name == "expire_sessions":
+    if name == "expire_sessions":
         from django_matt.analytics.tasks import expire_sessions
 
         return expire_sessions
-    elif name == "cleanup_old_data":
+    if name == "cleanup_old_data":
         from django_matt.analytics.tasks import cleanup_old_data
 
         return cleanup_old_data
-    elif name == "anonymize_old_sessions":
+    if name == "anonymize_old_sessions":
         from django_matt.analytics.tasks import anonymize_old_sessions
 
         return anonymize_old_sessions
-    elif name == "process_funnel_conversions":
+    if name == "process_funnel_conversions":
         from django_matt.analytics.tasks import process_funnel_conversions
 
         return process_funnel_conversions

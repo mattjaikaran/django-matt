@@ -24,7 +24,7 @@ Usage:
 
 import functools
 import inspect
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Callable
 
 from django.http import HttpResponse, JsonResponse
 

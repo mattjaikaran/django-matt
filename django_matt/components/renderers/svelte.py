@@ -18,7 +18,6 @@ from django_matt.components.renderers.base import (
     RenderOutput,
 )
 
-
 # =============================================================================
 # Svelte Component Mapping
 # =============================================================================
@@ -142,7 +141,7 @@ class SvelteComponentOutput:
         # Script section
         script_content = self._build_script()
         if script_content:
-            parts.append(f"<script lang=\"ts\">\n{script_content}\n</script>")
+            parts.append(f'<script lang="ts">\n{script_content}\n</script>')
 
         # Template
         parts.append(self.template)
@@ -191,10 +190,10 @@ class SvelteStoreDefinition:
         if self.type == "writable":
             value = json.dumps(self.initial_value) if self.initial_value is not None else "null"
             return f"export const {self.name} = writable<{self.typescript_type}>({value});"
-        elif self.type == "readable":
+        if self.type == "readable":
             value = json.dumps(self.initial_value) if self.initial_value is not None else "null"
             return f"export const {self.name} = readable<{self.typescript_type}>({value});"
-        elif self.type == "derived":
+        if self.type == "derived":
             stores = ", ".join(self.derive_from)
             return f"export const {self.name} = derived([{stores}], ([$values]) => {{ /* derive logic */ }});"
         return ""
@@ -502,7 +501,9 @@ class SvelteRenderer(BaseRenderer):
                 if description
                 else ""
             )
-            header_section = f'  <div class="flex flex-col space-y-1.5 p-6">\n{title_html}{desc_html}  </div>\n'
+            header_section = (
+                f'  <div class="flex flex-col space-y-1.5 p-6">\n{title_html}{desc_html}  </div>\n'
+            )
 
         footer_section = ""
         if footer:
@@ -511,7 +512,9 @@ class SvelteRenderer(BaseRenderer):
                 if isinstance(footer, Component)
                 else self._render_children_template(footer, context)
             )
-            footer_section = f'  <div class="flex items-center p-6 pt-0">\n    {footer_children}\n  </div>\n'
+            footer_section = (
+                f'  <div class="flex items-center p-6 pt-0">\n    {footer_children}\n  </div>\n'
+            )
 
         template = f"""<div class="{classes}">
 {header_section}  <div class="p-6 pt-0">
@@ -645,8 +648,8 @@ function close() {{
 
   <!-- Drawer -->
   <div
-    class="fixed z-50 gap-4 bg-background p-6 shadow-lg {side_classes.get(side, side_classes['right'])}"
-    transition:fly={fly_config.get(side, fly_config['right'])}
+    class="fixed z-50 gap-4 bg-background p-6 shadow-lg {side_classes.get(side, side_classes["right"])}"
+    transition:fly={fly_config.get(side, fly_config["right"])}
   >
     <div class="flex flex-col space-y-2">
       {{#if "{title}"}}
@@ -747,7 +750,7 @@ function close() {{
         ]
 
         accordion_type = "multiple" if multiple else "single"
-        script = f'let value = $state<string{"[]" if multiple else " | undefined"}>({[] if multiple else "undefined"});'
+        script = f"let value = $state<string{'[]' if multiple else ' | undefined'}>({[] if multiple else 'undefined'});"
 
         # Build accordion items
         accordion_items = []
@@ -965,11 +968,11 @@ function close() {{
             size_classes.get(size, size_classes["md"]),
         )
 
-        script = f"""let imageError = $state(false);
+        script = """let imageError = $state(false);
 
-function handleError() {{
+function handleError() {
   imageError = true;
-}}"""
+}"""
 
         template = f"""<span class="{classes}">
   {{#if !imageError && "{src}"}}
@@ -1047,7 +1050,9 @@ function handleError() {{
             "xl": "h-10 w-10",
         }
 
-        classes = self._get_classes(component, "animate-spin", size_classes.get(size, size_classes["md"]))
+        classes = self._get_classes(
+            component, "animate-spin", size_classes.get(size, size_classes["md"])
+        )
 
         template = f"""<svg class="{classes}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -1504,7 +1509,7 @@ let showPassword = $state(false);"""
         max_attr = f'max="{max_value}"' if max_value is not None else ""
         step_attr = f'step="{step}"' if step is not None else ""
 
-        script = f'let value = $state({default_value if default_value else 0});'
+        script = f"let value = $state({default_value if default_value else 0});"
 
         input_html = f"""<input
   type="number"
@@ -1590,7 +1595,7 @@ let showPassword = $state(false);"""
 
         imports = ["import { Select } from 'bits-ui';"]
 
-        script = 'let selected = $state<{ value: string; label: string } | undefined>(undefined);'
+        script = "let selected = $state<{ value: string; label: string } | undefined>(undefined);"
 
         options_json = []
         for opt in options:
@@ -1838,7 +1843,9 @@ let sortedData = $derived(
         for col in columns:
             if not getattr(col, "hidden", False):
                 col_key = getattr(col, "key", "")
-                body_cells.append(f'        <td class="p-4 align-middle">{{row.{col_key} ?? ""}}</td>')
+                body_cells.append(
+                    f'        <td class="p-4 align-middle">{{row.{col_key} ?? ""}}</td>'
+                )
 
         col_count = len([c for c in columns if not getattr(c, "hidden", False)])
 

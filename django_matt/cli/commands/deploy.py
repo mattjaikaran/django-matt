@@ -329,13 +329,15 @@ def health():
     """
     console.print("\n[bold magenta]Health Check Endpoints[/]\n")
 
-    console.print(Panel(
-        "[cyan]/health/[/]  - Full health check (database, cache, custom checks)\n"
-        "[cyan]/ready/[/]   - Kubernetes readiness probe\n"
-        "[cyan]/live/[/]    - Kubernetes liveness probe",
-        title="Available Endpoints",
-        border_style="cyan",
-    ))
+    console.print(
+        Panel(
+            "[cyan]/health/[/]  - Full health check (database, cache, custom checks)\n"
+            "[cyan]/ready/[/]   - Kubernetes readiness probe\n"
+            "[cyan]/live/[/]    - Kubernetes liveness probe",
+            title="Available Endpoints",
+            border_style="cyan",
+        )
+    )
 
     console.print("\n[bold]Add to urls.py:[/]")
     console.print()

@@ -8,7 +8,6 @@ Provides customizable templates for CLAUDE.md, .cursorrules,
 from datetime import datetime
 from typing import Any
 
-
 # =============================================================================
 # CLAUDE.md Template
 # =============================================================================
@@ -605,7 +604,9 @@ def format_schema_rules(schemas: list[dict[str, Any]]) -> str:
 
     for schema in schemas[:20]:
         field_count = len(schema.get("fields", []))
-        model_info = f" (ModelSchema for {schema['django_model']})" if schema.get("django_model") else ""
+        model_info = (
+            f" (ModelSchema for {schema['django_model']})" if schema.get("django_model") else ""
+        )
         lines.append(f"- `{schema['name']}`: {field_count} fields{model_info}")
 
     if len(schemas) > 20:

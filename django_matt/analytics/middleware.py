@@ -99,21 +99,38 @@ class AnalyticsMiddleware:
         self.session_cookie_name = middleware_config.get("session_cookie_name", "_matt_session")
         self.anonymous_cookie_name = middleware_config.get("anonymous_cookie_name", "_matt_anon")
         self.session_timeout_minutes = middleware_config.get("session_timeout_minutes", 30)
-        self.exclude_paths = middleware_config.get("exclude_paths", [
-            "/health",
-            "/healthz",
-            "/ready",
-            "/metrics",
-            "/static",
-            "/media",
-            "/favicon.ico",
-            "/robots.txt",
-            "/sitemap.xml",
-        ])
-        self.exclude_extensions = middleware_config.get("exclude_extensions", [
-            ".js", ".css", ".png", ".jpg", ".jpeg", ".gif", ".svg",
-            ".ico", ".woff", ".woff2", ".ttf", ".eot", ".map",
-        ])
+        self.exclude_paths = middleware_config.get(
+            "exclude_paths",
+            [
+                "/health",
+                "/healthz",
+                "/ready",
+                "/metrics",
+                "/static",
+                "/media",
+                "/favicon.ico",
+                "/robots.txt",
+                "/sitemap.xml",
+            ],
+        )
+        self.exclude_extensions = middleware_config.get(
+            "exclude_extensions",
+            [
+                ".js",
+                ".css",
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".gif",
+                ".svg",
+                ".ico",
+                ".woff",
+                ".woff2",
+                ".ttf",
+                ".eot",
+                ".map",
+            ],
+        )
         self.exclude_bots = middleware_config.get("exclude_bots", True)
         self.anonymize_ip = middleware_config.get("anonymize_ip", False)
         self.respect_dnt = middleware_config.get("respect_dnt", True)
@@ -399,7 +416,7 @@ class AnalyticsMiddleware:
         ua_lower = user_agent.lower()
 
         # Device type
-        if "mobile" in ua_lower or "android" in ua_lower and "mobile" in ua_lower:
+        if "mobile" in ua_lower or ("android" in ua_lower and "mobile" in ua_lower):
             device_type = "mobile"
         elif "tablet" in ua_lower or "ipad" in ua_lower:
             device_type = "tablet"
@@ -473,7 +490,9 @@ class AsyncAnalyticsMiddleware:
         response = await self.get_response(request)
 
         # Track page view for successful HTML responses
-        if self._sync_middleware.track_page_views and self._sync_middleware._should_track_page_view(request, response):
+        if self._sync_middleware.track_page_views and self._sync_middleware._should_track_page_view(
+            request, response
+        ):
             await self._track_page_view_async(request, session, anonymous_id)
 
         # Add timing header
@@ -493,6 +512,7 @@ class AsyncAnalyticsMiddleware:
     ) -> tuple[AnalyticsSession | None, str]:
         """Async version of get_or_create_session."""
         import asyncio
+
         return await asyncio.to_thread(
             self._sync_middleware._get_or_create_session,
             request,
@@ -506,6 +526,7 @@ class AsyncAnalyticsMiddleware:
     ):
         """Async version of track_page_view."""
         import asyncio
+
         return await asyncio.to_thread(
             self._sync_middleware._track_page_view,
             request,

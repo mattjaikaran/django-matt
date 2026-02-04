@@ -17,7 +17,7 @@ Add to MIDDLEWARE in settings.py:
 import logging
 import time
 import uuid
-from typing import Any, Callable, Optional
+from typing import Callable
 
 from django.http import HttpRequest, HttpResponse
 
@@ -38,7 +38,6 @@ from django_matt.observability.metrics import (
 from django_matt.observability.tracing import (
     HAS_OPENTELEMETRY,
     correlation_id_var,
-    get_current_span,
     tracing_config,
     tracing_manager,
 )
@@ -100,9 +99,7 @@ class TracingMiddleware:
 
         # Generate or extract correlation ID
         correlation_id = (
-            carrier.get("x-correlation-id")
-            or carrier.get("x-request-id")
-            or str(uuid.uuid4())
+            carrier.get("x-correlation-id") or carrier.get("x-request-id") or str(uuid.uuid4())
         )
         correlation_id_var.set(correlation_id)
 
@@ -130,15 +127,16 @@ class TracingMiddleware:
 
                 # Add response attributes
                 span.set_attribute("http.status_code", response.status_code)
-                span.set_attribute("http.response_content_length", len(response.content) if hasattr(response, "content") else 0)
+                span.set_attribute(
+                    "http.response_content_length",
+                    len(response.content) if hasattr(response, "content") else 0,
+                )
 
                 # Set span status based on HTTP status
                 if HAS_OPENTELEMETRY:
                     from opentelemetry.trace import Status, StatusCode
 
-                    if response.status_code >= 500:
-                        span.set_status(Status(StatusCode.ERROR, f"HTTP {response.status_code}"))
-                    elif response.status_code >= 400:
+                    if response.status_code >= 500 or response.status_code >= 400:
                         span.set_status(Status(StatusCode.ERROR, f"HTTP {response.status_code}"))
                     else:
                         span.set_status(Status(StatusCode.OK))

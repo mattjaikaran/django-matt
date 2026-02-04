@@ -5,6 +5,14 @@ This package contains utility modules for error handling, hot reloading,
 and other framework features.
 """
 
+from django_matt.utils.cache_invalidation import (
+    CacheInvalidationMixin,
+    CacheInvalidator,
+    cache_invalidator,
+    cached_view,
+    invalidate_cache_for_model,
+    register_cache_invalidation,
+)
 from django_matt.utils.errors import (
     ErrorHandler,
     ErrorMiddleware,
@@ -40,14 +48,6 @@ from django_matt.utils.performance import (
     performance_suggester,
     query_analyzer,
     stream_json_list,
-)
-from django_matt.utils.cache_invalidation import (
-    CacheInvalidationMixin,
-    CacheInvalidator,
-    cache_invalidator,
-    cached_view,
-    invalidate_cache_for_model,
-    register_cache_invalidation,
 )
 
 __all__ = [

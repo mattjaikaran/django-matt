@@ -164,9 +164,11 @@ class EmailService:
             category=template.category,
             user=user,
             status=EmailStatus.PENDING,
-            **{k: v for k, v in kwargs.items() if k in [
-                "cc", "bcc", "reply_to", "tags", "metadata"
-            ]},
+            **{
+                k: v
+                for k, v in kwargs.items()
+                if k in ["cc", "bcc", "reply_to", "tags", "metadata"]
+            },
         )
 
         # Send
@@ -337,12 +339,17 @@ class EmailService:
 
         stats = qs.aggregate(
             total=Count("id"),
-            sent=Count("id", filter=Q(status__in=[
-                EmailStatus.SENT,
-                EmailStatus.DELIVERED,
-                EmailStatus.OPENED,
-                EmailStatus.CLICKED,
-            ])),
+            sent=Count(
+                "id",
+                filter=Q(
+                    status__in=[
+                        EmailStatus.SENT,
+                        EmailStatus.DELIVERED,
+                        EmailStatus.OPENED,
+                        EmailStatus.CLICKED,
+                    ]
+                ),
+            ),
             delivered=Count("id", filter=Q(status=EmailStatus.DELIVERED)),
             opened=Count("id", filter=Q(status=EmailStatus.OPENED)),
             clicked=Count("id", filter=Q(status=EmailStatus.CLICKED)),
@@ -370,6 +377,7 @@ class EmailService:
 from django.db import models
 
 # Convenience functions
+
 
 def send_email(
     to: str | list[str],

@@ -10,7 +10,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-
 # -----------------------------------------------------------------------------
 # Enums
 # -----------------------------------------------------------------------------
@@ -71,9 +70,20 @@ class TargetingRuleSchema(BaseModel):
     """Schema for a targeting rule."""
 
     attribute: str = Field(..., description="Attribute to check")
-    operator: Literal["eq", "neq", "gt", "gte", "lt", "lte", "in", "not_in", "contains", "starts_with", "ends_with", "regex"] = Field(
-        default="eq", description="Comparison operator"
-    )
+    operator: Literal[
+        "eq",
+        "neq",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "in",
+        "not_in",
+        "contains",
+        "starts_with",
+        "ends_with",
+        "regex",
+    ] = Field(default="eq", description="Comparison operator")
     value: Any = Field(..., description="Value to compare against")
 
 
@@ -91,8 +101,12 @@ class FeatureFlagBase(BaseModel):
     flag_type: FlagTypeEnum = Field(default=FlagTypeEnum.BOOLEAN, description="Type of flag")
     enabled_by_default: bool = Field(default=False, description="Default enabled state")
     rollout_percentage: int = Field(default=0, ge=0, le=100, description="Rollout percentage")
-    variants: VariantsConfigSchema = Field(default_factory=VariantsConfigSchema, description="Variant configuration")
-    targeting_rules: list[TargetingRuleSchema] = Field(default_factory=list, description="Targeting rules")
+    variants: VariantsConfigSchema = Field(
+        default_factory=VariantsConfigSchema, description="Variant configuration"
+    )
+    targeting_rules: list[TargetingRuleSchema] = Field(
+        default_factory=list, description="Targeting rules"
+    )
     metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
 
@@ -101,7 +115,9 @@ class FeatureFlagCreate(FeatureFlagBase):
 
     status: FlagStatusEnum = Field(default=FlagStatusEnum.INACTIVE, description="Initial status")
     scheduled_enable_at: datetime | None = Field(default=None, description="Scheduled enable time")
-    scheduled_disable_at: datetime | None = Field(default=None, description="Scheduled disable time")
+    scheduled_disable_at: datetime | None = Field(
+        default=None, description="Scheduled disable time"
+    )
 
 
 class FeatureFlagUpdate(BaseModel):
@@ -164,8 +180,6 @@ class FlagOverrideBase(BaseModel):
 
 class FlagOverrideCreate(FlagOverrideBase):
     """Schema for creating a flag override."""
-
-    pass
 
 
 class FlagOverrideUpdate(BaseModel):

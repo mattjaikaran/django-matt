@@ -22,7 +22,6 @@ class PollingSchema:
     """Schema classes for polling responses."""
 
 
-
 class PollingController(APIController):
     """
     Controller for long-polling message updates.
@@ -80,9 +79,11 @@ class PollingController(APIController):
         elif since_timestamp:
             messages_qs = messages_qs.filter(created_at__gt=since_timestamp)
 
-        messages_qs = messages_qs.select_related("sender").prefetch_related(
-            "attachments", "reactions"
-        ).order_by("created_at")[:limit]
+        messages_qs = (
+            messages_qs.select_related("sender")
+            .prefetch_related("attachments", "reactions")
+            .order_by("created_at")[:limit]
+        )
 
         messages_list = list(messages_qs)
 

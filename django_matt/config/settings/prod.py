@@ -19,7 +19,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from django_matt.config.settings.common import DJANGO_5_2_PLUS, DJANGO_6_0_PLUS
+from django_matt.config.settings.common import DJANGO_5_2_PLUS
 
 
 def _get_bool_env(key: str, default: bool = False) -> bool:
@@ -33,22 +33,20 @@ settings: dict[str, Any] = {
     # Debug Mode (NEVER enable in production)
     # ==========================================================================
     "DEBUG": False,
-
     # ==========================================================================
     # Security (strict settings for production)
     # ==========================================================================
     "SECRET_KEY": os.environ.get("DJANGO_SECRET_KEY"),  # REQUIRED
-    "ALLOWED_HOSTS": [h.strip() for h in os.environ.get("ALLOWED_HOSTS", "").split(",") if h.strip()],
-
+    "ALLOWED_HOSTS": [
+        h.strip() for h in os.environ.get("ALLOWED_HOSTS", "").split(",") if h.strip()
+    ],
     # HSTS - HTTP Strict Transport Security
     "SECURE_HSTS_SECONDS": 31536000,  # 1 year
     "SECURE_HSTS_INCLUDE_SUBDOMAINS": True,
     "SECURE_HSTS_PRELOAD": True,
-
     # SSL/TLS
     "SECURE_SSL_REDIRECT": _get_bool_env("SECURE_SSL_REDIRECT", True),
     "SECURE_PROXY_SSL_HEADER": ("HTTP_X_FORWARDED_PROTO", "https"),
-
     # Cookies
     "SESSION_COOKIE_SECURE": True,
     "SESSION_COOKIE_HTTPONLY": True,
@@ -56,22 +54,16 @@ settings: dict[str, Any] = {
     "CSRF_COOKIE_SECURE": True,
     "CSRF_COOKIE_HTTPONLY": True,
     "CSRF_COOKIE_SAMESITE": "Lax",
-
     # Security headers
     "SECURE_BROWSER_XSS_FILTER": True,
     "SECURE_CONTENT_TYPE_NOSNIFF": True,
     "X_FRAME_OPTIONS": "DENY",
-
     # Content Security Policy (configure based on your needs)
     # "CSP_DEFAULT_SRC": ("'self'",),
-
     # ==========================================================================
     # Email
     # ==========================================================================
-    "EMAIL_BACKEND": os.environ.get(
-        "EMAIL_BACKEND",
-        "django.core.mail.backends.smtp.EmailBackend"
-    ),
+    "EMAIL_BACKEND": os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend"),
     "EMAIL_HOST": os.environ.get("EMAIL_HOST", ""),
     "EMAIL_PORT": int(os.environ.get("EMAIL_PORT", 587)),
     "EMAIL_HOST_USER": os.environ.get("EMAIL_HOST_USER", ""),
@@ -80,7 +72,6 @@ settings: dict[str, Any] = {
     "EMAIL_USE_SSL": _get_bool_env("EMAIL_USE_SSL", False),
     "DEFAULT_FROM_EMAIL": os.environ.get("DEFAULT_FROM_EMAIL", "noreply@example.com"),
     "SERVER_EMAIL": os.environ.get("SERVER_EMAIL", os.environ.get("DEFAULT_FROM_EMAIL", "")),
-
     # ==========================================================================
     # Database (PostgreSQL with connection pooling)
     # ==========================================================================
@@ -97,18 +88,21 @@ settings: dict[str, Any] = {
             **({"CONN_HEALTH_CHECKS": True} if DJANGO_5_2_PLUS else {}),
             "OPTIONS": {
                 # Add psycopg3 pool options if using Django 5.2+
-                **({
-                    "pool": {
-                        "min_size": int(os.environ.get("DB_POOL_MIN_SIZE", 5)),
-                        "max_size": int(os.environ.get("DB_POOL_MAX_SIZE", 20)),
-                        "max_idle": int(os.environ.get("DB_POOL_MAX_IDLE", 300)),
-                        "max_lifetime": int(os.environ.get("DB_POOL_MAX_LIFETIME", 3600)),
+                **(
+                    {
+                        "pool": {
+                            "min_size": int(os.environ.get("DB_POOL_MIN_SIZE", 5)),
+                            "max_size": int(os.environ.get("DB_POOL_MAX_SIZE", 20)),
+                            "max_idle": int(os.environ.get("DB_POOL_MAX_IDLE", 300)),
+                            "max_lifetime": int(os.environ.get("DB_POOL_MAX_LIFETIME", 3600)),
+                        }
                     }
-                } if DJANGO_5_2_PLUS and _get_bool_env("DB_POOL_ENABLED") else {}),
+                    if DJANGO_5_2_PLUS and _get_bool_env("DB_POOL_ENABLED")
+                    else {}
+                ),
             },
         }
     },
-
     # ==========================================================================
     # Cache (Redis required for production)
     # ==========================================================================
@@ -125,14 +119,12 @@ settings: dict[str, Any] = {
             },
         }
     },
-
     # ==========================================================================
     # Sessions (Redis-backed for scalability)
     # ==========================================================================
     "SESSION_ENGINE": "django.contrib.sessions.backends.cache",
     "SESSION_CACHE_ALIAS": "default",
     "SESSION_COOKIE_AGE": int(os.environ.get("SESSION_COOKIE_AGE", 1209600)),  # 2 weeks
-
     # ==========================================================================
     # Logging (structured logging for production)
     # ==========================================================================
@@ -190,7 +182,6 @@ settings: dict[str, Any] = {
             },
         },
     },
-
     # ==========================================================================
     # Static & Media Files (typically served by CDN/S3 in production)
     # ==========================================================================
@@ -198,7 +189,6 @@ settings: dict[str, Any] = {
     "STATIC_ROOT": os.environ.get("STATIC_ROOT", "/var/www/static"),
     "MEDIA_URL": os.environ.get("MEDIA_URL", "/media/"),
     "MEDIA_ROOT": os.environ.get("MEDIA_ROOT", "/var/www/media"),
-
     # Optional: S3/CloudFront storage
     # "STORAGES": {
     #     "default": {
@@ -208,7 +198,6 @@ settings: dict[str, Any] = {
     #         "BACKEND": "storages.backends.s3boto3.S3StaticStorage",
     #     },
     # },
-
     # ==========================================================================
     # Django Matt Settings for Production
     # ==========================================================================
@@ -219,26 +208,27 @@ settings: dict[str, Any] = {
         "N1_DETECTION_ENABLED": False,  # Disable in prod for performance
         "QUERY_OPTIMIZATION_ENABLED": True,
     },
-
     # ==========================================================================
     # Password Validation (strict for production)
     # ==========================================================================
     "AUTH_PASSWORD_VALIDATORS": [
         {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-        {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 10}},
+        {
+            "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+            "OPTIONS": {"min_length": 10},
+        },
         {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
         {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
     ],
-
     # ==========================================================================
     # Admin Configuration
     # ==========================================================================
     "ADMINS": [
-        tuple(admin.split(":")) for admin in os.environ.get("ADMINS", "").split(",")
-        if ":" in admin
+        tuple(admin.split(":")) for admin in os.environ.get("ADMINS", "").split(",") if ":" in admin
     ],
     "MANAGERS": [
-        tuple(manager.split(":")) for manager in os.environ.get("MANAGERS", "").split(",")
+        tuple(manager.split(":"))
+        for manager in os.environ.get("MANAGERS", "").split(",")
         if ":" in manager
     ],
 }
@@ -257,6 +247,7 @@ def validate_production_settings():
     missing = [var for var in required_vars if not os.environ.get(var)]
     if missing:
         import warnings
+
         warnings.warn(
             f"Missing required environment variables for production: {', '.join(missing)}",
             RuntimeWarning,

@@ -231,9 +231,7 @@ class PushDeliveryHandler(DeliveryHandler):
 
             PushToken = apps.get_model("notifications", "PushToken")
             return list(
-                PushToken.objects.filter(user=user, active=True).values_list(
-                    "token", flat=True
-                )
+                PushToken.objects.filter(user=user, active=True).values_list("token", flat=True)
             )
         except Exception:
             return []
@@ -242,9 +240,7 @@ class PushDeliveryHandler(DeliveryHandler):
         """Send push notification to a specific token."""
         # This is a placeholder implementation
         # Real implementation would use Firebase Cloud Messaging, APNs, etc.
-        logger.info(
-            f"Push notification to {token}: {notification.title}"
-        )
+        logger.info(f"Push notification to {token}: {notification.title}")
 
         # Example FCM implementation:
         # from firebase_admin import messaging

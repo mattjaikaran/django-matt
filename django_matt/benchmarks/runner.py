@@ -336,11 +336,9 @@ class BenchmarkScenario(ABC):
 
     def setup(self):
         """Called once before running all benchmarks in this scenario."""
-        pass
 
     def teardown(self):
         """Called once after running all benchmarks in this scenario."""
-        pass
 
     @abstractmethod
     def run(self) -> list[BenchmarkResult]:
@@ -350,7 +348,6 @@ class BenchmarkScenario(ABC):
         Returns:
             List of benchmark results
         """
-        pass
 
     def create_benchmark(
         self,
@@ -572,14 +569,20 @@ class BenchmarkRunner:
 
             # Calculate differences (handle division by zero)
             if baseline_result.mean_time_ms > 0:
-                mean_diff = ((current.mean_time_ms - baseline_result.mean_time_ms) /
-                            baseline_result.mean_time_ms * 100)
+                mean_diff = (
+                    (current.mean_time_ms - baseline_result.mean_time_ms)
+                    / baseline_result.mean_time_ms
+                    * 100
+                )
             else:
                 mean_diff = 0.0 if current.mean_time_ms == 0 else 100.0
 
             if baseline_result.ops_per_second > 0:
-                ops_diff = ((current.ops_per_second - baseline_result.ops_per_second) /
-                           baseline_result.ops_per_second * 100)
+                ops_diff = (
+                    (current.ops_per_second - baseline_result.ops_per_second)
+                    / baseline_result.ops_per_second
+                    * 100
+                )
             else:
                 ops_diff = 0.0 if current.ops_per_second == 0 else 100.0
 
@@ -619,12 +622,14 @@ class BenchmarkRunner:
         # Check for optional JSON libraries
         try:
             import orjson
+
             metadata["orjson_version"] = orjson.__version__
         except ImportError:
             metadata["orjson_version"] = None
 
         try:
             import ujson
+
             metadata["ujson_version"] = ujson.__version__
         except ImportError:
             metadata["ujson_version"] = None
@@ -632,6 +637,7 @@ class BenchmarkRunner:
         # Django version
         try:
             import django
+
             metadata["django_version"] = django.__version__
         except ImportError:
             metadata["django_version"] = None
@@ -639,6 +645,7 @@ class BenchmarkRunner:
         # Pydantic version
         try:
             import pydantic
+
             metadata["pydantic_version"] = pydantic.__version__
         except ImportError:
             metadata["pydantic_version"] = None

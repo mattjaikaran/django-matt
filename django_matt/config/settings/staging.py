@@ -19,8 +19,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from django_matt.config.settings.common import DJANGO_5_2_PLUS, DJANGO_6_0_PLUS
-
+from django_matt.config.settings.common import DJANGO_5_2_PLUS
 
 # Staging-specific settings
 settings: dict[str, Any] = {
@@ -28,13 +27,11 @@ settings: dict[str, Any] = {
     # Debug Mode (off, but with better error pages)
     # ==========================================================================
     "DEBUG": False,
-
     # ==========================================================================
     # Security
     # ==========================================================================
     "SECRET_KEY": os.environ.get("DJANGO_SECRET_KEY"),  # Required
     "ALLOWED_HOSTS": os.environ.get("ALLOWED_HOSTS", "").split(","),
-
     # Security settings (similar to prod but can be relaxed if needed)
     "SECURE_HSTS_SECONDS": 3600,  # Shorter than prod for testing
     "SECURE_HSTS_INCLUDE_SUBDOMAINS": True,
@@ -45,21 +42,16 @@ settings: dict[str, Any] = {
     "SECURE_BROWSER_XSS_FILTER": True,
     "SECURE_CONTENT_TYPE_NOSNIFF": True,
     "X_FRAME_OPTIONS": "DENY",
-
     # ==========================================================================
     # Email
     # ==========================================================================
-    "EMAIL_BACKEND": os.environ.get(
-        "EMAIL_BACKEND",
-        "django.core.mail.backends.smtp.EmailBackend"
-    ),
+    "EMAIL_BACKEND": os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend"),
     "EMAIL_HOST": os.environ.get("EMAIL_HOST", ""),
     "EMAIL_PORT": int(os.environ.get("EMAIL_PORT", 587)),
     "EMAIL_HOST_USER": os.environ.get("EMAIL_HOST_USER", ""),
     "EMAIL_HOST_PASSWORD": os.environ.get("EMAIL_HOST_PASSWORD", ""),
     "EMAIL_USE_TLS": os.environ.get("EMAIL_USE_TLS", "True").lower() == "true",
     "DEFAULT_FROM_EMAIL": os.environ.get("DEFAULT_FROM_EMAIL", "noreply@staging.example.com"),
-
     # ==========================================================================
     # Database (PostgreSQL with connection pooling)
     # ==========================================================================
@@ -77,15 +69,13 @@ settings: dict[str, Any] = {
             "OPTIONS": {},
         }
     },
-
     # ==========================================================================
     # Cache (Redis recommended for staging)
     # ==========================================================================
     "CACHES": {
         "default": {
             "BACKEND": os.environ.get(
-                "CACHE_BACKEND",
-                "django.core.cache.backends.redis.RedisCache"
+                "CACHE_BACKEND", "django.core.cache.backends.redis.RedisCache"
             ),
             "LOCATION": os.environ.get("REDIS_URL", "redis://localhost:6379/0"),
             "KEY_PREFIX": "staging",
@@ -93,13 +83,14 @@ settings: dict[str, Any] = {
                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
             },
         }
-    } if os.environ.get("REDIS_URL") else {
+    }
+    if os.environ.get("REDIS_URL")
+    else {
         "default": {
             "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
             "LOCATION": "django-matt-staging",
         }
     },
-
     # ==========================================================================
     # Logging (more verbose than prod for debugging)
     # ==========================================================================
@@ -142,7 +133,6 @@ settings: dict[str, Any] = {
             },
         },
     },
-
     # ==========================================================================
     # Django Matt Settings for Staging
     # ==========================================================================
@@ -153,13 +143,15 @@ settings: dict[str, Any] = {
         "N1_DETECTION_ENABLED": True,  # Keep N+1 detection on
         "QUERY_OPTIMIZATION_ENABLED": True,
     },
-
     # ==========================================================================
     # Password Validation (same as prod)
     # ==========================================================================
     "AUTH_PASSWORD_VALIDATORS": [
         {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-        {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 8}},
+        {
+            "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+            "OPTIONS": {"min_length": 8},
+        },
         {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
         {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
     ],

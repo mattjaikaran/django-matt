@@ -11,7 +11,7 @@ Provides helpers for streaming LLM responses with:
 import json
 import time
 from collections.abc import AsyncIterator, Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from django_matt.ai.base import (
@@ -232,7 +232,7 @@ class StreamingLLM:
         except Exception as e:
             # Send error event
             data = {"error": str(e), "done": True}
-            yield f"event: error\n"
+            yield "event: error\n"
             yield f"data: {json.dumps(data)}\n\n"
             raise
 
@@ -392,7 +392,7 @@ def create_sse_response(
     provider: LLMProvider,
     messages: list[Message],
     **kwargs,
-) -> "StreamingHttpResponse":
+) -> "StreamingHttpResponse":  # noqa: F821
     """
     Create a Django StreamingHttpResponse for SSE.
 

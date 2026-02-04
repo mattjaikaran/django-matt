@@ -167,7 +167,13 @@ class FallbackGauge(FallbackMetric):
 class FallbackHistogram(FallbackMetric):
     """Fallback histogram metric."""
 
-    def __init__(self, name: str, description: str = "", labelnames: Optional[list[str]] = None, buckets: Optional[list[float]] = None):
+    def __init__(
+        self,
+        name: str,
+        description: str = "",
+        labelnames: Optional[list[str]] = None,
+        buckets: Optional[list[float]] = None,
+    ):
         super().__init__(name, description, labelnames)
         self.buckets = buckets or [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]
         self._observations: dict[tuple, list[float]] = defaultdict(list)
@@ -419,24 +425,20 @@ class MetricsManager:
         """
         if HAS_PROMETHEUS:
             return generate_latest(self._registry)
-        else:
-            # Generate basic text format for fallback metrics
-            lines = []
-            for name, metric in self._metrics.items():
-                if isinstance(metric, FallbackCounter):
-                    for labels, value in metric._values.items():
-                        lines.append(f"{name} {value}")
-                elif isinstance(metric, FallbackGauge):
-                    for labels, value in metric._values.items():
-                        lines.append(f"{name} {value}")
-                elif isinstance(metric, FallbackHistogram):
-                    for labels, observations in metric._observations.items():
-                        if observations:
-                            count = len(observations)
-                            total = sum(observations)
-                            lines.append(f"{name}_count {count}")
-                            lines.append(f"{name}_sum {total}")
-            return "\n".join(lines).encode("utf-8")
+        # Generate basic text format for fallback metrics
+        lines = []
+        for name, metric in self._metrics.items():
+            if isinstance(metric, FallbackCounter) or isinstance(metric, FallbackGauge):
+                for labels, value in metric._values.items():
+                    lines.append(f"{name} {value}")
+            elif isinstance(metric, FallbackHistogram):
+                for labels, observations in metric._observations.items():
+                    if observations:
+                        count = len(observations)
+                        total = sum(observations)
+                        lines.append(f"{name}_count {count}")
+                        lines.append(f"{name}_sum {total}")
+        return "\n".join(lines).encode("utf-8")
 
     def get_content_type(self) -> str:
         """Get the content type for metrics output."""
@@ -647,6 +649,7 @@ def timed(
     Returns:
         Decorated function
     """
+
     def decorator(func: F) -> F:
         metric_name = name or f"function_{func.__name__}_duration_seconds"
         label_names = list(labels.keys()) if labels else []
@@ -683,6 +686,7 @@ def timed(
                     histogram.observe(duration)
 
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
         return sync_wrapper  # type: ignore
@@ -705,6 +709,7 @@ def counted(
     Returns:
         Decorated function
     """
+
     def decorator(func: F) -> F:
         metric_name = name or f"function_{func.__name__}_calls_total"
         label_names = list(labels.keys()) if labels else []
@@ -732,6 +737,7 @@ def counted(
             return await func(*args, **kwargs)
 
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
         return sync_wrapper  # type: ignore

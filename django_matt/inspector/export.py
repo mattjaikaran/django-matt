@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 ExportFormat = Literal["curl", "httpie", "python", "fetch"]
 
 
-def export_as_curl(request: "CapturedRequest", include_response: bool = False) -> str:
+def export_as_curl(request: CapturedRequest, include_response: bool = False) -> str:
     """
     Export a captured request as a curl command.
 
@@ -71,7 +71,7 @@ def export_as_curl(request: "CapturedRequest", include_response: bool = False) -
     return result
 
 
-def export_as_httpie(request: "CapturedRequest", include_response: bool = False) -> str:
+def export_as_httpie(request: CapturedRequest, include_response: bool = False) -> str:
     """
     Export a captured request as an HTTPie command.
 
@@ -131,7 +131,7 @@ def export_as_httpie(request: "CapturedRequest", include_response: bool = False)
     return result
 
 
-def export_as_python(request: "CapturedRequest", include_response: bool = False) -> str:
+def export_as_python(request: CapturedRequest, include_response: bool = False) -> str:
     """
     Export a captured request as Python requests code.
 
@@ -224,7 +224,7 @@ def export_as_python(request: "CapturedRequest", include_response: bool = False)
     return result
 
 
-def export_as_fetch(request: "CapturedRequest", include_response: bool = False) -> str:
+def export_as_fetch(request: CapturedRequest, include_response: bool = False) -> str:
     """
     Export a captured request as JavaScript fetch code.
 
@@ -303,7 +303,7 @@ def export_as_fetch(request: "CapturedRequest", include_response: bool = False) 
 
 
 def export_request(
-    request: "CapturedRequest",
+    request: CapturedRequest,
     format: ExportFormat = "curl",
     include_response: bool = False,
 ) -> str:
@@ -329,7 +329,9 @@ def export_request(
     }
 
     if format not in exporters:
-        raise ValueError(f"Unsupported export format: {format}. Supported: {list(exporters.keys())}")
+        raise ValueError(
+            f"Unsupported export format: {format}. Supported: {list(exporters.keys())}"
+        )
 
     return exporters[format](request, include_response)
 

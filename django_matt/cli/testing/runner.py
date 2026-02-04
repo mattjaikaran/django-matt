@@ -7,7 +7,6 @@ Provides utilities to run management commands and capture output.
 from __future__ import annotations
 
 import io
-import sys
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
@@ -60,8 +59,7 @@ class CommandResult:
         """Assert command failed, raise if not."""
         if self.success:
             raise AssertionError(
-                f"Expected command to fail but it succeeded\n"
-                f"stdout: {self.stdout}"
+                f"Expected command to fail but it succeeded\nstdout: {self.stdout}"
             )
         return self
 
@@ -79,8 +77,7 @@ class CommandResult:
         """Assert output contains text."""
         if text not in self.output:
             raise AssertionError(
-                f"Expected output to contain '{text}'\n"
-                f"Actual output: {self.output}"
+                f"Expected output to contain '{text}'\nActual output: {self.output}"
             )
         return self
 
@@ -88,8 +85,7 @@ class CommandResult:
         """Assert output does not contain text."""
         if text in self.output:
             raise AssertionError(
-                f"Expected output to NOT contain '{text}'\n"
-                f"Actual output: {self.output}"
+                f"Expected output to NOT contain '{text}'\nActual output: {self.output}"
             )
         return self
 
@@ -97,8 +93,7 @@ class CommandResult:
         """Assert stdout contains text."""
         if text not in self.stdout:
             raise AssertionError(
-                f"Expected stdout to contain '{text}'\n"
-                f"Actual stdout: {self.stdout}"
+                f"Expected stdout to contain '{text}'\nActual stdout: {self.stdout}"
             )
         return self
 
@@ -106,8 +101,7 @@ class CommandResult:
         """Assert stderr contains text."""
         if text not in self.stderr:
             raise AssertionError(
-                f"Expected stderr to contain '{text}'\n"
-                f"Actual stderr: {self.stderr}"
+                f"Expected stderr to contain '{text}'\nActual stderr: {self.stderr}"
             )
         return self
 
@@ -155,15 +149,14 @@ class CLIRunner:
         stdin_mock = io.StringIO(stdin) if stdin else io.StringIO()
 
         try:
-            with patch.dict("os.environ", self.env):
-                with patch("sys.stdin", stdin_mock):
-                    call_command(
-                        command,
-                        *args,
-                        stdout=stdout_buffer,
-                        stderr=stderr_buffer if not self.mix_stderr else stdout_buffer,
-                        **options,
-                    )
+            with patch.dict("os.environ", self.env), patch("sys.stdin", stdin_mock):
+                call_command(
+                    command,
+                    *args,
+                    stdout=stdout_buffer,
+                    stderr=stderr_buffer if not self.mix_stderr else stdout_buffer,
+                    **options,
+                )
         except SystemExit as e:
             result.exit_code = e.code if isinstance(e.code, int) else 1
         except CommandError as e:

@@ -45,9 +45,7 @@ Usage with Django-Q:
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Any
 
-from django.conf import settings
 from django.utils import timezone
 
 logger = logging.getLogger("django_matt.analytics")
@@ -127,13 +125,15 @@ async def create_weekly_rollups_async(week_start: datetime | None = None) -> dic
     # Aggregate by user
     from collections import defaultdict
 
-    user_data: dict[str, dict] = defaultdict(lambda: {
-        "total_events": 0,
-        "total_page_views": 0,
-        "total_sessions": 0,
-        "total_time_seconds": 0,
-        "events_by_name": defaultdict(int),
-    })
+    user_data: dict[str, dict] = defaultdict(
+        lambda: {
+            "total_events": 0,
+            "total_page_views": 0,
+            "total_sessions": 0,
+            "total_time_seconds": 0,
+            "events_by_name": defaultdict(int),
+        }
+    )
 
     async for metric in daily_metrics:
         user_id = str(metric.user_id)
@@ -220,13 +220,15 @@ async def create_monthly_rollups_async(month_start: datetime | None = None) -> d
     # Aggregate by user
     from collections import defaultdict
 
-    user_data: dict[str, dict] = defaultdict(lambda: {
-        "total_events": 0,
-        "total_page_views": 0,
-        "total_sessions": 0,
-        "total_time_seconds": 0,
-        "events_by_name": defaultdict(int),
-    })
+    user_data: dict[str, dict] = defaultdict(
+        lambda: {
+            "total_events": 0,
+            "total_page_views": 0,
+            "total_sessions": 0,
+            "total_time_seconds": 0,
+            "events_by_name": defaultdict(int),
+        }
+    )
 
     async for metric in daily_metrics:
         user_id = str(metric.user_id)
@@ -338,9 +340,7 @@ async def cleanup_old_data_async(
     page_views_cutoff = now - timedelta(days=page_views_days)
 
     # Delete old events
-    events_result = await AnalyticsEvent.objects.filter(
-        timestamp__lt=events_cutoff
-    ).adelete()
+    events_result = await AnalyticsEvent.objects.filter(timestamp__lt=events_cutoff).adelete()
     events_deleted = events_result[0] if events_result else 0
 
     # Delete old sessions
@@ -350,9 +350,7 @@ async def cleanup_old_data_async(
     sessions_deleted = sessions_result[0] if sessions_result else 0
 
     # Delete old page views
-    page_views_result = await PageView.objects.filter(
-        timestamp__lt=page_views_cutoff
-    ).adelete()
+    page_views_result = await PageView.objects.filter(timestamp__lt=page_views_cutoff).adelete()
     page_views_deleted = page_views_result[0] if page_views_result else 0
 
     result = {
@@ -518,10 +516,12 @@ async def process_funnel_conversions_async(funnel_id: str | None = None) -> dict
 
                     if completed:
                         conversion.current_step = step.order
-                        conversion.completed_steps.append({
-                            "step": step.order,
-                            "timestamp": timezone.now().isoformat(),
-                        })
+                        conversion.completed_steps.append(
+                            {
+                                "step": step.order,
+                                "timestamp": timezone.now().isoformat(),
+                            }
+                        )
                         updated_count += 1
                     else:
                         break

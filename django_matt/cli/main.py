@@ -89,6 +89,7 @@ def setup_django_settings():
         try:
             os.environ["DJANGO_SETTINGS_MODULE"] = pattern
             import django
+
             django.setup()
             return True
         except Exception:
@@ -102,6 +103,7 @@ def version_callback(value: bool):
     if value:
         try:
             from django_matt import __version__
+
             version = __version__
         except (ImportError, AttributeError):
             version = "0.1.0"
@@ -144,6 +146,7 @@ def main(
 
         try:
             from django_matt import __version__
+
             v = __version__
         except (ImportError, AttributeError):
             v = "0.1.0"
@@ -204,7 +207,9 @@ def main(
         other_table.add_row("deploy", "Deploy to cloud platforms")
         other_table.add_row("ai", "Generate AI context files")
 
-        console.print(Panel(other_table, title="[bold]Analysis & Deployment[/]", border_style="blue"))
+        console.print(
+            Panel(other_table, title="[bold]Analysis & Deployment[/]", border_style="blue")
+        )
 
         console.print("\n[dim]Run 'matt <command> --help' for more information on a command.[/]\n")
 
@@ -228,14 +233,18 @@ app.add_typer(analyze_app, name="analyze", help="Project analysis")
 app.add_typer(deploy_app, name="deploy", help="Deployment and Docker")
 app.add_typer(status_app, name="status", help="Project health")
 
+
 # Add aliases for common commands
 @app.command()
 def routes(
-    filter_pattern: Optional[str] = typer.Option(None, "--filter", "-f", help="Filter routes by pattern"),
+    filter_pattern: Optional[str] = typer.Option(
+        None, "--filter", "-f", help="Filter routes by pattern"
+    ),
     method: Optional[str] = typer.Option(None, "--method", "-m", help="Filter by HTTP method"),
 ):
     """List all API routes (alias for 'analyze routes')."""
     from django_matt.cli.commands.analyze import routes as analyze_routes
+
     analyze_routes(filter_pattern, method)
 
 
@@ -246,6 +255,7 @@ def endpoints(
 ):
     """List all API endpoints (alias for 'routes')."""
     from django_matt.cli.commands.analyze import routes as analyze_routes
+
     analyze_routes(filter_pattern, method)
 
 
@@ -255,6 +265,7 @@ def doctor(
 ):
     """Run project diagnostics (alias for 'status doctor')."""
     from django_matt.cli.commands.status import doctor as status_doctor
+
     status_doctor(fix)
 
 
@@ -267,6 +278,7 @@ def crud(
 ):
     """Generate full CRUD for a Django model."""
     from django_matt.cli.commands.generate import crud as gen_crud
+
     gen_crud(model, None, None, None, False, False, False, False, full, dry_run, wizard)
 
 
@@ -274,6 +286,7 @@ def crud(
 def shell():
     """Start Django interactive shell."""
     from django_matt.cli.commands.serve import shell as serve_shell
+
     serve_shell(False)
 
 
@@ -283,6 +296,7 @@ def dev(
 ):
     """Start development server (alias for 'serve')."""
     from django_matt.cli.commands.serve import serve
+
     serve(None, port, "127.0.0.1", False, False)
 
 

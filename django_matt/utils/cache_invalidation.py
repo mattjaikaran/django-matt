@@ -45,7 +45,6 @@ from django.db.models.signals import m2m_changed, post_delete, post_save, pre_de
 
 if TYPE_CHECKING:
     from django.core.cache.backends.base import BaseCache
-    from django.db.models.query import QuerySet
     from django.http import HttpRequest
 
 logger = logging.getLogger("django_matt.cache")
@@ -73,7 +72,7 @@ class CacheInvalidator:
         self._invalidation_callbacks: dict[type[Model], list[Callable]] = {}
 
     @property
-    def cache(self) -> "BaseCache":
+    def cache(self) -> BaseCache:
         """Get the cache backend."""
         return caches[self._cache_alias]
 
@@ -206,12 +205,14 @@ class CacheInvalidator:
         else:
             # Standard keys
             pk = instance.pk
-            keys.extend([
-                f"{prefix}:list",  # List cache
-                f"{prefix}:{pk}",  # Single object cache
-                f"{prefix}:detail:{pk}",  # Detail view cache
-                f"{prefix}:count",  # Count cache
-            ])
+            keys.extend(
+                [
+                    f"{prefix}:list",  # List cache
+                    f"{prefix}:{pk}",  # Single object cache
+                    f"{prefix}:detail:{pk}",  # Detail view cache
+                    f"{prefix}:count",  # Count cache
+                ]
+            )
 
         # Related object keys
         for related_field in config["invalidate_related"]:
@@ -281,7 +282,9 @@ class CacheInvalidator:
         logger.warning(f"Cache backend does not support pattern deletion: {pattern}")
         return -1
 
-    def _handle_save(self, sender: type[Model], instance: Model, created: bool, **kwargs: Any) -> None:
+    def _handle_save(
+        self, sender: type[Model], instance: Model, created: bool, **kwargs: Any
+    ) -> None:
         """Handle post_save signal."""
         action = "create" if created else "update"
         self.invalidate(instance, action)
@@ -384,6 +387,7 @@ class CacheInvalidationMixin:
 
     class CacheMeta:
         """Cache configuration for the model."""
+
         cache_key_prefix: str | None = None
         invalidate_related: list[str] = []
         invalidate_on_save: bool = True
@@ -434,13 +438,12 @@ def cached_view(
         async def get_products(request):
             return {"products": list(Product.objects.all())}
     """
+
     def decorator(func: F) -> F:
         @functools.wraps(func)
-        async def async_wrapper(request: "HttpRequest", *args: Any, **kwargs: Any) -> Any:
+        async def async_wrapper(request: HttpRequest, *args: Any, **kwargs: Any) -> Any:
             # Generate cache key
-            cache_key = _generate_view_cache_key(
-                func, key_prefix, request, vary_on, args, kwargs
-            )
+            cache_key = _generate_view_cache_key(func, key_prefix, request, vary_on, args, kwargs)
 
             # Try to get from cache
             cached = caches[cache_alias].get(cache_key)
@@ -456,11 +459,9 @@ def cached_view(
             return result
 
         @functools.wraps(func)
-        def sync_wrapper(request: "HttpRequest", *args: Any, **kwargs: Any) -> Any:
+        def sync_wrapper(request: HttpRequest, *args: Any, **kwargs: Any) -> Any:
             # Generate cache key
-            cache_key = _generate_view_cache_key(
-                func, key_prefix, request, vary_on, args, kwargs
-            )
+            cache_key = _generate_view_cache_key(func, key_prefix, request, vary_on, args, kwargs)
 
             # Try to get from cache
             cached = caches[cache_alias].get(cache_key)
@@ -477,16 +478,16 @@ def cached_view(
 
         # If model is specified, register for invalidation
         if model is not None:
+
             def invalidate_callback(instance: Model, action: str) -> None:
                 # Invalidate all cached views for this model
-                caches[cache_alias].delete_many([
-                    f"{key_prefix}:{func.__name__}:*"
-                ])
+                caches[cache_alias].delete_many([f"{key_prefix}:{func.__name__}:*"])
 
             cache_invalidator.add_callback(model, invalidate_callback)
 
         # Return appropriate wrapper based on async
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
         return sync_wrapper  # type: ignore
@@ -497,7 +498,7 @@ def cached_view(
 def _generate_view_cache_key(
     func: Callable,
     prefix: str,
-    request: "HttpRequest",
+    request: HttpRequest,
     vary_on: list[str] | None,
     args: tuple,
     kwargs: dict,

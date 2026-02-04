@@ -73,7 +73,9 @@ class ConsoleProvider(EmailProviderBase):
         if attachments:
             print(f"Attachments: {len(attachments)} file(s)")
             for att in attachments:
-                print(f"  - {att.get('filename', 'unnamed')} ({att.get('content_type', 'unknown')})")
+                print(
+                    f"  - {att.get('filename', 'unnamed')} ({att.get('content_type', 'unknown')})"
+                )
 
         print(separator)
 

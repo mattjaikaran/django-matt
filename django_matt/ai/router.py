@@ -12,7 +12,7 @@ import asyncio
 import random
 import time
 from collections.abc import AsyncIterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, TypeVar
 
@@ -236,13 +236,13 @@ class LLMRouter:
                 reverse=True,
             )
 
-        elif self.config.strategy == RoutingStrategy.ROUND_ROBIN:
+        if self.config.strategy == RoutingStrategy.ROUND_ROBIN:
             # Rotate through providers
             rotated = available[self._round_robin_index :] + available[: self._round_robin_index]
             self._round_robin_index = (self._round_robin_index + 1) % len(available)
             return rotated
 
-        elif self.config.strategy == RoutingStrategy.RANDOM:
+        if self.config.strategy == RoutingStrategy.RANDOM:
             # Weighted random selection
             weights = [self._providers[n].weight for n in available]
             total = sum(weights)
@@ -250,7 +250,7 @@ class LLMRouter:
             selected = random.choices(available, weights=probs, k=len(available))
             return list(dict.fromkeys(selected))  # Remove duplicates while preserving order
 
-        elif self.config.strategy == RoutingStrategy.LOWEST_LATENCY:
+        if self.config.strategy == RoutingStrategy.LOWEST_LATENCY:
             # Sort by average latency
             def avg_latency(name: str) -> float:
                 m = self._metrics[name]
@@ -260,7 +260,7 @@ class LLMRouter:
 
             return sorted(available, key=avg_latency)
 
-        elif self.config.strategy == RoutingStrategy.LOWEST_COST:
+        if self.config.strategy == RoutingStrategy.LOWEST_COST:
             # Sort by cost per token
             def cost(name: str) -> float:
                 c = self._providers[name]

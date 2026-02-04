@@ -21,12 +21,11 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from django.http import HttpRequest
     from django.contrib.auth.models import AbstractUser
+    from django.http import HttpRequest
 
     from django_matt.experiments.models import (
         ExperimentAssignment,
-        Variant,
     )
 
 # Context variable for current experiment context
@@ -74,9 +73,8 @@ class ExperimentContext:
                 attributes["is_staff"] = user.is_staff
             if hasattr(user, "date_joined"):
                 from django.utils import timezone
-                attributes["days_since_signup"] = (
-                    timezone.now() - user.date_joined
-                ).days
+
+                attributes["days_since_signup"] = (timezone.now() - user.date_joined).days
         else:
             # Try to get anonymous ID from cookie or create new one
             anonymous_id = request.COOKIES.get("experiment_id")
@@ -321,9 +319,7 @@ class ExperimentContext:
         """
         from django_matt.experiments.models import Experiment, ExperimentStatus
 
-        experiments = Experiment.objects.filter(
-            status=ExperimentStatus.RUNNING.value
-        )
+        experiments = Experiment.objects.filter(status=ExperimentStatus.RUNNING.value)
 
         result = {}
         for exp in experiments:

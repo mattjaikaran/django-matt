@@ -335,27 +335,27 @@ def configure_cache(
             timeout=timeout,
             **extra_options,
         )
-    elif backend == "memcached":
+    if backend == "memcached":
         return get_memcached_config(
             location=url or os.environ.get("MEMCACHED_LOCATION"),
             key_prefix=key_prefix,
             timeout=timeout,
             **extra_options,
         )
-    elif backend == "file":
+    if backend == "file":
         return get_file_cache_config(
             location=url or extra_options.pop("location", "/tmp/django_cache"),
             key_prefix=key_prefix,
             timeout=timeout,
             **extra_options,
         )
-    else:  # locmem
-        return get_locmem_config(
-            name=url or "django_matt",
-            key_prefix=key_prefix,
-            timeout=timeout,
-            **extra_options,
-        )
+    # locmem
+    return get_locmem_config(
+        name=url or "django_matt",
+        key_prefix=key_prefix,
+        timeout=timeout,
+        **extra_options,
+    )
 
 
 # ==========================================================================

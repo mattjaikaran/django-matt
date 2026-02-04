@@ -33,6 +33,7 @@ def get_dev():
     global _dev
     if _dev is None:
         from django_matt.config.settings import dev as _dev_module
+
         _dev = _dev_module
     return _dev
 
@@ -42,6 +43,7 @@ def get_staging():
     global _staging
     if _staging is None:
         from django_matt.config.settings import staging as _staging_module
+
         _staging = _staging_module
     return _staging
 
@@ -51,6 +53,7 @@ def get_prod():
     global _prod
     if _prod is None:
         from django_matt.config.settings import prod as _prod_module
+
         _prod = _prod_module
     return _prod
 

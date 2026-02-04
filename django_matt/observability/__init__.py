@@ -75,6 +75,57 @@ Example usage:
 """
 
 # Tracing
+# Decorators
+from django_matt.observability.decorators import (
+    counted,
+    metric,
+    observe,
+    timed,
+    trace,
+    with_span_attribute,
+)
+
+# Logging
+from django_matt.observability.logging import (
+    BoundLogger,
+    ColoredTextFormatter,
+    JSONFormatter,
+    LoggingConfig,
+    PrettyJSONFormatter,
+    StructuredLogger,
+    clear_context,
+    configure_logging,
+    get_logger,
+    get_logging_config,
+    get_request_id,
+    get_user_id,
+    logging_config,
+    set_request_id,
+    set_user_id,
+)
+
+# Metrics
+from django_matt.observability.metrics import (
+    HAS_PROMETHEUS,
+    MetricsConfig,
+    MetricsManager,
+    decrement_active_requests,
+    get_percentiles,
+    increment_active_requests,
+    metrics_config,
+    metrics_manager,
+    record_db_query,
+    record_request,
+)
+
+# Middleware
+from django_matt.observability.middleware import (
+    DatabaseQueryMiddleware,
+    LoggingMiddleware,
+    MetricsMiddleware,
+    ObservabilityMiddleware,
+    TracingMiddleware,
+)
 from django_matt.observability.tracing import (
     HAS_DATADOG,
     HAS_JAEGER,
@@ -98,58 +149,6 @@ from django_matt.observability.tracing import (
     setup_tracing,
     tracing_config,
     tracing_manager,
-)
-
-# Metrics
-from django_matt.observability.metrics import (
-    HAS_PROMETHEUS,
-    MetricsConfig,
-    MetricsManager,
-    decrement_active_requests,
-    get_percentiles,
-    increment_active_requests,
-    metrics_config,
-    metrics_manager,
-    record_db_query,
-    record_request,
-)
-
-# Logging
-from django_matt.observability.logging import (
-    BoundLogger,
-    ColoredTextFormatter,
-    JSONFormatter,
-    LoggingConfig,
-    PrettyJSONFormatter,
-    StructuredLogger,
-    clear_context,
-    configure_logging,
-    get_logger,
-    get_logging_config,
-    get_request_id,
-    get_user_id,
-    logging_config,
-    set_request_id,
-    set_user_id,
-)
-
-# Middleware
-from django_matt.observability.middleware import (
-    DatabaseQueryMiddleware,
-    LoggingMiddleware,
-    MetricsMiddleware,
-    ObservabilityMiddleware,
-    TracingMiddleware,
-)
-
-# Decorators
-from django_matt.observability.decorators import (
-    counted,
-    metric,
-    observe,
-    timed,
-    trace,
-    with_span_attribute,
 )
 
 # Views

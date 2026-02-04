@@ -266,7 +266,6 @@ ignore = [
     "B904",    # raise without from (not always needed)
     "UP006",   # non-pep585 annotation (compatibility)
     "UP035",   # deprecated import (compatibility)
-    "UP038",   # non-pep604 isinstance
     "UP045",   # non-pep604 optional
     "ERA001",  # commented-out code (examples)
     "DTZ001",  # datetime without tzinfo (OK for naive datetimes)
@@ -300,6 +299,18 @@ ignore = [
     "W293",    # blank line with whitespace (in string templates)
     "F811",    # redefined while unused (for compatibility shims)
     "F841",    # unused variable (placeholders, debugging)
+    "RUF059",  # unpacked variable never used (common destructuring pattern)
+    "PLW1510", # subprocess.run without check (intentional for some commands)
+    "PERF403", # dict comprehension suggestion (stylistic)
+    "DTZ006",  # datetime.fromtimestamp without tz (OK in some contexts)
+    "B905",    # zip without strict (common pattern)
+    "C401",    # generator to set comprehension (stylistic)
+    "S108",    # temp file usage (known safe paths)
+    "B028",    # stacklevel in warnings (not critical)
+    "RUF001",  # ambiguous unicode (intentional in some strings)
+    "PERF402", # list copy suggestion (stylistic)
+    "RUF046",  # redundant int cast (defensive)
+    "B024",    # abstract base without abstract methods (design choice)
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -328,6 +339,16 @@ ignore = [
 "django_matt/multitenancy/middleware.py" = [
     "F821",    # forward references to Organization model
 ]
+"django_matt/observability/tracing.py" = [
+    "F823",    # conditional imports with runtime checks
+    "F401",    # imports for availability check
+]
+"django_matt/graphql/*.py" = [
+    "F401",    # imports for strawberry availability check
+]
+"django_matt/management/commands/matt_migrate_from.py" = [
+    "F401",    # imports for availability check (rest_framework, ninja)
+]
 "django_matt/tasks/base.py" = [
     "F821",    # forward references to Signature
 ]
@@ -339,6 +360,9 @@ ignore = [
 ]
 "scripts/**/*.py" = [
     "T201",    # print OK in scripts
+]
+"django_matt/ai/context/watcher.py" = [
+    "T201",    # print OK in file watcher (user feedback)
 ]
 "test_projects/**/*.py" = [
     "T201",    # print OK in test projects

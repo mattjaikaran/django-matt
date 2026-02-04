@@ -22,8 +22,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from django.http import HttpRequest
     from django.contrib.auth.models import AbstractUser
+    from django.http import HttpRequest
 
 # Context variable for current flag context
 _current_context: contextvars.ContextVar["FlagContext | None"] = contextvars.ContextVar(
@@ -77,9 +77,7 @@ class FlagContext:
                 attributes["is_superuser"] = user.is_superuser
             if hasattr(user, "date_joined"):
                 attributes["days_since_signup"] = (
-                    (user.date_joined.now() - user.date_joined).days
-                    if user.date_joined
-                    else 0
+                    (user.date_joined.now() - user.date_joined).days if user.date_joined else 0
                 )
 
         # Add request attributes

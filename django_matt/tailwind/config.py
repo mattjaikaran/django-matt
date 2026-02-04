@@ -10,7 +10,6 @@ from dataclasses import dataclass
 
 from django.conf import settings
 
-
 # Color palette presets (defined outside class to be accessible as class attribute)
 THEME_PRESETS: dict[str, dict[str, str]] = {
     "default": {
@@ -72,7 +71,7 @@ class TailwindConfig:
     dark_mode: str = "class"
 
     @classmethod
-    def from_settings(cls) -> "TailwindConfig":
+    def from_settings(cls) -> TailwindConfig:
         """Create config from Django settings."""
         config_dict = getattr(settings, "DJANGO_MATT_TAILWIND", {})
 
@@ -82,9 +81,15 @@ class TailwindConfig:
 
         return cls(
             theme=theme,
-            color_primary=config_dict.get("COLOR_PRIMARY", theme_preset.get("color_primary", "blue")),
-            color_secondary=config_dict.get("COLOR_SECONDARY", theme_preset.get("color_secondary", "gray")),
-            color_accent=config_dict.get("COLOR_ACCENT", theme_preset.get("color_accent", "indigo")),
+            color_primary=config_dict.get(
+                "COLOR_PRIMARY", theme_preset.get("color_primary", "blue")
+            ),
+            color_secondary=config_dict.get(
+                "COLOR_SECONDARY", theme_preset.get("color_secondary", "gray")
+            ),
+            color_accent=config_dict.get(
+                "COLOR_ACCENT", theme_preset.get("color_accent", "indigo")
+            ),
             border_radius=config_dict.get("BORDER_RADIUS", "rounded-lg"),
             component_prefix=config_dict.get("COMPONENT_PREFIX", ""),
             dark_mode=config_dict.get("DARK_MODE", "class"),

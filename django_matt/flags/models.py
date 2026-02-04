@@ -12,8 +12,6 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
-from django.contrib.contenttypes.fields import GenericForeignKey
-from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.utils import timezone
 
@@ -291,12 +289,12 @@ class FeatureFlag(models.Model):
         if self.flag_type == FlagType.BOOLEAN.value:
             return self.enabled_by_default
 
-        elif self.flag_type == FlagType.PERCENTAGE.value:
+        if self.flag_type == FlagType.PERCENTAGE.value:
             if user:
                 return self._is_in_percentage_rollout(user)
             return False
 
-        elif self.flag_type == FlagType.VARIANT.value:
+        if self.flag_type == FlagType.VARIANT.value:
             # For variant flags, being enabled means having a variant assigned
             return self.enabled_by_default
 
@@ -399,27 +397,27 @@ class FeatureFlag(models.Model):
 
         if operator == "eq":
             return attr_value == value
-        elif operator == "neq":
+        if operator == "neq":
             return attr_value != value
-        elif operator == "gt":
+        if operator == "gt":
             return attr_value > value
-        elif operator == "gte":
+        if operator == "gte":
             return attr_value >= value
-        elif operator == "lt":
+        if operator == "lt":
             return attr_value < value
-        elif operator == "lte":
+        if operator == "lte":
             return attr_value <= value
-        elif operator == "in":
+        if operator == "in":
             return attr_value in value
-        elif operator == "not_in":
+        if operator == "not_in":
             return attr_value not in value
-        elif operator == "contains":
+        if operator == "contains":
             return value in str(attr_value)
-        elif operator == "starts_with":
+        if operator == "starts_with":
             return str(attr_value).startswith(value)
-        elif operator == "ends_with":
+        if operator == "ends_with":
             return str(attr_value).endswith(value)
-        elif operator == "regex":
+        if operator == "regex":
             import re
 
             return bool(re.match(value, str(attr_value)))

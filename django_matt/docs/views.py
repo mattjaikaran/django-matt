@@ -10,13 +10,12 @@ Provides a modern, interactive documentation UI with:
 
 import json
 from typing import Any
-from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.urls import path
-from django.template.loader import render_to_string
-from django.template import Template, Context
-from django.utils.safestring import mark_safe
 
-from .playground import PlaygroundSession, CodeGenerator
+from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.template import Context, Template
+from django.urls import path
+
+from .playground import CodeGenerator, PlaygroundSession
 
 
 class DocsView:
@@ -36,37 +35,43 @@ class DocsView:
         endpoints = []
 
         # Get routes from the API
-        for route in getattr(self.api, 'routes', []):
-            endpoints.append({
-                'path': route.get('path', ''),
-                'method': route.get('method', 'GET'),
-                'summary': route.get('summary', ''),
-                'description': route.get('description', ''),
-                'tags': route.get('tags', []),
-                'parameters': route.get('parameters', []),
-                'request_body': route.get('request_body'),
-                'responses': route.get('responses', {}),
-            })
+        for route in getattr(self.api, "routes", []):
+            endpoints.append(
+                {
+                    "path": route.get("path", ""),
+                    "method": route.get("method", "GET"),
+                    "summary": route.get("summary", ""),
+                    "description": route.get("description", ""),
+                    "tags": route.get("tags", []),
+                    "parameters": route.get("parameters", []),
+                    "request_body": route.get("request_body"),
+                    "responses": route.get("responses", {}),
+                }
+            )
 
         # Get routes from controllers
-        for controller in getattr(self.api, 'controllers', []):
-            prefix = getattr(controller, 'prefix', '')
-            tags = getattr(controller, 'tags', [controller.__name__])
+        for controller in getattr(self.api, "controllers", []):
+            prefix = getattr(controller, "prefix", "")
+            tags = getattr(controller, "tags", [controller.__name__])
 
             for method_name in dir(controller):
                 method = getattr(controller, method_name)
-                if hasattr(method, '_route_info'):
+                if hasattr(method, "_route_info"):
                     route_info = method._route_info
-                    endpoints.append({
-                        'path': f"{prefix}{route_info.get('path', '')}",
-                        'method': route_info.get('method', 'GET'),
-                        'summary': route_info.get('summary', method_name.replace('_', ' ').title()),
-                        'description': method.__doc__ or '',
-                        'tags': route_info.get('tags', tags),
-                        'parameters': route_info.get('parameters', []),
-                        'request_body': route_info.get('request_body'),
-                        'responses': route_info.get('responses', {}),
-                    })
+                    endpoints.append(
+                        {
+                            "path": f"{prefix}{route_info.get('path', '')}",
+                            "method": route_info.get("method", "GET"),
+                            "summary": route_info.get(
+                                "summary", method_name.replace("_", " ").title()
+                            ),
+                            "description": method.__doc__ or "",
+                            "tags": route_info.get("tags", tags),
+                            "parameters": route_info.get("parameters", []),
+                            "request_body": route_info.get("request_body"),
+                            "responses": route_info.get("responses", {}),
+                        }
+                    )
 
         return endpoints
 
@@ -74,7 +79,7 @@ class DocsView:
         """Get unique tags from all endpoints."""
         tags = set()
         for endpoint in self.get_endpoints():
-            tags.update(endpoint.get('tags', []))
+            tags.update(endpoint.get("tags", []))
         return sorted(tags)
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
@@ -85,24 +90,22 @@ class DocsView:
         # Group endpoints by tag
         endpoints_by_tag = {}
         for tag in tags:
-            endpoints_by_tag[tag] = [
-                e for e in endpoints if tag in e.get('tags', [])
-            ]
+            endpoints_by_tag[tag] = [e for e in endpoints if tag in e.get("tags", [])]
 
         context = {
-            'title': self.title,
-            'api_title': self.api.title,
-            'api_version': self.api.version,
-            'api_description': self.api.description,
-            'endpoints': endpoints,
-            'tags': tags,
-            'endpoints_by_tag': endpoints_by_tag,
-            'openapi_url': getattr(self.api, 'openapi_url', '/openapi.json'),
-            'dark_mode': request.COOKIES.get('dark_mode', 'auto'),
+            "title": self.title,
+            "api_title": self.api.title,
+            "api_version": self.api.version,
+            "api_description": self.api.description,
+            "endpoints": endpoints,
+            "tags": tags,
+            "endpoints_by_tag": endpoints_by_tag,
+            "openapi_url": getattr(self.api, "openapi_url", "/openapi.json"),
+            "dark_mode": request.COOKIES.get("dark_mode", "auto"),
         }
 
         html = self._render_template(context)
-        return HttpResponse(html, content_type='text/html')
+        return HttpResponse(html, content_type="text/html")
 
     def _render_template(self, context: dict) -> str:
         """Render the documentation HTML template."""
@@ -129,28 +132,28 @@ class PlaygroundView:
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         """Render the playground page."""
-        if request.method == 'POST':
+        if request.method == "POST":
             return self._handle_request(request)
 
         context = {
-            'title': self.title,
-            'api_title': self.api.title,
-            'api_version': self.api.version,
-            'openapi_url': getattr(self.api, 'openapi_url', '/openapi.json'),
-            'dark_mode': request.COOKIES.get('dark_mode', 'auto'),
+            "title": self.title,
+            "api_title": self.api.title,
+            "api_version": self.api.version,
+            "openapi_url": getattr(self.api, "openapi_url", "/openapi.json"),
+            "dark_mode": request.COOKIES.get("dark_mode", "auto"),
         }
 
         html = self._render_playground_template(context)
-        return HttpResponse(html, content_type='text/html')
+        return HttpResponse(html, content_type="text/html")
 
     def _handle_request(self, request: HttpRequest) -> JsonResponse:
         """Handle API request from playground."""
         try:
             data = json.loads(request.body)
-            method = data.get('method', 'GET')
-            url = data.get('url', '')
-            headers = data.get('headers', {})
-            body = data.get('body')
+            method = data.get("method", "GET")
+            url = data.get("url", "")
+            headers = data.get("headers", {})
+            body = data.get("body")
 
             # Generate code snippets
             code_generator = CodeGenerator(
@@ -160,16 +163,18 @@ class PlaygroundView:
                 body=body,
             )
 
-            return JsonResponse({
-                'snippets': {
-                    'curl': code_generator.curl(),
-                    'python': code_generator.python(),
-                    'javascript': code_generator.javascript(),
-                    'httpie': code_generator.httpie(),
-                },
-            })
+            return JsonResponse(
+                {
+                    "snippets": {
+                        "curl": code_generator.curl(),
+                        "python": code_generator.python(),
+                        "javascript": code_generator.javascript(),
+                        "httpie": code_generator.httpie(),
+                    },
+                }
+            )
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
+            return JsonResponse({"error": str(e)}, status=400)
 
     def _render_playground_template(self, context: dict) -> str:
         """Render the playground HTML template."""
@@ -187,31 +192,35 @@ class SearchView:
 
     def __call__(self, request: HttpRequest) -> JsonResponse:
         """Search endpoints."""
-        query = request.GET.get('q', '').lower()
+        query = request.GET.get("q", "").lower()
         if not query:
-            return JsonResponse({'results': []})
+            return JsonResponse({"results": []})
 
         endpoints = self.docs_view.get_endpoints()
         results = []
 
         for endpoint in endpoints:
             # Search in path, summary, description, and tags
-            searchable = ' '.join([
-                endpoint.get('path', ''),
-                endpoint.get('summary', ''),
-                endpoint.get('description', ''),
-                ' '.join(endpoint.get('tags', [])),
-            ]).lower()
+            searchable = " ".join(
+                [
+                    endpoint.get("path", ""),
+                    endpoint.get("summary", ""),
+                    endpoint.get("description", ""),
+                    " ".join(endpoint.get("tags", [])),
+                ]
+            ).lower()
 
             if query in searchable:
-                results.append({
-                    'path': endpoint['path'],
-                    'method': endpoint['method'],
-                    'summary': endpoint.get('summary', ''),
-                    'tags': endpoint.get('tags', []),
-                })
+                results.append(
+                    {
+                        "path": endpoint["path"],
+                        "method": endpoint["method"],
+                        "summary": endpoint.get("summary", ""),
+                        "tags": endpoint.get("tags", []),
+                    }
+                )
 
-        return JsonResponse({'results': results[:20]})
+        return JsonResponse({"results": results[:20]})
 
 
 def get_docs_urls(api: Any) -> list:
@@ -230,9 +239,9 @@ def get_docs_urls(api: Any) -> list:
     search_view = SearchView(api)
 
     return [
-        path('docs/', docs_view, name='matt-docs'),
-        path('docs/playground/', playground_view, name='matt-playground'),
-        path('docs/search/', search_view, name='matt-docs-search'),
+        path("docs/", docs_view, name="matt-docs"),
+        path("docs/playground/", playground_view, name="matt-playground"),
+        path("docs/search/", search_view, name="matt-docs-search"),
     ]
 
 
@@ -251,7 +260,7 @@ def playground_view(api: Any) -> PlaygroundView:
 # HTML Templates
 # =============================================================================
 
-DOCS_TEMPLATE = '''<!DOCTYPE html>
+DOCS_TEMPLATE = """<!DOCTYPE html>
 <html lang="en" data-theme="{{ dark_mode }}">
 <head>
     <meta charset="UTF-8">
@@ -553,10 +562,10 @@ DOCS_TEMPLATE = '''<!DOCTYPE html>
         });
     </script>
 </body>
-</html>'''
+</html>"""
 
 
-PLAYGROUND_TEMPLATE = '''<!DOCTYPE html>
+PLAYGROUND_TEMPLATE = """<!DOCTYPE html>
 <html lang="en" data-theme="{{ dark_mode }}">
 <head>
     <meta charset="UTF-8">
@@ -1064,4 +1073,4 @@ console.log(data);`;
         }
     </script>
 </body>
-</html>'''
+</html>"""

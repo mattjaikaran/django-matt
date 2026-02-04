@@ -24,6 +24,13 @@ Usage:
     gen.generate_all()
 """
 
+from django_matt.codegen.config import (
+    CodegenConfig,
+    ModelConfig,
+    create_config_file,
+    find_project_root,
+    load_config,
+)
 from django_matt.codegen.core import (
     ArrayLiteral,
     Block,
@@ -81,20 +88,13 @@ from django_matt.codegen.typescript import (
     generate_zod_schema,
 )
 from django_matt.codegen.watcher import (
+    HAS_WATCHDOG,
     CodegenWatcher,
     DebouncedCallback,
-    HAS_WATCHDOG,
     PollingWatcher,
     WatchConfig,
     get_module_file,
     reload_module,
-)
-from django_matt.codegen.config import (
-    CodegenConfig,
-    ModelConfig,
-    create_config_file,
-    find_project_root,
-    load_config,
 )
 
 __all__ = [

@@ -16,12 +16,12 @@ import pytest
 
 from .console import ConsoleCapture, MockConsole
 from .errors import ErrorCatcher, MockErrorHandler
-from .files import FileTracker, isolated_filesystem
+from .files import FileTracker
 from .prompts import MockPromptSession
 from .runner import CLIRunner, CommandResult, IsolatedCLIRunner
 
 if TYPE_CHECKING:
-    from django.core.management.base import BaseCommand
+    pass
 
 
 # ============================================================================
@@ -257,7 +257,6 @@ def django_settings():
             with django_settings(DEBUG=True):
                 # test with DEBUG=True
     """
-    from django.conf import settings
     from django.test import override_settings
 
     def override(**kwargs):

@@ -29,9 +29,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
-from django.conf import settings
-from django.db.models import Avg, Count, F, Q, Sum
-from django.db.models.functions import TruncDate, TruncHour
+from django.db.models import Avg, Count
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 if TYPE_CHECKING:
@@ -49,7 +48,6 @@ class Aggregator:
 
     def __init__(self):
         """Initialize aggregator."""
-        pass
 
     # =========================================================================
     # Event Metrics
@@ -86,9 +84,7 @@ class Aggregator:
         total_events = await qs.acount()
 
         # Unique users
-        unique_users = await qs.exclude(
-            user__isnull=True
-        ).values("user").distinct().acount()
+        unique_users = await qs.exclude(user__isnull=True).values("user").distinct().acount()
 
         # Events by name
         events_by_name = {}
@@ -102,13 +98,18 @@ class Aggregator:
 
         # Events over time (by day)
         events_over_time = []
-        async for item in qs.annotate(
-            date=TruncDate("timestamp")
-        ).values("date").annotate(count=Count("id")).order_by("date"):
-            events_over_time.append({
-                "date": item["date"].isoformat() if item["date"] else None,
-                "count": item["count"],
-            })
+        async for item in (
+            qs.annotate(date=TruncDate("timestamp"))
+            .values("date")
+            .annotate(count=Count("id"))
+            .order_by("date")
+        ):
+            events_over_time.append(
+                {
+                    "date": item["date"].isoformat() if item["date"] else None,
+                    "count": item["count"],
+                }
+            )
 
         return {
             "total_events": total_events,
@@ -153,22 +154,22 @@ class Aggregator:
         total_page_views = await qs.acount()
 
         # Unique visitors (by user or anonymous_id)
-        unique_by_user = await qs.exclude(
-            user__isnull=True
-        ).values("user").distinct().acount()
+        unique_by_user = await qs.exclude(user__isnull=True).values("user").distinct().acount()
 
-        unique_by_anon = await qs.filter(
-            user__isnull=True
-        ).exclude(
-            anonymous_id=""
-        ).values("anonymous_id").distinct().acount()
+        unique_by_anon = (
+            await qs.filter(user__isnull=True)
+            .exclude(anonymous_id="")
+            .values("anonymous_id")
+            .distinct()
+            .acount()
+        )
 
         unique_visitors = unique_by_user + unique_by_anon
 
         # Average time on page
-        avg_time_result = await qs.filter(
-            time_on_page__isnull=False
-        ).aaggregate(avg_time=Avg("time_on_page"))
+        avg_time_result = await qs.filter(time_on_page__isnull=False).aaggregate(
+            avg_time=Avg("time_on_page")
+        )
         avg_time_on_page = avg_time_result.get("avg_time") or 0
 
         # Bounce rate
@@ -178,25 +179,36 @@ class Aggregator:
 
         # Top pages
         top_pages = []
-        async for item in qs.values("path").annotate(
-            count=Count("id"),
-            avg_time=Avg("time_on_page"),
-        ).order_by("-count")[:20]:
-            top_pages.append({
-                "path": item["path"],
-                "views": item["count"],
-                "avg_time": item["avg_time"] or 0,
-            })
+        async for item in (
+            qs.values("path")
+            .annotate(
+                count=Count("id"),
+                avg_time=Avg("time_on_page"),
+            )
+            .order_by("-count")[:20]
+        ):
+            top_pages.append(
+                {
+                    "path": item["path"],
+                    "views": item["count"],
+                    "avg_time": item["avg_time"] or 0,
+                }
+            )
 
         # Pages over time
         pages_over_time = []
-        async for item in qs.annotate(
-            date=TruncDate("timestamp")
-        ).values("date").annotate(count=Count("id")).order_by("date"):
-            pages_over_time.append({
-                "date": item["date"].isoformat() if item["date"] else None,
-                "count": item["count"],
-            })
+        async for item in (
+            qs.annotate(date=TruncDate("timestamp"))
+            .values("date")
+            .annotate(count=Count("id"))
+            .order_by("date")
+        ):
+            pages_over_time.append(
+                {
+                    "date": item["date"].isoformat() if item["date"] else None,
+                    "count": item["count"],
+                }
+            )
 
         return {
             "total_page_views": total_page_views,
@@ -241,14 +253,12 @@ class Aggregator:
         total_sessions = await qs.acount()
 
         # Unique users
-        unique_users = await qs.exclude(
-            user__isnull=True
-        ).values("user").distinct().acount()
+        unique_users = await qs.exclude(user__isnull=True).values("user").distinct().acount()
 
         # Average session duration
-        avg_duration_result = await qs.filter(
-            duration_seconds__gt=0
-        ).aaggregate(avg_duration=Avg("duration_seconds"))
+        avg_duration_result = await qs.filter(duration_seconds__gt=0).aaggregate(
+            avg_duration=Avg("duration_seconds")
+        )
         avg_session_duration = avg_duration_result.get("avg_duration") or 0
 
         # Average pages per session
@@ -261,27 +271,35 @@ class Aggregator:
 
         # Sessions by device
         sessions_by_device = {}
-        async for item in qs.exclude(
-            device_type=""
-        ).values("device_type").annotate(count=Count("id")):
+        async for item in (
+            qs.exclude(device_type="").values("device_type").annotate(count=Count("id"))
+        ):
             sessions_by_device[item["device_type"]] = item["count"]
 
         # Sessions by country
         sessions_by_country = {}
-        async for item in qs.exclude(
-            country=""
-        ).values("country").annotate(count=Count("id")).order_by("-count")[:20]:
+        async for item in (
+            qs.exclude(country="")
+            .values("country")
+            .annotate(count=Count("id"))
+            .order_by("-count")[:20]
+        ):
             sessions_by_country[item["country"]] = item["count"]
 
         # Sessions over time
         sessions_over_time = []
-        async for item in qs.annotate(
-            date=TruncDate("started_at")
-        ).values("date").annotate(count=Count("id")).order_by("date"):
-            sessions_over_time.append({
-                "date": item["date"].isoformat() if item["date"] else None,
-                "count": item["count"],
-            })
+        async for item in (
+            qs.annotate(date=TruncDate("started_at"))
+            .values("date")
+            .annotate(count=Count("id"))
+            .order_by("date")
+        ):
+            sessions_over_time.append(
+                {
+                    "date": item["date"].isoformat() if item["date"] else None,
+                    "count": item["count"],
+                }
+            )
 
         return {
             "total_sessions": total_sessions,
@@ -325,30 +343,42 @@ class Aggregator:
 
         # By UTM source
         by_source = {}
-        async for item in qs.exclude(
-            utm_source=""
-        ).values("utm_source").annotate(count=Count("id")).order_by("-count")[:20]:
+        async for item in (
+            qs.exclude(utm_source="")
+            .values("utm_source")
+            .annotate(count=Count("id"))
+            .order_by("-count")[:20]
+        ):
             by_source[item["utm_source"]] = item["count"]
 
         # By UTM medium
         by_medium = {}
-        async for item in qs.exclude(
-            utm_medium=""
-        ).values("utm_medium").annotate(count=Count("id")).order_by("-count")[:20]:
+        async for item in (
+            qs.exclude(utm_medium="")
+            .values("utm_medium")
+            .annotate(count=Count("id"))
+            .order_by("-count")[:20]
+        ):
             by_medium[item["utm_medium"]] = item["count"]
 
         # By UTM campaign
         by_campaign = {}
-        async for item in qs.exclude(
-            utm_campaign=""
-        ).values("utm_campaign").annotate(count=Count("id")).order_by("-count")[:20]:
+        async for item in (
+            qs.exclude(utm_campaign="")
+            .values("utm_campaign")
+            .annotate(count=Count("id"))
+            .order_by("-count")[:20]
+        ):
             by_campaign[item["utm_campaign"]] = item["count"]
 
         # By referrer domain
         by_referrer = {}
-        async for item in qs.exclude(
-            referrer_domain=""
-        ).values("referrer_domain").annotate(count=Count("id")).order_by("-count")[:20]:
+        async for item in (
+            qs.exclude(referrer_domain="")
+            .values("referrer_domain")
+            .annotate(count=Count("id"))
+            .order_by("-count")[:20]
+        ):
             by_referrer[item["referrer_domain"]] = item["count"]
 
         return {
@@ -392,11 +422,16 @@ class Aggregator:
         ).acount()
 
         # Active users (approximation based on sessions)
-        active_users = await AnalyticsSession.objects.filter(
-            status=SessionStatus.ACTIVE.value,
-            last_activity_at__gte=start,
-            user__isnull=False,
-        ).values("user").distinct().acount()
+        active_users = (
+            await AnalyticsSession.objects.filter(
+                status=SessionStatus.ACTIVE.value,
+                last_activity_at__gte=start,
+                user__isnull=False,
+            )
+            .values("user")
+            .distinct()
+            .acount()
+        )
 
         # Page views in period
         pv_count = await PageView.objects.filter(
@@ -412,38 +447,59 @@ class Aggregator:
 
         # Top pages right now
         top_pages = []
-        async for item in PageView.objects.filter(
-            timestamp__gte=start
-        ).values("path").annotate(count=Count("id")).order_by("-count")[:10]:
-            top_pages.append({
-                "path": item["path"],
-                "count": item["count"],
-            })
+        async for item in (
+            PageView.objects.filter(timestamp__gte=start)
+            .values("path")
+            .annotate(count=Count("id"))
+            .order_by("-count")[:10]
+        ):
+            top_pages.append(
+                {
+                    "path": item["path"],
+                    "count": item["count"],
+                }
+            )
 
         # Top events right now
         top_events = []
-        async for item in AnalyticsEvent.objects.filter(
-            timestamp__gte=start
-        ).values("name").annotate(count=Count("id")).order_by("-count")[:10]:
-            top_events.append({
-                "name": item["name"],
-                "count": item["count"],
-            })
+        async for item in (
+            AnalyticsEvent.objects.filter(timestamp__gte=start)
+            .values("name")
+            .annotate(count=Count("id"))
+            .order_by("-count")[:10]
+        ):
+            top_events.append(
+                {
+                    "name": item["name"],
+                    "count": item["count"],
+                }
+            )
 
         # Users by country (from active sessions)
         users_by_country = {}
-        async for item in AnalyticsSession.objects.filter(
-            status=SessionStatus.ACTIVE.value,
-            last_activity_at__gte=start,
-        ).exclude(country="").values("country").annotate(count=Count("id")).order_by("-count")[:10]:
+        async for item in (
+            AnalyticsSession.objects.filter(
+                status=SessionStatus.ACTIVE.value,
+                last_activity_at__gte=start,
+            )
+            .exclude(country="")
+            .values("country")
+            .annotate(count=Count("id"))
+            .order_by("-count")[:10]
+        ):
             users_by_country[item["country"]] = item["count"]
 
         # Users by device (from active sessions)
         users_by_device = {}
-        async for item in AnalyticsSession.objects.filter(
-            status=SessionStatus.ACTIVE.value,
-            last_activity_at__gte=start,
-        ).exclude(device_type="").values("device_type").annotate(count=Count("id")):
+        async for item in (
+            AnalyticsSession.objects.filter(
+                status=SessionStatus.ACTIVE.value,
+                last_activity_at__gte=start,
+            )
+            .exclude(device_type="")
+            .values("device_type")
+            .annotate(count=Count("id"))
+        ):
             users_by_device[item["device_type"]] = item["count"]
 
         return {
@@ -496,20 +552,28 @@ class Aggregator:
         for step in steps:
             if step.match_type == FunnelStep.MatchType.EVENT:
                 # Find users who triggered this event
-                async for event in AnalyticsEvent.objects.filter(
-                    name=step.event_name,
-                    timestamp__gte=start,
-                    timestamp__lt=end,
-                ).exclude(user__isnull=True).values("user_id"):
+                async for event in (
+                    AnalyticsEvent.objects.filter(
+                        name=step.event_name,
+                        timestamp__gte=start,
+                        timestamp__lt=end,
+                    )
+                    .exclude(user__isnull=True)
+                    .values("user_id")
+                ):
                     step_users[step.order].add(event["user_id"])
 
             elif step.match_type == FunnelStep.MatchType.PAGE_VIEW:
                 # Find users who viewed this page
-                async for pv in PageView.objects.filter(
-                    path__startswith=step.page_path,
-                    timestamp__gte=start,
-                    timestamp__lt=end,
-                ).exclude(user__isnull=True).values("user_id"):
+                async for pv in (
+                    PageView.objects.filter(
+                        path__startswith=step.page_path,
+                        timestamp__gte=start,
+                        timestamp__lt=end,
+                    )
+                    .exclude(user__isnull=True)
+                    .values("user_id")
+                ):
                     step_users[step.order].add(pv["user_id"])
 
         # Calculate funnel metrics
@@ -533,14 +597,16 @@ class Aggregator:
                 conversion_rate = (visitors / prev_count * 100) if prev_count > 0 else 0
                 drop_off_rate = 100 - conversion_rate
 
-            step_analytics.append({
-                "step_order": step.order,
-                "step_name": step.name,
-                "visitors": visitors,
-                "conversion_rate": conversion_rate,
-                "drop_off_rate": drop_off_rate,
-                "avg_time_to_complete": None,  # Would need more complex tracking
-            })
+            step_analytics.append(
+                {
+                    "step_order": step.order,
+                    "step_name": step.name,
+                    "visitors": visitors,
+                    "conversion_rate": conversion_rate,
+                    "drop_off_rate": drop_off_rate,
+                    "avg_time_to_complete": None,  # Would need more complex tracking
+                }
+            )
 
             previous_users = current_users
 
@@ -548,8 +614,8 @@ class Aggregator:
         total_started = len(step_users.get(1, set()))
         total_converted = len(step_users.get(len(steps), set())) if steps else 0
         overall_conversion_rate = (
-            total_converted / total_started * 100
-        ) if total_started > 0 else 0
+            (total_converted / total_started * 100) if total_started > 0 else 0
+        )
 
         return {
             "total_started": total_started,
@@ -600,15 +666,23 @@ class Aggregator:
                 next_period = current + timedelta(days=30)
 
             # Get users in this cohort
-            cohort_users = await User.objects.filter(
-                date_joined__gte=current,
-                date_joined__lt=next_period,
-            ).values_list("id", flat=True).async_to_list() if hasattr(User.objects, 'async_to_list') else list(
-                await asyncio.to_thread(
-                    lambda: list(User.objects.filter(
-                        date_joined__gte=current,
-                        date_joined__lt=next_period,
-                    ).values_list("id", flat=True))
+            cohort_users = (
+                await User.objects.filter(
+                    date_joined__gte=current,
+                    date_joined__lt=next_period,
+                )
+                .values_list("id", flat=True)
+                .async_to_list()
+                if hasattr(User.objects, "async_to_list")
+                else list(
+                    await asyncio.to_thread(
+                        lambda: list(
+                            User.objects.filter(
+                                date_joined__gte=current,
+                                date_joined__lt=next_period,
+                            ).values_list("id", flat=True)
+                        )
+                    )
                 )
             )
 
@@ -632,30 +706,42 @@ class Aggregator:
 
                     # Count active users in this period
                     if event_name:
-                        active_count = await AnalyticsEvent.objects.filter(
-                            user_id__in=cohort_users,
-                            name=event_name,
-                            timestamp__gte=period_start,
-                            timestamp__lt=period_end,
-                        ).values("user_id").distinct().acount()
+                        active_count = (
+                            await AnalyticsEvent.objects.filter(
+                                user_id__in=cohort_users,
+                                name=event_name,
+                                timestamp__gte=period_start,
+                                timestamp__lt=period_end,
+                            )
+                            .values("user_id")
+                            .distinct()
+                            .acount()
+                        )
                     else:
-                        active_count = await AnalyticsEvent.objects.filter(
-                            user_id__in=cohort_users,
-                            timestamp__gte=period_start,
-                            timestamp__lt=period_end,
-                        ).values("user_id").distinct().acount()
+                        active_count = (
+                            await AnalyticsEvent.objects.filter(
+                                user_id__in=cohort_users,
+                                timestamp__gte=period_start,
+                                timestamp__lt=period_end,
+                            )
+                            .values("user_id")
+                            .distinct()
+                            .acount()
+                        )
 
                     retention_rate = (active_count / cohort_size * 100) if cohort_size > 0 else 0
                     retention.append(retention_rate)
 
                     period_start = period_end
 
-                cohorts.append({
-                    "cohort": current.strftime("%Y-%m-%d"),
-                    "cohort_start": current,
-                    "cohort_size": cohort_size,
-                    "retention": retention,
-                })
+                cohorts.append(
+                    {
+                        "cohort": current.strftime("%Y-%m-%d"),
+                        "cohort_start": current,
+                        "cohort_size": cohort_size,
+                        "retention": retention,
+                    }
+                )
 
             current = next_period
 
@@ -688,18 +774,26 @@ class Aggregator:
         # Get unique users with activity
         user_ids = set()
 
-        async for event in AnalyticsEvent.objects.filter(
-            timestamp__gte=start,
-            timestamp__lt=end,
-            user__isnull=False,
-        ).values("user_id").distinct():
+        async for event in (
+            AnalyticsEvent.objects.filter(
+                timestamp__gte=start,
+                timestamp__lt=end,
+                user__isnull=False,
+            )
+            .values("user_id")
+            .distinct()
+        ):
             user_ids.add(event["user_id"])
 
-        async for pv in PageView.objects.filter(
-            timestamp__gte=start,
-            timestamp__lt=end,
-            user__isnull=False,
-        ).values("user_id").distinct():
+        async for pv in (
+            PageView.objects.filter(
+                timestamp__gte=start,
+                timestamp__lt=end,
+                user__isnull=False,
+            )
+            .values("user_id")
+            .distinct()
+        ):
             user_ids.add(pv["user_id"])
 
         # Create/update metrics for each user
@@ -720,11 +814,15 @@ class Aggregator:
 
             # Events by name
             events_by_name = {}
-            async for item in AnalyticsEvent.objects.filter(
-                user_id=user_id,
-                timestamp__gte=start,
-                timestamp__lt=end,
-            ).values("name").annotate(count=Count("id")):
+            async for item in (
+                AnalyticsEvent.objects.filter(
+                    user_id=user_id,
+                    timestamp__gte=start,
+                    timestamp__lt=end,
+                )
+                .values("name")
+                .annotate(count=Count("id"))
+            ):
                 events_by_name[item["name"]] = item["count"]
 
             # Update or create metric

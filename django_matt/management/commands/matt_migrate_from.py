@@ -70,7 +70,9 @@ class Command(GeneratorCommand):
         if source == "auto":
             source = self._detect_framework()
             if not source:
-                self.error("Could not detect source framework. Specify --source drf or --source ninja")
+                self.error(
+                    "Could not detect source framework. Specify --source drf or --source ninja"
+                )
                 return
 
         # Analyze codebase
@@ -101,12 +103,14 @@ class Command(GeneratorCommand):
         # Check requirements/dependencies
         try:
             import rest_framework
+
             return "drf"
         except ImportError:
             pass
 
         try:
             import ninja
+
             return "ninja"
         except ImportError:
             pass
@@ -156,7 +160,9 @@ class Command(GeneratorCommand):
                 for file_path in app_path.glob(pattern):
                     if file_path.name.startswith("_"):
                         continue
-                    serializers = self._analyze_drf_serializers(file_path, app_config.label, base_dir)
+                    serializers = self._analyze_drf_serializers(
+                        file_path, app_config.label, base_dir
+                    )
                     analysis["serializers"].extend(serializers)
                     analysis["items"].extend(serializers)
 
@@ -192,14 +198,9 @@ class Command(GeneratorCommand):
 
             for node in ast.walk(tree):
                 if isinstance(node, ast.ClassDef):
-                    bases = [
-                        getattr(base, "id", getattr(base, "attr", ""))
-                        for base in node.bases
-                    ]
+                    bases = [getattr(base, "id", getattr(base, "attr", "")) for base in node.bases]
 
-                    is_serializer = any(
-                        "Serializer" in b for b in bases
-                    )
+                    is_serializer = any("Serializer" in b for b in bases)
 
                     if is_serializer:
                         # Analyze serializer structure
@@ -226,9 +227,13 @@ class Command(GeneratorCommand):
                                         for target in meta_item.targets:
                                             if isinstance(target, ast.Name):
                                                 if target.id == "model":
-                                                    meta_model = self._get_value_str(meta_item.value)
+                                                    meta_model = self._get_value_str(
+                                                        meta_item.value
+                                                    )
                                                 elif target.id == "fields":
-                                                    meta_fields = self._get_value_str(meta_item.value)
+                                                    meta_fields = self._get_value_str(
+                                                        meta_item.value
+                                                    )
 
                         serializers.append(
                             {
@@ -265,10 +270,7 @@ class Command(GeneratorCommand):
 
             for node in ast.walk(tree):
                 if isinstance(node, ast.ClassDef):
-                    bases = [
-                        getattr(base, "id", getattr(base, "attr", ""))
-                        for base in node.bases
-                    ]
+                    bases = [getattr(base, "id", getattr(base, "attr", "")) for base in node.bases]
 
                     is_viewset = any("ViewSet" in b for b in bases)
                     is_view = any("View" in b or "Mixin" in b for b in bases)
@@ -405,10 +407,7 @@ class Command(GeneratorCommand):
 
             for node in ast.walk(tree):
                 if isinstance(node, ast.ClassDef):
-                    bases = [
-                        getattr(base, "id", getattr(base, "attr", ""))
-                        for base in node.bases
-                    ]
+                    bases = [getattr(base, "id", getattr(base, "attr", "")) for base in node.bases]
 
                     is_schema = any(b in ("Schema", "ModelSchema") for b in bases)
 
@@ -424,7 +423,9 @@ class Command(GeneratorCommand):
                                 "migration": {
                                     "target": "schema",
                                     "new_name": node.name,
-                                    "changes": ["Import from django_matt.core.schema instead of ninja"],
+                                    "changes": [
+                                        "Import from django_matt.core.schema instead of ninja"
+                                    ],
                                 },
                             }
                         )
@@ -460,8 +461,12 @@ class Command(GeneratorCommand):
                                         "file": str(file_path.relative_to(base_dir)),
                                         "line": node.lineno,
                                         "migration": {
-                                            "target": "MattAPI" if func_name == "NinjaAPI" else "router",
-                                            "changes": [f"Replace {func_name} with django_matt equivalent"],
+                                            "target": "MattAPI"
+                                            if func_name == "NinjaAPI"
+                                            else "router",
+                                            "changes": [
+                                                f"Replace {func_name} with django_matt equivalent"
+                                            ],
                                         },
                                     }
                                 )
@@ -484,7 +489,9 @@ class Command(GeneratorCommand):
                                             "line": node.lineno,
                                             "migration": {
                                                 "target": "controller_method",
-                                                "changes": ["Move to controller class or use @api decorator"],
+                                                "changes": [
+                                                    "Move to controller class or use @api decorator"
+                                                ],
                                             },
                                         }
                                     )
@@ -499,7 +506,7 @@ class Command(GeneratorCommand):
         if isinstance(value, ast.Call):
             if isinstance(value.func, ast.Attribute):
                 return value.func.attr
-            elif isinstance(value.func, ast.Name):
+            if isinstance(value.func, ast.Name):
                 return value.func.id
         return "unknown"
 
@@ -507,15 +514,15 @@ class Command(GeneratorCommand):
         """Convert an AST value node to a string."""
         if isinstance(value, ast.Constant):
             return str(value.value)
-        elif isinstance(value, ast.Name):
+        if isinstance(value, ast.Name):
             return value.id
-        elif isinstance(value, ast.Attribute):
+        if isinstance(value, ast.Attribute):
             return f"{self._get_value_str(value.value)}.{value.attr}"
-        elif isinstance(value, ast.Call):
+        if isinstance(value, ast.Call):
             return f"{self._get_value_str(value.func)}(...)"
-        elif isinstance(value, ast.List):
+        if isinstance(value, ast.List):
             return "[...]"
-        elif isinstance(value, ast.Tuple):
+        if isinstance(value, ast.Tuple):
             return "(...)"
         return "..."
 
@@ -667,9 +674,7 @@ class Command(GeneratorCommand):
                 summary_data.append({"Item Type": "Views", "Count": str(len(views))})
 
         if analysis.get("schemas"):
-            summary_data.append(
-                {"Item Type": "Schemas", "Count": str(len(analysis["schemas"]))}
-            )
+            summary_data.append({"Item Type": "Schemas", "Count": str(len(analysis["schemas"]))})
 
         if analysis.get("routers"):
             summary_data.append(
@@ -891,7 +896,7 @@ class Command(GeneratorCommand):
             for method in v.get("methods", [])[:5]:
                 if method.startswith("_"):
                     continue
-                lines.append(f"    # @get('/')  # or @post, @put, @delete")
+                lines.append("    # @get('/')  # or @post, @put, @delete")
                 lines.append(f"    # async def {method}(self, request):")
                 lines.append(f'    #     """Original method: {method}"""')
                 lines.append("    #     pass")

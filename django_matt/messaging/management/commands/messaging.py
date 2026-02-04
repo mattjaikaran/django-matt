@@ -133,9 +133,7 @@ class Command(BaseCommand):
             ).count()
 
         if dry_run:
-            self.stdout.write(
-                f"Would delete {message_count} messages older than {days} days"
-            )
+            self.stdout.write(f"Would delete {message_count} messages older than {days} days")
             if include_attachments:
                 self.stdout.write(f"Would delete {attachment_count} attachments")
         else:
@@ -145,16 +143,12 @@ class Command(BaseCommand):
                 for attachment in attachments:
                     attachment.delete_file()
                 attachments.delete()
-                self.stdout.write(
-                    self.style.SUCCESS(f"Deleted {attachment_count} attachments")
-                )
+                self.stdout.write(self.style.SUCCESS(f"Deleted {attachment_count} attachments"))
 
             # Delete messages (cascades to statuses, reactions, etc.)
             old_messages.delete()
             self.stdout.write(
-                self.style.SUCCESS(
-                    f"Deleted {message_count} messages older than {days} days"
-                )
+                self.style.SUCCESS(f"Deleted {message_count} messages older than {days} days")
             )
 
     def handle_stats(self, options):
@@ -191,9 +185,7 @@ class Command(BaseCommand):
         )
 
         # Messages per conversation
-        messages_per_conv = Conversation.objects.annotate(
-            msg_count=Count("messages")
-        ).aggregate(
+        messages_per_conv = Conversation.objects.annotate(msg_count=Count("messages")).aggregate(
             avg=Avg("msg_count"),
             max=Max("msg_count"),
         )
@@ -229,7 +221,11 @@ class Command(BaseCommand):
         self.stdout.write(f"  Active: {member_stats['active']}")
 
         self.stdout.write("\nPer Conversation:")
-        self.stdout.write(f"  Avg messages: {messages_per_conv['avg']:.1f}" if messages_per_conv['avg'] else "  Avg messages: 0")
+        self.stdout.write(
+            f"  Avg messages: {messages_per_conv['avg']:.1f}"
+            if messages_per_conv["avg"]
+            else "  Avg messages: 0"
+        )
         self.stdout.write(f"  Max messages: {messages_per_conv['max'] or 0}")
 
         self.stdout.write("\nAttachments:")
@@ -258,9 +254,11 @@ class Command(BaseCommand):
         if not include_deleted:
             messages_qs = messages_qs.filter(is_deleted=False)
 
-        messages_qs = messages_qs.select_related("sender").prefetch_related(
-            "attachments", "reactions"
-        ).order_by("created_at")
+        messages_qs = (
+            messages_qs.select_related("sender")
+            .prefetch_related("attachments", "reactions")
+            .order_by("created_at")
+        )
 
         # Build export data
         export_data = {
@@ -308,9 +306,7 @@ class Command(BaseCommand):
             json.dump(export_data, f, indent=2)
 
         self.stdout.write(
-            self.style.SUCCESS(
-                f"Exported {len(export_data['messages'])} messages to {output_path}"
-            )
+            self.style.SUCCESS(f"Exported {len(export_data['messages'])} messages to {output_path}")
         )
 
     def handle_purge_deleted(self, options):
@@ -346,9 +342,7 @@ class Command(BaseCommand):
             deleted_messages.delete()
 
             self.stdout.write(
-                self.style.SUCCESS(
-                    f"Permanently deleted {count} soft-deleted messages"
-                )
+                self.style.SUCCESS(f"Permanently deleted {count} soft-deleted messages")
             )
 
     def handle_clear_presence(self, options):

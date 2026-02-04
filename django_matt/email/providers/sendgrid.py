@@ -35,17 +35,14 @@ class SendGridProvider(EmailProviderBase):
         """Lazy-load SendGrid client."""
         if self._client is None:
             if not self.api_key:
-                raise ValueError(
-                    "SENDGRID_API_KEY is required. "
-                    "Set it in Django settings."
-                )
+                raise ValueError("SENDGRID_API_KEY is required. Set it in Django settings.")
             try:
                 from sendgrid import SendGridAPIClient
+
                 self._client = SendGridAPIClient(api_key=self.api_key)
             except ImportError:
                 raise ImportError(
-                    "sendgrid is required for SendGrid provider. "
-                    "Install with: pip install sendgrid"
+                    "sendgrid is required for SendGrid provider. Install with: pip install sendgrid"
                 )
         return self._client
 

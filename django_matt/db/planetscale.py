@@ -36,7 +36,6 @@ import json
 import logging
 import os
 import re
-import ssl
 import subprocess
 import tempfile
 from dataclasses import dataclass, field
@@ -46,7 +45,7 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, unquote, urlparse
 
 from django.conf import settings
-from django.db import connection, connections
+from django.db import connections
 
 if TYPE_CHECKING:
     from django.db.backends.base.base import BaseDatabaseWrapper
@@ -101,31 +100,21 @@ CAUw7C29C79Fv1C5qfPrmAESrciIxpg0X40KPMbp1ZWVbd4=
 class PlanetScaleError(Exception):
     """Base exception for PlanetScale operations."""
 
-    pass
-
 
 class PlanetScaleConnectionError(PlanetScaleError):
     """Error connecting to PlanetScale."""
-
-    pass
 
 
 class PlanetScaleBranchError(PlanetScaleError):
     """Error with PlanetScale branch operations."""
 
-    pass
-
 
 class PlanetScaleMigrationError(PlanetScaleError):
     """Error with PlanetScale migration operations."""
 
-    pass
-
 
 class PlanetScaleDDLError(PlanetScaleMigrationError):
     """Error when DDL operation is restricted on production branch."""
-
-    pass
 
 
 # ==============================================================================
@@ -149,7 +138,7 @@ class PlanetScaleConnectionInfo:
     options: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_url(cls, url: str) -> "PlanetScaleConnectionInfo":
+    def from_url(cls, url: str) -> PlanetScaleConnectionInfo:
         """
         Parse a PlanetScale connection URL.
 
@@ -216,9 +205,7 @@ class PlanetScaleConnectionInfo:
         )
 
     @staticmethod
-    def _detect_production(
-        host: str, database: str, branch: str | None, params: dict
-    ) -> bool:
+    def _detect_production(host: str, database: str, branch: str | None, params: dict) -> bool:
         """Detect if connection is to a production branch."""
         # Check explicit production flag
         if params.get("production", ["false"])[0].lower() == "true":
@@ -232,10 +219,7 @@ class PlanetScaleConnectionInfo:
 
         # Check database name patterns
         db_lower = database.lower()
-        if any(
-            pattern in db_lower
-            for pattern in ("prod", "production", "live", "-prd", "_prd")
-        ):
+        if any(pattern in db_lower for pattern in ("prod", "production", "live", "-prd", "_prd")):
             return True
 
         return False
@@ -557,7 +541,7 @@ class PlanetScaleBranch:
 
         return None
 
-    def get_connection(self, alias: str = "default") -> "BaseDatabaseWrapper":
+    def get_connection(self, alias: str = "default") -> BaseDatabaseWrapper:
         """
         Get a Django database connection for this branch.
 
@@ -596,7 +580,7 @@ def get_branch_connection(
     branch_name: str,
     database: str | None = None,
     organization: str | None = None,
-) -> "BaseDatabaseWrapper":
+) -> BaseDatabaseWrapper:
     """
     Get a Django database connection for a specific PlanetScale branch.
 
@@ -756,13 +740,12 @@ class PlanetScaleMigrationRouter:
                         f"from production to {self.development_db}"
                     )
                     return db == self.development_db
-                else:
-                    # Log warning but allow (user may be using deploy requests)
-                    logger.warning(
-                        f"Migration for {app_label}.{model_name} targeting "
-                        f"PlanetScale production branch. Use deploy requests "
-                        f"for safe schema changes."
-                    )
+                # Log warning but allow (user may be using deploy requests)
+                logger.warning(
+                    f"Migration for {app_label}.{model_name} targeting "
+                    f"PlanetScale production branch. Use deploy requests "
+                    f"for safe schema changes."
+                )
 
         return None  # Use default behavior
 
@@ -869,9 +852,8 @@ class PlanetScaleDeployWorkflow:
             )
             if result.returncode == 0:
                 return json.loads(result.stdout) if result.stdout.strip() else {}
-            else:
-                logger.error(f"pscale command failed: {result.stderr}")
-                return None
+            logger.error(f"pscale command failed: {result.stderr}")
+            return None
         except (subprocess.SubprocessError, json.JSONDecodeError) as e:
             logger.error(f"pscale command error: {e}")
             return None
@@ -1033,9 +1015,7 @@ def safe_migrate(
     call_command("migrate", "--verbosity=1")
 
     # Create deploy request
-    workflow = PlanetScaleDeployWorkflow(
-        source_branch, target_branch, database, organization
-    )
+    workflow = PlanetScaleDeployWorkflow(source_branch, target_branch, database, organization)
 
     # Check for schema changes
     diff = workflow.get_schema_diff()

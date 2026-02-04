@@ -100,107 +100,107 @@ def __getattr__(name: str):
         from django_matt.flags.models import FeatureFlag
 
         return FeatureFlag
-    elif name == "FlagOverride":
+    if name == "FlagOverride":
         from django_matt.flags.models import FlagOverride
 
         return FlagOverride
-    elif name == "FlagAuditLog":
+    if name == "FlagAuditLog":
         from django_matt.flags.models import FlagAuditLog
 
         return FlagAuditLog
-    elif name == "FlagType":
+    if name == "FlagType":
         from django_matt.flags.models import FlagType
 
         return FlagType
-    elif name == "FlagStatus":
+    if name == "FlagStatus":
         from django_matt.flags.models import FlagStatus
 
         return FlagStatus
-    elif name == "OverrideType":
+    if name == "OverrideType":
         from django_matt.flags.models import OverrideType
 
         return OverrideType
-    elif name == "FlagContext":
+    if name == "FlagContext":
         from django_matt.flags.context import FlagContext
 
         return FlagContext
-    elif name == "get_current_context":
+    if name == "get_current_context":
         from django_matt.flags.context import get_current_context
 
         return get_current_context
-    elif name == "feature_flag":
+    if name == "feature_flag":
         from django_matt.flags.decorators import feature_flag
 
         return feature_flag
-    elif name == "requires_flag":
+    if name == "requires_flag":
         from django_matt.flags.decorators import requires_flag
 
         return requires_flag
-    elif name == "variant_flag":
+    if name == "variant_flag":
         from django_matt.flags.decorators import variant_flag
 
         return variant_flag
-    elif name == "with_flag_context":
+    if name == "with_flag_context":
         from django_matt.flags.decorators import with_flag_context
 
         return with_flag_context
-    elif name == "FlagEnabledMixin":
+    if name == "FlagEnabledMixin":
         from django_matt.flags.decorators import FlagEnabledMixin
 
         return FlagEnabledMixin
-    elif name == "FlagMiddleware":
+    if name == "FlagMiddleware":
         from django_matt.flags.middleware import FlagMiddleware
 
         return FlagMiddleware
-    elif name == "AsyncFlagMiddleware":
+    if name == "AsyncFlagMiddleware":
         from django_matt.flags.middleware import AsyncFlagMiddleware
 
         return AsyncFlagMiddleware
-    elif name == "FlagBackend":
+    if name == "FlagBackend":
         from django_matt.flags.backends import FlagBackend
 
         return FlagBackend
-    elif name == "DatabaseBackend":
+    if name == "DatabaseBackend":
         from django_matt.flags.backends import DatabaseBackend
 
         return DatabaseBackend
-    elif name == "RedisBackend":
+    if name == "RedisBackend":
         from django_matt.flags.backends import RedisBackend
 
         return RedisBackend
-    elif name == "LaunchDarklyBackend":
+    if name == "LaunchDarklyBackend":
         from django_matt.flags.backends import LaunchDarklyBackend
 
         return LaunchDarklyBackend
-    elif name == "UnleashBackend":
+    if name == "UnleashBackend":
         from django_matt.flags.backends import UnleashBackend
 
         return UnleashBackend
-    elif name == "MemoryBackend":
+    if name == "MemoryBackend":
         from django_matt.flags.backends import MemoryBackend
 
         return MemoryBackend
-    elif name == "get_backend":
+    if name == "get_backend":
         from django_matt.flags.backends import get_backend
 
         return get_backend
-    elif name == "FlagController":
+    if name == "FlagController":
         from django_matt.flags.controllers import FlagController
 
         return FlagController
-    elif name == "FlagEvaluationController":
+    if name == "FlagEvaluationController":
         from django_matt.flags.controllers import FlagEvaluationController
 
         return FlagEvaluationController
-    elif name == "FeatureFlagAdmin":
+    if name == "FeatureFlagAdmin":
         from django_matt.flags.admin import FeatureFlagAdmin
 
         return FeatureFlagAdmin
-    elif name == "FlagOverrideAdmin":
+    if name == "FlagOverrideAdmin":
         from django_matt.flags.admin import FlagOverrideAdmin
 
         return FlagOverrideAdmin
-    elif name == "FlagAuditLogAdmin":
+    if name == "FlagAuditLogAdmin":
         from django_matt.flags.admin import FlagAuditLogAdmin
 
         return FlagAuditLogAdmin

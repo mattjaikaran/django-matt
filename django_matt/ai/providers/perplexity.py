@@ -91,9 +91,7 @@ class PerplexityProvider(LLMProvider, StructuredOutputProvider):
         """
         api_key = api_key or os.environ.get("PERPLEXITY_API_KEY")
         if not api_key:
-            raise ValueError(
-                "Perplexity API key required. Pass api_key or set PERPLEXITY_API_KEY."
-            )
+            raise ValueError("Perplexity API key required. Pass api_key or set PERPLEXITY_API_KEY.")
 
         super().__init__(
             api_key=api_key,

@@ -75,16 +75,10 @@ class NotificationAdmin(admin.ModelAdmin):
     def read_status(self, obj):
         """Display read/unread status."""
         if obj.dismissed_at:
-            return format_html(
-                '<span style="color: #999;">Dismissed</span>'
-            )
+            return format_html('<span style="color: #999;">Dismissed</span>')
         if obj.read_at:
-            return format_html(
-                '<span style="color: #28a745;">Read</span>'
-            )
-        return format_html(
-            '<span style="color: #007bff; font-weight: bold;">Unread</span>'
-        )
+            return format_html('<span style="color: #28a745;">Read</span>')
+        return format_html('<span style="color: #007bff; font-weight: bold;">Unread</span>')
 
     actions = ["mark_as_read", "mark_as_dismissed"]
 
@@ -99,9 +93,7 @@ class NotificationAdmin(admin.ModelAdmin):
     def mark_as_dismissed(self, request, queryset):
         from django.utils import timezone
 
-        count = queryset.filter(dismissed_at__isnull=True).update(
-            dismissed_at=timezone.now()
-        )
+        count = queryset.filter(dismissed_at__isnull=True).update(dismissed_at=timezone.now())
         self.message_user(request, f"Dismissed {count} notifications")
 
 

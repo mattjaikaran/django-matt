@@ -12,7 +12,6 @@ import tempfile
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 
 @dataclass
@@ -78,6 +77,7 @@ class FileChange:
             return None
 
         import difflib
+
         before_lines = (self.before.content or "").splitlines(keepends=True)
         after_lines = (self.after.content or "").splitlines(keepends=True)
 
@@ -150,27 +150,33 @@ class FileTracker:
             after = FileSnapshot.capture(file_path)
 
             if before is None or not before.exists:
-                self._changes.append(FileChange(
-                    path=file_path,
-                    action="created",
-                    after=after,
-                ))
+                self._changes.append(
+                    FileChange(
+                        path=file_path,
+                        action="created",
+                        after=after,
+                    )
+                )
             elif before.content != after.content:
-                self._changes.append(FileChange(
-                    path=file_path,
-                    action="modified",
-                    before=before,
-                    after=after,
-                ))
+                self._changes.append(
+                    FileChange(
+                        path=file_path,
+                        action="modified",
+                        before=before,
+                        after=after,
+                    )
+                )
 
         # Check for deleted files
         for file_path, before in self._snapshots.items():
             if before.exists and not before.is_dir and file_path not in current_files:
-                self._changes.append(FileChange(
-                    path=file_path,
-                    action="deleted",
-                    before=before,
-                ))
+                self._changes.append(
+                    FileChange(
+                        path=file_path,
+                        action="deleted",
+                        before=before,
+                    )
+                )
 
         return self._changes
 
@@ -198,27 +204,15 @@ class FileTracker:
 
     def was_created(self, path: str) -> bool:
         """Check if file was created."""
-        return any(
-            c.path.endswith(path) or path in c.path
-            for c in self.changes
-            if c.was_created
-        )
+        return any(c.path.endswith(path) or path in c.path for c in self.changes if c.was_created)
 
     def was_modified(self, path: str) -> bool:
         """Check if file was modified."""
-        return any(
-            c.path.endswith(path) or path in c.path
-            for c in self.changes
-            if c.was_modified
-        )
+        return any(c.path.endswith(path) or path in c.path for c in self.changes if c.was_modified)
 
     def was_deleted(self, path: str) -> bool:
         """Check if file was deleted."""
-        return any(
-            c.path.endswith(path) or path in c.path
-            for c in self.changes
-            if c.was_deleted
-        )
+        return any(c.path.endswith(path) or path in c.path for c in self.changes if c.was_deleted)
 
     def get_file_content(self, path: str) -> str | None:
         """Get content of a file."""
@@ -233,8 +227,7 @@ class FileTracker:
         """Assert file was created."""
         if not self.was_created(path):
             raise AssertionError(
-                f"Expected '{path}' to be created\n"
-                f"Created files: {self.created_files}"
+                f"Expected '{path}' to be created\nCreated files: {self.created_files}"
             )
         return self
 
@@ -248,8 +241,7 @@ class FileTracker:
         """Assert file was modified."""
         if not self.was_modified(path):
             raise AssertionError(
-                f"Expected '{path}' to be modified\n"
-                f"Modified files: {self.modified_files}"
+                f"Expected '{path}' to be modified\nModified files: {self.modified_files}"
             )
         return self
 
@@ -257,8 +249,7 @@ class FileTracker:
         """Assert file was deleted."""
         if not self.was_deleted(path):
             raise AssertionError(
-                f"Expected '{path}' to be deleted\n"
-                f"Deleted files: {self.deleted_files}"
+                f"Expected '{path}' to be deleted\nDeleted files: {self.deleted_files}"
             )
         return self
 
@@ -281,8 +272,7 @@ class FileTracker:
             raise AssertionError(f"File '{path}' does not exist")
         if text not in content:
             raise AssertionError(
-                f"Expected '{path}' to contain '{text}'\n"
-                f"Content: {content[:500]}..."
+                f"Expected '{path}' to contain '{text}'\nContent: {content[:500]}..."
             )
         return self
 
@@ -350,9 +340,8 @@ def isolated_filesystem():
             # Run commands in isolated directory
             Path("test.txt").write_text("hello")
     """
-    with temp_directory() as tmpdir:
-        with working_directory(tmpdir):
-            yield tmpdir
+    with temp_directory() as tmpdir, working_directory(tmpdir):
+        yield tmpdir
 
 
 def create_test_file(path: str | Path, content: str = "") -> Path:

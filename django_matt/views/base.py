@@ -24,7 +24,6 @@ from django_matt.views.hooks import (
     HookType,
     StopHookChain,
     create_hook_context,
-    hook_manager,
     run_hooks,
 )
 

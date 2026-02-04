@@ -3,7 +3,6 @@ GraphQL configuration for Django Matt.
 """
 
 from dataclasses import dataclass, field
-from typing import Any
 
 from django.conf import settings
 
@@ -11,6 +10,7 @@ from django.conf import settings
 @dataclass
 class RateLimitConfig:
     """Rate limiting configuration for GraphQL."""
+
     enabled: bool = True
     queries_per_minute: int = 100
     mutations_per_minute: int = 50
@@ -42,6 +42,7 @@ class GraphQLConfig:
             },
         }
     """
+
     enabled: bool = True
     debug: bool = False
 

@@ -235,9 +235,7 @@ class NotificationController(APIController):
             quiet_hours_start=(
                 prefs.quiet_hours_start.isoformat() if prefs.quiet_hours_start else None
             ),
-            quiet_hours_end=(
-                prefs.quiet_hours_end.isoformat() if prefs.quiet_hours_end else None
-            ),
+            quiet_hours_end=(prefs.quiet_hours_end.isoformat() if prefs.quiet_hours_end else None),
             push_sound_enabled=prefs.push_sound_enabled,
             push_vibration_enabled=prefs.push_vibration_enabled,
         )

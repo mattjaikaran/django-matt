@@ -11,8 +11,6 @@ Usage:
 """
 
 from django.contrib import admin
-from django.db import models
-from django.utils import timezone
 from django.utils.html import format_html
 
 # Check if Unfold is available
@@ -343,9 +341,7 @@ class FlagOverrideAdmin(UnfoldModelAdmin):
     def status_display(self, obj):
         """Display active/expired status."""
         if obj.is_expired:
-            return format_html(
-                '<span style="color: #ef4444; font-size: 11px;">Expired</span>'
-            )
+            return format_html('<span style="color: #ef4444; font-size: 11px;">Expired</span>')
         if obj.expires_at:
             return format_html(
                 '<span style="color: #10b981; font-size: 11px;">Active until {}</span>',

@@ -29,6 +29,7 @@ def setup_django():
             try:
                 os.environ["DJANGO_SETTINGS_MODULE"] = pattern
                 import django
+
                 django.setup()
                 return True
             except Exception:
@@ -37,6 +38,7 @@ def setup_django():
 
     try:
         import django
+
         django.setup()
         return True
     except Exception:
@@ -94,6 +96,7 @@ def doctor(
 
         # Check 4: Security settings (in production)
         from django.conf import settings
+
         if not settings.DEBUG:
             check = _check_security()
             checks.append(check)
@@ -118,17 +121,21 @@ def doctor(
     console.print()
 
     if all_passed:
-        console.print(Panel(
-            "[green]All checks passed! Your project is healthy.[/]",
-            title="Health Check Complete",
-            border_style="green",
-        ))
+        console.print(
+            Panel(
+                "[green]All checks passed! Your project is healthy.[/]",
+                title="Health Check Complete",
+                border_style="green",
+            )
+        )
     else:
-        console.print(Panel(
-            "[yellow]Some checks failed. Review the warnings above.[/]",
-            title="Health Check Complete",
-            border_style="yellow",
-        ))
+        console.print(
+            Panel(
+                "[yellow]Some checks failed. Review the warnings above.[/]",
+                title="Health Check Complete",
+                border_style="yellow",
+            )
+        )
 
 
 @app.command()
@@ -159,7 +166,9 @@ def info(
     env_table.add_column("Key", style="dim")
     env_table.add_column("Value", style="green")
 
-    env_table.add_row("Python", f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+    env_table.add_row(
+        "Python", f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    )
     env_table.add_row("Django", django.get_version())
     env_table.add_row("django-matt", matt_version)
     env_table.add_row("Debug Mode", "Yes" if settings.DEBUG else "No")
@@ -200,6 +209,7 @@ def version():
     """Show django-matt version."""
     try:
         from django_matt import __version__
+
         version_str = __version__
     except (ImportError, AttributeError):
         version_str = "0.1.0"
@@ -219,6 +229,7 @@ def _check_django_settings() -> dict:
 
     try:
         from django.conf import settings
+
         _ = settings.DEBUG
         return {"name": "Django settings", "passed": True, "warning": False, "message": ""}
     except Exception as e:

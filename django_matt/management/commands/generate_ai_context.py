@@ -184,10 +184,9 @@ class Command(BaseCommand):
         """Get list of formats to generate."""
         if format_type == "all":
             return ["claude", "cursor", "copilot", "json"]
-        elif format_type == "default":
+        if format_type == "default":
             return ["claude", "cursor", "copilot"]
-        else:
-            return [format_type]
+        return [format_type]
 
     def _generate(
         self,
@@ -318,9 +317,7 @@ class Command(BaseCommand):
             self.stdout.write("  1. Review the generated files")
             self.stdout.write("  2. Add project-specific instructions")
             self.stdout.write("  3. Commit to version control")
-            self.stdout.write(
-                "  4. Run with --watch for auto-updates during development"
-            )
+            self.stdout.write("  4. Run with --watch for auto-updates during development")
 
     def _run_watch_mode(
         self,
@@ -426,12 +423,8 @@ class Command(BaseCommand):
         try:
             hook_path = install_precommit_hook(output_dir)
             if not quiet:
-                self.stdout.write(
-                    self.style.SUCCESS(f"Pre-commit hook installed: {hook_path}")
-                )
-                self.stdout.write(
-                    "AI context files will be regenerated on each commit."
-                )
+                self.stdout.write(self.style.SUCCESS(f"Pre-commit hook installed: {hook_path}"))
+                self.stdout.write("AI context files will be regenerated on each commit.")
         except FileNotFoundError as e:
             raise CommandError(str(e))
         except Exception as e:

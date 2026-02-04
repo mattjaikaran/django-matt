@@ -160,10 +160,10 @@ def _default_invitation_text(context: dict) -> str:
 
     return f"""Hello,
 
-{inviter_name} has invited you to join {org_name}{team_text} as a {context['role']}.
+{inviter_name} has invited you to join {org_name}{team_text} as a {context["role"]}.
 
 Click the link below to accept the invitation:
-{context['accept_url']}
+{context["accept_url"]}
 
 This invitation will expire in 7 days.
 

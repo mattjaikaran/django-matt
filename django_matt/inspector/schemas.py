@@ -4,8 +4,7 @@ Pydantic schemas for the Request Inspector API.
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -69,7 +68,9 @@ class ExportRequestSchema(BaseModel):
     """Schema for export request."""
 
     format: str = Field(default="curl", description="Export format: curl, httpie, python, fetch")
-    include_response: bool = Field(default=False, description="Include expected response as comment")
+    include_response: bool = Field(
+        default=False, description="Include expected response as comment"
+    )
 
 
 class ExportResponseSchema(BaseModel):

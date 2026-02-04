@@ -24,7 +24,6 @@ Or use the included URL patterns:
 
 import json
 import logging
-from functools import lru_cache
 from typing import Any
 
 from django.conf import settings

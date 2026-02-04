@@ -55,6 +55,7 @@ def trace(
         def process_order(order):
             ...
     """
+
     def decorator(func: F) -> F:
         span_name = name or func.__name__
         span_kind = kind or "internal"
@@ -62,7 +63,9 @@ def trace(
 
         @functools.wraps(func)
         def sync_wrapper(*args, **kwargs):
-            with tracing_manager.span(span_name, kind=span_kind, attributes=span_attributes) as span:
+            with tracing_manager.span(
+                span_name, kind=span_kind, attributes=span_attributes
+            ) as span:
                 try:
                     result = func(*args, **kwargs)
 
@@ -87,7 +90,9 @@ def trace(
 
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs):
-            with tracing_manager.span(span_name, kind=span_kind, attributes=span_attributes) as span:
+            with tracing_manager.span(
+                span_name, kind=span_kind, attributes=span_attributes
+            ) as span:
                 try:
                     result = await func(*args, **kwargs)
 
@@ -111,6 +116,7 @@ def trace(
                     raise
 
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
         return sync_wrapper  # type: ignore
@@ -153,12 +159,15 @@ def metric(
         def call_external_api():
             ...
     """
+
     def decorator(func: F) -> F:
         # Create the main metric
         if metric_type == "counter":
             main_metric = metrics_manager.counter(name, description, labelnames=labels)
         elif metric_type == "histogram":
-            main_metric = metrics_manager.histogram(name, description, labelnames=labels, buckets=buckets)
+            main_metric = metrics_manager.histogram(
+                name, description, labelnames=labels, buckets=buckets
+            )
         elif metric_type == "gauge":
             main_metric = metrics_manager.gauge(name, description, labelnames=labels)
         else:
@@ -195,11 +204,10 @@ def metric(
                             main_metric.labels(**label_values).observe(time.time() - start_time)
                         else:
                             main_metric.labels(**label_values).inc()
+                    elif metric_type == "histogram":
+                        main_metric.observe(time.time() - start_time)
                     else:
-                        if metric_type == "histogram":
-                            main_metric.observe(time.time() - start_time)
-                        else:
-                            main_metric.inc()
+                        main_metric.inc()
 
                 # Record duration
                 if duration_metric:
@@ -249,11 +257,10 @@ def metric(
                             main_metric.labels(**label_values).observe(time.time() - start_time)
                         else:
                             main_metric.labels(**label_values).inc()
+                    elif metric_type == "histogram":
+                        main_metric.observe(time.time() - start_time)
                     else:
-                        if metric_type == "histogram":
-                            main_metric.observe(time.time() - start_time)
-                        else:
-                            main_metric.inc()
+                        main_metric.inc()
 
                 # Record duration
                 if duration_metric:
@@ -282,6 +289,7 @@ def metric(
                 raise
 
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
         return sync_wrapper  # type: ignore
@@ -316,6 +324,7 @@ def timed(
         async def call_api():
             ...
     """
+
     def decorator(func: F) -> F:
         metric_name = name or f"function_{func.__name__}_duration_seconds"
         label_names = list(labels.keys()) if labels else []
@@ -352,6 +361,7 @@ def timed(
                     histogram.observe(duration)
 
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
         return sync_wrapper  # type: ignore
@@ -386,6 +396,7 @@ def counted(
         async def get_users():
             ...
     """
+
     def decorator(func: F) -> F:
         metric_name = name or f"function_{func.__name__}_calls_total"
         label_names = list(labels.keys()) if labels else []
@@ -431,6 +442,7 @@ def counted(
                 raise
 
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
         return sync_wrapper  # type: ignore
@@ -462,6 +474,7 @@ def observe(
             processed = [process(i) for i in items]
             return {"items": processed, "count": len(processed)}
     """
+
     def decorator(func: F) -> F:
         label_names = list(labels.keys()) if labels else []
 
@@ -498,6 +511,7 @@ def observe(
             return result
 
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
         return sync_wrapper  # type: ignore
@@ -522,6 +536,7 @@ def with_span_attribute(key: str, value_extractor: Callable[[Any], Any]):
         async def get_user(user_id):
             return await fetch_user(user_id)
     """
+
     def decorator(func: F) -> F:
         @functools.wraps(func)
         def sync_wrapper(*args, **kwargs):
@@ -546,6 +561,7 @@ def with_span_attribute(key: str, value_extractor: Callable[[Any], Any]):
             return result
 
         import asyncio
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper  # type: ignore
         return sync_wrapper  # type: ignore

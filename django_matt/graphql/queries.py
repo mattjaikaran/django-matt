@@ -6,7 +6,7 @@ Provides utilities for generating query resolvers from Django models.
 
 from __future__ import annotations
 
-from typing import Any, Callable, TypeVar
+from typing import Any, TypeVar
 
 from django.db import models
 from django.db.models import QuerySet
@@ -15,6 +15,7 @@ try:
     import strawberry
     from strawberry import UNSET
     from strawberry.types import Info
+
     STRAWBERRY_AVAILABLE = True
 except ImportError:
     STRAWBERRY_AVAILABLE = False
@@ -125,7 +126,7 @@ class QueryGenerator:
             if paginated:
                 actual_limit = min(limit or default_limit, max_limit)
                 actual_offset = offset or 0
-                queryset = queryset[actual_offset:actual_offset + actual_limit]
+                queryset = queryset[actual_offset : actual_offset + actual_limit]
 
             # Convert to type
             results = []
@@ -158,7 +159,7 @@ class QueryGenerator:
             if paginated:
                 actual_limit = min(limit or default_limit, max_limit)
                 actual_offset = offset or 0
-                queryset = queryset[actual_offset:actual_offset + actual_limit]
+                queryset = queryset[actual_offset : actual_offset + actual_limit]
 
             # Convert to type
             results = []

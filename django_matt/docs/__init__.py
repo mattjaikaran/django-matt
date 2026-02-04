@@ -18,22 +18,21 @@ This adds:
     - /_matt/docs/search/ - Search endpoint
 """
 
+from .playground import (
+    CodeGenerator,
+    PlaygroundRequest,
+    PlaygroundSession,
+    generate_curl,
+    generate_httpie,
+    generate_javascript,
+    generate_python,
+)
 from .views import (
     DocsView,
     PlaygroundView,
-    get_docs_urls,
     docs_view,
+    get_docs_urls,
     playground_view,
-)
-
-from .playground import (
-    PlaygroundSession,
-    PlaygroundRequest,
-    CodeGenerator,
-    generate_curl,
-    generate_python,
-    generate_javascript,
-    generate_httpie,
 )
 
 __all__ = [

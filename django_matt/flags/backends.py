@@ -54,7 +54,6 @@ class FlagBackend(ABC):
         Returns:
             Whether the flag is enabled
         """
-        pass
 
     @abstractmethod
     def get_variant(
@@ -78,7 +77,6 @@ class FlagBackend(ABC):
         Returns:
             Variant key or default
         """
-        pass
 
     @abstractmethod
     def get_all_flags(
@@ -98,11 +96,9 @@ class FlagBackend(ABC):
         Returns:
             Dict of flag key -> enabled status
         """
-        pass
 
     def close(self):
         """Clean up resources."""
-        pass
 
 
 class DatabaseBackend(FlagBackend):
@@ -243,7 +239,9 @@ class RedisBackend(FlagBackend):
 
                 self._client = redis.from_url(self.redis_url)
             except ImportError:
-                raise ImportError("redis package is required for RedisBackend. Install with: pip install redis")
+                raise ImportError(
+                    "redis package is required for RedisBackend. Install with: pip install redis"
+                )
         return self._client
 
     def _get_key(self, key: str) -> str:
@@ -252,11 +250,12 @@ class RedisBackend(FlagBackend):
 
     def _serialize_flag(self, flag) -> str:
         """Serialize flag to JSON."""
-        from django_matt.flags.models import FlagOverride
 
-        overrides = list(flag.overrides.values(
-            "override_type", "target_id", "target_value", "enabled", "variant", "expires_at"
-        ))
+        overrides = list(
+            flag.overrides.values(
+                "override_type", "target_id", "target_value", "enabled", "variant", "expires_at"
+            )
+        )
 
         # Convert datetime to string
         for override in overrides:
@@ -271,8 +270,12 @@ class RedisBackend(FlagBackend):
             "rollout_percentage": flag.rollout_percentage,
             "variants": flag.variants,
             "targeting_rules": flag.targeting_rules,
-            "scheduled_enable_at": flag.scheduled_enable_at.isoformat() if flag.scheduled_enable_at else None,
-            "scheduled_disable_at": flag.scheduled_disable_at.isoformat() if flag.scheduled_disable_at else None,
+            "scheduled_enable_at": flag.scheduled_enable_at.isoformat()
+            if flag.scheduled_enable_at
+            else None,
+            "scheduled_disable_at": flag.scheduled_disable_at.isoformat()
+            if flag.scheduled_disable_at
+            else None,
             "overrides": overrides,
         }
         return json.dumps(data)
@@ -347,7 +350,11 @@ class RedisBackend(FlagBackend):
                 if override["target_id"] == str(user.pk):
                     return override["enabled"]
 
-            if override["override_type"] == OverrideType.EMAIL.value and user and hasattr(user, "email"):
+            if (
+                override["override_type"] == OverrideType.EMAIL.value
+                and user
+                and hasattr(user, "email")
+            ):
                 if override["target_value"] == user.email:
                     return override["enabled"]
 
@@ -458,7 +465,9 @@ class RedisBackend(FlagBackend):
         """Sync all flags from database to Redis."""
         from django_matt.flags.models import FeatureFlag, FlagStatus
 
-        flags = FeatureFlag.objects.filter(status=FlagStatus.ACTIVE.value).prefetch_related("overrides")
+        flags = FeatureFlag.objects.filter(status=FlagStatus.ACTIVE.value).prefetch_related(
+            "overrides"
+        )
 
         pipeline = self.client.pipeline()
         for flag in flags:
@@ -546,9 +555,8 @@ class LaunchDarklyBackend(FlagBackend):
                         builder.set(key, value)
 
                 return builder.build()
-            else:
-                # Anonymous context
-                return Context.builder("anonymous").kind("user").anonymous(True).build()
+            # Anonymous context
+            return Context.builder("anonymous").kind("user").anonymous(True).build()
 
         except ImportError:
             raise ImportError("launchdarkly-server-sdk is required")
@@ -632,7 +640,9 @@ class UnleashBackend(FlagBackend):
                 )
                 self._client.initialize_client()
             except ImportError:
-                raise ImportError("UnleashClient is required. Install with: pip install UnleashClient")
+                raise ImportError(
+                    "UnleashClient is required. Install with: pip install UnleashClient"
+                )
         return self._client
 
     def _build_context(
@@ -824,10 +834,7 @@ class MemoryBackend(FlagBackend):
         organization: Any | None = None,
         attributes: dict[str, Any] | None = None,
     ) -> dict[str, bool]:
-        return {
-            key: self.is_enabled(key, user, organization, attributes)
-            for key in self._flags
-        }
+        return {key: self.is_enabled(key, user, organization, attributes) for key in self._flags}
 
 
 # Backend registry

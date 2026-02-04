@@ -40,11 +40,11 @@ class SESProvider(EmailProviderBase):
         if self._client is None:
             try:
                 import boto3
+
                 self._client = boto3.client("ses", region_name=self.region)
             except ImportError:
                 raise ImportError(
-                    "boto3 is required for SES provider. "
-                    "Install with: pip install boto3"
+                    "boto3 is required for SES provider. Install with: pip install boto3"
                 )
         return self._client
 
@@ -118,10 +118,12 @@ class SESProvider(EmailProviderBase):
                 if metadata:
                     tracking_id = metadata.get("tracking_id")
                     if tracking_id:
-                        message_tags.append({
-                            "Name": "tracking_id",
-                            "Value": str(tracking_id),
-                        })
+                        message_tags.append(
+                            {
+                                "Name": "tracking_id",
+                                "Value": str(tracking_id),
+                            }
+                        )
                 if message_tags:
                     send_args["Tags"] = message_tags
 

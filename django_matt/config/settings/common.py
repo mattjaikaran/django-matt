@@ -41,7 +41,6 @@ settings: dict[str, Any] = {
     "ROOT_URLCONF": None,  # Must be set in project
     "WSGI_APPLICATION": None,  # Must be set in project
     "ASGI_APPLICATION": None,  # For async support
-
     # ==========================================================================
     # Application Definition
     # ==========================================================================
@@ -55,7 +54,6 @@ settings: dict[str, Any] = {
         "django.contrib.staticfiles",
         # Django Matt is added automatically when using configure()
     ],
-
     # ==========================================================================
     # Middleware
     # ==========================================================================
@@ -68,7 +66,6 @@ settings: dict[str, Any] = {
         "django.contrib.messages.middleware.MessageMiddleware",
         "django.middleware.clickjacking.XFrameOptionsMiddleware",
     ],
-
     # ==========================================================================
     # Templates
     # ==========================================================================
@@ -87,7 +84,6 @@ settings: dict[str, Any] = {
             },
         },
     ],
-
     # ==========================================================================
     # Internationalization
     # ==========================================================================
@@ -95,7 +91,6 @@ settings: dict[str, Any] = {
     "TIME_ZONE": "UTC",
     "USE_I18N": True,
     "USE_TZ": True,
-
     # ==========================================================================
     # Static & Media Files
     # ==========================================================================
@@ -104,7 +99,6 @@ settings: dict[str, Any] = {
     "STATICFILES_DIRS": [],
     "MEDIA_URL": "media/",
     "MEDIA_ROOT": str(BASE_DIR / "media"),
-
     # ==========================================================================
     # Database
     # ==========================================================================
@@ -115,7 +109,6 @@ settings: dict[str, Any] = {
             "NAME": str(BASE_DIR / "db.sqlite3"),
         }
     },
-
     # ==========================================================================
     # Authentication & Authorization
     # ==========================================================================
@@ -125,12 +118,10 @@ settings: dict[str, Any] = {
         {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
         {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
     ],
-
     # ==========================================================================
     # Default Primary Key
     # ==========================================================================
     "DEFAULT_AUTO_FIELD": "django.db.models.BigAutoField",
-
     # ==========================================================================
     # Django Matt Settings
     # ==========================================================================

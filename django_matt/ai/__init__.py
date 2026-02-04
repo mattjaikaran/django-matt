@@ -192,11 +192,11 @@ from django_matt.ai.router import (
 
 # Streaming utilities
 from django_matt.ai.streaming import (
-    create_sse_response,
     StreamingConfig,
     StreamingLLM,
     StreamStats,
     TokenCounter,
+    create_sse_response,
 )
 
 # Vector stores

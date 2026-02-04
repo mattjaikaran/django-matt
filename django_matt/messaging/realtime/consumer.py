@@ -121,10 +121,12 @@ class MessagingConsumer(AuthenticatedConsumer):
                     self._subscribed_conversations.add(conv_id)
                     subscribed.append(conv_id)
 
-        await self.send_json({
-            "type": "subscribed",
-            "conversation_ids": subscribed,
-        })
+        await self.send_json(
+            {
+                "type": "subscribed",
+                "conversation_ids": subscribed,
+            }
+        )
 
     async def handle_unsubscribe(self, data: dict) -> None:
         """Unsubscribe from conversation updates."""
@@ -141,10 +143,12 @@ class MessagingConsumer(AuthenticatedConsumer):
 
                 PresenceService.clear_typing(conv_id, self.user.id)
 
-        await self.send_json({
-            "type": "unsubscribed",
-            "conversation_ids": conversation_ids,
-        })
+        await self.send_json(
+            {
+                "type": "unsubscribed",
+                "conversation_ids": conversation_ids,
+            }
+        )
 
     async def handle_typing(self, data: dict) -> None:
         """Handle typing indicator."""
@@ -226,11 +230,13 @@ class MessagingConsumer(AuthenticatedConsumer):
             )
 
             # Send confirmation to sender
-            await self.send_json({
-                "type": "message_sent",
-                "message_id": message.id,
-                "conversation_id": conversation_id,
-            })
+            await self.send_json(
+                {
+                    "type": "message_sent",
+                    "message_id": message.id,
+                    "conversation_id": conversation_id,
+                }
+            )
 
         except PermissionError as e:
             await self.send_error(4001, str(e))

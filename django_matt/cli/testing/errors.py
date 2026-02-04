@@ -39,9 +39,7 @@ class ErrorCapture:
         if not self.has_error:
             raise AssertionError("Expected an error but none was raised")
         if error_type and not isinstance(self.error, error_type):
-            raise AssertionError(
-                f"Expected {error_type.__name__}, got {type(self.error).__name__}"
-            )
+            raise AssertionError(f"Expected {error_type.__name__}, got {type(self.error).__name__}")
         return self
 
     def assert_no_error(self) -> ErrorCapture:
@@ -57,17 +55,14 @@ class ErrorCapture:
                 f"Expected CLIError, got {type(self.error).__name__ if self.error else 'None'}"
             )
         if code and self.error_code != code:
-            raise AssertionError(
-                f"Expected error code {code}, got {self.error_code}"
-            )
+            raise AssertionError(f"Expected error code {code}, got {self.error_code}")
         return self
 
     def assert_message_contains(self, text: str) -> ErrorCapture:
         """Assert error message contains text."""
         if text not in self.message:
             raise AssertionError(
-                f"Expected error message to contain '{text}'\n"
-                f"Actual message: {self.message}"
+                f"Expected error message to contain '{text}'\nActual message: {self.message}"
             )
         return self
 
@@ -77,8 +72,7 @@ class ErrorCapture:
             raise AssertionError("Error has no suggestions")
         if not any(text in s for s in self.suggestions):
             raise AssertionError(
-                f"Expected suggestion containing '{text}'\n"
-                f"Actual suggestions: {self.suggestions}"
+                f"Expected suggestion containing '{text}'\nActual suggestions: {self.suggestions}"
             )
         return self
 
@@ -87,14 +81,9 @@ class ErrorCapture:
         if not self.context:
             raise AssertionError("Error has no context")
         if key not in self.context:
-            raise AssertionError(
-                f"Expected context key '{key}'\n"
-                f"Actual context: {self.context}"
-            )
+            raise AssertionError(f"Expected context key '{key}'\nActual context: {self.context}")
         if value is not None and self.context[key] != value:
-            raise AssertionError(
-                f"Expected context['{key}'] = {value}, got {self.context[key]}"
-            )
+            raise AssertionError(f"Expected context['{key}'] = {value}, got {self.context[key]}")
         return self
 
 
@@ -165,21 +154,16 @@ class _CLIErrorAssertion:
             raise AssertionError("Expected CLIError but no exception was raised")
 
         if not isinstance(exc_val, CLIError):
-            raise AssertionError(
-                f"Expected CLIError, got {type(exc_val).__name__}: {exc_val}"
-            )
+            raise AssertionError(f"Expected CLIError, got {type(exc_val).__name__}: {exc_val}")
 
         self.error = exc_val
 
         if self.code and exc_val.code != self.code:
-            raise AssertionError(
-                f"Expected error code {self.code}, got {exc_val.code}"
-            )
+            raise AssertionError(f"Expected error code {self.code}, got {exc_val.code}")
 
         if self.message_contains and self.message_contains not in str(exc_val):
             raise AssertionError(
-                f"Expected message containing '{self.message_contains}'\n"
-                f"Actual: {exc_val}"
+                f"Expected message containing '{self.message_contains}'\nActual: {exc_val}"
             )
 
         return True  # Suppress the exception

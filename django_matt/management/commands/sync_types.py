@@ -166,9 +166,7 @@ class Command(BaseCommand):
             watch_dirs = options["watch_dirs"] or (
                 ",".join(config.watch_dirs) if config.watch_dirs else None
             )
-            debounce = (
-                options["debounce"] if options["debounce"] != 0.5 else config.debounce_delay
-            )
+            debounce = options["debounce"] if options["debounce"] != 0.5 else config.debounce_delay
             force_polling = options["force_polling"]
             clear_screen = options["clear_screen"]
             camel_case = options["camel_case"] or config.camel_case

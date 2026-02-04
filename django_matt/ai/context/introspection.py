@@ -10,7 +10,6 @@ Provides deep introspection including:
 - Test patterns used in the project
 """
 
-import ast
 import importlib
 import inspect
 import json
@@ -516,9 +515,7 @@ class EnhancedIntrospector:
                         methods = self._detect_view_methods(callback)
 
                         for method in methods:
-                            auth_req, permissions, roles = self._detect_auth_requirements(
-                                callback
-                            )
+                            auth_req, permissions, roles = self._detect_auth_requirements(callback)
                             endpoints.append(
                                 EndpointInfo(
                                     path=full_path,
@@ -562,9 +559,7 @@ class EnhancedIntrospector:
 
         return ["GET"]
 
-    def _detect_auth_requirements(
-        self, func
-    ) -> tuple[AuthRequirement, list[str], list[str]]:
+    def _detect_auth_requirements(self, func) -> tuple[AuthRequirement, list[str], list[str]]:
         """Detect authentication requirements from decorators."""
         auth_req = AuthRequirement.NONE
         permissions = []
@@ -589,9 +584,7 @@ class EnhancedIntrospector:
             if permission_classes:
                 for perm_class in permission_classes:
                     perm_name = (
-                        perm_class.__name__
-                        if hasattr(perm_class, "__name__")
-                        else str(perm_class)
+                        perm_class.__name__ if hasattr(perm_class, "__name__") else str(perm_class)
                     )
                     permissions.append(perm_name)
                     if "Authenticated" in perm_name:
@@ -631,9 +624,7 @@ class EnhancedIntrospector:
 
         return request_schema, response_schema
 
-    def _generate_example_payload(
-        self, method, schema_name: str | None
-    ) -> ExamplePayload | None:
+    def _generate_example_payload(self, method, schema_name: str | None) -> ExamplePayload | None:
         """Generate example payload for an endpoint."""
         if not schema_name:
             return None
@@ -730,9 +721,7 @@ class EnhancedIntrospector:
                 name=name,
                 module=module.__name__,
                 docstring=inspect.getdoc(obj) or "",
-                base_classes=[
-                    b.__name__ for b in obj.__bases__ if b is not BaseModel
-                ],
+                base_classes=[b.__name__ for b in obj.__bases__ if b is not BaseModel],
             )
 
             # Check if it's a ModelSchema
@@ -843,11 +832,15 @@ class EnhancedIntrospector:
                     # Check for fixtures
                     content = test_file.read_text()
                     if "@pytest.fixture" in content:
-                        test_info.fixture_files.append(str(test_file.relative_to(self._project_root)))
+                        test_info.fixture_files.append(
+                            str(test_file.relative_to(self._project_root))
+                        )
 
                     # Check for factories
                     if "Factory" in content:
-                        test_info.factory_files.append(str(test_file.relative_to(self._project_root)))
+                        test_info.factory_files.append(
+                            str(test_file.relative_to(self._project_root))
+                        )
 
         # Check for conftest.py
         conftest = self._project_root / "tests" / "conftest.py"
@@ -902,7 +895,9 @@ class EnhancedIntrospector:
             schemas_file = app_path / "schemas.py"
             if schemas_file.exists():
                 examples["schemas"].extend(
-                    self._extract_examples_from_file(schemas_file, "class.*Schema|class.*Request|class.*Response")
+                    self._extract_examples_from_file(
+                        schemas_file, "class.*Schema|class.*Request|class.*Response"
+                    )
                 )
 
         # Limit examples
@@ -911,9 +906,7 @@ class EnhancedIntrospector:
 
         return examples
 
-    def _extract_examples_from_file(
-        self, file_path: Path, pattern: str
-    ) -> list[dict[str, str]]:
+    def _extract_examples_from_file(self, file_path: Path, pattern: str) -> list[dict[str, str]]:
         """Extract code examples matching a pattern from a file."""
         examples = []
 

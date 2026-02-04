@@ -87,18 +87,14 @@ class NotificationService:
             notification_data["sender"] = sender
 
         if content_object:
-            notification_data["content_type"] = ContentType.objects.get_for_model(
-                content_object
-            )
+            notification_data["content_type"] = ContentType.objects.get_for_model(content_object)
             notification_data["object_id"] = content_object.pk
 
         notification = Notification.objects.create(**notification_data)
 
         # Create delivery records
         if channels is None:
-            channels = NotificationService._get_channels_for_user(
-                recipient, notification_type
-            )
+            channels = NotificationService._get_channels_for_user(recipient, notification_type)
 
         for channel in channels:
             NotificationDelivery.objects.create(
@@ -231,13 +227,15 @@ class NotificationService:
     @staticmethod
     def get_unread_count(user) -> int:
         """Get count of unread notifications."""
-        return Notification.objects.filter(
-            recipient=user,
-            read_at__isnull=True,
-            dismissed_at__isnull=True,
-        ).filter(
-            Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())
-        ).count()
+        return (
+            Notification.objects.filter(
+                recipient=user,
+                read_at__isnull=True,
+                dismissed_at__isnull=True,
+            )
+            .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()))
+            .count()
+        )
 
     @staticmethod
     def get_unread_counts_by_type(user) -> dict[str, int]:
@@ -321,9 +319,7 @@ class NotificationService:
         ).order_by("-created_at")
 
         ids_to_keep = list(notifications.values_list("id", flat=True)[:keep_count])
-        count = notifications.exclude(id__in=ids_to_keep).update(
-            dismissed_at=timezone.now()
-        )
+        count = notifications.exclude(id__in=ids_to_keep).update(dismissed_at=timezone.now())
 
         return count
 

@@ -11,15 +11,15 @@ import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
-from django.conf import settings
 from django.core.cache import cache
 
 try:
     import strawberry
     from strawberry.extensions import SchemaExtension
     from strawberry.types import ExecutionContext, Info
+
     STRAWBERRY_AVAILABLE = True
 except ImportError:
     STRAWBERRY_AVAILABLE = False
@@ -85,7 +85,6 @@ class AuthMiddleware(SchemaExtension if STRAWBERRY_AVAILABLE else object):
 
     def on_request_end(self):
         """Called when a request ends."""
-        pass
 
 
 class RateLimitMiddleware(SchemaExtension if STRAWBERRY_AVAILABLE else object):
@@ -117,7 +116,9 @@ class RateLimitMiddleware(SchemaExtension if STRAWBERRY_AVAILABLE else object):
             parts.append(f"user:{request.user.id}")
 
         if config.rate_limit.by_ip:
-            ip = request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR", "unknown"))
+            ip = request.META.get(
+                "HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR", "unknown")
+            )
             if "," in ip:
                 ip = ip.split(",")[0].strip()
             parts.append(f"ip:{ip}")
@@ -150,7 +151,9 @@ class RateLimitMiddleware(SchemaExtension if STRAWBERRY_AVAILABLE else object):
 
         # Check limit
         if len(timestamps) >= config.rate_limit.queries_per_minute:
-            raise Exception(f"Rate limit exceeded. Max {config.rate_limit.queries_per_minute} requests per minute.")
+            raise Exception(
+                f"Rate limit exceeded. Max {config.rate_limit.queries_per_minute} requests per minute."
+            )
 
         # Add new timestamp
         timestamps.append(now)
@@ -158,12 +161,12 @@ class RateLimitMiddleware(SchemaExtension if STRAWBERRY_AVAILABLE else object):
 
     def on_request_end(self):
         """Called when request ends."""
-        pass
 
 
 @dataclass
 class ComplexityInfo:
     """Information about query complexity."""
+
     total: int
     max_depth: int
     fields: dict[str, int]
@@ -239,7 +242,6 @@ class ComplexityMiddleware(SchemaExtension if STRAWBERRY_AVAILABLE else object):
 
     def on_request_end(self):
         """Called when request ends."""
-        pass
 
 
 class DepthLimitMiddleware(SchemaExtension if STRAWBERRY_AVAILABLE else object):
@@ -283,7 +285,6 @@ class DepthLimitMiddleware(SchemaExtension if STRAWBERRY_AVAILABLE else object):
 
     def on_request_end(self):
         """Called when request ends."""
-        pass
 
 
 class PersistedQueryMiddleware(SchemaExtension if STRAWBERRY_AVAILABLE else object):
@@ -344,7 +345,6 @@ class PersistedQueryMiddleware(SchemaExtension if STRAWBERRY_AVAILABLE else obje
 
     def on_request_end(self):
         """Called when request ends."""
-        pass
 
 
 class LoggingMiddleware(SchemaExtension if STRAWBERRY_AVAILABLE else object):

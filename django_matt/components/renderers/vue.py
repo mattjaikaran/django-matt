@@ -6,7 +6,6 @@ TypeScript support, and Tailwind CSS integration.
 """
 
 import json
-import os
 import re
 from pathlib import Path
 from typing import Any, Literal
@@ -17,7 +16,6 @@ from django_matt.components.renderers.base import (
     RenderContext,
     RenderOutput,
 )
-
 
 # =============================================================================
 # Vue Component Mapping
@@ -305,7 +303,7 @@ class VueRenderer(BaseRenderer):
             attrs.append(f':style="{{ {self._to_vue_object(component.style)} }}"')
 
         if component.disabled:
-            attrs.append(":disabled=\"true\"")
+            attrs.append(':disabled="true"')
 
         if component.aria_label:
             attrs.append(f'aria-label="{self._escape(component.aria_label)}"')
@@ -471,7 +469,7 @@ class VueRenderer(BaseRenderer):
         """Generate <style> section."""
         if self.use_tailwind:
             # With Tailwind, we typically don't need many custom styles
-            return '<style scoped>\n/* Add custom styles here */\n</style>'
+            return "<style scoped>\n/* Add custom styles here */\n</style>"
 
         # Generate CSS from theme
         css_vars = []
@@ -480,9 +478,9 @@ class VueRenderer(BaseRenderer):
                 css_vars.append(f"  --{name}: {value};")
 
         if css_vars:
-            return f'<style scoped>\n:root {{\n{chr(10).join(css_vars)}\n}}\n</style>'
+            return f"<style scoped>\n:root {{\n{chr(10).join(css_vars)}\n}}\n</style>"
 
-        return '<style scoped>\n/* Add custom styles here */\n</style>'
+        return "<style scoped>\n/* Add custom styles here */\n</style>"
 
     def _extract_bindings(self, component: Component) -> dict[str, Any]:
         """Extract data bindings from component tree."""
@@ -607,7 +605,9 @@ class VueRenderer(BaseRenderer):
         if title:
             parts.append(f"      <DialogTitle>{self._escape(title)}</DialogTitle>")
         if description:
-            parts.append(f"      <DialogDescription>{self._escape(description)}</DialogDescription>")
+            parts.append(
+                f"      <DialogDescription>{self._escape(description)}</DialogDescription>"
+            )
 
         parts.append("    </DialogHeader>")
         parts.append(f"    <div>{children}</div>")
@@ -646,7 +646,7 @@ class VueRenderer(BaseRenderer):
             parts.append(f"      <SheetDescription>{self._escape(description)}</SheetDescription>")
 
         parts.append("    </SheetHeader>")
-        parts.append(f"    <div class=\"py-4\">{children}</div>")
+        parts.append(f'    <div class="py-4">{children}</div>')
 
         if footer:
             footer_content = self.render_children(
@@ -671,8 +671,10 @@ class VueRenderer(BaseRenderer):
         parts.append("  <TabsList>")
 
         for item in items:
-            disabled = ":disabled=\"true\"" if item.disabled else ""
-            parts.append(f'    <TabsTrigger value="{item.value}" {disabled}>{self._escape(item.label)}</TabsTrigger>')
+            disabled = ':disabled="true"' if item.disabled else ""
+            parts.append(
+                f'    <TabsTrigger value="{item.value}" {disabled}>{self._escape(item.label)}</TabsTrigger>'
+            )
 
         parts.append("  </TabsList>")
 
@@ -717,7 +719,9 @@ class VueRenderer(BaseRenderer):
         parts.append(f"  <AlertDescription>{self._escape(message)}</AlertDescription>")
 
         if dismissible:
-            parts.insert(1, '  <button class="absolute right-2 top-2" @click="$emit(\'dismiss\')">x</button>')
+            parts.insert(
+                1, '  <button class="absolute right-2 top-2" @click="$emit(\'dismiss\')">x</button>'
+            )
 
         parts.append("</Alert>")
         return "\n".join(parts)
@@ -878,7 +882,7 @@ class VueRenderer(BaseRenderer):
         attrs = [f'type="{button_type}"', f'variant="{vue_variant}"', f'size="{vue_size}"']
 
         if component.disabled:
-            attrs.append(":disabled=\"true\"")
+            attrs.append(':disabled="true"')
 
         if full_width:
             attrs.append('class="w-full"')
@@ -919,7 +923,7 @@ class VueRenderer(BaseRenderer):
         fields = getattr(component, "fields", [])
         submit = getattr(component, "submit", None)
 
-        parts = [f'<form @submit.prevent="handleSubmit">']
+        parts = ['<form @submit.prevent="handleSubmit">']
 
         for field in fields:
             output = self.render_component(field, context)
@@ -949,15 +953,15 @@ class VueRenderer(BaseRenderer):
 
         if label:
             req = '<span class="text-destructive">*</span>' if required else ""
-            parts.append(f'  <FormLabel>{self._escape(label)}{req}</FormLabel>')
+            parts.append(f"  <FormLabel>{self._escape(label)}{req}</FormLabel>")
 
         parts.append(f"  <FormControl>{input_html}</FormControl>")
 
         if help_text and not error:
-            parts.append(f'  <FormDescription>{self._escape(help_text)}</FormDescription>')
+            parts.append(f"  <FormDescription>{self._escape(help_text)}</FormDescription>")
 
         if error:
-            parts.append(f'  <FormMessage>{self._escape(error)}</FormMessage>')
+            parts.append(f"  <FormMessage>{self._escape(error)}</FormMessage>")
 
         parts.append("</FormField>")
         return "\n".join(parts)
@@ -1043,8 +1047,10 @@ class VueRenderer(BaseRenderer):
         ]
 
         for opt in options:
-            disabled = ":disabled=\"true\"" if opt.disabled else ""
-            parts.append(f'    <SelectItem value="{opt.value}" {disabled}>{self._escape(opt.label)}</SelectItem>')
+            disabled = ':disabled="true"' if opt.disabled else ""
+            parts.append(
+                f'    <SelectItem value="{opt.value}" {disabled}>{self._escape(opt.label)}</SelectItem>'
+            )
 
         parts.append("  </SelectContent>")
         parts.append("</Select>")
@@ -1075,7 +1081,7 @@ class VueRenderer(BaseRenderer):
         parts = [f'<RadioGroup v-model="{model_binding}" class="flex {flex_class}">']
 
         for opt in options:
-            parts.append(f'  <div class="flex items-center space-x-2">')
+            parts.append('  <div class="flex items-center space-x-2">')
             parts.append(f'    <RadioGroupItem id="{name}_{opt.value}" value="{opt.value}" />')
             parts.append(f'    <Label for="{name}_{opt.value}">{self._escape(opt.label)}</Label>')
             parts.append("  </div>")
@@ -1109,7 +1115,7 @@ class VueRenderer(BaseRenderer):
 
         # For shadcn-vue DataTable with TanStack Table
         parts = [
-            '<DataTable',
+            "<DataTable",
             '  :columns="columns"',
             '  :data="data"',
         ]
@@ -1118,9 +1124,9 @@ class VueRenderer(BaseRenderer):
             parts.append('  :row-selection="rowSelection"')
             parts.append('  @update:row-selection="rowSelection = $event"')
 
-        parts.append('>')
-        parts.append(f'  <template #empty>{self._escape(empty_message)}</template>')
-        parts.append('</DataTable>')
+        parts.append(">")
+        parts.append(f"  <template #empty>{self._escape(empty_message)}</template>")
+        parts.append("</DataTable>")
 
         return "\n".join(parts)
 
@@ -1165,16 +1171,18 @@ class VueRenderer(BaseRenderer):
 
         # Email field
         parts.append("  <FormField>")
-        parts.append(f'    <FormLabel>{email_label}</FormLabel>')
-        parts.append('    <FormControl>')
-        parts.append('      <Input v-model="email" type="email" placeholder="name@example.com" required />')
+        parts.append(f"    <FormLabel>{email_label}</FormLabel>")
+        parts.append("    <FormControl>")
+        parts.append(
+            '      <Input v-model="email" type="email" placeholder="name@example.com" required />'
+        )
         parts.append("    </FormControl>")
         parts.append("  </FormField>")
 
         # Password field
         parts.append("  <FormField>")
-        parts.append(f'    <FormLabel>{password_label}</FormLabel>')
-        parts.append('    <FormControl>')
+        parts.append(f"    <FormLabel>{password_label}</FormLabel>")
+        parts.append("    <FormControl>")
         parts.append('      <Input v-model="password" type="password" required />')
         parts.append("    </FormControl>")
         parts.append("  </FormField>")
@@ -1188,11 +1196,13 @@ class VueRenderer(BaseRenderer):
                 parts.append('      <label for="remember" class="text-sm">Remember me</label>')
                 parts.append("    </div>")
             if show_forgot_password:
-                parts.append(f'    <RouterLink to="{forgot_password_url}" class="text-sm text-primary hover:underline">Forgot password?</RouterLink>')
+                parts.append(
+                    f'    <RouterLink to="{forgot_password_url}" class="text-sm text-primary hover:underline">Forgot password?</RouterLink>'
+                )
             parts.append("  </div>")
 
         # Submit button
-        parts.append(f'  <Button type="submit" class="w-full" :disabled="isLoading">')
+        parts.append('  <Button type="submit" class="w-full" :disabled="isLoading">')
         parts.append('    <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />')
         parts.append(f"    {submit_label}")
         parts.append("  </Button>")
@@ -1204,7 +1214,9 @@ class VueRenderer(BaseRenderer):
             parts.append('      <span class="w-full border-t" />')
             parts.append("    </div>")
             parts.append('    <div class="relative flex justify-center text-xs uppercase">')
-            parts.append('      <span class="bg-background px-2 text-muted-foreground">Or continue with</span>')
+            parts.append(
+                '      <span class="bg-background px-2 text-muted-foreground">Or continue with</span>'
+            )
             parts.append("    </div>")
             parts.append("  </div>")
             parts.append('  <div class="grid gap-2">')
@@ -1232,16 +1244,18 @@ class VueRenderer(BaseRenderer):
 
         # Email field
         parts.append("  <FormField>")
-        parts.append(f'    <FormLabel>{email_label}</FormLabel>')
-        parts.append('    <FormControl>')
-        parts.append('      <Input v-model="email" type="email" placeholder="name@example.com" required />')
+        parts.append(f"    <FormLabel>{email_label}</FormLabel>")
+        parts.append("    <FormControl>")
+        parts.append(
+            '      <Input v-model="email" type="email" placeholder="name@example.com" required />'
+        )
         parts.append("    </FormControl>")
         parts.append("  </FormField>")
 
         # Password field
         parts.append("  <FormField>")
-        parts.append(f'    <FormLabel>{password_label}</FormLabel>')
-        parts.append('    <FormControl>')
+        parts.append(f"    <FormLabel>{password_label}</FormLabel>")
+        parts.append("    <FormControl>")
         parts.append('      <Input v-model="password" type="password" required />')
         parts.append("    </FormControl>")
         parts.append("  </FormField>")
@@ -1249,8 +1263,8 @@ class VueRenderer(BaseRenderer):
         # Confirm password
         if require_password_confirm:
             parts.append("  <FormField>")
-            parts.append(f'    <FormLabel>{confirm_password_label}</FormLabel>')
-            parts.append('    <FormControl>')
+            parts.append(f"    <FormLabel>{confirm_password_label}</FormLabel>")
+            parts.append("    <FormControl>")
             parts.append('      <Input v-model="confirmPassword" type="password" required />')
             parts.append("    </FormControl>")
             parts.append("  </FormField>")
@@ -1260,13 +1274,17 @@ class VueRenderer(BaseRenderer):
             parts.append('  <div class="flex items-center space-x-2">')
             parts.append('    <Checkbox id="terms" v-model:checked="acceptTerms" required />')
             parts.append('    <label for="terms" class="text-sm">')
-            parts.append(f'      I agree to the <RouterLink to="{terms_url}" class="text-primary hover:underline">Terms of Service</RouterLink>')
-            parts.append(f'      and <RouterLink to="{privacy_url}" class="text-primary hover:underline">Privacy Policy</RouterLink>')
+            parts.append(
+                f'      I agree to the <RouterLink to="{terms_url}" class="text-primary hover:underline">Terms of Service</RouterLink>'
+            )
+            parts.append(
+                f'      and <RouterLink to="{privacy_url}" class="text-primary hover:underline">Privacy Policy</RouterLink>'
+            )
             parts.append("    </label>")
             parts.append("  </div>")
 
         # Submit button
-        parts.append(f'  <Button type="submit" class="w-full" :disabled="isLoading">')
+        parts.append('  <Button type="submit" class="w-full" :disabled="isLoading">')
         parts.append('    <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />')
         parts.append(f"    {submit_label}")
         parts.append("  </Button>")
@@ -1292,7 +1310,9 @@ class VueRenderer(BaseRenderer):
 
         for provider in providers:
             icon = provider_icons.get(provider, provider.title())
-            parts.append(f'  <Button variant="{button_variant}" @click="handleOAuth(\'{provider}\')">')
+            parts.append(
+                f'  <Button variant="{button_variant}" @click="handleOAuth(\'{provider}\')">'
+            )
             parts.append(f"    {icon}")
             parts.append("  </Button>")
 
@@ -1335,7 +1355,9 @@ class VueSFCRenderer(VueRenderer):
         if component_name is None:
             component_name = Path(output_path).stem
             # Convert to PascalCase
-            component_name = "".join(word.title() for word in component_name.replace("-", "_").split("_"))
+            component_name = "".join(
+                word.title() for word in component_name.replace("-", "_").split("_")
+            )
 
         sfc_content = self.render_to_string(component, context, component_name)
 
@@ -1409,7 +1431,7 @@ def generate_vue_project(
     files[str(base_path / "package.json")] = json.dumps(package_json, indent=2)
 
     # vite.config.ts
-    vite_config = '''import { defineConfig } from 'vite'
+    vite_config = """import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 
@@ -1421,7 +1443,7 @@ export default defineConfig({
     },
   },
 })
-'''
+"""
     files[str(base_path / "vite.config.ts")] = vite_config
 
     # tsconfig.json
@@ -1469,19 +1491,19 @@ export default defineConfig({
     files[str(base_path / "src" / "main.ts")] = main_ts
 
     # src/App.vue
-    app_vue = '''<script setup lang="ts">
+    app_vue = """<script setup lang="ts">
 import { RouterView } from 'vue-router'
 </script>
 
 <template>
   <RouterView />
 </template>
-'''
+"""
     files[str(base_path / "src" / "App.vue")] = app_vue
 
     # Tailwind config
     if include_tailwind:
-        tailwind_config = '''/** @type {import('tailwindcss').Config} */
+        tailwind_config = """/** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
@@ -1492,18 +1514,18 @@ export default {
   },
   plugins: [],
 }
-'''
+"""
         files[str(base_path / "tailwind.config.js")] = tailwind_config
 
-        main_css = '''@tailwind base;
+        main_css = """@tailwind base;
 @tailwind components;
 @tailwind utilities;
-'''
+"""
         files[str(base_path / "src" / "assets" / "main.css")] = main_css
 
     # Router setup
     if include_router:
-        router_ts = '''import { createRouter, createWebHistory } from 'vue-router'
+        router_ts = """import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 
 const routes: RouteRecordRaw[] = [
@@ -1520,12 +1542,12 @@ const router = createRouter({
 })
 
 export default router
-'''
+"""
         files[str(base_path / "src" / "router" / "index.ts")] = router_ts
 
     # Pinia store example
     if include_pinia:
-        store_ts = '''import { ref, computed } from 'vue'
+        store_ts = """import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 
 export const useAppStore = defineStore('app', () => {
@@ -1547,7 +1569,7 @@ export const useAppStore = defineStore('app', () => {
     setError,
   }
 })
-'''
+"""
         files[str(base_path / "src" / "stores" / "app.ts")] = store_ts
 
     return files
@@ -1653,11 +1675,13 @@ def generate_composables(
     has_forms = any(c.type == ComponentType.FORM for c in components)
     has_data_table = any(c.type == ComponentType.DATA_TABLE for c in components)
     has_modals = any(c.type == ComponentType.MODAL for c in components)
-    has_auth = any(c.type in (ComponentType.LOGIN_FORM, ComponentType.REGISTER_FORM) for c in components)
+    has_auth = any(
+        c.type in (ComponentType.LOGIN_FORM, ComponentType.REGISTER_FORM) for c in components
+    )
 
     # Form composable
     if has_forms:
-        form_composable = '''import { ref, reactive, computed } from 'vue'
+        form_composable = """import { ref, reactive, computed } from 'vue'
 import type { Ref } from 'vue'
 
 export interface FormField {
@@ -1726,12 +1750,12 @@ export function useForm<T extends Record<string, unknown>>(options: FormOptions<
     reset,
   }
 }
-'''
+"""
         files[str(Path(output_dir) / "useForm.ts")] = form_composable
 
     # Data table composable
     if has_data_table:
-        table_composable = '''import { ref, computed, watch } from 'vue'
+        table_composable = """import { ref, computed, watch } from 'vue'
 import type { Ref } from 'vue'
 
 export interface PaginationState {
@@ -1822,12 +1846,12 @@ export function useDataTable<T>(options: TableOptions<T>) {
     setSort,
   }
 }
-'''
+"""
         files[str(Path(output_dir) / "useDataTable.ts")] = table_composable
 
     # Modal composable
     if has_modals:
-        modal_composable = '''import { ref } from 'vue'
+        modal_composable = """import { ref } from 'vue'
 
 export function useModal() {
   const isOpen = ref(false)
@@ -1880,12 +1904,12 @@ export function useConfirmModal() {
     handleCancel,
   }
 }
-'''
+"""
         files[str(Path(output_dir) / "useModal.ts")] = modal_composable
 
     # Auth composable
     if has_auth:
-        auth_composable = '''import { ref, computed } from 'vue'
+        auth_composable = """import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 export interface User {
@@ -1968,7 +1992,7 @@ export function useAuth() {
     initAuth,
   }
 }
-'''
+"""
         files[str(Path(output_dir) / "useAuth.ts")] = auth_composable
 
     # Write files

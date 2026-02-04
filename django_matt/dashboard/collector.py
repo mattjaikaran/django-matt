@@ -108,7 +108,9 @@ class EndpointStats:
             "method": self.method,
             "request_count": self.request_count,
             "avg_duration_ms": round(self.avg_duration_ms, 2),
-            "min_duration_ms": round(self.min_duration_ms, 2) if self.min_duration_ms != float("inf") else 0,
+            "min_duration_ms": round(self.min_duration_ms, 2)
+            if self.min_duration_ms != float("inf")
+            else 0,
             "max_duration_ms": round(self.max_duration_ms, 2),
             "p50_duration_ms": round(self.p50_duration_ms, 2),
             "p95_duration_ms": round(self.p95_duration_ms, 2),
@@ -270,9 +272,7 @@ class MetricsCollector:
     def get_error_endpoints(self, limit: int = 10) -> list[dict[str, Any]]:
         """Get endpoints with highest error rates."""
         with self._lock:
-            endpoints_with_errors = [
-                e for e in self._endpoint_stats.values() if e.error_count > 0
-            ]
+            endpoints_with_errors = [e for e in self._endpoint_stats.values() if e.error_count > 0]
             sorted_endpoints = sorted(
                 endpoints_with_errors,
                 key=lambda e: e.error_rate,

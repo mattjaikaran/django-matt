@@ -10,7 +10,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-
 # -----------------------------------------------------------------------------
 # Enums
 # -----------------------------------------------------------------------------
@@ -82,8 +81,12 @@ class TrackEventRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=255, description="Event name")
     properties: dict[str, Any] = Field(default_factory=dict, description="Event properties")
     context: EventContext = Field(default_factory=EventContext, description="Event context")
-    timestamp: datetime | None = Field(default=None, description="Event timestamp (defaults to now)")
-    category: EventCategoryEnum = Field(default=EventCategoryEnum.CUSTOM, description="Event category")
+    timestamp: datetime | None = Field(
+        default=None, description="Event timestamp (defaults to now)"
+    )
+    category: EventCategoryEnum = Field(
+        default=EventCategoryEnum.CUSTOM, description="Event category"
+    )
     anonymous_id: str = Field(default="", description="Anonymous user ID")
     session_id: str = Field(default="", description="Session ID")
 

@@ -6,9 +6,8 @@ Provides batched data loading to prevent N+1 query problems.
 
 from __future__ import annotations
 
-import asyncio
 from collections import defaultdict
-from typing import Any, Callable, Generic, TypeVar, overload
+from typing import Any, Callable, Generic, TypeVar
 
 from django.db import models
 
@@ -16,6 +15,7 @@ try:
     import strawberry
     from strawberry.dataloader import DataLoader
     from strawberry.types import Info
+
     STRAWBERRY_AVAILABLE = True
 except ImportError:
     STRAWBERRY_AVAILABLE = False

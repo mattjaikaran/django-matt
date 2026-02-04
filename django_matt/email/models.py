@@ -28,19 +28,23 @@ class EmailMessageManager(models.Manager):
 
     def sent(self):
         """Get sent emails."""
-        return self.filter(status__in=[
-            EmailStatus.SENT,
-            EmailStatus.DELIVERED,
-            EmailStatus.OPENED,
-            EmailStatus.CLICKED,
-        ])
+        return self.filter(
+            status__in=[
+                EmailStatus.SENT,
+                EmailStatus.DELIVERED,
+                EmailStatus.OPENED,
+                EmailStatus.CLICKED,
+            ]
+        )
 
     def failed(self):
         """Get failed emails."""
-        return self.filter(status__in=[
-            EmailStatus.FAILED,
-            EmailStatus.BOUNCED,
-        ])
+        return self.filter(
+            status__in=[
+                EmailStatus.FAILED,
+                EmailStatus.BOUNCED,
+            ]
+        )
 
 
 class EmailMessage(models.Model):
@@ -138,9 +142,7 @@ class EmailMessage(models.Model):
             self.provider = provider
         if message_id:
             self.provider_message_id = message_id
-        self.save(update_fields=[
-            "status", "sent_at", "provider", "provider_message_id"
-        ])
+        self.save(update_fields=["status", "sent_at", "provider", "provider_message_id"])
 
     def mark_delivered(self) -> None:
         """Mark email as delivered."""
@@ -356,11 +358,13 @@ class SuppressedEmail(models.Model):
         """Check if an email is suppressed."""
         from django.utils import timezone
 
-        return cls.objects.filter(
-            email=email.lower(),
-        ).filter(
-            models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=timezone.now())
-        ).exists()
+        return (
+            cls.objects.filter(
+                email=email.lower(),
+            )
+            .filter(models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=timezone.now()))
+            .exists()
+        )
 
     @classmethod
     def add_suppression(

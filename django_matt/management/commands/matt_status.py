@@ -102,7 +102,7 @@ class Command(MattCommand):
         }
 
         try:
-            from django.db import connection, connections
+            from django.db import connection
 
             # Test connection
             connection.ensure_connection()
@@ -132,9 +132,7 @@ class Command(MattCommand):
                         "WHERE table_schema = 'public'"
                     )
                 elif "sqlite" in check["details"]["engine"]:
-                    cursor.execute(
-                        "SELECT count(*) FROM sqlite_master WHERE type='table'"
-                    )
+                    cursor.execute("SELECT count(*) FROM sqlite_master WHERE type='table'")
                 else:
                     cursor.execute("SELECT count(*) FROM information_schema.tables")
 
@@ -224,8 +222,7 @@ class Command(MattCommand):
 
                 if verbose:
                     check["details"]["pending"] = [
-                        f"{migration.app_label}.{migration.name}"
-                        for migration, _ in plan[:5]
+                        f"{migration.app_label}.{migration.name}" for migration, _ in plan[:5]
                     ]
             else:
                 check["message"] = f"All migrations applied ({applied} total)"
@@ -244,7 +241,9 @@ class Command(MattCommand):
         debug_check = {
             "name": "DEBUG Mode",
             "status": "ok" if not settings.DEBUG else "warning",
-            "message": "DEBUG is OFF" if not settings.DEBUG else "DEBUG is ON (disable in production)",
+            "message": "DEBUG is OFF"
+            if not settings.DEBUG
+            else "DEBUG is ON (disable in production)",
             "details": {"debug": settings.DEBUG},
         }
         checks.append(debug_check)
@@ -344,8 +343,9 @@ class Command(MattCommand):
 
     def _check_environment(self, verbose: bool = False) -> dict[str, Any]:
         """Check environment information."""
-        import django
         import platform
+
+        import django
 
         check = {
             "name": "Environment",
@@ -356,7 +356,9 @@ class Command(MattCommand):
 
         try:
             # Python version
-            python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            python_version = (
+                f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            )
             check["details"]["python_version"] = python_version
 
             # Django version
@@ -365,6 +367,7 @@ class Command(MattCommand):
             # django-matt version
             try:
                 from django_matt import __version__ as matt_version
+
                 check["details"]["django_matt_version"] = matt_version
             except (ImportError, AttributeError):
                 check["details"]["django_matt_version"] = "unknown"
@@ -541,7 +544,9 @@ class Command(MattCommand):
                 elif "Migration" in check["name"]:
                     recommendations.append("Run pending migrations: python manage.py migrate")
                 elif "orjson" in check["name"] or "ujson" in check["name"]:
-                    recommendations.append("Install orjson for better performance: pip install orjson")
+                    recommendations.append(
+                        "Install orjson for better performance: pip install orjson"
+                    )
 
         if recommendations:
             self.console.newline()

@@ -79,6 +79,7 @@ def serve(
     if https:
         # Use django-extensions runserver_plus with SSL
         import tempfile
+
         cert_dir = tempfile.gettempdir()
         command = ["runserver_plus", "--cert-file", f"{cert_dir}/cert.crt"]
 
@@ -134,6 +135,7 @@ def test(
 
     # Check if pytest is available
     import importlib.util
+
     use_pytest = importlib.util.find_spec("pytest") is not None
 
     if use_pytest:

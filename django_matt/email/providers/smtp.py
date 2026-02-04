@@ -99,6 +99,7 @@ class SMTPProvider(EmailProviderBase):
 
             # Generate a pseudo message ID (SMTP doesn't return one reliably)
             import uuid
+
             message_id = str(uuid.uuid4())
 
             return EmailResult(

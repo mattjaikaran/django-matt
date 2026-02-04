@@ -140,7 +140,9 @@ class ClaudeMdGenerator:
         """Generate important files section."""
         files = [
             "- `manage.py` - Django management script",
-            f"- `{info.settings_module.replace('.', '/')}.py` - Django settings" if info.settings_module else "",
+            f"- `{info.settings_module.replace('.', '/')}.py` - Django settings"
+            if info.settings_module
+            else "",
             "- `pyproject.toml` - Project configuration",
         ]
 
@@ -201,9 +203,7 @@ class CursorRulesGenerator:
             "endpoints_rules": format_endpoints_rules(
                 [e.to_dict() for e in project_info.endpoints]
             ),
-            "schema_rules": format_schema_rules(
-                [s.to_dict() for s in project_info.schemas]
-            ),
+            "schema_rules": format_schema_rules([s.to_dict() for s in project_info.schemas]),
         }
 
         return render_template(CURSOR_RULES_TEMPLATE, context)
@@ -283,7 +283,11 @@ class CopilotInstructionsGenerator:
 
         lines = ["## Available Endpoints", ""]
         for ep in endpoints[:20]:
-            auth = f" (requires: {ep.auth_requirement.value})" if ep.auth_requirement.value != "none" else ""
+            auth = (
+                f" (requires: {ep.auth_requirement.value})"
+                if ep.auth_requirement.value != "none"
+                else ""
+            )
             lines.append(f"- `{ep.method} {ep.path}`{auth}")
 
         return "\n".join(lines)
@@ -430,9 +434,7 @@ class ContextGenerator:
         path.write_text(content)
         return path
 
-    def generate_copilot_instructions(
-        self, filename: str = ".copilot-instructions"
-    ) -> Path:
+    def generate_copilot_instructions(self, filename: str = ".copilot-instructions") -> Path:
         """Generate .copilot-instructions file."""
         generator = CopilotInstructionsGenerator(introspector=self.introspector)
         content = generator.generate(self.project_info)

@@ -15,7 +15,7 @@ import string
 from datetime import datetime, timedelta
 from typing import Any
 
-from django_matt.benchmarks.runner import Benchmark, BenchmarkResult, BenchmarkScenario
+from django_matt.benchmarks.runner import BenchmarkResult, BenchmarkScenario
 
 
 def _generate_random_string(length: int = 10) -> str:
@@ -32,7 +32,7 @@ def _generate_sample_data(size: str = "small") -> dict[str, Any]:
             "email": "test@example.com",
             "active": True,
         }
-    elif size == "medium":
+    if size == "medium":
         return {
             "id": 1,
             "name": "Test User",
@@ -58,34 +58,34 @@ def _generate_sample_data(size: str = "small") -> dict[str, Any]:
                 "timezone": "America/New_York",
             },
         }
-    else:  # large
-        return {
-            "id": 1,
-            "name": "Test User",
-            "email": "test@example.com",
-            "active": True,
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat(),
-            "items": [
-                {
-                    "id": i,
-                    "title": f"Item {i}",
-                    "description": f"Description for item {i} " * 20,
-                    "price": random.uniform(10, 1000),
-                    "quantity": random.randint(1, 100),
-                    "categories": [_generate_random_string(8) for _ in range(5)],
-                    "metadata": {
-                        "weight": random.uniform(0.1, 10.0),
-                        "dimensions": {
-                            "width": random.uniform(1, 100),
-                            "height": random.uniform(1, 100),
-                            "depth": random.uniform(1, 100),
-                        },
+    # large
+    return {
+        "id": 1,
+        "name": "Test User",
+        "email": "test@example.com",
+        "active": True,
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat(),
+        "items": [
+            {
+                "id": i,
+                "title": f"Item {i}",
+                "description": f"Description for item {i} " * 20,
+                "price": random.uniform(10, 1000),
+                "quantity": random.randint(1, 100),
+                "categories": [_generate_random_string(8) for _ in range(5)],
+                "metadata": {
+                    "weight": random.uniform(0.1, 10.0),
+                    "dimensions": {
+                        "width": random.uniform(1, 100),
+                        "height": random.uniform(1, 100),
+                        "depth": random.uniform(1, 100),
                     },
-                }
-                for i in range(100)
-            ],
-        }
+                },
+            }
+            for i in range(100)
+        ],
+    }
 
 
 def _generate_list_data(count: int = 100) -> list[dict[str, Any]]:
@@ -129,6 +129,7 @@ class JSONSerializationScenario(BenchmarkScenario):
 
         try:
             import orjson
+
             self.has_orjson = True
             self._orjson = orjson
         except ImportError:
@@ -136,6 +137,7 @@ class JSONSerializationScenario(BenchmarkScenario):
 
         try:
             import ujson
+
             self.has_ujson = True
             self._ujson = ujson
         except ImportError:
@@ -181,7 +183,7 @@ class JSONSerializationScenario(BenchmarkScenario):
         """Get sample data by size."""
         if size == "small":
             return self.small_data
-        elif size == "medium":
+        if size == "medium":
             return self.medium_data
         return self.large_data
 
@@ -314,7 +316,7 @@ class SchemaValidationScenario(BenchmarkScenario):
 
     def _setup_schemas(self):
         """Set up Pydantic schemas for testing."""
-        from pydantic import BaseModel, EmailStr, Field, field_validator
+        from pydantic import BaseModel, Field, field_validator
 
         class SimpleSchema(BaseModel):
             id: int
@@ -565,6 +567,7 @@ class RoutingScenario(BenchmarkScenario):
 
         # Add many routes to test scaling
         for i in range(100):
+
             @self.router.get(f"/resource{i}")
             def resource_handler():
                 return {}
@@ -612,6 +615,7 @@ class RoutingScenario(BenchmarkScenario):
         def register_routes():
             router = APIRouter()
             for i in range(10):
+
                 @router.get(f"/test{i}")
                 def handler():
                     return {}
@@ -624,6 +628,7 @@ class RoutingScenario(BenchmarkScenario):
 
     def _benchmark_simple_match(self) -> BenchmarkResult:
         """Benchmark simple URL matching."""
+
         def find_route():
             for route in self.router.routes:
                 if route["path"] == "/users":
@@ -866,6 +871,7 @@ class DatabaseScenario(BenchmarkScenario):
 
     def _benchmark_delete(self) -> BenchmarkResult:
         """Benchmark single row delete."""
+
         def setup():
             with self._connection.cursor() as cursor:
                 cursor.execute(
@@ -888,12 +894,10 @@ class DatabaseScenario(BenchmarkScenario):
 
     def _benchmark_bulk_insert(self) -> BenchmarkResult:
         """Benchmark bulk insert."""
+
         def bulk_insert():
             with self._connection.cursor() as cursor:
-                data = [
-                    (f"Bulk User {i}", f"bulk{i}@example.com")
-                    for i in range(100)
-                ]
+                data = [(f"Bulk User {i}", f"bulk{i}@example.com") for i in range(100)]
                 cursor.executemany(
                     "INSERT INTO benchmark_test (name, email) VALUES (?, ?)",
                     data,
@@ -942,6 +946,7 @@ class CachingScenario(BenchmarkScenario):
                 django.setup()
 
             from django.core.cache import cache
+
             self._cache = cache
             self._cache_available = True
         except Exception:
@@ -1013,6 +1018,7 @@ class CachingScenario(BenchmarkScenario):
 
     def _benchmark_cache_get_miss(self) -> BenchmarkResult:
         """Benchmark cache get operation (miss)."""
+
         def cache_get_miss():
             return self._cache.get("nonexistent_key")
 
