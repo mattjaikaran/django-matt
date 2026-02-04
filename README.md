@@ -3,7 +3,6 @@
 [![CI](https://github.com/mattjaikaran/django-matt/actions/workflows/ci.yml/badge.svg)](https://github.com/mattjaikaran/django-matt/actions/workflows/ci.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Django 6.0+](https://img.shields.io/badge/django-6.0+-green.svg)](https://www.djangoproject.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
 A modern Django meta-framework for building production-ready APIs with minimal boilerplate. Async-first, type-safe, and batteries-included.
@@ -382,4 +381,4 @@ This is a private framework for internal development. Not published to PyPI.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+Internal use only. Will be MIT licensed when publicly released.
