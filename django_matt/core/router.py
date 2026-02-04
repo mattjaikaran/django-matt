@@ -1,11 +1,44 @@
 import inspect
 import json
 from collections.abc import Callable
+from typing import get_type_hints
 
 from django.http import HttpResponse, JsonResponse
 from django.urls import path
 
 from pydantic import BaseModel, ValidationError
+
+
+def get_body_schema(endpoint: Callable) -> type[BaseModel] | None:
+    """
+    Get the Pydantic model type for the 'body' parameter of an endpoint.
+
+    Returns None if the endpoint doesn't have a 'body' parameter or
+    if the parameter is not typed as a Pydantic model.
+    """
+    try:
+        hints = get_type_hints(endpoint)
+        if "body" in hints:
+            body_type = hints["body"]
+            if isinstance(body_type, type) and issubclass(body_type, BaseModel):
+                return body_type
+    except Exception:
+        pass
+    return None
+
+
+def parse_body(body_data: dict, schema: type[BaseModel] | None) -> BaseModel | dict:
+    """
+    Parse body data into a Pydantic model if schema is provided.
+
+    Returns the original dict if no schema or parsing fails.
+    """
+    if schema is not None:
+        try:
+            return schema(**body_data)
+        except ValidationError:
+            raise  # Re-raise to be handled by the view function
+    return body_data
 
 
 class APIRouter:
@@ -194,14 +227,23 @@ class APIRouter:
 
             # Create a wrapper function that handles request parsing and response serialization
             def create_view_func(endpoint, response_model, status_code):
+                # Get body schema at function creation time
+                body_schema = get_body_schema(endpoint)
+
                 async def view_func(request, *args, **kwargs):
                     # Parse request body if it exists
                     if request.body and request.content_type == "application/json":
                         try:
                             body_data = json.loads(request.body)
-                            kwargs["body"] = body_data
+                            # Parse body into Pydantic schema if available
+                            kwargs["body"] = parse_body(body_data, body_schema)
                         except json.JSONDecodeError:
                             return JsonResponse({"detail": "Invalid JSON"}, status=400)
+                        except ValidationError as e:
+                            return JsonResponse(
+                                {"detail": "Validation error", "errors": e.errors()},
+                                status=422,
+                            )
 
                     # Call the endpoint
                     if inspect.iscoroutinefunction(endpoint):
@@ -210,7 +252,11 @@ class APIRouter:
                         result = endpoint(request, *args, **kwargs)
 
                     # Serialize the response if needed
-                    if response_model and isinstance(result, dict):
+                    if isinstance(result, BaseModel):
+                        # If result is already a Pydantic model, serialize it
+                        result = result.model_dump()
+                    elif response_model and isinstance(result, dict):
+                        # Validate and re-serialize if response_model is specified
                         try:
                             result = response_model(**result).model_dump()
                         except ValidationError as e:
@@ -221,6 +267,12 @@ class APIRouter:
                                 },
                                 status=500,
                             )
+                    elif isinstance(result, list):
+                        # Handle list responses (serialize any Pydantic models in the list)
+                        result = [
+                            item.model_dump() if isinstance(item, BaseModel) else item
+                            for item in result
+                        ]
 
                     # Return the response
                     if isinstance(result, HttpResponse):
@@ -263,14 +315,23 @@ class APIRouter:
 
                 # Create a wrapper function that handles request parsing and response serialization
                 def create_view_func(method, response_model, status_code):
+                    # Get body schema at function creation time
+                    body_schema = get_body_schema(method)
+
                     async def view_func(request, *args, **kwargs):
                         # Parse request body if it exists
                         if request.body and request.content_type == "application/json":
                             try:
                                 body_data = json.loads(request.body)
-                                kwargs["body"] = body_data
+                                # Parse body into Pydantic schema if available
+                                kwargs["body"] = parse_body(body_data, body_schema)
                             except json.JSONDecodeError:
                                 return JsonResponse({"detail": "Invalid JSON"}, status=400)
+                            except ValidationError as e:
+                                return JsonResponse(
+                                    {"detail": "Validation error", "errors": e.errors()},
+                                    status=422,
+                                )
 
                         # Call the method
                         if inspect.iscoroutinefunction(method):
@@ -279,7 +340,11 @@ class APIRouter:
                             result = method(request, *args, **kwargs)
 
                         # Serialize the response if needed
-                        if response_model and isinstance(result, dict):
+                        if isinstance(result, BaseModel):
+                            # If result is already a Pydantic model, serialize it
+                            result = result.model_dump()
+                        elif response_model and isinstance(result, dict):
+                            # Validate and re-serialize if response_model is specified
                             try:
                                 result = response_model(**result).model_dump()
                             except ValidationError as e:
@@ -290,6 +355,12 @@ class APIRouter:
                                     },
                                     status=500,
                                 )
+                        elif isinstance(result, list):
+                            # Handle list responses (serialize any Pydantic models in the list)
+                            result = [
+                                item.model_dump() if isinstance(item, BaseModel) else item
+                                for item in result
+                            ]
 
                         # Return the response
                         if isinstance(result, HttpResponse):
