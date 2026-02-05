@@ -260,6 +260,11 @@ nav:
       - PayPal: billing/paypal.md
       - Polar: billing/polar.md
 
+  - Code Generation:
+      - Overview: codegen/overview.md
+      - React Hooks: codegen/react-hooks.md
+      - Zod Schemas: codegen/zod-schemas.md
+
   - Type Generation:
       - TypeScript: typegen/typescript.md
       - Swift: typegen/swift.md
