@@ -663,9 +663,41 @@ ai-context-all: ## Generate all AI context formats
 ## Performance & Benchmarking
 # ============================================================================
 
-benchmark: ## Run performance benchmarks
+benchmark: ## Run performance benchmarks (SUITE=json|schema|database|throughput)
 	@echo "$(CYAN)Running benchmarks...$(RESET)"
-	@uv run pytest tests/benchmarks/ --benchmark-only 2>/dev/null || echo "$(YELLOW)Benchmarks not configured$(RESET)"
+	@if [ -n "$(SUITE)" ]; then \
+		uv run python benchmarks/bench_$(SUITE).py $(ARGS); \
+	else \
+		uv run python benchmarks/run_all.py $(ARGS); \
+	fi
+
+benchmark-json: ## Run JSON serialization benchmarks
+	@echo "$(CYAN)Running JSON benchmarks...$(RESET)"
+	@uv run python benchmarks/bench_json.py $(ARGS)
+
+benchmark-schema: ## Run schema validation benchmarks
+	@echo "$(CYAN)Running schema benchmarks...$(RESET)"
+	@uv run python benchmarks/bench_schema.py $(ARGS)
+
+benchmark-db: ## Run database benchmarks
+	@echo "$(CYAN)Running database benchmarks...$(RESET)"
+	@uv run python benchmarks/bench_database.py $(ARGS)
+
+benchmark-throughput: ## Run throughput benchmarks
+	@echo "$(CYAN)Running throughput benchmarks...$(RESET)"
+	@uv run python benchmarks/bench_throughput.py $(ARGS)
+
+benchmark-compare: ## Compare with other frameworks
+	@echo "$(CYAN)Running framework comparison...$(RESET)"
+	@uv run python benchmarks/bench_comparison.py $(ARGS)
+
+benchmark-save: ## Run benchmarks and save results
+	@echo "$(CYAN)Running benchmarks and saving...$(RESET)"
+	@uv run python benchmarks/run_all.py --save $(ARGS)
+
+benchmark-diff: ## Compare current benchmarks with baseline
+	@echo "$(CYAN)Comparing with baseline...$(RESET)"
+	@uv run python benchmarks/run_all.py --compare $(ARGS)
 
 profile: ## Profile the application
 	@echo "$(CYAN)Starting profiler...$(RESET)"
