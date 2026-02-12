@@ -14,6 +14,7 @@ class EmailProvider(TextChoices):
     MAILGUN = "mailgun", "Mailgun"
     POSTMARK = "postmark", "Postmark"
     MAILCHIMP = "mailchimp", "Mailchimp Transactional"
+    RESEND = "resend", "Resend"
     CONSOLE = "console", "Console (Debug)"
 
 

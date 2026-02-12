@@ -5,6 +5,7 @@ Email providers.
 from django_matt.email.providers.base import EmailProviderBase
 from django_matt.email.providers.console import ConsoleProvider
 from django_matt.email.providers.mailgun import MailgunProvider
+from django_matt.email.providers.resend import ResendProvider
 from django_matt.email.providers.sendgrid import SendGridProvider
 from django_matt.email.providers.ses import SESProvider
 from django_matt.email.providers.smtp import SMTPProvider
@@ -15,6 +16,7 @@ __all__ = [
     "SESProvider",
     "SendGridProvider",
     "MailgunProvider",
+    "ResendProvider",
     "ConsoleProvider",
     "get_provider",
 ]
@@ -36,6 +38,7 @@ def get_provider(name: str | None = None) -> EmailProviderBase:
         "ses": SESProvider,
         "sendgrid": SendGridProvider,
         "mailgun": MailgunProvider,
+        "resend": ResendProvider,
         "console": ConsoleProvider,
     }
 
