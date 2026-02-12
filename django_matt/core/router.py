@@ -1,29 +1,34 @@
 import inspect
-import json
 from collections.abc import Callable
 from typing import get_type_hints
 
 from django.http import HttpResponse, JsonResponse
 from django.urls import path
 
+import orjson
 from pydantic import BaseModel, ValidationError
+
+# Cache type hints per function to avoid repeated introspection
+_hints_cache: dict[int, dict] = {}
 
 
 def get_body_schema(endpoint: Callable) -> type[BaseModel] | None:
     """
     Get the Pydantic model type for the 'body' parameter of an endpoint.
 
-    Returns None if the endpoint doesn't have a 'body' parameter or
-    if the parameter is not typed as a Pydantic model.
+    Results are cached per-function to avoid repeated get_type_hints() calls.
     """
-    try:
-        hints = get_type_hints(endpoint)
-        if "body" in hints:
-            body_type = hints["body"]
-            if isinstance(body_type, type) and issubclass(body_type, BaseModel):
-                return body_type
-    except Exception:
-        pass
+    key = id(endpoint)
+    if key not in _hints_cache:
+        try:
+            _hints_cache[key] = get_type_hints(endpoint)
+        except Exception:
+            _hints_cache[key] = {}
+
+    hints = _hints_cache[key]
+    body_type = hints.get("body")
+    if body_type is not None and isinstance(body_type, type) and issubclass(body_type, BaseModel):
+        return body_type
     return None
 
 
@@ -215,79 +220,66 @@ class APIRouter:
         self.controllers.append(controller_class)
         return controller_class
 
+    @staticmethod
+    def _create_view_func(endpoint, response_model, status_code):
+        """Create an async view function that handles parsing and serialization."""
+        body_schema = get_body_schema(endpoint)
+        is_coro = inspect.iscoroutinefunction(endpoint)
+
+        async def view_func(request, *args, **kwargs):
+            # Parse request body with orjson (single parse)
+            if request.body and request.content_type == "application/json":
+                try:
+                    body_data = orjson.loads(request.body)
+                    kwargs["body"] = parse_body(body_data, body_schema)
+                except (ValueError, orjson.JSONDecodeError):
+                    return JsonResponse({"detail": "Invalid JSON"}, status=400)
+                except ValidationError as e:
+                    return JsonResponse(
+                        {"detail": "Validation error", "errors": e.errors()},
+                        status=422,
+                    )
+
+            # Call the endpoint
+            if is_coro:
+                result = await endpoint(request, *args, **kwargs)
+            else:
+                result = endpoint(request, *args, **kwargs)
+
+            # Early return for HttpResponse
+            if isinstance(result, HttpResponse):
+                return result
+
+            # Serialize the response
+            if isinstance(result, BaseModel):
+                result = result.model_dump()
+            elif response_model and isinstance(result, dict):
+                try:
+                    result = response_model(**result).model_dump()
+                except ValidationError as e:
+                    return JsonResponse(
+                        {"detail": "Response validation error", "errors": e.errors()},
+                        status=500,
+                    )
+            elif isinstance(result, list) and result and isinstance(result[0], BaseModel):
+                result = [item.model_dump() for item in result]
+
+            return JsonResponse(result, status=status_code, safe=False)
+
+        return view_func
+
     def get_urls(self):
         """Get Django URL patterns for all registered routes."""
         url_patterns = []
 
         # Add routes from decorators
         for route in self.routes:
-            endpoint = route["endpoint"]
-            path_pattern = route["path"]
-            name = route["name"]
-
-            # Create a wrapper function that handles request parsing and response serialization
-            def create_view_func(endpoint, response_model, status_code):
-                # Get body schema at function creation time
-                body_schema = get_body_schema(endpoint)
-
-                async def view_func(request, *args, **kwargs):
-                    # Parse request body if it exists
-                    if request.body and request.content_type == "application/json":
-                        try:
-                            body_data = json.loads(request.body)
-                            # Parse body into Pydantic schema if available
-                            kwargs["body"] = parse_body(body_data, body_schema)
-                        except json.JSONDecodeError:
-                            return JsonResponse({"detail": "Invalid JSON"}, status=400)
-                        except ValidationError as e:
-                            return JsonResponse(
-                                {"detail": "Validation error", "errors": e.errors()},
-                                status=422,
-                            )
-
-                    # Call the endpoint
-                    if inspect.iscoroutinefunction(endpoint):
-                        result = await endpoint(request, *args, **kwargs)
-                    else:
-                        result = endpoint(request, *args, **kwargs)
-
-                    # Serialize the response if needed
-                    if isinstance(result, BaseModel):
-                        # If result is already a Pydantic model, serialize it
-                        result = result.model_dump()
-                    elif response_model and isinstance(result, dict):
-                        # Validate and re-serialize if response_model is specified
-                        try:
-                            result = response_model(**result).model_dump()
-                        except ValidationError as e:
-                            return JsonResponse(
-                                {
-                                    "detail": "Response validation error",
-                                    "errors": e.errors(),
-                                },
-                                status=500,
-                            )
-                    elif isinstance(result, list):
-                        # Handle list responses (serialize any Pydantic models in the list)
-                        result = [
-                            item.model_dump() if isinstance(item, BaseModel) else item
-                            for item in result
-                        ]
-
-                    # Return the response
-                    if isinstance(result, HttpResponse):
-                        return result
-                    return JsonResponse(result, status=status_code, safe=False)
-
-                return view_func
-
-            view_func = create_view_func(
-                endpoint=endpoint,
+            view_func = self._create_view_func(
+                endpoint=route["endpoint"],
                 response_model=route["response_model"],
                 status_code=route["status_code"],
             )
-
-            url_patterns.append(path(path_pattern, view_func, name=name))
+            url_patterns.append(path(route["path"], view_func, name=route["name"]))
 
         # Add routes from controllers
         for controller_class in self.controllers:
@@ -303,79 +295,22 @@ class APIRouter:
                 if not callable(method):
                     continue
 
-                # Check if the method has route metadata
                 route_info = getattr(method, "_route_info", None)
                 if not route_info:
                     continue
 
-                path_pattern = combined_prefix + route_info["path"]
-                name = route_info.get("name", method_name)
-                response_model = route_info.get("response_model")
-                status_code = route_info.get("status_code", 200)
-
-                # Create a wrapper function that handles request parsing and response serialization
-                def create_view_func(method, response_model, status_code):
-                    # Get body schema at function creation time
-                    body_schema = get_body_schema(method)
-
-                    async def view_func(request, *args, **kwargs):
-                        # Parse request body if it exists
-                        if request.body and request.content_type == "application/json":
-                            try:
-                                body_data = json.loads(request.body)
-                                # Parse body into Pydantic schema if available
-                                kwargs["body"] = parse_body(body_data, body_schema)
-                            except json.JSONDecodeError:
-                                return JsonResponse({"detail": "Invalid JSON"}, status=400)
-                            except ValidationError as e:
-                                return JsonResponse(
-                                    {"detail": "Validation error", "errors": e.errors()},
-                                    status=422,
-                                )
-
-                        # Call the method
-                        if inspect.iscoroutinefunction(method):
-                            result = await method(request, *args, **kwargs)
-                        else:
-                            result = method(request, *args, **kwargs)
-
-                        # Serialize the response if needed
-                        if isinstance(result, BaseModel):
-                            # If result is already a Pydantic model, serialize it
-                            result = result.model_dump()
-                        elif response_model and isinstance(result, dict):
-                            # Validate and re-serialize if response_model is specified
-                            try:
-                                result = response_model(**result).model_dump()
-                            except ValidationError as e:
-                                return JsonResponse(
-                                    {
-                                        "detail": "Response validation error",
-                                        "errors": e.errors(),
-                                    },
-                                    status=500,
-                                )
-                        elif isinstance(result, list):
-                            # Handle list responses (serialize any Pydantic models in the list)
-                            result = [
-                                item.model_dump() if isinstance(item, BaseModel) else item
-                                for item in result
-                            ]
-
-                        # Return the response
-                        if isinstance(result, HttpResponse):
-                            return result
-                        return JsonResponse(result, status=status_code, safe=False)
-
-                    return view_func
-
-                view_func = create_view_func(
-                    method=method,
-                    response_model=response_model,
-                    status_code=status_code,
+                view_func = self._create_view_func(
+                    endpoint=method,
+                    response_model=route_info.get("response_model"),
+                    status_code=route_info.get("status_code", 200),
                 )
-
-                url_patterns.append(path(path_pattern, view_func, name=name))
+                url_patterns.append(
+                    path(
+                        combined_prefix + route_info["path"],
+                        view_func,
+                        name=route_info.get("name", method_name),
+                    )
+                )
 
         return url_patterns
 

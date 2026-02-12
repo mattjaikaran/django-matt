@@ -13,10 +13,14 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django_matt.auth.jwt import (
     ExpiredSignatureError,
     InvalidTokenError,
+    aget_user_from_token,
     get_token_from_request,
     get_user_from_token,
     verify_access_token,
 )
+
+# Singleton — avoids per-request allocation for unauthenticated traffic
+_ANONYMOUS_USER = AnonymousUser()
 
 
 class JWTAuthenticationMiddleware:
@@ -51,24 +55,23 @@ class JWTAuthenticationMiddleware:
         token = get_token_from_request(request)
 
         if token is None:
-            # No token, use anonymous user
             if not hasattr(request, "user") or request.user is None:
-                request.user = AnonymousUser()
+                request.user = _ANONYMOUS_USER
             return
 
         try:
+            # Decode once, pass payload to avoid double-decode
             payload = verify_access_token(token)
-            user = get_user_from_token(token)
+            user = get_user_from_token(token, _payload=payload)
 
             if user and user.is_active:
                 request.user = user
                 request.token_payload = payload
             else:
-                request.user = AnonymousUser()
+                request.user = _ANONYMOUS_USER
 
         except (InvalidTokenError, ExpiredSignatureError):
-            # Invalid token, use anonymous user
-            request.user = AnonymousUser()
+            request.user = _ANONYMOUS_USER
 
 
 class JWTAuthenticationMiddlewareAsync:
@@ -99,21 +102,22 @@ class JWTAuthenticationMiddlewareAsync:
 
         if token is None:
             if not hasattr(request, "user") or request.user is None:
-                request.user = AnonymousUser()
+                request.user = _ANONYMOUS_USER
             return
 
         try:
+            # Decode once, pass payload to async user lookup
             payload = verify_access_token(token)
-            user = get_user_from_token(token)
+            user = await aget_user_from_token(token, _payload=payload)
 
             if user and user.is_active:
                 request.user = user
                 request.token_payload = payload
             else:
-                request.user = AnonymousUser()
+                request.user = _ANONYMOUS_USER
 
         except (InvalidTokenError, ExpiredSignatureError):
-            request.user = AnonymousUser()
+            request.user = _ANONYMOUS_USER
 
 
 class JWTStrictAuthenticationMiddleware:
@@ -149,15 +153,15 @@ class JWTStrictAuthenticationMiddleware:
         token = get_token_from_request(request)
 
         if token is None:
-            # No token, proceed anonymously
             if not hasattr(request, "user") or request.user is None:
-                request.user = AnonymousUser()
+                request.user = _ANONYMOUS_USER
             return None
 
         # Token present - must be valid
         try:
+            # Decode once, pass payload to avoid double-decode
             payload = verify_access_token(token)
-            user = get_user_from_token(token)
+            user = get_user_from_token(token, _payload=payload)
 
             if user is None:
                 return JsonResponse(

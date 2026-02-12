@@ -72,8 +72,10 @@ class CreateView(APIView):
         return self.serialize(instance)
 
     async def _save_instance(self, instance: models.Model):
-        """Save the model instance."""
+        """Save the model instance asynchronously."""
         if hasattr(instance, "asave"):
             await instance.asave()
         else:
-            instance.save()
+            from asgiref.sync import sync_to_async
+
+            await sync_to_async(instance.save)()

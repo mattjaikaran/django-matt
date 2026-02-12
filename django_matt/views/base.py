@@ -10,6 +10,7 @@ from typing import Any, Generic, TypeVar
 from django.db import models
 from django.http import HttpRequest, JsonResponse
 
+import orjson
 from pydantic import BaseModel, ValidationError
 
 from django_matt.core.errors import APIError, NotFoundAPIError
@@ -155,57 +156,74 @@ class APIView(Generic[ModelT, SchemaT]):
         return None
 
     def serialize(self, instance: models.Model) -> dict[str, Any]:
-        """
-        Serialize a model instance to a dictionary.
-
-        Uses the response schema if available, otherwise falls back
-        to basic field serialization.
-        """
+        """Serialize a model instance (with full validation)."""
         schema = self.get_response_schema()
         if schema is not None:
             if hasattr(schema, "from_orm"):
                 return schema.from_orm(instance).model_dump()
             return schema.model_validate(instance, from_attributes=True).model_dump()
+        return self._model_to_dict(instance)
 
-        # Fallback to simple serialization
+    def serialize_fast(self, instance: models.Model) -> dict[str, Any]:
+        """Serialize a model instance without re-validation (for lists)."""
+        schema = self.get_response_schema()
+        if schema is not None and hasattr(schema, "from_orm_fast"):
+            return schema.from_orm_fast(instance).model_dump()
         return self._model_to_dict(instance)
 
     def serialize_list(self, queryset: models.QuerySet) -> list[dict[str, Any]]:
-        """Serialize a queryset to a list of dictionaries."""
-        return [self.serialize(obj) for obj in queryset]
+        """Serialize a queryset to a list of dicts (fast path, no re-validation)."""
+        return [self.serialize_fast(obj) for obj in queryset]
+
+    def optimize_queryset(self, queryset: models.QuerySet) -> models.QuerySet:
+        """Auto-apply select_related/prefetch_related based on response schema."""
+        schema = self.get_response_schema()
+        if schema is None:
+            return queryset
+
+        model = queryset.model
+        meta = model._meta
+        select_fields = []
+        prefetch_fields = []
+
+        for field_name in schema.model_fields:
+            try:
+                field = meta.get_field(field_name)
+            except Exception:
+                continue
+            if isinstance(field, (models.ForeignKey, models.OneToOneField)):
+                select_fields.append(field_name)
+            elif isinstance(field, models.ManyToManyField):
+                prefetch_fields.append(field_name)
+
+        if select_fields:
+            queryset = queryset.select_related(*select_fields)
+        if prefetch_fields:
+            queryset = queryset.prefetch_related(*prefetch_fields)
+
+        return queryset
 
     def _model_to_dict(self, instance: models.Model) -> dict[str, Any]:
         """Simple model to dict conversion."""
         result = {}
         for field in instance._meta.fields:
             value = getattr(instance, field.name)
-            # Handle special types
-            if hasattr(value, "isoformat"):  # datetime, date, time
+            if hasattr(value, "isoformat"):
                 value = value.isoformat()
-            elif hasattr(value, "pk"):  # ForeignKey
+            elif hasattr(value, "pk"):
                 value = value.pk
             result[field.name] = value
         return result
 
     def validate_request(self, request: HttpRequest) -> BaseModel | None:
-        """
-        Validate request body against the request schema.
-
-        Returns:
-            Validated Pydantic model instance, or None if no schema
-
-        Raises:
-            ValidationError: If validation fails
-        """
+        """Validate request body against the request schema."""
         schema = self.get_request_schema()
         if schema is None:
             return None
 
-        import json
-
         try:
-            body = json.loads(request.body) if request.body else {}
-        except json.JSONDecodeError:
+            body = orjson.loads(request.body) if request.body else {}
+        except (ValueError, orjson.JSONDecodeError):
             raise ValueError("Invalid JSON in request body")
 
         return schema.model_validate(body)

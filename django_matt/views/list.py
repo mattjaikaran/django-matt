@@ -159,6 +159,9 @@ class ListView(APIView):
         """Handle GET request to list resources."""
         queryset = self.get_queryset(request)
 
+        # Auto-optimize: add select_related/prefetch_related based on schema
+        queryset = self.optimize_queryset(queryset)
+
         # Run before_list hooks - allows modifying queryset
         queryset = await self._run_hooks(
             HookType.BEFORE_LIST,
