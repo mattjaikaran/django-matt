@@ -11,17 +11,22 @@ from typing import Any
 
 from django_matt.billing.config import StripeConfig
 from django_matt.billing.providers.base import (
+    AccountLinkData,
     BillingAPIError,
     BillingProvider,
     BillingWebhookError,
     CheckoutSessionData,
+    ConnectAccountType,
+    ConnectedAccountData,
     CustomerData,
     InvoiceData,
+    OAuthLinkData,
     PriceData,
     PriceInterval,
     ProductData,
     SubscriptionData,
     SubscriptionStatus,
+    TransferData,
     WebhookEvent,
 )
 
@@ -718,5 +723,318 @@ class StripeProvider(BillingProvider[StripeConfig]):
             "customer.created": "customer.created",
             "customer.updated": "customer.updated",
             "customer.deleted": "customer.deleted",
+            "account.updated": "connect.account.updated",
+            "account.application.deauthorized": "connect.account.deauthorized",
+            "transfer.created": "connect.transfer.created",
+            "transfer.updated": "connect.transfer.updated",
         }
         return mapping.get(provider_type, provider_type)
+
+    # -------------------------------------------------------------------------
+    # Stripe Connect — Account Management
+    # -------------------------------------------------------------------------
+
+    def _parse_connected_account(self, account: Any) -> ConnectedAccountData:
+        """Parse Stripe account to ConnectedAccountData."""
+        type_map = {
+            "standard": ConnectAccountType.STANDARD,
+            "express": ConnectAccountType.EXPRESS,
+            "custom": ConnectAccountType.CUSTOM,
+        }
+        return ConnectedAccountData(
+            id=account.id,
+            type=type_map.get(account.type, ConnectAccountType.STANDARD),
+            email=account.email or "",
+            business_name=(
+                account.business_profile.name
+                if account.business_profile and account.business_profile.name
+                else ""
+            ),
+            charges_enabled=account.charges_enabled,
+            payouts_enabled=account.payouts_enabled,
+            details_submitted=account.details_submitted,
+            country=account.country or "",
+            metadata=dict(account.metadata or {}),
+            created_at=self._timestamp_to_datetime(account.created),
+            raw_data=account.to_dict() if hasattr(account, "to_dict") else {},
+        )
+
+    def _parse_transfer(self, transfer: Any) -> TransferData:
+        """Parse Stripe transfer to TransferData."""
+        return TransferData(
+            id=transfer.id,
+            amount=transfer.amount,
+            currency=transfer.currency,
+            destination=transfer.destination
+            if isinstance(transfer.destination, str)
+            else transfer.destination.id,
+            source_transaction=transfer.source_transaction or "",
+            description=transfer.description or "",
+            metadata=dict(transfer.metadata or {}),
+            created_at=self._timestamp_to_datetime(transfer.created),
+            raw_data=transfer.to_dict() if hasattr(transfer, "to_dict") else {},
+        )
+
+    async def create_connected_account(
+        self,
+        type: str = "standard",
+        email: str | None = None,
+        country: str | None = None,
+        business_type: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> ConnectedAccountData:
+        """Create a Stripe Connect account."""
+        try:
+            params: dict[str, Any] = {
+                "type": type,
+                "metadata": metadata or {},
+            }
+            if email:
+                params["email"] = email
+            if country:
+                params["country"] = country
+            if business_type:
+                params["business_type"] = business_type
+
+            # Express/Custom accounts need capabilities
+            if type in ("express", "custom"):
+                params["capabilities"] = {
+                    "card_payments": {"requested": True},
+                    "transfers": {"requested": True},
+                }
+
+            account = self.stripe.Account.create(**params)
+            return self._parse_connected_account(account)
+        except Exception as e:
+            self._handle_stripe_error(e)
+
+    async def get_connected_account(self, account_id: str) -> ConnectedAccountData | None:
+        """Get a connected account by ID."""
+        try:
+            account = self.stripe.Account.retrieve(account_id)
+            return self._parse_connected_account(account)
+        except self.stripe.error.InvalidRequestError:
+            return None
+        except Exception as e:
+            self._handle_stripe_error(e)
+
+    async def update_connected_account(
+        self,
+        account_id: str,
+        **params: Any,
+    ) -> ConnectedAccountData:
+        """Update a connected account."""
+        try:
+            account = self.stripe.Account.modify(account_id, **params)
+            return self._parse_connected_account(account)
+        except Exception as e:
+            self._handle_stripe_error(e)
+
+    async def delete_connected_account(self, account_id: str) -> bool:
+        """Delete a connected account."""
+        try:
+            result = self.stripe.Account.delete(account_id)
+            return result.deleted
+        except Exception as e:
+            self._handle_stripe_error(e)
+
+    async def list_connected_accounts(
+        self,
+        limit: int = 10,
+        starting_after: str | None = None,
+    ) -> list[ConnectedAccountData]:
+        """List connected accounts."""
+        try:
+            params: dict[str, Any] = {"limit": limit}
+            if starting_after:
+                params["starting_after"] = starting_after
+
+            accounts = self.stripe.Account.list(**params)
+            return [self._parse_connected_account(a) for a in accounts.data]
+        except Exception as e:
+            self._handle_stripe_error(e)
+
+    # -------------------------------------------------------------------------
+    # Stripe Connect — Onboarding
+    # -------------------------------------------------------------------------
+
+    async def create_account_link(
+        self,
+        account_id: str,
+        refresh_url: str,
+        return_url: str,
+    ) -> AccountLinkData:
+        """Create an account link for Express onboarding."""
+        try:
+            link = self.stripe.AccountLink.create(
+                account=account_id,
+                refresh_url=refresh_url,
+                return_url=return_url,
+                type="account_onboarding",
+            )
+            return AccountLinkData(
+                url=link.url,
+                expires_at=self._timestamp_to_datetime(link.expires_at),
+            )
+        except Exception as e:
+            self._handle_stripe_error(e)
+
+    def get_oauth_authorize_url(
+        self,
+        redirect_uri: str,
+        state: str = "",
+    ) -> OAuthLinkData:
+        """
+        Get OAuth authorize URL for Standard account onboarding.
+
+        Uses Stripe's OAuth flow for Standard connected accounts.
+        """
+        import secrets
+        from urllib.parse import urlencode
+
+        if not state:
+            state = secrets.token_urlsafe(32)
+
+        params = {
+            "response_type": "code",
+            "client_id": self.config.connect_client_id,
+            "scope": "read_write",
+            "redirect_uri": redirect_uri,
+            "state": state,
+        }
+
+        url = f"https://connect.stripe.com/oauth/authorize?{urlencode(params)}"
+        return OAuthLinkData(url=url, state=state)
+
+    async def complete_oauth_connect(self, authorization_code: str) -> ConnectedAccountData:
+        """Complete Standard OAuth flow with authorization code."""
+        try:
+            response = self.stripe.OAuth.token(
+                grant_type="authorization_code",
+                code=authorization_code,
+            )
+            account_id = response.stripe_user_id
+            return await self.get_connected_account(account_id)
+        except Exception as e:
+            self._handle_stripe_error(e)
+
+    async def deauthorize_connected_account(self, account_id: str) -> bool:
+        """Deauthorize a Standard connected account."""
+        try:
+            self.stripe.OAuth.deauthorize(
+                client_id=self.config.connect_client_id,
+                stripe_user_id=account_id,
+            )
+            return True
+        except Exception as e:
+            self._handle_stripe_error(e)
+
+    # -------------------------------------------------------------------------
+    # Stripe Connect — Payments & Transfers
+    # -------------------------------------------------------------------------
+
+    async def create_payment_intent_with_fee(
+        self,
+        amount: int,
+        connected_account_id: str,
+        application_fee_amount: int | None = None,
+        currency: str = "usd",
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Create a PaymentIntent with an application fee (destination charge).
+
+        The payment goes directly to the connected account with a platform fee.
+        """
+        try:
+            params: dict[str, Any] = {
+                "amount": amount,
+                "currency": currency,
+                "metadata": metadata or {},
+                "transfer_data": {
+                    "destination": connected_account_id,
+                },
+            }
+
+            if application_fee_amount is not None:
+                params["application_fee_amount"] = application_fee_amount
+            elif self.config.connect_application_fee_percent > 0:
+                params["application_fee_amount"] = int(
+                    amount * self.config.connect_application_fee_percent / 100
+                )
+
+            intent = self.stripe.PaymentIntent.create(**params)
+            return intent.to_dict() if hasattr(intent, "to_dict") else dict(intent)
+        except Exception as e:
+            self._handle_stripe_error(e)
+
+    async def create_transfer(
+        self,
+        amount: int,
+        destination: str,
+        currency: str = "usd",
+        description: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> TransferData:
+        """Create a transfer to a connected account."""
+        try:
+            params: dict[str, Any] = {
+                "amount": amount,
+                "currency": currency,
+                "destination": destination,
+                "metadata": metadata or {},
+            }
+            if description:
+                params["description"] = description
+
+            transfer = self.stripe.Transfer.create(**params)
+            return self._parse_transfer(transfer)
+        except Exception as e:
+            self._handle_stripe_error(e)
+
+    async def reverse_transfer(
+        self,
+        transfer_id: str,
+        amount: int | None = None,
+    ) -> dict[str, Any]:
+        """Reverse a transfer (full or partial)."""
+        try:
+            params: dict[str, Any] = {}
+            if amount is not None:
+                params["amount"] = amount
+
+            reversal = self.stripe.Transfer.create_reversal(transfer_id, **params)
+            return reversal.to_dict() if hasattr(reversal, "to_dict") else dict(reversal)
+        except Exception as e:
+            self._handle_stripe_error(e)
+
+    # -------------------------------------------------------------------------
+    # Stripe Connect — Webhook Verification
+    # -------------------------------------------------------------------------
+
+    async def verify_connect_webhook(
+        self,
+        payload: bytes,
+        signature: str,
+    ) -> WebhookEvent:
+        """Verify and parse a Connect webhook event."""
+        try:
+            event = self.stripe.Webhook.construct_event(
+                payload,
+                signature,
+                self.config.connect_webhook_secret,
+            )
+            return WebhookEvent(
+                id=event.id,
+                type=event.type,
+                provider=self.provider_name,
+                data=event.data.object.to_dict()
+                if hasattr(event.data.object, "to_dict")
+                else dict(event.data.object),
+                created_at=self._timestamp_to_datetime(event.created),
+                raw_payload=payload,
+            )
+        except self.stripe.error.SignatureVerificationError as e:
+            raise BillingWebhookError(f"Invalid Connect webhook signature: {e}")
+        except Exception as e:
+            raise BillingWebhookError(f"Connect webhook verification failed: {e}")

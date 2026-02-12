@@ -199,6 +199,63 @@ class WebhookEvent:
     raw_payload: bytes = b""
 
 
+class ConnectAccountType(str, Enum):
+    """Stripe Connect account type."""
+
+    STANDARD = "standard"
+    EXPRESS = "express"
+    CUSTOM = "custom"
+
+
+@dataclass
+class ConnectedAccountData:
+    """Connected account data from Stripe Connect."""
+
+    id: str
+    type: ConnectAccountType
+    email: str = ""
+    business_name: str = ""
+    charges_enabled: bool = False
+    payouts_enabled: bool = False
+    details_submitted: bool = False
+    country: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
+    created_at: datetime | None = None
+    raw_data: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class TransferData:
+    """Transfer data for Stripe Connect."""
+
+    id: str
+    amount: int
+    currency: str = "usd"
+    destination: str = ""
+    source_transaction: str = ""
+    description: str = ""
+    status: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
+    created_at: datetime | None = None
+    raw_data: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class AccountLinkData:
+    """Account link data for Express onboarding."""
+
+    url: str
+    expires_at: datetime | None = None
+
+
+@dataclass
+class OAuthLinkData:
+    """OAuth link data for Standard onboarding."""
+
+    url: str
+    state: str = ""
+
+
 class BillingProvider(ABC, Generic[ConfigT]):
     """
     Abstract base class for billing providers.

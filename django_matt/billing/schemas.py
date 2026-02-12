@@ -389,3 +389,128 @@ class BillingErrorResponse(BaseModel):
     error: str
     code: str = "billing_error"
     details: dict[str, Any] = Field(default_factory=dict)
+
+
+# -----------------------------------------------------------------------------
+# Stripe Connect Schemas
+# -----------------------------------------------------------------------------
+
+
+class ConnectAccountType(str, Enum):
+    """Connect account type."""
+
+    STANDARD = "standard"
+    EXPRESS = "express"
+    CUSTOM = "custom"
+
+
+class ConnectedAccountCreate(BaseModel):
+    """Schema for creating a connected account."""
+
+    type: ConnectAccountType = ConnectAccountType.STANDARD
+    email: EmailStr | None = None
+    country: str | None = None
+    business_type: Literal["individual", "company", "non_profit", "government_entity"] | None = (
+        None
+    )
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ConnectedAccountResponse(BaseModel):
+    """Connected account response."""
+
+    id: str
+    type: ConnectAccountType
+    email: str = ""
+    business_name: str = ""
+    charges_enabled: bool = False
+    payouts_enabled: bool = False
+    details_submitted: bool = False
+    country: str = ""
+    created_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class ConnectedAccountListResponse(BaseModel):
+    """List of connected accounts."""
+
+    items: list[ConnectedAccountResponse]
+    total: int = 0
+
+
+class AccountLinkCreate(BaseModel):
+    """Schema for creating an account link (Express onboarding)."""
+
+    account_id: str
+    refresh_url: str
+    return_url: str
+
+
+class AccountLinkResponse(BaseModel):
+    """Account link response."""
+
+    url: str
+    expires_at: datetime | None = None
+
+
+class OAuthAuthorizeRequest(BaseModel):
+    """Schema for getting OAuth URL (Standard onboarding)."""
+
+    redirect_uri: str
+    state: str = ""
+
+
+class OAuthAuthorizeResponse(BaseModel):
+    """OAuth authorize URL response."""
+
+    url: str
+    state: str
+
+
+class OAuthCallbackRequest(BaseModel):
+    """Schema for OAuth callback (Standard connect completion)."""
+
+    code: str
+
+
+class PaymentIntentWithFeeCreate(BaseModel):
+    """Schema for creating a payment intent with platform fee."""
+
+    amount: int = Field(..., description="Amount in smallest currency unit")
+    connected_account_id: str
+    application_fee_amount: int | None = None
+    currency: str = "usd"
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class TransferCreate(BaseModel):
+    """Schema for creating a transfer."""
+
+    amount: int = Field(..., description="Amount in smallest currency unit")
+    destination: str = Field(..., description="Connected account ID")
+    currency: str = "usd"
+    description: str = ""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class TransferResponse(BaseModel):
+    """Transfer response."""
+
+    id: str
+    amount: int
+    currency: str
+    destination: str
+    description: str = ""
+    status: str = ""
+    created_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class TransferReversalRequest(BaseModel):
+    """Schema for reversing a transfer."""
+
+    amount: int | None = Field(None, description="Partial reversal amount (None = full reversal)")

@@ -56,9 +56,19 @@ class StripeConfig:
     webhook_secret: str = ""
     api_version: str = "2024-12-18.acacia"
 
+    # Stripe Connect configuration
+    connect_client_id: str = ""
+    connect_webhook_secret: str = ""
+    connect_default_account_type: str = "standard"  # standard, express, custom
+    connect_application_fee_percent: float = 0.0
+
     @property
     def is_configured(self) -> bool:
         return bool(self.secret_key)
+
+    @property
+    def is_connect_configured(self) -> bool:
+        return bool(self.secret_key and self.connect_client_id)
 
 
 @dataclass
@@ -132,6 +142,14 @@ class BillingConfig:
             publishable_key=stripe_dict.get("PUBLISHABLE_KEY", ""),
             webhook_secret=stripe_dict.get("WEBHOOK_SECRET", ""),
             api_version=stripe_dict.get("API_VERSION", "2024-12-18.acacia"),
+            connect_client_id=stripe_dict.get("CONNECT_CLIENT_ID", ""),
+            connect_webhook_secret=stripe_dict.get("CONNECT_WEBHOOK_SECRET", ""),
+            connect_default_account_type=stripe_dict.get(
+                "CONNECT_DEFAULT_ACCOUNT_TYPE", "standard"
+            ),
+            connect_application_fee_percent=stripe_dict.get(
+                "CONNECT_APPLICATION_FEE_PERCENT", 0.0
+            ),
         )
 
         paypal_dict = config_dict.get("PAYPAL", {})

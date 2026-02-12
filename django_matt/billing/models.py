@@ -410,6 +410,150 @@ class WebhookEvent(models.Model):
         self.save(update_fields=["processed", "processed_at", "processing_error"])
 
 
+class ConnectedAccount(models.Model):
+    """
+    Stripe Connect connected account.
+
+    Tracks marketplace sellers/service providers connected to the platform.
+    """
+
+    class AccountType(models.TextChoices):
+        STANDARD = "standard", "Standard"
+        EXPRESS = "express", "Express"
+        CUSTOM = "custom", "Custom"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        ACTIVE = "active", "Active"
+        RESTRICTED = "restricted", "Restricted"
+        DISABLED = "disabled", "Disabled"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="connected_accounts",
+    )
+
+    stripe_account_id = models.CharField(max_length=255, unique=True)
+    account_type = models.CharField(
+        max_length=20,
+        choices=AccountType.choices,
+        default=AccountType.STANDARD,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+
+    # Onboarding state
+    charges_enabled = models.BooleanField(default=False)
+    payouts_enabled = models.BooleanField(default=False)
+    details_submitted = models.BooleanField(default=False)
+
+    # Business info
+    business_name = models.CharField(max_length=255, blank=True)
+    email = models.EmailField(blank=True)
+    country = models.CharField(max_length=2, blank=True)
+
+    # Metadata
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = "django_matt"
+        db_table = "billing_connected_account"
+        verbose_name = "Connected Account"
+        verbose_name_plural = "Connected Accounts"
+
+    def __str__(self):
+        return f"ConnectedAccount({self.stripe_account_id}, {self.account_type})"
+
+    @property
+    def is_fully_onboarded(self) -> bool:
+        return self.charges_enabled and self.payouts_enabled and self.details_submitted
+
+
+class Transfer(models.Model):
+    """
+    Stripe Connect transfer record.
+
+    Tracks money movement from platform to connected accounts.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        PAID = "paid", "Paid"
+        FAILED = "failed", "Failed"
+        CANCELED = "canceled", "Canceled"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    connected_account = models.ForeignKey(
+        ConnectedAccount,
+        on_delete=models.CASCADE,
+        related_name="transfers",
+    )
+
+    stripe_transfer_id = models.CharField(max_length=255, unique=True)
+    amount = models.PositiveIntegerField(help_text="Amount in smallest currency unit")
+    currency = models.CharField(max_length=3, default="usd")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    description = models.TextField(blank=True)
+
+    # Metadata
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = "django_matt"
+        db_table = "billing_transfer"
+        verbose_name = "Transfer"
+        verbose_name_plural = "Transfers"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Transfer({self.stripe_transfer_id}, {self.amount})"
+
+
+class ApplicationFee(models.Model):
+    """
+    Stripe Connect application fee record.
+
+    Tracks platform fees collected from connected account payments.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    connected_account = models.ForeignKey(
+        ConnectedAccount,
+        on_delete=models.CASCADE,
+        related_name="application_fees",
+    )
+
+    stripe_fee_id = models.CharField(max_length=255, unique=True)
+    amount = models.PositiveIntegerField(help_text="Fee amount in smallest currency unit")
+    currency = models.CharField(max_length=3, default="usd")
+    charge_id = models.CharField(max_length=255, blank=True)
+
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = "django_matt"
+        db_table = "billing_application_fee"
+        verbose_name = "Application Fee"
+        verbose_name_plural = "Application Fees"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"ApplicationFee({self.stripe_fee_id}, {self.amount})"
+
+
 class UsageRecord(models.Model):
     """
     Usage records for metered/usage-based billing.
