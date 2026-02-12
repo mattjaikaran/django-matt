@@ -117,13 +117,9 @@ pytest tests/test_auth.py -v           # specific file
 
 ## Known Issues
 
-- `pyproject.toml` tool targets say py311 but project requires >=3.12 — needs alignment
-- CI `pyright` and `twine` jobs silently fail (not in dev deps, `continue-on-error: true`)
-- Django dep is `>=6.0.0` but CI tests against 5.2 — mismatch
-- No `.pre-commit-config.yaml` in root (example exists in `examples/`)
 - Production Dockerfile references `/health/` endpoint that doesn't exist
-- ~80% of modules have no test coverage (auth, billing, multitenancy are critical gaps)
-- `tasks/todo.md` and `tasks/lessons.md` referenced in workflow but never created
+- ~80% of modules have no test coverage (auth, billing, multitenancy being addressed)
+- `matt routes`, `matt models`, `matt info`, `matt doctor` CLI commands referenced in Makefile but not implemented
 
 ## Important Files
 

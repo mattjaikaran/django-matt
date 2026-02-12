@@ -57,7 +57,6 @@ jobs:
 
       - name: Run pyright
         run: uv run pyright django_matt/
-        continue-on-error: true  # Don't fail CI on type errors yet
 
   test:
     name: Test (Python ${{ matrix.python-version }}, Django ${{ matrix.django-version }})
@@ -67,20 +66,13 @@ jobs:
       matrix:
         # Django 5.2: Python 3.10-3.13
         # Django 6.0: Python 3.12-3.14 (drops Python 3.10, 3.11)
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.12", "3.13"]
         django-version: ["5.2"]
         include:
           # Django 6.0 (requires Python 3.12+)
           - python-version: "3.12"
             django-version: "6.0"
           - python-version: "3.13"
-            django-version: "6.0"
-          # Python 3.14 preview (when available)
-          # - python-version: "3.14"
-          #   django-version: "6.0"
-        exclude:
-          # Python 3.11 is not supported by Django 6.0
-          - python-version: "3.11"
             django-version: "6.0"
 
     services:
@@ -161,11 +153,10 @@ jobs:
 
       - name: Run Bandit security linter
         run: uv run ruff check django_matt/ --select S
-        continue-on-error: true
 
       - name: Check for dependency vulnerabilities
         run: uv pip audit
-        continue-on-error: true
+        continue-on-error: true  # Advisory — audit DB may lag behind
 
   docs:
     name: Documentation
@@ -186,7 +177,6 @@ jobs:
 
       - name: Build documentation
         run: uv run mkdocs build --strict
-        continue-on-error: true  # Don't fail if docs aren't complete yet
 
   build:
     name: Build Package
@@ -203,12 +193,14 @@ jobs:
       - name: Set up Python
         run: uv python install 3.13
 
+      - name: Install dependencies
+        run: uv sync --dev
+
       - name: Build package
         run: uv build
 
       - name: Check package
         run: uv run twine check dist/*
-        continue-on-error: true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
