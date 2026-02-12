@@ -20,6 +20,9 @@ import json
 from django.contrib.auth import authenticate, get_user_model
 from django.http import HttpRequest, JsonResponse
 
+from django_matt.audit.context import extract_client_ip, extract_user_agent
+from django_matt.audit.enums import AuditAction, AuditSeverity
+from django_matt.audit.models import AuditLog
 from django_matt.auth.decorators import jwt_optional, jwt_required
 from django_matt.auth.jwt import (
     ExpiredSignatureError,
@@ -49,6 +52,28 @@ from django_matt.core.controller import APIController
 from django_matt.core.router import get, post
 
 User = get_user_model()
+
+
+def _user_metadata(user) -> dict:
+    """Build rich user metadata for audit logs."""
+    return {
+        "user_id": str(user.pk),
+        "email": getattr(user, "email", ""),
+        "username": getattr(user, "username", ""),
+        "full_name": user.get_full_name() if hasattr(user, "get_full_name") else "",
+        "is_staff": getattr(user, "is_staff", False),
+        "is_superuser": getattr(user, "is_superuser", False),
+    }
+
+
+def _request_context(request: HttpRequest) -> dict:
+    """Extract IP, user agent, method, and path from request."""
+    return {
+        "ip_address": extract_client_ip(request),
+        "user_agent": extract_user_agent(request),
+        "request_method": request.method or "",
+        "request_path": request.path or "",
+    }
 
 
 class AuthController(APIController):
@@ -105,10 +130,19 @@ class AuthController(APIController):
                 status=422,
             )
 
+        ctx = _request_context(request)
+
         # Find user by email
         try:
             user = await User.objects.aget(email=data.email)
         except User.DoesNotExist:
+            await AuditLog.alog(
+                action=AuditAction.LOGIN_FAILED,
+                description=f"Failed login attempt for {data.email} — user not found",
+                severity=AuditSeverity.WARNING,
+                metadata={"email": data.email, "reason": "user_not_found"},
+                **ctx,
+            )
             return JsonResponse(
                 {"detail": "Invalid credentials", "code": "invalid_credentials"},
                 status=401,
@@ -116,6 +150,15 @@ class AuthController(APIController):
 
         # Check password
         if not user.check_password(data.password):
+            await AuditLog.alog(
+                action=AuditAction.LOGIN_FAILED,
+                user=user,
+                obj=user,
+                description=f"Failed login for {user.email} — wrong password",
+                severity=AuditSeverity.WARNING,
+                metadata={**_user_metadata(user), "reason": "invalid_password"},
+                **ctx,
+            )
             return JsonResponse(
                 {"detail": "Invalid credentials", "code": "invalid_credentials"},
                 status=401,
@@ -123,6 +166,15 @@ class AuthController(APIController):
 
         # Check if user is active
         if not user.is_active:
+            await AuditLog.alog(
+                action=AuditAction.LOGIN_FAILED,
+                user=user,
+                obj=user,
+                description=f"Login blocked for {user.email} — account inactive",
+                severity=AuditSeverity.WARNING,
+                metadata={**_user_metadata(user), "reason": "account_inactive"},
+                **ctx,
+            )
             return JsonResponse(
                 {"detail": "Account is inactive", "code": "account_inactive"},
                 status=401,
@@ -130,6 +182,15 @@ class AuthController(APIController):
 
         # Generate tokens
         tokens = create_token_pair(user)
+
+        await AuditLog.alog(
+            action=AuditAction.LOGIN,
+            user=user,
+            obj=user,
+            description=f"{user.get_full_name() or user.email} logged in",
+            metadata={**_user_metadata(user), "auth_method": "email_password"},
+            **ctx,
+        )
 
         return JsonResponse(tokens.model_dump())
 
@@ -154,22 +215,50 @@ class AuthController(APIController):
                 status=422,
             )
 
+        ctx = _request_context(request)
+
         # Use Django's authenticate
         user = authenticate(username=data.username, password=data.password)
 
         if user is None:
+            await AuditLog.alog(
+                action=AuditAction.LOGIN_FAILED,
+                description=f"Failed login attempt for username '{data.username}'",
+                severity=AuditSeverity.WARNING,
+                metadata={"username": data.username, "reason": "invalid_credentials"},
+                **ctx,
+            )
             return JsonResponse(
                 {"detail": "Invalid credentials", "code": "invalid_credentials"},
                 status=401,
             )
 
         if not user.is_active:
+            await AuditLog.alog(
+                action=AuditAction.LOGIN_FAILED,
+                user=user,
+                obj=user,
+                description=f"Login blocked for {user.username} — account inactive",
+                severity=AuditSeverity.WARNING,
+                metadata={**_user_metadata(user), "reason": "account_inactive"},
+                **ctx,
+            )
             return JsonResponse(
                 {"detail": "Account is inactive", "code": "account_inactive"},
                 status=401,
             )
 
         tokens = create_token_pair(user)
+
+        await AuditLog.alog(
+            action=AuditAction.LOGIN,
+            user=user,
+            obj=user,
+            description=f"{user.get_full_name() or user.username} logged in",
+            metadata={**_user_metadata(user), "auth_method": "username_password"},
+            **ctx,
+        )
+
         return JsonResponse(tokens.model_dump())
 
     @post("register")
@@ -241,6 +330,16 @@ class AuthController(APIController):
         # Generate tokens
         tokens = create_token_pair(user)
 
+        ctx = _request_context(request)
+        await AuditLog.alog(
+            action=AuditAction.CREATE,
+            user=user,
+            obj=user,
+            description=f"New user registered: {user.email}",
+            metadata={**_user_metadata(user), "auth_method": "email_password"},
+            **ctx,
+        )
+
         # Build response
         response = AuthResponse(
             user=UserResponse.from_user(user),
@@ -275,15 +374,38 @@ class AuthController(APIController):
                 status=422,
             )
 
+        ctx = _request_context(request)
+
         try:
             tokens = refresh_tokens(data.refresh_token)
+
+            await AuditLog.alog(
+                action=AuditAction.TOKEN_REFRESH,
+                description="Token refreshed",
+                **ctx,
+            )
+
             return JsonResponse(tokens.model_dump())
         except ExpiredSignatureError:
+            await AuditLog.alog(
+                action=AuditAction.LOGIN_FAILED,
+                description="Token refresh failed — expired",
+                severity=AuditSeverity.WARNING,
+                metadata={"reason": "token_expired"},
+                **ctx,
+            )
             return JsonResponse(
                 {"detail": "Refresh token has expired", "code": "token_expired"},
                 status=401,
             )
         except InvalidTokenError as e:
+            await AuditLog.alog(
+                action=AuditAction.LOGIN_FAILED,
+                description=f"Token refresh failed — invalid: {e}",
+                severity=AuditSeverity.WARNING,
+                metadata={"reason": "token_invalid"},
+                **ctx,
+            )
             return JsonResponse(
                 {"detail": f"Invalid refresh token: {e}", "code": "token_invalid"},
                 status=401,
@@ -298,11 +420,18 @@ class AuthController(APIController):
         This endpoint exists for API consistency and can be extended
         for token blacklisting if needed.
         """
-        # For stateless JWT, just return success
-        # In a real implementation, you might:
-        # 1. Add the token to a blacklist
-        # 2. Record logout time
-        # 3. Clear session if using hybrid auth
+        user = getattr(request, "user", None)
+        ctx = _request_context(request)
+
+        if user and user.is_authenticated:
+            await AuditLog.alog(
+                action=AuditAction.LOGOUT,
+                user=user,
+                obj=user,
+                description=f"{user.get_full_name() or user.email} logged out",
+                metadata=_user_metadata(user),
+                **ctx,
+            )
 
         return JsonResponse(MessageResponse(message="Logged out successfully").model_dump())
 
@@ -391,8 +520,19 @@ class AuthController(APIController):
 
         user = request.user
 
+        ctx = _request_context(request)
+
         # Verify current password
         if not user.check_password(data.current_password):
+            await AuditLog.alog(
+                action=AuditAction.PASSWORD_CHANGE,
+                user=user,
+                obj=user,
+                description=f"Failed password change for {user.email} — wrong current password",
+                severity=AuditSeverity.WARNING,
+                metadata={**_user_metadata(user), "reason": "invalid_current_password"},
+                **ctx,
+            )
             return JsonResponse(
                 {"detail": "Current password is incorrect", "code": "invalid_password"},
                 status=400,
@@ -404,6 +544,15 @@ class AuthController(APIController):
 
         # Generate new tokens (old tokens should be invalidated)
         tokens = create_token_pair(user)
+
+        await AuditLog.alog(
+            action=AuditAction.PASSWORD_CHANGE,
+            user=user,
+            obj=user,
+            description=f"{user.get_full_name() or user.email} changed password",
+            metadata=_user_metadata(user),
+            **ctx,
+        )
 
         return JsonResponse(
             {
@@ -532,10 +681,19 @@ class AuthController(APIController):
                 status=422,
             )
 
+        ctx = _request_context(request)
+
         # Verify the magic link token
         result = verify_magic_link_token(data.token, create_user=True)
 
         if not result.valid:
+            await AuditLog.alog(
+                action=AuditAction.LOGIN_FAILED,
+                description=f"Magic link verification failed: {result.error}",
+                severity=AuditSeverity.WARNING,
+                metadata={"reason": "invalid_magic_link", "error": result.error},
+                **ctx,
+            )
             return JsonResponse(
                 {"detail": result.error or "Invalid or expired link", "code": "invalid_token"},
                 status=401,
@@ -549,6 +707,19 @@ class AuthController(APIController):
 
         # Generate JWT tokens for the user
         tokens = create_token_pair(result.user)
+
+        await AuditLog.alog(
+            action=AuditAction.LOGIN,
+            user=result.user,
+            obj=result.user,
+            description=f"{result.user.get_full_name() or result.user.email} logged in via magic link",
+            metadata={
+                **_user_metadata(result.user),
+                "auth_method": "magic_link",
+                "user_created": result.user_created,
+            },
+            **ctx,
+        )
 
         # Build response
         return JsonResponse(
@@ -612,15 +783,43 @@ class MinimalAuthController(APIController):
         except Exception as e:
             return JsonResponse({"detail": str(e)}, status=422)
 
+        ctx = _request_context(request)
+
         try:
             user = await User.objects.aget(email=data.email)
         except User.DoesNotExist:
+            await AuditLog.alog(
+                action=AuditAction.LOGIN_FAILED,
+                description=f"Failed login attempt for {data.email}",
+                severity=AuditSeverity.WARNING,
+                metadata={"email": data.email, "reason": "user_not_found"},
+                **ctx,
+            )
             return JsonResponse({"detail": "Invalid credentials"}, status=401)
 
         if not user.check_password(data.password) or not user.is_active:
+            await AuditLog.alog(
+                action=AuditAction.LOGIN_FAILED,
+                user=user,
+                obj=user,
+                description=f"Failed login for {user.email}",
+                severity=AuditSeverity.WARNING,
+                metadata={**_user_metadata(user), "reason": "invalid_credentials"},
+                **ctx,
+            )
             return JsonResponse({"detail": "Invalid credentials"}, status=401)
 
         tokens = create_token_pair(user)
+
+        await AuditLog.alog(
+            action=AuditAction.LOGIN,
+            user=user,
+            obj=user,
+            description=f"{user.get_full_name() or user.email} logged in",
+            metadata={**_user_metadata(user), "auth_method": "email_password"},
+            **ctx,
+        )
+
         return JsonResponse(tokens.model_dump())
 
     @post("refresh")

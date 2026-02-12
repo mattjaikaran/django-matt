@@ -9,6 +9,10 @@ from typing import TYPE_CHECKING
 from django.contrib.auth import authenticate, get_user_model
 from django.http import JsonResponse
 
+from django_matt.audit.context import extract_client_ip, extract_user_agent
+from django_matt.audit.enums import AuditAction, AuditSeverity
+from django_matt.audit.models import AuditLog
+
 from .backend import delete_other_sessions, delete_session, get_user_sessions
 from .csrf import get_csrf_token
 from .decorators import session_required
@@ -32,6 +36,28 @@ from .utils import (
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
+
+
+def _user_metadata(user) -> dict:
+    """Build rich user metadata for audit logs."""
+    return {
+        "user_id": str(user.pk),
+        "email": getattr(user, "email", ""),
+        "username": getattr(user, "username", ""),
+        "full_name": user.get_full_name() if hasattr(user, "get_full_name") else "",
+        "is_staff": getattr(user, "is_staff", False),
+        "is_superuser": getattr(user, "is_superuser", False),
+    }
+
+
+def _request_context(request: "HttpRequest") -> dict:
+    """Extract IP, user agent, method, and path from request."""
+    return {
+        "ip_address": extract_client_ip(request),
+        "user_agent": extract_user_agent(request),
+        "request_method": request.method or "",
+        "request_path": request.path or "",
+    }
 
 
 class SessionController:
@@ -99,6 +125,8 @@ class SessionController:
         """
         User = get_user_model()
 
+        ctx = _request_context(request)
+
         # Authenticate user
         user = authenticate(
             request,
@@ -107,12 +135,28 @@ class SessionController:
         )
 
         if user is None:
+            await AuditLog.alog(
+                action=AuditAction.LOGIN_FAILED,
+                description=f"Failed session login for {data.email}",
+                severity=AuditSeverity.WARNING,
+                metadata={"email": data.email, "reason": "invalid_credentials", "auth_method": "session"},
+                **ctx,
+            )
             return JsonResponse(
                 {"detail": "Invalid email or password"},
                 status=401,
             )
 
         if not user.is_active:
+            await AuditLog.alog(
+                action=AuditAction.LOGIN_FAILED,
+                user=user,
+                obj=user,
+                description=f"Session login blocked for {user.email} — account disabled",
+                severity=AuditSeverity.WARNING,
+                metadata={**_user_metadata(user), "reason": "account_disabled", "auth_method": "session"},
+                **ctx,
+            )
             return JsonResponse(
                 {"detail": "Account is disabled"},
                 status=403,
@@ -127,6 +171,20 @@ class SessionController:
         if data.remember_me:
             # Set longer session expiry (30 days)
             request.session.set_expiry(86400 * 30)
+
+        await AuditLog.alog(
+            action=AuditAction.LOGIN,
+            user=user,
+            obj=user,
+            description=f"{user.get_full_name() or user.email} logged in via session",
+            metadata={
+                **_user_metadata(user),
+                "auth_method": "session",
+                "remember_me": data.remember_me,
+                "session_key": request.session.session_key,
+            },
+            **ctx,
+        )
 
         # Build response
         user_data = SessionUserSchema(
@@ -158,6 +216,19 @@ class SessionController:
 
         Clears session data and invalidates the session.
         """
+        user = getattr(request, "user", None)
+        ctx = _request_context(request)
+
+        if user and user.is_authenticated:
+            await AuditLog.alog(
+                action=AuditAction.LOGOUT,
+                user=user,
+                obj=user,
+                description=f"{user.get_full_name() or user.email} logged out (session)",
+                metadata={**_user_metadata(user), "auth_method": "session"},
+                **ctx,
+            )
+
         from asgiref.sync import sync_to_async
 
         await sync_to_async(logout_session)(request)
