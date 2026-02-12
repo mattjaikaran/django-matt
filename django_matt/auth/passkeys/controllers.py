@@ -175,11 +175,12 @@ class PasskeyController:
         """
         from django_matt.auth.passkeys.models import PasskeyCredential
 
-        credentials = PasskeyCredential.objects.filter(user=request.user).order_by("-created_at")
+        credentials_qs = PasskeyCredential.objects.filter(user=request.user).order_by("-created_at")
 
+        credentials = [cred async for cred in credentials_qs]
         return PasskeyCredentialListResponse(
             credentials=[PasskeyCredentialResponse.from_model(cred) for cred in credentials],
-            count=credentials.count(),
+            count=await credentials_qs.acount(),
         )
 
     @staticmethod
@@ -193,7 +194,7 @@ class PasskeyController:
         from django_matt.auth.passkeys.models import PasskeyCredential
 
         try:
-            credential = PasskeyCredential.objects.get(
+            credential = await PasskeyCredential.objects.aget(
                 id=credential_id,
                 user=request.user,
             )
@@ -201,13 +202,13 @@ class PasskeyController:
             raise NotFoundAPIError("Credential not found")
 
         # Prevent deleting last credential if user has no password
-        remaining = (
-            PasskeyCredential.objects.filter(user=request.user).exclude(id=credential_id).count()
+        remaining = await (
+            PasskeyCredential.objects.filter(user=request.user).exclude(id=credential_id).acount()
         )
         if remaining == 0 and not request.user.has_usable_password():
             raise ValidationAPIError("Cannot delete last passkey when user has no password set")
 
-        credential.delete()
+        await credential.adelete()
 
         return {"success": True, "message": "Credential deleted"}
 
@@ -224,7 +225,7 @@ class PasskeyController:
         from django_matt.auth.passkeys.models import PasskeyCredential
 
         try:
-            credential = PasskeyCredential.objects.get(
+            credential = await PasskeyCredential.objects.aget(
                 id=credential_id,
                 user=request.user,
             )
@@ -232,7 +233,7 @@ class PasskeyController:
             raise NotFoundAPIError("Credential not found")
 
         credential.name = data.name
-        credential.save(update_fields=["name"])
+        await credential.asave(update_fields=["name"])
 
         return PasskeyCredentialResponse.from_model(credential)
 

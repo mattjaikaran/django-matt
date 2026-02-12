@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import inspect
-import json
 from functools import wraps
 from typing import TYPE_CHECKING, Any, get_type_hints
 
 import django
 from django.conf import settings
+
+import orjson
 
 if TYPE_CHECKING:
     pass
@@ -17,15 +18,21 @@ from pydantic import BaseModel, ValidationError
 
 from django_matt.core.errors import APIError, ErrorHandler, NotFoundAPIError
 
+# Module-level cache: avoids re-reading settings on every error
+_error_config: dict[str, Any] | None = None
+
 
 def _get_error_config() -> dict[str, Any]:
-    """Get error handling configuration from settings."""
-    config = getattr(settings, "DJANGO_MATT_ERRORS", {})
-    return {
-        "debug": config.get("DEBUG", getattr(settings, "DEBUG", False)),
-        "include_traceback": config.get("INCLUDE_TRACEBACK", getattr(settings, "DEBUG", False)),
-        "include_snippet": config.get("INCLUDE_SNIPPET", getattr(settings, "DEBUG", False)),
-    }
+    """Get error handling configuration from settings (cached after first call)."""
+    global _error_config
+    if _error_config is None:
+        config = getattr(settings, "DJANGO_MATT_ERRORS", {})
+        _error_config = {
+            "debug": config.get("DEBUG", getattr(settings, "DEBUG", False)),
+            "include_traceback": config.get("INCLUDE_TRACEBACK", getattr(settings, "DEBUG", False)),
+            "include_snippet": config.get("INCLUDE_SNIPPET", getattr(settings, "DEBUG", False)),
+        }
+    return _error_config
 
 
 # Django version detection for compatibility
@@ -47,15 +54,18 @@ class Controller:
     auto_error_handling: bool = True  # Enable automatic error handling by default
 
     def __init__(self):
-        self._setup_dependencies()
-        if self.auto_error_handling:
-            self._setup_error_handling()
+        self._setup_methods()
 
-    def _setup_dependencies(self):
+    def _setup_methods(self):
         """
-        Set up dependencies for controller methods based on type hints.
-        This allows for automatic dependency injection in controller methods.
+        Single-pass setup: dependency injection + error handling for all route methods.
+
+        Caches type hints at init time (not per-request) and wraps each method
+        once instead of twice.
         """
+        error_config = _get_error_config() if self.auto_error_handling else None
+        error_handler = ErrorHandler(debug=error_config["debug"]) if error_config else None
+
         for method_name in dir(self):
             if method_name.startswith("_"):
                 continue
@@ -64,93 +74,67 @@ class Controller:
             if not callable(method) or not hasattr(method, "_route_info"):
                 continue
 
-            # Get type hints for the method
+            # Cache type hints once at init — not per-request
             hints = get_type_hints(method)
+            is_coro = inspect.iscoroutinefunction(method)
 
-            # Create a wrapper that injects dependencies
+            # Pre-compute which params need Pydantic injection
+            pydantic_params = {
+                name: ptype
+                for name, ptype in hints.items()
+                if name != "return"
+                and name != "request"
+                and inspect.isclass(ptype)
+                and issubclass(ptype, BaseModel)
+            }
+
             @wraps(method)
-            async def wrapper(request, *args, **kwargs):
-                # Process request body if it exists
-                body_data = {}
-                if request.body and request.content_type == "application/json":
-                    try:
-                        body_data = json.loads(request.body)
-                    except json.JSONDecodeError:
-                        return JsonResponse({"detail": "Invalid JSON"}, status=400)
-
-                # Inject dependencies based on type hints
-                for param_name, param_type in hints.items():
-                    if param_name == "return":
-                        continue
-
-                    if param_name == "request":
-                        kwargs[param_name] = request
-                        continue
-
-                    # Check if the parameter is a Pydantic model
-                    if inspect.isclass(param_type) and issubclass(param_type, BaseModel):
-                        try:
-                            # Try to create the model from body data
-                            model_instance = param_type(**body_data)
-                            kwargs[param_name] = model_instance
-                        except ValidationError as e:
-                            return JsonResponse(
-                                {"detail": "Validation error", "errors": e.errors()},
-                                status=422,
-                            )
-
-                # Call the original method
-                if inspect.iscoroutinefunction(method):
-                    result = await method(*args, **kwargs)
-                else:
-                    result = method(*args, **kwargs)
-
-                return result
-
-            # Replace the original method with the wrapper
-            setattr(self, method_name, wrapper)
-
-    def _setup_error_handling(self):
-        """
-        Set up automatic error handling for controller methods.
-        This wraps all route methods with try/except blocks.
-        """
-        # Get error configuration from settings
-        error_config = _get_error_config()
-        error_handler_instance = ErrorHandler(debug=error_config["debug"])
-
-        for method_name in dir(self):
-            if method_name.startswith("_"):
-                continue
-
-            method = getattr(self, method_name)
-            if not callable(method) or not hasattr(method, "_route_info"):
-                continue
-
-            # Create a wrapper that adds error handling
-            @wraps(method)
-            async def error_wrapper(request, *args, **kwargs):
+            async def wrapper(
+                request,
+                *args,
+                _method=method,
+                _is_coro=is_coro,
+                _pydantic_params=pydantic_params,
+                _error_handler=error_handler,
+                _error_config=error_config,
+                **kwargs,
+            ):
                 try:
-                    if inspect.iscoroutinefunction(method):
-                        result = await method(request, *args, **kwargs)
+                    # Parse body once with orjson if needed
+                    if _pydantic_params and request.body and request.content_type == "application/json":
+                        try:
+                            body_data = orjson.loads(request.body)
+                        except (ValueError, orjson.JSONDecodeError):
+                            return JsonResponse({"detail": "Invalid JSON"}, status=400)
+
+                        for param_name, param_type in _pydantic_params.items():
+                            try:
+                                kwargs[param_name] = param_type(**body_data)
+                            except ValidationError as e:
+                                return JsonResponse(
+                                    {"detail": "Validation error", "errors": e.errors()},
+                                    status=422,
+                                )
+
+                    if _is_coro:
+                        result = await _method(*args, **kwargs)
                     else:
-                        result = method(request, *args, **kwargs)
+                        result = _method(*args, **kwargs)
+
                     return result
+
                 except Exception as e:
-                    # Use the handle_exception method if available
+                    if _error_config is None:
+                        raise  # error handling disabled
                     if hasattr(self, "handle_exception"):
                         return self.handle_exception(e, request)
-
-                    # Otherwise use the default error handler
-                    cfg = _get_error_config()
-                    error_detail = error_handler_instance.capture_exception(e, request)
+                    error_detail = _error_handler.capture_exception(e, request)
                     return error_detail.to_response(
-                        include_traceback=cfg["include_traceback"],
-                        include_snippet=cfg["include_snippet"],
+                        include_traceback=_error_config["include_traceback"],
+                        include_snippet=_error_config["include_snippet"],
                     )
 
-            # Replace the method with the error-handling wrapper
-            setattr(self, method_name, error_wrapper)
+            setattr(self, method_name, wrapper)
 
 
 class APIController(Controller):
@@ -159,21 +143,19 @@ class APIController(Controller):
     Provides additional functionality for API-specific concerns.
     """
 
+    # Class-level error handler — shared across all instances
+    _error_handler: ErrorHandler | None = None
+
     def handle_exception(self, exc: Exception, request: HttpRequest = None) -> JsonResponse:
         """
         Handle exceptions raised during request processing.
         Override this method to customize exception handling.
-
-        Args:
-                exc: The exception that was raised
-                request: The HTTP request that caused the exception
-
-        Returns:
-                A JsonResponse with error details
         """
-        # Get error configuration from settings
         error_config = _get_error_config()
-        error_handler_instance = ErrorHandler(debug=error_config["debug"])
+
+        # Lazy-init class-level error handler
+        if APIController._error_handler is None:
+            APIController._error_handler = ErrorHandler(debug=error_config["debug"])
 
         # Handle specific API exceptions
         if isinstance(exc, APIError):
@@ -208,7 +190,7 @@ class APIController(Controller):
             )
 
         # Use the error handler for other exceptions
-        error_detail = error_handler_instance.capture_exception(exc, request)
+        error_detail = APIController._error_handler.capture_exception(exc, request)
         return error_detail.to_response(
             include_traceback=error_config["include_traceback"],
             include_snippet=error_config["include_snippet"],
@@ -257,6 +239,18 @@ class CRUDController(APIController):
     lookup_field: str = "id"
     ordering: list[str] | None = None
 
+    def __init__(self):
+        super().__init__()
+        # Cache field introspection once at init — not per-request
+        if self.model:
+            self._valid_filter_fields = frozenset(f.name for f in self.model._meta.fields)
+            self._fk_fields = self._get_foreign_key_fields()
+            self._m2m_fields = self._get_many_to_many_fields()
+        else:
+            self._valid_filter_fields = frozenset()
+            self._fk_fields = []
+            self._m2m_fields = []
+
     def get_queryset(self):
         """
         Get the base queryset for this controller.
@@ -286,20 +280,16 @@ class CRUDController(APIController):
         if not self.auto_optimize:
             return queryset
 
-        # Use explicitly configured fields if provided
+        # Use explicitly configured fields or cached auto-detected fields
         if self.select_related_fields:
             queryset = queryset.select_related(*self.select_related_fields)
-        elif self.auto_optimize:
-            # Auto-detect foreign key relationships
-            select_fields = self._get_foreign_key_fields()
-            if select_fields:
-                queryset = queryset.select_related(*select_fields)
+        elif self.auto_optimize and self._fk_fields:
+            queryset = queryset.select_related(*self._fk_fields)
 
         if self.prefetch_related_fields:
             queryset = queryset.prefetch_related(*self.prefetch_related_fields)
         elif self.auto_optimize:
-            # Auto-detect many-to-many relationships
-            prefetch_fields = self._get_many_to_many_fields()
+            prefetch_fields = list(self._m2m_fields)
             if self.include_reverse_relations:
                 prefetch_fields.extend(self._get_reverse_relation_fields())
             if prefetch_fields:
@@ -356,17 +346,14 @@ class CRUDController(APIController):
         Returns:
             QuerySet: The filtered queryset
         """
-        # Get valid filter fields from model
-        valid_fields = {f.name for f in self.model._meta.fields}
-
         for key, value in request.GET.items():
             # Skip pagination and special parameters
             if key in ("page", "page_size", "limit", "offset", "ordering", "format"):
                 continue
 
-            # Handle field lookups (e.g., name__icontains)
+            # Handle field lookups (e.g., name__icontains) — uses cached field set
             field_name = key.split("__")[0]
-            if field_name in valid_fields:
+            if field_name in self._valid_filter_fields:
                 queryset = queryset.filter(**{key: value})
 
         return queryset
@@ -389,13 +376,13 @@ class CRUDController(APIController):
         queryset = self.get_optimized_queryset()
         queryset = self.filter_queryset(queryset, request)
 
-        # Use async iteration (Django 4.1+)
+        # Count before iteration to avoid extra query after consuming queryset
+        count = await queryset.acount()
+
+        # Use fast serialization (model_construct, no re-validation)
         items = []
         async for item in queryset:
-            items.append(self._model_to_dict(item))
-
-        # Get count asynchronously
-        count = await queryset.acount()
+            items.append(self._model_to_dict_fast(item))
 
         return {"items": items, "count": count}
 
@@ -553,7 +540,7 @@ class CRUDController(APIController):
         created = await self.model.objects.abulk_create(model_instances)
 
         return {
-            "items": [self._model_to_dict(instance) for instance in created],
+            "items": [self._model_to_dict_fast(instance) for instance in created],
             "count": len(created),
         }
 
@@ -631,30 +618,25 @@ class CRUDController(APIController):
         return {"count": total}
 
     def _model_to_dict(self, instance) -> dict[str, Any]:
-        """
-        Convert a model instance to a dictionary.
-
-        Uses the configured schema if available, otherwise falls back
-        to a simple field-by-field conversion.
-
-        Args:
-            instance: The model instance to convert
-
-        Returns:
-            Dict representation of the model instance
-        """
+        """Convert a model instance to a dict (with full validation)."""
         if self.schema:
-            # Use the schema to convert the model to a dictionary
             return self.schema.from_orm(instance).model_dump()
+        return self._model_to_dict_raw(instance)
 
-        # Fallback to a simple conversion
+    def _model_to_dict_fast(self, instance) -> dict[str, Any]:
+        """Convert a model instance to a dict (no re-validation, for list serialization)."""
+        if self.schema and hasattr(self.schema, "from_orm_fast"):
+            return self.schema.from_orm_fast(instance).model_dump()
+        return self._model_to_dict_raw(instance)
+
+    def _model_to_dict_raw(self, instance) -> dict[str, Any]:
+        """Fallback: field-by-field conversion without schema."""
         result = {}
         for field in instance._meta.fields:
-            value = getattr(instance, field.name)
-            # Handle foreign keys - return the ID
             if isinstance(field, ForeignKey):
-                value = getattr(instance, f"{field.name}_id")
-            result[field.name] = value
+                result[field.name] = getattr(instance, f"{field.name}_id")
+            else:
+                result[field.name] = getattr(instance, field.name)
         return result
 
     def get_query_optimization_info(self) -> dict[str, Any]:

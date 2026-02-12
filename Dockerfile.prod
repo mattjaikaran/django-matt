@@ -38,7 +38,7 @@ RUN uv venv /opt/venv --python 3.13
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Install production dependencies only
-RUN uv pip install --no-cache ".[full]" gunicorn uvicorn[standard]
+RUN uv pip install --no-cache ".[full,server]"
 
 # Copy application code
 COPY django_matt/ ./django_matt/
@@ -62,9 +62,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONFAULTHANDLER=1 \
     PATH="/opt/venv/bin:$PATH" \
-    # Gunicorn settings
+    # ASGI server settings (Gunicorn + Uvicorn workers)
     GUNICORN_WORKERS=4 \
-    GUNICORN_THREADS=2
+    UVICORN_WORKER_CONNECTIONS=1000
 
 # Install runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -99,7 +99,7 @@ EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health/ || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
 
-# Default command
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--threads", "2"]
+# Default command — ASGI via Gunicorn + Uvicorn workers
+CMD ["gunicorn", "config.asgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker"]

@@ -317,6 +317,33 @@ def refresh_tokens(refresh_token: str) -> TokenPair:
     return create_token_pair(user)
 
 
+async def async_refresh_tokens(refresh_token: str) -> TokenPair:
+    """
+    Async version of refresh_tokens. Use from async controllers.
+
+    Args:
+        refresh_token: The refresh token
+
+    Returns:
+        New TokenPair
+
+    Raises:
+        InvalidTokenError: If refresh token is invalid
+    """
+    payload = verify_refresh_token(refresh_token)
+
+    User = get_user_model()
+    try:
+        user = await User.objects.aget(**{jwt_config.user_id_field: payload.sub})
+    except User.DoesNotExist:
+        raise InvalidTokenError("User not found")
+
+    if not user.is_active:
+        raise InvalidTokenError("User is inactive")
+
+    return create_token_pair(user)
+
+
 def get_token_from_request(request: HttpRequest) -> str | None:
     """
     Extract JWT token from request headers.
@@ -353,20 +380,42 @@ def get_token_from_request(request: HttpRequest) -> str | None:
     return token
 
 
-def get_user_from_token(token: str):
+def get_user_from_token(token: str, *, _payload: "TokenPayload | None" = None):
     """
     Get Django user from a JWT token.
 
     Args:
         token: JWT access token
+        _payload: Pre-verified payload to avoid double-decode (internal optimization)
 
     Returns:
         Django User instance or None
     """
     try:
-        payload = verify_access_token(token)
+        payload = _payload or verify_access_token(token)
         User = get_user_model()
         return User.objects.get(**{jwt_config.user_id_field: payload.sub})
+    except (InvalidTokenError, ExpiredSignatureError):
+        return None
+    except Exception:
+        return None
+
+
+async def aget_user_from_token(token: str, *, _payload: "TokenPayload | None" = None):
+    """
+    Async version of get_user_from_token.
+
+    Args:
+        token: JWT access token
+        _payload: Pre-verified payload to avoid double-decode (internal optimization)
+
+    Returns:
+        Django User instance or None
+    """
+    try:
+        payload = _payload or verify_access_token(token)
+        User = get_user_model()
+        return await User.objects.aget(**{jwt_config.user_id_field: payload.sub})
     except (InvalidTokenError, ExpiredSignatureError):
         return None
     except Exception:
