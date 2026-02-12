@@ -68,22 +68,8 @@ class JSONRenderer(BaseRenderer):
         self._encoder = self._get_encoder()
 
     def _get_encoder(self):
-        """Get the best available JSON encoder."""
-        try:
-            import orjson
-
-            return "orjson"
-        except ImportError:
-            pass
-
-        try:
-            import ujson
-
-            return "ujson"
-        except ImportError:
-            pass
-
-        return "json"
+        """Get the best available JSON encoder. orjson is a base dep, always available."""
+        return "orjson"
 
     def _serialize_value(self, obj: Any) -> Any:
         """Serialize non-standard types for JSON."""

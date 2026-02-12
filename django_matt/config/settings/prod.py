@@ -97,7 +97,7 @@ settings: dict[str, Any] = {
                             "max_lifetime": int(os.environ.get("DB_POOL_MAX_LIFETIME", 3600)),
                         }
                     }
-                    if DJANGO_5_2_PLUS and _get_bool_env("DB_POOL_ENABLED")
+                    if DJANGO_5_2_PLUS and _get_bool_env("DB_POOL_ENABLED", True)
                     else {}
                 ),
             },

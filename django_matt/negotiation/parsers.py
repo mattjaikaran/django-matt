@@ -54,22 +54,8 @@ class JSONParser(BaseParser):
         self._decoder = self._get_decoder()
 
     def _get_decoder(self) -> str:
-        """Get the best available JSON decoder."""
-        try:
-            import orjson
-
-            return "orjson"
-        except ImportError:
-            pass
-
-        try:
-            import ujson
-
-            return "ujson"
-        except ImportError:
-            pass
-
-        return "json"
+        """Get the best available JSON decoder. orjson is a base dep, always available."""
+        return "orjson"
 
     def parse(self, data: bytes, **kwargs) -> Any:
         """Parse JSON bytes to Python data."""
@@ -77,16 +63,10 @@ class JSONParser(BaseParser):
             return None
 
         try:
-            if self._decoder == "orjson":
-                import orjson
+            import orjson
 
-                return orjson.loads(data)
-            if self._decoder == "ujson":
-                import ujson
-
-                return ujson.loads(data)
-            return json.loads(data)
-        except (json.JSONDecodeError, ValueError) as e:
+            return orjson.loads(data)
+        except (ValueError, orjson.JSONDecodeError) as e:
             raise ParseError("Invalid JSON", str(e))
 
 

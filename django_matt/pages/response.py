@@ -11,12 +11,10 @@ from typing import Any
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 
-try:
-    import orjson
+# orjson is a base dependency — always available
+import orjson
 
-    HAS_ORJSON = True
-except ImportError:
-    HAS_ORJSON = False
+HAS_ORJSON = True
 
 
 @dataclass

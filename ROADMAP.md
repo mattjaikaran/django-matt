@@ -1618,6 +1618,16 @@ function LoginPage() {
 - [ ] Astro framework support
 - [ ] Remix framework support
 
+### Slim Mode / Selective Module Loading
+- [ ] **Slim mode** — only register middleware, apps, and URL patterns for modules actually configured
+  - Skip billing middleware if `DJANGO_MATT_BILLING.ENABLED = False`
+  - Skip multitenancy middleware if no org model configured
+  - Skip analytics, experiments, flags, websockets unless explicitly enabled
+- [ ] **Deferred app loading** — lazy-import heavy modules (billing, ai, ml, graphql) so import time stays < 50ms
+- [ ] **Startup profiler** — `matt doctor --perf` shows import time breakdown per module
+- [ ] **Zero-cost abstractions** — ensure disabled modules add zero overhead to request/response cycle
+- [ ] **Minimal mode** — `MattAPI(mode="minimal")` loads only core routing + auth, nothing else
+
 ### Distribution
 - [ ] PyPI package distribution helpers
 - [ ] Automated versioning and changelog generation

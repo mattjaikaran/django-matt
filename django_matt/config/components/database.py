@@ -79,7 +79,11 @@ def get_postgres_pool_options() -> dict[str, Any]:
     Returns:
         Dict with pool options for PostgreSQL
     """
-    pool_enabled = get_env_bool("DB_POOL_ENABLED", False)
+    # Connection pooling is enabled by default on Django 5.2+ (psycopg3)
+    # Set DB_POOL_ENABLED=false to disable
+    env = os.environ.get("DJANGO_ENV", "development")
+    pool_default = DJANGO_5_2_PLUS and env == "production"
+    pool_enabled = get_env_bool("DB_POOL_ENABLED", pool_default)
 
     if not pool_enabled:
         return {}
@@ -285,7 +289,7 @@ def configure_database(
     port: str = "5432",
     conn_max_age: int | None = None,
     conn_health_checks: bool = True,
-    pool_enabled: bool = False,
+    pool_enabled: bool = True,
     pool_min_size: int = 5,
     pool_max_size: int = 20,
     **extra_options: Any,
