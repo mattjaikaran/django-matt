@@ -343,12 +343,24 @@ def decode_token(token: str, verify_type: str | None = None) -> TokenPayload:
 
 def verify_access_token(token: str) -> TokenPayload:
     """Verify and decode an access token."""
-    return decode_token(token, verify_type="access")
+    payload = decode_token(token, verify_type="access")
+    if payload.jti:
+        from django_matt.auth.blacklist.core import is_token_blacklisted
+
+        if is_token_blacklisted(payload.jti):
+            raise InvalidTokenError("Token has been revoked")
+    return payload
 
 
 def verify_refresh_token(token: str) -> TokenPayload:
     """Verify and decode a refresh token."""
-    return decode_token(token, verify_type="refresh")
+    payload = decode_token(token, verify_type="refresh")
+    if payload.jti:
+        from django_matt.auth.blacklist.core import is_token_blacklisted
+
+        if is_token_blacklisted(payload.jti):
+            raise InvalidTokenError("Token has been revoked")
+    return payload
 
 
 def refresh_tokens(refresh_token: str) -> TokenPair:
@@ -366,6 +378,12 @@ def refresh_tokens(refresh_token: str) -> TokenPair:
     """
     # Verify the refresh token
     payload = verify_refresh_token(refresh_token)
+
+    # Blacklist old refresh token if configured
+    if jwt_config.blacklist_after_rotation and payload.jti:
+        from django_matt.auth.blacklist.core import blacklist_token
+
+        blacklist_token(payload.jti, payload.exp)
 
     # Get the user
     User = get_user_model()
@@ -395,6 +413,12 @@ async def async_refresh_tokens(refresh_token: str) -> TokenPair:
         InvalidTokenError: If refresh token is invalid
     """
     payload = verify_refresh_token(refresh_token)
+
+    # Blacklist old refresh token if configured
+    if jwt_config.blacklist_after_rotation and payload.jti:
+        from django_matt.auth.blacklist.core import ablacklist_token
+
+        await ablacklist_token(payload.jti, payload.exp)
 
     User = get_user_model()
     try:

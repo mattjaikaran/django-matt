@@ -24,6 +24,7 @@ django.setup()
 import django_matt.multitenancy.models  # noqa: F401, E402
 import django_matt.auth.passkeys.models  # noqa: F401, E402
 import django_matt.auth.api_keys.models  # noqa: F401, E402
+import django_matt.auth.blacklist.models  # noqa: F401, E402
 
 # Now we can safely import pytest and other fixtures
 from django.test import RequestFactory

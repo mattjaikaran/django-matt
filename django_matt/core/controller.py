@@ -21,6 +21,24 @@ from django_matt.core.errors import APIError, ErrorHandler, NotFoundAPIError, Va
 # Module-level cache: avoids re-reading settings on every error
 _error_config: dict[str, Any] | None = None
 
+# --- DI auto-wire config (cached at module level) ---
+_di_config: bool | None = None
+
+
+def _get_di_config() -> bool:
+    """Check if DI auto-wire is enabled. Cached after first call."""
+    global _di_config
+    if _di_config is None:
+        matt_config = getattr(settings, "DJANGO_MATT", {})
+        _di_config = matt_config.get("DI_AUTO_WIRE", False)
+    return _di_config
+
+
+def _reset_di_config() -> None:
+    """Reset the cached DI config. Used in tests."""
+    global _di_config
+    _di_config = None
+
 
 def _get_error_config() -> dict[str, Any]:
     """Get error handling configuration from settings (cached after first call)."""
@@ -88,6 +106,22 @@ class Controller:
                 and issubclass(ptype, BaseModel)
             }
 
+            # Analyze DI params once at init — not per-request
+            di_params = None
+            if _get_di_config():
+                from django_matt.di.depends import DependencyMarker
+
+                sig = inspect.signature(method)
+                di_params_found = {}
+                for pname, pparam in sig.parameters.items():
+                    if pname in ("self", "cls", "request"):
+                        continue
+                    if pparam.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                        continue
+                    if isinstance(pparam.default, DependencyMarker):
+                        di_params_found[pname] = pparam.default
+                di_params = di_params_found if di_params_found else None
+
             @wraps(method)
             async def wrapper(
                 request,
@@ -97,6 +131,7 @@ class Controller:
                 _pydantic_params=pydantic_params,
                 _error_handler=error_handler,
                 _error_config=error_config,
+                _di_params=di_params,
                 **kwargs,
             ):
                 try:
@@ -120,12 +155,37 @@ class Controller:
                                     status=422,
                                 )
 
-                    if _is_coro:
-                        result = await _method(*args, **kwargs)
-                    else:
-                        result = _method(*args, **kwargs)
+                    # Resolve DI dependencies if present
+                    scope_token = None
+                    if _di_params is not None:
+                        from django_matt.di.container import _scoped_instances
+                        from django_matt.di.depends import aresolve_dependencies
 
-                    return result
+                        if _scoped_instances.get() is None:
+                            scope_token = _scoped_instances.set({})
+
+                        try:
+                            deps = await aresolve_dependencies(
+                                _method,
+                                request=request,
+                                **kwargs,
+                            )
+                            kwargs.update(deps)
+                        except Exception:
+                            if scope_token is not None:
+                                _scoped_instances.reset(scope_token)
+                            raise
+
+                    try:
+                        if _is_coro:
+                            result = await _method(*args, **kwargs)
+                        else:
+                            result = _method(*args, **kwargs)
+
+                        return result
+                    finally:
+                        if scope_token is not None:
+                            _scoped_instances.reset(scope_token)
 
                 except Exception as e:
                     if _error_config is None:

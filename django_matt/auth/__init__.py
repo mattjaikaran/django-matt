@@ -40,6 +40,7 @@ Example:
 """
 
 # JWT Authentication
+# Blacklist
 # API Keys
 from django_matt.auth.api_keys import (
     PLAN_RATE_LIMITS,
@@ -63,6 +64,21 @@ from django_matt.auth.api_keys import (
     requires_plan,
     requires_scope,
     rotate_api_key,
+)
+from django_matt.auth.blacklist import (
+    BlacklistConfig,
+    BlacklistedToken,
+    CacheBlacklistBackend,
+    DatabaseBlacklistBackend,
+    NullBlacklistBackend,
+    ablacklist_token,
+    ais_token_blacklisted,
+    aprune_expired_tokens,
+    blacklist_config,
+    blacklist_token,
+    is_token_blacklisted,
+    prune_expired_tokens,
+    reset_backend,
 )
 
 # Controllers
@@ -158,6 +174,17 @@ from django_matt.auth.passkeys import (
     verify_registration_response,
 )
 
+# Password Reset
+from django_matt.auth.password_reset import (
+    PasswordResetConfig,
+    PasswordResetResult,
+    averify_password_reset_token,
+    create_password_reset_token,
+    get_reset_url,
+    password_reset_config,
+    verify_password_reset_token,
+)
+
 # RBAC (from folder)
 from django_matt.auth.rbac import (
     RBACConfig,
@@ -222,6 +249,20 @@ from django_matt.auth.sso import (
 )
 
 __all__ = [
+    # Blacklist
+    "BlacklistConfig",
+    "blacklist_config",
+    "blacklist_token",
+    "ablacklist_token",
+    "is_token_blacklisted",
+    "ais_token_blacklisted",
+    "prune_expired_tokens",
+    "aprune_expired_tokens",
+    "reset_backend",
+    "NullBlacklistBackend",
+    "CacheBlacklistBackend",
+    "DatabaseBlacklistBackend",
+    "BlacklistedToken",
     # JWT
     "JWTConfig",
     "jwt_config",
@@ -274,6 +315,14 @@ __all__ = [
     "create_magic_link_url",
     "send_magic_link",
     "send_magic_link_async",
+    # Password Reset
+    "PasswordResetConfig",
+    "password_reset_config",
+    "PasswordResetResult",
+    "create_password_reset_token",
+    "verify_password_reset_token",
+    "averify_password_reset_token",
+    "get_reset_url",
     # Passkeys/WebAuthn
     "PasskeyConfig",
     "passkey_config",

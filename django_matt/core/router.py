@@ -11,6 +11,53 @@ from pydantic import BaseModel, ValidationError
 # Cache type hints per function to avoid repeated introspection
 _hints_cache: dict[int, dict] = {}
 
+# --- DI auto-wire config (cached at module level) ---
+_di_config: bool | None = None
+
+
+def _get_di_config() -> bool:
+    """Check if DI auto-wire is enabled. Cached after first call."""
+    global _di_config
+    if _di_config is None:
+        from django.conf import settings
+
+        matt_config = getattr(settings, "DJANGO_MATT", {})
+        _di_config = matt_config.get("DI_AUTO_WIRE", False)
+    return _di_config
+
+
+def _reset_di_config() -> None:
+    """Reset the cached DI config. Used in tests."""
+    global _di_config
+    _di_config = None
+
+
+def _analyze_di_params(endpoint: Callable) -> dict | None:
+    """
+    Analyze endpoint for DI parameters. Returns dict of params needing resolution,
+    or None if no DI params found. Called once at registration, not per-request.
+    """
+    if not _get_di_config():
+        return None
+
+    from django_matt.di.depends import DependencyMarker
+
+    sig = inspect.signature(endpoint)
+    di_params = {}
+
+    for param_name, param in sig.parameters.items():
+        # Skip self, cls, request, body, *args, **kwargs
+        if param_name in ("self", "cls", "request", "body"):
+            continue
+        if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+            continue
+
+        # Check for Depends() marker in default value
+        if isinstance(param.default, DependencyMarker):
+            di_params[param_name] = param.default
+
+    return di_params if di_params else None
+
 
 def get_body_schema(endpoint: Callable) -> type[BaseModel] | None:
     """
@@ -227,8 +274,10 @@ class APIRouter:
         is_coro = inspect.iscoroutinefunction(endpoint)
         # Pre-compute allowed methods set for O(1) lookup
         allowed_methods = frozenset(m.upper() for m in methods) if methods else None
+        # Analyze DI params once at registration — not per-request
+        di_params = _analyze_di_params(endpoint)
 
-        async def view_func(request, *args, **kwargs):
+        async def view_func(request, *args, _di_params=di_params, **kwargs):
             # Enforce HTTP method
             if allowed_methods and request.method not in allowed_methods:
                 response = JsonResponse(
@@ -250,8 +299,35 @@ class APIRouter:
                         status=422,
                     )
 
-            # Call the endpoint
-            if is_coro:
+            # Call the endpoint (with DI resolution if needed)
+            if _di_params is not None:
+                from django_matt.di.container import _scoped_instances
+                from django_matt.di.depends import aresolve_dependencies
+
+                # Create per-request scope if not already set
+                scope_token = None
+                if _scoped_instances.get() is None:
+                    scope_token = _scoped_instances.set({})
+
+                try:
+                    # Resolve DI dependencies
+                    deps = await aresolve_dependencies(
+                        endpoint,
+                        request=request,
+                        **kwargs,
+                    )
+                    kwargs.update(deps)
+
+                    # Call the endpoint
+                    if is_coro:
+                        result = await endpoint(request, *args, **kwargs)
+                    else:
+                        result = endpoint(request, *args, **kwargs)
+                finally:
+                    if scope_token is not None:
+                        _scoped_instances.reset(scope_token)
+            # Original non-DI path
+            elif is_coro:
                 result = await endpoint(request, *args, **kwargs)
             else:
                 result = endpoint(request, *args, **kwargs)
