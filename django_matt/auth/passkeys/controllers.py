@@ -8,7 +8,7 @@ Provides ready-to-use endpoints for:
 """
 
 from django_matt.auth.decorators import jwt_required
-from django_matt.auth.jwt import create_token_pair
+from django_matt.auth.jwt import acreate_token_pair
 from django_matt.auth.passkeys.schemas import (
     AuthenticationOptionsRequest,
     AuthenticationVerifyRequest,
@@ -149,13 +149,13 @@ class PasskeyController:
             )
 
             # Generate JWT tokens
-            tokens = create_token_pair(user)
+            tokens = await acreate_token_pair(user)
 
             return AuthenticationVerifyResponse(
                 success=True,
                 user_id=user.pk,
-                access_token=tokens["access"],
-                refresh_token=tokens["refresh"],
+                access_token=tokens.access_token,
+                refresh_token=tokens.refresh_token,
                 message="Authentication successful",
             )
         except PasskeyError as e:
@@ -308,13 +308,13 @@ class MinimalPasskeyController:
                 user_handle=data.response.userHandle,
             )
 
-            tokens = create_token_pair(user)
+            tokens = await acreate_token_pair(user)
 
             return AuthenticationVerifyResponse(
                 success=True,
                 user_id=user.pk,
-                access_token=tokens["access"],
-                refresh_token=tokens["refresh"],
+                access_token=tokens.access_token,
+                refresh_token=tokens.refresh_token,
                 message="Authentication successful",
             )
         except PasskeyError as e:

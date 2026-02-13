@@ -212,6 +212,49 @@ def create_refresh_token(
     )
 
 
+async def acreate_access_token(
+    user,
+    extra_claims: dict[str, Any] | None = None,
+    lifetime: timedelta | None = None,
+) -> str:
+    """
+    Async version of create_access_token.
+
+    Uses async ORM for user.groups query. Use from async controllers.
+    """
+    lifetime = lifetime or jwt_config.access_token_lifetime
+    expires_in = int(lifetime.total_seconds())
+
+    payload = {
+        jwt_config.user_id_claim: str(getattr(user, jwt_config.user_id_field)),
+        "type": "access",
+        "jti": generate_jti(),
+    }
+
+    if hasattr(user, "email"):
+        payload["email"] = user.email
+    if hasattr(user, "username"):
+        payload["username"] = user.username
+
+    # Async groups query
+    if hasattr(user, "groups"):
+        payload["roles"] = [
+            name async for name in user.groups.values_list("name", flat=True)
+        ]
+
+    if extra_claims:
+        payload.update(extra_claims)
+
+    return encode_jwt(
+        payload=payload,
+        secret=jwt_config.signing_key,
+        algorithm=jwt_config.algorithm,
+        expires_in=expires_in,
+        issuer=jwt_config.issuer,
+        audience=jwt_config.audience,
+    )
+
+
 def create_token_pair(
     user,
     extra_claims: dict[str, Any] | None = None,
@@ -227,6 +270,27 @@ def create_token_pair(
         TokenPair with access and refresh tokens
     """
     access_token = create_access_token(user, extra_claims)
+    refresh_token = create_refresh_token(user, extra_claims)
+
+    return TokenPair(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="Bearer",
+        expires_in=int(jwt_config.access_token_lifetime.total_seconds()),
+        refresh_expires_in=int(jwt_config.refresh_token_lifetime.total_seconds()),
+    )
+
+
+async def acreate_token_pair(
+    user,
+    extra_claims: dict[str, Any] | None = None,
+) -> TokenPair:
+    """
+    Async version of create_token_pair.
+
+    Uses async ORM for groups query. Use from async controllers.
+    """
+    access_token = await acreate_access_token(user, extra_claims)
     refresh_token = create_refresh_token(user, extra_claims)
 
     return TokenPair(
@@ -470,8 +534,10 @@ __all__ = [
     "jwt_config",
     # Token creation
     "create_access_token",
+    "acreate_access_token",
     "create_refresh_token",
     "create_token_pair",
+    "acreate_token_pair",
     # Token verification
     "decode_token",
     "verify_access_token",

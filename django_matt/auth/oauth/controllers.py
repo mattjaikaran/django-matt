@@ -16,7 +16,7 @@ from django.http import HttpResponseRedirect
 from django.utils import timezone
 
 from django_matt.auth.decorators import jwt_required
-from django_matt.auth.jwt import create_token_pair
+from django_matt.auth.jwt import acreate_token_pair
 from django_matt.auth.oauth.config import get_oauth_config
 from django_matt.auth.oauth.providers import (
     OAuthError,
@@ -248,13 +248,13 @@ class OAuthController:
         )
 
         # Generate JWT tokens
-        tokens = create_token_pair(user)
+        tokens = await acreate_token_pair(user)
 
         return OAuthCallbackResponse(
             success=True,
             user_id=user.pk,
-            access_token=tokens["access"],
-            refresh_token=tokens["refresh"],
+            access_token=tokens.access_token,
+            refresh_token=tokens.refresh_token,
             created=created,
             provider=provider,
         )

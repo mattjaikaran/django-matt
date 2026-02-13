@@ -32,8 +32,8 @@ def jwt_required(func: F) -> F:
     from django_matt.auth.jwt import (
         ExpiredSignatureError,
         InvalidTokenError,
+        aget_user_from_token,
         get_token_from_request,
-        get_user_from_token,
         verify_access_token,
     )
 
@@ -68,7 +68,7 @@ def jwt_required(func: F) -> F:
                 status=401,
             )
 
-        user = get_user_from_token(token)
+        user = await aget_user_from_token(token, _payload=payload)
         if user is None:
             return JsonResponse(
                 {"detail": "User not found", "code": "user_not_found"},
@@ -174,8 +174,8 @@ def jwt_optional(func: F) -> F:
         from django_matt.auth.jwt import (
             ExpiredSignatureError,
             InvalidTokenError,
+            aget_user_from_token,
             get_token_from_request,
-            get_user_from_token,
             verify_access_token,
         )
 
@@ -187,7 +187,7 @@ def jwt_optional(func: F) -> F:
             if token:
                 try:
                     payload = verify_access_token(token)
-                    user = get_user_from_token(token)
+                    user = await aget_user_from_token(token, _payload=payload)
                     if user and user.is_active:
                         request.user = user
                         request.token_payload = payload

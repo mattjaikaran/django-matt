@@ -12,7 +12,7 @@ from django.contrib.auth import get_user_model
 from django.http import HttpResponse, HttpResponseRedirect
 
 from django_matt.auth.decorators import jwt_required
-from django_matt.auth.jwt import create_token_pair
+from django_matt.auth.jwt import acreate_token_pair
 from django_matt.auth.sso.config import get_sso_config
 from django_matt.auth.sso.providers import (
     SSOError,
@@ -206,13 +206,13 @@ class SSOController:
         )
 
         # Generate JWT tokens
-        tokens = create_token_pair(user)
+        tokens = await acreate_token_pair(user)
 
         return SSOCallbackResponse(
             success=True,
             user_id=user.pk,
-            access_token=tokens["access"],
-            refresh_token=tokens["refresh"],
+            access_token=tokens.access_token,
+            refresh_token=tokens.refresh_token,
             organization_id=org_id,
             created=created,
         )

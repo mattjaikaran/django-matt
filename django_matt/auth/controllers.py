@@ -20,6 +20,8 @@ import json
 from django.contrib.auth import authenticate, get_user_model
 from django.http import HttpRequest, JsonResponse
 
+from asgiref.sync import sync_to_async
+
 from django_matt.audit.context import extract_client_ip, extract_user_agent
 from django_matt.audit.enums import AuditAction, AuditSeverity
 from django_matt.audit.models import AuditLog
@@ -27,8 +29,8 @@ from django_matt.auth.decorators import jwt_optional, jwt_required
 from django_matt.auth.jwt import (
     ExpiredSignatureError,
     InvalidTokenError,
-    create_token_pair,
-    refresh_tokens,
+    acreate_token_pair,
+    async_refresh_tokens,
 )
 from django_matt.auth.magic_link import (
     create_magic_link_url,
@@ -181,7 +183,7 @@ class AuthController(APIController):
             )
 
         # Generate tokens
-        tokens = create_token_pair(user)
+        tokens = await acreate_token_pair(user)
 
         await AuditLog.alog(
             action=AuditAction.LOGIN,
@@ -217,8 +219,8 @@ class AuthController(APIController):
 
         ctx = _request_context(request)
 
-        # Use Django's authenticate
-        user = authenticate(username=data.username, password=data.password)
+        # Use Django's authenticate (sync, must wrap for async)
+        user = await sync_to_async(authenticate)(username=data.username, password=data.password)
 
         if user is None:
             await AuditLog.alog(
@@ -248,7 +250,7 @@ class AuthController(APIController):
                 status=401,
             )
 
-        tokens = create_token_pair(user)
+        tokens = await acreate_token_pair(user)
 
         await AuditLog.alog(
             action=AuditAction.LOGIN,
@@ -328,7 +330,7 @@ class AuthController(APIController):
         await user.asave()
 
         # Generate tokens
-        tokens = create_token_pair(user)
+        tokens = await acreate_token_pair(user)
 
         ctx = _request_context(request)
         await AuditLog.alog(
@@ -377,7 +379,7 @@ class AuthController(APIController):
         ctx = _request_context(request)
 
         try:
-            tokens = refresh_tokens(data.refresh_token)
+            tokens = await async_refresh_tokens(data.refresh_token)
 
             await AuditLog.alog(
                 action=AuditAction.TOKEN_REFRESH,
@@ -543,7 +545,7 @@ class AuthController(APIController):
         await user.asave()
 
         # Generate new tokens (old tokens should be invalidated)
-        tokens = create_token_pair(user)
+        tokens = await acreate_token_pair(user)
 
         await AuditLog.alog(
             action=AuditAction.PASSWORD_CHANGE,
@@ -706,7 +708,7 @@ class AuthController(APIController):
             )
 
         # Generate JWT tokens for the user
-        tokens = create_token_pair(result.user)
+        tokens = await acreate_token_pair(result.user)
 
         await AuditLog.alog(
             action=AuditAction.LOGIN,
@@ -809,7 +811,7 @@ class MinimalAuthController(APIController):
             )
             return JsonResponse({"detail": "Invalid credentials"}, status=401)
 
-        tokens = create_token_pair(user)
+        tokens = await acreate_token_pair(user)
 
         await AuditLog.alog(
             action=AuditAction.LOGIN,
@@ -828,7 +830,7 @@ class MinimalAuthController(APIController):
         try:
             body = json.loads(request.body) if request.body else {}
             data = RefreshTokenRequest.model_validate(body)
-            tokens = refresh_tokens(data.refresh_token)
+            tokens = await async_refresh_tokens(data.refresh_token)
             return JsonResponse(tokens.model_dump())
         except Exception as e:
             return JsonResponse({"detail": str(e)}, status=401)
