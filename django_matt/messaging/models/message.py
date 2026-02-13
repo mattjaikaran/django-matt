@@ -72,7 +72,7 @@ class Message(models.Model):
     id = models.BigAutoField(primary_key=True)
 
     conversation = models.ForeignKey(
-        "messaging.Conversation",
+        "django_matt.Conversation",
         on_delete=models.CASCADE,
         related_name="messages",
     )

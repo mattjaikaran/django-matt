@@ -80,7 +80,7 @@ class Attachment(models.Model):
     id = models.BigAutoField(primary_key=True)
 
     message = models.ForeignKey(
-        "messaging.Message",
+        "django_matt.Message",
         on_delete=models.CASCADE,
         related_name="attachments",
     )

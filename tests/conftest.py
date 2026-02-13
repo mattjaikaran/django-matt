@@ -25,6 +25,7 @@ import django_matt.multitenancy.models  # noqa: F401, E402
 import django_matt.auth.passkeys.models  # noqa: F401, E402
 import django_matt.auth.api_keys.models  # noqa: F401, E402
 import django_matt.auth.blacklist.models  # noqa: F401, E402
+import django_matt.messaging.models  # noqa: F401, E402
 
 # Now we can safely import pytest and other fixtures
 from django.test import RequestFactory
@@ -49,11 +50,18 @@ def _create_matt_tables(django_db_setup, django_db_blocker):
 
         if models:
             with connection.schema_editor() as schema_editor:
-                for model in models:
-                    try:
-                        schema_editor.create_model(model)
-                    except Exception:
-                        pass  # Table may already exist
+                # Multiple passes to handle FK dependency ordering
+                remaining = list(models)
+                for _pass in range(3):
+                    still_remaining = []
+                    for model in remaining:
+                        try:
+                            schema_editor.create_model(model)
+                        except Exception:
+                            still_remaining.append(model)
+                    remaining = still_remaining
+                    if not remaining:
+                        break
 
 
 @pytest.fixture(autouse=True)

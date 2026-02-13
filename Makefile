@@ -105,17 +105,17 @@ dbshell: ## Open database shell
 
 routes: ## List all API routes
 	@echo "$(CYAN)API Routes:$(RESET)"
-	@uv run python manage.py matt routes 2>/dev/null || echo "$(YELLOW)Command not yet implemented$(RESET)"
+	@uv run python manage.py matt routes
 
 models: ## List all models
 	@echo "$(CYAN)Models:$(RESET)"
-	@uv run python manage.py matt models 2>/dev/null || echo "$(YELLOW)Command not yet implemented$(RESET)"
+	@uv run python manage.py matt models
 
 info: ## Show project info
-	@uv run python manage.py matt info 2>/dev/null || echo "$(YELLOW)Command not yet implemented$(RESET)"
+	@uv run python manage.py matt info
 
 doctor: ## Check project health
-	@uv run python manage.py matt doctor 2>/dev/null || echo "$(YELLOW)Command not yet implemented$(RESET)"
+	@uv run python manage.py matt doctor
 
 # ============================================================================
 ## Database

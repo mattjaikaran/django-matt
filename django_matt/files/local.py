@@ -4,6 +4,8 @@ Local filesystem storage backend.
 Provides file storage on the local filesystem.
 """
 
+from __future__ import annotations
+
 import hashlib
 import os
 from collections.abc import Iterator
