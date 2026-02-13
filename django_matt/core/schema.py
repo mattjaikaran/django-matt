@@ -7,6 +7,7 @@ inspired by ninja-schema but with enhanced features.
 
 import datetime
 import uuid
+from decimal import Decimal
 from typing import Any, ClassVar, Optional, Union, get_args, get_origin
 
 from django.db import models
@@ -22,7 +23,7 @@ FIELD_TYPE_MAP: dict[type, type] = {
     models.CharField: str,
     models.DateField: datetime.date,
     models.DateTimeField: datetime.datetime,
-    models.DecimalField: float,
+    models.DecimalField: Decimal,
     models.EmailField: str,
     models.FloatField: float,
     models.IntegerField: int,
@@ -34,7 +35,7 @@ FIELD_TYPE_MAP: dict[type, type] = {
     models.TimeField: datetime.time,
     models.URLField: str,
     models.UUIDField: uuid.UUID,
-    models.JSONField: dict[str, Any],
+    models.JSONField: Any,
     models.BinaryField: bytes,
     models.IPAddressField: str,
     models.GenericIPAddressField: str,
@@ -162,6 +163,25 @@ class ModelSchemaMetaclass(type(BaseModel)):
             elif is_optional:
                 namespace[field_name] = Field(default=None)
 
+        # Also iterate many-to-many fields (not included in _meta.fields)
+        for field in django_model._meta.many_to_many:
+            field_name = field.name
+
+            # Skip if already defined in the class
+            if field_name in annotations:
+                continue
+
+            # Handle include/exclude
+            if include is not None and field_name not in include:
+                continue
+            if field_name in exclude:
+                continue
+
+            # M2M fields are always optional (can be empty) and default to empty list
+            python_type = Optional[list[int]]
+            annotations[field_name] = python_type
+            namespace[field_name] = Field(default_factory=list)
+
         namespace["__annotations__"] = annotations
 
         # Store model reference for from_orm and apply_to_model
@@ -225,12 +245,24 @@ class ModelSchema(BaseModel, metaclass=ModelSchemaMetaclass):
     @classmethod
     def _extract_data(cls, obj: models.Model) -> dict:
         """Extract field data from a model instance (shared by from_orm and from_orm_fast)."""
+        # Build set of M2M field names for this model (cached on class)
+        if not hasattr(cls, "_m2m_field_names"):
+            if cls._django_model is not None:
+                cls._m2m_field_names = frozenset(
+                    f.name for f in cls._django_model._meta.many_to_many
+                )
+            else:
+                cls._m2m_field_names = frozenset()
+
         data = {}
         for field_name in cls.model_fields:
             if hasattr(obj, field_name):
                 value = getattr(obj, field_name)
                 if isinstance(value, models.Model):
                     value = value.pk
+                elif field_name in cls._m2m_field_names:
+                    # M2M manager -> list of PKs
+                    value = list(value.values_list("pk", flat=True))
                 data[field_name] = value
         return data
 
@@ -393,6 +425,18 @@ def create_schema_from_model(
             default = ...
 
         fields[field_name] = (python_type, default)
+
+    # Also iterate many-to-many fields
+    for field in model_class._meta.many_to_many:
+        field_name = field.name
+
+        if include is not None and field_name not in include:
+            continue
+        if field_name in exclude:
+            continue
+
+        # M2M fields are always optional and default to empty list
+        fields[field_name] = (Optional[list[int]], Field(default_factory=list))
 
     # Create the Pydantic model
     schema_class = create_model(name, __base__=base_class, **fields)

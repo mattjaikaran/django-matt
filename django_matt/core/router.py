@@ -221,12 +221,22 @@ class APIRouter:
         return controller_class
 
     @staticmethod
-    def _create_view_func(endpoint, response_model, status_code):
+    def _create_view_func(endpoint, response_model, status_code, methods=None):
         """Create an async view function that handles parsing and serialization."""
         body_schema = get_body_schema(endpoint)
         is_coro = inspect.iscoroutinefunction(endpoint)
+        # Pre-compute allowed methods set for O(1) lookup
+        allowed_methods = frozenset(m.upper() for m in methods) if methods else None
 
         async def view_func(request, *args, **kwargs):
+            # Enforce HTTP method
+            if allowed_methods and request.method not in allowed_methods:
+                response = JsonResponse(
+                    {"detail": "Method not allowed"}, status=405
+                )
+                response["Allow"] = ", ".join(sorted(allowed_methods))
+                return response
+
             # Parse request body with orjson (single parse)
             if request.body and request.content_type == "application/json":
                 try:
@@ -278,6 +288,7 @@ class APIRouter:
                 endpoint=route["endpoint"],
                 response_model=route["response_model"],
                 status_code=route["status_code"],
+                methods=route["methods"],
             )
             url_patterns.append(path(route["path"], view_func, name=route["name"]))
 
@@ -303,6 +314,7 @@ class APIRouter:
                     endpoint=method,
                     response_model=route_info.get("response_model"),
                     status_code=route_info.get("status_code", 200),
+                    methods=route_info.get("methods"),
                 )
                 url_patterns.append(
                     path(

@@ -16,7 +16,7 @@ from django.http import HttpRequest, JsonResponse
 
 from pydantic import BaseModel, ValidationError
 
-from django_matt.core.errors import APIError, ErrorHandler, NotFoundAPIError
+from django_matt.core.errors import APIError, ErrorHandler, NotFoundAPIError, ValidationAPIError
 
 # Module-level cache: avoids re-reading settings on every error
 _error_config: dict[str, Any] | None = None
@@ -101,7 +101,11 @@ class Controller:
             ):
                 try:
                     # Parse body once with orjson if needed
-                    if _pydantic_params and request.body and request.content_type == "application/json":
+                    if (
+                        _pydantic_params
+                        and request.body
+                        and request.content_type == "application/json"
+                    ):
                         try:
                             body_data = orjson.loads(request.body)
                         except (ValueError, orjson.JSONDecodeError):
@@ -239,6 +243,35 @@ class CRUDController(APIController):
     lookup_field: str = "id"
     ordering: list[str] | None = None
 
+    # Pagination settings
+    default_limit: int = 20
+    max_limit: int = 100
+
+    # Allowed lookup suffixes for filter_queryset security
+    ALLOWED_LOOKUPS: frozenset[str] = frozenset(
+        {
+            "exact",
+            "iexact",
+            "contains",
+            "icontains",
+            "gt",
+            "gte",
+            "lt",
+            "lte",
+            "in",
+            "startswith",
+            "istartswith",
+            "endswith",
+            "iendswith",
+            "isnull",
+            "range",
+            "date",
+            "year",
+            "month",
+            "day",
+        }
+    )
+
     def __init__(self):
         super().__init__()
         # Cache field introspection once at init — not per-request
@@ -337,6 +370,9 @@ class CRUDController(APIController):
         """
         Apply filters from request query parameters to the queryset.
 
+        Validates lookup suffixes against ALLOWED_LOOKUPS whitelist to prevent
+        traversal attacks (e.g., field__password, field__secret).
+
         Override this method to customize filtering behavior.
 
         Args:
@@ -345,6 +381,9 @@ class CRUDController(APIController):
 
         Returns:
             QuerySet: The filtered queryset
+
+        Raises:
+            ValidationAPIError: If an unknown lookup suffix is used
         """
         for key, value in request.GET.items():
             # Skip pagination and special parameters
@@ -352,23 +391,60 @@ class CRUDController(APIController):
                 continue
 
             # Handle field lookups (e.g., name__icontains) — uses cached field set
-            field_name = key.split("__")[0]
+            parts = key.split("__")
+            field_name = parts[0]
             if field_name in self._valid_filter_fields:
+                # Validate lookup suffix if present
+                if len(parts) > 1:
+                    lookup = parts[-1]
+                    if lookup not in self.ALLOWED_LOOKUPS:
+                        raise ValidationAPIError(
+                            message=f"Invalid lookup '{lookup}' for field '{field_name}'",
+                            field=field_name,
+                            code="invalid_lookup",
+                        )
                 queryset = queryset.filter(**{key: value})
 
         return queryset
 
+    def _get_pagination_params(self, request: HttpRequest) -> tuple[int, int]:
+        """
+        Extract and validate limit/offset from request query parameters.
+
+        Returns:
+            Tuple of (limit, offset) with bounds enforced.
+        """
+        try:
+            limit = int(request.GET.get("limit", self.default_limit))
+        except (ValueError, TypeError):
+            limit = self.default_limit
+        if limit <= 0:
+            limit = self.default_limit
+        limit = min(limit, self.max_limit)
+
+        try:
+            offset = int(request.GET.get("offset", 0))
+        except (ValueError, TypeError):
+            offset = 0
+        offset = max(0, offset)
+
+        return limit, offset
+
     async def list(self, request: HttpRequest) -> dict[str, Any]:
         """
-        List all instances of the model with async iteration.
+        List instances of the model with limit/offset pagination and async iteration.
 
         Uses Django's async ORM methods for non-blocking database access.
+
+        Query parameters:
+            limit: Maximum items to return (default: 20, max: 100)
+            offset: Number of items to skip (default: 0)
 
         Args:
             request: The HTTP request
 
         Returns:
-            Dict with 'items' list and 'count' of total items
+            Dict with 'items', 'count' (total), 'limit', and 'offset'
         """
         if not self.model:
             raise NotImplementedError("Model not specified")
@@ -376,15 +452,24 @@ class CRUDController(APIController):
         queryset = self.get_optimized_queryset()
         queryset = self.filter_queryset(queryset, request)
 
-        # Count before iteration to avoid extra query after consuming queryset
+        # Count total before slicing
         count = await queryset.acount()
+
+        # Apply pagination
+        limit, offset = self._get_pagination_params(request)
+        paginated_qs = queryset[offset : offset + limit]
 
         # Use fast serialization (model_construct, no re-validation)
         items = []
-        async for item in queryset:
+        async for item in paginated_qs:
             items.append(self._model_to_dict_fast(item))
 
-        return {"items": items, "count": count}
+        return {
+            "items": items,
+            "count": count,
+            "limit": limit,
+            "offset": offset,
+        }
 
     async def retrieve(self, request: HttpRequest, id: str) -> dict[str, Any]:
         """
@@ -497,19 +582,22 @@ class CRUDController(APIController):
         """
         Delete an instance of the model using async ORM.
 
+        Uses get_queryset() to respect controller-level filtering
+        (e.g., tenant isolation, soft-delete scoping).
+
         Args:
             request: The HTTP request
             id: The ID of the object to delete
 
         Returns:
-            Empty dict on success
+            Dict with 'deleted' and 'id' on success
         """
         if not self.model:
             raise NotImplementedError("Model not specified")
 
         try:
-            # Use async get and delete (Django 4.1+)
-            instance = await self.model.objects.aget(**{self.lookup_field: id})
+            # Use get_queryset() — never bypass controller filtering
+            instance = await self.get_queryset().aget(**{self.lookup_field: id})
             await instance.adelete()
             return {"deleted": True, "id": id}
         except self.model.DoesNotExist:

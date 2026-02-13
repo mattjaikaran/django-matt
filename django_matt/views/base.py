@@ -406,6 +406,28 @@ class BoundView:
 
     async def __call__(self, request: HttpRequest, **kwargs) -> JsonResponse:
         """Handle the request and return a JSON response."""
+        # Enforce HTTP method declared on the view
+        allowed_methods = getattr(self.view, "methods", None)
+        if allowed_methods:
+            allowed_upper = {m.upper() for m in allowed_methods}
+            if request.method not in allowed_upper:
+                response = JsonResponse(
+                    {"detail": "Method not allowed"}, status=405
+                )
+                response["Allow"] = ", ".join(sorted(allowed_upper))
+                return response
+
+        # Check permission_classes from the ViewSet before dispatch
+        permission_classes = getattr(self.viewset, "permission_classes", None)
+        if permission_classes:
+            for perm_class in permission_classes:
+                # Support both class references and pre-instantiated instances
+                perm = perm_class() if isinstance(perm_class, type) else perm_class
+                if not perm.has_permission(request, self.view):
+                    status_code = getattr(perm, "status_code", 403)
+                    message = getattr(perm, "message", "Permission denied.")
+                    return JsonResponse({"detail": message}, status=status_code)
+
         try:
             result = await self.view.handle(request, **kwargs)
 

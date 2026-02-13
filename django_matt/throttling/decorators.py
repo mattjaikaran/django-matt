@@ -5,6 +5,7 @@ Throttle decorators for django-matt.
 from __future__ import annotations
 
 import functools
+import inspect
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -64,60 +65,78 @@ def throttle(
         Decorated function with rate limiting
     """
 
+    def _check_throttle(request: HttpRequest) -> BaseThrottle:
+        """Shared throttle check logic. Returns throttle instance if allowed, raises if not."""
+        # Determine throttle class
+        cls = throttle_class
+        if cls is None:
+            # Auto-select based on authentication
+            if hasattr(request, "user") and request.user.is_authenticated:
+                cls = UserRateThrottle
+            else:
+                cls = AnonRateThrottle
+
+        # Create throttle instance
+        throttle_kwargs: dict[str, Any] = {}
+        if rate is not None:
+            throttle_kwargs["rate"] = rate
+        if scope is not None and hasattr(cls, "scope"):
+            throttle_kwargs["scope"] = scope
+
+        throttle_instance = cls(**throttle_kwargs)
+
+        # Set backend
+        throttle_instance.backend = get_default_backend()
+
+        # Check if request is allowed
+        if not throttle_instance.allow_request(request):
+            wait = throttle_instance.wait()
+            headers = throttle_instance.get_throttle_headers()
+            raise ThrottleError(
+                message=f"Request was throttled. Expected available in {int(wait or 0)} seconds.",
+                wait=wait,
+                headers=headers,
+            )
+
+        return throttle_instance
+
+    def _add_headers(response: Any, throttle_instance: BaseThrottle) -> Any:
+        """Add rate limit headers to response if possible."""
+        if hasattr(response, "__setitem__"):
+            for key, value in throttle_instance.get_throttle_headers().items():
+                response[key] = value
+        return response
+
     def decorator(func: F) -> F:
         @functools.wraps(func)
-        def wrapper(request: HttpRequest, *args: Any, **kwargs: Any) -> Any:
-            # Check if method should be throttled
+        async def async_wrapper(request: HttpRequest, *args: Any, **kwargs: Any) -> Any:
+            if methods and request.method.upper() not in [m.upper() for m in methods]:
+                return await func(request, *args, **kwargs)
+
+            throttle_instance = _check_throttle(request)
+            response = await func(request, *args, **kwargs)
+            return _add_headers(response, throttle_instance)
+
+        @functools.wraps(func)
+        def sync_wrapper(request: HttpRequest, *args: Any, **kwargs: Any) -> Any:
             if methods and request.method.upper() not in [m.upper() for m in methods]:
                 return func(request, *args, **kwargs)
 
-            # Determine throttle class
-            cls = throttle_class
-            if cls is None:
-                # Auto-select based on authentication
-                if hasattr(request, "user") and request.user.is_authenticated:
-                    cls = UserRateThrottle
-                else:
-                    cls = AnonRateThrottle
-
-            # Create throttle instance
-            throttle_kwargs: dict[str, Any] = {}
-            if rate is not None:
-                throttle_kwargs["rate"] = rate
-            if scope is not None and hasattr(cls, "scope"):
-                throttle_kwargs["scope"] = scope
-
-            throttle_instance = cls(**throttle_kwargs)
-
-            # Set backend
-            throttle_instance.backend = get_default_backend()
-
-            # Check if request is allowed
-            if not throttle_instance.allow_request(request):
-                wait = throttle_instance.wait()
-                headers = throttle_instance.get_throttle_headers()
-                raise ThrottleError(
-                    message=f"Request was throttled. Expected available in {int(wait or 0)} seconds.",
-                    wait=wait,
-                    headers=headers,
-                )
-
-            # Request allowed - execute view
+            throttle_instance = _check_throttle(request)
             response = func(request, *args, **kwargs)
+            return _add_headers(response, throttle_instance)
 
-            # Add rate limit headers to response if it's an HttpResponse
-            if hasattr(response, "__setitem__"):
-                for key, value in throttle_instance.get_throttle_headers().items():
-                    response[key] = value
-
-            return response
+        if inspect.iscoroutinefunction(func):
+            chosen = async_wrapper
+        else:
+            chosen = sync_wrapper
 
         # Store throttle info for introspection
-        wrapper._throttle_class = throttle_class  # type: ignore
-        wrapper._throttle_rate = rate  # type: ignore
-        wrapper._throttle_scope = scope  # type: ignore
+        chosen._throttle_class = throttle_class  # type: ignore
+        chosen._throttle_rate = rate  # type: ignore
+        chosen._throttle_scope = scope  # type: ignore
 
-        return wrapper  # type: ignore
+        return chosen  # type: ignore
 
     return decorator
 

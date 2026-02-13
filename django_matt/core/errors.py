@@ -423,7 +423,11 @@ class ErrorMiddleware:
     Middleware for handling exceptions in Django Matt.
 
     This middleware catches exceptions and returns formatted error responses.
+    Supports both WSGI (sync) and ASGI (async) request paths.
     """
+
+    sync_capable = True
+    async_capable = True
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -433,6 +437,9 @@ class ErrorMiddleware:
 
     def __call__(self, request):
         return self.get_response(request)
+
+    async def __acall__(self, request):
+        return await self.get_response(request)
 
     def process_exception(self, request, exception):
         """Process an exception and return a formatted error response."""
