@@ -199,19 +199,12 @@ class Command(BaseCommand):
             raise CommandError("Failed to create Django project")
 
     def _create_api_app(self, api_app):
-        """Create a new Django app for the API."""
+        """Create a new Django app for the API using our package-based startapp."""
+        from django.core.management import call_command
+
         try:
-            manage_py = "./manage.py"
-            subprocess.run(
-                [
-                    "python",
-                    manage_py,
-                    "startapp",
-                    api_app,
-                ],
-                check=True,
-            )
-        except subprocess.CalledProcessError as e:
+            call_command("startapp", api_app)
+        except Exception as e:
             self.stdout.write(self.style.ERROR(f"Error: {e!s}"))
             raise CommandError("Failed to create API app")
 

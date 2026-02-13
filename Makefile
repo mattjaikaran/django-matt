@@ -232,20 +232,16 @@ test-file: ## Run a specific test file (usage: make test-file FILE=test_auth.py)
 ## Scaffolding
 # ============================================================================
 
-startapp: ## Create a new Django app (usage: make startapp NAME=myapp)
+startapp: ## Create a new Django app (usage: make startapp NAME=myapp [MODELS="Post Comment"])
 	@if [ -z "$(NAME)" ]; then \
 		echo "$(RED)Error: NAME is required$(RESET)"; \
 		echo "Usage: make startapp NAME=myapp"; \
+		echo "Usage: make startapp NAME=blog MODELS=\"Post Comment\""; \
 		exit 1; \
 	fi
 	@echo "$(CYAN)Creating app '$(NAME)'...$(RESET)"
-	@uv run python manage.py startapp $(NAME)
+	@uv run python manage.py startapp $(NAME) $(if $(MODELS),--models $(MODELS),)
 	@echo "$(GREEN)App '$(NAME)' created!$(RESET)"
-	@echo ""
-	@echo "$(YELLOW)Next steps:$(RESET)"
-	@echo "  1. Add '$(NAME)' to INSTALLED_APPS in settings.py"
-	@echo "  2. Create models in $(NAME)/models.py"
-	@echo "  3. Run: make crud MODEL=$(NAME).YourModel"
 
 startproject: ## Create a new Django Matt project (usage: make startproject NAME=myproject)
 	@if [ -z "$(NAME)" ]; then \

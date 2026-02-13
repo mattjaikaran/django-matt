@@ -1,6 +1,84 @@
 # Django Matt CLI Tools
 
-Django Matt provides several command-line tools to help you manage your Django projects. These tools are implemented as Django management commands and can be run using the `manage.py` script.
+Django Matt provides management commands for scaffolding, code generation, configuration, and development. All commands are run via `manage.py`.
+
+## Scaffolding Commands
+
+### `startapp` — Create a New App
+
+Overrides Django's built-in `startapp` to create a package-based directory structure with models, schemas, controllers, admin, services, tests, and factories — each in their own file.
+
+```bash
+# Basic app with model derived from name
+python manage.py startapp blog
+
+# App with specific models
+python manage.py startapp blog --models Post Comment Tag
+
+# Preview without writing
+python manage.py startapp blog --models Post --dry-run
+
+# Skip service layer
+python manage.py startapp blog --models Post --no-service
+```
+
+See [startapp documentation](startapp.md) for generated file examples and full options.
+
+### `generate_crud` — Generate CRUD from Models
+
+Reads an existing Django model and generates matching schemas, controllers, services, admin, and tests.
+
+```bash
+# Schema + controller only
+python manage.py generate_crud blog.Post
+
+# Everything: schema, controller, service, admin, tests
+python manage.py generate_crud blog.Post --full
+
+# Interactive wizard
+python manage.py generate_crud
+
+# With permissions and soft delete
+python manage.py generate_crud blog.Post --full --permissions IsAuthenticated --soft-delete
+```
+
+See [CRUD generator documentation](crud-generator.md) for all options.
+
+### `startapi` — Create a Full Project
+
+Generates a complete Django Matt project with settings, URL config, Docker, frontend scaffold, and authentication.
+
+```bash
+# Starter project with JWT auth
+python manage.py startapi myproject --auth jwt
+
+# B2B SaaS project with Docker
+python manage.py startapi myproject --template b2b --auth jwt --docker
+
+# With React frontend
+python manage.py startapi myproject --frontend react-vite --docker
+```
+
+### Typical Workflow
+
+```bash
+# 1. Create the app skeleton
+python manage.py startapp blog --models Post Comment
+
+# 2. Edit models to add real fields
+#    edit blog/models/post.py, blog/models/comment.py
+
+# 3. Migrate
+python manage.py makemigrations blog && python manage.py migrate
+
+# 4. Regenerate scaffolding from real model fields
+python manage.py generate_crud blog.Post --full
+python manage.py generate_crud blog.Comment --full
+```
+
+See [Scaffolding Workflow](scaffolding.md) for the full guide.
+
+---
 
 ## Configuration Management
 
