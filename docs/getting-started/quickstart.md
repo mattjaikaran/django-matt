@@ -311,17 +311,18 @@ async def register(request, data: RegisterSchema):
     )
     tokens = create_token_pair(user)
     return TokenResponse(
-        access_token=tokens["access"],
-        refresh_token=tokens["refresh"],
+        access_token=tokens.access_token,
+        refresh_token=tokens.refresh_token,
     )
 
 
 @api.post("/auth/login", response=TokenResponse)
 async def login(request, data: LoginSchema):
     """Login and get tokens"""
+    from asgiref.sync import sync_to_async
     from django.contrib.auth import authenticate
-    user = await authenticate(
-        request,
+
+    user = await sync_to_async(authenticate)(
         username=data.username,
         password=data.password,
     )
@@ -331,8 +332,8 @@ async def login(request, data: LoginSchema):
 
     tokens = create_token_pair(user)
     return TokenResponse(
-        access_token=tokens["access"],
-        refresh_token=tokens["refresh"],
+        access_token=tokens.access_token,
+        refresh_token=tokens.refresh_token,
     )
 ```
 

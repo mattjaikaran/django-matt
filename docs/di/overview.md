@@ -36,10 +36,18 @@ flowchart TB
     RES --> ORG
 ```
 
+!!! warning "Limitation: Depends() is not auto-wired in the router"
+    The DI container and `Depends()` marker exist, but `Depends()` is **not automatically
+    resolved** in the request pipeline. The router does not inspect controller method
+    parameters for `Depends()` markers. You must resolve dependencies manually using
+    `container.resolve()` or use the DI middleware for scope management.
+
+    This is a known limitation and may be addressed in a future release.
+
 ## Quick Start
 
 ```python
-from django_matt.di import container, Singleton, Scoped, Depends
+from django_matt.di import container, Singleton, Scoped
 
 # 1. Define your services
 class EmailService:
@@ -59,20 +67,13 @@ class UserService:
 container.register(EmailService, lifetime=Singleton)
 container.register(UserService, lifetime=Singleton)
 
-# 3. Use in controllers (auto-injected)
+# 3. Resolve manually in controllers
 class UserController(APIController):
     @post("/send-welcome")
-    async def send_welcome(
-        self,
-        request,
-        user_id: int,
-        user_service: UserService = Depends(),
-    ):
+    async def send_welcome(self, request, user_id: int):
+        user_service = container.resolve(UserService)
         user_service.send_welcome(user_id)
         return {"status": "sent"}
-
-# 4. Or resolve manually
-user_service = container.resolve(UserService)
 ```
 
 ## Service Lifetimes
@@ -210,22 +211,18 @@ notification = container.resolve(NotificationService)
 # notification.sms is SMSService instance
 ```
 
-### Using Depends() Marker
+### Using container.resolve() in Controllers
 
-In controllers, use `Depends()` to mark parameters for injection:
+Since `Depends()` is not auto-wired in the router, resolve services manually:
 
 ```python
-from django_matt.di import Depends
+from django_matt.di import container
 
 class OrderController(APIController):
     @post("/orders")
-    async def create_order(
-        self,
-        request,
-        data: OrderCreate,
-        order_service: OrderService = Depends(),
-        notification: NotificationService = Depends(),
-    ):
+    async def create_order(self, request, data: OrderCreate):
+        order_service = container.resolve(OrderService)
+        notification = container.resolve(NotificationService)
         order = order_service.create(data)
         notification.send_order_confirmation(order)
         return order
@@ -247,7 +244,30 @@ if container.is_registered(MyService):
 
 ## Built-in Dependencies
 
-Django Matt provides several built-in dependencies for common needs:
+Django Matt provides built-in dependency markers for common needs. These are
+designed for use with the DI middleware and manual resolution.
+
+!!! note "Auto-injection not yet wired"
+    These markers (`CurrentUser()`, `CurrentOrg()`, etc.) are defined but are
+    **not automatically resolved** as function parameters by the router. Access
+    the request object directly for user and org context, or use the DI middleware
+    with `container.resolve()`.
+
+```python
+# Recommended approach — use request directly:
+@api.get("/profile")
+@jwt_required
+async def get_profile(request):
+    user = request.user
+    return {"user": user.email}
+
+# Query parameters are handled via standard function signatures:
+@api.get("/items")
+async def list_items(request, page: int = 1):
+    return {"page": page}
+```
+
+Available built-in markers (for use with DI middleware/manual resolution):
 
 ```python
 from django_matt.di import (
@@ -263,76 +283,61 @@ from django_matt.di import (
     Header,
     Path,
 )
-
-@api.get("/profile")
-async def get_profile(
-    request,
-    user: User = CurrentUser(),           # Authenticated user
-    org: Organization = CurrentOrg(),      # Current organization (multi-tenant)
-):
-    return {"user": user.email, "org": org.name}
-
-@api.get("/items")
-async def list_items(
-    request,
-    page: int = Query(default=1),          # Query parameter
-    api_key: str = Header("X-API-Key"),    # Header value
-    logger: logging.Logger = Logger(),     # Logger instance
-):
-    logger.info(f"Listing items, page {page}")
-    return {"page": page}
 ```
 
 ### CurrentUser
 
-Returns the authenticated user or raises 401 if not authenticated.
+For authenticated user access, use the `@jwt_required` decorator and `request.user`:
 
 ```python
-@api.get("/me")
-async def get_me(request, user: User = CurrentUser()):
-    return {"id": user.id, "email": user.email}
+from django_matt.auth import jwt_required, jwt_optional
 
-# Optional user (None if not authenticated)
+@api.get("/me")
+@jwt_required
+async def get_me(request):
+    return {"id": request.user.id, "email": request.user.email}
+
+# Optional auth
 @api.get("/maybe-me")
-async def get_maybe_me(request, user: User = CurrentUser(optional=True)):
-    if user:
-        return {"user": user.email}
+@jwt_optional
+async def get_maybe_me(request):
+    if request.user.is_authenticated:
+        return {"user": request.user.email}
     return {"user": None}
 ```
 
 ### CurrentOrg / CurrentTenant
 
-For multi-tenant applications:
+For multi-tenant applications, use the tenant middleware which sets `request.org`:
 
 ```python
 @api.get("/projects")
-async def list_projects(
-    request,
-    org: Organization = CurrentOrg(),
-):
+@jwt_required
+async def list_projects(request):
+    org = request.org  # Set by TenantMiddleware
     return Project.objects.filter(organization=org)
 ```
 
-### Query, Header, Path
+### Query and Path Parameters
 
-Extract request parameters:
+Query and path parameters are extracted via standard function signatures (not DI):
 
 ```python
 @api.get("/search")
-async def search(
-    request,
-    q: str = Query(),                      # Required query param
-    limit: int = Query(default=10),        # Optional with default
-    auth: str = Header("Authorization"),   # Required header
-):
+async def search(request, q: str = "", limit: int = 10):
+    # q and limit come from query string: ?q=term&limit=20
     return {"query": q, "limit": limit}
 
 @api.get("/users/{user_id}")
-async def get_user(
-    request,
-    user_id: int = Path(),  # From URL path
-):
+async def get_user(request, user_id: int):
+    # user_id comes from the URL path
     return User.objects.get(id=user_id)
+
+# For headers, access request.headers directly:
+@api.get("/check-key")
+async def check_key(request):
+    api_key = request.headers.get("X-API-Key", "")
+    return {"has_key": bool(api_key)}
 ```
 
 ## Middleware

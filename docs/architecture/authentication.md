@@ -161,13 +161,18 @@ sequenceDiagram
 
 ```python
 # settings.py
+from datetime import timedelta
+
+# JWT settings use a dedicated top-level key
+DJANGO_MATT_JWT = {
+    "SECRET_KEY": env("JWT_SECRET"),
+    "ALGORITHM": "HS256",
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+}
+
+# OAuth and other auth settings
 DJANGO_MATT = {
-    "AUTH": {
-        "JWT_SECRET": env("JWT_SECRET"),
-        "JWT_ALGORITHM": "HS256",
-        "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
-        "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
-    },
     "OAUTH": {
         "GOOGLE": {
             "CLIENT_ID": env("GOOGLE_CLIENT_ID"),

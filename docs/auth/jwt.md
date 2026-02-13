@@ -6,16 +6,20 @@ JSON Web Token authentication for APIs.
 
 ```python
 # settings.py
-DJANGO_MATT = {
-    "JWT": {
-        "SECRET_KEY": os.environ.get("JWT_SECRET_KEY", SECRET_KEY),
-        "ALGORITHM": "HS256",
-        "ACCESS_TOKEN_LIFETIME": 3600,  # 1 hour
-        "REFRESH_TOKEN_LIFETIME": 604800,  # 7 days
-        "ISSUER": "my-app",
-        "AUDIENCE": "my-app",
-        "LEEWAY": 0,  # Clock skew tolerance in seconds
-    },
+from datetime import timedelta
+
+DJANGO_MATT_JWT = {
+    "SECRET_KEY": os.environ.get("JWT_SECRET_KEY", SECRET_KEY),
+    "ALGORITHM": "HS256",
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "ISSUER": "my-app",         # Optional
+    "AUDIENCE": "my-app",       # Optional
+    "USER_ID_FIELD": "id",      # Model field for user ID
+    "USER_ID_CLAIM": "sub",     # JWT claim for user ID
+    "AUTH_HEADER_TYPES": ["Bearer"],
+    "AUTH_HEADER_NAME": "Authorization",
 }
 ```
 
@@ -48,21 +52,30 @@ from django_matt.auth import (
     decode_token,
 )
 
-# Verify and get user
-user = await verify_access_token(token)
-user = await verify_refresh_token(token)
+# Verify and decode — returns TokenPayload (not a user)
+payload = verify_access_token(token)   # TokenPayload with sub, exp, iat, etc.
+payload = verify_refresh_token(token)  # Verifies type="refresh"
 
-# Decode without verification (for debugging)
-payload = decode_token(token, verify=False)
+# Decode with optional type verification
+payload = decode_token(token, verify_type="access")
+
+# Get user from token
+from django_matt.auth import get_user_from_token, aget_user_from_token
+
+user = get_user_from_token(token)           # sync
+user = await aget_user_from_token(token)    # async
 ```
 
 ### Refreshing Tokens
 
 ```python
-from django_matt.auth import refresh_tokens
+from django_matt.auth import refresh_tokens, async_refresh_tokens
 
-# Get new token pair from refresh token
-new_tokens = await refresh_tokens(refresh_token)
+# Get new token pair from refresh token (sync)
+new_tokens = refresh_tokens(refresh_token_str)
+
+# Async version — use from async controllers
+new_tokens = await async_refresh_tokens(refresh_token_str)
 ```
 
 ## Middleware
@@ -137,45 +150,36 @@ async def list_posts(request):
 
 ## Custom Claims
 
-Add custom claims to tokens:
+Add custom claims to tokens via the `extra_claims` parameter:
 
 ```python
-from django_matt.auth.jwt import JWTConfig
+from django_matt.auth import create_token_pair, create_access_token
 
-jwt_config.get_user_claims = lambda user: {
-    "email": user.email,
-    "roles": list(user.groups.values_list("name", flat=True)),
-    "org_id": user.organization_id,
-}
+# Add extra claims when creating tokens
+tokens = create_token_pair(user, extra_claims={
+    "org_id": str(user.organization_id),
+    "plan": "premium",
+})
+
+# Or for individual tokens
+access = create_access_token(user, extra_claims={"org_id": str(user.organization_id)})
 ```
 
-Access claims in views:
-
-```python
-@api.get("/me")
-@jwt_required
-async def get_me(request):
-    claims = request.auth  # Decoded JWT payload
-    return {
-        "user_id": claims["sub"],
-        "roles": claims.get("roles", []),
-    }
-```
+Note: `email`, `username`, and `roles` (from Django groups) are automatically included
+in access tokens by default.
 
 ## Token Blacklisting
 
-For logout functionality:
+!!! warning "Not Yet Implemented"
+    Token blacklisting is not currently implemented. There is no blacklist model or
+    storage backend. The `AuthController.logout` endpoint performs client-side token
+    removal only (the client discards the token).
 
-```python
-from django_matt.auth.jwt import blacklist_token, is_token_blacklisted
+    For immediate token revocation, consider:
 
-@api.post("/auth/logout")
-@jwt_required
-async def logout(request):
-    token = request.auth
-    await blacklist_token(token["jti"])
-    return {"message": "Logged out"}
-```
+    - Short-lived access tokens (e.g., 15 minutes) so stolen tokens expire quickly
+    - Implementing your own blacklist table keyed on the `jti` claim
+    - Using the `jti` claim from `TokenPayload` to track revoked tokens
 
 ## Asymmetric Keys (RS256/ES256)
 
@@ -183,19 +187,17 @@ For microservices or when public key verification is needed:
 
 ```python
 # settings.py
-DJANGO_MATT = {
-    "JWT": {
-        "ALGORITHM": "RS256",
-        "PRIVATE_KEY": open("private.pem").read(),
-        "PUBLIC_KEY": open("public.pem").read(),
-    },
+DJANGO_MATT_JWT = {
+    "ALGORITHM": "RS256",
+    "SIGNING_KEY": open("private.pem").read(),
+    "VERIFYING_KEY": open("public.pem").read(),
 }
 ```
 
 !!! note
     Asymmetric algorithms require the `cryptography` package:
     ```bash
-    pip install django-matt[jwt-asymmetric]
+    uv add "django-matt[jwt-asymmetric]"
     ```
 
 ## Error Handling
@@ -208,7 +210,6 @@ JWT errors return appropriate HTTP status codes:
 | Invalid token | 401 | `INVALID_TOKEN` |
 | Expired token | 401 | `TOKEN_EXPIRED` |
 | Invalid signature | 401 | `INVALID_SIGNATURE` |
-| Blacklisted token | 401 | `TOKEN_BLACKLISTED` |
 
 ```python
 from django_matt.core import AuthenticationAPIError

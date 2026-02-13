@@ -203,7 +203,7 @@ async def oauth_callback(request, provider: str, code: str, state: str):
 
     # Redirect to frontend with tokens
     return RedirectResponse(
-        f"{settings.FRONTEND_URL}/auth/callback?token={tokens['access']}"
+        f"{settings.FRONTEND_URL}/auth/callback?token={tokens.access_token}"
     )
 
 
@@ -281,8 +281,7 @@ async def login(request, data: LoginRequest):
 from django_matt.throttling import throttle
 
 @api.post("/auth/login")
-@throttle("5/minute", key="ip")  # 5 attempts per minute per IP
-@throttle("20/hour", key="ip")   # 20 attempts per hour per IP
+@throttle(rate="5/minute")  # 5 attempts per minute (auto-selects AnonRateThrottle or UserRateThrottle)
 async def login(request, data: LoginRequest):
     """Rate-limited login endpoint."""
     user = await authenticate(data.email, data.password)
@@ -329,60 +328,26 @@ async def authenticate_with_lockout(email: str, password: str):
     return user
 ```
 
-## Token Refresh with Rotation
+## Token Refresh
 
 ```python
-from django_matt.auth import decode_token, create_access_token
-from django_matt.auth.models import RefreshToken
+from django_matt.auth import async_refresh_tokens
 
 @api.post("/auth/refresh")
-async def refresh_tokens(request, data: RefreshRequest):
-    """Refresh access token with token rotation."""
+async def refresh(request, data: RefreshRequest):
+    """Refresh access token using the built-in refresh flow."""
     try:
-        payload = decode_token(data.refresh_token)
+        new_tokens = await async_refresh_tokens(data.refresh_token)
+        return new_tokens.model_dump()
     except Exception:
         raise UnauthorizedError("Invalid refresh token")
-
-    # Find refresh token in database
-    token_record = await RefreshToken.objects.filter(
-        jti=payload["jti"],
-        revoked=False,
-    ).select_related("user").afirst()
-
-    if not token_record:
-        raise UnauthorizedError("Refresh token not found or revoked")
-
-    if token_record.expires_at < timezone.now():
-        raise UnauthorizedError("Refresh token expired")
-
-    user = token_record.user
-
-    # Revoke old refresh token (rotation)
-    token_record.revoked = True
-    await token_record.asave()
-
-    # Create new token pair
-    return create_token_pair(user)
-
-
-@api.post("/auth/logout")
-@jwt_required
-async def logout(request, data: LogoutRequest | None = None):
-    """Logout and revoke tokens."""
-    user = request.user
-
-    if data and data.refresh_token:
-        # Revoke specific refresh token
-        await RefreshToken.objects.filter(
-            user=user,
-            jti=decode_token(data.refresh_token)["jti"],
-        ).aupdate(revoked=True)
-    else:
-        # Revoke all refresh tokens (logout everywhere)
-        await RefreshToken.objects.filter(user=user).aupdate(revoked=True)
-
-    return {"logged_out": True}
 ```
+
+!!! note "Token Blacklisting"
+    django-matt does not currently include a `RefreshToken` database model or
+    token blacklisting. The built-in `async_refresh_tokens()` verifies the refresh
+    token's signature and expiration, then issues a new token pair. For revocation,
+    you would need to implement your own blacklist table keyed on the `jti` claim.
 
 ## API Key Authentication
 
@@ -477,19 +442,31 @@ async def stop_impersonation(request):
 
 ## Password Reset Flow
 
+!!! warning "Not Built-In"
+    django-matt does not include built-in `generate_reset_token` or `verify_reset_token`
+    functions. The `AuthController` provides `change-password` (for authenticated users)
+    but not a forgot-password/reset flow. The schemas `ResetPasswordRequest` and
+    `ResetPasswordConfirmRequest` exist for you to build your own implementation.
+
+Here is a recipe for implementing password reset yourself:
+
 ```python
-from django_matt.auth import generate_reset_token, verify_reset_token
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
 
 @api.post("/auth/forgot-password")
-@throttle("3/hour", key="email")
+@throttle(rate="3/hour")
 async def forgot_password(request, data: ForgotPasswordRequest):
     """Request password reset email."""
     user = await User.objects.filter(email=data.email).afirst()
 
     if user:
-        token = generate_reset_token(user)
-        reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        reset_url = f"{settings.FRONTEND_URL}/reset-password?uid={uid}&token={token}"
 
+        # Send email using your preferred method
         await send_email(
             to=user.email,
             subject="Reset Your Password",
@@ -504,20 +481,17 @@ async def forgot_password(request, data: ForgotPasswordRequest):
 @api.post("/auth/reset-password")
 async def reset_password(request, data: ResetPasswordRequest):
     """Reset password with token."""
-    user = verify_reset_token(data.token)
+    try:
+        uid = force_str(urlsafe_base64_decode(data.uid))
+        user = await User.objects.aget(pk=uid)
+    except (TypeError, ValueError, User.DoesNotExist):
+        raise UnauthorizedError("Invalid reset link")
 
-    if not user:
+    if not default_token_generator.check_token(user, data.token):
         raise UnauthorizedError("Invalid or expired reset token")
 
-    # Validate new password
-    validate_password(data.new_password, user)
-
-    # Update password
     user.set_password(data.new_password)
     await user.asave()
-
-    # Revoke all sessions/tokens
-    await RefreshToken.objects.filter(user=user).aupdate(revoked=True)
 
     return {"message": "Password reset successful"}
 ```

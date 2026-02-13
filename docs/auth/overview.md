@@ -51,13 +51,17 @@ api.register_controller(AuthController, prefix="/auth")
 
 # This provides:
 # POST /auth/login - Login with email/password
+# POST /auth/login/username - Login with username/password
 # POST /auth/register - Register new user
 # POST /auth/refresh - Refresh access token
-# POST /auth/logout - Logout (invalidate refresh token)
-# GET /auth/me - Get current user
+# POST /auth/logout - Logout (client-side token removal)
+# GET  /auth/me - Get current user
+# POST /auth/me - Update current user profile
 # POST /auth/change-password - Change password
-# POST /auth/reset-password - Request password reset
-# POST /auth/reset-password/confirm - Confirm password reset
+# GET  /auth/verify - Verify if access token is valid
+# POST /auth/magic-link/request - Request magic link email
+# POST /auth/magic-link/verify - Verify magic link and login
+# GET  /auth/magic-link/check - Check if magic link token is valid
 ```
 
 ## Middleware Configuration
@@ -73,13 +77,11 @@ MIDDLEWARE = [
 ]
 
 # JWT Configuration
-DJANGO_MATT = {
-    "JWT": {
-        "SECRET_KEY": "your-secret-key",  # Use Django's SECRET_KEY
-        "ACCESS_TOKEN_LIFETIME": 3600,  # 1 hour
-        "REFRESH_TOKEN_LIFETIME": 604800,  # 7 days
-        "ALGORITHM": "HS256",
-    },
+DJANGO_MATT_JWT = {
+    "SECRET_KEY": "your-secret-key",  # Defaults to Django's SECRET_KEY
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ALGORITHM": "HS256",
 }
 ```
 

@@ -129,7 +129,8 @@ class PostController(CRUDController):
 ```python
 # auth_api.py
 from django_matt import MattAPI
-from django_matt.auth import jwt_required, get_tokens_for_user, refresh_token
+from django_matt.auth import jwt_required, create_token_pair
+from django_matt.auth.schemas import RefreshTokenRequest
 from django_matt.core import Schema
 from django_matt.core.errors import AuthenticationAPIError, ValidationAPIError
 
@@ -182,10 +183,10 @@ async def register(request, data: RegisterSchema):
         name=data.name,
     )
 
-    tokens = get_tokens_for_user(user)
+    tokens = create_token_pair(user)
     return TokenResponse(
-        access=tokens["access"],
-        refresh=tokens["refresh"],
+        access=tokens.access_token,
+        refresh=tokens.refresh_token,
         user={"id": user.id, "email": user.email, "name": user.name},
     )
 
@@ -200,19 +201,20 @@ async def login(request, data: LoginSchema):
     if not user.is_active:
         raise AuthenticationAPIError("Account is disabled")
 
-    tokens = get_tokens_for_user(user)
+    tokens = create_token_pair(user)
     return TokenResponse(
-        access=tokens["access"],
-        refresh=tokens["refresh"],
+        access=tokens.access_token,
+        refresh=tokens.refresh_token,
         user={"id": user.id, "email": user.email, "name": user.name},
     )
 
 @api.post("/auth/refresh", tags=["Auth"])
-async def refresh(request, refresh_token: str):
+async def refresh(request, data: RefreshTokenRequest):
     """Refresh access token."""
+    from django_matt.auth import async_refresh_tokens
     try:
-        tokens = refresh_token(refresh_token)
-        return {"access": tokens["access"]}
+        tokens = await async_refresh_tokens(data.refresh_token)
+        return {"access": tokens.access_token}
     except Exception:
         raise AuthenticationAPIError("Invalid refresh token")
 

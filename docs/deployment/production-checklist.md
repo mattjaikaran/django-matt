@@ -73,7 +73,7 @@ A comprehensive checklist for deploying django-matt applications to production. 
 - [ ] **JWT tokens have appropriate expiry**
   ```python
   # django-matt JWT settings
-  MATT_JWT = {
+  DJANGO_MATT_JWT = {
       "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
       "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
       "ROTATE_REFRESH_TOKENS": True,

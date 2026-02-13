@@ -13,20 +13,35 @@ from myapp.models import User
 class UserSchema(ModelSchema):
     class Config:
         model = User
-        model_fields = ["id", "email", "first_name", "last_name", "is_active"]
+        include = ["id", "email", "first_name", "last_name", "is_active"]
 
 # Or include all fields
 class UserFullSchema(ModelSchema):
     class Config:
         model = User
-        model_fields = "__all__"
+        include = "__all__"
 
 # Exclude specific fields
 class UserPublicSchema(ModelSchema):
     class Config:
         model = User
-        model_exclude = ["password", "is_superuser", "is_staff"]
+        exclude = ["password", "is_superuser", "is_staff"]
 ```
+
+### Config Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `model` | Django Model class | Required. The Django model to generate fields from. |
+| `include` | list or `"__all__"` | Fields to include. If `None`, all fields are included. |
+| `exclude` | set/list | Fields to exclude. |
+| `optional` | set/list or `"__all__"` | Fields to make optional. |
+| `depth` | int | Declared but **not yet functional** for nested relations. ForeignKey fields always resolve to their ID (int) regardless of depth. |
+
+### Many-to-Many Fields
+
+M2M fields are automatically included when listed in `include` (or when using `"__all__"`).
+They are serialized as `list[int]` (list of related object PKs) and default to an empty list.
 
 ## Schema
 

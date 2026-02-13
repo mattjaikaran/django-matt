@@ -370,7 +370,7 @@ class UserViewSet(APIViewSet):
 ### JWT Authentication
 
 ```python
-from django_matt.auth import jwt_required, jwt_optional, get_tokens_for_user
+from django_matt.auth import jwt_required, jwt_optional, create_token_pair
 
 # Protect endpoints
 @api.get("/profile")
@@ -387,13 +387,16 @@ async def items(request):
     return {"items": get_public_items()}
 
 # Generate tokens
-def login(request, credentials: LoginSchema):
-    user = authenticate(**credentials.dict())
+from django_matt.auth import create_token_pair
+
+async def login(request, credentials: LoginSchema):
+    from asgiref.sync import sync_to_async
+    user = await sync_to_async(authenticate)(**credentials.model_dump())
     if user:
-        tokens = get_tokens_for_user(user)
+        tokens = create_token_pair(user)
         return {
-            "access": tokens["access"],
-            "refresh": tokens["refresh"],
+            "access": tokens.access_token,
+            "refresh": tokens.refresh_token,
         }
     raise AuthenticationAPIError("Invalid credentials")
 ```
@@ -402,14 +405,14 @@ def login(request, credentials: LoginSchema):
 
 ```python
 # settings.py
-MATT_JWT = {
+DJANGO_MATT_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ALGORITHM": "HS256",
-    "SIGNING_KEY": SECRET_KEY,
-    "AUTH_HEADER_TYPES": ("Bearer",),
+    "SECRET_KEY": SECRET_KEY,  # Defaults to Django's SECRET_KEY
+    "AUTH_HEADER_TYPES": ["Bearer"],
     "USER_ID_FIELD": "id",
-    "USER_ID_CLAIM": "user_id",
+    "USER_ID_CLAIM": "sub",
 }
 ```
 
