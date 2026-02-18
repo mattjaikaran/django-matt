@@ -237,26 +237,26 @@ class PushDeliveryHandler(DeliveryHandler):
             return []
 
     def _send_push(self, notification: Notification, token: str) -> None:
-        """Send push notification to a specific token."""
-        # This is a placeholder implementation
-        # Real implementation would use Firebase Cloud Messaging, APNs, etc.
-        logger.info(f"Push notification to {token}: {notification.title}")
+        """
+        Send push notification to a specific token.
 
-        # Example FCM implementation:
-        # from firebase_admin import messaging
-        # message = messaging.Message(
-        #     notification=messaging.Notification(
-        #         title=notification.title,
-        #         body=notification.message,
-        #     ),
-        #     data={
-        #         "notification_id": str(notification.id),
-        #         "type": notification.notification_type,
-        #         "action_url": notification.action_url,
-        #     },
-        #     token=token,
-        # )
-        # messaging.send(message)
+        Override this method or register a custom PushDeliveryHandler
+        with your FCM/APNs integration:
+
+            from firebase_admin import messaging
+            message = messaging.Message(
+                notification=messaging.Notification(
+                    title=notification.title,
+                    body=notification.message,
+                ),
+                token=token,
+            )
+            messaging.send(message)
+        """
+        logger.warning(
+            "Push delivery not configured — _send_push() is a no-op. "
+            "Subclass PushDeliveryHandler or register a custom handler."
+        )
 
 
 class SMSDeliveryHandler(DeliveryHandler):
@@ -307,20 +307,24 @@ class SMSDeliveryHandler(DeliveryHandler):
         return message[:160]
 
     def _send_sms(self, phone: str, message: str) -> None:
-        """Send SMS to a phone number."""
-        # This is a placeholder implementation
-        # Real implementation would use Twilio, AWS SNS, etc.
-        logger.info(f"SMS to {phone}: {message}")
+        """
+        Send SMS to a phone number.
 
-        # Example Twilio implementation:
-        # from twilio.rest import Client
-        # from django.conf import settings
-        # client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-        # client.messages.create(
-        #     body=message,
-        #     from_=settings.TWILIO_PHONE_NUMBER,
-        #     to=phone,
-        # )
+        Override this method or register a custom SMSDeliveryHandler
+        with your Twilio/SNS integration:
+
+            from twilio.rest import Client
+            client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+            client.messages.create(
+                body=message,
+                from_=settings.TWILIO_PHONE_NUMBER,
+                to=phone,
+            )
+        """
+        logger.warning(
+            "SMS delivery not configured — _send_sms() is a no-op. "
+            "Subclass SMSDeliveryHandler or register a custom handler."
+        )
 
 
 class WebhookDeliveryHandler(DeliveryHandler):

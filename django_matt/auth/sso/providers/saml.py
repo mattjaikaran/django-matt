@@ -22,8 +22,8 @@ from django_matt.auth.sso.providers.base import (
 # Check for python3-saml
 try:
     from onelogin.saml2.auth import OneLogin_Saml2_Auth
+    from onelogin.saml2.authn_request import OneLogin_Saml2_AuthnRequest
     from onelogin.saml2.settings import OneLogin_Saml2_Settings
-    from onelogin.saml2.utils import OneLogin_Saml2_Utils
 
     HAS_SAML = True
 except ImportError:
@@ -174,13 +174,10 @@ class SAMLProvider(SSOProvider):
         if relay_state is None:
             relay_state = self.generate_state()
 
-        # Build the AuthnRequest URL
-        authn_request = OneLogin_Saml2_Utils.deflate_and_base64_encode(
-            saml_settings.get_sp_metadata()  # This gets the actual request
-        )
+        # Build a proper AuthnRequest (not SP metadata)
+        authn_request_obj = OneLogin_Saml2_AuthnRequest(saml_settings)
+        authn_request = authn_request_obj.get_request()
 
-        # For simplicity, construct the redirect URL manually
-        # In production, you'd use OneLogin_Saml2_Auth.login()
         params = {
             "SAMLRequest": authn_request,
             "RelayState": relay_state,

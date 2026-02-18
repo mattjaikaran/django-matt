@@ -182,7 +182,7 @@ class WebSocketServer:
                     data = client_socket.recv(1024)
                     if not data:
                         break
-                except:
+                except OSError:
                     break
         finally:
             client_socket.close()
@@ -201,14 +201,14 @@ class WebSocketServer:
         for client in self.clients:
             try:
                 client.sendall(message_bytes)
-            except:
+            except OSError:
                 disconnected_clients.add(client)
 
         # Remove disconnected clients
         for client in disconnected_clients:
             try:
                 client.close()
-            except:
+            except OSError:
                 pass
             self.clients.remove(client)
 
