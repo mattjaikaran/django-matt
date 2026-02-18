@@ -177,26 +177,122 @@ class ConfigurationManager:
 config = ConfigurationManager()
 
 
+def _build_shortcut_settings(
+    auth: str | None = None,
+    database: str | None = None,
+    cache: str | None = None,
+    middleware: str | None = None,
+    throttle: str | None = None,
+    cors: list[str] | bool | None = None,
+) -> dict[str, Any]:
+    """
+    Translate shortcut params into DJANGO_MATT settings dict entries.
+
+    Called once at configure() time — no per-request overhead.
+    """
+    matt: dict[str, Any] = {}
+
+    # Auth shortcut
+    if auth == "jwt":
+        matt["AUTH_BACKEND"] = "jwt"
+        matt["JWT_AUTH"] = {
+            "ACCESS_TOKEN_LIFETIME_MINUTES": 60,
+            "REFRESH_TOKEN_LIFETIME_DAYS": 7,
+            "ALGORITHM": "HS256",
+        }
+    elif auth == "session":
+        matt["AUTH_BACKEND"] = "session"
+
+    # Database shortcut
+    if database == "postgresql":
+        matt["DATABASE_ENGINE"] = "django.db.backends.postgresql"
+        matt["CONNECTION_POOL"] = {"ENABLED": True, "MIN_SIZE": 2, "MAX_SIZE": 10}
+    elif database == "sqlite":
+        matt["DATABASE_ENGINE"] = "django.db.backends.sqlite3"
+
+    # Cache shortcut
+    if cache == "redis":
+        matt["CACHE_BACKEND"] = "django.core.cache.backends.redis.RedisCache"
+    elif cache == "memory":
+        matt["CACHE_BACKEND"] = "django.core.cache.backends.locmem.LocMemCache"
+
+    # Middleware stack shortcut
+    if middleware in ("production", "development"):
+        matt["MIDDLEWARE_STACK"] = middleware
+
+    # Throttle shortcut
+    if throttle:
+        matt["THROTTLE"] = {"DEFAULT_RATE": throttle}
+
+    # CORS shortcut
+    if cors is not None:
+        if cors is True:
+            matt["CORS"] = {"ALLOWED_ORIGINS": True, "ENABLED": True}
+        elif isinstance(cors, list):
+            matt["CORS"] = {"ALLOWED_ORIGINS": cors, "ENABLED": True}
+
+    return matt
+
+
 def configure(
     environment: str = "development",
     components: list[str] | None = None,
     extra_settings: dict[str, Any] | None = None,
     apply_to_django: bool = True,
+    *,
+    auth: str | None = None,
+    database: str | None = None,
+    cache: str | None = None,
+    middleware: str | None = None,
+    throttle: str | None = None,
+    cors: list[str] | bool | None = None,
 ) -> dict[str, Any]:
     """
     Configure the application with the specified settings.
 
-    This is a convenience function that delegates to the ConfigurationManager.
+    Supports shortcut params for common setups:
+        configure(
+            auth="jwt",              # auto-wires JWT middleware + settings
+            database="postgresql",   # connection pooling, health checks
+            cache="redis",           # Redis cache backend
+            middleware="production",  # security + CORS + request ID + logging + timing
+            throttle="100/hour",     # global rate limit
+            cors=["https://app.example.com"],  # or True for "*"
+        )
 
     Args:
         environment: The name of the environment to load.
         components: A list of component names to load.
         extra_settings: Additional settings to apply.
         apply_to_django: Whether to apply the settings to Django's settings module.
+        auth: Auth backend shortcut ("jwt" or "session").
+        database: Database shortcut ("postgresql" or "sqlite").
+        cache: Cache shortcut ("redis" or "memory").
+        middleware: Middleware stack shortcut ("production" or "development").
+        throttle: Global throttle rate (e.g. "100/hour").
+        cors: CORS origins list, or True for "*".
 
     Returns:
         The final settings dictionary.
     """
+    # Build shortcut settings first
+    matt_settings = _build_shortcut_settings(
+        auth=auth,
+        database=database,
+        cache=cache,
+        middleware=middleware,
+        throttle=throttle,
+        cors=cors,
+    )
+
+    # Merge into extra_settings under DJANGO_MATT key
+    if matt_settings:
+        if extra_settings is None:
+            extra_settings = {}
+        existing_matt = extra_settings.get("DJANGO_MATT", {})
+        existing_matt.update(matt_settings)
+        extra_settings["DJANGO_MATT"] = existing_matt
+
     return config.configure(
         environment=environment,
         components=components,

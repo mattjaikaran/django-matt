@@ -219,6 +219,23 @@ _LAZY_IMPORTS = {
     "ExperimentContext": "django_matt.experiments",
     "ExperimentController": "django_matt.experiments",
     "analyze_experiment": "django_matt.experiments",
+    # Resources — zero-config CRUD
+    "resource": "django_matt.resources",
+    "build_viewset": "django_matt.resources",
+    "ResourceConfig": "django_matt.resources",
+    "action": "django_matt.resources",
+    # Configuration shortcut
+    "configure": "django_matt.config",
+    # Middleware stack
+    "SecurityHeadersMiddleware": "django_matt.middleware",
+    "RequestIDMiddleware": "django_matt.middleware",
+    "CORSMiddleware": "django_matt.middleware",
+    "RequestLoggingMiddleware": "django_matt.middleware",
+    "TimingMiddleware": "django_matt.middleware",
+    "PRODUCTION_STACK": "django_matt.middleware",
+    "DEVELOPMENT_STACK": "django_matt.middleware",
+    # Request ID helper
+    "get_request_id": "django_matt.middleware.request_id",
 }
 
 # Cache for imported modules
@@ -441,4 +458,20 @@ __all__ = [
     "ExperimentContext",
     "ExperimentController",
     "analyze_experiment",
+    # Resources — zero-config CRUD
+    "resource",
+    "build_viewset",
+    "ResourceConfig",
+    "action",
+    # Configuration shortcut
+    "configure",
+    # Middleware stack
+    "SecurityHeadersMiddleware",
+    "RequestIDMiddleware",
+    "CORSMiddleware",
+    "RequestLoggingMiddleware",
+    "TimingMiddleware",
+    "PRODUCTION_STACK",
+    "DEVELOPMENT_STACK",
+    "get_request_id",
 ]

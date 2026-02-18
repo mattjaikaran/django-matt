@@ -417,8 +417,13 @@ class BoundView:
                 response["Allow"] = ", ".join(sorted(allowed_upper))
                 return response
 
-        # Check permission_classes from the ViewSet before dispatch
-        permission_classes = getattr(self.viewset, "permission_classes", None)
+        # Check per-operation permission overrides first, then viewset-level
+        permission_classes = None
+        overrides = getattr(self.viewset, "_permission_overrides", None)
+        if overrides and self.view._viewset_attr_name:
+            permission_classes = overrides.get(self.view._viewset_attr_name)
+        if permission_classes is None:
+            permission_classes = getattr(self.viewset, "permission_classes", None)
         if permission_classes:
             for perm_class in permission_classes:
                 # Support both class references and pre-instantiated instances

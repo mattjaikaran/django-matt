@@ -59,8 +59,12 @@ class MattAPI(APIRouter):
         auth: Any = None,
         # CSRF settings
         csrf: bool = False,
+        # Health check endpoint
+        health_url: str | None = "/health",
     ):
         super().__init__(prefix=prefix, tags=tags)
+
+        self._resource_viewsets: list[type] = []
 
         self.title = title
         self.version = version
@@ -74,6 +78,7 @@ class MattAPI(APIRouter):
         self.servers = servers
         self.auth = auth
         self.csrf = csrf
+        self.health_url = health_url
 
         self._openapi_schema: dict | None = None
 
@@ -105,9 +110,63 @@ class MattAPI(APIRouter):
 
         return schema.build()
 
+    @property
+    def urls(self) -> list:
+        """Return URL patterns for use in Django's urlpatterns."""
+        return self.get_urls()
+
+    def add_router(self, router: "APIRouter", prefix: str = "") -> None:
+        """Add another router's routes to this API."""
+        self.include_router(router, prefix=prefix)
+        # Invalidate cached schema
+        self._openapi_schema = None
+
+    def register_controllers(self, *controller_classes: type) -> None:
+        """Register multiple controllers at once."""
+        for controller_class in controller_classes:
+            self.register_controller(controller_class)
+        # Invalidate cached schema
+        self._openapi_schema = None
+
+    def resource(self, model_or_none=None, prefix: str | None = None, **kwargs):
+        """
+        Register a model as a CRUD resource.
+
+        Usage:
+            api.resource(Product)
+            api.resource(Product, prefix="/products", permissions={"delete": [IsAdmin]})
+
+        Returns the generated APIViewSet subclass.
+        """
+        from django_matt.resources.resource import resource as _resource
+
+        if model_or_none is not None:
+            viewset_cls = _resource(model_or_none, prefix=prefix, **kwargs)
+            self._resource_viewsets.append(viewset_cls)
+            return viewset_cls
+
+        # Called as @api.resource(prefix="/products") decorator
+        def decorator(cls):
+            viewset_cls = _resource(self, prefix=prefix, **kwargs)(cls)
+            return viewset_cls
+
+        return decorator
+
     def get_urls(self) -> list:
-        """Get Django URL patterns including documentation endpoints."""
+        """Get Django URL patterns including documentation and resource endpoints."""
         url_patterns = super().get_urls()
+
+        # Add resource ViewSet URLs
+        for viewset_cls in self._resource_viewsets:
+            url_patterns.extend(viewset_cls.as_urls())
+
+        # Add health check endpoint
+        if self.health_url:
+            from django_matt.observability.views import health_view
+
+            url_patterns.append(
+                path(self.health_url.lstrip("/"), health_view, name="health-check")
+            )
 
         # Add OpenAPI JSON endpoint
         if self.openapi_url:
@@ -144,24 +203,6 @@ class MattAPI(APIRouter):
             url_patterns.append(path(self.redoc_url.lstrip("/"), redoc_view, name="redoc"))
 
         return url_patterns
-
-    @property
-    def urls(self) -> list:
-        """Return URL patterns for use in Django's urlpatterns."""
-        return self.get_urls()
-
-    def add_router(self, router: "APIRouter", prefix: str = "") -> None:
-        """Add another router's routes to this API."""
-        self.include_router(router, prefix=prefix)
-        # Invalidate cached schema
-        self._openapi_schema = None
-
-    def register_controllers(self, *controller_classes: type) -> None:
-        """Register multiple controllers at once."""
-        for controller_class in controller_classes:
-            self.register_controller(controller_class)
-        # Invalidate cached schema
-        self._openapi_schema = None
 
     def exception_handler(self, exc_class: type[Exception]) -> Callable:
         """
