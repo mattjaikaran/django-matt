@@ -65,10 +65,10 @@ def api_key_required(func: F) -> F:
         # Validate the key
         from .models import APIKey
 
-        api_key = await APIKey.objects.select_related("user").aget_valid(raw_key)
-        if api_key is None:
-            # Try sync method as fallback
-            api_key = APIKey.objects.get_valid(raw_key)
+        # get_valid → get_by_key already does select_related("user")
+        from asgiref.sync import sync_to_async
+
+        api_key = await sync_to_async(APIKey.objects.get_valid)(raw_key)
 
         if api_key is None:
             return JsonResponse(

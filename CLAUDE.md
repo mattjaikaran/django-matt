@@ -117,11 +117,9 @@ pytest tests/test_auth.py -v           # specific file
 
 ## Known Issues
 
-- ~18 source modules have no test coverage (admin, cli, db, permissions, views, openapi, typegen, etc.)
-- Generated code templates (startapp, generate_crud, cli templates) produce stub methods with TODO comments
-- Python minimum is 3.12 in pyproject.toml but ROADMAP.md says 3.11
-- PayPal `list_subscriptions()` returns `[]` unconditionally (not supported by PayPal API)
+- ~18 source modules have no test coverage (views, permissions, openapi, admin, cli, db, observability, middleware, etc.)
 - `conftest.py` sets `DJANGO_ALLOW_ASYNC_UNSAFE=true` globally, masking async/sync ORM bugs in tests
+- PayPal `list_subscriptions()` returns `[]` unconditionally (not supported by PayPal API)
 
 ## Important Files
 

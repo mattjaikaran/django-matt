@@ -658,10 +658,14 @@ class HooksMixin:
         return instance
 
     async def before_update(
-        self, request: HttpRequest, instance: models.Model, data: dict[str, Any]
-    ) -> tuple[models.Model, dict[str, Any]]:
-        """Hook called before updating a resource."""
-        return instance, data
+        self, request: HttpRequest, value: Any
+    ) -> Any:
+        """Hook called before updating a resource.
+
+        The value is a tuple of (instance, data_dict). Returns the same
+        tuple (possibly modified).
+        """
+        return value
 
     async def after_update(self, request: HttpRequest, instance: models.Model) -> models.Model:
         """Hook called after updating a resource."""
