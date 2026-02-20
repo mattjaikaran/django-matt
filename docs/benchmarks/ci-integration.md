@@ -40,9 +40,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-          pip install orjson  # For accurate JSON benchmarks
+          uv pip install -e ".[dev]"
+          uv add orjson  # For accurate JSON benchmarks
 
       - name: Run benchmarks
         run: |
@@ -87,8 +86,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -e ".[dev]"
-          pip install orjson psutil
+          uv pip install -e ".[dev]"
+          uv add orjson psutil
 
       - name: Download baseline (if exists)
         uses: actions/cache@v4
@@ -224,7 +223,7 @@ benchmark:
     paths:
       - .matt/benchmarks/baseline.json
   script:
-    - pip install -e ".[dev]" orjson psutil
+    - uv pip install -e ".[dev]" && uv add orjson psutil
     - mkdir -p .matt/benchmarks
 
     # Run with comparison if baseline exists
@@ -273,7 +272,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            pip install -e ".[dev]" orjson psutil
+            uv pip install -e ".[dev]" && uv add orjson psutil
 
       - run:
           name: Run benchmarks

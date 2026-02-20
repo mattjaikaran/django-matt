@@ -77,7 +77,7 @@ class RailwayProvider(DeploymentProvider):
             "$schema": "https://railway.app/railway.schema.json",
             "build": {
                 "builder": "NIXPACKS",
-                "buildCommand": "pip install -r requirements.txt && python manage.py collectstatic --noinput",
+                "buildCommand": "uv pip install -r requirements.txt && python manage.py collectstatic --noinput",
             },
             "deploy": {
                 "startCommand": f"gunicorn {self.config.django_settings_module.rsplit('.', 1)[0]}.wsgi:application --bind 0.0.0.0:$PORT --workers {self.config.workers}",
@@ -104,7 +104,7 @@ release: python manage.py migrate --noinput
 nixPkgs = ["python313", "postgresql"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = ["uv pip install -r requirements.txt"]
 
 [phases.build]
 cmds = ["python manage.py collectstatic --noinput"]

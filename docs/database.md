@@ -68,7 +68,7 @@ Django Matt includes built-in support for [pgvector](https://github.com/pgvector
 
 1. Install the required packages:
    ```bash
-   pip install django-pgvector
+   uv add django-pgvector
    ```
 
 2. Enable pgvector in your environment variables:

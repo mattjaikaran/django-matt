@@ -5,12 +5,12 @@ Provides direct bindings to llama.cpp for running GGUF models locally
 with full control over sampling parameters, GPU acceleration, and
 memory management.
 
-Requires: pip install llama-cpp-python
+Requires: uv add llama-cpp-python
 
 For GPU acceleration:
-- macOS: pip install llama-cpp-python (Metal enabled by default on Apple Silicon)
-- NVIDIA: CMAKE_ARGS="-DLLAMA_CUDA=on" pip install llama-cpp-python
-- AMD: CMAKE_ARGS="-DLLAMA_HIPBLAS=on" pip install llama-cpp-python
+- macOS: uv add llama-cpp-python (Metal enabled by default on Apple Silicon)
+- NVIDIA: CMAKE_ARGS="-DLLAMA_CUDA=on" uv add llama-cpp-python
+- AMD: CMAKE_ARGS="-DLLAMA_HIPBLAS=on" uv add llama-cpp-python
 """
 
 from __future__ import annotations
@@ -707,11 +707,11 @@ class LlamaCppModel:
         """
         if not LLAMA_CPP_AVAILABLE:
             raise ImportError(
-                "llama-cpp-python is required. Install with: pip install llama-cpp-python\n"
+                "llama-cpp-python is required. Install with: uv add llama-cpp-python\n"
                 "For GPU support:\n"
-                "  macOS: pip install llama-cpp-python (Metal auto-enabled)\n"
-                "  NVIDIA: CMAKE_ARGS='-DLLAMA_CUDA=on' pip install llama-cpp-python\n"
-                "  AMD: CMAKE_ARGS='-DLLAMA_HIPBLAS=on' pip install llama-cpp-python"
+                "  macOS: uv add llama-cpp-python (Metal auto-enabled)\n"
+                "  NVIDIA: CMAKE_ARGS='-DLLAMA_CUDA=on' uv add llama-cpp-python\n"
+                "  AMD: CMAKE_ARGS='-DLLAMA_HIPBLAS=on' uv add llama-cpp-python"
             )
 
         config = LlamaCppModelConfig(
@@ -760,7 +760,7 @@ class LlamaCppModel:
         except ImportError:
             raise ImportError(
                 "huggingface_hub is required for downloading models. "
-                "Install with: pip install huggingface_hub"
+                "Install with: uv add huggingface_hub"
             )
 
         model_path = hf_hub_download(
@@ -1572,7 +1572,7 @@ class LlamaCppEmbeddings(EmbeddingProvider):
         if self._llama is None:
             if not LLAMA_CPP_AVAILABLE:
                 raise ImportError(
-                    "llama-cpp-python is required. Install with: pip install llama-cpp-python"
+                    "llama-cpp-python is required. Install with: uv add llama-cpp-python"
                 )
 
             if not self._model_path:

@@ -6,7 +6,7 @@ This guide will help you create your first API with django-matt in under 5 minut
 
 - Python 3.12+
 - Django 5.2+
-- django-matt installed (`uv add django-matt` or `pip install django-matt`)
+- django-matt installed (`uv add django-matt`)
 
 ## Option 1: Using the startapi Command (Recommended)
 

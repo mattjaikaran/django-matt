@@ -34,13 +34,13 @@ The benchmarks use Python's built-in `timeit` module. Optional dependencies:
 
 ```bash
 # For fastest JSON serialization
-pip install orjson ujson
+uv add orjson ujson
 
 # For memory tracking
-pip install psutil
+uv add psutil
 
 # For database benchmarks (requires Django)
-pip install django
+uv add django
 ```
 
 ## Output Formats

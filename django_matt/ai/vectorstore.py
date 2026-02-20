@@ -293,7 +293,7 @@ class PgVectorStore(VectorStore):
                 import asyncpg
             except ImportError:
                 raise ImportError(
-                    "asyncpg required for PgVectorStore. Install with: pip install asyncpg"
+                    "asyncpg required for PgVectorStore. Install with: uv add asyncpg"
                 )
 
             self._pool = await asyncpg.create_pool(self.connection_string)
@@ -478,7 +478,7 @@ class PineconeVectorStore(VectorStore):
                 from pinecone import Pinecone
             except ImportError:
                 raise ImportError(
-                    "pinecone-client required. Install with: pip install pinecone-client"
+                    "pinecone-client required. Install with: uv add pinecone-client"
                 )
 
             pc = Pinecone(api_key=self.api_key)
@@ -598,7 +598,7 @@ class QdrantVectorStore(VectorStore):
             try:
                 from qdrant_client import QdrantClient
             except ImportError:
-                raise ImportError("qdrant-client required. Install with: pip install qdrant-client")
+                raise ImportError("qdrant-client required. Install with: uv add qdrant-client")
 
             self._client = QdrantClient(url=self.url, api_key=self.api_key)
         return self._client

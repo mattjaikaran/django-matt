@@ -462,7 +462,7 @@ urlpatterns = router.get_urls()
 !!! warning "Missing Dependencies"
     Ensure django-matt is properly installed:
     ```bash
-    pip install django-matt
+    uv add django-matt
     ```
 
 ## See Also

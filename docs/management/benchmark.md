@@ -368,7 +368,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: pip install -e .
+        run: uv pip install -e .
 
       - name: Download baseline
         uses: actions/download-artifact@v3

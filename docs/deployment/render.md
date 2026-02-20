@@ -24,7 +24,7 @@ Render is a unified cloud platform that provides:
 npm install -g @render/cli
 
 # Or via pip
-pip install render-cli
+uv add render-cli
 ```
 
 ## Quick Start
@@ -136,7 +136,7 @@ Build script executed during deployment:
 set -o errexit
 
 # Install dependencies
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 
 # Collect static files
 python manage.py collectstatic --noinput
@@ -299,7 +299,7 @@ services:
     name: myapp-scheduler
     runtime: python
     schedule: "0 * * * *"  # Every hour
-    buildCommand: pip install -r requirements.txt
+    buildCommand: uv pip install -r requirements.txt
     startCommand: python manage.py clearsessions
     envVars:
       - key: DATABASE_URL
@@ -315,7 +315,7 @@ services:
   - type: worker
     name: myapp-worker
     runtime: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: uv pip install -r requirements.txt
     startCommand: celery -A config worker -l info
     envVars:
       - key: DATABASE_URL
@@ -549,7 +549,7 @@ envVars:
 
 ```yaml
 # Ensure collectstatic runs in build
-buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+buildCommand: uv pip install -r requirements.txt && python manage.py collectstatic --noinput
 ```
 
 ### Health Check Failures

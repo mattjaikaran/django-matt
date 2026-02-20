@@ -25,22 +25,15 @@ uv add "django-matt[auth]"
 uv add "django-matt[all]"
 ```
 
-### Using pip
+### Using uv
 
 ```bash
 # Install with core dependencies
-pip install django-matt
+uv add django-matt
 
 # Install with extras
-pip install "django-matt[auth]"
-pip install "django-matt[all]"
-```
-
-### Using Poetry
-
-```bash
-poetry add django-matt
-poetry add "django-matt[all]"
+uv add "django-matt[auth]"
+uv add "django-matt[all]"
 ```
 
 ## Installation Extras

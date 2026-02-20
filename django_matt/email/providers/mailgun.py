@@ -1,7 +1,7 @@
 """
 Mailgun email provider.
 
-Requires: pip install requests
+Requires: uv add requests
 """
 
 from __future__ import annotations

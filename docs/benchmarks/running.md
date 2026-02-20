@@ -326,7 +326,7 @@ baseline = runner.load_baseline("baseline_v1.json")
 
 ```bash
 # Enable memory tracking (requires psutil)
-pip install psutil
+uv add psutil
 
 # Set custom storage directory
 export DJANGO_MATT_BENCHMARK_DIR=".benchmarks"
@@ -390,13 +390,13 @@ Some benchmarks require optional dependencies:
 
 ```bash
 # For database benchmarks
-pip install django
+uv add django
 
 # For accurate memory tracking
-pip install psutil
+uv add psutil
 
 # For fastest JSON serialization
-pip install orjson
+uv add orjson
 ```
 
 ### High Variance in Results

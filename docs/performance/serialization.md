@@ -16,10 +16,10 @@ Django Matt automatically selects the fastest available JSON library:
 
 ```bash
 # Recommended: Install orjson
-pip install orjson
+uv add orjson
 
 # Alternative: Install ujson
-pip install ujson
+uv add ujson
 ```
 
 Django Matt automatically detects and uses the fastest available library.
@@ -129,7 +129,7 @@ MessagePack is a binary serialization format that's more compact than JSON.
 ### Installation
 
 ```bash
-pip install msgpack
+uv add msgpack
 ```
 
 ### Basic Usage
@@ -421,7 +421,7 @@ json_str = user.model_dump_json()
 ### "MessagePack is not installed"
 
 ```bash
-pip install msgpack
+uv add msgpack
 ```
 
 ### High Memory Usage with Large Responses

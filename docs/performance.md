@@ -256,7 +256,7 @@ Here are some best practices for using Django Matt's performance features:
 
 - Use MessagePack for API endpoints that need maximum performance and don't need to be human-readable.
 - Make sure clients support MessagePack deserialization.
-- Install the `msgpack` package: `pip install msgpack`.
+- Install the `msgpack` package: `uv add msgpack`.
 
 ### Streaming Responses
 

@@ -191,7 +191,7 @@ class YAMLParser(BaseParser):
     """
     YAML parser.
 
-    Requires: pip install pyyaml
+    Requires: uv add pyyaml
     """
 
     media_type = "application/yaml"
@@ -207,7 +207,7 @@ class YAMLParser(BaseParser):
         except ImportError:
             raise ParseError(
                 "PyYAML not installed",
-                "Install with: pip install pyyaml",
+                "Install with: uv add pyyaml",
             )
 
         try:
@@ -220,7 +220,7 @@ class MessagePackParser(BaseParser):
     """
     MessagePack parser.
 
-    Requires: pip install msgpack
+    Requires: uv add msgpack
     """
 
     media_type = "application/msgpack"
@@ -236,7 +236,7 @@ class MessagePackParser(BaseParser):
         except ImportError:
             raise ParseError(
                 "msgpack not installed",
-                "Install with: pip install msgpack",
+                "Install with: uv add msgpack",
             )
 
         try:

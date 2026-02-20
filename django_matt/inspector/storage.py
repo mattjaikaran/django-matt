@@ -256,7 +256,7 @@ class RedisStorage(InspectorStorage):
             import redis
         except ImportError:
             raise ImportError(
-                "Redis package is required for RedisStorage. Install it with: pip install redis"
+                "Redis package is required for RedisStorage. Install it with: uv add redis"
             )
 
         # Get Redis URL from settings or parameter

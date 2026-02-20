@@ -8,7 +8,7 @@ LocalAI is a self-hosted, OpenAI-compatible API for running LLMs locally with:
 - Grammar-constrained generation
 - P2P federation support
 
-Requires: pip install httpx
+Requires: uv add httpx
 Docs: https://localai.io/
 """
 
@@ -154,7 +154,7 @@ class LocalAIClient:
                 import httpx
             except ImportError:
                 raise ImportError(
-                    "httpx is required for LocalAI provider. Install with: pip install httpx"
+                    "httpx is required for LocalAI provider. Install with: uv add httpx"
                 )
 
             headers = {"Content-Type": "application/json"}

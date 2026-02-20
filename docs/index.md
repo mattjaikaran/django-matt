@@ -86,9 +86,6 @@ class UserController(APIController):
 # Install with uv (recommended)
 uv add django-matt
 
-# Or with pip
-pip install django-matt
-
 # Create a new project with everything configured
 python manage.py startapi myproject --template b2b --auth jwt
 ```

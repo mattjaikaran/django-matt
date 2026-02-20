@@ -30,7 +30,7 @@ except ImportError:
 
         def __init__(self, *args, **kwargs):
             raise ImportError(
-                "pgvector is not installed. Install it with: pip install django-pgvector"
+                "pgvector is not installed. Install it with: uv add django-pgvector"
             )
 
     class L2Distance:
@@ -38,7 +38,7 @@ except ImportError:
 
         def __init__(self, *args, **kwargs):
             raise ImportError(
-                "pgvector is not installed. Install it with: pip install django-pgvector"
+                "pgvector is not installed. Install it with: uv add django-pgvector"
             )
 
     class CosineDistance:
@@ -46,7 +46,7 @@ except ImportError:
 
         def __init__(self, *args, **kwargs):
             raise ImportError(
-                "pgvector is not installed. Install it with: pip install django-pgvector"
+                "pgvector is not installed. Install it with: uv add django-pgvector"
             )
 
     class MaxInnerProduct:
@@ -54,7 +54,7 @@ except ImportError:
 
         def __init__(self, *args, **kwargs):
             raise ImportError(
-                "pgvector is not installed. Install it with: pip install django-pgvector"
+                "pgvector is not installed. Install it with: uv add django-pgvector"
             )
 
 
@@ -150,7 +150,7 @@ class VectorManager:
         """
         if not HAS_PGVECTOR:
             raise ImportError(
-                "pgvector is not installed. Install it with: pip install django-pgvector"
+                "pgvector is not installed. Install it with: uv add django-pgvector"
             )
 
         if distance_func == "cosine":

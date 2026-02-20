@@ -6,16 +6,16 @@ Get observability set up in your Django Matt application in 5 minutes.
 
 ```bash
 # Minimal (uses fallbacks if dependencies not available)
-pip install django-matt
+uv add django-matt
 
 # Recommended: Full observability stack
-pip install django-matt[observability]
+uv add django-matt[observability]
 
 # Manual installation
-pip install opentelemetry-sdk
-pip install opentelemetry-exporter-otlp  # For OTLP exporter
-pip install prometheus-client             # For Prometheus metrics
-pip install orjson                        # Faster JSON logging (optional)
+uv add opentelemetry-sdk
+uv add opentelemetry-exporter-otlp  # For OTLP exporter
+uv add prometheus-client             # For Prometheus metrics
+uv add orjson                        # Faster JSON logging (optional)
 ```
 
 ## Step 2: Configure Settings

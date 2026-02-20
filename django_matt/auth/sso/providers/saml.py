@@ -7,7 +7,7 @@ Supports SAML-based identity providers like:
 - OneLogin
 - Any SAML 2.0 compliant IdP
 
-Requires: pip install python3-saml
+Requires: uv add python3-saml
 """
 
 from urllib.parse import urlencode
@@ -43,7 +43,7 @@ class SAMLProvider(SSOProvider):
         """Ensure python3-saml is installed."""
         if not HAS_SAML:
             raise SSOConfigError(
-                "python3-saml is required for SAML SSO. Install with: pip install python3-saml"
+                "python3-saml is required for SAML SSO. Install with: uv add python3-saml"
             )
 
     def _get_saml_settings(self) -> dict:

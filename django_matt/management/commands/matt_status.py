@@ -545,7 +545,7 @@ class Command(MattCommand):
                     recommendations.append("Run pending migrations: python manage.py migrate")
                 elif "orjson" in check["name"] or "ujson" in check["name"]:
                     recommendations.append(
-                        "Install orjson for better performance: pip install orjson"
+                        "Install orjson for better performance: uv add orjson"
                     )
 
         if recommendations:

@@ -482,7 +482,7 @@ DATABASES = {
 
 ```python
 # For better performance, use uvloop
-# pip install uvloop
+# uv add uvloop
 
 # In your ASGI application
 import uvloop

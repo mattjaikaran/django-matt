@@ -188,7 +188,7 @@ class ElasticsearchEngine(BaseSearchEngine):
         ])
 
     Requirements:
-        pip install elasticsearch
+        uv add elasticsearch
     """
 
     def __init__(
@@ -212,7 +212,7 @@ class ElasticsearchEngine(BaseSearchEngine):
                 self._client = Elasticsearch(self.hosts, **self.client_kwargs)
             except ImportError:
                 raise ImportError(
-                    "elasticsearch package is required. Install with: pip install elasticsearch"
+                    "elasticsearch package is required. Install with: uv add elasticsearch"
                 )
         return self._client
 
@@ -324,7 +324,7 @@ class MeilisearchEngine(BaseSearchEngine):
         ])
 
     Requirements:
-        pip install meilisearch
+        uv add meilisearch
     """
 
     def __init__(
@@ -349,7 +349,7 @@ class MeilisearchEngine(BaseSearchEngine):
                 self._client = meilisearch.Client(self.url, self.api_key)
             except ImportError:
                 raise ImportError(
-                    "meilisearch package is required. Install with: pip install meilisearch"
+                    "meilisearch package is required. Install with: uv add meilisearch"
                 )
         return self._client
 

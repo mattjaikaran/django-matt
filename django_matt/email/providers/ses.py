@@ -1,7 +1,7 @@
 """
 Amazon SES email provider.
 
-Requires: pip install boto3
+Requires: uv add boto3
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ class SESProvider(EmailProviderBase):
                 self._client = boto3.client("ses", region_name=self.region)
             except ImportError:
                 raise ImportError(
-                    "boto3 is required for SES provider. Install with: pip install boto3"
+                    "boto3 is required for SES provider. Install with: uv add boto3"
                 )
         return self._client
 

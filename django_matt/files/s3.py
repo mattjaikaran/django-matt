@@ -70,7 +70,7 @@ class S3Storage(BaseStorage):
         url = await storage.presigned_download_url(key, expires=3600)
 
     Requires:
-        pip install boto3
+        uv add boto3
     """
 
     def __init__(
@@ -125,7 +125,7 @@ class S3Storage(BaseStorage):
             import boto3
             from botocore.config import Config
         except ImportError:
-            raise ImportError("boto3 is required for S3 storage. Install with: pip install boto3")
+            raise ImportError("boto3 is required for S3 storage. Install with: uv add boto3")
 
         config = Config(
             signature_version=self.signature_version,

@@ -257,8 +257,8 @@ for suggestion in suggestions:
         "title": "No fast JSON library installed",
         "description": "Using standard library json module",
         "recommendations": [
-            "Install orjson for best performance: pip install orjson",
-            "Or install ujson: pip install ujson"
+            "Install orjson for best performance: uv add orjson",
+            "Or install ujson: uv add ujson"
         ]
     }
 ]

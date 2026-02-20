@@ -6,11 +6,11 @@ Supports text generation, chat completions, streaming, batch inference,
 guided decoding (JSON schema, regex, grammar), and vLLM-specific features.
 
 Requirements:
-    pip install httpx
+    uv add httpx
 
 vLLM Server Setup:
     # Install vLLM
-    pip install vllm
+    uv add vllm
 
     # Start server (OpenAI-compatible API)
     python -m vllm.entrypoints.openai.api_server \
@@ -384,7 +384,7 @@ class VLLMClient:
                 import httpx
             except ImportError:
                 raise ImportError(
-                    "httpx is required for VLLMClient. Install with: pip install httpx"
+                    "httpx is required for VLLMClient. Install with: uv add httpx"
                 )
 
             headers = {"Content-Type": "application/json"}

@@ -409,7 +409,7 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - RS256, RS384, RS512
   - ES256, ES384, ES512 (used by Apple Sign In)
   - Public key verification
-  - Install with `pip install 'django-matt[jwt-asymmetric]'`
+  - Install with `uv add 'django-matt[jwt-asymmetric]'`
 
 ### Phase 8B: Replace passlib/argon2-cffi ✅
 - [x] **8B.1** - Use Django's built-in password hashers

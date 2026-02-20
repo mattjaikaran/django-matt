@@ -1,7 +1,7 @@
 """
 PayPal billing provider.
 
-Requires: pip install httpx
+Requires: uv add httpx
 
 Documentation: https://developer.paypal.com/docs/api/subscriptions/v1/
 """
@@ -53,7 +53,7 @@ class PayPalProvider(BillingProvider[PayPalConfig]):
                 )
             except ImportError:
                 raise BillingAPIError(
-                    "httpx package is not installed. Run: pip install httpx",
+                    "httpx package is not installed. Run: uv add httpx",
                     provider=self.provider_name,
                 )
         return self._client

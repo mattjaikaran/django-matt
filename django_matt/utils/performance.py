@@ -124,7 +124,7 @@ class MessagePackRenderer:
         """
         if not HAS_MSGPACK:
             raise ImportError(
-                "MessagePack is not installed. Install it with 'pip install msgpack'."
+                "MessagePack is not installed. Install it with 'uv add msgpack'."
             )
 
         return msgpack.packb(obj, **kwargs)
@@ -143,7 +143,7 @@ class MessagePackRenderer:
         """
         if not HAS_MSGPACK:
             raise ImportError(
-                "MessagePack is not installed. Install it with 'pip install msgpack'."
+                "MessagePack is not installed. Install it with 'uv add msgpack'."
             )
 
         return msgpack.unpackb(s, **kwargs)
@@ -194,7 +194,7 @@ class MessagePackResponse(HttpResponse):
         """
         if not HAS_MSGPACK:
             raise ImportError(
-                "MessagePack is not installed. Install it with 'pip install msgpack'."
+                "MessagePack is not installed. Install it with 'uv add msgpack'."
             )
 
         kwargs.setdefault("content_type", "application/x-msgpack")
@@ -1282,8 +1282,8 @@ class PerformanceSuggester:
                             "title": "Slow JSON serialization",
                             "description": f"Average serialization time is {avg_time:.1f}ms",
                             "recommendations": [
-                                "Install orjson for 10x faster serialization: pip install orjson",
-                                "Or install ujson as alternative: pip install ujson",
+                                "Install orjson for 10x faster serialization: uv add orjson",
+                                "Or install ujson as alternative: uv add ujson",
                             ],
                         }
                     )
@@ -1341,8 +1341,8 @@ class PerformanceSuggester:
                     "title": "No fast JSON library installed",
                     "description": "Using standard library json module",
                     "recommendations": [
-                        "Install orjson for best performance: pip install orjson",
-                        "Or install ujson: pip install ujson",
+                        "Install orjson for best performance: uv add orjson",
+                        "Or install ujson: uv add ujson",
                     ],
                 }
             )
@@ -1355,7 +1355,7 @@ class PerformanceSuggester:
                     "title": "MessagePack not available",
                     "description": "Binary serialization not available",
                     "recommendations": [
-                        "Install msgpack for binary serialization: pip install msgpack",
+                        "Install msgpack for binary serialization: uv add msgpack",
                         "Useful for internal service communication",
                     ],
                 }

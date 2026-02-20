@@ -35,8 +35,6 @@ flowchart TB
 
 ```bash
 # Install Django Unfold
-pip install django-unfold
-# or
 uv add django-unfold
 ```
 

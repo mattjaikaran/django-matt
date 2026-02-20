@@ -121,7 +121,7 @@ def _get_cryptography():
     except ImportError:
         raise JWTAlgorithmError(
             "RSA/EC algorithms require the 'cryptography' package. "
-            "Install with: pip install 'django-matt[jwt-asymmetric]' or pip install cryptography"
+            "Install with: uv add 'django-matt[jwt-asymmetric]' or uv add cryptography"
         )
 
 

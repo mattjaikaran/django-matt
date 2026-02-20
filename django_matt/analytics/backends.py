@@ -358,7 +358,7 @@ class RedisBackend(AnalyticsBackend):
                 self._client = redis.from_url(self.redis_url)
             except ImportError:
                 raise ImportError(
-                    "redis package is required for RedisBackend. Install with: pip install redis"
+                    "redis package is required for RedisBackend. Install with: uv add redis"
                 )
         return self._client
 
@@ -611,7 +611,7 @@ class SegmentBackend(AnalyticsBackend):
             except ImportError:
                 raise ImportError(
                     "analytics-python is required for SegmentBackend. "
-                    "Install with: pip install analytics-python"
+                    "Install with: uv add analytics-python"
                 )
         return self._client
 
@@ -741,7 +741,7 @@ class MixpanelBackend(AnalyticsBackend):
                 self._client = Mixpanel(self.token)
             except ImportError:
                 raise ImportError(
-                    "mixpanel is required for MixpanelBackend. Install with: pip install mixpanel"
+                    "mixpanel is required for MixpanelBackend. Install with: uv add mixpanel"
                 )
         return self._client
 
@@ -869,7 +869,7 @@ class PostHogBackend(AnalyticsBackend):
                 )
             except ImportError:
                 raise ImportError(
-                    "posthog is required for PostHogBackend. Install with: pip install posthog"
+                    "posthog is required for PostHogBackend. Install with: uv add posthog"
                 )
         return self._client
 
@@ -994,7 +994,7 @@ class AmplitudeBackend(AnalyticsBackend):
             except ImportError:
                 raise ImportError(
                     "amplitude-analytics is required for AmplitudeBackend. "
-                    "Install with: pip install amplitude-analytics"
+                    "Install with: uv add amplitude-analytics"
                 )
         return self._client
 

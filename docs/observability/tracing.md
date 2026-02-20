@@ -107,7 +107,7 @@ DJANGO_MATT_TRACING = {
 
 **Required package:**
 ```bash
-pip install opentelemetry-exporter-otlp
+uv add opentelemetry-exporter-otlp
 ```
 
 ### Jaeger
@@ -125,7 +125,7 @@ DJANGO_MATT_TRACING = {
 
 **Required package:**
 ```bash
-pip install opentelemetry-exporter-jaeger
+uv add opentelemetry-exporter-jaeger
 ```
 
 ### Zipkin
@@ -143,7 +143,7 @@ DJANGO_MATT_TRACING = {
 
 **Required package:**
 ```bash
-pip install opentelemetry-exporter-zipkin-json
+uv add opentelemetry-exporter-zipkin-json
 ```
 
 ### Datadog
@@ -160,7 +160,7 @@ DJANGO_MATT_TRACING = {
 
 **Required package:**
 ```bash
-pip install ddtrace
+uv add ddtrace
 ```
 
 See [Datadog Integration](integrations.md#datadog) for detailed setup.
@@ -183,7 +183,7 @@ DJANGO_MATT_TRACING = {
 
 **Required package:**
 ```bash
-pip install newrelic
+uv add newrelic
 ```
 
 ### Console (Development)

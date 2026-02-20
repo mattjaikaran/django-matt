@@ -91,15 +91,15 @@ async def process_order(order_id: int):
 
 ```bash
 # Core observability (included with django-matt)
-pip install django-matt
+uv add django-matt
 
 # Optional: Full observability stack
-pip install django-matt[observability]
+uv add django-matt[observability]
 
 # Or install specific components
-pip install opentelemetry-sdk opentelemetry-exporter-otlp
-pip install prometheus-client
-pip install orjson  # Faster JSON logging
+uv add opentelemetry-sdk opentelemetry-exporter-otlp
+uv add prometheus-client
+uv add orjson  # Faster JSON logging
 ```
 
 ### Basic Configuration

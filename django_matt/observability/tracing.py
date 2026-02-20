@@ -248,7 +248,7 @@ class TracingManager:
 
         if not HAS_OPENTELEMETRY:
             logger.warning(
-                "OpenTelemetry is not installed. Install with: pip install opentelemetry-sdk"
+                "OpenTelemetry is not installed. Install with: uv add opentelemetry-sdk"
             )
             return False
 
@@ -304,7 +304,7 @@ class TracingManager:
             if not HAS_JAEGER:
                 logger.warning(
                     "Jaeger exporter not installed. Install with: "
-                    "pip install opentelemetry-exporter-jaeger"
+                    "uv add opentelemetry-exporter-jaeger"
                 )
                 return None
             return JaegerExporter(
@@ -316,7 +316,7 @@ class TracingManager:
             if not HAS_OTLP:
                 logger.warning(
                     "OTLP exporter not installed. Install with: "
-                    "pip install opentelemetry-exporter-otlp"
+                    "uv add opentelemetry-exporter-otlp"
                 )
                 return None
             kwargs = {}
@@ -330,21 +330,21 @@ class TracingManager:
             if not HAS_ZIPKIN:
                 logger.warning(
                     "Zipkin exporter not installed. Install with: "
-                    "pip install opentelemetry-exporter-zipkin-json"
+                    "uv add opentelemetry-exporter-zipkin-json"
                 )
                 return None
             return ZipkinExporter(endpoint=endpoint or "http://localhost:9411/api/v2/spans")
 
         if exporter_type == "datadog":
             if not HAS_DATADOG:
-                logger.warning("Datadog not installed. Install with: pip install ddtrace")
+                logger.warning("Datadog not installed. Install with: uv add ddtrace")
                 return None
             # Datadog uses its own tracer, return None for OTEL exporter
             return None
 
         if exporter_type == "newrelic":
             if not HAS_NEWRELIC:
-                logger.warning("New Relic not installed. Install with: pip install newrelic")
+                logger.warning("New Relic not installed. Install with: uv add newrelic")
                 return None
             # New Relic has its own agent, OTEL integration is separate
             from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter

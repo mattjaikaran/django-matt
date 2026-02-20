@@ -56,7 +56,7 @@ Quit the server with CONTROL-C.
 !!! tip "HTTPS Development"
     For HTTPS, you need `django-extensions` installed:
     ```bash
-    pip install django-extensions
+    uv add django-extensions
     ```
     The command will auto-generate SSL certificates in a temp directory.
 
@@ -129,7 +129,7 @@ Out[2]: 42
 !!! tip "IPython"
     For an enhanced shell experience, install IPython:
     ```bash
-    pip install ipython
+    uv add ipython
     ```
 
 ---

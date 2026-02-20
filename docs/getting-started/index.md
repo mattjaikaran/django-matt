@@ -45,9 +45,6 @@ Before you begin, ensure you have:
 ```bash
 # Install with uv (recommended)
 uv add django-matt
-
-# Or with pip
-pip install django-matt
 ```
 
 Add to your Django settings:

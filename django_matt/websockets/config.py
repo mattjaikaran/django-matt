@@ -1,7 +1,7 @@
 """
 WebSocket configuration for django-matt.
 
-Requires: pip install channels channels-redis
+Requires: uv add channels channels-redis
 
 Configuration in settings.py:
 

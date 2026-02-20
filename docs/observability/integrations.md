@@ -20,7 +20,7 @@ Full APM integration with tracing, metrics, and logging.
 ### Installation
 
 ```bash
-pip install ddtrace
+uv add ddtrace
 ```
 
 ### Configuration
@@ -159,8 +159,8 @@ Full observability with APM, infrastructure, and logging.
 ### Installation
 
 ```bash
-pip install newrelic
-pip install opentelemetry-exporter-otlp  # For OTLP export
+uv add newrelic
+uv add opentelemetry-exporter-otlp  # For OTLP export
 ```
 
 ### Configuration
@@ -249,7 +249,7 @@ Open-source distributed tracing platform.
 ### Installation
 
 ```bash
-pip install opentelemetry-exporter-jaeger
+uv add opentelemetry-exporter-jaeger
 ```
 
 ### Configuration
@@ -337,8 +337,8 @@ Complete observability with Grafana, Tempo (tracing), Loki (logging), and Promet
 ### Installation
 
 ```bash
-pip install opentelemetry-exporter-otlp
-pip install prometheus-client
+uv add opentelemetry-exporter-otlp
+uv add prometheus-client
 ```
 
 ### Configuration

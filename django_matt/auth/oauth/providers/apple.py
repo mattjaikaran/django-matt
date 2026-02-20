@@ -98,8 +98,8 @@ class AppleOAuthProvider(OAuthProvider):
             )
         except JWTAlgorithmError:
             raise OAuthAuthenticationError(
-                "Apple Sign In requires ES256 signing. Install with: pip install 'django-matt[jwt-asymmetric]' "
-                "or pip install cryptography"
+                "Apple Sign In requires ES256 signing. Install with: uv add 'django-matt[jwt-asymmetric]' "
+                "or uv add cryptography"
             )
 
     def _customize_auth_params(self, params: dict) -> dict:

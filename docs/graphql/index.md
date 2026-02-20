@@ -178,10 +178,6 @@ DJANGO_MATT_GRAPHQL = {
 GraphQL support requires the `strawberry-graphql` package:
 
 ```bash
-# Using pip
-pip install strawberry-graphql[django]
-
-# Using uv
 uv add strawberry-graphql[django]
 ```
 

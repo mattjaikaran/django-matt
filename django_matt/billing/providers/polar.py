@@ -3,7 +3,7 @@ Polar billing provider.
 
 Polar is a developer-focused Merchant of Record platform.
 
-Requires: pip install httpx
+Requires: uv add httpx
 
 Documentation: https://polar.sh/docs
 """
@@ -56,7 +56,7 @@ class PolarProvider(BillingProvider[PolarConfig]):
                 )
             except ImportError:
                 raise BillingAPIError(
-                    "httpx package is not installed. Run: pip install httpx",
+                    "httpx package is not installed. Run: uv add httpx",
                     provider=self.provider_name,
                 )
         return self._client

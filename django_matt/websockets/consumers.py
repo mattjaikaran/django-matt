@@ -8,7 +8,7 @@ Provides base classes for building WebSocket consumers with:
 - Error handling
 - Rate limiting
 
-Requires: pip install channels
+Requires: uv add channels
 """
 
 import json

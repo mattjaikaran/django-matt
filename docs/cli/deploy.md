@@ -156,7 +156,7 @@ services:
   - type: web
     name: my-django-app
     env: python
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    buildCommand: uv pip install -r requirements.txt && python manage.py collectstatic --noinput
     startCommand: gunicorn config.wsgi:application
     healthCheckPath: /health/
     envVars:

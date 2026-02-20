@@ -142,7 +142,7 @@ Django Matt provides utilities for working with PostgreSQL vector embeddings usi
 
 ```bash
 # Install the Python package
-pip install django-pgvector
+uv add django-pgvector
 
 # Enable in PostgreSQL (requires superuser)
 CREATE EXTENSION vector;

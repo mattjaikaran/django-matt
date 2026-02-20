@@ -92,7 +92,7 @@ The main Railway configuration file:
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "pip install -r requirements.txt && python manage.py collectstatic --noinput"
+    "buildCommand": "uv pip install -r requirements.txt && python manage.py collectstatic --noinput"
   },
   "deploy": {
     "startCommand": "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 4",
@@ -122,7 +122,7 @@ Custom Nixpacks build configuration:
 nixPkgs = ["python313", "postgresql"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = ["uv pip install -r requirements.txt"]
 
 [phases.build]
 cmds = ["python manage.py collectstatic --noinput"]
@@ -211,7 +211,7 @@ railway domain
 {
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "pip install -r requirements.txt && pip install gunicorn && python manage.py collectstatic --noinput"
+    "buildCommand": "uv pip install -r requirements.txt && uv pip install gunicorn && python manage.py collectstatic --noinput"
   }
 }
 ```

@@ -1,7 +1,7 @@
 """
 Stripe billing provider.
 
-Requires: pip install stripe
+Requires: uv add stripe
 
 Documentation: https://docs.stripe.com/api
 """
@@ -52,7 +52,7 @@ class StripeProvider(BillingProvider[StripeConfig]):
                 self._stripe = stripe
             except ImportError:
                 raise BillingAPIError(
-                    "stripe package is not installed. Run: pip install stripe",
+                    "stripe package is not installed. Run: uv add stripe",
                     provider=self.provider_name,
                 )
         return self._stripe

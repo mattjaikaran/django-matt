@@ -113,7 +113,7 @@ runtime: python313
 build:
   commands:
     pre-build:
-      - pip install -r requirements.txt
+      - uv pip install -r requirements.txt
     build:
       - python manage.py collectstatic --noinput
 run:

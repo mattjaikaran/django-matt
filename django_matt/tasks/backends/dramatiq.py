@@ -41,7 +41,7 @@ class DramatiqBackend(BaseBackend):
         my_task.delay(1, 2)
 
     Requires:
-        pip install dramatiq[redis]
+        uv add "dramatiq[redis]"
     """
 
     def __init__(self, **config):
@@ -71,7 +71,7 @@ class DramatiqBackend(BaseBackend):
         except ImportError:
             raise ImportError(
                 "Dramatiq is required for DramatiqBackend. "
-                "Install with: pip install dramatiq[redis]"
+                "Install with: uv add \"dramatiq[redis]\""
             )
 
         broker_type = self._config.get("DRAMATIQ_BROKER", "redis").lower()

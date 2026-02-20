@@ -183,7 +183,7 @@ class WebSocketRouter:
         try:
             from channels.routing import URLRouter
         except ImportError:
-            raise ImportError("channels is not installed. Install with: pip install channels")
+            raise ImportError("channels is not installed. Install with: uv add channels")
 
         urlpatterns = self.get_urlpatterns()
         app = URLRouter(urlpatterns)
@@ -276,7 +276,7 @@ def create_asgi_application(
     try:
         from channels.routing import ProtocolTypeRouter
     except ImportError:
-        raise ImportError("channels is not installed. Install with: pip install channels")
+        raise ImportError("channels is not installed. Install with: uv add channels")
 
     if http_application is None:
         from django.core.asgi import get_asgi_application

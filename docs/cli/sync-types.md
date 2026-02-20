@@ -198,8 +198,6 @@ generate_zod = true
 
 Install watchdog for better performance:
 ```bash
-pip install watchdog
-# or
 uv add watchdog
 ```
 

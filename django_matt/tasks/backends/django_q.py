@@ -49,7 +49,7 @@ class DjangoQBackend(BaseBackend):
         my_task.delay(1, 2)
 
     Requires:
-        pip install django-q2
+        uv add django-q2
     """
 
     def __init__(self, **config):
@@ -70,7 +70,7 @@ class DjangoQBackend(BaseBackend):
             return async_task, result, fetch, QTask
         except ImportError:
             raise ImportError(
-                "Django-Q2 is required for DjangoQBackend. Install with: pip install django-q2"
+                "Django-Q2 is required for DjangoQBackend. Install with: uv add django-q2"
             )
 
     def send_task(

@@ -327,7 +327,7 @@ Subscriptions require an ASGI server. Here's a complete setup:
 ### 1. Install Dependencies
 
 ```bash
-pip install strawberry-graphql[django] uvicorn channels
+uv add strawberry-graphql[django] uvicorn channels
 ```
 
 ### 2. Configure ASGI

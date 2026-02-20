@@ -111,7 +111,7 @@ High-performance backend optimized for distributed systems.
 ### Installation
 
 ```bash
-pip install redis
+uv add redis
 ```
 
 ### Configuration
@@ -187,7 +187,7 @@ Integration with [LaunchDarkly](https://launchdarkly.com/), a feature management
 ### Installation
 
 ```bash
-pip install launchdarkly-server-sdk
+uv add launchdarkly-server-sdk
 ```
 
 ### Configuration
@@ -271,7 +271,7 @@ Integration with [Unleash](https://www.getunleash.io/), an open-source feature m
 ### Installation
 
 ```bash
-pip install UnleashClient
+uv add UnleashClient
 ```
 
 ### Configuration

@@ -95,7 +95,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN uv pip install --no-cache-dir -r requirements.txt
 
 # Copy project
 COPY . .
@@ -143,7 +143,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN uv pip install --no-cache-dir -r requirements.txt
 
 # Copy project and collect static files
 COPY . .
@@ -207,10 +207,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN uv pip install --no-cache-dir -r requirements.txt
 
 # Install development tools
-RUN pip install --no-cache-dir watchdog[watchmedo]
+RUN uv pip install --no-cache-dir watchdog[watchmedo]
 
 EXPOSE 8000
 

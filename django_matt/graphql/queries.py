@@ -31,7 +31,7 @@ def _require_strawberry():
     if not STRAWBERRY_AVAILABLE:
         raise ImportError(
             "strawberry-graphql is required for GraphQL queries. "
-            "Install it with: pip install strawberry-graphql[django]"
+            "Install it with: uv add \"strawberry-graphql[django]\""
         )
 
 

@@ -43,7 +43,7 @@ class CeleryBackend(BaseBackend):
         my_task.delay(1, 2)
 
     Requires:
-        pip install celery[redis]
+        uv add "celery[redis]"
     """
 
     def __init__(self, **config):
@@ -69,7 +69,7 @@ class CeleryBackend(BaseBackend):
             from celery import Celery
         except ImportError:
             raise ImportError(
-                "Celery is required for CeleryBackend. Install with: pip install celery[redis]"
+                "Celery is required for CeleryBackend. Install with: uv add \"celery[redis]\""
             )
 
         app = Celery("django_matt_tasks")

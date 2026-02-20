@@ -4,7 +4,7 @@
 # Copy the relevant sections to your project's .pre-commit-config.yaml
 #
 # Usage:
-#   1. Install pre-commit: pip install pre-commit
+#   1. Install pre-commit: uv add pre-commit
 #   2. Copy this configuration to .pre-commit-config.yaml
 #   3. Run: pre-commit install
 #

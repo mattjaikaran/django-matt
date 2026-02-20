@@ -102,7 +102,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \\
 
 # Install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN uv pip install --no-cache-dir -r requirements.txt
 
 # Copy project
 COPY . .
@@ -129,7 +129,7 @@ CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.dj
             "runtime": "python313",
             "build": {
                 "commands": {
-                    "pre-build": ["pip install -r requirements.txt"],
+                    "pre-build": ["uv pip install -r requirements.txt"],
                     "build": ["python manage.py collectstatic --noinput"],
                 },
             },

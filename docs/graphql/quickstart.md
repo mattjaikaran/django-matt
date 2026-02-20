@@ -7,7 +7,7 @@ Get a fully functional GraphQL API running in 5 minutes.
 Install strawberry-graphql:
 
 ```bash
-pip install strawberry-graphql[django]
+uv add strawberry-graphql[django]
 ```
 
 ## Step 1: Define Your Models

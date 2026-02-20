@@ -133,12 +133,12 @@ Model Management:
     status = await llm.model_status("llama-3-8b")
 
 Installation for llama.cpp:
-    pip install llama-cpp-python
+    uv add llama-cpp-python
 
     # For GPU support:
     # macOS: Metal is auto-enabled on Apple Silicon
-    # NVIDIA: CMAKE_ARGS="-DLLAMA_CUDA=on" pip install llama-cpp-python
-    # AMD: CMAKE_ARGS="-DLLAMA_HIPBLAS=on" pip install llama-cpp-python
+    # NVIDIA: CMAKE_ARGS="-DLLAMA_CUDA=on" uv add llama-cpp-python
+    # AMD: CMAKE_ARGS="-DLLAMA_HIPBLAS=on" uv add llama-cpp-python
 """
 
 from django_matt.ai.base import (

@@ -34,10 +34,10 @@ Django Matt automatically uses the fastest available JSON library.
 
 ```bash
 # Best performance (recommended)
-pip install orjson
+uv add orjson
 
 # Alternative (still faster than stdlib)
-pip install ujson
+uv add ujson
 ```
 
 ### Usage
@@ -80,7 +80,7 @@ data = FastJSONRenderer.dumps(
 For binary serialization (smaller payloads, faster processing):
 
 ```bash
-pip install msgpack
+uv add msgpack
 ```
 
 ```python

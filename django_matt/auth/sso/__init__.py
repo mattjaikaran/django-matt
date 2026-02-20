@@ -9,8 +9,8 @@ Provides:
 - Attribute mapping from IdP
 
 Requires:
-- SAML: pip install python3-saml
-- OIDC: pip install httpx
+- SAML: uv add python3-saml
+- OIDC: uv add httpx
 
 Example:
     from django_matt.auth.sso import SSOController

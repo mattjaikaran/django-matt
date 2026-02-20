@@ -10,8 +10,6 @@ Django Matt provides two command-line interfaces for managing your project:
 The `matt` CLI is automatically installed when you install django-matt:
 
 ```bash
-pip install django-matt
-# or with uv
 uv add django-matt
 ```
 

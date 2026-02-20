@@ -240,7 +240,7 @@ class RedisBackend(FlagBackend):
                 self._client = redis.from_url(self.redis_url)
             except ImportError:
                 raise ImportError(
-                    "redis package is required for RedisBackend. Install with: pip install redis"
+                    "redis package is required for RedisBackend. Install with: uv add redis"
                 )
         return self._client
 
@@ -490,7 +490,7 @@ class LaunchDarklyBackend(FlagBackend):
     LaunchDarkly feature flag backend.
 
     Provides integration with LaunchDarkly's feature flag service.
-    Requires: pip install launchdarkly-server-sdk
+    Requires: uv add launchdarkly-server-sdk
     """
 
     def __init__(
@@ -521,7 +521,7 @@ class LaunchDarklyBackend(FlagBackend):
                     logger.warning("LaunchDarkly client failed to initialize")
             except ImportError:
                 raise ImportError(
-                    "launchdarkly-server-sdk is required. Install with: pip install launchdarkly-server-sdk"
+                    "launchdarkly-server-sdk is required. Install with: uv add launchdarkly-server-sdk"
                 )
         return self._client
 
@@ -605,7 +605,7 @@ class UnleashBackend(FlagBackend):
     Unleash feature flag backend.
 
     Provides integration with Unleash (or GitLab Feature Flags).
-    Requires: pip install UnleashClient
+    Requires: uv add UnleashClient
     """
 
     def __init__(
@@ -641,7 +641,7 @@ class UnleashBackend(FlagBackend):
                 self._client.initialize_client()
             except ImportError:
                 raise ImportError(
-                    "UnleashClient is required. Install with: pip install UnleashClient"
+                    "UnleashClient is required. Install with: uv add UnleashClient"
                 )
         return self._client
 

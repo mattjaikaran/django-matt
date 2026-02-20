@@ -18,7 +18,7 @@ Get immediate performance benefits with minimal effort:
 ### 1. Install orjson
 
 ```bash
-pip install orjson
+uv add orjson
 ```
 
 Django Matt automatically uses orjson when available, providing 3-10x faster JSON serialization.

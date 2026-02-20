@@ -111,7 +111,7 @@ class PerplexityProvider(LLMProvider, StructuredOutputProvider):
                 import httpx
             except ImportError:
                 raise ImportError(
-                    "httpx is required for Perplexity provider. Install with: pip install httpx"
+                    "httpx is required for Perplexity provider. Install with: uv add httpx"
                 )
 
             self._client = httpx.AsyncClient(

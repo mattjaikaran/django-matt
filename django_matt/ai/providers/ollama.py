@@ -88,7 +88,7 @@ class OllamaProvider(LLMProvider, StructuredOutputProvider):
                 import httpx
             except ImportError:
                 raise ImportError(
-                    "httpx is required for Ollama provider. Install with: pip install httpx"
+                    "httpx is required for Ollama provider. Install with: uv add httpx"
                 )
 
             self._client = httpx.AsyncClient(
@@ -421,7 +421,7 @@ class OllamaEmbeddings(EmbeddingProvider):
             try:
                 import httpx
             except ImportError:
-                raise ImportError("httpx is required. Install with: pip install httpx")
+                raise ImportError("httpx is required. Install with: uv add httpx")
 
             self._client = httpx.AsyncClient(
                 base_url=self.base_url,

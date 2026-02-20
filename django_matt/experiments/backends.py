@@ -246,7 +246,7 @@ class RedisBackend(ExperimentBackend):
                 self._client = redis.from_url(self.redis_url)
             except ImportError:
                 raise ImportError(
-                    "redis package is required for RedisBackend. Install with: pip install redis"
+                    "redis package is required for RedisBackend. Install with: uv add redis"
                 )
         return self._client
 

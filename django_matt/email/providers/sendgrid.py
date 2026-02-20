@@ -1,7 +1,7 @@
 """
 SendGrid email provider.
 
-Requires: pip install sendgrid
+Requires: uv add sendgrid
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ class SendGridProvider(EmailProviderBase):
                 self._client = SendGridAPIClient(api_key=self.api_key)
             except ImportError:
                 raise ImportError(
-                    "sendgrid is required for SendGrid provider. Install with: pip install sendgrid"
+                    "sendgrid is required for SendGrid provider. Install with: uv add sendgrid"
                 )
         return self._client
 

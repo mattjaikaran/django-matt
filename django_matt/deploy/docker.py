@@ -84,7 +84,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \\
 
 # Install Python dependencies
 COPY {self.config.requirements_file} .
-RUN pip install --no-cache-dir -r {self.config.requirements_file}
+RUN uv pip install --no-cache-dir -r {self.config.requirements_file}
 
 # Copy project
 COPY . .
@@ -133,7 +133,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Install Python dependencies
 COPY {self.config.requirements_file} .
-RUN pip install --no-cache-dir -r {self.config.requirements_file}
+RUN uv pip install --no-cache-dir -r {self.config.requirements_file}
 
 # Copy project and collect static files
 COPY . .
@@ -195,10 +195,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \\
 
 # Install Python dependencies
 COPY {self.config.requirements_file} .
-RUN pip install --no-cache-dir -r {self.config.requirements_file}
+RUN uv pip install --no-cache-dir -r {self.config.requirements_file}
 
 # Install development tools
-RUN pip install --no-cache-dir watchdog[watchmedo]
+RUN uv pip install --no-cache-dir watchdog[watchmedo]
 
 EXPOSE {self.config.port}
 

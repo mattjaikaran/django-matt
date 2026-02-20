@@ -374,7 +374,7 @@ class YAMLRenderer(BaseRenderer):
     """
     YAML renderer for human-readable output.
 
-    Requires: pip install pyyaml
+    Requires: uv add pyyaml
     """
 
     media_type = "application/yaml"
@@ -410,7 +410,7 @@ class YAMLRenderer(BaseRenderer):
         try:
             import yaml
         except ImportError:
-            raise ImportError("PyYAML is not installed. Install with: pip install pyyaml")
+            raise ImportError("PyYAML is not installed. Install with: uv add pyyaml")
 
         prepared = self._prepare_data(data)
 
@@ -427,7 +427,7 @@ class MessagePackRenderer(BaseRenderer):
     """
     MessagePack renderer for efficient binary serialization.
 
-    Requires: pip install msgpack
+    Requires: uv add msgpack
     """
 
     media_type = "application/msgpack"
@@ -458,7 +458,7 @@ class MessagePackRenderer(BaseRenderer):
         try:
             import msgpack
         except ImportError:
-            raise ImportError("msgpack is not installed. Install with: pip install msgpack")
+            raise ImportError("msgpack is not installed. Install with: uv add msgpack")
 
         prepared = self._prepare_data(data)
         return msgpack.packb(prepared, use_bin_type=True)

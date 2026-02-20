@@ -7,7 +7,7 @@ Provides:
 - Automatic user creation/linking
 - JWT tokens after OAuth authentication
 
-Requires: pip install httpx
+Requires: uv add httpx
 
 Example:
     from django_matt.auth.oauth import OAuthController

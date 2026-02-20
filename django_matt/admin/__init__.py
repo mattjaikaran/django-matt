@@ -24,8 +24,6 @@ Usage:
         tenant_field = "organization"
 
 Installation:
-    pip install django-unfold
-    # or
     uv add django-unfold
 
     # In settings.py, add BEFORE django.contrib.admin:

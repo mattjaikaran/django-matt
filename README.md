@@ -75,14 +75,11 @@ Django Matt consolidates the Django API ecosystem into a single, cohesive framew
 # Using uv (recommended)
 uv add django-matt
 
-# Using pip
-pip install django-matt
-
 # With all features
-pip install "django-matt[all]"
+uv add "django-matt[all]"
 
 # Specific features
-pip install "django-matt[auth,billing,performance]"
+uv add "django-matt[auth,billing,performance]"
 ```
 
 ### Create Your First API
@@ -321,22 +318,22 @@ django_matt/
 
 ```bash
 # Authentication extras
-pip install "django-matt[auth]"           # Basic auth (no extra deps)
-pip install "django-matt[jwt-asymmetric]" # RSA/EC JWT algorithms
-pip install "django-matt[oauth]"          # OAuth providers
-pip install "django-matt[passkeys]"       # WebAuthn/Passkeys
+uv add "django-matt[auth]"           # Basic auth (no extra deps)
+uv add "django-matt[jwt-asymmetric]" # RSA/EC JWT algorithms
+uv add "django-matt[oauth]"          # OAuth providers
+uv add "django-matt[passkeys]"       # WebAuthn/Passkeys
 
 # Performance
-pip install "django-matt[performance]"    # orjson, ujson, msgpack, redis
+uv add "django-matt[performance]"    # orjson, ujson, msgpack, redis
 
 # Billing
-pip install "django-matt[billing]"        # Stripe integration
+uv add "django-matt[billing]"        # Stripe integration
 
 # Background tasks
-pip install "django-matt[tasks]"          # Celery, Dramatiq, Django-Q2
+uv add "django-matt[tasks]"          # Celery, Dramatiq, Django-Q2
 
 # Everything
-pip install "django-matt[all]"
+uv add "django-matt[all]"
 ```
 
 ## Documentation

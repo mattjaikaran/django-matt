@@ -84,7 +84,7 @@ class GeminiProvider(LLMProvider, StructuredOutputProvider):
                 import httpx
             except ImportError:
                 raise ImportError(
-                    "httpx is required for Gemini provider. Install with: pip install httpx"
+                    "httpx is required for Gemini provider. Install with: uv add httpx"
                 )
 
             self._client = httpx.AsyncClient(
@@ -390,7 +390,7 @@ class GeminiEmbeddings(EmbeddingProvider):
             try:
                 import httpx
             except ImportError:
-                raise ImportError("httpx is required. Install with: pip install httpx")
+                raise ImportError("httpx is required. Install with: uv add httpx")
 
             self._client = httpx.AsyncClient(
                 base_url=self.base_url,
