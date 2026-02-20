@@ -365,6 +365,7 @@ class TestListView:
     @pytest.mark.asyncio
     async def test_list_empty(self, rf):
         """Listing with no records returns empty items."""
+        User.objects.all().delete()  # Ensure clean state
         viewset = ItemViewSet()
         view = viewset.__class__.list_items
         view._viewset = viewset

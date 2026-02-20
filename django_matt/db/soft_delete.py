@@ -197,7 +197,14 @@ class SoftDeleteMixin(models.Model):
 
     async def ahard_delete(self, using=None, keep_parents=False):
         """Async version of hard delete."""
-        return await super().adelete(using=using, keep_parents=keep_parents)
+        # Cannot use super().adelete() because Django's adelete() calls
+        # self.delete() via sync_to_async, which would invoke our overridden
+        # soft-delete method instead of performing a real database delete.
+        from asgiref.sync import sync_to_async
+
+        return await sync_to_async(super().delete)(
+            using=using, keep_parents=keep_parents
+        )
 
     def restore(self, using=None):
         """
@@ -335,12 +342,25 @@ def restore_cascade(instance, using=None):
         instance.deleted_at = None
         instance.save(using=using, update_fields=["deleted_at"])
 
-    # Restore related objects
+    # Restore related objects.
+    # We must bypass the default manager's alive_only filtering because
+    # the related records are soft-deleted and thus invisible to the
+    # default manager. We query via all_objects (unfiltered) with an
+    # explicit FK filter instead of using the related manager.
     for field in instance._meta.get_fields():
         if hasattr(field, "related_model") and field.related_model:
             related_model = field.related_model
             if hasattr(related_model, "deleted_at"):
-                if hasattr(field, "get_accessor_name"):
+                # Use all_objects (unfiltered) if available, otherwise
+                # fall back to the related manager accessor.
+                if hasattr(related_model, "all_objects"):
+                    # Build filter using the FK field name
+                    if hasattr(field, "field"):
+                        fk_field_name = field.field.name
+                        related_model.all_objects.filter(
+                            **{fk_field_name: instance}
+                        ).update(deleted_at=None)
+                elif hasattr(field, "get_accessor_name"):
                     accessor = field.get_accessor_name()
                     if hasattr(instance, accessor):
                         related_manager = getattr(instance, accessor)
