@@ -8,7 +8,7 @@ Provides:
 - Pydantic schemas for WebAuthn flows
 - Ready-to-use API controllers
 
-Requires: pip install webauthn
+Requires: uv add webauthn
 
 Example:
     from django_matt.auth.passkeys import (
@@ -55,6 +55,10 @@ from django_matt.auth.passkeys.webauthn import (
     PasskeyCredentialNotFoundError,
     PasskeyError,
     PasskeyRegistrationError,
+    agenerate_authentication_options,
+    agenerate_registration_options,
+    averify_authentication_response,
+    averify_registration_response,
     generate_authentication_options,
     generate_registration_options,
     verify_authentication_response,
@@ -65,11 +69,16 @@ __all__ = [
     # Config
     "PasskeyConfig",
     "passkey_config",
-    # Core functions
+    # Core functions (sync)
     "generate_registration_options",
     "verify_registration_response",
     "generate_authentication_options",
     "verify_authentication_response",
+    # Core functions (async)
+    "agenerate_registration_options",
+    "averify_registration_response",
+    "agenerate_authentication_options",
+    "averify_authentication_response",
     # Errors
     "PasskeyError",
     "PasskeyRegistrationError",

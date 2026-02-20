@@ -352,6 +352,17 @@ def verify_access_token(token: str) -> TokenPayload:
     return payload
 
 
+async def averify_access_token(token: str) -> TokenPayload:
+    """Async version of verify_access_token. Uses async blacklist check."""
+    payload = decode_token(token, verify_type="access")
+    if payload.jti:
+        from django_matt.auth.blacklist.core import ais_token_blacklisted
+
+        if await ais_token_blacklisted(payload.jti):
+            raise InvalidTokenError("Token has been revoked")
+    return payload
+
+
 def verify_refresh_token(token: str) -> TokenPayload:
     """Verify and decode a refresh token."""
     payload = decode_token(token, verify_type="refresh")
@@ -359,6 +370,17 @@ def verify_refresh_token(token: str) -> TokenPayload:
         from django_matt.auth.blacklist.core import is_token_blacklisted
 
         if is_token_blacklisted(payload.jti):
+            raise InvalidTokenError("Token has been revoked")
+    return payload
+
+
+async def averify_refresh_token(token: str) -> TokenPayload:
+    """Async version of verify_refresh_token. Uses async blacklist check."""
+    payload = decode_token(token, verify_type="refresh")
+    if payload.jti:
+        from django_matt.auth.blacklist.core import ais_token_blacklisted
+
+        if await ais_token_blacklisted(payload.jti):
             raise InvalidTokenError("Token has been revoked")
     return payload
 
@@ -412,7 +434,7 @@ async def async_refresh_tokens(refresh_token: str) -> TokenPair:
     Raises:
         InvalidTokenError: If refresh token is invalid
     """
-    payload = verify_refresh_token(refresh_token)
+    payload = await averify_refresh_token(refresh_token)
 
     # Blacklist old refresh token if configured
     if jwt_config.blacklist_after_rotation and payload.jti:
@@ -429,7 +451,7 @@ async def async_refresh_tokens(refresh_token: str) -> TokenPair:
     if not user.is_active:
         raise InvalidTokenError("User is inactive")
 
-    return create_token_pair(user)
+    return await acreate_token_pair(user)
 
 
 def get_token_from_request(request: HttpRequest) -> str | None:
@@ -501,7 +523,7 @@ async def aget_user_from_token(token: str, *, _payload: "TokenPayload | None" = 
         Django User instance or None
     """
     try:
-        payload = _payload or verify_access_token(token)
+        payload = _payload or await averify_access_token(token)
         User = get_user_model()
         return await User.objects.aget(**{jwt_config.user_id_field: payload.sub})
     except (InvalidTokenError, ExpiredSignatureError):
@@ -565,11 +587,15 @@ __all__ = [
     # Token verification
     "decode_token",
     "verify_access_token",
+    "averify_access_token",
     "verify_refresh_token",
+    "averify_refresh_token",
     "refresh_tokens",
+    "async_refresh_tokens",
     # Request helpers
     "get_token_from_request",
     "get_user_from_token",
+    "aget_user_from_token",
     "generate_jti",
     # Authentication class
     "JWTAuthentication",

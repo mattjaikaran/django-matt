@@ -502,20 +502,21 @@ class TestRefreshTokensBlacklist:
 
         settings.DJANGO_MATT_JWT = {"BLACKLIST_AFTER_ROTATION": True}
 
+        async def _mock_averify(*args, **kwargs):
+            return fake_payload
+
+        async def _mock_ablacklist(*args, **kwargs):
+            return None
+
+        async def _mock_acreate_pair(*args, **kwargs):
+            return MagicMock()
+
         with (
-            patch("django_matt.auth.jwt.verify_refresh_token", return_value=fake_payload),
+            patch("django_matt.auth.jwt.averify_refresh_token", side_effect=_mock_averify),
             patch("django_matt.auth.blacklist.core.ablacklist_token") as mock_abl,
-            patch("django_matt.auth.jwt.create_token_pair") as mock_create,
+            patch("django_matt.auth.jwt.acreate_token_pair", side_effect=_mock_acreate_pair),
         ):
-            mock_create.return_value = MagicMock()
-            mock_abl.return_value = None  # Make the coroutine return None
-            # Need to make mock_abl awaitable
-            import asyncio
-
-            async def _noop(*args, **kwargs):
-                return None
-
-            mock_abl.side_effect = _noop
+            mock_abl.side_effect = _mock_ablacklist
             await async_refresh_tokens("fake.refresh.token")
             mock_abl.assert_called_once_with(fake_payload.jti, fake_payload.exp)
 

@@ -22,10 +22,10 @@ from django_matt.auth.passkeys.schemas import (
 )
 from django_matt.auth.passkeys.webauthn import (
     PasskeyError,
-    generate_authentication_options,
-    generate_registration_options,
-    verify_authentication_response,
-    verify_registration_response,
+    agenerate_authentication_options,
+    agenerate_registration_options,
+    averify_authentication_response,
+    averify_registration_response,
 )
 from django_matt.core.errors import (
     NotFoundAPIError,
@@ -72,7 +72,7 @@ class PasskeyController:
         POST /passkeys/register/options
         """
         try:
-            options = generate_registration_options(
+            options = await agenerate_registration_options(
                 user=request.user,
                 credential_name=data.credential_name,
             )
@@ -91,7 +91,7 @@ class PasskeyController:
         POST /passkeys/register/verify
         """
         try:
-            credential = verify_registration_response(
+            credential = await averify_registration_response(
                 user=request.user,
                 credential_id=data.credential_id,
                 client_data_json=data.response.clientDataJSON,
@@ -122,7 +122,7 @@ class PasskeyController:
         POST /passkeys/authenticate/options
         """
         try:
-            options = generate_authentication_options(
+            options = await agenerate_authentication_options(
                 email=data.email,
             )
             return options
@@ -139,7 +139,7 @@ class PasskeyController:
         POST /passkeys/authenticate/verify
         """
         try:
-            user, credential = verify_authentication_response(
+            user, credential = await averify_authentication_response(
                 credential_id=data.credential_id,
                 client_data_json=data.response.clientDataJSON,
                 authenticator_data=data.response.authenticatorData,
@@ -287,7 +287,7 @@ class MinimalPasskeyController:
         POST /passkeys/options
         """
         try:
-            return generate_authentication_options(email=data.email)
+            return await agenerate_authentication_options(email=data.email)
         except PasskeyError as e:
             raise ValidationAPIError(str(e))
 
@@ -299,7 +299,7 @@ class MinimalPasskeyController:
         POST /passkeys/verify
         """
         try:
-            user, credential = verify_authentication_response(
+            user, credential = await averify_authentication_response(
                 credential_id=data.credential_id,
                 client_data_json=data.response.clientDataJSON,
                 authenticator_data=data.response.authenticatorData,

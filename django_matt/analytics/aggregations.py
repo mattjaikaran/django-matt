@@ -23,7 +23,6 @@ Usage:
     cohorts = await aggregator.get_cohort_retention(start, end)
 """
 
-import asyncio
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
@@ -665,26 +664,14 @@ class Aggregator:
             else:
                 next_period = current + timedelta(days=30)
 
-            # Get users in this cohort
-            cohort_users = (
-                await User.objects.filter(
+            # Get users in this cohort (async ORM iteration)
+            cohort_users = [
+                user_id
+                async for user_id in User.objects.filter(
                     date_joined__gte=current,
                     date_joined__lt=next_period,
-                )
-                .values_list("id", flat=True)
-                .async_to_list()
-                if hasattr(User.objects, "async_to_list")
-                else list(
-                    await asyncio.to_thread(
-                        lambda: list(
-                            User.objects.filter(
-                                date_joined__gte=current,
-                                date_joined__lt=next_period,
-                            ).values_list("id", flat=True)
-                        )
-                    )
-                )
-            )
+                ).values_list("id", flat=True)
+            ]
 
             if cohort_users:
                 cohort_size = len(cohort_users)
