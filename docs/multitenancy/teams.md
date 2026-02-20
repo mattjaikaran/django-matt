@@ -19,7 +19,7 @@ class Team(models.Model):
 ```python
 from django_matt.multitenancy import TeamController
 
-api.register_controller(TeamController, prefix="/teams")
+api.register_controller(TeamController)
 
 # Endpoints:
 # GET /teams/ - List teams in organization

@@ -236,7 +236,7 @@ def process_item(item):
 @counted("api_requests", labels={"endpoint": "/orders"})
 async def list_orders():
     """Creates: api_requests counter with endpoint label"""
-    return await Order.objects.all()
+    return [o async for o in Order.objects.all()]
 
 @counted("webhook_received", labels={"provider": "stripe"}, count_exceptions=True)
 def handle_webhook(payload):

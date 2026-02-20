@@ -36,7 +36,7 @@ def user(db):
 @pytest.fixture
 def auth_client(client, user):
     """Client with authenticated user."""
-    client.authenticate(user)
+    client.force_authenticate(user)
     return client
 
 @pytest.fixture

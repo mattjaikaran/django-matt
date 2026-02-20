@@ -338,7 +338,7 @@ MIDDLEWARE = [
 from django_matt.auth import AuthController
 
 # Register the built-in auth controller
-api.register_controller(AuthController, prefix="/auth")
+api.register_controller(AuthController)
 # Provides: /auth/login, /auth/register, /auth/refresh, /auth/logout, /auth/me
 ```
 

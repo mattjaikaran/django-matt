@@ -97,7 +97,7 @@ except Product.DoesNotExist:
 @api.get("/categories")
 @cache_response(timeout=3600)
 async def list_categories(request):
-    return await Category.objects.all()
+    return [c async for c in Category.objects.all()]
 
 # Custom permission
 class IsOwnerOrAdmin(BasePermission):

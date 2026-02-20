@@ -11,7 +11,7 @@ class ProductController(APIController):
     @api.get("/")
     async def list(self, request):
         # Basic query
-        products = await Product.objects.all()
+        products = [p async for p in Product.objects.all()]
 
         # Filtering
         products = await Product.objects.filter(is_active=True)
@@ -24,7 +24,7 @@ class ProductController(APIController):
         limit = int(request.GET.get("limit", 20))
         offset = (page - 1) * limit
 
-        products = await Product.objects.all()[offset:offset + limit]
+        products = [p async for p in Product.objects.all()][offset:offset + limit]
 
         return products
 ```

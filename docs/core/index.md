@@ -91,7 +91,7 @@ class ProductController(APIController):
     @api.get("/", response=list[ProductSchema])
     async def list_products(self):
         """List all products."""
-        products = await Product.objects.all()
+        products = [p async for p in Product.objects.all()]
         return [ProductSchema.from_orm(p) for p in products]
 
     @api.get("/{product_id}", response=ProductSchema)
@@ -120,7 +120,7 @@ django-matt is designed for async operations:
 # Recommended: async handlers
 @api.get("/users")
 async def list_users(request):
-    users = await User.objects.all()
+    users = [u async for u in User.objects.all()]
     return users
 
 # Also supported: sync handlers

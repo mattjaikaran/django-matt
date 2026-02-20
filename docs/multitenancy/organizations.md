@@ -23,7 +23,7 @@ class Organization(models.Model):
 ```python
 from django_matt.multitenancy import OrganizationController
 
-api.register_controller(OrganizationController, prefix="/organizations")
+api.register_controller(OrganizationController)
 
 # Endpoints:
 # GET /organizations/ - List user's organizations

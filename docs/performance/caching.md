@@ -25,7 +25,7 @@ from django_matt.utils.performance import cache_manager
 @api.get("/products")
 @cache_manager.cache_response(timeout=300)  # 5 minutes
 async def list_products(request):
-    return await Product.objects.all()
+    return [p async for p in Product.objects.all()]
 ```
 
 ### Result Caching
@@ -413,7 +413,7 @@ async def list_products(request):
         # Log and continue without cache
         pass
 
-    products = await Product.objects.all()
+    products = [p async for p in Product.objects.all()]
 
     try:
         cache_manager.set("products", products, timeout=300)

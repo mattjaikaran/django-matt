@@ -111,7 +111,7 @@ class AdminController(APIController):
 
     @api.get("/users")
     async def list_all_users(self):
-        return await User.objects.all()
+        return [u async for u in User.objects.all()]
 
     @api.delete("/users/{user_id}")
     @requires_role("superadmin")
@@ -444,7 +444,7 @@ from django_matt.utils.performance import cache_response
 @cache_response(timeout=3600)  # Cache for 1 hour
 async def list_categories(request):
     """Categories rarely change, so we cache them."""
-    categories = await Category.objects.all().alist()
+    categories = [c async for c in Category.objects.all()].alist()
     return [CategorySchema.from_orm(c) for c in categories]
 ```
 
@@ -668,7 +668,7 @@ def user():
 
 @pytest.fixture
 def auth_client(client, user):
-    client.authenticate(user)
+    client.force_authenticate(user)
     return client
 
 class TestUserController:

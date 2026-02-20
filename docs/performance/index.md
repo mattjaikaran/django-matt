@@ -31,7 +31,7 @@ from django_matt.utils import cache_manager
 @api.get("/products")
 @cache_manager.cache_response(timeout=60)
 async def list_products(request):
-    return await Product.objects.all()
+    return [p async for p in Product.objects.all()]
 ```
 
 ### 3. Use Query Optimization
@@ -49,7 +49,7 @@ products = optimize_queryset(Product.objects.all())
 # Async views handle more concurrent requests
 @api.get("/users")
 async def list_users(request):
-    return await User.objects.all()
+    return [u async for u in User.objects.all()]
 ```
 
 ## Performance Features Overview
@@ -219,14 +219,14 @@ for suggestion in suggestions:
 # Bad: Load all into memory
 @api.get("/items")
 async def get_items(request):
-    items = await Item.objects.all()
+    items = [i async for i in Item.objects.all()]
     return items  # May be thousands of items
 
 # Good: Use pagination
 @api.get("/items")
 async def get_items(request, page: int = 1, limit: int = 20):
     offset = (page - 1) * limit
-    items = await Item.objects.all()[offset:offset + limit]
+    items = [i async for i in Item.objects.all()][offset:offset + limit]
     return items
 
 # Good: Stream large datasets
@@ -261,7 +261,7 @@ async def get_analytics(request):
 # Bad: N+1 queries
 @api.get("/orders")
 async def get_orders(request):
-    orders = await Order.objects.all()
+    orders = [o async for o in Order.objects.all()]
     # Accessing order.customer triggers N queries
     return [{"id": o.id, "customer": o.customer.name} for o in orders]
 

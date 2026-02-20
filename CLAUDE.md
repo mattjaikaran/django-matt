@@ -117,9 +117,11 @@ pytest tests/test_auth.py -v           # specific file
 
 ## Known Issues
 
-- Production Dockerfile references `/health/` endpoint that doesn't exist
-- ~80% of modules have no test coverage (auth, billing, multitenancy being addressed)
-- `matt routes`, `matt models`, `matt info`, `matt doctor` CLI commands referenced in Makefile but not implemented
+- ~18 source modules have no test coverage (admin, cli, db, permissions, views, openapi, typegen, etc.)
+- Generated code templates (startapp, generate_crud, cli templates) produce stub methods with TODO comments
+- Python minimum is 3.12 in pyproject.toml but ROADMAP.md says 3.11
+- PayPal `list_subscriptions()` returns `[]` unconditionally (not supported by PayPal API)
+- `conftest.py` sets `DJANGO_ALLOW_ASYNC_UNSAFE=true` globally, masking async/sync ORM bugs in tests
 
 ## Important Files
 

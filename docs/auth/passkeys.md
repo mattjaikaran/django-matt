@@ -32,7 +32,7 @@ Use the pre-built controller:
 ```python
 from django_matt.auth.passkeys import PasskeyController
 
-api.register_controller(PasskeyController, prefix="/auth/passkeys")
+api.register_controller(PasskeyController)
 
 # Provides:
 # POST /auth/passkeys/register/begin - Start registration

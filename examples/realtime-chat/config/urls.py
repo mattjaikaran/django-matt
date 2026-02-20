@@ -27,15 +27,13 @@ api = MattAPI(
 )
 
 # Register controllers
-api.register_controller(AuthController, prefix="/auth", tags=["Authentication"])
-api.register_controller(WorkspaceController, prefix="/workspaces", tags=["Workspaces"])
-api.register_controller(ChannelController, prefix="/channels", tags=["Channels"])
-api.register_controller(MessageController, prefix="/messages", tags=["Messages"])
-api.register_controller(
-    DirectMessageController, prefix="/dm", tags=["Direct Messages"]
-)
-api.register_controller(FileController, prefix="/files", tags=["Files"])
-api.register_controller(SearchController, prefix="/search", tags=["Search"])
+api.register_controller(AuthController)
+api.register_controller(WorkspaceController)
+api.register_controller(ChannelController)
+api.register_controller(MessageController)
+api.register_controller(DirectMessageController)
+api.register_controller(FileController)
+api.register_controller(SearchController)
 
 urlpatterns = [
     # Admin

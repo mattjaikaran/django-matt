@@ -112,7 +112,7 @@ from django_matt.utils import cache_manager
 @api.get("/products")
 @cache_manager.cache_response(timeout=300, key_prefix="products")
 async def list_products(request):
-    return await Product.objects.all()
+    return [p async for p in Product.objects.all()]
 
 # Works with both sync and async views
 @cache_manager.cache_response(timeout=600)

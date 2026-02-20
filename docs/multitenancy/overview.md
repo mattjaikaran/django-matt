@@ -19,9 +19,9 @@ from django_matt.multitenancy import (
     MembershipController,
 )
 
-api.register_controller(OrganizationController, prefix="/organizations")
-api.register_controller(TeamController, prefix="/teams")
-api.register_controller(MembershipController, prefix="/memberships")
+api.register_controller(OrganizationController)
+api.register_controller(TeamController)
+api.register_controller(MembershipController)
 ```
 
 ## Models

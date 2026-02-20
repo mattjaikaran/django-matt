@@ -215,7 +215,7 @@ Pre-built controller for session management:
 ```python
 from django_matt.auth.session import SessionController
 
-api.register_controller(SessionController, prefix="/auth")
+api.register_controller(SessionController)
 
 # Provides:
 # POST /auth/login - Login

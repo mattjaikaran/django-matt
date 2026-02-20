@@ -17,7 +17,7 @@ class UserController(APIController):
 
     @get("/")
     async def list_users(self, request):
-        users = await User.objects.all()
+        users = [u async for u in User.objects.all()]
         return {"users": [u.email for u in users]}
 
     @get("/{user_id}")
@@ -71,7 +71,7 @@ CRUDController provides these async methods:
 |--------|------|------|-------------|
 | `list()` | GET | `/` | List with pagination |
 | `create()` | POST | `/` | Create new resource |
-| `read()` | GET | `/{id}` | Get single resource |
+| `retrieve()` | GET | `/{id}` | Get single resource |
 | `update()` | PUT | `/{id}` | Full update |
 | `partial_update()` | PATCH | `/{id}` | Partial update |
 | `delete()` | DELETE | `/{id}` | Delete resource |

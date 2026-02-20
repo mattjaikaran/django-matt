@@ -6,7 +6,7 @@ including MessagePack serialization, caching, and streaming responses.
 
 To run this example:
 1. Install Django and Django Matt
-2. Install optional dependencies: pip install msgpack redis
+2. Install optional dependencies: uv add msgpack redis
 3. Run this script with Python
 
 """
@@ -135,7 +135,7 @@ async def msgpack_response(request):
     """Return a large dataset using MessagePackResponse."""
     if not HAS_MSGPACK:
         return JsonResponse(
-            {"error": 'MessagePack is not installed. Install it with "pip install msgpack".'},
+            {"error": 'MessagePack is not installed. Install it with "uv add msgpack".'},
             status=500,
         )
 

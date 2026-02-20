@@ -87,12 +87,12 @@ class UserController(APIController):
     ...
 ```
 
-#### `register_controller(cls, prefix="")`
+#### `register_controller(controller_class)`
 
 Register a controller class programmatically.
 
 ```python
-api.register_controller(UserController, prefix="/users")
+api.register_controller(UserController)
 ```
 
 #### `include_router(router, prefix="")`
@@ -156,7 +156,7 @@ class ProductController(APIController):
 
     @api.get("/")
     async def list(self):
-        return await Product.objects.all()
+        return [p async for p in Product.objects.all()]
 
     @api.get("/{id}")
     async def retrieve(self, id: int):

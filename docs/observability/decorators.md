@@ -474,7 +474,7 @@ class OrderController(APIController):
     @trace("list_orders")
     @timed("orders_list_duration")
     async def list_orders(self, request):
-        return await Order.objects.all()
+        return [o async for o in Order.objects.all()]
 
     @api.post("/")
     @trace("create_order")

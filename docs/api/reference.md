@@ -422,7 +422,7 @@ DJANGO_MATT_JWT = {
 from django_matt.auth.oauth import OAuthController, GoogleOAuthProvider
 
 # Register OAuth controller
-api.register_controller(OAuthController, prefix="/auth/oauth")
+api.register_controller(OAuthController)
 
 # Configure providers in settings
 MATT_OAUTH = {
@@ -444,7 +444,7 @@ MATT_OAUTH = {
 from django_matt.auth.passkeys import PasskeyController
 
 # Register passkey controller
-api.register_controller(PasskeyController, prefix="/auth/passkeys")
+api.register_controller(PasskeyController)
 
 # Endpoints provided:
 # POST /auth/passkeys/register/options - Get registration options

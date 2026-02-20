@@ -44,7 +44,7 @@ class UserController(APIController):
 
     @api.get("/")
     async def list_users(self):
-        users = await User.objects.all()
+        users = [u async for u in User.objects.all()]
         return [UserSchema.from_orm(u) for u in users]
 
     @api.get("/{user_id}")
@@ -158,8 +158,8 @@ Full B2B support with organizations, teams, and memberships:
 ```python
 from django_matt.multitenancy import OrganizationController, TeamController
 
-api.register_controller(OrganizationController, prefix="/orgs")
-api.register_controller(TeamController, prefix="/teams")
+api.register_controller(OrganizationController)
+api.register_controller(TeamController)
 ```
 
 [Learn more about multi-tenancy](multitenancy/overview.md)
@@ -188,8 +188,8 @@ Integrated billing with Stripe, PayPal, and Polar:
 ```python
 from django_matt.billing import BillingController, WebhookController
 
-api.register_controller(BillingController, prefix="/billing")
-api.register_controller(WebhookController, prefix="/billing/webhooks")
+api.register_controller(BillingController)
+api.register_controller(WebhookController)
 ```
 
 [Learn more about billing](billing/overview.md)

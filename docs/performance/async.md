@@ -22,7 +22,7 @@ api = MattAPI()
 
 @api.get("/users")
 async def list_users(request):
-    users = await User.objects.all()
+    users = [u async for u in User.objects.all()]
     return users
 
 @api.post("/users")
@@ -233,7 +233,7 @@ from django_matt.utils.performance import cache_manager
 @cache_manager.cache_response(timeout=300)
 async def list_products(request):
     # Response is cached
-    return await Product.objects.all()
+    return [p async for p in Product.objects.all()]
 ```
 
 ## Async File Operations
@@ -310,7 +310,7 @@ async def list_users(request):
 # Good: Fully async
 @api.get("/users")
 async def list_users(request):
-    users = await User.objects.all()  # Async
+    users = [u async for u in User.objects.all()]  # Async
     return users
 ```
 

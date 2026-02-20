@@ -91,7 +91,7 @@ from django_matt.utils.performance import FastJsonResponse
 
 @api.get("/users")
 async def list_users(request):
-    users = await User.objects.all()
+    users = [u async for u in User.objects.all()]
     return FastJsonResponse({"users": users})
 ```
 
@@ -305,7 +305,7 @@ from django_matt.utils.performance import FastJsonResponse
 # Bad: Load 100K items into memory
 @api.get("/export")
 async def export(request):
-    items = await Item.objects.all()  # 100K items
+    items = [i async for i in Item.objects.all()]  # 100K items
     return FastJsonResponse({"items": items})
 
 # Good: Stream items

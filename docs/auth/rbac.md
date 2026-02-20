@@ -370,7 +370,7 @@ Add middleware for automatic permission context:
 # settings.py
 MIDDLEWARE = [
     ...
-    'django_matt.auth.rbac.RBACMiddleware',
+    # RBACMiddleware is not yet implemented - use permission decorators instead
 ]
 ```
 

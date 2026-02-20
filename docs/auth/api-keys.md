@@ -154,7 +154,7 @@ Pre-built controller for key management:
 ```python
 from django_matt.auth.api_keys import APIKeyController
 
-api.register_controller(APIKeyController, prefix="/api-keys")
+api.register_controller(APIKeyController)
 
 # Provides:
 # GET /api-keys/ - List user's API keys

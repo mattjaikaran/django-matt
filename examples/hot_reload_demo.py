@@ -6,7 +6,7 @@ to automatically reload code changes without restarting the server.
 
 To run this example:
 1. Install Django and Django Matt
-2. Install the websockets package: pip install websockets
+2. Install the websockets package: uv add websockets
 3. Run this script with Python
 4. Make changes to the example_module.py file to see hot reloading in action
 

@@ -61,7 +61,7 @@ Demonstrates Django Matt's performance utilities:
 **To run:**
 ```bash
 # For best results, install orjson first
-pip install orjson
+uv add orjson
 
 # Then run the demo
 python examples/performance_demo.py
@@ -87,7 +87,7 @@ A comprehensive Slack-like chat application demonstrating django-matt WebSocket 
 cd examples/realtime-chat
 
 # Install dependencies
-pip install -r requirements.txt
+uv add -r requirements.txt
 
 # Start Redis (required for WebSockets)
 docker-compose up -d redis
@@ -120,13 +120,13 @@ Before running the examples, make sure you have installed Django Matt and its de
 
 ```bash
 # Install Django Matt from the local directory
-pip install -e .
+uv add -e .
 
 # Or install required dependencies
-pip install django pydantic websockets
+uv add django pydantic websockets
 
 # Optional dependencies for enhanced features
-pip install orjson  # For faster JSON rendering
+uv add orjson  # For faster JSON rendering
 ```
 
 ## Usage Tips

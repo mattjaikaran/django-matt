@@ -255,7 +255,19 @@ def __getattr__(name: str):
             if name == "api":
                 _imported[name] = getattr(module, "api", module.MattAPI())
             else:
-                _imported[name] = getattr(module, name)
+                try:
+                    _imported[name] = getattr(module, name)
+                except AttributeError:
+                    # Provide helpful error for optional deps (e.g., GraphQL needs strawberry)
+                    optional_dep_hints = {
+                        "django_matt.graphql": "strawberry-graphql (uv add strawberry-graphql)",
+                    }
+                    hint = optional_dep_hints.get(module_path, "")
+                    if hint:
+                        raise ImportError(
+                            f"{name!r} requires {hint} to be installed."
+                        ) from None
+                    raise
 
         return _imported[name]
 

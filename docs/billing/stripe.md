@@ -64,7 +64,7 @@ portal_url = await stripe.create_billing_portal_session(
 ```python
 from django_matt.billing import WebhookController
 
-api.register_controller(WebhookController, prefix="/billing/webhooks")
+api.register_controller(WebhookController)
 
 # Configure webhook URL in Stripe Dashboard:
 # https://myapp.com/billing/webhooks/stripe

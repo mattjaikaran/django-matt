@@ -44,7 +44,7 @@ Use the pre-built controller:
 ```python
 from django_matt.auth.oauth import OAuthController
 
-api.register_controller(OAuthController, prefix="/auth")
+api.register_controller(OAuthController)
 
 # Provides:
 # GET /auth/{provider}/authorize - Redirect to provider

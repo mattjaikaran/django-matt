@@ -163,7 +163,7 @@ from django_matt import MattAPI
 from django_matt.notifications import NotificationController
 
 api = MattAPI()
-api.register_controller(NotificationController, prefix="/notifications")
+api.register_controller(NotificationController)
 ```
 
 ### 4. Send a Notification

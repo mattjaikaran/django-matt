@@ -29,7 +29,7 @@ Use the pre-built controller:
 ```python
 from django_matt.auth.sso import SSOController
 
-api.register_controller(SSOController, prefix="/auth/sso")
+api.register_controller(SSOController)
 
 # Provides:
 # GET /auth/sso/{connection_id}/login - Redirect to IdP
@@ -186,7 +186,7 @@ async def get_or_create_sso_user(info: SSOUserInfo, connection: SSOConnection):
         )
 
     # Add user to organization
-    await OrganizationMembership.objects.aupdate_or_create(
+    await Membership.objects.aupdate_or_create(
         user=user,
         organization=connection.organization,
         defaults={"role": "member"},

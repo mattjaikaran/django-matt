@@ -39,7 +39,7 @@ class TestUserAPI:
 
 ```python
 def test_authenticated_request(self):
-    self.client.authenticate(user)
+    self.client.force_authenticate(user)
     response = self.client.get("/me/")
     assert response.status_code == 200
 ```

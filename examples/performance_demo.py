@@ -6,7 +6,7 @@ to benchmark API endpoints and use faster JSON rendering.
 
 To run this example:
 1. Install Django and Django Matt
-2. Install orjson or ujson for faster JSON rendering: pip install orjson
+2. Install orjson or ujson for faster JSON rendering: uv add orjson
 3. Run this script with Python
 
 """

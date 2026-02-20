@@ -422,7 +422,7 @@ from django_matt.negotiation import renders, render
 @api.get("/users")
 @renders("json", "xml", "csv")
 async def list_users(request):
-    users = await User.objects.all()
+    users = [u async for u in User.objects.all()]
     return users  # Automatically rendered based on Accept header
 ```
 

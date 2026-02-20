@@ -47,7 +47,7 @@ from django_matt import MattAPI
 from django_matt.auth import AuthController
 
 api = MattAPI()
-api.register_controller(AuthController, prefix="/auth")
+api.register_controller(AuthController)
 
 # This provides:
 # POST /auth/login - Login with email/password

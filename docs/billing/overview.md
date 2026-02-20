@@ -7,8 +7,8 @@ Subscription and payment management with Stripe, PayPal, and Polar.
 ```python
 from django_matt.billing import BillingController, WebhookController
 
-api.register_controller(BillingController, prefix="/billing")
-api.register_controller(WebhookController, prefix="/billing/webhooks")
+api.register_controller(BillingController)
+api.register_controller(WebhookController)
 ```
 
 ## Providers

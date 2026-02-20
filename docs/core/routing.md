@@ -178,7 +178,7 @@ Django Matt is async-first. All handlers support both sync and async:
 # Async (recommended)
 @api.get("/users")
 async def list_users(request):
-    users = await User.objects.all().acount()
+    users = [u async for u in User.objects.all()].acount()
     return {"count": users}
 
 # Sync (also supported)

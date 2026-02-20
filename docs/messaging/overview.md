@@ -140,8 +140,8 @@ from django_matt.messaging.controllers import (
 )
 
 api = MattAPI()
-api.register_controller(ConversationController, prefix="/messaging")
-api.register_controller(MessageController, prefix="/messaging")
+api.register_controller(ConversationController)
+api.register_controller(MessageController)
 ```
 
 ### 4. Configure WebSocket (Optional)

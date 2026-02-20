@@ -159,7 +159,7 @@ class UserController(APIController):
 
     @api.get("/")
     async def list(self, request):
-        users = await User.objects.all()
+        users = [u async for u in User.objects.all()]
         return [UserSchema.from_orm(u) for u in users]
 
     @api.get("/{user_id}")

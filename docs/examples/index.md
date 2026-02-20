@@ -252,7 +252,7 @@ from django_matt.auth.oauth import (
 api = MattAPI()
 
 # Register OAuth controller (provides /oauth/* endpoints)
-api.register_controller(OAuthController, prefix="/auth/oauth")
+api.register_controller(OAuthController)
 
 # Configure in settings.py
 """
@@ -288,7 +288,7 @@ from django_matt.auth.passkeys import PasskeyController
 api = MattAPI()
 
 # Register passkey controller
-api.register_controller(PasskeyController, prefix="/auth/passkeys")
+api.register_controller(PasskeyController)
 
 # Endpoints provided:
 # POST /auth/passkeys/register/options - Get WebAuthn registration options
@@ -613,10 +613,10 @@ from django_matt.multitenancy.middleware import TenantMiddleware
 api = MattAPI()
 
 # Register multi-tenancy controllers
-api.register_controller(OrganizationController, prefix="/organizations")
-api.register_controller(TeamController, prefix="/organizations/{org_id}/teams")
-api.register_controller(MembershipController, prefix="/organizations/{org_id}/members")
-api.register_controller(InvitationController, prefix="/organizations/{org_id}/invitations")
+api.register_controller(OrganizationController)
+api.register_controller(TeamController)
+api.register_controller(MembershipController)
+api.register_controller(InvitationController)
 
 # Add middleware in settings.py
 MIDDLEWARE = [
@@ -670,8 +670,8 @@ from django_matt.auth import jwt_required
 api = MattAPI()
 
 # Register billing controllers
-api.register_controller(BillingController, prefix="/billing")
-api.register_controller(WebhookController, prefix="/billing/webhooks")
+api.register_controller(BillingController)
+api.register_controller(WebhookController)
 
 # Custom billing endpoints
 @api.post("/billing/checkout", tags=["Billing"])
