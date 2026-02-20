@@ -215,7 +215,13 @@ class OAuthProvider(ABC):
         """
         self._ensure_configured()
 
-        import httpx
+        try:
+            import httpx
+        except ImportError:
+            raise ImportError(
+                "httpx is required for OAuth. Install with: uv add httpx "
+                "or install the oauth extra: uv add django-matt[oauth]"
+            )
 
         data = {
             "client_id": self.provider_config.client_id,
@@ -288,7 +294,13 @@ class OAuthProvider(ABC):
         if not self.userinfo_url:
             raise OAuthUserInfoError(f"No userinfo URL configured for {self.name}")
 
-        import httpx
+        try:
+            import httpx
+        except ImportError:
+            raise ImportError(
+                "httpx is required for OAuth. Install with: uv add httpx "
+                "or install the oauth extra: uv add django-matt[oauth]"
+            )
 
         async with httpx.AsyncClient() as client:
             response = await client.get(

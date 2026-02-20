@@ -127,16 +127,7 @@ def get_openapi_json(schema: dict) -> HttpResponse:
     Returns:
         HttpResponse with JSON content
     """
-    import json
+    import orjson
 
-    # Try to use orjson for faster serialization
-    try:
-        import orjson
-
-        content = orjson.dumps(schema)
-        return HttpResponse(content, content_type="application/json")
-    except ImportError:
-        pass
-
-    content = json.dumps(schema, indent=2)
+    content = orjson.dumps(schema)
     return HttpResponse(content, content_type="application/json")

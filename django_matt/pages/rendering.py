@@ -14,15 +14,9 @@ from django.template import Context, Template
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
+import orjson
+
 from django_matt.pages.response import PageData
-
-try:
-    import orjson
-
-    HAS_ORJSON = True
-except ImportError:
-    HAS_ORJSON = False
-
 
 # Default HTML template
 DEFAULT_TEMPLATE = """<!DOCTYPE html>
@@ -78,10 +72,7 @@ def render_page_html(request: HttpRequest, page_data: PageData) -> str:
 
     # Serialize page data to JSON
     page_dict = page_data.to_dict()
-    if HAS_ORJSON:
-        page_json = orjson.dumps(page_dict).decode("utf-8")
-    else:
-        page_json = json.dumps(page_dict, separators=(",", ":"))
+    page_json = orjson.dumps(page_dict).decode("utf-8")
 
     # Build context
     context = {
@@ -201,10 +192,7 @@ def render_page_script_tag(page_data: PageData) -> str:
         {{ page_data|page_script_tag }}
     """
     page_dict = page_data.to_dict()
-    if HAS_ORJSON:
-        page_json = orjson.dumps(page_dict).decode("utf-8")
-    else:
-        page_json = json.dumps(page_dict, separators=(",", ":"))
+    page_json = orjson.dumps(page_dict).decode("utf-8")
 
     return mark_safe(f'<script type="application/json" id="page-data">{page_json}</script>')
 

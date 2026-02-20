@@ -32,18 +32,12 @@ from typing import Any, Optional
 
 from django.conf import settings
 
+import orjson
+
 # Context variables for request tracking
 request_id_var: ContextVar[Optional[str]] = ContextVar("request_id", default=None)
 user_id_var: ContextVar[Optional[str]] = ContextVar("user_id", default=None)
 correlation_id_var: ContextVar[Optional[str]] = ContextVar("correlation_id", default=None)
-
-# Try to import orjson for faster JSON serialization
-try:
-    import orjson
-
-    HAS_ORJSON = True
-except ImportError:
-    HAS_ORJSON = False
 
 
 class LoggingConfig:
@@ -250,9 +244,7 @@ class JSONFormatter(logging.Formatter):
             log_data["extra"] = {**log_data.get("extra", {}), **self.extra_fields}
 
         # Serialize to JSON
-        if HAS_ORJSON:
-            return orjson.dumps(log_data, default=str).decode("utf-8")
-        return json.dumps(log_data, default=str)
+        return orjson.dumps(log_data, default=str).decode("utf-8")
 
 
 class PrettyJSONFormatter(JSONFormatter):

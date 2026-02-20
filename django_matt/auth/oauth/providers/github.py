@@ -47,7 +47,13 @@ class GitHubOAuthProvider(OAuthProvider):
         """
         self._ensure_configured()
 
-        import httpx
+        try:
+            import httpx
+        except ImportError:
+            raise ImportError(
+                "httpx is required for OAuth. Install with: uv add httpx "
+                "or install the oauth extra: uv add django-matt[oauth]"
+            )
 
         headers = {
             "Authorization": f"Bearer {token.access_token}",

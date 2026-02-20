@@ -123,18 +123,14 @@ class JSONSerializationScenario(BenchmarkScenario):
         self.large_data = _generate_sample_data("large")
         self.list_data = _generate_list_data(100)
 
-        # Check available libraries
-        self.has_orjson = False
+        # orjson is a base dependency, always available
+        import orjson
+
+        self.has_orjson = True
+        self._orjson = orjson
+
+        # ujson is optional (performance extra)
         self.has_ujson = False
-
-        try:
-            import orjson
-
-            self.has_orjson = True
-            self._orjson = orjson
-        except ImportError:
-            pass
-
         try:
             import ujson
 

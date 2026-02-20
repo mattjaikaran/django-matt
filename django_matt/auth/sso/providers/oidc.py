@@ -8,7 +8,7 @@ Supports OIDC-based identity providers like:
 - Auth0
 - Any OIDC compliant IdP
 
-Requires: pip install httpx
+Requires: uv add httpx
 """
 
 import base64
@@ -159,7 +159,13 @@ class OIDCProvider(SSOProvider):
         if not discovery_url:
             raise SSOConfigError("OIDC discovery URL or manual endpoints required")
 
-        import httpx
+        try:
+            import httpx
+        except ImportError:
+            raise ImportError(
+                "httpx is required for OIDC SSO. Install with: uv add httpx "
+                "or install the oauth extra: uv add django-matt[oauth]"
+            )
 
         async with httpx.AsyncClient() as client:
             response = await client.get(discovery_url)
@@ -193,7 +199,13 @@ class OIDCProvider(SSOProvider):
                 "userinfo_endpoint": self.connection.userinfo_url,
             }
 
-        import httpx
+        try:
+            import httpx
+        except ImportError:
+            raise ImportError(
+                "httpx is required for OIDC SSO. Install with: uv add httpx "
+                "or install the oauth extra: uv add django-matt[oauth]"
+            )
 
         with httpx.Client() as client:
             response = client.get(discovery_url)
@@ -248,7 +260,13 @@ class OIDCProvider(SSOProvider):
         if not jwks_uri:
             raise SSOConfigError("OIDC provider does not expose a jwks_uri in discovery config")
 
-        import httpx
+        try:
+            import httpx
+        except ImportError:
+            raise ImportError(
+                "httpx is required for OIDC SSO. Install with: uv add httpx "
+                "or install the oauth extra: uv add django-matt[oauth]"
+            )
 
         async with httpx.AsyncClient() as client:
             response = await client.get(jwks_uri)
@@ -388,7 +406,13 @@ class OIDCProvider(SSOProvider):
         if not token_url:
             raise SSOConfigError("OIDC token URL not configured")
 
-        import httpx
+        try:
+            import httpx
+        except ImportError:
+            raise ImportError(
+                "httpx is required for OIDC SSO. Install with: uv add httpx "
+                "or install the oauth extra: uv add django-matt[oauth]"
+            )
 
         token_data = {
             "grant_type": "authorization_code",

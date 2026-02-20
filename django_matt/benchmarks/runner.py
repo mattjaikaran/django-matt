@@ -619,13 +619,10 @@ class BenchmarkRunner:
             "processor": platform.processor(),
         }
 
-        # Check for optional JSON libraries
-        try:
-            import orjson
+        # orjson is a base dependency, always available
+        import orjson
 
-            metadata["orjson_version"] = orjson.__version__
-        except ImportError:
-            metadata["orjson_version"] = None
+        metadata["orjson_version"] = orjson.__version__
 
         try:
             import ujson
