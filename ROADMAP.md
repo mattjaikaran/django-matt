@@ -22,7 +22,7 @@ django-matt consolidates features from multiple packages into one cohesive libra
 ## Tooling Standards (2026)
 
 ### Python
-- **Minimum**: Python 3.11
+- **Minimum**: Python 3.12
 - **Default**: Python 3.13
 - **Package Manager**: [uv](https://github.com/astral-sh/uv) (fast, Rust-based)
 - **Linter/Formatter**: [Ruff](https://github.com/astral-sh/ruff) (replaces flake8, black, isort)
@@ -344,8 +344,8 @@ django-matt consolidates features from multiple packages into one cohesive libra
   - GitHub Actions tests Django 6.0 (Python 3.12-3.13)
 
 ### Phase 7B: Python Version Support ✅
-- [x] **7B.1** - Python 3.11 minimum support
-  - `requires-python = ">=3.11"` for Django 5.2 compatibility
+- [x] **7B.1** - Python 3.12 minimum support
+  - `requires-python = ">=3.12"` for Django 5.2+ compatibility
 - [x] **7B.2** - Python 3.13 as default
   - CI/CD uses Python 3.13 for lint/typecheck/docs
 - [x] **7B.3** - Python 3.14 readiness
@@ -615,10 +615,11 @@ export function UserForm({ onSuccess }: UserFormProps) {
 ### Current Dependencies (After Stage 8)
 ```toml
 [project]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "django>=5.2",
     "pydantic>=2.0.0",
+    "orjson>=3.9.0",
 ]
 
 [project.optional-dependencies]
@@ -658,7 +659,7 @@ all = ["django-matt[full,auth,oauth,passkeys,typegen,testing,files,tasks]"]
 ### Target Dependencies (After Stage 8)
 ```toml
 [project]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "django>=5.2",           # Foundation
     "pydantic>=2.0.0",       # Schema validation
