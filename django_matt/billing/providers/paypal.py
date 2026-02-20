@@ -7,7 +7,10 @@ Documentation: https://developer.paypal.com/docs/api/subscriptions/v1/
 """
 
 import base64
+import hashlib
+import hmac
 import json
+import zlib
 from datetime import UTC, datetime
 from typing import Any
 
@@ -667,23 +670,89 @@ class PayPalProvider(BillingProvider[PayPalConfig]):
         self,
         payload: bytes,
         signature: str,
+        headers: dict[str, str] | None = None,
     ) -> WebhookEvent:
         """
-        Verify PayPal webhook signature.
+        Verify PayPal webhook signature and parse the event.
 
-        Note: PayPal requires additional headers for verification:
+        PayPal webhook verification uses a composed signature string:
+        ``transmission_id|transmission_time|webhook_id|crc32(raw_body)``
+        verified via HMAC-SHA256 using the client secret.
+
+        Required headers (passed via ``headers`` dict):
         - PAYPAL-TRANSMISSION-ID
         - PAYPAL-TRANSMISSION-TIME
-        - PAYPAL-CERT-URL
-        - PAYPAL-AUTH-ALGO
         - PAYPAL-TRANSMISSION-SIG
+
+        Args:
+            payload: Raw request body bytes
+            signature: The PAYPAL-TRANSMISSION-SIG header value
+            headers: Dict of PayPal webhook headers
+
+        Raises:
+            BillingWebhookError: If verification fails
         """
+        if headers is None:
+            headers = {}
+
+        # Normalize header keys to uppercase
+        norm_headers = {k.upper(): v for k, v in headers.items()}
+
         try:
             data = json.loads(payload)
+        except json.JSONDecodeError as e:
+            raise BillingWebhookError(f"Invalid JSON payload: {e}")
 
-            # For full verification, you need to call PayPal's verification endpoint
-            # This is a simplified implementation
-            # In production, use: POST /v1/notifications/verify-webhook-signature
+        try:
+            # Extract required PayPal headers
+            transmission_id = norm_headers.get("PAYPAL-TRANSMISSION-ID", "")
+            transmission_time = norm_headers.get("PAYPAL-TRANSMISSION-TIME", "")
+            transmission_sig = signature or norm_headers.get("PAYPAL-TRANSMISSION-SIG", "")
+
+            # webhook_id must be configured
+            webhook_id = self.config.webhook_id
+            if not webhook_id:
+                raise BillingWebhookError(
+                    "PayPal webhook_id is not configured. "
+                    "Set DJANGO_MATT_BILLING['PAYPAL']['WEBHOOK_ID'] in settings."
+                )
+
+            if not transmission_id or not transmission_time:
+                raise BillingWebhookError(
+                    "Missing required PayPal webhook headers: "
+                    "PAYPAL-TRANSMISSION-ID and PAYPAL-TRANSMISSION-TIME are required."
+                )
+
+            if not transmission_sig:
+                raise BillingWebhookError(
+                    "Missing PayPal webhook signature (PAYPAL-TRANSMISSION-SIG header)."
+                )
+
+            # Compute CRC32 of the raw payload body
+            crc = zlib.crc32(payload) & 0xFFFFFFFF
+
+            # Build the expected signature message:
+            # transmission_id|transmission_time|webhook_id|crc32
+            expected_message = f"{transmission_id}|{transmission_time}|{webhook_id}|{crc}"
+
+            # Compute HMAC-SHA256 using client_secret as key
+            expected_sig = hmac.new(
+                self.config.client_secret.encode("utf-8"),
+                expected_message.encode("utf-8"),
+                hashlib.sha256,
+            ).digest()
+
+            # PayPal sends the signature as base64-encoded
+            try:
+                received_sig = base64.b64decode(transmission_sig)
+            except Exception:
+                raise BillingWebhookError("Invalid base64 in PAYPAL-TRANSMISSION-SIG header.")
+
+            if not hmac.compare_digest(expected_sig, received_sig):
+                raise BillingWebhookError(
+                    "PayPal webhook signature verification failed. "
+                    "The payload may have been tampered with."
+                )
 
             return WebhookEvent(
                 id=data.get("id", ""),
@@ -693,8 +762,8 @@ class PayPalProvider(BillingProvider[PayPalConfig]):
                 created_at=self._parse_datetime(data.get("create_time")),
                 raw_payload=payload,
             )
-        except json.JSONDecodeError as e:
-            raise BillingWebhookError(f"Invalid JSON payload: {e}")
+        except BillingWebhookError:
+            raise
         except Exception as e:
             raise BillingWebhookError(f"Webhook verification failed: {e}")
 

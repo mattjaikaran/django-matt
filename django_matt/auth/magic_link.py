@@ -37,6 +37,7 @@ from typing import Any
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 
@@ -126,6 +127,10 @@ class MagicLinkUserNotFoundError(MagicLinkTokenError):
     """Raised when the user for a magic link doesn't exist."""
 
 
+class MagicLinkAlreadyUsedError(MagicLinkTokenError):
+    """Raised when a magic link token has already been used."""
+
+
 class MagicLinkVerifyResult(BaseModel):
     """Result of magic link token verification."""
 
@@ -161,6 +166,15 @@ def _decode_payload(encoded: str) -> dict:
         return json.loads(json_str)
     except (ValueError, json.JSONDecodeError) as e:
         raise MagicLinkInvalidError(f"Invalid token format: {e}")
+
+
+def _get_token_cache_key(token: str) -> str:
+    """Generate a cache key for tracking used tokens.
+
+    Uses SHA256 hash of the full token to avoid storing the raw token in cache.
+    """
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    return f"magic_link:used:{token_hash}"
 
 
 def create_magic_link_token(
@@ -255,6 +269,13 @@ def verify_magic_link_token(
         if not email:
             return MagicLinkVerifyResult(valid=False, error="Token missing email")
 
+        # Check one-time use: reject if token has already been consumed
+        cache_key = _get_token_cache_key(token)
+        if cache.get(cache_key):
+            return MagicLinkVerifyResult(
+                valid=False, email=email, error="Token has already been used"
+            )
+
         # Get or create user
         User = get_user_model()
         user = None
@@ -289,6 +310,10 @@ def verify_magic_link_token(
         # Check if user is active
         if user and not user.is_active:
             return MagicLinkVerifyResult(valid=False, email=email, error="User account is inactive")
+
+        # Mark token as used. TTL = remaining seconds until token expiry.
+        remaining_ttl = max(int(exp - now), 1)
+        cache.set(cache_key, True, remaining_ttl)
 
         return MagicLinkVerifyResult(
             valid=True,
@@ -523,6 +548,7 @@ async def send_magic_link_async(
 
 
 __all__ = [
+    "MagicLinkAlreadyUsedError",
     "MagicLinkConfig",
     "MagicLinkExpiredError",
     "MagicLinkInvalidError",

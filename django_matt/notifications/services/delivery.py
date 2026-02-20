@@ -6,7 +6,11 @@ Handles delivery to different channels (in-app, email, push, SMS).
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
 import logging
+import time
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -14,6 +18,22 @@ from django_matt.notifications.enums import NotificationChannel, NotificationSta
 from django_matt.notifications.models import Notification, NotificationDelivery
 
 logger = logging.getLogger(__name__)
+
+
+def _get_webhook_secret() -> str:
+    """
+    Get the webhook signing secret from Django settings.
+
+    Looks for DJANGO_MATT_NOTIFICATIONS['WEBHOOK_SECRET'] first,
+    then falls back to Django SECRET_KEY.
+    """
+    from django.conf import settings
+
+    notifications_config = getattr(settings, "DJANGO_MATT_NOTIFICATIONS", {})
+    secret = notifications_config.get("WEBHOOK_SECRET")
+    if secret:
+        return secret
+    return settings.SECRET_KEY
 
 
 class DeliveryHandler(ABC):
@@ -367,7 +387,7 @@ class WebhookDeliveryHandler(DeliveryHandler):
         return None
 
     def _send_webhook(self, notification: Notification, url: str) -> None:
-        """Send webhook POST request."""
+        """Send webhook POST request with HMAC-SHA256 signature."""
         import requests
 
         payload = {
@@ -382,10 +402,27 @@ class WebhookDeliveryHandler(DeliveryHandler):
             "created_at": notification.created_at.isoformat(),
         }
 
+        # Serialize payload to JSON for signing
+        payload_json = json.dumps(payload, separators=(",", ":"), sort_keys=True)
+
+        # Generate HMAC-SHA256 signature: sign "timestamp.payload"
+        timestamp = str(int(time.time()))
+        signature_input = f"{timestamp}.{payload_json}"
+        secret = _get_webhook_secret()
+        signature = hmac.new(
+            secret.encode("utf-8"),
+            signature_input.encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
+
         response = requests.post(
             url,
             json=payload,
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "X-Webhook-Signature": signature,
+                "X-Webhook-Timestamp": timestamp,
+            },
             timeout=10,
         )
         response.raise_for_status()

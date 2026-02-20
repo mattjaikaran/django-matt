@@ -315,26 +315,37 @@ class TestOIDCProvider:
 
     # -- _decode_id_token ----------------------------------------------
 
-    def test_decode_id_token_valid(self):
+    @pytest.mark.asyncio
+    async def test_decode_id_token_valid(self):
+        import hmac as _hmac
         provider = self._make_provider()
         payload = {"sub": "user-42", "email": "alice@acme.com", "nonce": "n-123"}
-        payload_b64 = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
-        fake_jwt = f"header.{payload_b64}.signature"
 
-        decoded = provider._decode_id_token(fake_jwt)
+        # Build a real HS256 JWT so signature verification passes
+        header = {"alg": "HS256", "typ": "JWT"}
+        header_b64 = base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip("=")
+        payload_b64 = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+        signing_input = f"{header_b64}.{payload_b64}".encode("ascii")
+        sig = _hmac.new(b"secret-456", signing_input, hashlib.sha256).digest()
+        sig_b64 = base64.urlsafe_b64encode(sig).decode().rstrip("=")
+        fake_jwt = f"{header_b64}.{payload_b64}.{sig_b64}"
+
+        decoded = await provider._decode_id_token(fake_jwt)
         assert decoded["sub"] == "user-42"
         assert decoded["email"] == "alice@acme.com"
         assert decoded["nonce"] == "n-123"
 
-    def test_decode_id_token_invalid_format(self):
+    @pytest.mark.asyncio
+    async def test_decode_id_token_invalid_format(self):
         provider = self._make_provider()
         with pytest.raises(SSOAuthenticationError, match="Invalid id_token"):
-            provider._decode_id_token("not.a.valid.jwt.here")
+            await provider._decode_id_token("not.a.valid.jwt.here")
 
-    def test_decode_id_token_corrupt_payload(self):
+    @pytest.mark.asyncio
+    async def test_decode_id_token_corrupt_payload(self):
         provider = self._make_provider()
         with pytest.raises(SSOAuthenticationError, match="Failed to decode"):
-            provider._decode_id_token("header.!!!invalid!!!.signature")
+            await provider._decode_id_token("header.!!!invalid!!!.signature")
 
     # -- process_callback ----------------------------------------------
 
@@ -369,7 +380,11 @@ class TestOIDCProvider:
             "/callback", {"code": "auth-code-123", "state": state}
         )
 
-        with patch("httpx.AsyncClient", return_value=mock_client):
+        # Mock _decode_id_token to return the payload directly (skips signature verification)
+        async def mock_decode(token):
+            return id_payload
+
+        with patch("httpx.AsyncClient", return_value=mock_client),              patch.object(provider, "_decode_id_token", side_effect=mock_decode):
             user_info = await provider.process_callback(request)
 
         assert isinstance(user_info, SSOUserInfo)
@@ -377,10 +392,9 @@ class TestOIDCProvider:
         assert user_info.email == "alice@acme.com"
 
     @pytest.mark.asyncio
-    async def test_process_callback_nonce_mismatch_falls_through(self):
-        """Nonce mismatch is swallowed by the broad except; id_token data with
-        sub already populated causes the callback to succeed despite the bad
-        nonce. This tests the actual behaviour of the code path."""
+    async def test_process_callback_nonce_mismatch_raises(self):
+        """Nonce mismatch now correctly raises SSOAuthenticationError
+        because id_token signature verification errors are re-raised."""
         provider = self._make_provider()
 
         state = provider.generate_state()
@@ -408,12 +422,13 @@ class TestOIDCProvider:
             "/callback", {"code": "code", "state": state}
         )
 
-        # The broad except catches the nonce error; since user_data already has
-        # "sub" from the decoded id_token, the callback returns successfully.
-        with patch("httpx.AsyncClient", return_value=mock_client):
-            user_info = await provider.process_callback(request)
+        # Mock _decode_id_token to return payload with wrong nonce
+        async def mock_decode(token):
+            return id_payload
 
-        assert user_info.idp_user_id == "user-42"
+        # SSOAuthenticationError is now re-raised on nonce mismatch
+        with patch("httpx.AsyncClient", return_value=mock_client),              patch.object(provider, "_decode_id_token", side_effect=mock_decode),              pytest.raises(SSOAuthenticationError, match="Invalid nonce"):
+            await provider.process_callback(request)
 
     @pytest.mark.asyncio
     async def test_process_callback_no_id_token_uses_userinfo(self):

@@ -13,6 +13,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, BinaryIO, Union
 
+from django.core.exceptions import ImproperlyConfigured
+
 import aiofiles
 import aiofiles.os
 
@@ -86,15 +88,35 @@ class LocalStorage(BaseStorage):
         try:
             from django.conf import settings
 
-            return settings.SECRET_KEY
-        except Exception:
-            return "django-matt-local-storage-secret"
+            key = getattr(settings, "SECRET_KEY", None)
+            if not key:
+                raise ImproperlyConfigured(
+                    "django.conf.settings.SECRET_KEY is not set. "
+                    "LocalStorage requires SECRET_KEY for signing URLs."
+                )
+            return key
+        except ImportError:
+            raise ImproperlyConfigured(
+                "Django settings are not available. "
+                "Either pass secret_key to LocalStorage or configure Django settings."
+            )
 
     def _get_full_path(self, key: str) -> Path:
-        """Get the full filesystem path for a key."""
+        """Get the full filesystem path for a key, preventing directory traversal."""
         # Sanitize key to prevent directory traversal
-        safe_key = key.lstrip("/").replace("..", "")
-        return self.base_path / safe_key
+        safe_key = key.lstrip("/")
+        full_path = (self.base_path / safe_key).resolve()
+
+        # Verify the resolved path is under base_path
+        try:
+            full_path.relative_to(self.base_path)
+        except ValueError:
+            raise ValueError(
+                f"Path traversal detected: resolved path {full_path} "
+                f"is outside base directory {self.base_path}"
+            )
+
+        return full_path
 
     def _get_key_from_path(self, path: Path) -> str:
         """Get the storage key from a filesystem path."""
@@ -102,7 +124,7 @@ class LocalStorage(BaseStorage):
 
     async def save(
         self,
-        file: Union["UploadedFile", BinaryIO, bytes],
+        file: Union[UploadedFile, BinaryIO, bytes],
         key: str = None,
         folder: str = None,
         content_type: str = None,
