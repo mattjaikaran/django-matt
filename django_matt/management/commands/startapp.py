@@ -594,25 +594,41 @@ class Test{model_name}Model:
 class Test{model_name}API:
     """Tests for the {model_name} API endpoints."""
 
-    def test_list_{plural}(self):
-        # TODO: implement with API test client
-        pass
+    base_url = "/api/{plural}"
 
-    def test_create_{lower}(self):
-        # TODO: implement with API test client
-        pass
+    def test_list_{plural}(self, client):
+        {model_name}Factory.create_batch(3)
+        response = client.get(self.base_url)
+        assert response.status_code == 200
 
-    def test_get_{lower}(self):
-        # TODO: implement with API test client
-        pass
+    def test_create_{lower}(self, client):
+        payload = {{"title": "New {model_name}"}}
+        response = client.post(
+            self.base_url,
+            data=payload,
+            content_type="application/json",
+        )
+        assert response.status_code in [200, 201]
 
-    def test_update_{lower}(self):
-        # TODO: implement with API test client
-        pass
+    def test_get_{lower}(self, client):
+        item = {model_name}Factory()
+        response = client.get(f"{{self.base_url}}/{{item.pk}}")
+        assert response.status_code == 200
 
-    def test_delete_{lower}(self):
-        # TODO: implement with API test client
-        pass
+    def test_update_{lower}(self, client):
+        item = {model_name}Factory()
+        payload = {{"title": "Updated"}}
+        response = client.put(
+            f"{{self.base_url}}/{{item.pk}}",
+            data=payload,
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+
+    def test_delete_{lower}(self, client):
+        item = {model_name}Factory()
+        response = client.delete(f"{{self.base_url}}/{{item.pk}}")
+        assert response.status_code == 200
 '''
 
     def _factory_template(self, app_name, model_name):

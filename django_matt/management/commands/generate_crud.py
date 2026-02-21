@@ -1019,14 +1019,27 @@ class Command(GeneratorCommand):
         lines.append('        """')
         lines.append(f"        queryset = {model_name}.objects.all()")
         lines.append("")
-        lines.append("        # TODO: Add your search logic")
-        lines.append("        # if search:")
-        lines.append("        #     queryset = queryset.filter(name__icontains=search)")
-        lines.append("")
-        lines.append("        # TODO: Add your filter logic")
-        lines.append("        # for key, value in filters.items():")
-        lines.append("        #     if value is not None:")
-        lines.append("        #         queryset = queryset.filter(**{key: value})")
+
+        # Find searchable text fields from model
+        search_fields = []
+        for field in model._meta.get_fields():
+            if hasattr(field, "get_internal_type"):
+                ft = field.get_internal_type()
+                if ft in ("CharField", "TextField") and field.name != "id":
+                    search_fields.append(field.name)
+
+        if search_fields:
+            lines.append("        if search:")
+            lines.append("            from django.db.models import Q")
+            parts = " | ".join(
+                f"Q({f}__icontains=search)" for f in search_fields[:3]
+            )
+            lines.append(f"            queryset = queryset.filter({parts})")
+            lines.append("")
+
+        lines.append("        for key, value in filters.items():")
+        lines.append("            if value is not None:")
+        lines.append("                queryset = queryset.filter(**{key: value})")
         lines.append("")
         lines.append("        total = await queryset.acount()")
         lines.append("        offset = (page - 1) * page_size")
@@ -1053,24 +1066,16 @@ class Command(GeneratorCommand):
         lines.append('        """')
         lines.append(f"        Create a new {model_name}.")
         lines.append("")
-        lines.append("        TODO: Add your business logic here:")
-        lines.append("        - Additional validation")
-        lines.append("        - Set default values")
-        lines.append("        - Send notifications")
-        lines.append("        - Dispatch events")
+        lines.append("        Args:")
+        lines.append("            data: Creation data")
+        lines.append("            user: Optional user for tracking created_by")
         lines.append('        """')
         lines.append("        create_data = data.model_dump()")
         lines.append("")
-        lines.append("        # TODO: Add any computed fields or defaults")
-        lines.append("        # if user:")
-        lines.append("        #     create_data['created_by'] = user")
+        lines.append("        if user:")
+        lines.append("            create_data['created_by'] = user")
         lines.append("")
         lines.append(f"        item = await {model_name}.objects.acreate(**create_data)")
-        lines.append("")
-        lines.append("        # TODO: Post-creation logic")
-        lines.append("        # await self._send_created_notification(item)")
-        lines.append("        # await self._dispatch_created_event(item)")
-        lines.append("")
         lines.append("        return item")
         lines.append("")
 
@@ -1090,38 +1095,17 @@ class Command(GeneratorCommand):
         lines.append("            partial: If True, only update provided fields")
         lines.append('        """')
         lines.append("        item = await self.get(id)")
-        lines.append("")
-        lines.append("        # TODO: Add validation logic")
-        lines.append("        # await self._validate_update(item, data)")
-        lines.append("")
         lines.append("        update_data = data.model_dump(exclude_unset=partial)")
         lines.append("        for key, value in update_data.items():")
-        lines.append("            if not partial or value is not None:")
-        lines.append("                setattr(item, key, value)")
-        lines.append("")
+        lines.append("            setattr(item, key, value)")
         lines.append("        await item.asave()")
-        lines.append("")
-        lines.append("        # TODO: Post-update logic")
-        lines.append("        # await self._dispatch_updated_event(item)")
-        lines.append("")
         lines.append("        return item")
         lines.append("")
 
         # Delete method
         lines.append("    async def delete(self, id: int) -> bool:")
-        lines.append('        """')
-        lines.append(f"        Delete a {model_name}.")
-        lines.append("")
-        lines.append("        TODO: Add your business logic here:")
-        lines.append("        - Check if deletion is allowed")
-        lines.append("        - Handle related objects")
-        lines.append("        - Send notifications")
-        lines.append('        """')
+        lines.append(f'        """Delete a {model_name}."""')
         lines.append("        item = await self.get(id)")
-        lines.append("")
-        lines.append("        # TODO: Add pre-delete validation")
-        lines.append("        # if not await self._can_delete(item):")
-        lines.append('        #     raise ValidationError("Cannot delete this item")')
         lines.append("")
 
         if soft_delete:
@@ -1131,10 +1115,6 @@ class Command(GeneratorCommand):
         else:
             lines.append("        await item.adelete()")
 
-        lines.append("")
-        lines.append("        # TODO: Post-delete logic")
-        lines.append("        # await self._dispatch_deleted_event(id)")
-        lines.append("")
         lines.append("        return True")
         lines.append("")
 

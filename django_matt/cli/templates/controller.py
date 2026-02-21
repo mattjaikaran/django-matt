@@ -24,10 +24,13 @@ def generate_controller_template(name: str, crud: bool = False) -> str:
         f"{name} API Controller.",
         '"""',
         "",
+        "from django.http import Http404",
+        "",
         "from django_matt.core.controller import APIController",
-        "from django_matt.core.router import get, post, put, patch, delete",
+        "from django_matt.core.router import get, post, put, delete",
         "from django_matt.permissions import IsAuthenticated",
         "",
+        f"from .models import {name}",
         f"from .{name_lower}_schemas import (",
         f"    {name}Schema,",
         f"    {name}CreateSchema,",
@@ -47,7 +50,7 @@ def generate_controller_template(name: str, crud: bool = False) -> str:
     if crud:
         lines.extend(_generate_crud_endpoints(name, name_lower, name_plural))
     else:
-        lines.extend(_generate_basic_endpoints(name, name_plural))
+        lines.extend(_generate_basic_endpoints(name, name_lower, name_plural))
 
     return "\n".join(lines)
 
@@ -58,14 +61,19 @@ def _generate_crud_endpoints(name: str, name_lower: str, name_plural: str) -> li
         '    @get("/")',
         f"    async def list_{name_plural}(self, request, page: int = 1, page_size: int = 20):",
         f'        """List all {name} objects."""',
-        "        # TODO: Implement list logic",
-        '        return {"items": [], "total": 0, "page": page, "page_size": page_size}',
+        f"        queryset = {name}.objects.all()",
+        "        total = await queryset.acount()",
+        "        offset = (page - 1) * page_size",
+        "        items = [item async for item in queryset[offset:offset + page_size]]",
+        '        return {"items": items, "total": total, "page": page, "page_size": page_size}',
         "",
         '    @get("/{id}")',
         f"    async def get_{name_lower}(self, request, id: int) -> {name}Schema:",
         f'        """Get a single {name} by ID."""',
-        "        # TODO: Implement get logic",
-        "        pass",
+        "        try:",
+        f"            return await {name}.objects.aget(pk=id)",
+        f"        except {name}.DoesNotExist:",
+        f'            raise Http404(f"{name} {{id}} not found")',
         "",
         '    @post("/")',
         f"    async def create_{name_lower}(",
@@ -74,8 +82,7 @@ def _generate_crud_endpoints(name: str, name_lower: str, name_plural: str) -> li
         f"        data: {name}CreateSchema,",
         f"    ) -> {name}Schema:",
         f'        """Create a new {name}."""',
-        "        # TODO: Implement create logic",
-        "        pass",
+        f"        return await {name}.objects.acreate(**data.model_dump())",
         "",
         '    @put("/{id}")',
         f"    async def update_{name_lower}(",
@@ -85,25 +92,41 @@ def _generate_crud_endpoints(name: str, name_lower: str, name_plural: str) -> li
         f"        data: {name}UpdateSchema,",
         f"    ) -> {name}Schema:",
         f'        """Update a {name}."""',
-        "        # TODO: Implement update logic",
-        "        pass",
+        "        try:",
+        f"            item = await {name}.objects.aget(pk=id)",
+        f"        except {name}.DoesNotExist:",
+        f'            raise Http404(f"{name} {{id}} not found")',
+        "        for key, value in data.model_dump(exclude_unset=True).items():",
+        "            setattr(item, key, value)",
+        "        await item.asave()",
+        "        return item",
         "",
         '    @delete("/{id}")',
         f"    async def delete_{name_lower}(self, request, id: int) -> dict:",
         f'        """Delete a {name}."""',
-        "        # TODO: Implement delete logic",
+        "        try:",
+        f"            item = await {name}.objects.aget(pk=id)",
+        f"        except {name}.DoesNotExist:",
+        f'            raise Http404(f"{name} {{id}} not found")',
+        "        await item.adelete()",
         '        return {"success": True}',
     ]
 
 
-def _generate_basic_endpoints(name: str, name_plural: str) -> list[str]:
-    """Generate basic list endpoint."""
+def _generate_basic_endpoints(name: str, name_lower: str, name_plural: str) -> list[str]:
+    """Generate basic list and detail endpoints."""
     return [
         '    @get("/")',
         f"    async def list_{name_plural}(self, request):",
         f'        """List all {name} objects."""',
-        "        # TODO: Implement your logic here",
-        '        return {"items": []}',
+        f"        items = [{name_lower} async for {name_lower} in {name}.objects.all()]",
+        '        return {"items": items}',
         "",
-        "    # Add more endpoints as needed",
+        '    @get("/{id}")',
+        f"    async def get_{name_lower}(self, request, id: int) -> {name}Schema:",
+        f'        """Get a single {name} by ID."""',
+        "        try:",
+        f"            return await {name}.objects.aget(pk=id)",
+        f"        except {name}.DoesNotExist:",
+        f'            raise Http404(f"{name} {{id}} not found")',
     ]
