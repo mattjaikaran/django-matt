@@ -16,7 +16,13 @@ from django.http import HttpRequest, JsonResponse
 
 from pydantic import BaseModel, ValidationError
 
-from django_matt.core.errors import APIError, ErrorHandler, NotFoundAPIError, ValidationAPIError
+from django_matt.core.errors import (
+    APIError,
+    ConfigurationError,
+    ErrorHandler,
+    NotFoundAPIError,
+    ValidationAPIError,
+)
 
 # Module-level cache: avoids re-reading settings on every error
 _error_config: dict[str, Any] | None = None
@@ -354,7 +360,7 @@ class CRUDController(APIController):
             QuerySet: The base queryset for this model
         """
         if not self.model:
-            raise NotImplementedError("Model not specified")
+            raise ConfigurationError("Model not specified")
         return self.model.objects.all()
 
     def get_optimized_queryset(self):
@@ -506,9 +512,6 @@ class CRUDController(APIController):
         Returns:
             Dict with 'items', 'count' (total), 'limit', and 'offset'
         """
-        if not self.model:
-            raise NotImplementedError("Model not specified")
-
         queryset = self.get_optimized_queryset()
         queryset = self.filter_queryset(queryset, request)
 
@@ -542,9 +545,6 @@ class CRUDController(APIController):
         Returns:
             Dict representation of the model instance
         """
-        if not self.model:
-            raise NotImplementedError("Model not specified")
-
         queryset = self.get_optimized_queryset()
 
         try:
@@ -570,7 +570,7 @@ class CRUDController(APIController):
             Dict representation of the created model instance
         """
         if not self.model:
-            raise NotImplementedError("Model not specified")
+            raise ConfigurationError("Model not specified")
 
         # Convert Pydantic model to dictionary, excluding unset values
         data_dict = data.model_dump(exclude_unset=True)
@@ -592,9 +592,6 @@ class CRUDController(APIController):
         Returns:
             Dict representation of the updated model instance
         """
-        if not self.model:
-            raise NotImplementedError("Model not specified")
-
         queryset = self.get_optimized_queryset()
 
         try:
@@ -652,9 +649,6 @@ class CRUDController(APIController):
         Returns:
             Dict with 'deleted' and 'id' on success
         """
-        if not self.model:
-            raise NotImplementedError("Model not specified")
-
         try:
             # Use get_queryset() — never bypass controller filtering
             instance = await self.get_queryset().aget(**{self.lookup_field: id})
@@ -679,7 +673,7 @@ class CRUDController(APIController):
             Dict with 'items' list and 'count' of created items
         """
         if not self.model:
-            raise NotImplementedError("Model not specified")
+            raise ConfigurationError("Model not specified")
 
         # Convert Pydantic models to model instances
         model_instances = [self.model(**item.model_dump(exclude_unset=True)) for item in items]
@@ -707,7 +701,7 @@ class CRUDController(APIController):
             Dict with 'updated_count' of modified rows
         """
         if not self.model:
-            raise NotImplementedError("Model not specified")
+            raise ConfigurationError("Model not specified")
 
         # Fetch existing instances
         ids = [item[self.lookup_field] for item in items]
@@ -742,7 +736,7 @@ class CRUDController(APIController):
             Dict with 'exists' boolean
         """
         if not self.model:
-            raise NotImplementedError("Model not specified")
+            raise ConfigurationError("Model not specified")
 
         exists = await self.model.objects.filter(**{self.lookup_field: id}).aexists()
         return {"exists": exists}
@@ -757,9 +751,6 @@ class CRUDController(APIController):
         Returns:
             Dict with 'count' integer
         """
-        if not self.model:
-            raise NotImplementedError("Model not specified")
-
         queryset = self.get_queryset()
         queryset = self.filter_queryset(queryset, request)
         total = await queryset.acount()

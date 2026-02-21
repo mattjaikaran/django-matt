@@ -21,7 +21,7 @@ from django_matt.core.controller import (
     DJANGO_6_0_PLUS,
     DJANGO_VERSION,
 )
-from django_matt.core.errors import NotFoundAPIError
+from django_matt.core.errors import ConfigurationError, NotFoundAPIError
 
 
 # Test Schemas using Pydantic BaseModel directly
@@ -274,9 +274,9 @@ class TestCRUDControllerGetQueryset:
         assert qs.model == User
 
     def test_get_queryset_raises_without_model(self):
-        """get_queryset should raise if model not set."""
+        """get_queryset should raise ConfigurationError if model not set."""
         controller = CRUDController()
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(ConfigurationError):
             controller.get_queryset()
 
     def test_get_optimized_queryset_applies_ordering(self):
