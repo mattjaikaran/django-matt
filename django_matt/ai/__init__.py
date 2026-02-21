@@ -179,6 +179,7 @@ from django_matt.ai.rag import (
     SentenceSplitter,
     SummaryMemory,
     TextSplitter,
+    TokenSplitter,
 )
 
 # Router
@@ -340,6 +341,7 @@ __all__ = [
     "CharacterSplitter",
     "RecursiveSplitter",
     "SentenceSplitter",
+    "TokenSplitter",
     # RAG - Memory
     "ConversationMemory",
     "SummaryMemory",

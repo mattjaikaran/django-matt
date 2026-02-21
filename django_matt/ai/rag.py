@@ -228,6 +228,166 @@ class SentenceSplitter(TextSplitter):
         return chunks
 
 
+class TokenSplitter(TextSplitter):
+    """
+    Split text by token count.
+
+    Uses tiktoken (if available) for accurate token counting,
+    falling back to a word-based approximation (1 token ~ 0.75 words).
+    Useful for LLM context windows and cost optimization.
+    """
+
+    def __init__(
+        self,
+        chunk_size: int = 500,
+        chunk_overlap: int = 50,
+        model: str = "gpt-4",
+    ):
+        self.model = model
+        self._encoder = None
+        try:
+            import tiktoken
+
+            self._encoder = tiktoken.encoding_for_model(model)
+        except (ImportError, KeyError):
+            pass
+
+        length_fn = self._token_len
+        super().__init__(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            length_function=length_fn,
+        )
+
+    def _token_len(self, text: str) -> int:
+        """Count tokens using tiktoken or word-based approximation."""
+        if self._encoder is not None:
+            return len(self._encoder.encode(text))
+        # Approximate: ~4 chars per token for English text
+        return max(1, len(text) // 4)
+
+    def split(self, text: str, metadata: dict[str, Any] | None = None) -> list[Chunk]:
+        """Split text into chunks by token count."""
+        if not text.strip():
+            return []
+
+        # Split on sentence boundaries first, then accumulate by token count
+        sentences = re.split(r"(?<=[.!?])\s+", text)
+        chunks = []
+        current_parts: list[str] = []
+        current_tokens = 0
+        index = 0
+
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+
+            sentence_tokens = self.length_function(sentence)
+
+            # Single sentence exceeds chunk size — split by words
+            if sentence_tokens > self.chunk_size:
+                # Flush current buffer
+                if current_parts:
+                    chunk_text = " ".join(current_parts)
+                    chunks.append(
+                        Chunk(
+                            text=chunk_text,
+                            index=index,
+                            metadata={
+                                **(metadata or {}),
+                                "tokens": self.length_function(chunk_text),
+                            },
+                        )
+                    )
+                    index += 1
+                    current_parts = []
+                    current_tokens = 0
+
+                # Split long sentence by words
+                words = sentence.split()
+                word_buf: list[str] = []
+                word_tokens = 0
+                for word in words:
+                    wt = self.length_function(word)
+                    if word_tokens + wt > self.chunk_size and word_buf:
+                        chunk_text = " ".join(word_buf)
+                        chunks.append(
+                            Chunk(
+                                text=chunk_text,
+                                index=index,
+                                metadata={
+                                    **(metadata or {}),
+                                    "tokens": self.length_function(chunk_text),
+                                },
+                            )
+                        )
+                        index += 1
+                        # Keep overlap
+                        overlap_words = []
+                        overlap_tokens = 0
+                        for w in reversed(word_buf):
+                            wt2 = self.length_function(w)
+                            if overlap_tokens + wt2 > self.chunk_overlap:
+                                break
+                            overlap_words.insert(0, w)
+                            overlap_tokens += wt2
+                        word_buf = overlap_words
+                        word_tokens = overlap_tokens
+                    word_buf.append(word)
+                    word_tokens += wt
+
+                if word_buf:
+                    current_parts = word_buf
+                    current_tokens = word_tokens
+                continue
+
+            if current_tokens + sentence_tokens > self.chunk_size and current_parts:
+                chunk_text = " ".join(current_parts)
+                chunks.append(
+                    Chunk(
+                        text=chunk_text,
+                        index=index,
+                        metadata={
+                            **(metadata or {}),
+                            "tokens": self.length_function(chunk_text),
+                        },
+                    )
+                )
+                index += 1
+
+                # Keep overlap from end of current_parts
+                overlap_parts: list[str] = []
+                overlap_tokens = 0
+                for part in reversed(current_parts):
+                    pt = self.length_function(part)
+                    if overlap_tokens + pt > self.chunk_overlap:
+                        break
+                    overlap_parts.insert(0, part)
+                    overlap_tokens += pt
+                current_parts = overlap_parts
+                current_tokens = overlap_tokens
+
+            current_parts.append(sentence)
+            current_tokens += sentence_tokens
+
+        # Final chunk
+        if current_parts:
+            chunk_text = " ".join(current_parts)
+            chunks.append(
+                Chunk(
+                    text=chunk_text,
+                    index=index,
+                    metadata={
+                        **(metadata or {}),
+                        "tokens": self.length_function(chunk_text),
+                    },
+                )
+            )
+
+        return chunks
+
+
 # =============================================================================
 # Conversation Memory
 # =============================================================================
@@ -618,6 +778,7 @@ __all__ = [
     "CharacterSplitter",
     "RecursiveSplitter",
     "SentenceSplitter",
+    "TokenSplitter",
     # Memory
     "ConversationMemory",
     "SummaryMemory",
