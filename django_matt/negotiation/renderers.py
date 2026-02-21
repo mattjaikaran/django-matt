@@ -99,8 +99,6 @@ class JSONRenderer(BaseRenderer):
         ensure_ascii = kwargs.get("ensure_ascii", self.config.ensure_ascii)
 
         if self._encoder == "orjson":
-            import orjson
-
             options = orjson.OPT_NON_STR_KEYS
             if indent:
                 options |= orjson.OPT_INDENT_2

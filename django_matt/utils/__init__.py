@@ -27,8 +27,6 @@ from django_matt.utils.hot_reload import (
 )
 from django_matt.utils.performance import (
     HAS_MSGPACK,
-    HAS_ORJSON,
-    HAS_UJSON,
     APIBenchmark,
     BenchmarkMiddleware,
     CacheManager,
@@ -93,7 +91,5 @@ __all__ = [
     "PerformanceSuggester",
     "performance_suggester",
     # Performance - Flags
-    "HAS_ORJSON",
-    "HAS_UJSON",
     "HAS_MSGPACK",
 ]

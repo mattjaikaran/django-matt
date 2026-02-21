@@ -123,13 +123,11 @@ class JSONSerializationScenario(BenchmarkScenario):
         self.large_data = _generate_sample_data("large")
         self.list_data = _generate_list_data(100)
 
-        # orjson is a base dependency, always available
         import orjson
 
-        self.has_orjson = True
         self._orjson = orjson
 
-        # ujson is optional (performance extra)
+        # ujson is optional
         self.has_ujson = False
         try:
             import ujson
@@ -147,9 +145,8 @@ class JSONSerializationScenario(BenchmarkScenario):
         results.append(self._benchmark_json_dumps("small"))
         results.append(self._benchmark_json_loads("small"))
 
-        if self.has_orjson:
-            results.append(self._benchmark_orjson_dumps("small"))
-            results.append(self._benchmark_orjson_loads("small"))
+        results.append(self._benchmark_orjson_dumps("small"))
+        results.append(self._benchmark_orjson_loads("small"))
 
         if self.has_ujson:
             results.append(self._benchmark_ujson_dumps("small"))
@@ -157,18 +154,15 @@ class JSONSerializationScenario(BenchmarkScenario):
 
         # Medium data benchmarks
         results.append(self._benchmark_json_dumps("medium"))
-        if self.has_orjson:
-            results.append(self._benchmark_orjson_dumps("medium"))
+        results.append(self._benchmark_orjson_dumps("medium"))
 
         # Large data benchmarks
         results.append(self._benchmark_json_dumps("large"))
-        if self.has_orjson:
-            results.append(self._benchmark_orjson_dumps("large"))
+        results.append(self._benchmark_orjson_dumps("large"))
 
         # List data benchmarks
         results.append(self._benchmark_json_list())
-        if self.has_orjson:
-            results.append(self._benchmark_orjson_list())
+        results.append(self._benchmark_orjson_list())
 
         # FastJSONRenderer benchmark
         results.append(self._benchmark_fast_json_renderer())

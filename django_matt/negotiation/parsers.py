@@ -64,8 +64,6 @@ class JSONParser(BaseParser):
             return None
 
         try:
-            import orjson
-
             return orjson.loads(data)
         except (ValueError, orjson.JSONDecodeError) as e:
             raise ParseError("Invalid JSON", str(e))

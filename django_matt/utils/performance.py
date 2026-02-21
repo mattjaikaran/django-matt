@@ -7,7 +7,6 @@ rendering, MessagePack serialization, caching mechanisms, and benchmarking utili
 
 import functools
 import hashlib
-import json
 import time
 from collections.abc import Callable
 from typing import Any
@@ -17,17 +16,6 @@ from django.core.cache import cache as django_cache
 from django.http import HttpResponse, StreamingHttpResponse
 
 import orjson
-
-# orjson is a base dependency — always available
-HAS_ORJSON = True
-
-# ujson is an optional fallback (kept for backward compat)
-try:
-    import ujson
-
-    HAS_UJSON = True
-except ImportError:
-    HAS_UJSON = False
 
 # Try to import MessagePack
 try:
@@ -40,20 +28,15 @@ except ImportError:
 
 class FastJSONRenderer:
     """
-    A faster JSON renderer that uses orjson or ujson if available.
+    A faster JSON renderer using orjson.
 
     This class provides methods to serialize Python objects to JSON using
-    the fastest available JSON library.
+    orjson for maximum performance.
     """
 
     def __init__(self):
-        """Initialize the renderer and determine which library to use."""
-        if HAS_ORJSON:
-            self.library_name = "orjson"
-        elif HAS_UJSON:
-            self.library_name = "ujson"
-        else:
-            self.library_name = "json"
+        """Initialize the renderer."""
+        self.library_name = "orjson"
 
     @staticmethod
     def dumps(obj: Any, **kwargs) -> bytes:
@@ -67,17 +50,10 @@ class FastJSONRenderer:
         Returns:
             JSON formatted bytes
         """
-        if HAS_ORJSON:
-            # orjson is the fastest JSON library
-            orjson_options = kwargs.pop("orjson_options", None)
-            if orjson_options is not None:
-                return orjson.dumps(obj, option=orjson_options)
-            return orjson.dumps(obj)
-        if HAS_UJSON:
-            # ujson is faster than the standard json library
-            return ujson.dumps(obj, **kwargs).encode("utf-8")
-        # Fall back to the standard json library
-        return json.dumps(obj, **kwargs).encode("utf-8")
+        orjson_options = kwargs.pop("orjson_options", None)
+        if orjson_options is not None:
+            return orjson.dumps(obj, option=orjson_options)
+        return orjson.dumps(obj)
 
     @staticmethod
     def loads(s: str | bytes, **kwargs) -> Any:
@@ -91,15 +67,7 @@ class FastJSONRenderer:
         Returns:
             A Python object
         """
-        if HAS_ORJSON:
-            return orjson.loads(s)
-        if HAS_UJSON:
-            if isinstance(s, bytes):
-                s = s.decode("utf-8")
-            return ujson.loads(s, **kwargs)
-        if isinstance(s, bytes):
-            s = s.decode("utf-8")
-        return json.loads(s, **kwargs)
+        return orjson.loads(s)
 
 
 class MessagePackRenderer:
@@ -632,10 +600,7 @@ def stream_json_list(items_iterator, chunk_size=100):
             buffer.append(",")
 
         # Add the serialized item to the buffer
-        if HAS_ORJSON:
-            buffer.append(orjson.dumps(item).decode("utf-8"))
-        else:
-            buffer.append(json.dumps(item))
+        buffer.append(orjson.dumps(item).decode("utf-8"))
 
         # If the buffer is full, yield it
         if len(buffer) >= chunk_size:
@@ -1274,19 +1239,19 @@ class PerformanceSuggester:
                 )
 
             if avg_time > 50:  # > 50ms average
-                if not HAS_ORJSON:
-                    suggestions.append(
-                        {
-                            "category": "serialization",
-                            "priority": "high",
-                            "title": "Slow JSON serialization",
-                            "description": f"Average serialization time is {avg_time:.1f}ms",
-                            "recommendations": [
-                                "Install orjson for 10x faster serialization: uv add orjson",
-                                "Or install ujson as alternative: uv add ujson",
-                            ],
-                        }
-                    )
+                suggestions.append(
+                    {
+                        "category": "serialization",
+                        "priority": "high",
+                        "title": "Slow JSON serialization",
+                        "description": f"Average serialization time is {avg_time:.1f}ms",
+                        "recommendations": [
+                            "Check for complex nested objects slowing serialization",
+                            "Consider using StreamingJsonResponse for large datasets",
+                            "Profile serialization with APIBenchmark.measure()",
+                        ],
+                    }
+                )
 
         # Analyze query performance
         query_obs = [o for o in self.observations if o["category"] == "query"]
@@ -1332,21 +1297,6 @@ class PerformanceSuggester:
                     }
                 )
 
-        # Check for missing optimizations
-        if not HAS_ORJSON and not HAS_UJSON:
-            suggestions.append(
-                {
-                    "category": "dependencies",
-                    "priority": "medium",
-                    "title": "No fast JSON library installed",
-                    "description": "Using standard library json module",
-                    "recommendations": [
-                        "Install orjson for best performance: uv add orjson",
-                        "Or install ujson: uv add ujson",
-                    ],
-                }
-            )
-
         if not HAS_MSGPACK:
             suggestions.append(
                 {
@@ -1386,8 +1336,7 @@ class PerformanceSuggester:
             "categories": categories,
             "suggestions": self.get_suggestions(),
             "libraries": {
-                "orjson": HAS_ORJSON,
-                "ujson": HAS_UJSON,
+                "orjson": True,
                 "msgpack": HAS_MSGPACK,
             },
         }
