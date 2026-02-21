@@ -12,8 +12,6 @@ import pytest
 
 from django_matt.utils.performance import (
     HAS_MSGPACK,
-    HAS_ORJSON,
-    HAS_UJSON,
     APIBenchmark,
     BenchmarkMiddleware,
     CacheManager,
@@ -45,15 +43,9 @@ class TestFastJSONRenderer(TestCase):
         self.assertEqual(loaded_data, data)
 
     def test_renderer_selection(self):
-        """Test that the correct renderer is selected based on availability."""
+        """Test that the renderer uses orjson (base dependency)."""
         renderer = FastJSONRenderer()
-
-        if HAS_ORJSON:
-            self.assertEqual(renderer.library_name, "orjson")
-        elif HAS_UJSON:
-            self.assertEqual(renderer.library_name, "ujson")
-        else:
-            self.assertEqual(renderer.library_name, "json")
+        self.assertEqual(renderer.library_name, "orjson")
 
 
 class TestFastJsonResponse(TestCase):
