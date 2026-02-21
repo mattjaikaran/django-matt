@@ -117,9 +117,9 @@ pytest tests/test_auth.py -v           # specific file
 
 ## Known Issues
 
-- ~9 modules still have no test coverage (admin, cli, dashboard, ml, typegen, utils, deployment, dev, testing)
 - `conftest.py` sets `DJANGO_ALLOW_ASYNC_UNSAFE=true` globally, masking async/sync ORM bugs in tests
-- PayPal `list_subscriptions()` returns `[]` unconditionally (not supported by PayPal API)
+- `testing/client.py` `AsyncAPITestClient.force_authenticate()` calls sync `create_access_token()` — should use `acreate_access_token()`
+- `utils/errors.py` duplicates error classes from `core/errors.py` — consolidate in a future pass
 
 ## Important Files
 
