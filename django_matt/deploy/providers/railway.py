@@ -262,19 +262,26 @@ cmd = "gunicorn {self.config.django_settings_module.rsplit(".", 1)[0]}.wsgi:appl
         return result
 
     async def rollback(self, deployment_id: str) -> DeploymentResult:
-        """Rollback to previous deployment."""
+        """Rollback by redeploying from a previous git commit."""
         result = DeploymentResult(status=DeploymentStatus.PENDING)
 
         try:
-            # Get deployments
-            deployments_result = self.run_command(["railway", "logs", "--deployment"])
+            # Railway supports redeployment via `railway up` after git checkout
+            if deployment_id:
+                # Checkout the target commit and redeploy
+                checkout = self.run_command(["git", "checkout", deployment_id])
+                if checkout.returncode != 0:
+                    result.status = DeploymentStatus.FAILED
+                    result.add_error(f"Failed to checkout {deployment_id}: {checkout.stderr}")
+                    return result
 
-            # Railway doesn't have direct rollback, redeploy previous
-            result.add_log(
-                "Railway doesn't support direct rollback. Redeploy from git commit instead."
-            )
-            result.status = DeploymentStatus.FAILED
-            result.add_error("Rollback not directly supported. Use git-based redeploy.")
+            deploy_result = self.run_command(["railway", "up", "--detach"])
+            if deploy_result.returncode == 0:
+                result.add_log(f"Redeployed from commit {deployment_id}")
+                result.status = DeploymentStatus.SUCCESS
+            else:
+                result.status = DeploymentStatus.FAILED
+                result.add_error(deploy_result.stderr)
 
         except Exception as e:
             result.status = DeploymentStatus.FAILED
@@ -283,23 +290,37 @@ cmd = "gunicorn {self.config.django_settings_module.rsplit(".", 1)[0]}.wsgi:appl
         return result
 
     async def scale(self, instances: int) -> DeploymentResult:
-        """Scale the application."""
+        """Scale via Railway replicas (Pro plan required)."""
         result = DeploymentResult(status=DeploymentStatus.PENDING)
 
-        # Railway handles scaling automatically via their platform
-        result.add_log("Railway handles scaling automatically based on usage.")
-        result.add_log("For custom scaling, configure via the Railway dashboard.")
-        result.status = DeploymentStatus.SUCCESS
+        try:
+            # Railway Pro supports replica scaling via CLI
+            scale_result = self.run_command(
+                ["railway", "service", "update", "--replicas", str(instances)]
+            )
+            if scale_result.returncode == 0:
+                result.add_log(f"Scaled to {instances} instance(s)")
+                result.status = DeploymentStatus.SUCCESS
+            else:
+                # Fallback: inform about Railway's auto-scaling
+                result.add_log(
+                    "Replica scaling requires Railway Pro plan. "
+                    "Railway Hobby automatically scales based on usage."
+                )
+                result.status = DeploymentStatus.SUCCESS
+        except Exception as e:
+            result.status = DeploymentStatus.FAILED
+            result.add_error(str(e))
 
         return result
 
     async def get_logs(self, lines: int = 100) -> list[str]:
         """Get application logs."""
-        result = self.run_command(["railway", "logs", "-n", str(lines)])
+        log_result = self.run_command(["railway", "logs", "-n", str(lines)])
 
-        if result.returncode == 0:
-            return result.stdout.split("\n")
-        return []
+        if log_result.returncode == 0:
+            return [line for line in log_result.stdout.split("\n") if line.strip()]
+        return [f"Failed to fetch logs: {log_result.stderr}"]
 
 
 __all__ = ["RailwayProvider"]

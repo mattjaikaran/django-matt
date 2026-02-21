@@ -305,41 +305,133 @@ python manage.py migrate --noinput
         return result
 
     async def rollback(self, deployment_id: str) -> DeploymentResult:
-        """Rollback to previous deployment."""
+        """Rollback to a previous deployment via Render API."""
+        import os
+        import urllib.error
+        import urllib.request
+
         result = DeploymentResult(status=DeploymentStatus.PENDING)
 
-        result.add_log("Render supports rollback via the dashboard or API.")
-        result.add_log("1. Go to your service in the Render dashboard")
-        result.add_log("2. Navigate to 'Events' tab")
-        result.add_log("3. Click 'Rollback' on a previous deploy")
+        api_key = os.environ.get("RENDER_API_KEY")
+        if not api_key:
+            result.status = DeploymentStatus.FAILED
+            result.add_error("RENDER_API_KEY required for rollback.")
+            return result
 
-        result.status = DeploymentStatus.FAILED
-        result.add_error("Direct rollback not implemented. Use Render dashboard.")
+        try:
+            # List recent deploys for the service
+            url = f"https://api.render.com/v1/services/{deployment_id}/deploys?limit=5"
+            req = urllib.request.Request(url)
+            req.add_header("Authorization", f"Bearer {api_key}")
+
+            with urllib.request.urlopen(req) as response:
+                deploys = orjson.loads(response.read().decode())
+
+            # Find the previous successful deploy
+            prev_deploy = None
+            for deploy in deploys:
+                d = deploy.get("deploy", deploy)
+                if d.get("status") == "live" and d.get("id") != deployment_id:
+                    prev_deploy = d
+                    break
+
+            if not prev_deploy:
+                result.status = DeploymentStatus.FAILED
+                result.add_error("No previous successful deployment found.")
+                return result
+
+            # Trigger redeploy of the previous commit
+            redeploy_url = f"https://api.render.com/v1/services/{deployment_id}/deploys"
+            data = orjson.dumps({"commitId": prev_deploy.get("commit", {}).get("id", "")})
+            req = urllib.request.Request(redeploy_url, data=data, method="POST")
+            req.add_header("Authorization", f"Bearer {api_key}")
+            req.add_header("Content-Type", "application/json")
+
+            with urllib.request.urlopen(req) as response:
+                deploy_data = orjson.loads(response.read().decode())
+
+            result.add_log(f"Rollback triggered to deploy {prev_deploy.get('id')}")
+            result.deployment_id = deploy_data.get("deploy", {}).get("id")
+            result.status = DeploymentStatus.SUCCESS
+
+        except urllib.error.HTTPError as e:
+            result.status = DeploymentStatus.FAILED
+            result.add_error(f"Render API error: {e.code} {e.reason}")
+        except Exception as e:
+            result.status = DeploymentStatus.FAILED
+            result.add_error(str(e))
 
         return result
 
     async def scale(self, instances: int) -> DeploymentResult:
-        """Scale the application."""
+        """Scale via Render API (Team/Pro plan required)."""
+        import os
+        import urllib.error
+        import urllib.request
+
         result = DeploymentResult(status=DeploymentStatus.PENDING)
 
-        result.add_log("Render handles scaling via the dashboard or render.yaml.")
-        result.add_log("Update the scaling section in render.yaml and redeploy.")
-        result.add_log(f"Set minInstances: {instances} and maxInstances: {instances}")
+        api_key = os.environ.get("RENDER_API_KEY")
+        if not api_key:
+            result.add_log("RENDER_API_KEY not set.")
+            result.add_log(f"To scale manually, update render.yaml: numInstances: {instances}")
+            result.status = DeploymentStatus.SUCCESS
+            return result
 
-        result.status = DeploymentStatus.SUCCESS
+        try:
+            url = f"https://api.render.com/v1/services/{self.config.app_name}/scale"
+            data = orjson.dumps({"numInstances": instances})
+            req = urllib.request.Request(url, data=data, method="PATCH")
+            req.add_header("Authorization", f"Bearer {api_key}")
+            req.add_header("Content-Type", "application/json")
+
+            with urllib.request.urlopen(req) as response:
+                orjson.loads(response.read().decode())
+
+            result.add_log(f"Scaled to {instances} instance(s)")
+            result.status = DeploymentStatus.SUCCESS
+
+        except urllib.error.HTTPError:
+            # Scaling API may not be available on all plans
+            result.add_log(f"API scaling unavailable. Update render.yaml: numInstances: {instances}")
+            result.status = DeploymentStatus.SUCCESS
+        except Exception as e:
+            result.status = DeploymentStatus.FAILED
+            result.add_error(str(e))
+
         return result
 
     async def get_logs(self, lines: int = 100) -> list[str]:
-        """Get application logs."""
+        """Get application logs via Render API."""
         import os
+        import urllib.error
+        import urllib.request
 
         api_key = os.environ.get("RENDER_API_KEY")
-
         if not api_key:
-            return ["RENDER_API_KEY not set. View logs in dashboard."]
+            return ["RENDER_API_KEY not set. Set it to fetch logs via API."]
 
-        # Render logs are available via dashboard or log streaming
-        return ["View logs at https://dashboard.render.com"]
+        try:
+            url = (
+                f"https://api.render.com/v1/services/{self.config.app_name}"
+                f"/logs?limit={lines}"
+            )
+            req = urllib.request.Request(url)
+            req.add_header("Authorization", f"Bearer {api_key}")
+
+            with urllib.request.urlopen(req) as response:
+                data = orjson.loads(response.read().decode())
+
+            log_entries = data if isinstance(data, list) else data.get("logs", [])
+            return [
+                entry.get("message", str(entry))
+                for entry in log_entries[:lines]
+            ]
+
+        except urllib.error.HTTPError as e:
+            return [f"Render API error: {e.code} {e.reason}"]
+        except Exception as e:
+            return [f"Failed to fetch logs: {e}"]
 
 
 __all__ = ["RenderProvider"]
