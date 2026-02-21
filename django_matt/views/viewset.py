@@ -112,10 +112,10 @@ class ViewSet(metaclass=ViewSetMeta):
 
             routes.append(
                 {
+                    **route_info,
                     "name": attr_name,
                     "path": full_path,
                     "view": view,
-                    **route_info,
                 }
             )
 

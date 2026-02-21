@@ -1192,12 +1192,7 @@ class TestViewSet:
         assert "read_thing" in names
 
     def test_get_routes_full_path(self):
-        """Routes include view path.
-
-        Note: get_routes() has a known issue where route_info (from
-        get_route_info()) overwrites the computed full_path because
-        both use the "path" key. The raw view path is returned.
-        """
+        """Routes build full path from prefix + view path."""
 
         class MyViewSet(ViewSet):
             model = User
@@ -1207,8 +1202,7 @@ class TestViewSet:
         vs = MyViewSet()
         routes = vs.get_routes()
         read_route = [r for r in routes if r["name"] == "read_user"][0]
-        # The route_info path overwrites the computed full_path
-        assert read_route["path"] == "{id}"
+        assert read_route["path"] == "users/{id}"
 
 
 class TestAPIViewSet:
