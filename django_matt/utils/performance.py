@@ -16,9 +16,9 @@ from django.conf import settings
 from django.core.cache import cache as django_cache
 from django.http import HttpResponse, StreamingHttpResponse
 
-# orjson is a base dependency — always available
 import orjson
 
+# orjson is a base dependency — always available
 HAS_ORJSON = True
 
 # ujson is an optional fallback (kept for backward compat)

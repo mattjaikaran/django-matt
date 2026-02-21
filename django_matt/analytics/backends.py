@@ -19,7 +19,6 @@ Usage:
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
@@ -27,6 +26,8 @@ from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.utils import timezone
+
+import orjson
 
 if TYPE_CHECKING:
     pass
@@ -373,7 +374,7 @@ class RedisBackend(AnalyticsBackend):
         # Add to events list
         self.client.lpush(
             self._get_key("events", "buffer"),
-            json.dumps({**event_data, "id": event_id}, default=str),
+            orjson.dumps({**event_data, "id": event_id}, default=str).decode(),
         )
 
         # Increment counters
@@ -408,7 +409,7 @@ class RedisBackend(AnalyticsBackend):
 
             pipeline.lpush(
                 self._get_key("events", "buffer"),
-                json.dumps({**event_data, "id": event_id}, default=str),
+                orjson.dumps({**event_data, "id": event_id}, default=str).decode(),
             )
 
         pipeline.execute()
@@ -420,7 +421,7 @@ class RedisBackend(AnalyticsBackend):
 
         self.client.lpush(
             self._get_key("pageviews", "buffer"),
-            json.dumps({**page_view_data, "id": pv_id}, default=str),
+            orjson.dumps({**page_view_data, "id": pv_id}, default=str).decode(),
         )
 
         # Increment page counters
@@ -449,7 +450,7 @@ class RedisBackend(AnalyticsBackend):
 
             pipeline.lpush(
                 self._get_key("pageviews", "buffer"),
-                json.dumps({**pv_data, "id": pv_id}, default=str),
+                orjson.dumps({**pv_data, "id": pv_id}, default=str).decode(),
             )
 
         pipeline.execute()
@@ -499,7 +500,7 @@ class RedisBackend(AnalyticsBackend):
             self.client.hset(
                 self._get_key("groups", user_id),
                 "traits",
-                json.dumps(traits),
+                orjson.dumps(traits).decode(),
             )
 
     def _flush_to_database(self, data_type: str):
@@ -512,7 +513,7 @@ class RedisBackend(AnalyticsBackend):
             item = self.client.rpop(buffer_key)
             if item is None:
                 break
-            items.append(json.loads(item))
+            items.append(orjson.loads(item))
 
         if not items:
             return

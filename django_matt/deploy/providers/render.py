@@ -4,9 +4,9 @@ Render deployment provider.
 Provides deployment to Render with automatic configuration generation.
 """
 
-import json
 from typing import Any
 
+import orjson
 import yaml
 
 from django_matt.deploy.base import (
@@ -282,7 +282,7 @@ python manage.py migrate --noinput
             req.add_header("Authorization", f"Bearer {api_key}")
 
             with urllib.request.urlopen(req) as response:
-                data = json.loads(response.read().decode())
+                data = orjson.loads(response.read().decode())
 
             result.deployment_id = deployment_id
             result.metadata = data

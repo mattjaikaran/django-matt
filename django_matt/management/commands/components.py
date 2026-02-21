@@ -8,9 +8,9 @@ Provides CLI tools for:
 - Generating component documentation
 """
 
-import json
-
 from django.core.management.base import BaseCommand, CommandError, CommandParser
+
+import orjson
 
 
 class Command(BaseCommand):
@@ -140,7 +140,7 @@ class Command(BaseCommand):
                 )
 
         if options.get("json"):
-            self.stdout.write(json.dumps(components, indent=2))
+            self.stdout.write(orjson.dumps(components, option=orjson.OPT_INDENT_2).decode())
         else:
             self.stdout.write(self.style.SUCCESS(f"\nRegistered Components ({len(components)})\n"))
             self.stdout.write("-" * 60)
@@ -191,7 +191,7 @@ class Command(BaseCommand):
             info["props"][prop_name] = prop_info
 
         if options.get("json"):
-            self.stdout.write(json.dumps(info, indent=2))
+            self.stdout.write(orjson.dumps(info, option=orjson.OPT_INDENT_2).decode())
         else:
             self.stdout.write(self.style.SUCCESS(f"\n{info['name']}"))
             self.stdout.write("-" * 40)
@@ -226,8 +226,8 @@ class Command(BaseCommand):
 
         # Parse props
         try:
-            props = json.loads(options["props"])
-        except json.JSONDecodeError as e:
+            props = orjson.loads(options["props"])
+        except orjson.JSONDecodeError as e:
             raise CommandError(f"Invalid props JSON: {e}")
 
         # Create component
@@ -525,7 +525,7 @@ const component = useComponent('{name}', props);
             docs.append(doc)
 
         with open(os.path.join(output_dir, "components.json"), "w") as f:
-            json.dump(docs, f, indent=2, default=str)
+            f.write(orjson.dumps(docs, option=orjson.OPT_INDENT_2, default=str).decode())
 
     def handle_playground(self, **options):
         """Launch the component playground."""

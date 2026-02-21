@@ -6,7 +6,6 @@ Query helpers and utility functions for working with audit logs.
 
 import csv
 import io
-import json
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -14,6 +13,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models import Count
 from django.utils import timezone
+
+import orjson
 
 from .enums import AuditAction, AuditSeverity
 
@@ -379,7 +380,7 @@ def _export_json(queryset: models.QuerySet) -> str:
             }
         )
 
-    return json.dumps(data, indent=2, default=str)
+    return orjson.dumps(data, default=str, option=orjson.OPT_INDENT_2).decode()
 
 
 def _export_csv(queryset: models.QuerySet) -> str:

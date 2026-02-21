@@ -10,11 +10,12 @@ Usage:
     api.register_controller(FlagController)
 """
 
-import json
 from datetime import timedelta
 
 from django.http import HttpRequest, JsonResponse
 from django.utils import timezone
+
+import orjson
 
 from django_matt.core.controller import APIController
 from django_matt.core.router import delete, get, patch, post, put
@@ -142,9 +143,9 @@ class FlagController(APIController):
         from .models import FeatureFlag, FlagAuditLog
 
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = FeatureFlagCreate.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
             )
@@ -260,9 +261,9 @@ class FlagController(APIController):
             )
 
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = FeatureFlagUpdate.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
             )
@@ -514,9 +515,9 @@ class FlagController(APIController):
             )
 
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = FlagOverrideCreate.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
             )
@@ -627,9 +628,9 @@ class FlagController(APIController):
     async def evaluate_flag(self, request: HttpRequest) -> JsonResponse:
         """Evaluate a single feature flag."""
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = FlagEvaluationRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
             )
@@ -692,9 +693,9 @@ class FlagController(APIController):
     async def evaluate_bulk(self, request: HttpRequest) -> JsonResponse:
         """Evaluate multiple feature flags."""
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = BulkEvaluationRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
             )

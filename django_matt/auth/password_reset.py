@@ -7,7 +7,6 @@ the user's current password hash, so tokens auto-invalidate after password chang
 import base64
 import hashlib
 import hmac
-import json
 import secrets
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -16,6 +15,7 @@ from typing import Any
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
+import orjson
 from pydantic import BaseModel
 
 
@@ -69,8 +69,8 @@ def _generate_signature(data: str, secret: str) -> str:
 
 def _encode_payload(payload: dict) -> str:
     """Encode payload to URL-safe base64."""
-    json_str = json.dumps(payload, separators=(",", ":"))
-    return base64.urlsafe_b64encode(json_str.encode()).decode().rstrip("=")
+    json_bytes = orjson.dumps(payload)
+    return base64.urlsafe_b64encode(json_bytes).decode().rstrip("=")
 
 
 def _decode_payload(encoded: str) -> dict:
@@ -78,8 +78,8 @@ def _decode_payload(encoded: str) -> dict:
     padding = 4 - len(encoded) % 4
     if padding != 4:
         encoded += "=" * padding
-    json_str = base64.urlsafe_b64decode(encoded.encode()).decode()
-    return json.loads(json_str)
+    decoded_bytes = base64.urlsafe_b64decode(encoded.encode())
+    return orjson.loads(decoded_bytes)
 
 
 def _password_digest(password_hash: str) -> str:

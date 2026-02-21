@@ -4,9 +4,9 @@ DigitalOcean App Platform deployment provider.
 Provides deployment to DigitalOcean App Platform with automatic configuration generation.
 """
 
-import json
 from typing import Any
 
+import orjson
 import yaml
 
 from django_matt.deploy.base import (
@@ -328,7 +328,7 @@ CMD python manage.py migrate --noinput && gunicorn {self.config.django_settings_
             )
 
             if status_result.returncode == 0:
-                data = json.loads(status_result.stdout)
+                data = orjson.loads(status_result.stdout)
                 result.deployment_id = deployment_id
                 result.metadata = data
 

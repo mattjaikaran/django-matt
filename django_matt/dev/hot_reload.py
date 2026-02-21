@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import signal
@@ -10,6 +9,7 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 
+import orjson
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
@@ -193,7 +193,7 @@ class WebSocketServer:
         """Send a reload message to all connected clients."""
         message = {"command": "reload", "path": file_path, "time": time.time()}
 
-        message_json = json.dumps(message)
+        message_json = orjson.dumps(message).decode()
         message_bytes = f"data: {message_json}\n\n".encode()
 
         disconnected_clients = set()

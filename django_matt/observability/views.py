@@ -24,7 +24,6 @@ Or use the included URL patterns:
     ]
 """
 
-import json
 import logging
 import time
 from typing import Any, Callable
@@ -32,6 +31,8 @@ from typing import Any, Callable
 from django.http import HttpRequest, HttpResponse
 from django.urls import path
 from django.views.decorators.http import require_GET
+
+import orjson
 
 from django_matt.observability.metrics import metrics_manager
 
@@ -70,7 +71,7 @@ def health_view(request: HttpRequest) -> HttpResponse:
     URL: /health
     """
     return HttpResponse(
-        json.dumps({"status": "healthy", "timestamp": time.time()}),
+        orjson.dumps({"status": "healthy", "timestamp": time.time()}).decode(),
         content_type="application/json",
     )
 
@@ -198,7 +199,7 @@ def ready_view(request: HttpRequest) -> HttpResponse:
     status_code = 200 if all_ready else 503
 
     return HttpResponse(
-        json.dumps(response_data),
+        orjson.dumps(response_data).decode(),
         content_type="application/json",
         status=status_code,
     )
@@ -252,7 +253,7 @@ def info_view(request: HttpRequest) -> HttpResponse:
     info["service_name"] = tracing_config.get("SERVICE_NAME", "unknown")
 
     return HttpResponse(
-        json.dumps(info, indent=2),
+        orjson.dumps(info, option=orjson.OPT_INDENT_2).decode(),
         content_type="application/json",
     )
 
@@ -271,7 +272,7 @@ def debug_view(request: HttpRequest) -> HttpResponse:
 
     if not settings.DEBUG:
         return HttpResponse(
-            json.dumps({"error": "Debug endpoint only available in DEBUG mode"}),
+            orjson.dumps({"error": "Debug endpoint only available in DEBUG mode"}).decode(),
             content_type="application/json",
             status=403,
         )
@@ -303,7 +304,7 @@ def debug_view(request: HttpRequest) -> HttpResponse:
     }
 
     return HttpResponse(
-        json.dumps(debug_info, indent=2, default=str),
+        orjson.dumps(debug_info, default=str, option=orjson.OPT_INDENT_2).decode(),
         content_type="application/json",
     )
 

@@ -7,12 +7,13 @@ Provides reusable mixins for audit logging, soft delete, export, etc.
 from __future__ import annotations
 
 import csv
-import json
 from typing import TYPE_CHECKING
 
 from django.contrib import admin, messages
 from django.http import HttpResponse
 from django.utils import timezone
+
+import orjson
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
@@ -313,7 +314,7 @@ class ExportAdminMixin:
             data.append(item)
 
         response = HttpResponse(
-            json.dumps(data, indent=2, default=str),
+            orjson.dumps(data, default=str, option=orjson.OPT_INDENT_2).decode(),
             content_type="application/json",
         )
         response["Content-Disposition"] = (

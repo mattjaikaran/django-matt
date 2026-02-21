@@ -325,7 +325,8 @@ class OAuthProvider(ABC):
         Override in subclasses if needed.
         """
         import base64
-        import json
+
+        import orjson
 
         # Decode JWT payload (without verification - token was just received)
         parts = id_token.split(".")
@@ -339,7 +340,7 @@ class OAuthProvider(ABC):
             payload += "=" * padding
 
         try:
-            data = json.loads(base64.urlsafe_b64decode(payload))
+            data = orjson.loads(base64.urlsafe_b64decode(payload))
         except Exception as e:
             raise OAuthUserInfoError(f"Failed to decode id_token: {e}")
 

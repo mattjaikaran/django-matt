@@ -10,9 +10,10 @@ Documentation: https://polar.sh/docs
 
 import hashlib
 import hmac
-import json
 from datetime import datetime
 from typing import Any
+
+import orjson
 
 from django_matt.billing.config import PolarConfig
 from django_matt.billing.providers.base import (
@@ -700,7 +701,7 @@ class PolarProvider(BillingProvider[PolarConfig]):
             if not hmac.compare_digest(expected, signature):
                 raise BillingWebhookError("Invalid webhook signature")
 
-            data = json.loads(payload)
+            data = orjson.loads(payload)
 
             return WebhookEvent(
                 id=data.get("id", ""),
@@ -710,7 +711,7 @@ class PolarProvider(BillingProvider[PolarConfig]):
                 created_at=self._parse_datetime(data.get("created_at")),
                 raw_payload=payload,
             )
-        except json.JSONDecodeError as e:
+        except orjson.JSONDecodeError as e:
             raise BillingWebhookError(f"Invalid JSON payload: {e}")
         except BillingWebhookError:
             raise

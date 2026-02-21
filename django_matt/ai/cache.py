@@ -5,12 +5,12 @@ Provides caching for LLM responses to reduce costs and latency.
 """
 
 import hashlib
-import json
 import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Any, TypeVar
 
+import orjson
 from pydantic import BaseModel
 
 from django_matt.ai.base import (
@@ -164,10 +164,7 @@ class CachedLLM:
             content_parts.append(f"{msg.role.value}:{msg.content}")
 
         content = "|".join(content_parts)
-        params = json.dumps(
-            {"model": model, "temperature": temperature, **kwargs},
-            sort_keys=True,
-        )
+        params = orjson.dumps({"model": model, "temperature": temperature, **kwargs}, option=orjson.OPT_SORT_KEYS).decode()
 
         hash_input = f"{content}|{params}"
         hash_val = hashlib.sha256(hash_input.encode()).hexdigest()[:32]
@@ -431,7 +428,7 @@ class CachedLLM:
             self._update_cost_stats(cached.usage)
             # Parse cached content back to model
             try:
-                data = json.loads(cached.content)
+                data = orjson.loads(cached.content)
                 return response_model.model_validate(data)
             except Exception:
                 pass

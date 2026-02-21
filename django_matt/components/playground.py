@@ -5,12 +5,13 @@ Provides an interactive environment for exploring and testing
 components with live props editing and theme switching.
 """
 
-import json
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.template import Context, Template
 from django.views import View
+
+import orjson
 
 from django_matt.components.base import Component, registry
 from django_matt.components.renderers import HTMLRenderer, JSONRenderer, ReactRenderer
@@ -354,8 +355,8 @@ class PlaygroundView(View):
         props_json = request.GET.get("props", "{}")
 
         try:
-            props = json.loads(props_json)
-        except json.JSONDecodeError:
+            props = orjson.loads(props_json)
+        except orjson.JSONDecodeError:
             props = {}
 
         # Set theme
@@ -476,7 +477,7 @@ class PlaygroundView(View):
 
             if type_str in ("list", "dict") and value:
                 try:
-                    json_value = json.dumps(value, indent=2)
+                    json_value = orjson.dumps(value, option=orjson.OPT_INDENT_2).decode()
                 except (TypeError, ValueError):
                     json_value = str(value)
 
@@ -505,7 +506,7 @@ class PlaygroundView(View):
             elif isinstance(value, (int, float)):
                 props_str += f"\n  {key}={{{value}}}"
             elif isinstance(value, (list, dict)):
-                props_str += f"\n  {key}={{{json.dumps(value)}}}"
+                props_str += f"\n  {key}={{{orjson.dumps(value).decode()}}}"
 
         return f"""import {{ {component_name} }} from '@django-matt/react'
 
@@ -559,8 +560,8 @@ def playground_api_render(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
     try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
+        data = orjson.loads(request.body)
+    except orjson.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
 
     component_name = data.get("component")

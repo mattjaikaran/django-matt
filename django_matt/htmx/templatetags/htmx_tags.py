@@ -177,9 +177,9 @@ def hx_vals(values: dict[str, Any]) -> str:
     Usage:
         <button {% hx_vals my_dict %} hx-post="/api">Submit</button>
     """
-    import json
+    import orjson
 
-    json_str = json.dumps(values)
+    json_str = orjson.dumps(values).decode()
     return mark_safe(f"hx-vals='{json_str}'")
 
 
@@ -191,9 +191,9 @@ def hx_headers(headers: dict[str, str]) -> str:
     Usage:
         <button {% hx_headers my_headers %} hx-post="/api">Submit</button>
     """
-    import json
+    import orjson
 
-    json_str = json.dumps(headers)
+    json_str = orjson.dumps(headers).decode()
     return mark_safe(f"hx-headers='{json_str}'")
 
 

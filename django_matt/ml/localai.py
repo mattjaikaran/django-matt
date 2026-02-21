@@ -13,7 +13,6 @@ Docs: https://localai.io/
 """
 
 import base64
-import json
 import os
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
@@ -21,6 +20,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, TypeVar
 
+import orjson
 from pydantic import BaseModel
 
 from django_matt.ai.base import (
@@ -397,7 +397,7 @@ class LocalAIProvider(LLMProvider, StructuredOutputProvider):
                     id=tc.get("id", str(i)),
                     name=tc["function"]["name"],
                     arguments=(
-                        json.loads(tc["function"]["arguments"])
+                        orjson.loads(tc["function"]["arguments"])
                         if isinstance(tc["function"]["arguments"], str)
                         else tc["function"]["arguments"]
                     ),
@@ -481,7 +481,7 @@ class LocalAIProvider(LLMProvider, StructuredOutputProvider):
 
             if line.startswith("data: "):
                 try:
-                    data = json.loads(line[6:])
+                    data = orjson.loads(line[6:])
                     choice = data["choices"][0]
                     delta = choice.get("delta", {})
 
@@ -490,7 +490,7 @@ class LocalAIProvider(LLMProvider, StructuredOutputProvider):
                         role=Role(delta["role"]) if "role" in delta else None,
                         finish_reason=choice.get("finish_reason"),
                     )
-                except json.JSONDecodeError:
+                except orjson.JSONDecodeError:
                     continue
 
     async def generate(
@@ -573,7 +573,7 @@ class LocalAIProvider(LLMProvider, StructuredOutputProvider):
             use_grammar: Use BNF grammar for JSON constraint
         """
         schema = response_model.model_json_schema()
-        schema_str = json.dumps(schema, indent=2)
+        schema_str = orjson.dumps(schema, option=orjson.OPT_INDENT_2).decode()
 
         system_msg = Message.system(
             f"You must respond with valid JSON matching this schema:\n{schema_str}\n"
@@ -598,10 +598,10 @@ class LocalAIProvider(LLMProvider, StructuredOutputProvider):
                 )
 
                 # Parse and validate
-                data = json.loads(response.content)
+                data = orjson.loads(response.content)
                 return response_model.model_validate(data)
 
-            except (json.JSONDecodeError, Exception) as e:
+            except (orjson.JSONDecodeError, Exception) as e:
                 if attempt == max_retries - 1:
                     raise ValueError(
                         f"Failed to get valid structured response after {max_retries} attempts: {e}"

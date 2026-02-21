@@ -15,13 +15,14 @@ Usage:
 """
 
 import hashlib
-import json
 import logging
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.core.cache import cache
+
+import orjson
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
@@ -278,11 +279,11 @@ class RedisBackend(FlagBackend):
             else None,
             "overrides": overrides,
         }
-        return json.dumps(data)
+        return orjson.dumps(data).decode()
 
     def _deserialize_flag(self, data: str) -> dict:
         """Deserialize flag from JSON."""
-        return json.loads(data)
+        return orjson.loads(data)
 
     def _get_flag_data(self, key: str) -> dict | None:
         """Get flag data from Redis with database fallback."""

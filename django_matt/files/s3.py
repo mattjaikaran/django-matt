@@ -150,7 +150,7 @@ class S3Storage(BaseStorage):
 
     async def save(
         self,
-        file: Union["UploadedFile", BinaryIO, bytes],
+        file: Union[UploadedFile, BinaryIO, bytes],
         key: str = None,
         folder: str = None,
         content_type: str = None,

@@ -193,9 +193,9 @@ class MailgunProvider(EmailProviderBase):
 
             # Add template variables
             if context:
-                import json
+                import orjson
 
-                data["h:X-Mailgun-Variables"] = json.dumps(context)
+                data["h:X-Mailgun-Variables"] = orjson.dumps(context).decode()
 
             response = requests.post(
                 self._get_api_url(),

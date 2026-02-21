@@ -10,12 +10,13 @@ Parsers convert incoming request bodies to Python data structures:
 - MessagePack
 """
 
-import json
 from abc import ABC, abstractmethod
 from typing import Any
 from xml.etree import ElementTree
 
 from django.http import HttpRequest
+
+import orjson
 
 
 class ParseError(Exception):

@@ -5,10 +5,11 @@ Generates Vue Single File Components (SFCs) with Composition API (Vue 3),
 TypeScript support, and Tailwind CSS integration.
 """
 
-import json
 import re
 from pathlib import Path
 from typing import Any, Literal
+
+import orjson
 
 from django_matt.components.base import Component, ComponentType
 from django_matt.components.renderers.base import (
@@ -445,9 +446,9 @@ class VueRenderer(BaseRenderer):
             for name, default_value in bindings.items():
                 if self.typescript:
                     type_hint = self._infer_ts_type(default_value)
-                    lines.append(f"const {name} = ref<{type_hint}>({json.dumps(default_value)})")
+                    lines.append(f"const {name} = ref<{type_hint}>({orjson.dumps(default_value).decode()})")
                 else:
-                    lines.append(f"const {name} = ref({json.dumps(default_value)})")
+                    lines.append(f"const {name} = ref({orjson.dumps(default_value).decode()})")
 
         # Event handlers
         handlers = self._extract_event_handlers(component)
@@ -1428,7 +1429,7 @@ def generate_vue_project(
         "dependencies": dependencies,
         "devDependencies": dev_dependencies,
     }
-    files[str(base_path / "package.json")] = json.dumps(package_json, indent=2)
+    files[str(base_path / "package.json")] = orjson.dumps(package_json, option=orjson.OPT_INDENT_2).decode()
 
     # vite.config.ts
     vite_config = """import { defineConfig } from 'vite'
@@ -1471,7 +1472,7 @@ export default defineConfig({
         "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
         "references": [{"path": "./tsconfig.node.json"}],
     }
-    files[str(base_path / "tsconfig.json")] = json.dumps(tsconfig, indent=2)
+    files[str(base_path / "tsconfig.json")] = orjson.dumps(tsconfig, option=orjson.OPT_INDENT_2).decode()
 
     # src/main.ts
     main_ts_imports = ["import { createApp } from 'vue'", "import App from './App.vue'"]

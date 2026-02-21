@@ -9,12 +9,12 @@ Provides comprehensive Kubernetes deployment capabilities including:
 """
 
 import base64
-import json
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any
 
+import orjson
 import yaml
 
 from django_matt.deploy.base import (
@@ -1647,7 +1647,7 @@ class K3sProvider(DeploymentProvider):
             )
 
             if status_result.returncode == 0:
-                deployment = json.loads(status_result.stdout)
+                deployment = orjson.loads(status_result.stdout)
                 status = deployment.get("status", {})
 
                 replicas = status.get("replicas", 0)

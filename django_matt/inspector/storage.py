@@ -6,7 +6,6 @@ Provides in-memory and Redis storage options for captured requests.
 
 from __future__ import annotations
 
-import json
 import threading
 import time
 from abc import ABC, abstractmethod
@@ -17,6 +16,8 @@ from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from django.conf import settings
+
+import orjson
 
 
 @dataclass
@@ -281,7 +282,7 @@ class RedisStorage(InspectorStorage):
             return
 
         request_key = self._request_key(request.id)
-        data = json.dumps(request.to_dict())
+        data = orjson.dumps(request.to_dict())
 
         # Use pipeline for atomic operation
         pipe = self._redis.pipeline()
@@ -305,7 +306,7 @@ class RedisStorage(InspectorStorage):
         if data is None:
             return None
 
-        return CapturedRequest.from_dict(json.loads(data))
+        return CapturedRequest.from_dict(orjson.loads(data))
 
     def list(
         self,
@@ -343,7 +344,7 @@ class RedisStorage(InspectorStorage):
             if data is None:
                 continue
 
-            request = CapturedRequest.from_dict(json.loads(data))
+            request = CapturedRequest.from_dict(orjson.loads(data))
 
             # Apply filters
             if method and request.method != method.upper():

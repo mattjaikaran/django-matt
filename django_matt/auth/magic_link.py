@@ -29,7 +29,6 @@ Usage:
 import base64
 import hashlib
 import hmac
-import json
 import secrets
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -41,6 +40,7 @@ from django.core.cache import cache
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 
+import orjson
 from pydantic import BaseModel, Field
 
 
@@ -150,8 +150,8 @@ def _generate_signature(data: str, secret: str) -> str:
 
 def _encode_payload(payload: dict) -> str:
     """Encode payload to URL-safe base64."""
-    json_str = json.dumps(payload, separators=(",", ":"))
-    return base64.urlsafe_b64encode(json_str.encode("utf-8")).decode("utf-8").rstrip("=")
+    json_bytes = orjson.dumps(payload)
+    return base64.urlsafe_b64encode(json_bytes).decode("utf-8").rstrip("=")
 
 
 def _decode_payload(encoded: str) -> dict:
@@ -163,8 +163,8 @@ def _decode_payload(encoded: str) -> dict:
 
     try:
         json_str = base64.urlsafe_b64decode(encoded.encode("utf-8")).decode("utf-8")
-        return json.loads(json_str)
-    except (ValueError, json.JSONDecodeError) as e:
+        return orjson.loads(json_str)
+    except (ValueError, orjson.JSONDecodeError) as e:
         raise MagicLinkInvalidError(f"Invalid token format: {e}")
 
 

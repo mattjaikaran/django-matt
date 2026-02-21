@@ -12,13 +12,14 @@ Usage:
 
 import ast
 import inspect
-import json
 from pathlib import Path
 from typing import Any
 
 from django.apps import apps
 from django.conf import settings
 from django.urls import URLPattern, URLResolver, get_resolver
+
+import orjson
 
 from django_matt.cli import MattCommand
 
@@ -41,7 +42,6 @@ class Command(MattCommand):
         )
         parser.add_argument(
             "--verbose",
-            "-v",
             action="store_true",
             help="Show detailed source code analysis",
         )
@@ -73,7 +73,7 @@ class Command(MattCommand):
 
         # Output
         if output_json:
-            self.stdout.write(json.dumps(explanation, indent=2, default=str))
+            self.stdout.write(orjson.dumps(explanation, default=str, option=orjson.OPT_INDENT_2).decode())
         else:
             self._display_explanation(explanation, verbose)
 

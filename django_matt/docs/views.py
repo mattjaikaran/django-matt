@@ -8,12 +8,13 @@ Provides a modern, interactive documentation UI with:
 - Code snippet generation
 """
 
-import json
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.template import Context, Template
 from django.urls import path
+
+import orjson
 
 from .playground import CodeGenerator, PlaygroundSession
 
@@ -149,7 +150,7 @@ class PlaygroundView:
     def _handle_request(self, request: HttpRequest) -> JsonResponse:
         """Handle API request from playground."""
         try:
-            data = json.loads(request.body)
+            data = orjson.loads(request.body)
             method = data.get("method", "GET")
             url = data.get("url", "")
             headers = data.get("headers", {})

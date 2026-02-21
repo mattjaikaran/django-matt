@@ -11,11 +11,12 @@ Usage:
     api.register_controller(MetricsController, prefix="/analytics")
 """
 
-import json
 from datetime import datetime, timedelta
 
 from django.http import HttpRequest, JsonResponse
 from django.utils import timezone
+
+import orjson
 
 from django_matt.core.controller import APIController
 from django_matt.core.router import delete, get, post, put
@@ -81,9 +82,9 @@ class AnalyticsController(APIController):
         Events are buffered and written in batches for performance.
         """
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = TrackEventRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(),
                 status=400,
@@ -136,9 +137,9 @@ class AnalyticsController(APIController):
         endpoint allows client-side tracking for SPAs.
         """
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = TrackPageViewRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(),
                 status=400,
@@ -186,9 +187,9 @@ class AnalyticsController(APIController):
         anonymous activity to their user account.
         """
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = IdentifyRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(),
                 status=400,
@@ -238,9 +239,9 @@ class AnalyticsController(APIController):
         More efficient than individual tracking calls for high-volume scenarios.
         """
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = BatchTrackRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(),
                 status=400,
@@ -764,9 +765,9 @@ class FunnelController(APIController):
         from .models import Funnel, FunnelStep
 
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = FunnelCreate.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(),
                 status=400,
@@ -892,9 +893,9 @@ class FunnelController(APIController):
             )
 
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = FunnelUpdate.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(),
                 status=400,

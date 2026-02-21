@@ -701,8 +701,8 @@ class TestSnapshot:
             checksum="xyz",
         )
         json_str = snapshot.to_json()
-        assert '"name": "Counter"' in json_str
-        assert '"count": 5' in json_str
+        assert '"name":"Counter"' in json_str
+        assert '"count":5' in json_str
 
     def test_snapshot_from_json(self):
         """Test creating snapshot from JSON."""

@@ -14,12 +14,13 @@ Requires: uv add httpx
 import base64
 import hashlib
 import hmac
-import json
 import logging
 import secrets
 from urllib.parse import urlencode
 
 from django.core.cache import cache
+
+import orjson
 
 from django_matt.auth.sso.providers.base import (
     SSOAuthenticationError,
@@ -509,7 +510,7 @@ class OIDCProvider(SSOProvider):
 
         # Decode header to get kid and alg
         try:
-            header = json.loads(_b64url_decode(header_b64))
+            header = orjson.loads(_b64url_decode(header_b64))
         except Exception as e:
             raise SSOAuthenticationError(f"Failed to decode id_token header: {e}")
 
@@ -568,7 +569,7 @@ class OIDCProvider(SSOProvider):
 
         # Signature valid -- decode payload
         try:
-            payload = json.loads(_b64url_decode(payload_b64))
+            payload = orjson.loads(_b64url_decode(payload_b64))
         except Exception as e:
             raise SSOAuthenticationError(f"Failed to decode id_token payload: {e}")
 

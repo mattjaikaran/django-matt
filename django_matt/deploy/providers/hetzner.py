@@ -4,7 +4,7 @@ Hetzner Cloud deployment provider.
 Provides deployment to Hetzner Cloud servers with Docker.
 """
 
-import json
+import orjson
 
 from django_matt.deploy.base import (
     DeploymentConfig,
@@ -402,7 +402,7 @@ REDIS_URL={self.config.redis_url}
             server_ip = None
 
             if servers_result.returncode == 0:
-                servers = json.loads(servers_result.stdout)
+                servers = orjson.loads(servers_result.stdout)
                 for server in servers:
                     if server.get("name") == self.config.app_name:
                         server_exists = True
@@ -418,7 +418,7 @@ REDIS_URL={self.config.redis_url}
                 ssh_key_name = None
 
                 if ssh_keys_result.returncode == 0:
-                    ssh_keys = json.loads(ssh_keys_result.stdout)
+                    ssh_keys = orjson.loads(ssh_keys_result.stdout)
                     if ssh_keys:
                         ssh_key_name = ssh_keys[0].get("name")
 
@@ -464,7 +464,7 @@ REDIS_URL={self.config.redis_url}
                 )
 
                 if server_info.returncode == 0:
-                    info = json.loads(server_info.stdout)
+                    info = orjson.loads(server_info.stdout)
                     server_ip = info.get("public_net", {}).get("ipv4", {}).get("ip")
 
                 result.add_log(f"Server created with IP: {server_ip}")
@@ -509,7 +509,7 @@ REDIS_URL={self.config.redis_url}
             )
 
             if status_result.returncode == 0:
-                data = json.loads(status_result.stdout)
+                data = orjson.loads(status_result.stdout)
                 result.deployment_id = str(data.get("id", ""))
                 result.metadata = data
 
@@ -588,7 +588,7 @@ REDIS_URL={self.config.redis_url}
         if server_info.returncode != 0:
             return ["Failed to get server info"]
 
-        info = json.loads(server_info.stdout)
+        info = orjson.loads(server_info.stdout)
         server_ip = info.get("public_net", {}).get("ipv4", {}).get("ip")
 
         if not server_ip:

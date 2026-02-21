@@ -22,6 +22,8 @@ from uuid import UUID
 
 from django.http import HttpResponse
 
+import orjson
+
 from django_matt.negotiation.config import (
     CSVConfig,
     HTMLConfig,
@@ -303,11 +305,11 @@ class CSVRenderer(BaseRenderer):
         if isinstance(value, (list, tuple)):
             return "|".join(str(v) for v in value)
         if isinstance(value, dict):
-            return json.dumps(value)
+            return orjson.dumps(value).decode()
         if hasattr(value, "model_dump"):
-            return json.dumps(value.model_dump())
+            return orjson.dumps(value.model_dump()).decode()
         if hasattr(value, "dict"):
-            return json.dumps(value.dict())
+            return orjson.dumps(value.dict()).decode()
         return str(value)
 
     def render(self, data: Any, **kwargs) -> bytes:
@@ -549,7 +551,7 @@ class HTMLRenderer(BaseRenderer):
         else:
             # Render as formatted JSON
             html_parts.append("<pre>")
-            html_parts.append(self._escape_html(json.dumps(data, indent=2, default=str)))
+            html_parts.append(self._escape_html(orjson.dumps(data, default=str, option=orjson.OPT_INDENT_2).decode()))
             html_parts.append("</pre>")
 
         html_parts.extend(["</body>", "</html>"])

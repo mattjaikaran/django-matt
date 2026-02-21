@@ -5,16 +5,12 @@ Provides PageData and PageResponse for rendering pages as HTML or JSON
 based on request mode (initial visit, SPA navigation, or API).
 """
 
-import json
 from dataclasses import dataclass, field
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 
-# orjson is a base dependency — always available
 import orjson
-
-HAS_ORJSON = True
 
 
 @dataclass
@@ -73,9 +69,7 @@ class PageData:
 
     def to_json(self) -> str:
         """Serialize to JSON string."""
-        if HAS_ORJSON:
-            return orjson.dumps(self.to_dict()).decode("utf-8")
-        return json.dumps(self.to_dict(), separators=(",", ":"))
+        return orjson.dumps(self.to_dict()).decode("utf-8")
 
 
 class PageResponse:
@@ -253,7 +247,7 @@ def redirect_page(
         # Store flash message for next request
         response.set_cookie(
             "_page_flash",
-            json.dumps({"message": flash, "type": flash_type}),
+            orjson.dumps({"message": flash, "type": flash_type}).decode(),
             max_age=60,  # 1 minute
             httponly=True,
             samesite="Lax",

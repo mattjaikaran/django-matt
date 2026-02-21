@@ -6,8 +6,9 @@ Provides export functionality to various formats like curl, httpie, python reque
 
 from __future__ import annotations
 
-import json
 from typing import TYPE_CHECKING, Literal
+
+import orjson
 
 if TYPE_CHECKING:
     from django_matt.inspector.storage import CapturedRequest
@@ -46,9 +47,9 @@ def export_as_curl(request: CapturedRequest, include_response: bool = False) -> 
     if request.request_body:
         # Try to format JSON for readability
         try:
-            body_obj = json.loads(request.request_body)
-            body_str = json.dumps(body_obj)
-        except (json.JSONDecodeError, TypeError):
+            body_obj = orjson.loads(request.request_body)
+            body_str = orjson.dumps(body_obj).decode()
+        except (orjson.JSONDecodeError, TypeError):
             body_str = request.request_body
 
         escaped_body = body_str.replace("'", "'\\''")
@@ -102,19 +103,19 @@ def export_as_httpie(request: CapturedRequest, include_response: bool = False) -
     # Body (as JSON fields if possible)
     if request.request_body:
         try:
-            body_obj = json.loads(request.request_body)
+            body_obj = orjson.loads(request.request_body)
             if isinstance(body_obj, dict):
                 for key, value in body_obj.items():
                     if isinstance(value, str):
                         escaped_value = value.replace("'", "'\\''")
                         parts.append(f"{key}='{escaped_value}'")
                     else:
-                        parts.append(f"{key}:={json.dumps(value)}")
+                        parts.append(f"{key}:={orjson.dumps(value).decode()}")
             else:
                 # Non-dict JSON, use raw body
                 parts.insert(1, "--raw")
                 parts.append(f"'{request.request_body}'")
-        except (json.JSONDecodeError, TypeError):
+        except (orjson.JSONDecodeError, TypeError):
             # Raw body
             parts.insert(1, "--raw")
             escaped_body = request.request_body.replace("'", "'\\''")
@@ -156,7 +157,7 @@ def export_as_python(request: CapturedRequest, include_response: bool = False) -
             if k.lower() not in ("host", "content-length", "connection")
         }
         if headers_dict:
-            lines.append(f"headers = {json.dumps(headers_dict, indent=4)}")
+            lines.append(f"headers = {orjson.dumps(headers_dict, option=orjson.OPT_INDENT_2).decode()}")
         else:
             headers_dict = None
     else:
@@ -170,7 +171,7 @@ def export_as_python(request: CapturedRequest, include_response: bool = False) -
                 key, value = param.split("=", 1)
                 params[key] = value
         if params:
-            lines.append(f"params = {json.dumps(params, indent=4)}")
+            lines.append(f"params = {orjson.dumps(params, option=orjson.OPT_INDENT_2).decode()}")
     else:
         params = None
 
@@ -178,10 +179,10 @@ def export_as_python(request: CapturedRequest, include_response: bool = False) -
     body_var = None
     if request.request_body:
         try:
-            body_obj = json.loads(request.request_body)
-            lines.append(f"json_data = {json.dumps(body_obj, indent=4)}")
+            body_obj = orjson.loads(request.request_body)
+            lines.append(f"json_data = {orjson.dumps(body_obj, option=orjson.OPT_INDENT_2).decode()}")
             body_var = "json=json_data"
-        except (json.JSONDecodeError, TypeError):
+        except (orjson.JSONDecodeError, TypeError):
             lines.append(f'data = """{request.request_body}"""')
             body_var = "data=data"
 
@@ -264,10 +265,10 @@ def export_as_fetch(request: CapturedRequest, include_response: bool = False) ->
     # Body
     if request.request_body:
         try:
-            body_obj = json.loads(request.request_body)
-            body_str = json.dumps(body_obj)
+            body_obj = orjson.loads(request.request_body)
+            body_str = orjson.dumps(body_obj).decode()
             lines.append(f"  body: JSON.stringify({body_str}),")
-        except (json.JSONDecodeError, TypeError):
+        except (orjson.JSONDecodeError, TypeError):
             escaped_body = request.request_body.replace('"', '\\"').replace("\n", "\\n")
             lines.append(f'  body: "{escaped_body}",')
 

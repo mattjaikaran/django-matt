@@ -225,7 +225,7 @@ class RedisBackend(BaseBackend):
         if self.client is None:
             return None
 
-        import json
+        import orjson
 
         full_key = self._make_key(key)
         data = self.client.get(full_key)
@@ -234,10 +234,8 @@ class RedisBackend(BaseBackend):
             return None
 
         try:
-            if isinstance(data, bytes):
-                data = data.decode("utf-8")
-            return json.loads(data)
-        except (json.JSONDecodeError, UnicodeDecodeError):
+            return orjson.loads(data)
+        except (orjson.JSONDecodeError, UnicodeDecodeError):
             return None
 
     def set(self, key: str, value: list[float], ttl: int | None = None) -> None:
@@ -252,10 +250,10 @@ class RedisBackend(BaseBackend):
         if self.client is None:
             return
 
-        import json
+        import orjson
 
         full_key = self._make_key(key)
-        data = json.dumps(value)
+        data = orjson.dumps(value).decode()
 
         if ttl:
             self.client.setex(full_key, ttl, data)

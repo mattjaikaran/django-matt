@@ -6,7 +6,6 @@ Provides Chart.js-based chart widgets that integrate with Unfold's design system
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any, Literal
@@ -15,6 +14,8 @@ from uuid import uuid4
 from django.db.models import Avg, Count, Model, Sum
 from django.db.models.functions import TruncDate, TruncMonth, TruncWeek
 from django.utils import timezone
+
+import orjson
 
 ChartType = Literal["line", "bar", "doughnut", "pie", "area", "radar"]
 
@@ -205,7 +206,7 @@ class ChartWidget:
 
     def render(self) -> str:
         """Render the chart widget as HTML."""
-        config_json = json.dumps(self._get_chart_config())
+        config_json = orjson.dumps(self._get_chart_config()).decode()
 
         subtitle_html = ""
         if self.subtitle:
@@ -285,7 +286,7 @@ class SparklineWidget:
             },
         }
 
-        config_json = json.dumps(config)
+        config_json = orjson.dumps(config).decode()
 
         return f"""
         <div style="width: {self.width}px; height: {self.height}px; display: inline-block;">

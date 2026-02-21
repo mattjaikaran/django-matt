@@ -5,7 +5,6 @@ Generates the HTML shell with page data injected as a script tag
 (not a data attribute like Inertia) for better performance.
 """
 
-import json
 from typing import Any
 
 from django.conf import settings
@@ -145,7 +144,7 @@ def _load_manifest(manifest_path: str | None) -> dict[str, Any] | None:
 
         if full_path and os.path.exists(full_path):
             with open(full_path) as f:
-                return json.load(f)
+                return orjson.loads(f.read())
     except Exception:
         pass
 

@@ -4,9 +4,9 @@ Fly.io deployment provider.
 Provides deployment to Fly.io with automatic configuration generation.
 """
 
-import json
 from typing import Any
 
+import orjson
 import toml
 
 from django_matt.deploy.base import (
@@ -253,7 +253,7 @@ echo "Release complete!"
 
             # Check if app exists
             check_result = self.run_command(["flyctl", "apps", "list", "--json"])
-            apps = json.loads(check_result.stdout) if check_result.returncode == 0 else []
+            apps = orjson.loads(check_result.stdout) if check_result.returncode == 0 else []
             app_exists = any(app.get("Name") == self.config.app_name for app in apps)
 
             if not app_exists:
@@ -360,7 +360,7 @@ echo "Release complete!"
                 ["flyctl", "info", "--app", self.config.app_name, "--json"]
             )
             if info_result.returncode == 0:
-                info = json.loads(info_result.stdout)
+                info = orjson.loads(info_result.stdout)
                 result.deployment_id = info.get("ID", "")
                 result.metadata = info
 
@@ -380,7 +380,7 @@ echo "Release complete!"
             )
 
             if status_result.returncode == 0:
-                status = json.loads(status_result.stdout)
+                status = orjson.loads(status_result.stdout)
                 result.deployment_id = deployment_id
                 result.metadata = status
 
@@ -420,7 +420,7 @@ echo "Release complete!"
                 result.add_error("Failed to get releases")
                 return result
 
-            releases = json.loads(releases_result.stdout)
+            releases = orjson.loads(releases_result.stdout)
             if len(releases) < 2:
                 result.status = DeploymentStatus.FAILED
                 result.add_error("No previous release to rollback to")

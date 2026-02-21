@@ -7,10 +7,11 @@ Provides:
 - Request history tracking
 """
 
-import json
 import secrets
 from dataclasses import dataclass, field
 from datetime import datetime
+
+import orjson
 
 
 @dataclass
@@ -157,7 +158,7 @@ class CodeGenerator:
             return None
         if isinstance(self.body, str):
             return self.body
-        return json.dumps(self.body, indent=2)
+        return orjson.dumps(self.body, option=orjson.OPT_INDENT_2).decode()
 
     def curl(self) -> str:
         """Generate cURL command."""
@@ -206,9 +207,9 @@ class CodeGenerator:
         if body and self.method in ("POST", "PUT", "PATCH"):
             try:
                 # Try to parse as JSON for better formatting
-                json_body = json.loads(body)
-                lines.append(f"    json={json.dumps(json_body)},")
-            except json.JSONDecodeError:
+                json_body = orjson.loads(body)
+                lines.append(f"    json={orjson.dumps(json_body).decode()},")
+            except orjson.JSONDecodeError:
                 lines.append(f'    content="""{body}""",')
 
         lines.append(")")
@@ -241,9 +242,9 @@ class CodeGenerator:
         body = self._format_body()
         if body and self.method in ("POST", "PUT", "PATCH"):
             try:
-                json_body = json.loads(body)
-                lines.append(f"            json={json.dumps(json_body)},")
-            except json.JSONDecodeError:
+                json_body = orjson.loads(body)
+                lines.append(f"            json={orjson.dumps(json_body).decode()},")
+            except orjson.JSONDecodeError:
                 lines.append(f'            content="""{body}""",')
 
         lines.append("        )")
@@ -322,13 +323,13 @@ class CodeGenerator:
         body = self._format_body()
         if body and self.method in ("POST", "PUT", "PATCH"):
             try:
-                json_body = json.loads(body)
+                json_body = orjson.loads(body)
                 for key, value in json_body.items():
                     if isinstance(value, str):
                         parts.append(f'{key}="{value}"')
                     else:
-                        parts.append(f"{key}:={json.dumps(value)}")
-            except json.JSONDecodeError:
+                        parts.append(f"{key}:={orjson.dumps(value).decode()}")
+            except orjson.JSONDecodeError:
                 parts.append(f"< echo '{body}'")
 
         return " \\\n  ".join(parts)

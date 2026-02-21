@@ -104,23 +104,23 @@ class LivewireRequest:
     @property
     def action_params(self) -> list:
         """Get action parameters."""
-        import json
+        import orjson
 
         params = self._request.POST.get("_params", "[]")
         try:
-            return json.loads(params)
-        except json.JSONDecodeError:
+            return orjson.loads(params)
+        except orjson.JSONDecodeError:
             return []
 
     @property
     def updates(self) -> dict:
         """Get state updates from the request."""
-        import json
+        import orjson
 
         updates = self._request.POST.get("_updates", "{}")
         try:
-            return json.loads(updates)
-        except json.JSONDecodeError:
+            return orjson.loads(updates)
+        except orjson.JSONDecodeError:
             return {}
 
     @property

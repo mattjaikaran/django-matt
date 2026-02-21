@@ -4,9 +4,10 @@ WebSocket support for Livewire components.
 Enables real-time updates via WebSocket connections.
 """
 
-import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
+
+import orjson
 
 if TYPE_CHECKING:
     pass
@@ -181,7 +182,7 @@ class LivewireConsumer:
     async def receive_message(self, text: str):
         """Handle incoming WebSocket message."""
         try:
-            data = json.loads(text)
+            data = orjson.loads(text)
             message_type = data.get("type")
 
             if message_type == "subscribe":
@@ -195,7 +196,7 @@ class LivewireConsumer:
             elif message_type == "ping":
                 await self.send_json({"type": "pong"})
 
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             await self.send_error("Invalid JSON")
         except Exception as e:
             await self.send_error(str(e))
@@ -357,7 +358,7 @@ class LivewireConsumer:
         await self.send(
             {
                 "type": "websocket.send",
-                "text": json.dumps(data),
+                "text": orjson.dumps(data).decode(),
             }
         )
 

@@ -15,11 +15,10 @@ Usage:
     api.register_controller(AuthController, prefix="api/v1/auth")
 """
 
-import json
-
 from django.contrib.auth import authenticate, get_user_model
 from django.http import HttpRequest, JsonResponse
 
+import orjson
 from asgiref.sync import sync_to_async
 
 from django_matt.audit.context import extract_client_ip, extract_user_agent
@@ -119,9 +118,9 @@ class AuthController(APIController):
         """
         # Parse request body
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = LoginRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 {"detail": "Invalid JSON", "code": "invalid_json"},
                 status=400,
@@ -204,9 +203,9 @@ class AuthController(APIController):
         Alternative login endpoint for username-based authentication.
         """
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = LoginWithUsernameRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 {"detail": "Invalid JSON", "code": "invalid_json"},
                 status=400,
@@ -281,9 +280,9 @@ class AuthController(APIController):
             - tokens: JWT token pair
         """
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = RegisterRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 {"detail": "Invalid JSON", "code": "invalid_json"},
                 status=400,
@@ -363,9 +362,9 @@ class AuthController(APIController):
             - refresh_token: New JWT refresh token (if rotation enabled)
         """
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = RefreshTokenRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 {"detail": "Invalid JSON", "code": "invalid_json"},
                 status=400,
@@ -437,7 +436,7 @@ class AuthController(APIController):
 
         # Also blacklist refresh token from body if provided
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             refresh = body.get("refresh_token")
             if refresh:
                 from django_matt.auth.blacklist.core import ablacklist_token as _abl
@@ -490,8 +489,8 @@ class AuthController(APIController):
             - last_name: New last name
         """
         try:
-            body = json.loads(request.body) if request.body else {}
-        except json.JSONDecodeError:
+            body = orjson.loads(request.body) if request.body else {}
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 {"detail": "Invalid JSON", "code": "invalid_json"},
                 status=400,
@@ -534,9 +533,9 @@ class AuthController(APIController):
             - new_password_confirm: New password confirmation
         """
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = ChangePasswordRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 {"detail": "Invalid JSON", "code": "invalid_json"},
                 status=400,
@@ -598,11 +597,11 @@ class AuthController(APIController):
     async def request_password_reset(self, request: HttpRequest) -> JsonResponse:
         """Request password reset. Always returns 200 to prevent email enumeration."""
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             from django_matt.auth.schemas import ResetPasswordRequest
 
             data = ResetPasswordRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 {"detail": "Invalid JSON", "code": "invalid_json"},
                 status=400,
@@ -650,11 +649,11 @@ class AuthController(APIController):
     async def confirm_password_reset(self, request: HttpRequest) -> JsonResponse:
         """Confirm password reset with token and new password."""
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             from django_matt.auth.schemas import ResetPasswordConfirmRequest
 
             data = ResetPasswordConfirmRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 {"detail": "Invalid JSON", "code": "invalid_json"},
                 status=400,
@@ -755,9 +754,9 @@ class AuthController(APIController):
             - message: Success message (always returns success to prevent email enumeration)
         """
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = MagicLinkRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 {"detail": "Invalid JSON", "code": "invalid_json"},
                 status=400,
@@ -817,9 +816,9 @@ class AuthController(APIController):
             - user_created: Whether a new account was created
         """
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = MagicLinkVerifyRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 {"detail": "Invalid JSON", "code": "invalid_json"},
                 status=400,
@@ -927,7 +926,7 @@ class MinimalAuthController(APIController):
     async def login(self, request: HttpRequest) -> JsonResponse:
         """Login with email/password."""
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = LoginRequest.model_validate(body)
         except Exception as e:
             return JsonResponse({"detail": str(e)}, status=422)
@@ -975,7 +974,7 @@ class MinimalAuthController(APIController):
     async def refresh(self, request: HttpRequest) -> JsonResponse:
         """Refresh access token."""
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = RefreshTokenRequest.model_validate(body)
             tokens = await async_refresh_tokens(data.refresh_token)
             return JsonResponse(tokens.model_dump())
@@ -986,11 +985,11 @@ class MinimalAuthController(APIController):
     async def request_password_reset(self, request: HttpRequest) -> JsonResponse:
         """Request password reset. Always returns 200 to prevent email enumeration."""
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             from django_matt.auth.schemas import ResetPasswordRequest
 
             data = ResetPasswordRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse({"detail": "Invalid JSON"}, status=400)
         except Exception as e:
             return JsonResponse({"detail": str(e)}, status=422)
@@ -1030,11 +1029,11 @@ class MinimalAuthController(APIController):
     async def confirm_password_reset(self, request: HttpRequest) -> JsonResponse:
         """Confirm password reset with token and new password."""
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             from django_matt.auth.schemas import ResetPasswordConfirmRequest
 
             data = ResetPasswordConfirmRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse({"detail": "Invalid JSON"}, status=400)
         except Exception as e:
             return JsonResponse({"detail": str(e)}, status=422)

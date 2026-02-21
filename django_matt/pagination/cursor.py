@@ -6,11 +6,12 @@ Efficient pagination for large datasets: ?cursor=abc123
 
 import base64
 import hashlib
-import json
 from typing import Any
 
 from django.db.models import QuerySet
 from django.http import HttpRequest
+
+import orjson
 
 from .base import BasePagination
 
@@ -104,8 +105,8 @@ class CursorPagination(BasePagination):
 
     def _encode_cursor(self, position: dict[str, Any]) -> str:
         """Encode position dict to cursor string."""
-        data = json.dumps(position, sort_keys=True, default=str)
-        encoded = base64.urlsafe_b64encode(data.encode()).decode()
+        data = orjson.dumps(position, option=orjson.OPT_SORT_KEYS, default=str)
+        encoded = base64.urlsafe_b64encode(data).decode()
 
         if self.cursor_secret:
             # Add signature for tampering protection
@@ -134,9 +135,9 @@ class CursorPagination(BasePagination):
             else:
                 encoded = cursor
 
-            data = base64.urlsafe_b64decode(encoded.encode()).decode()
-            return json.loads(data)
-        except (ValueError, json.JSONDecodeError, UnicodeDecodeError):
+            data = base64.urlsafe_b64decode(encoded.encode())
+            return orjson.loads(data)
+        except (ValueError, orjson.JSONDecodeError, UnicodeDecodeError):
             return None
 
     def _get_position(self, instance: Any) -> dict[str, Any]:

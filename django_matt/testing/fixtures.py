@@ -307,9 +307,9 @@ def parse_json_response(response) -> dict:
     Returns:
         Parsed JSON data
     """
-    import json
+    import orjson
 
-    return json.loads(response.content)
+    return orjson.loads(response.content)
 
 
 def get_response_data(response, key: str | None = None):

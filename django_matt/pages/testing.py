@@ -5,11 +5,12 @@ Provides test client extensions and assertions for testing
 page views and responses.
 """
 
-import json
 from typing import Any
 
 from django.http import HttpResponse
 from django.test import Client
+
+import orjson
 
 
 class PageTestClient(Client):
@@ -73,7 +74,7 @@ class PageTestClient(Client):
         kwargs.setdefault("HTTP_X_PAGE", "true")
         kwargs.setdefault("HTTP_ACCEPT", "application/json")
         kwargs.setdefault("content_type", "application/json")
-        response = self.post(path, data=json.dumps(data), **kwargs)
+        response = self.post(path, data=orjson.dumps(data).decode(), **kwargs)
         return PageResponse(response)
 
     def api_get(self, path: str, **kwargs) -> HttpResponse:
@@ -89,7 +90,7 @@ class PageTestClient(Client):
         """
         kwargs.setdefault("HTTP_ACCEPT", "application/json")
         kwargs.setdefault("content_type", "application/json")
-        return self.post(path, data=json.dumps(data) if data else None, **kwargs)
+        return self.post(path, data=orjson.dumps(data).decode() if data else None, **kwargs)
 
 
 class PageResponse:
@@ -140,9 +141,9 @@ class PageResponse:
         # JSON response
         if "application/json" in content_type:
             try:
-                self._page_data = json.loads(self.response.content)
+                self._page_data = orjson.loads(self.response.content)
                 return self._page_data
-            except json.JSONDecodeError:
+            except orjson.JSONDecodeError:
                 return {}
 
         # HTML response - extract from script tag
@@ -157,7 +158,7 @@ class PageResponse:
                 re.DOTALL,
             )
             if match:
-                self._page_data = json.loads(match.group(1))
+                self._page_data = orjson.loads(match.group(1))
                 return self._page_data
         except Exception:
             pass
@@ -196,7 +197,7 @@ class PageResponse:
 
     def json(self) -> dict[str, Any]:
         """Get the response as JSON."""
-        return json.loads(self.response.content)
+        return orjson.loads(self.response.content)
 
     def __getattr__(self, name: str) -> Any:
         """Delegate to underlying response."""

@@ -7,11 +7,12 @@ This module provides various output formats for benchmark results:
 - Markdown report generation
 """
 
-import json
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
 from typing import Any, TextIO
+
+import orjson
 
 from django_matt.benchmarks.runner import (
     BenchmarkComparison,
@@ -271,7 +272,7 @@ class JSONReporter(BenchmarkReporter):
                     "same": len([c for c in comparisons if c.status == "same"]),
                 }
 
-        return json.dumps(data, indent=self.indent)
+        return orjson.dumps(data, option=orjson.OPT_INDENT_2).decode()
 
 
 class MarkdownReporter(BenchmarkReporter):

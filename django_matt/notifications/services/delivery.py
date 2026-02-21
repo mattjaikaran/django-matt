@@ -8,11 +8,12 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import json
 import logging
 import time
 from abc import ABC, abstractmethod
 from typing import Any
+
+import orjson
 
 from django_matt.notifications.enums import NotificationChannel, NotificationStatus
 from django_matt.notifications.models import Notification, NotificationDelivery
@@ -403,7 +404,7 @@ class WebhookDeliveryHandler(DeliveryHandler):
         }
 
         # Serialize payload to JSON for signing
-        payload_json = json.dumps(payload, separators=(",", ":"), sort_keys=True)
+        payload_json = orjson.dumps(payload, option=orjson.OPT_SORT_KEYS).decode()
 
         # Generate HMAC-SHA256 signature: sign "timestamp.payload"
         timestamp = str(int(time.time()))

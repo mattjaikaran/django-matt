@@ -6,7 +6,6 @@ Provides HTML views for browsing and inspecting captured requests.
 
 from __future__ import annotations
 
-import json
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -16,6 +15,8 @@ from django.urls import path
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+
+import orjson
 
 from .export import export_request
 from .storage import CapturedRequest, get_storage
@@ -748,8 +749,8 @@ class InspectorAPIView(InspectorAccessMixin, View):
                 return JsonResponse({"error": "Request not found"}, status=404)
 
             try:
-                body = json.loads(request.body) if request.body else {}
-            except json.JSONDecodeError:
+                body = orjson.loads(request.body) if request.body else {}
+            except orjson.JSONDecodeError:
                 body = {}
 
             export_format = body.get("format", "curl")

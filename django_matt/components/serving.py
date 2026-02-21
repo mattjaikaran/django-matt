@@ -5,13 +5,14 @@ Provides views, middleware, and helpers for serving component-based
 UIs from Django.
 """
 
-import json
 from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views import View
+
+import orjson
 
 from django_matt.components.base import Component, registry
 from django_matt.components.renderers.base import BaseRenderer, RenderContext
@@ -468,7 +469,7 @@ def create_from_json(json_str: str) -> Component | list[Component]:
         json_str = '{"type": "card", "title": "Hello"}'
         card = create_from_json(json_str)
     """
-    data = json.loads(json_str)
+    data = orjson.loads(json_str)
 
     if isinstance(data, list):
         return [create_from_dict(item) for item in data]

@@ -9,6 +9,7 @@ from typing import Any
 
 from django.http import HttpRequest, JsonResponse
 
+import orjson
 from pydantic import ValidationError
 
 logger = logging.getLogger("django_matt.errors")
@@ -78,10 +79,10 @@ class ErrorDetail:
 
     def to_json(self, include_traceback: bool = False, include_snippet: bool = False) -> str:
         """Convert error details to JSON."""
-        return json.dumps(
+        return orjson.dumps(
             self.to_dict(include_traceback=include_traceback, include_snippet=include_snippet),
-            indent=2,
-        )
+            option=orjson.OPT_INDENT_2,
+        ).decode()
 
     def to_response(
         self, include_traceback: bool = False, include_snippet: bool = False
@@ -153,8 +154,8 @@ class ErrorHandler:
             # Add body if it's a JSON request
             if request.content_type == "application/json" and request.body:
                 try:
-                    context["request"]["body"] = json.loads(request.body)
-                except json.JSONDecodeError:
+                    context["request"]["body"] = orjson.loads(request.body)
+                except (orjson.JSONDecodeError, ValueError):
                     context["request"]["body"] = "Invalid JSON"
 
         # Generate suggestion

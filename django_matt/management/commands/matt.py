@@ -188,9 +188,9 @@ class Command(GeneratorCommand):
         info = self._gather_project_info()
 
         if options.get("json"):
-            import json
+            import orjson
 
-            self.console.print(json.dumps(info, indent=2))
+            self.console.print(orjson.dumps(info, option=orjson.OPT_INDENT_2).decode())
             return
 
         # Display info sections

@@ -5,8 +5,9 @@ Generates React component props as JSON that can be consumed by
 a React frontend library (like @django-matt/react).
 """
 
-import json
 from typing import Any
+
+import orjson
 
 from django_matt.components.base import Component, ComponentType
 from django_matt.components.renderers.base import (
@@ -56,7 +57,7 @@ class ReactRenderer(BaseRenderer):
 
         props = self._component_to_props(component, context)
 
-        content = json.dumps(props, default=str, ensure_ascii=False)
+        content = orjson.dumps(props, default=str).decode()
 
         return RenderOutput(
             content=content,
@@ -158,7 +159,7 @@ class ReactRenderer(BaseRenderer):
         }
 
         return RenderOutput(
-            content=json.dumps(page_data, default=str, ensure_ascii=False),
+            content=orjson.dumps(page_data, default=str).decode(),
             content_type="application/json",
             metadata={"type": "page"},
         )

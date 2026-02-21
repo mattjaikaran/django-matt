@@ -12,7 +12,6 @@ Provides deep introspection including:
 
 import importlib
 import inspect
-import json
 import re
 from dataclasses import dataclass, field
 from enum import Enum
@@ -21,6 +20,8 @@ from typing import Any
 
 from django.apps import apps
 from django.conf import settings
+
+import orjson
 
 
 class AuthRequirement(str, Enum):
@@ -950,7 +951,7 @@ class EnhancedIntrospector:
     def to_json(self) -> str:
         """Export introspection data as JSON."""
         info = self.introspect()
-        return json.dumps(info.to_dict(), indent=2, default=str)
+        return orjson.dumps(info.to_dict(), default=str, option=orjson.OPT_INDENT_2).decode()
 
 
 __all__ = [

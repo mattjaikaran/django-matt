@@ -4,7 +4,7 @@ AWS deployment provider.
 Provides deployment to AWS App Runner and ECS Fargate with configuration generation.
 """
 
-import json
+import orjson
 
 from django_matt.deploy.base import (
     DeploymentConfig,
@@ -247,7 +247,7 @@ CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.dj
                 }
             )
 
-        return json.dumps(task_def, indent=2)
+        return orjson.dumps(task_def, option=orjson.OPT_INDENT_2).decode()
 
     def _generate_ecs_service(self) -> str:
         """Generate ECS service definition."""
@@ -278,7 +278,7 @@ CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.dj
             },
         }
 
-        return json.dumps(service, indent=2)
+        return orjson.dumps(service, option=orjson.OPT_INDENT_2).decode()
 
     def _generate_buildspec(self) -> str:
         """Generate AWS CodeBuild buildspec."""
@@ -365,7 +365,7 @@ artifacts:
         )
 
         if list_result.returncode == 0:
-            services = json.loads(list_result.stdout)
+            services = orjson.loads(list_result.stdout)
 
             if services:
                 # Update existing service
@@ -481,7 +481,7 @@ artifacts:
                 )
 
                 if status_result.returncode == 0:
-                    data = json.loads(status_result.stdout)
+                    data = orjson.loads(status_result.stdout)
                     service = data.get("Service", {})
                     result.deployment_id = deployment_id
                     result.metadata = service
@@ -514,7 +514,7 @@ artifacts:
                 )
 
                 if status_result.returncode == 0:
-                    data = json.loads(status_result.stdout)
+                    data = orjson.loads(status_result.stdout)
                     services = data.get("services", [])
                     if services:
                         service = services[0]

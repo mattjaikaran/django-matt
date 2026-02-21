@@ -5,11 +5,12 @@ Generates Svelte 5 components with runes ($state, $derived, $effect),
 TypeScript support, and modern Svelte features.
 """
 
-import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+import orjson
 
 from django_matt.components.base import Component, ComponentType
 from django_matt.components.renderers.base import (
@@ -188,10 +189,10 @@ class SvelteStoreDefinition:
     def to_code(self) -> str:
         """Generate store definition code."""
         if self.type == "writable":
-            value = json.dumps(self.initial_value) if self.initial_value is not None else "null"
+            value = orjson.dumps(self.initial_value).decode() if self.initial_value is not None else "null"
             return f"export const {self.name} = writable<{self.typescript_type}>({value});"
         if self.type == "readable":
-            value = json.dumps(self.initial_value) if self.initial_value is not None else "null"
+            value = orjson.dumps(self.initial_value).decode() if self.initial_value is not None else "null"
             return f"export const {self.name} = readable<{self.typescript_type}>({value});"
         if self.type == "derived":
             stores = ", ".join(self.derive_from)
@@ -2014,7 +2015,7 @@ def generate_svelte_project(
             }
         )
 
-    (output_path / "package.json").write_text(json.dumps(package_json, indent=2))
+    (output_path / "package.json").write_text(orjson.dumps(package_json, option=orjson.OPT_INDENT_2).decode())
 
     # svelte.config.js
     svelte_config = """import adapter from '@sveltejs/adapter-auto';
@@ -2058,7 +2059,7 @@ export default defineConfig({
                 "moduleResolution": "bundler",
             },
         }
-        (output_path / "tsconfig.json").write_text(json.dumps(tsconfig, indent=2))
+        (output_path / "tsconfig.json").write_text(orjson.dumps(tsconfig, option=orjson.OPT_INDENT_2).decode())
 
     # Tailwind config
     if use_tailwind:

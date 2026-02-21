@@ -4,8 +4,9 @@ JSON renderer for components.
 Simple JSON serialization for API responses and debugging.
 """
 
-import json
 from typing import Any
+
+import orjson
 
 from django_matt.components.base import Component
 from django_matt.components.renderers.base import (
@@ -68,12 +69,11 @@ class JSONRenderer(BaseRenderer):
         # Convert enums to strings
         data = self._process_enums(data)
 
-        content = json.dumps(
+        content = orjson.dumps(
             data,
-            indent=self.indent,
             default=str,
-            ensure_ascii=False,
-        )
+            option=orjson.OPT_INDENT_2 if self.indent else 0,
+        ).decode()
 
         return RenderOutput(
             content=content,

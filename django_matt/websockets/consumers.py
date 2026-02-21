@@ -11,7 +11,6 @@ Provides base classes for building WebSocket consumers with:
 Requires: uv add channels
 """
 
-import json
 import logging
 import time
 from collections.abc import Callable, Coroutine
@@ -19,6 +18,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
+
+import orjson
 
 from django_matt.websockets.config import get_websocket_config
 
@@ -271,9 +272,9 @@ class BaseConsumer:
         """
         if text_data:
             try:
-                data = json.loads(text_data)
+                data = orjson.loads(text_data)
                 await self.on_message(data)
-            except json.JSONDecodeError:
+            except orjson.JSONDecodeError:
                 await self.send_error(4003, "Invalid JSON")
         elif bytes_data:
             await self.on_binary_message(bytes_data)
@@ -350,7 +351,7 @@ class BaseConsumer:
 
     async def send_json(self, data: dict, **kwargs) -> None:
         """Send a JSON message."""
-        await self.send(text_data=json.dumps(data, **kwargs))
+        await self.send(text_data=orjson.dumps(data).decode())
 
     async def send_error(
         self,

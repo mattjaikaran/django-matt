@@ -6,7 +6,6 @@ state management, actions, and lifecycle hooks.
 """
 
 import hashlib
-import json
 import uuid
 from collections.abc import Callable
 from functools import wraps
@@ -16,6 +15,7 @@ from typing import (
     TypeVar,
 )
 
+import orjson
 from pydantic import BaseModel, ConfigDict, PrivateAttr
 
 T = TypeVar("T")
@@ -359,7 +359,7 @@ class LiveComponent(BaseModel):
 
     def get_checksum(self) -> str:
         """Get a checksum of the current state for change detection."""
-        state_json = json.dumps(self.get_state(), sort_keys=True, default=str)
+        state_json = orjson.dumps(self.get_state(), option=orjson.OPT_SORT_KEYS).decode()
         return hashlib.md5(state_json.encode()).hexdigest()[:8]
 
 

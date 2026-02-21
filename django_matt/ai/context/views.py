@@ -22,7 +22,6 @@ Or use the included URL patterns:
     ]
 """
 
-import json
 import logging
 from typing import Any
 
@@ -30,6 +29,8 @@ from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.urls import path
 from django.views.decorators.http import require_GET
+
+import orjson
 
 logger = logging.getLogger("django_matt.ai.context.views")
 
@@ -134,9 +135,9 @@ def introspection_view(request: HttpRequest) -> HttpResponse:
         compact = request.GET.get("format") == "compact"
 
         if compact:
-            content = json.dumps(data, separators=(",", ":"), default=str)
+            content = orjson.dumps(data, default=str).decode()
         else:
-            content = json.dumps(data, indent=2, default=str)
+            content = orjson.dumps(data, default=str, option=orjson.OPT_INDENT_2).decode()
 
         return HttpResponse(
             content,

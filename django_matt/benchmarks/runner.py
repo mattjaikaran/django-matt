@@ -6,7 +6,6 @@ collecting results, and managing benchmark suites.
 """
 
 import gc
-import json
 import statistics
 import time
 from abc import ABC, abstractmethod
@@ -14,6 +13,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
+
+import orjson
 
 # Storage directory for benchmark results
 BENCHMARK_STORAGE_DIR = Path(".matt/benchmarks")
@@ -509,13 +510,13 @@ class BenchmarkRunner:
             "metadata": self._get_environment_metadata(),
         }
 
-        with open(filepath, "w") as f:
-            json.dump(data, f, indent=2)
+        with open(filepath, "wb") as f:
+            f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2))
 
         # Also save as "latest" for easy comparison
         latest_path = self.storage_dir / "latest.json"
-        with open(latest_path, "w") as f:
-            json.dump(data, f, indent=2)
+        with open(latest_path, "wb") as f:
+            f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2))
 
     def load_baseline(self, filename: str = "latest.json") -> list[BenchmarkResult]:
         """
@@ -532,8 +533,8 @@ class BenchmarkRunner:
         if not filepath.exists():
             return []
 
-        with open(filepath) as f:
-            data = json.load(f)
+        with open(filepath, "rb") as f:
+            data = orjson.loads(f.read())
 
         return [BenchmarkResult.from_dict(r) for r in data.get("results", [])]
 
@@ -618,9 +619,6 @@ class BenchmarkRunner:
             "platform": platform.platform(),
             "processor": platform.processor(),
         }
-
-        # orjson is a base dependency, always available
-        import orjson
 
         metadata["orjson_version"] = orjson.__version__
 

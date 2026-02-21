@@ -101,7 +101,7 @@ class BaseStorage(ABC):
     @abstractmethod
     async def save(
         self,
-        file: Union["UploadedFile", BinaryIO, bytes],
+        file: Union[UploadedFile, BinaryIO, bytes],
         key: str = None,
         folder: str = None,
         content_type: str = None,
@@ -356,7 +356,7 @@ class BaseStorage(ABC):
 
     def save_sync(
         self,
-        file: Union["UploadedFile", BinaryIO, bytes],
+        file: Union[UploadedFile, BinaryIO, bytes],
         key: str = None,
         folder: str = None,
         content_type: str = None,

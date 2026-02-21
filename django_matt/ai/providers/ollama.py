@@ -4,11 +4,11 @@ Ollama provider implementation.
 Supports local LLMs via Ollama including Llama, Mistral, CodeLlama, etc.
 """
 
-import json
 import os
 from collections.abc import AsyncIterator
 from typing import Any, TypeVar
 
+import orjson
 from pydantic import BaseModel
 
 from django_matt.ai.base import (
@@ -234,7 +234,7 @@ class OllamaProvider(LLMProvider, StructuredOutputProvider):
                 if not line:
                     continue
 
-                data = json.loads(line)
+                data = orjson.loads(line)
                 message = data.get("message", {})
 
                 yield StreamChunk(
@@ -254,7 +254,7 @@ class OllamaProvider(LLMProvider, StructuredOutputProvider):
     ) -> T:
         """Generate a structured response matching the Pydantic model."""
         schema = response_model.model_json_schema()
-        schema_str = json.dumps(schema, indent=2)
+        schema_str = orjson.dumps(schema, option=orjson.OPT_INDENT_2).decode()
 
         system_msg = Message.system(
             f"You must respond with valid JSON matching this schema:\n{schema_str}\n"
@@ -273,10 +273,10 @@ class OllamaProvider(LLMProvider, StructuredOutputProvider):
                     **kwargs,
                 )
 
-                data = json.loads(response.content)
+                data = orjson.loads(response.content)
                 return response_model.model_validate(data)
 
-            except (json.JSONDecodeError, Exception) as e:
+            except (orjson.JSONDecodeError, Exception) as e:
                 if attempt == max_retries - 1:
                     raise ValueError(
                         f"Failed to get valid structured response after {max_retries} attempts: {e}"
@@ -316,7 +316,7 @@ class OllamaProvider(LLMProvider, StructuredOutputProvider):
 
             async for line in response.aiter_lines():
                 if line:
-                    yield json.loads(line)
+                    yield orjson.loads(line)
 
     async def delete_model(self, model: str) -> bool:
         """Delete a model."""

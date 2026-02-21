@@ -6,11 +6,12 @@ Provides programmatic access to captured requests.
 
 from __future__ import annotations
 
-import json
 from datetime import datetime
 from typing import TYPE_CHECKING
 
 from django.http import HttpRequest, JsonResponse
+
+import orjson
 
 from django_matt.core.controller import APIController
 from django_matt.core.router import delete, get, post
@@ -226,8 +227,8 @@ class InspectorController(APIController):
 
         # Parse body
         try:
-            body = json.loads(request.body) if request.body else {}
-        except json.JSONDecodeError:
+            body = orjson.loads(request.body) if request.body else {}
+        except orjson.JSONDecodeError:
             body = {}
 
         export_format = body.get("format", "curl")

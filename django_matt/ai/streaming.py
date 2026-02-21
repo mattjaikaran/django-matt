@@ -8,11 +8,12 @@ Provides helpers for streaming LLM responses with:
 - Django/ASGI integration
 """
 
-import json
 import time
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass
 from typing import Any
+
+import orjson
 
 from django_matt.ai.base import (
     LLMProvider,
@@ -214,7 +215,7 @@ class StreamingLLM:
                     # Format as SSE
                     data = {"content": chunk.content, "done": False}
                     yield f"event: {self.config.event_name}\n"
-                    yield f"data: {json.dumps(data)}\n\n"
+                    yield f"data: {orjson.dumps(data).decode()}\n\n"
 
                 if chunk.finish_reason:
                     stats.end_time = time.time()
@@ -227,13 +228,13 @@ class StreamingLLM:
                     if self.config.include_stats:
                         data["stats"] = stats.to_dict()
                     yield f"event: {self.config.event_name}\n"
-                    yield f"data: {json.dumps(data)}\n\n"
+                    yield f"data: {orjson.dumps(data).decode()}\n\n"
 
         except Exception as e:
             # Send error event
             data = {"error": str(e), "done": True}
             yield "event: error\n"
-            yield f"data: {json.dumps(data)}\n\n"
+            yield f"data: {orjson.dumps(data).decode()}\n\n"
             raise
 
     async def stream_json(
@@ -251,7 +252,7 @@ class StreamingLLM:
                 "content": chunk.content,
                 "finish_reason": chunk.finish_reason,
             }
-            yield json.dumps(data) + "\n"
+            yield orjson.dumps(data).decode() + "\n"
 
     async def stream_with_stats(
         self,

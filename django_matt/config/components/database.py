@@ -10,12 +10,13 @@ Supports Django 5.2+ and 6.0+ with modern connection pooling options.
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 from typing import Any
 
 import django
+
+import orjson
 
 from django_matt.config.utils import get_env_bool, get_env_dict, get_env_int
 
@@ -250,7 +251,7 @@ settings: dict[str, Any] = {
 # Add multiple databases if configured
 if os.environ.get("DB_MULTIPLE"):
     try:
-        multiple_dbs = json.loads(os.environ.get("DB_MULTIPLE", "{}"))
+        multiple_dbs = orjson.loads(os.environ.get("DB_MULTIPLE", "{}"))
         for db_name, db_settings in multiple_dbs.items():
             db_type = db_settings.get("type", "postgres").lower()
             # Set env vars temporarily to build config
@@ -270,7 +271,7 @@ if os.environ.get("DB_MULTIPLE"):
                     os.environ.pop(env_key, None)
                 else:
                     os.environ[env_key] = original_value
-    except json.JSONDecodeError:
+    except orjson.JSONDecodeError:
         pass  # Ignore invalid JSON
 
 # Add database routers if configured

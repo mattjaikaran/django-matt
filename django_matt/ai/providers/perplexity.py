@@ -4,11 +4,11 @@ Perplexity provider implementation.
 Provides search-augmented LLM responses with real-time information access.
 """
 
-import json
 import os
 from collections.abc import AsyncIterator
 from typing import Any, TypeVar
 
+import orjson
 from pydantic import BaseModel
 
 from django_matt.ai.base import (
@@ -245,7 +245,7 @@ class PerplexityProvider(LLMProvider, StructuredOutputProvider):
                     continue
 
                 if line.startswith("data: "):
-                    data = json.loads(line[6:])
+                    data = orjson.loads(line[6:])
                     choice = data["choices"][0]
                     delta = choice.get("delta", {})
 
@@ -267,7 +267,7 @@ class PerplexityProvider(LLMProvider, StructuredOutputProvider):
     ) -> T:
         """Generate a structured response matching the Pydantic model."""
         schema = response_model.model_json_schema()
-        schema_str = json.dumps(schema, indent=2)
+        schema_str = orjson.dumps(schema, option=orjson.OPT_INDENT_2).decode()
 
         system_msg = Message.system(
             f"You must respond with valid JSON matching this schema:\n{schema_str}\n"
@@ -292,10 +292,10 @@ class PerplexityProvider(LLMProvider, StructuredOutputProvider):
                     lines = content.split("\n")
                     content = "\n".join(lines[1:-1])
 
-                data = json.loads(content)
+                data = orjson.loads(content)
                 return response_model.model_validate(data)
 
-            except (json.JSONDecodeError, Exception) as e:
+            except (orjson.JSONDecodeError, Exception) as e:
                 if attempt == max_retries - 1:
                     raise ValueError(
                         f"Failed to get valid structured response after {max_retries} attempts: {e}"

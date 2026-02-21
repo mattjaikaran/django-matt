@@ -8,12 +8,13 @@ Usage:
     python manage.py messaging purge-deleted --dry-run
 """
 
-import json
 from datetime import timedelta
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Avg, Count, Max, Min
 from django.utils import timezone
+
+import orjson
 
 
 class Command(BaseCommand):
@@ -303,7 +304,7 @@ class Command(BaseCommand):
 
         # Write to file
         with open(output_path, "w") as f:
-            json.dump(export_data, f, indent=2)
+            f.write(orjson.dumps(export_data, option=orjson.OPT_INDENT_2).decode())
 
         self.stdout.write(
             self.style.SUCCESS(f"Exported {len(export_data['messages'])} messages to {output_path}")

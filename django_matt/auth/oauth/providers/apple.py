@@ -138,11 +138,11 @@ class AppleOAuthProvider(OAuthProvider):
         # Check for user info in raw data (first login only)
         user_data = data.get("user", {})
         if isinstance(user_data, str):
-            import json
+            import orjson
 
             try:
-                user_data = json.loads(user_data)
-            except (json.JSONDecodeError, TypeError):
+                user_data = orjson.loads(user_data)
+            except (orjson.JSONDecodeError, TypeError):
                 user_data = {}
 
         name_data = user_data.get("name", {})

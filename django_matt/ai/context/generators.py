@@ -5,10 +5,11 @@ Generates CLAUDE.md, .cursorrules, .copilot-instructions, and JSON
 introspection endpoints from Django project introspection data.
 """
 
-import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+import orjson
 
 from django_matt.ai.context.introspection import EnhancedIntrospector, EnhancedProjectInfo
 from django_matt.ai.context.templates import (
@@ -357,7 +358,7 @@ class JsonIntrospectionGenerator:
     def generate_json(self, project_info: EnhancedProjectInfo | None = None) -> str:
         """Generate introspection data as JSON string."""
         data = self.generate(project_info)
-        return json.dumps(data, indent=2, default=str)
+        return orjson.dumps(data, default=str, option=orjson.OPT_INDENT_2).decode()
 
     def write(self, path: str = "introspection.json") -> Path:
         """Generate and write to file."""

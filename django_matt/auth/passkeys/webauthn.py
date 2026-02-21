@@ -237,9 +237,9 @@ def generate_registration_options(
 
     # Convert to JSON-serializable dict
     options_json = options_to_json(options)
-    import json
+    import orjson
 
-    options_dict = json.loads(options_json)
+    options_dict = orjson.loads(options_json)
     options_dict["challenge_id"] = challenge_id
 
     return options_dict
@@ -317,9 +317,9 @@ async def agenerate_registration_options(
 
     # Convert to JSON-serializable dict
     options_json = options_to_json(options)
-    import json
+    import orjson
 
-    options_dict = json.loads(options_json)
+    options_dict = orjson.loads(options_json)
     options_dict["challenge_id"] = challenge_id
 
     return options_dict
@@ -582,9 +582,9 @@ def generate_authentication_options(
 
     # Convert to JSON-serializable dict
     options_json = options_to_json(options)
-    import json
+    import orjson
 
-    options_dict = json.loads(options_json)
+    options_dict = orjson.loads(options_json)
     options_dict["challenge_id"] = challenge_id
 
     return options_dict
@@ -760,9 +760,9 @@ async def agenerate_authentication_options(
 
     # Convert to JSON-serializable dict
     options_json = options_to_json(options)
-    import json
+    import orjson
 
-    options_dict = json.loads(options_json)
+    options_dict = orjson.loads(options_json)
     options_dict["challenge_id"] = challenge_id
 
     return options_dict

@@ -7,12 +7,13 @@ Provides mechanisms for:
 - Request-scoped data
 """
 
-import json
 from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
 from django.http import HttpRequest
+
+import orjson
 
 # Request attribute names
 SHARED_DATA_ATTR = "_page_shared_data"
@@ -174,12 +175,12 @@ def get_flash_messages(request: HttpRequest) -> list[dict[str, Any]]:
     cookie_flash = request.COOKIES.get("_page_flash")
     if cookie_flash:
         try:
-            flash_data = json.loads(cookie_flash)
+            flash_data = orjson.loads(cookie_flash)
             if isinstance(flash_data, dict):
                 messages.append(flash_data)
             elif isinstance(flash_data, list):
                 messages.extend(flash_data)
-        except (json.JSONDecodeError, TypeError):
+        except (orjson.JSONDecodeError, TypeError):
             pass
 
     # Get messages added during this request

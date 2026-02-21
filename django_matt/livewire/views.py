@@ -4,13 +4,14 @@ Views for handling Livewire requests.
 Provides endpoints for component updates, actions, and file uploads.
 """
 
-import json
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+
+import orjson
 
 from django_matt.livewire.component import LiveComponent
 from django_matt.livewire.registry import registry
@@ -47,7 +48,7 @@ def livewire_message(request: HttpRequest) -> JsonResponse:
     try:
         # Parse request data
         data = (
-            json.loads(request.body) if request.content_type == "application/json" else request.POST
+            orjson.loads(request.body) if request.content_type == "application/json" else request.POST
         )
 
         snapshot_token = data.get("_snapshot")
@@ -114,7 +115,7 @@ def livewire_message(request: HttpRequest) -> JsonResponse:
             }
         )
 
-    except json.JSONDecodeError:
+    except orjson.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)

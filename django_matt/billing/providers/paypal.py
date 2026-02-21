@@ -9,10 +9,11 @@ Documentation: https://developer.paypal.com/docs/api/subscriptions/v1/
 import base64
 import hashlib
 import hmac
-import json
 import zlib
 from datetime import UTC, datetime
 from typing import Any
+
+import orjson
 
 from django_matt.billing.config import PayPalConfig
 from django_matt.billing.providers.base import (
@@ -496,7 +497,7 @@ class PayPalProvider(BillingProvider[PayPalConfig]):
             data["subscriber"] = {"email_address": customer_id}
 
         if metadata:
-            data["custom_id"] = json.dumps(metadata)
+            data["custom_id"] = orjson.dumps(metadata).decode()
 
         result = await self._request("POST", "/v1/billing/subscriptions", data=data)
         return self._parse_subscription(result)
@@ -618,7 +619,7 @@ class PayPalProvider(BillingProvider[PayPalConfig]):
             data["subscriber"] = {"email_address": customer_email}
 
         if metadata:
-            data["custom_id"] = json.dumps(metadata)
+            data["custom_id"] = orjson.dumps(metadata).decode()
 
         result = await self._request("POST", "/v1/billing/subscriptions", data=data)
 
@@ -699,8 +700,8 @@ class PayPalProvider(BillingProvider[PayPalConfig]):
         norm_headers = {k.upper(): v for k, v in headers.items()}
 
         try:
-            data = json.loads(payload)
-        except json.JSONDecodeError as e:
+            data = orjson.loads(payload)
+        except orjson.JSONDecodeError as e:
             raise BillingWebhookError(f"Invalid JSON payload: {e}")
 
         try:

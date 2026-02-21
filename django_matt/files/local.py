@@ -174,10 +174,10 @@ class LocalStorage(BaseStorage):
         # Store metadata if provided
         if metadata:
             meta_path = full_path.with_suffix(full_path.suffix + ".meta")
-            import json
+            import orjson
 
             async with aiofiles.open(meta_path, "w") as f:
-                await f.write(json.dumps(metadata))
+                await f.write(orjson.dumps(metadata).decode())
 
         return key
 
@@ -237,10 +237,10 @@ class LocalStorage(BaseStorage):
         metadata = {}
         meta_path = full_path.with_suffix(full_path.suffix + ".meta")
         if meta_path.exists():
-            import json
+            import orjson
 
             async with aiofiles.open(meta_path) as f:
-                metadata = json.loads(await f.read())
+                metadata = orjson.loads(await f.read())
 
         # Calculate etag
         async with aiofiles.open(full_path, "rb") as f:
@@ -322,7 +322,8 @@ class LocalStorage(BaseStorage):
         """
         import base64
         import hmac
-        import json
+
+        import orjson
 
         expires_at = datetime.now(UTC) + timedelta(seconds=expires)
 
@@ -335,14 +336,14 @@ class LocalStorage(BaseStorage):
             "metadata": metadata,
         }
 
-        payload_json = json.dumps(payload, sort_keys=True)
+        payload_bytes = orjson.dumps(payload, option=orjson.OPT_SORT_KEYS)
         signature = hmac.new(
             self.secret_key.encode(),
-            payload_json.encode(),
+            payload_bytes,
             hashlib.sha256,
         ).hexdigest()
 
-        token = base64.urlsafe_b64encode(payload_json.encode()).decode()
+        token = base64.urlsafe_b64encode(payload_bytes).decode()
 
         # Return URL with signature
         upload_url = f"{self.base_url}/upload?token={token}&signature={signature}"
@@ -369,7 +370,8 @@ class LocalStorage(BaseStorage):
         """
         import base64
         import hmac
-        import json
+
+        import orjson
 
         expires_at = datetime.now(UTC) + timedelta(seconds=expires)
 
@@ -380,14 +382,14 @@ class LocalStorage(BaseStorage):
             "filename": filename,
         }
 
-        payload_json = json.dumps(payload, sort_keys=True)
+        payload_bytes = orjson.dumps(payload, option=orjson.OPT_SORT_KEYS)
         signature = hmac.new(
             self.secret_key.encode(),
-            payload_json.encode(),
+            payload_bytes,
             hashlib.sha256,
         ).hexdigest()
 
-        token = base64.urlsafe_b64encode(payload_json.encode()).decode()
+        token = base64.urlsafe_b64encode(payload_bytes).decode()
 
         # Return URL with signature
         download_url = f"{self.base_url}/{key}?token={token}&signature={signature}"
@@ -416,20 +418,21 @@ class LocalStorage(BaseStorage):
         """
         import base64
         import hmac
-        import json
+
+        import orjson
 
         try:
-            payload_json = base64.urlsafe_b64decode(token).decode()
+            payload_bytes = base64.urlsafe_b64decode(token)
             expected_signature = hmac.new(
                 self.secret_key.encode(),
-                payload_json.encode(),
+                payload_bytes,
                 hashlib.sha256,
             ).hexdigest()
 
             if not hmac.compare_digest(signature, expected_signature):
                 return None
 
-            payload = json.loads(payload_json)
+            payload = orjson.loads(payload_bytes)
 
             # Check expiration
             expires = datetime.fromisoformat(payload["expires"])

@@ -2,11 +2,12 @@
 Test client with authentication helpers.
 """
 
-import json
 from typing import Any
 
 from django.http import HttpResponse
 from django.test import AsyncClient, Client
+
+import orjson
 
 
 class APITestClient(Client):
@@ -122,7 +123,7 @@ class APITestClient(Client):
         all_headers = self._get_headers(headers)
 
         if data is not None and content_type == "application/json":
-            data = json.dumps(data)
+            data = orjson.dumps(data).decode()
 
         return super().post(
             path,
@@ -144,7 +145,7 @@ class APITestClient(Client):
         all_headers = self._get_headers(headers)
 
         if data is not None and content_type == "application/json":
-            data = json.dumps(data)
+            data = orjson.dumps(data).decode()
 
         return super().put(
             path,
@@ -166,7 +167,7 @@ class APITestClient(Client):
         all_headers = self._get_headers(headers)
 
         if data is not None and content_type == "application/json":
-            data = json.dumps(data)
+            data = orjson.dumps(data).decode()
 
         return super().patch(
             path,
@@ -197,7 +198,7 @@ class APITestClient(Client):
         Returns:
             Parsed JSON data
         """
-        return json.loads(response.content)
+        return orjson.loads(response.content)
 
     def get_json(self, path: str, **kwargs) -> tuple:
         """
@@ -313,7 +314,7 @@ class AsyncAPITestClient(AsyncClient):
         all_headers = self._get_headers(headers)
 
         if data is not None and content_type == "application/json":
-            data = json.dumps(data)
+            data = orjson.dumps(data).decode()
 
         return await super().post(
             path,
@@ -326,4 +327,4 @@ class AsyncAPITestClient(AsyncClient):
     @staticmethod
     def json(response: HttpResponse) -> Any:
         """Parse JSON response body."""
-        return json.loads(response.content)
+        return orjson.loads(response.content)

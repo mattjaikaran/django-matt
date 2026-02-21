@@ -6,10 +6,11 @@ Provides state serialization, snapshots, and persistence.
 
 import base64
 import hashlib
-import json
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
+
+import orjson
 
 if TYPE_CHECKING:
     from django_matt.livewire.component import LiveComponent
@@ -61,12 +62,12 @@ class Snapshot:
 
     def to_json(self) -> str:
         """Serialize to JSON string."""
-        return json.dumps(self.to_dict(), default=str)
+        return orjson.dumps(self.to_dict(), default=str).decode()
 
     @classmethod
     def from_json(cls, json_str: str) -> "Snapshot":
         """Create from JSON string."""
-        return cls.from_dict(json.loads(json_str))
+        return cls.from_dict(orjson.loads(json_str))
 
     def to_token(self) -> str:
         """
@@ -77,7 +78,7 @@ class Snapshot:
         """
         data = self.to_json()
         signature = self._sign(data)
-        payload = json.dumps({"d": data, "s": signature})
+        payload = orjson.dumps({"d": data, "s": signature}).decode()
         return base64.urlsafe_b64encode(payload.encode()).decode()
 
     @classmethod
@@ -88,7 +89,7 @@ class Snapshot:
         Raises ValueError if signature is invalid.
         """
         try:
-            payload = json.loads(base64.urlsafe_b64decode(token.encode()).decode())
+            payload = orjson.loads(base64.urlsafe_b64decode(token.encode()).decode())
             data = payload["d"]
             signature = payload["s"]
 

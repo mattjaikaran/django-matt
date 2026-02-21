@@ -4,7 +4,7 @@ Railway deployment provider.
 Provides deployment to Railway with automatic configuration generation.
 """
 
-import json
+import orjson
 
 from django_matt.deploy.base import (
     DeploymentConfig,
@@ -88,7 +88,7 @@ class RailwayProvider(DeploymentProvider):
             },
         }
 
-        return json.dumps(config, indent=2)
+        return orjson.dumps(config, option=orjson.OPT_INDENT_2).decode()
 
     def _generate_procfile(self) -> str:
         """Generate Procfile for Railway."""
@@ -211,7 +211,7 @@ cmd = "gunicorn {self.config.django_settings_module.rsplit(".", 1)[0]}.wsgi:appl
             # Get project info for deployment ID
             status_result = self.run_command(["railway", "status", "--json"])
             if status_result.returncode == 0:
-                status = json.loads(status_result.stdout)
+                status = orjson.loads(status_result.stdout)
                 result.deployment_id = status.get("deploymentId", "")
                 result.metadata = status
 
@@ -229,7 +229,7 @@ cmd = "gunicorn {self.config.django_settings_module.rsplit(".", 1)[0]}.wsgi:appl
             status_result = self.run_command(["railway", "status", "--json"])
 
             if status_result.returncode == 0:
-                status = json.loads(status_result.stdout)
+                status = orjson.loads(status_result.stdout)
                 result.deployment_id = deployment_id
                 result.metadata = status
 

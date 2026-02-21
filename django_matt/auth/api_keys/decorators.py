@@ -63,10 +63,10 @@ def api_key_required(func: F) -> F:
             )
 
         # Validate the key
-        from .models import APIKey
-
         # get_valid → get_by_key already does select_related("user")
         from asgiref.sync import sync_to_async
+
+        from .models import APIKey
 
         api_key = await sync_to_async(APIKey.objects.get_valid)(raw_key)
 

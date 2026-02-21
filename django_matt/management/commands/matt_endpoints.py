@@ -13,12 +13,13 @@ Usage:
     python manage.py matt_endpoints --json                # Output as JSON
 """
 
-import json
 import re
 from typing import Any
 
 from django.conf import settings
 from django.urls import URLPattern, URLResolver, get_resolver
+
+import orjson
 
 from django_matt.cli import MattCommand
 
@@ -68,7 +69,6 @@ class Command(MattCommand):
         )
         parser.add_argument(
             "--verbose",
-            "-v",
             action="store_true",
             help="Show additional details (permissions, throttling)",
         )
@@ -109,7 +109,7 @@ class Command(MattCommand):
         elif markdown:
             self._output_markdown(endpoints)
         elif output_json:
-            self.stdout.write(json.dumps(endpoints, indent=2, default=str))
+            self.stdout.write(orjson.dumps(endpoints, default=str, option=orjson.OPT_INDENT_2).decode())
         else:
             self._display_endpoints(endpoints, group_by, verbose)
 
@@ -426,4 +426,4 @@ class Command(MattCommand):
                 }
             }
 
-        self.stdout.write(json.dumps(openapi_spec, indent=2))
+        self.stdout.write(orjson.dumps(openapi_spec, option=orjson.OPT_INDENT_2).decode())

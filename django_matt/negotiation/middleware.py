@@ -4,11 +4,12 @@ Content negotiation middleware.
 Automatically handles content negotiation for all API responses.
 """
 
-import json
 from collections.abc import Callable
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
+
+import orjson
 
 from django_matt.negotiation.negotiator import (
     ContentNegotiator,
@@ -114,8 +115,8 @@ class ContentNegotiationMiddleware:
             if isinstance(response, JsonResponse) or response.get("Content-Type", "").startswith(
                 "application/json"
             ):
-                return json.loads(response.content)
-        except (json.JSONDecodeError, ValueError):
+                return orjson.loads(response.content)
+        except (orjson.JSONDecodeError, ValueError):
             pass
         return None
 
@@ -201,7 +202,7 @@ class AsyncContentNegotiationMiddleware:
             if isinstance(response, JsonResponse) or response.get("Content-Type", "").startswith(
                 "application/json"
             ):
-                return json.loads(response.content)
-        except (json.JSONDecodeError, ValueError):
+                return orjson.loads(response.content)
+        except (orjson.JSONDecodeError, ValueError):
             pass
         return None

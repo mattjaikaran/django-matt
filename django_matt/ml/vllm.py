@@ -90,7 +90,6 @@ Usage:
 from __future__ import annotations
 
 import asyncio
-import json
 import os
 import time
 import uuid
@@ -99,6 +98,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, TypeVar
 
+import orjson
 from pydantic import BaseModel
 
 from django_matt.ai.base import (
@@ -547,7 +547,7 @@ class VLLMClient:
                 if not line or line == "data: [DONE]":
                     continue
                 if line.startswith("data: "):
-                    yield json.loads(line[6:])
+                    yield orjson.loads(line[6:])
 
     async def chat_completions(self, payload: dict[str, Any]) -> dict[str, Any]:
         """
@@ -585,7 +585,7 @@ class VLLMClient:
                 if not line or line == "data: [DONE]":
                     continue
                 if line.startswith("data: "):
-                    yield json.loads(line[6:])
+                    yield orjson.loads(line[6:])
 
     # -------------------------------------------------------------------------
     # LoRA Endpoints (if supported)
@@ -1027,7 +1027,7 @@ class VLLMProvider(LLMProvider, StructuredOutputProvider):
                 ToolCall(
                     id=tc["id"],
                     name=tc["function"]["name"],
-                    arguments=json.loads(tc["function"]["arguments"])
+                    arguments=orjson.loads(tc["function"]["arguments"])
                     if isinstance(tc["function"]["arguments"], str)
                     else tc["function"]["arguments"],
                 )
@@ -1218,10 +1218,10 @@ class VLLMProvider(LLMProvider, StructuredOutputProvider):
                 )
 
                 # Parse and validate
-                data = json.loads(response.content)
+                data = orjson.loads(response.content)
                 return response_model.model_validate(data)
 
-            except (json.JSONDecodeError, Exception) as e:
+            except (orjson.JSONDecodeError, Exception) as e:
                 if attempt == max_retries - 1:
                     raise ValueError(
                         f"Failed to get valid structured response after {max_retries} attempts: {e}"

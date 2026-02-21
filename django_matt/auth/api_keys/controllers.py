@@ -10,11 +10,12 @@ Provides endpoints for:
 
 import csv
 import io
-import json
 from datetime import timedelta
 
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
+
+import orjson
 
 from django_matt.core.controller import APIController
 from django_matt.core.router import delete, get, post, put
@@ -62,9 +63,9 @@ class APIKeyController(APIController):
         The full key is only returned once - save it securely!
         """
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = APIKeyCreateRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 {"detail": "Invalid JSON", "code": "invalid_json"},
                 status=400,
@@ -183,9 +184,9 @@ class APIKeyController(APIController):
             )
 
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = APIKeyUpdateRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 {"detail": "Invalid JSON", "code": "invalid_json"},
                 status=400,
@@ -410,9 +411,9 @@ class APIKeyController(APIController):
         from .models import APIKey, APIKeyUsage
 
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = ExportRequest.model_validate(body)
-        except (json.JSONDecodeError, Exception):
+        except (orjson.JSONDecodeError, Exception):
             data = ExportRequest()
 
         # Get all keys for user
@@ -500,7 +501,7 @@ class APIKeyController(APIController):
         }
 
         response = HttpResponse(
-            json.dumps(export_data, indent=2),
+            orjson.dumps(export_data, option=orjson.OPT_INDENT_2).decode(),
             content_type="application/json",
         )
         response["Content-Disposition"] = 'attachment; filename="api_keys_export.json"'

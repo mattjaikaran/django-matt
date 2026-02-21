@@ -22,7 +22,6 @@ Configuration in settings.py:
     LOGGING = get_logging_config(format="json", level="INFO")
 """
 
-import json
 import logging
 import sys
 import traceback
@@ -257,8 +256,8 @@ class PrettyJSONFormatter(JSONFormatter):
         json_str = super().format(record)
 
         # Parse and re-format with indentation
-        log_data = json.loads(json_str)
-        return json.dumps(log_data, indent=2, default=str)
+        log_data = orjson.loads(json_str)
+        return orjson.dumps(log_data, default=str, option=orjson.OPT_INDENT_2).decode()
 
 
 class ColoredTextFormatter(logging.Formatter):

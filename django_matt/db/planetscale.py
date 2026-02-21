@@ -32,7 +32,6 @@ Usage:
 from __future__ import annotations
 
 import hashlib
-import json
 import logging
 import os
 import re
@@ -46,6 +45,8 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from django.conf import settings
 from django.db import connections
+
+import orjson
 
 if TYPE_CHECKING:
     from django.db.backends.base.base import BaseDatabaseWrapper
@@ -480,7 +481,7 @@ class PlanetScaleBranch:
             )
 
             if result.returncode == 0:
-                data = json.loads(result.stdout)
+                data = orjson.loads(result.stdout)
                 self._info = BranchInfo(
                     name=data.get("name", self.branch_name),
                     database=data.get("database", self.database),
@@ -491,7 +492,7 @@ class PlanetScaleBranch:
                     ready=data.get("ready", True),
                 )
                 return self._info
-        except (subprocess.SubprocessError, json.JSONDecodeError) as e:
+        except (subprocess.SubprocessError, orjson.JSONDecodeError) as e:
             logger.warning(f"Failed to get branch info: {e}")
 
         return None
@@ -528,7 +529,7 @@ class PlanetScaleBranch:
             )
 
             if result.returncode == 0:
-                data = json.loads(result.stdout)
+                data = orjson.loads(result.stdout)
                 host = data.get("database_branch", {}).get("access_host_url", "")
                 username = data.get("username", "")
                 password = data.get("plain_text", "")
@@ -536,7 +537,7 @@ class PlanetScaleBranch:
 
                 if host and username and password:
                     return f"mysql://{username}:{password}@{host}/{database}?ssl-mode=REQUIRED"
-        except (subprocess.SubprocessError, json.JSONDecodeError) as e:
+        except (subprocess.SubprocessError, orjson.JSONDecodeError) as e:
             logger.warning(f"Failed to create connection string: {e}")
 
         return None
@@ -851,10 +852,10 @@ class PlanetScaleDeployWorkflow:
                 timeout=timeout,
             )
             if result.returncode == 0:
-                return json.loads(result.stdout) if result.stdout.strip() else {}
+                return orjson.loads(result.stdout) if result.stdout.strip() else {}
             logger.error(f"pscale command failed: {result.stderr}")
             return None
-        except (subprocess.SubprocessError, json.JSONDecodeError) as e:
+        except (subprocess.SubprocessError, orjson.JSONDecodeError) as e:
             logger.error(f"pscale command error: {e}")
             return None
 

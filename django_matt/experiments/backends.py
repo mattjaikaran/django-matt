@@ -6,13 +6,14 @@ Provides different storage backends for experiment data:
 - RedisBackend: Uses Redis for high-performance assignment lookups
 """
 
-import json
 import logging
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
 from django.core.cache import cache
+
+import orjson
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AbstractUser
@@ -295,7 +296,7 @@ class RedisBackend(ExperimentBackend):
             "primary_metric": experiment.primary_metric,
             "variants": variants_data,
         }
-        return json.dumps(data)
+        return orjson.dumps(data).decode()
 
     def _serialize_assignment(self, assignment: "ExperimentAssignment") -> str:
         """Serialize assignment to JSON."""
@@ -309,7 +310,7 @@ class RedisBackend(ExperimentBackend):
             "is_holdout": assignment.is_holdout,
             "assigned_at": assignment.assigned_at.isoformat(),
         }
-        return json.dumps(data)
+        return orjson.dumps(data).decode()
 
     def get_experiment(self, key: str) -> "Experiment | None":
         """Get experiment from Redis with database fallback."""

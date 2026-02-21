@@ -12,12 +12,13 @@ Usage:
 """
 
 import ast
-import json
 from pathlib import Path
 from typing import Any
 
 from django.apps import apps
 from django.conf import settings
+
+import orjson
 
 from django_matt.cli import MattCommand
 
@@ -46,7 +47,6 @@ class Command(MattCommand):
         )
         parser.add_argument(
             "--verbose",
-            "-v",
             action="store_true",
             help="Show field details and validators",
         )
@@ -81,7 +81,7 @@ class Command(MattCommand):
 
         # Output in requested format
         if output_json:
-            self.stdout.write(json.dumps(schemas, indent=2, default=str))
+            self.stdout.write(orjson.dumps(schemas, default=str, option=orjson.OPT_INDENT_2).decode())
         else:
             self._display_schemas(schemas, verbose)
 

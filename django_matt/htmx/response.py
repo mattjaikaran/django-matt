@@ -5,12 +5,13 @@ Provides response classes and helpers for HTMX-specific response headers
 like HX-Trigger, HX-Push-Url, HX-Redirect, etc.
 """
 
-import json
 from typing import Any
 
 from django.http import HttpResponse
 from django.template import loader
 from django.template.response import TemplateResponse
+
+import orjson
 
 
 class HtmxResponse(HttpResponse):
@@ -93,8 +94,8 @@ class HtmxResponse(HttpResponse):
         if not existing:
             return {}
         try:
-            return json.loads(existing)
-        except (json.JSONDecodeError, TypeError):
+            return orjson.loads(existing)
+        except (orjson.JSONDecodeError, TypeError):
             # If it's not JSON, treat as single event name
             return {existing: None}
 
@@ -106,7 +107,7 @@ class HtmxResponse(HttpResponse):
             self[header_name] = ", ".join(triggers.keys())
         else:
             # Has params, use JSON format
-            self[header_name] = json.dumps(triggers)
+            self[header_name] = orjson.dumps(triggers).decode()
 
     def push_url(self, url: str) -> "HtmxResponse":
         """
@@ -184,7 +185,7 @@ class HtmxResponse(HttpResponse):
         if select:
             location_data["select"] = select
 
-        self["HX-Location"] = json.dumps(location_data)
+        self["HX-Location"] = orjson.dumps(location_data).decode()
         return self
 
     def refresh(self) -> "HtmxResponse":
@@ -309,15 +310,15 @@ class HtmxTemplateResponse(TemplateResponse):
         if not existing:
             return {}
         try:
-            return json.loads(existing)
-        except (json.JSONDecodeError, TypeError):
+            return orjson.loads(existing)
+        except (orjson.JSONDecodeError, TypeError):
             return {existing: None}
 
     def _set_trigger_header(self, header_name: str, triggers: dict[str, Any]) -> None:
         if all(v is None for v in triggers.values()):
             self[header_name] = ", ".join(triggers.keys())
         else:
-            self[header_name] = json.dumps(triggers)
+            self[header_name] = orjson.dumps(triggers).decode()
 
     def push_url(self, url: str) -> "HtmxTemplateResponse":
         self["HX-Push-Url"] = url
@@ -412,8 +413,8 @@ def trigger_client_event(
     existing = response.get(header_name)
     if existing:
         try:
-            triggers = json.loads(existing)
-        except (json.JSONDecodeError, TypeError):
+            triggers = orjson.loads(existing)
+        except (orjson.JSONDecodeError, TypeError):
             triggers = {existing: None}
     else:
         triggers = {}
@@ -426,7 +427,7 @@ def trigger_client_event(
     if all(v is None for v in triggers.values()):
         response[header_name] = ", ".join(triggers.keys())
     else:
-        response[header_name] = json.dumps(triggers)
+        response[header_name] = orjson.dumps(triggers).decode()
 
     return response
 

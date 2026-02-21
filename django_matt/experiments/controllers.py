@@ -10,9 +10,9 @@ Usage:
     api.register_controller(ExperimentController)
 """
 
-import json
-
 from django.http import HttpRequest, JsonResponse
+
+import orjson
 
 from django_matt.core.controller import APIController
 from django_matt.core.router import delete, get, patch, post, put
@@ -179,9 +179,9 @@ class ExperimentController(APIController):
         from .models import Experiment, ExperimentAuditLog, Variant
 
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = ExperimentCreate.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
             )
@@ -362,9 +362,9 @@ class ExperimentController(APIController):
             )
 
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = ExperimentUpdate.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
             )
@@ -574,8 +574,8 @@ class ExperimentController(APIController):
             )
 
         try:
-            body = json.loads(request.body) if request.body else {}
-        except json.JSONDecodeError:
+            body = orjson.loads(request.body) if request.body else {}
+        except orjson.JSONDecodeError:
             body = {}
 
         winner_variant = None
@@ -666,9 +666,9 @@ class ExperimentController(APIController):
             )
 
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = VariantCreate.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
             )
@@ -806,9 +806,9 @@ class ExperimentController(APIController):
     async def get_assignment(self, request: HttpRequest) -> JsonResponse:
         """Get or create an experiment assignment."""
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = AssignmentRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
             )
@@ -864,9 +864,9 @@ class ExperimentController(APIController):
     async def bulk_assignment(self, request: HttpRequest) -> JsonResponse:
         """Get assignments for multiple experiments."""
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = BulkAssignmentRequest.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
             )
@@ -927,9 +927,9 @@ class ExperimentController(APIController):
     async def track_conversion(self, request: HttpRequest) -> JsonResponse:
         """Track a conversion event."""
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = ConversionEvent.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
             )
@@ -968,9 +968,9 @@ class ExperimentController(APIController):
     async def track_revenue(self, request: HttpRequest) -> JsonResponse:
         """Track a revenue event."""
         try:
-            body = json.loads(request.body) if request.body else {}
+            body = orjson.loads(request.body) if request.body else {}
             data = RevenueEvent.model_validate(body)
-        except json.JSONDecodeError:
+        except orjson.JSONDecodeError:
             return JsonResponse(
                 ErrorResponse(detail="Invalid JSON", code="invalid_json").model_dump(), status=400
             )

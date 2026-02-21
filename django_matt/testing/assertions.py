@@ -2,10 +2,11 @@
 Custom assertions for API testing.
 """
 
-import json
 from typing import Any
 
 from django.http import HttpResponse
+
+import orjson
 
 
 def assert_status(
@@ -26,8 +27,8 @@ def assert_status(
     """
     if response.status_code != expected_status:
         try:
-            body = json.loads(response.content)
-        except (json.JSONDecodeError, ValueError):
+            body = orjson.loads(response.content)
+        except (orjson.JSONDecodeError, ValueError):
             body = response.content.decode("utf-8", errors="replace")
 
         msg = message or (
@@ -53,8 +54,8 @@ def assert_json_equal(
         AssertionError: If JSON doesn't match
     """
     try:
-        actual = json.loads(response.content)
-    except (json.JSONDecodeError, ValueError) as e:
+        actual = orjson.loads(response.content)
+    except (orjson.JSONDecodeError, ValueError) as e:
         raise AssertionError(f"Response is not valid JSON: {e}")
 
     if actual != expected:
@@ -79,8 +80,8 @@ def assert_contains_keys(
         AssertionError: If any key is missing
     """
     try:
-        data = json.loads(response.content)
-    except (json.JSONDecodeError, ValueError) as e:
+        data = orjson.loads(response.content)
+    except (orjson.JSONDecodeError, ValueError) as e:
         raise AssertionError(f"Response is not valid JSON: {e}")
 
     if not isinstance(data, dict):
@@ -113,8 +114,8 @@ def assert_error_response(
     assert_status(response, expected_status, message)
 
     try:
-        data = json.loads(response.content)
-    except (json.JSONDecodeError, ValueError) as e:
+        data = orjson.loads(response.content)
+    except (orjson.JSONDecodeError, ValueError) as e:
         raise AssertionError(f"Response is not valid JSON: {e}")
 
     if not isinstance(data, dict):
@@ -143,8 +144,8 @@ def assert_validation_error(
     assert_status(response, 422, message)
 
     try:
-        data = json.loads(response.content)
-    except (json.JSONDecodeError, ValueError) as e:
+        data = orjson.loads(response.content)
+    except (orjson.JSONDecodeError, ValueError) as e:
         raise AssertionError(f"Response is not valid JSON: {e}")
 
     if field:
@@ -268,8 +269,8 @@ def assert_list_response(
     assert_status(response, 200, message)
 
     try:
-        data = json.loads(response.content)
-    except (json.JSONDecodeError, ValueError) as e:
+        data = orjson.loads(response.content)
+    except (orjson.JSONDecodeError, ValueError) as e:
         raise AssertionError(f"Response is not valid JSON: {e}")
 
     if not isinstance(data, dict):
@@ -311,8 +312,8 @@ def assert_pagination(
     assert_status(response, 200, message)
 
     try:
-        data = json.loads(response.content)
-    except (json.JSONDecodeError, ValueError) as e:
+        data = orjson.loads(response.content)
+    except (orjson.JSONDecodeError, ValueError) as e:
         raise AssertionError(f"Response is not valid JSON: {e}")
 
     # Check for common pagination keys

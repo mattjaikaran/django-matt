@@ -8,12 +8,13 @@ Provides endpoints for:
 - Managing OAuth connections
 """
 
-import json
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.http import HttpResponseRedirect
 from django.utils import timezone
+
+import orjson
 
 from django_matt.auth.decorators import jwt_required
 from django_matt.auth.jwt import acreate_token_pair
@@ -209,8 +210,8 @@ class OAuthController:
                 user_json = request.POST.get("user")
                 if user_json:
                     try:
-                        user_data = json.loads(user_json)
-                    except json.JSONDecodeError:
+                        user_data = orjson.loads(user_json)
+                    except orjson.JSONDecodeError:
                         pass
 
             if provider == "apple" and user_data:

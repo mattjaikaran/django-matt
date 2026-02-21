@@ -32,11 +32,12 @@ Usage:
 import base64
 import hashlib
 import hmac
-import json
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
+
+import orjson
 
 
 class JWTError(Exception):
@@ -141,12 +142,12 @@ def _base64url_decode(data: str) -> bytes:
 
 def _json_encode(obj: dict[str, Any]) -> bytes:
     """Encode dict to JSON bytes."""
-    return json.dumps(obj, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    return orjson.dumps(obj, option=orjson.OPT_SORT_KEYS)
 
 
 def _json_decode(data: bytes) -> dict[str, Any]:
     """Decode JSON bytes to dict."""
-    return json.loads(data.decode("utf-8"))
+    return orjson.loads(data)
 
 
 def _load_private_key(key: str | bytes, password: bytes | None = None):

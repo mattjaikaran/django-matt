@@ -236,6 +236,8 @@ _LAZY_IMPORTS = {
     "DEVELOPMENT_STACK": "django_matt.middleware",
     # Request ID helper
     "get_request_id": "django_matt.middleware.request_id",
+    # Slim mode
+    "ModuleRegistry": "django_matt.slim",
 }
 
 # Cache for imported modules
@@ -486,4 +488,6 @@ __all__ = [
     "PRODUCTION_STACK",
     "DEVELOPMENT_STACK",
     "get_request_id",
+    # Slim mode
+    "ModuleRegistry",
 ]

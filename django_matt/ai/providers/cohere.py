@@ -4,11 +4,11 @@ Cohere provider implementation.
 Supports Command R, Command R+, and other Cohere models.
 """
 
-import json
 import os
 from collections.abc import AsyncIterator
 from typing import Any, TypeVar
 
+import orjson
 from pydantic import BaseModel
 
 from django_matt.ai.base import (
@@ -277,7 +277,7 @@ class CohereProvider(LLMProvider, StructuredOutputProvider):
                     continue
 
                 try:
-                    data = json.loads(line)
+                    data = orjson.loads(line)
                     event_type = data.get("event_type")
 
                     if event_type == "text-generation":
@@ -285,7 +285,7 @@ class CohereProvider(LLMProvider, StructuredOutputProvider):
                     elif event_type == "stream-end":
                         yield StreamChunk(finish_reason=data.get("finish_reason"))
 
-                except json.JSONDecodeError:
+                except orjson.JSONDecodeError:
                     continue
 
     async def complete_structured(

@@ -4,11 +4,11 @@ Anthropic provider implementation.
 Supports Claude 3.5 Sonnet, Claude 3 Opus, and other Claude models.
 """
 
-import json
 import os
 from collections.abc import AsyncIterator
 from typing import Any, TypeVar
 
+import orjson
 from pydantic import BaseModel
 
 from django_matt.ai.base import (
@@ -267,7 +267,7 @@ class AnthropicProvider(LLMProvider, StructuredOutputProvider):
                     continue
 
                 if line.startswith("data: "):
-                    data = json.loads(line[6:])
+                    data = orjson.loads(line[6:])
                     event_type = data.get("type")
 
                     if event_type == "content_block_delta":

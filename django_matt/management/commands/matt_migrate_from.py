@@ -12,13 +12,14 @@ Usage:
 """
 
 import ast
-import json
 import re
 from pathlib import Path
 from typing import Any
 
 from django.apps import apps
 from django.conf import settings
+
+import orjson
 
 from django_matt.cli import GeneratorCommand
 
@@ -83,7 +84,7 @@ class Command(GeneratorCommand):
 
         # Output
         if output_json:
-            self.stdout.write(json.dumps(analysis, indent=2, default=str))
+            self.stdout.write(orjson.dumps(analysis, default=str, option=orjson.OPT_INDENT_2).decode())
         else:
             self._display_analysis(analysis, source)
 

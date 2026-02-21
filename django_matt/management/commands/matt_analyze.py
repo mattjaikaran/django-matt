@@ -16,7 +16,6 @@ Usage:
 """
 
 import ast
-import json
 import re
 from pathlib import Path
 from typing import Any
@@ -24,6 +23,8 @@ from typing import Any
 from django.apps import apps
 from django.conf import settings
 from django.db.models import ForeignKey
+
+import orjson
 
 from django_matt.cli import MattCommand
 
@@ -54,7 +55,6 @@ class Command(MattCommand):
         )
         parser.add_argument(
             "--verbose",
-            "-v",
             action="store_true",
             help="Show detailed information",
         )
@@ -91,7 +91,7 @@ class Command(MattCommand):
 
         # Output results
         if output_json:
-            self.stdout.write(json.dumps(analysis, indent=2, default=str))
+            self.stdout.write(orjson.dumps(analysis, default=str, option=orjson.OPT_INDENT_2).decode())
         else:
             self._display_analysis(analysis, verbose)
 

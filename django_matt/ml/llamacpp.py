@@ -1445,14 +1445,14 @@ class LlamaCppProvider(LLMProvider, StructuredOutputProvider):
         Returns:
             Instance of response_model
         """
-        import json
+        import orjson
 
         # Generate GBNF grammar from Pydantic model
         grammar_str = pydantic_to_gbnf(response_model)
 
         # Add schema description to system prompt
         schema = response_model.model_json_schema()
-        schema_str = json.dumps(schema, indent=2)
+        schema_str = orjson.dumps(schema, option=orjson.OPT_INDENT_2).decode()
 
         system_msg = Message.system(
             f"You must respond with valid JSON matching this schema:\n{schema_str}\n"
@@ -1470,10 +1470,10 @@ class LlamaCppProvider(LLMProvider, StructuredOutputProvider):
                     **kwargs,
                 )
 
-                data = json.loads(response.content)
+                data = orjson.loads(response.content)
                 return response_model.model_validate(data)
 
-            except (json.JSONDecodeError, Exception) as e:
+            except (orjson.JSONDecodeError, Exception) as e:
                 if attempt == max_retries - 1:
                     raise ValueError(
                         f"Failed to get valid structured response after {max_retries} attempts: {e}"

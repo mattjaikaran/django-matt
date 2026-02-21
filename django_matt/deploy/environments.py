@@ -5,12 +5,13 @@ Provides tools for managing different deployment environments
 (development, staging, production) with environment-specific settings.
 """
 
-import json
 import os
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any
+
+import orjson
 
 
 class Environment(str, Enum):
@@ -559,13 +560,13 @@ if DJANGO_ENV not in ["development", "staging", "production"]:
                 "extra_settings": config.extra_settings,
                 "env_vars": config.env_vars,
             }
-        return json.dumps(data, indent=2)
+        return orjson.dumps(data, option=orjson.OPT_INDENT_2).decode()
 
     @classmethod
     def from_json(cls, json_str: str, project_dir: Path | None = None) -> "EnvironmentManager":
         """Load environments from JSON."""
         manager = cls(project_dir)
-        data = json.loads(json_str)
+        data = orjson.loads(json_str)
 
         for name, config_data in data.items():
             config = EnvironmentConfig(**config_data)
