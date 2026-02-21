@@ -117,7 +117,7 @@ pytest tests/test_auth.py -v           # specific file
 
 ## Known Issues
 
-- ~18 source modules have no test coverage (views, permissions, openapi, admin, cli, db, observability, middleware, etc.)
+- ~9 modules still have no test coverage (admin, cli, dashboard, ml, typegen, utils, deployment, dev, testing)
 - `conftest.py` sets `DJANGO_ALLOW_ASYNC_UNSAFE=true` globally, masking async/sync ORM bugs in tests
 - PayPal `list_subscriptions()` returns `[]` unconditionally (not supported by PayPal API)
 
