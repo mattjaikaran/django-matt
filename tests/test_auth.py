@@ -29,6 +29,8 @@ from django_matt.auth.jwt import (
     InvalidTokenError,
     JWTAuthentication,
     JWTConfig,
+    acreate_access_token,
+    acreate_token_pair,
     create_access_token,
     create_refresh_token,
     create_token_pair,
@@ -2491,7 +2493,7 @@ class TestAuthControllerRefresh:
         )
 
         controller = AuthController()
-        pair = create_token_pair(user)
+        pair = await acreate_token_pair(user)
         body = json.dumps({"refresh_token": pair.refresh_token})
         request = rf.post(
             "/auth/refresh",
@@ -2554,7 +2556,7 @@ class TestAuthControllerMe:
         )
 
         controller = AuthController()
-        token = create_access_token(user)
+        token = await acreate_access_token(user)
         request = rf.get("/auth/me", HTTP_AUTHORIZATION=f"Bearer {token}")
         # Simulate jwt_required setting request.user
         request.user = user
@@ -2612,7 +2614,7 @@ class TestMinimalAuthController:
         )
 
         controller = MinimalAuthController()
-        pair = create_token_pair(user)
+        pair = await acreate_token_pair(user)
         body = json.dumps({"refresh_token": pair.refresh_token})
         request = rf.post(
             "/auth/refresh",

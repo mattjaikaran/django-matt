@@ -9,12 +9,6 @@ import os
 # Configure Django settings before any other imports
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tests.settings")
 
-# Allow sync ORM calls inside async contexts during tests.
-# This is needed because some source code (e.g., create_access_token) makes
-# synchronous ORM queries (user.groups.values_list) that are called from
-# async controller methods.
-os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
-
 import django
 
 # Setup Django before importing anything that might need it

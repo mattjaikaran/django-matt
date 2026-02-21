@@ -365,7 +365,7 @@ class TestListView:
     @pytest.mark.asyncio
     async def test_list_empty(self, rf):
         """Listing with no records returns empty items."""
-        User.objects.all().delete()  # Ensure clean state
+        await User.objects.all().adelete()  # Ensure clean state
         viewset = ItemViewSet()
         view = viewset.__class__.list_items
         view._viewset = viewset
@@ -380,8 +380,8 @@ class TestListView:
     @pytest.mark.asyncio
     async def test_list_with_data(self, rf):
         """Listing returns serialized items."""
-        User.objects.create_user(username="alice", password="pass123")
-        User.objects.create_user(username="bob", password="pass123")
+        await User.objects.acreate_user(username="alice", password="pass123")
+        await User.objects.acreate_user(username="bob", password="pass123")
 
         viewset = ItemViewSet()
         view = viewset.__class__.list_items
@@ -400,7 +400,7 @@ class TestListView:
     async def test_list_pagination(self, rf):
         """Pagination respects page and page_size params."""
         for i in range(10):
-            User.objects.create_user(username=f"user_{i:02d}", password="pass123")
+            await User.objects.acreate_user(username=f"user_{i:02d}", password="pass123")
 
         viewset = ItemViewSet()
         view = viewset.__class__.list_items
@@ -419,7 +419,7 @@ class TestListView:
     async def test_list_pagination_page_2(self, rf):
         """Page 2 returns the next set of items."""
         for i in range(8):
-            User.objects.create_user(username=f"pg2user_{i:02d}", password="pass123")
+            await User.objects.acreate_user(username=f"pg2user_{i:02d}", password="pass123")
 
         viewset = ItemViewSet()
         view = viewset.__class__.list_items
@@ -445,8 +445,8 @@ class TestListView:
     @pytest.mark.asyncio
     async def test_list_no_pagination(self, rf):
         """With pagination=False, all items are returned without page info."""
-        User.objects.create_user(username="nopag_alice", password="pass123")
-        User.objects.create_user(username="nopag_bob", password="pass123")
+        await User.objects.acreate_user(username="nopag_alice", password="pass123")
+        await User.objects.acreate_user(username="nopag_bob", password="pass123")
 
         view = ListView(pagination=False, response_schema=UserReadSchema)
         vs = SimpleViewSet(queryset_fn=lambda req: User.objects.filter(username__startswith="nopag_"))
@@ -461,8 +461,8 @@ class TestListView:
     @pytest.mark.asyncio
     async def test_list_ordering(self, rf):
         """Ordering via query parameter sorts results."""
-        User.objects.create_user(username="z_order_test", password="pass123")
-        User.objects.create_user(username="a_order_test", password="pass123")
+        await User.objects.acreate_user(username="z_order_test", password="pass123")
+        await User.objects.acreate_user(username="a_order_test", password="pass123")
 
         view = ListView(
             response_schema=UserReadSchema,
@@ -481,8 +481,8 @@ class TestListView:
     @pytest.mark.asyncio
     async def test_list_filtering(self, rf):
         """Filtering by query parameters filters results."""
-        User.objects.create_user(username="filter_active", password="pass123", is_active=True)
-        User.objects.create_user(username="filter_inactive", password="pass123", is_active=False)
+        await User.objects.acreate_user(username="filter_active", password="pass123", is_active=True)
+        await User.objects.acreate_user(username="filter_inactive", password="pass123", is_active=False)
 
         view = ListView(
             response_schema=UserReadSchema,
@@ -500,14 +500,14 @@ class TestListView:
         assert result["count"] >= 1
         # All returned items should be active
         for item in result["items"]:
-            u = User.objects.get(username=item["username"])
+            u = await User.objects.aget(username=item["username"])
             assert u.is_active is True
 
     @pytest.mark.asyncio
     async def test_list_search(self, rf):
         """Search fields apply icontains filter."""
-        User.objects.create_user(username="searchable_foo", password="pass123")
-        User.objects.create_user(username="searchable_bar", password="pass123")
+        await User.objects.acreate_user(username="searchable_foo", password="pass123")
+        await User.objects.acreate_user(username="searchable_bar", password="pass123")
 
         view = ListView(
             response_schema=UserReadSchema,
@@ -526,8 +526,8 @@ class TestListView:
     @pytest.mark.asyncio
     async def test_list_default_ordering(self, rf):
         """Default ordering defined on the view is applied."""
-        User.objects.create_user(username="dord_aaa", password="pass123")
-        User.objects.create_user(username="dord_zzz", password="pass123")
+        await User.objects.acreate_user(username="dord_aaa", password="pass123")
+        await User.objects.acreate_user(username="dord_zzz", password="pass123")
 
         view = ListView(
             response_schema=UserReadSchema,
@@ -567,7 +567,7 @@ class TestCreateView:
             default_response_schema = ItemSchema
 
             async def perform_create(self, data_dict, request):
-                user = User.objects.create_user(
+                user = await User.objects.acreate_user(
                     username=data_dict["name"], password="testpass"
                 )
                 user.name = data_dict["name"]
@@ -643,7 +643,7 @@ class TestReadView:
     @pytest.mark.asyncio
     async def test_read_existing(self, rf):
         """Reading an existing object returns serialized data."""
-        user = User.objects.create_user(username="readable_user", password="pass123")
+        user = await User.objects.acreate_user(username="readable_user", password="pass123")
 
         view = ReadView(response_schema=UserReadSchema)
         vs = SimpleViewSet()
@@ -696,7 +696,7 @@ class TestUpdateView:
     @pytest.mark.asyncio
     async def test_update_existing(self, rf):
         """Updating an existing object applies changes."""
-        user = User.objects.create_user(username="updatable_user", password="pass123")
+        user = await User.objects.acreate_user(username="updatable_user", password="pass123")
 
         view = UpdateView(
             request_schema=ItemUpdateSchema,
@@ -729,7 +729,7 @@ class TestUpdateView:
     @pytest.mark.asyncio
     async def test_update_no_body_raises(self, rf):
         """Updating with no request body raises ValueError."""
-        user = User.objects.create_user(username="upd_nobody", password="pass123")
+        user = await User.objects.acreate_user(username="upd_nobody", password="pass123")
 
         class NoSchemaVS(APIViewSet):
             model = User
@@ -772,7 +772,7 @@ class TestPatchView:
     @pytest.mark.asyncio
     async def test_patch_partial_update(self, rf):
         """Patch only updates provided fields."""
-        user = User.objects.create_user(
+        user = await User.objects.acreate_user(
             username="patchable_user", password="pass123", first_name="Original"
         )
 
@@ -790,7 +790,7 @@ class TestPatchView:
         request = _make_request(rf, "PATCH", data={"first_name": "Patched"})
         result = await view.handle(request, id=user.id)
 
-        user.refresh_from_db()
+        await user.arefresh_from_db()
         assert user.first_name == "Patched"
 
     @pytest.mark.asyncio
@@ -824,7 +824,7 @@ class TestDeleteView:
     @pytest.mark.asyncio
     async def test_delete_existing(self, rf):
         """Deleting an existing object returns deleted=True."""
-        user = User.objects.create_user(username="deletable_user", password="pass123")
+        user = await User.objects.acreate_user(username="deletable_user", password="pass123")
         user_id = user.id
 
         view = DeleteView()
@@ -835,7 +835,7 @@ class TestDeleteView:
         result = await view.handle(request, id=user_id)
 
         assert result["deleted"] is True
-        assert not User.objects.filter(id=user_id).exists()
+        assert not await User.objects.filter(id=user_id).aexists()
 
     @pytest.mark.asyncio
     async def test_delete_not_found(self, rf):
@@ -851,7 +851,7 @@ class TestDeleteView:
     @pytest.mark.asyncio
     async def test_delete_return_deleted_data(self, rf):
         """With return_deleted=True, response includes the deleted object."""
-        user = User.objects.create_user(username="retdel_user", password="pass123")
+        user = await User.objects.acreate_user(username="retdel_user", password="pass123")
         user_id = user.id
 
         view = DeleteView(return_deleted=True, response_schema=UserReadSchema)
@@ -932,7 +932,7 @@ class TestBoundView:
         viewset = ProtectedViewSet()
         bound = viewset.list_items
 
-        user = User.objects.create_user(username="authed_bound", password="pass123")
+        user = await User.objects.acreate_user(username="authed_bound", password="pass123")
         request = _make_request(rf, "GET", path="/items/", user=user)
 
         response = await bound(request)
@@ -1237,13 +1237,13 @@ class TestAPIViewSet:
             {"username": "perf_create_user", "password": "pass123"}, request
         )
         assert user.pk is not None
-        assert User.objects.filter(username="perf_create_user").exists()
+        assert await User.objects.filter(username="perf_create_user").aexists()
 
     @pytest.mark.django_db
     @pytest.mark.asyncio
     async def test_perform_update(self):
         """perform_update modifies and saves instance."""
-        user = User.objects.create_user(username="perf_update_user", password="pass123")
+        user = await User.objects.acreate_user(username="perf_update_user", password="pass123")
 
         class UserVS(APIViewSet):
             model = User
@@ -1253,14 +1253,14 @@ class TestAPIViewSet:
         request = rf.get("/")
 
         updated = await vs.perform_update(user, {"first_name": "Updated"}, request)
-        updated.refresh_from_db()
+        await updated.arefresh_from_db()
         assert updated.first_name == "Updated"
 
     @pytest.mark.django_db
     @pytest.mark.asyncio
     async def test_perform_delete(self):
         """perform_delete removes instance from DB."""
-        user = User.objects.create_user(username="perf_delete_user", password="pass123")
+        user = await User.objects.acreate_user(username="perf_delete_user", password="pass123")
         user_id = user.id
 
         class UserVS(APIViewSet):
@@ -1271,7 +1271,7 @@ class TestAPIViewSet:
         request = rf.get("/")
 
         await vs.perform_delete(user, request)
-        assert not User.objects.filter(id=user_id).exists()
+        assert not await User.objects.filter(id=user_id).aexists()
 
     @pytest.mark.django_db
     def test_as_urls_generates_patterns(self):
@@ -1344,8 +1344,8 @@ class TestViewHooksIntegration:
     @pytest.mark.asyncio
     async def test_before_list_hook_modifies_queryset(self, rf):
         """before_list class hook can filter the queryset."""
-        User.objects.create_user(username="hook_visible", password="pass123")
-        User.objects.create_user(username="hook_hidden", password="pass123")
+        await User.objects.acreate_user(username="hook_visible", password="pass123")
+        await User.objects.acreate_user(username="hook_hidden", password="pass123")
 
         class FilteredViewSet(APIViewSet):
             model = User
@@ -1369,7 +1369,7 @@ class TestViewHooksIntegration:
     @pytest.mark.asyncio
     async def test_after_list_hook_modifies_response(self, rf):
         """after_list class hook can add extra data to response."""
-        User.objects.create_user(username="afterlist_user", password="pass123")
+        await User.objects.acreate_user(username="afterlist_user", password="pass123")
 
         class AugmentedViewSet(APIViewSet):
             model = User
@@ -1407,7 +1407,7 @@ class TestViewHooksIntegration:
             async def perform_create(self, data_dict, request):
                 # Verify the hook modified data before creation
                 assert data_dict.get("injected") is True
-                user = User.objects.create_user(
+                user = await User.objects.acreate_user(
                     username=data_dict["name"], password="pass123"
                 )
                 user.name = data_dict["name"]
@@ -1438,7 +1438,7 @@ class TestViewHooksIntegration:
                 return instance
 
             async def perform_create(self, data_dict, request):
-                user = User.objects.create_user(
+                user = await User.objects.acreate_user(
                     username=data_dict["name"], password="pass123"
                 )
                 user.name = data_dict["name"]
@@ -1458,7 +1458,7 @@ class TestViewHooksIntegration:
     @pytest.mark.asyncio
     async def test_before_delete_hook(self, rf):
         """before_delete hook receives the instance before deletion."""
-        user = User.objects.create_user(username="hook_del_user", password="pass123")
+        user = await User.objects.acreate_user(username="hook_del_user", password="pass123")
         hook_instances = []
 
         class HookDeleteViewSet(APIViewSet):
@@ -1482,7 +1482,7 @@ class TestViewHooksIntegration:
     @pytest.mark.asyncio
     async def test_after_delete_hook(self, rf):
         """after_delete hook runs after deletion."""
-        user = User.objects.create_user(username="hook_after_del", password="pass123")
+        user = await User.objects.acreate_user(username="hook_after_del", password="pass123")
         after_calls = []
 
         class AfterDeleteViewSet(APIViewSet):
@@ -1550,7 +1550,7 @@ class TestFullCRUDLifecycle:
             delete_item = DeleteView()
 
             async def perform_create(self, data_dict, request):
-                user = User.objects.create_user(
+                user = await User.objects.acreate_user(
                     username=data_dict["name"], password="pass123"
                 )
                 user.name = data_dict["name"]
@@ -1567,7 +1567,7 @@ class TestFullCRUDLifecycle:
         assert create_data["name"] == "lifecycle_item"
 
         # Get the created user's ID
-        user = User.objects.get(username="lifecycle_item")
+        user = await User.objects.aget(username="lifecycle_item")
         user_id = user.id
 
         # 2) READ
@@ -1604,7 +1604,7 @@ class TestFullCRUDLifecycle:
         assert delete_data["deleted"] is True
 
         # Verify deleted
-        assert not User.objects.filter(id=user_id).exists()
+        assert not await User.objects.filter(id=user_id).aexists()
 
 
 # ============================================================================
