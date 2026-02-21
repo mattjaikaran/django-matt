@@ -13,6 +13,7 @@ from django.urls import path
 from django_matt.core.router import APIRouter
 from django_matt.openapi.docs import get_openapi_json, get_redoc, get_swagger_ui
 from django_matt.openapi.schema import OpenAPISchema
+from django_matt.slim import Mode, ModuleRegistry
 
 
 class MattAPI(APIRouter):
@@ -20,6 +21,11 @@ class MattAPI(APIRouter):
     Main API class for Django Matt.
 
     Extends APIRouter with OpenAPI documentation and additional configuration.
+
+    Supports Slim Mode via the ``mode`` parameter:
+        - "full" (default): all middleware, URLs, and modules loaded
+        - "minimal": only core + explicitly activated modules
+        - "auto": detect from DJANGO_MATT settings which modules are in use
 
     Usage:
         from django_matt import MattAPI
@@ -29,6 +35,10 @@ class MattAPI(APIRouter):
             version="1.0.0",
             description="My awesome API",
         )
+
+        # Slim mode — only load what you use
+        api = MattAPI(title="My API", mode="minimal")
+        api.activate("auth", "cors")
 
         @api.get("/hello")
         def hello(request):
@@ -61,6 +71,8 @@ class MattAPI(APIRouter):
         csrf: bool = False,
         # Health check endpoint
         health_url: str | None = "/health",
+        # Slim mode
+        mode: Mode = "full",
     ):
         super().__init__(prefix=prefix, tags=tags)
 
@@ -81,6 +93,51 @@ class MattAPI(APIRouter):
         self.health_url = health_url
 
         self._openapi_schema: dict | None = None
+
+        # Module registry for slim mode
+        self._registry = ModuleRegistry(mode=mode)
+
+        # Auto-activate auth module if auth is configured on the API
+        if auth is not None:
+            self._registry.activate("auth")
+
+    # ------------------------------------------------------------------
+    # Module registry API
+    # ------------------------------------------------------------------
+
+    @property
+    def mode(self) -> Mode:
+        """Return the current loading mode."""
+        return self._registry.mode
+
+    @property
+    def modules(self) -> frozenset[str]:
+        """Return the set of active module names."""
+        return self._registry.active_modules
+
+    @property
+    def registry(self) -> ModuleRegistry:
+        """Direct access to the module registry."""
+        return self._registry
+
+    def activate(self, *modules: str) -> "MattAPI":
+        """
+        Activate one or more modules.
+
+        Returns self for chaining:
+            api = MattAPI(mode="minimal").activate("auth", "cors")
+        """
+        self._registry.activate(*modules)
+        return self
+
+    def deactivate(self, *modules: str) -> "MattAPI":
+        """Deactivate one or more non-core modules."""
+        self._registry.deactivate(*modules)
+        return self
+
+    # ------------------------------------------------------------------
+    # OpenAPI
+    # ------------------------------------------------------------------
 
     @property
     def openapi_schema(self) -> dict:
@@ -160,16 +217,16 @@ class MattAPI(APIRouter):
         for viewset_cls in self._resource_viewsets:
             url_patterns.extend(viewset_cls.as_urls())
 
-        # Add health check endpoint
-        if self.health_url:
+        # Add health check endpoint (only if observability is active)
+        if self.health_url and self._registry.is_active("observability"):
             from django_matt.observability.views import health_view
 
             url_patterns.append(
                 path(self.health_url.lstrip("/"), health_view, name="health-check")
             )
 
-        # Add OpenAPI JSON endpoint
-        if self.openapi_url:
+        # Add OpenAPI JSON endpoint (always active — part of core)
+        if self.openapi_url and self._registry.is_active("openapi"):
 
             def openapi_view(request: HttpRequest) -> HttpResponse:
                 return get_openapi_json(self.openapi_schema)
@@ -179,7 +236,7 @@ class MattAPI(APIRouter):
             )
 
         # Add Swagger UI endpoint
-        if self.docs_url:
+        if self.docs_url and self._registry.is_active("docs"):
 
             def docs_view(request: HttpRequest) -> HttpResponse:
                 openapi_path = self.prefix + (self.openapi_url or "/openapi.json")
@@ -191,7 +248,7 @@ class MattAPI(APIRouter):
             url_patterns.append(path(self.docs_url.lstrip("/"), docs_view, name="swagger-ui"))
 
         # Add ReDoc endpoint
-        if self.redoc_url:
+        if self.redoc_url and self._registry.is_active("redoc"):
 
             def redoc_view(request: HttpRequest) -> HttpResponse:
                 openapi_path = self.prefix + (self.openapi_url or "/openapi.json")

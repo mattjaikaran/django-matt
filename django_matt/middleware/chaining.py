@@ -64,6 +64,30 @@ class DjangoMattMiddleware(MiddlewareMixin):
         if not stack_classes:
             return None
 
+        # Filter by module registry if SLIM_REGISTRY is set
+        registry = matt_config.get("SLIM_REGISTRY")
+        if registry is not None:
+            from django_matt.middleware.cors import CORSMiddleware
+            from django_matt.middleware.logging import RequestLoggingMiddleware
+            from django_matt.middleware.request_id import RequestIDMiddleware
+            from django_matt.middleware.security import SecurityHeadersMiddleware
+            from django_matt.middleware.timing import TimingMiddleware
+
+            _cls_to_module = {
+                SecurityHeadersMiddleware: "security",
+                RequestIDMiddleware: "request_id",
+                CORSMiddleware: "cors",
+                RequestLoggingMiddleware: "logging",
+                TimingMiddleware: "timing",
+            }
+            stack_classes = [
+                cls for cls in stack_classes
+                if _cls_to_module.get(cls) is None or registry.is_active(_cls_to_module[cls])
+            ]
+
+        if not stack_classes:
+            return None
+
         # Chain: last middleware wraps get_response, first wraps last, etc.
         chain = self.get_response
         for middleware_cls in reversed(stack_classes):
