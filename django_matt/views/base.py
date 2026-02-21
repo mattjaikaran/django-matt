@@ -175,6 +175,10 @@ class APIView(Generic[ModelT, SchemaT]):
         """Serialize a queryset to a list of dicts (fast path, no re-validation)."""
         return [self.serialize_fast(obj) for obj in queryset]
 
+    async def aserialize_list(self, queryset: models.QuerySet) -> list[dict[str, Any]]:
+        """Async serialize a queryset to a list of dicts (uses async iteration)."""
+        return [self.serialize_fast(obj) async for obj in queryset]
+
     def optimize_queryset(self, queryset: models.QuerySet) -> models.QuerySet:
         """Auto-apply select_related/prefetch_related based on response schema."""
         schema = self.get_response_schema()

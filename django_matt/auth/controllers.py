@@ -343,7 +343,7 @@ class AuthController(APIController):
 
         # Build response
         response = AuthResponse(
-            user=UserResponse.from_user(user),
+            user=await UserResponse.afrom_user(user),
             tokens=tokens,
         )
 
@@ -475,7 +475,7 @@ class AuthController(APIController):
             - User profile data
         """
         user = request.user
-        return JsonResponse(UserResponse.from_user(user).model_dump())
+        return JsonResponse((await UserResponse.afrom_user(user)).model_dump())
 
     @post("me")
     @jwt_required
@@ -519,7 +519,7 @@ class AuthController(APIController):
 
         await user.asave()
 
-        return JsonResponse(UserResponse.from_user(user).model_dump())
+        return JsonResponse((await UserResponse.afrom_user(user)).model_dump())
 
     @post("change-password")
     @jwt_required
@@ -725,7 +725,7 @@ class AuthController(APIController):
             return JsonResponse(
                 {
                     "valid": True,
-                    "user": UserResponse.from_user(user).model_dump(),
+                    "user": (await UserResponse.afrom_user(user)).model_dump(),
                 }
             )
 
@@ -872,7 +872,7 @@ class AuthController(APIController):
         # Build response
         return JsonResponse(
             {
-                "user": UserResponse.from_user(result.user).model_dump(),
+                "user": (await UserResponse.afrom_user(result.user)).model_dump(),
                 "tokens": tokens.model_dump(),
                 "user_created": result.user_created,
             },
@@ -1065,7 +1065,7 @@ class MinimalAuthController(APIController):
     @jwt_required
     async def me(self, request: HttpRequest) -> JsonResponse:
         """Get current user."""
-        return JsonResponse(UserResponse.from_user(request.user).model_dump())
+        return JsonResponse((await UserResponse.afrom_user(request.user)).model_dump())
 
 
 __all__ = [

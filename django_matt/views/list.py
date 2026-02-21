@@ -188,14 +188,14 @@ class ListView(APIView):
         if pagination_class and self.pagination:
             # Use pluggable pagination class
             queryset = await pagination_class.apaginate_queryset(queryset, request)
-            items = self.serialize_list(queryset)
+            items = await self.aserialize_list(queryset)
             response = pagination_class.get_paginated_response(items)
             response["total"] = total
             response["count"] = len(items)
         elif self.pagination:
             # Use simple built-in pagination
             queryset, pagination_info = self._apply_pagination(queryset, request)
-            items = self.serialize_list(queryset)
+            items = await self.aserialize_list(queryset)
             response = {
                 "items": items,
                 "count": len(items),
@@ -205,7 +205,7 @@ class ListView(APIView):
                 response.update(pagination_info)
         else:
             # No pagination
-            items = self.serialize_list(queryset)
+            items = await self.aserialize_list(queryset)
             response = {
                 "items": items,
                 "count": len(items),

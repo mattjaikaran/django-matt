@@ -260,9 +260,9 @@ class AsyncAPITestClient(AsyncClient):
             self._auth_token = token
         elif user:
             try:
-                from django_matt.auth import create_access_token
+                from django_matt.auth import acreate_access_token
 
-                self._auth_token = create_access_token(user)
+                self._auth_token = await acreate_access_token(user)
             except ImportError:
                 self._auth_token = None
 

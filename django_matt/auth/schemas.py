@@ -223,7 +223,7 @@ class UserResponse(UserBase):
 
     @classmethod
     def from_user(cls, user) -> "UserResponse":
-        """Create from Django User model."""
+        """Create from Django User model (sync)."""
         roles = []
         permissions = []
 
@@ -234,6 +234,35 @@ class UserResponse(UserBase):
         # Get permissions
         if hasattr(user, "get_all_permissions"):
             permissions = list(user.get_all_permissions())
+
+        return cls(
+            id=user.pk,
+            email=user.email,
+            username=getattr(user, "username", None),
+            first_name=getattr(user, "first_name", None),
+            last_name=getattr(user, "last_name", None),
+            is_active=user.is_active,
+            date_joined=getattr(user, "date_joined", None),
+            last_login=getattr(user, "last_login", None),
+            roles=roles,
+            permissions=permissions,
+        )
+
+    @classmethod
+    async def afrom_user(cls, user) -> "UserResponse":
+        """Create from Django User model (async-safe)."""
+        roles = []
+        permissions = []
+
+        # Get groups as roles (async)
+        if hasattr(user, "groups"):
+            roles = [name async for name in user.groups.values_list("name", flat=True)]
+
+        # Get permissions (sync_to_async since no async API)
+        if hasattr(user, "get_all_permissions"):
+            from asgiref.sync import sync_to_async
+
+            permissions = list(await sync_to_async(user.get_all_permissions)())
 
         return cls(
             id=user.pk,

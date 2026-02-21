@@ -63,12 +63,10 @@ def api_key_required(func: F) -> F:
             )
 
         # Validate the key
-        # get_valid → get_by_key already does select_related("user")
-        from asgiref.sync import sync_to_async
-
+        # aget_valid → aget_by_key already does select_related("user")
         from .models import APIKey
 
-        api_key = await sync_to_async(APIKey.objects.get_valid)(raw_key)
+        api_key = await APIKey.objects.aget_valid(raw_key)
 
         if api_key is None:
             return JsonResponse(
@@ -186,7 +184,7 @@ def api_key_optional(func: F) -> F:
         if raw_key:
             from .models import APIKey
 
-            api_key = APIKey.objects.get_valid(raw_key)
+            api_key = await APIKey.objects.aget_valid(raw_key)
             if api_key and api_key.is_valid:
                 if not api_key.allowed_ips or api_key.is_ip_allowed(get_client_ip(request)):
                     request.user = api_key.user

@@ -47,6 +47,40 @@ class APIKeyManager(models.Manager):
 
         return api_key
 
+    async def aget_by_key(self, key: str):
+        """
+        Async version of get_by_key.
+        Get an API key by its full key value.
+        Returns None if not found or inactive.
+        """
+        from .utils import get_key_prefix, hash_api_key
+
+        key_hash = hash_api_key(key)
+        prefix = get_key_prefix(key)
+
+        try:
+            return await self.select_related("user").aget(
+                key_hash=key_hash,
+                prefix=prefix,
+                is_active=True,
+            )
+        except self.model.DoesNotExist:
+            return None
+
+    async def aget_valid(self, key: str):
+        """
+        Async version of get_valid.
+        Get a valid (active and not expired) API key.
+        """
+        api_key = await self.aget_by_key(key)
+        if api_key is None:
+            return None
+
+        if api_key.is_expired:
+            return None
+
+        return api_key
+
     def active(self):
         """Get all active keys."""
         return self.filter(is_active=True)
