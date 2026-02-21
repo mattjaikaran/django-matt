@@ -41,6 +41,7 @@ class PayPalProvider(BillingProvider[PayPalConfig]):
         self._client = None
         self._access_token: str | None = None
         self._token_expires_at: datetime | None = None
+        self._tracked_subscriptions: dict[str, set[str]] = {}
 
     async def _get_client(self):
         """Get or create httpx client."""
@@ -570,22 +571,60 @@ class PayPalProvider(BillingProvider[PayPalConfig]):
         status: SubscriptionStatus | None = None,
         limit: int = 10,
     ) -> list[SubscriptionData]:
-        # PayPal doesn't support listing subscriptions by customer directly
-        # This is a limitation of the PayPal API
-        params: dict[str, Any] = {"page_size": limit}
+        """
+        List subscriptions using locally tracked IDs.
 
-        if status:
-            status_map = {
-                SubscriptionStatus.ACTIVE: "ACTIVE",
-                SubscriptionStatus.CANCELED: "CANCELLED",
-                SubscriptionStatus.PAUSED: "SUSPENDED",
-            }
-            if status in status_map:
-                params["status"] = status_map[status]
+        PayPal has no bulk subscription list endpoint. This method fetches
+        subscriptions individually from IDs stored via ``track_subscription()``.
+        Call ``track_subscription(customer_id, subscription_id)`` when creating
+        subscriptions to enable listing.
+        """
+        status_map = {
+            SubscriptionStatus.ACTIVE: "ACTIVE",
+            SubscriptionStatus.CANCELED: "CANCELLED",
+            SubscriptionStatus.PAUSED: "SUSPENDED",
+        }
+        target_status = status_map.get(status) if status else None
 
-        # Note: This endpoint doesn't exist in PayPal's standard API
-        # You would need to track subscriptions locally
-        return []
+        # Get tracked IDs for this customer (or all if no customer_id)
+        if customer_id:
+            sub_ids = list(self._tracked_subscriptions.get(customer_id, []))
+        else:
+            sub_ids = [
+                sid
+                for sids in self._tracked_subscriptions.values()
+                for sid in sids
+            ]
+
+        subscriptions: list[SubscriptionData] = []
+        for sub_id in sub_ids:
+            if len(subscriptions) >= limit:
+                break
+            sub = await self.get_subscription(sub_id)
+            if sub is None:
+                continue
+            if target_status and sub.status.value != target_status.lower():
+                continue
+            subscriptions.append(sub)
+
+        return subscriptions
+
+    def track_subscription(self, customer_id: str, subscription_id: str) -> None:
+        """
+        Track a subscription ID for a customer.
+
+        Call this after ``create_subscription()`` to enable
+        ``list_subscriptions()`` lookups. For persistence across restarts,
+        store subscription IDs in your database instead.
+        """
+        if customer_id not in self._tracked_subscriptions:
+            self._tracked_subscriptions[customer_id] = set()
+        self._tracked_subscriptions[customer_id].add(subscription_id)
+
+    def untrack_subscription(self, customer_id: str, subscription_id: str) -> None:
+        """Remove a tracked subscription ID."""
+        if customer_id in self._tracked_subscriptions:
+            self._tracked_subscriptions[customer_id].discard(subscription_id)
 
     # -------------------------------------------------------------------------
     # Checkout / Payment
