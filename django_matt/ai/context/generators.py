@@ -16,14 +16,19 @@ from django_matt.ai.context.templates import (
     CLAUDE_MD_TEMPLATE,
     COPILOT_INSTRUCTIONS_TEMPLATE,
     CURSOR_RULES_TEMPLATE,
+    format_async_safety_rules,
+    format_async_safety_section,
     format_auth_section,
     format_code_examples_section,
     format_endpoints_rules,
     format_endpoints_section,
+    format_environment_section,
+    format_error_handling_section,
     format_models_rules,
     format_models_section,
     format_schema_rules,
     format_schemas_section,
+    format_service_layer_section,
     format_tech_stack,
     format_test_patterns_section,
     render_template,
@@ -79,6 +84,12 @@ class ClaudeMdGenerator:
 
         info_dict = project_info.to_dict()
 
+        # Prepare serialized data
+        endpoint_dicts = [e.to_dict() for e in project_info.endpoints]
+        async_warning_dicts = [w.to_dict() for w in project_info.async_warnings]
+        service_dicts = [s.to_dict() for s in project_info.services]
+        env_dicts = [e.to_dict() for e in project_info.environment]
+
         # Build context for template
         context = {
             "project_name": project_info.name,
@@ -89,13 +100,17 @@ class ClaudeMdGenerator:
             "tech_stack_section": format_tech_stack(info_dict),
             "structure_section": self._generate_structure(project_info),
             "models_section": format_models_section(info_dict["models"], self.max_models),
-            "endpoints_section": format_endpoints_section(
-                [e.to_dict() for e in project_info.endpoints], self.max_endpoints
-            ),
+            "endpoints_section": format_endpoints_section(endpoint_dicts, self.max_endpoints),
             "schemas_section": format_schemas_section(
                 [s.to_dict() for s in project_info.schemas], self.max_schemas
             ),
-            "auth_section": format_auth_section([e.to_dict() for e in project_info.endpoints]),
+            "auth_section": format_auth_section(endpoint_dicts),
+            "async_safety_section": format_async_safety_section(
+                async_warning_dicts, endpoint_dicts
+            ),
+            "error_handling_section": format_error_handling_section(info_dict),
+            "service_layer_section": format_service_layer_section(service_dicts),
+            "environment_section": format_environment_section(env_dicts),
             "test_patterns_section": format_test_patterns_section(
                 project_info.test_patterns.to_dict() if project_info.test_patterns else None
             ),
@@ -205,6 +220,9 @@ class CursorRulesGenerator:
                 [e.to_dict() for e in project_info.endpoints]
             ),
             "schema_rules": format_schema_rules([s.to_dict() for s in project_info.schemas]),
+            "async_safety_rules": format_async_safety_rules(
+                [w.to_dict() for w in project_info.async_warnings]
+            ),
         }
 
         return render_template(CURSOR_RULES_TEMPLATE, context)
@@ -258,6 +276,10 @@ class CopilotInstructionsGenerator:
             "models_context": self._format_models_context(project_info.models),
             "endpoints_context": self._format_endpoints_context(project_info.endpoints),
             "schemas_context": self._format_schemas_context(project_info.schemas),
+            "async_patterns_context": self._format_async_patterns_context(
+                project_info.async_warnings
+            ),
+            "error_handling_context": self._format_error_handling_context(),
         }
 
         return render_template(COPILOT_INSTRUCTIONS_TEMPLATE, context)
@@ -306,6 +328,46 @@ class CopilotInstructionsGenerator:
                 req = "(required)" if field.required else "(optional)"
                 lines.append(f"  - {field.name}: {field.field_type} {req}")
             lines.append("")
+
+        return "\n".join(lines)
+
+    def _format_async_patterns_context(self, async_warnings: list) -> str:
+        """Format async safety patterns for Copilot."""
+        lines = ["## Async Safety Patterns", ""]
+        lines.append("When writing async views, ALWAYS use async ORM methods:")
+        lines.append("```python")
+        lines.append("# CORRECT")
+        lines.append("async def my_view(request):")
+        lines.append("    items = await MyModel.objects.afilter(active=True)")
+        lines.append("    item = await MyModel.objects.aget(pk=pk)")
+        lines.append("    await item.asave()")
+        lines.append("")
+        lines.append("# WRONG - will block the event loop")
+        lines.append("async def my_view(request):")
+        lines.append("    items = MyModel.objects.filter(active=True)  # sync!")
+        lines.append("```")
+
+        if async_warnings:
+            lines.append("")
+            lines.append(f"Note: {len(async_warnings)} async safety issue(s) detected in this project")
+
+        return "\n".join(lines)
+
+    def _format_error_handling_context(self) -> str:
+        """Format error handling patterns for Copilot."""
+        lines = ["## Error Handling Patterns", ""]
+        lines.append("Use framework error classes for consistent API responses:")
+        lines.append("```python")
+        lines.append("from django_matt.core.errors import (")
+        lines.append("    ValidationAPIError,  # 400")
+        lines.append("    NotFoundAPIError,    # 404")
+        lines.append("    APIError,            # Custom status")
+        lines.append(")")
+        lines.append("")
+        lines.append("# Framework auto-wraps these into JSON responses")
+        lines.append("raise NotFoundAPIError(f'User {pk} not found')")
+        lines.append("raise ValidationAPIError('Invalid email', field='email')")
+        lines.append("```")
 
         return "\n".join(lines)
 

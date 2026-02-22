@@ -9,51 +9,16 @@ Usage:
 """
 
 import os
-import subprocess
 import sys
-from pathlib import Path
 from typing import Optional
 
 import typer
 from rich.console import Console
 
+from django_matt.cli.utils import run_manage_command
+
 app = typer.Typer(help="Development server and utilities")
 console = Console()
-
-
-def find_manage_py() -> Optional[Path]:
-    """Find manage.py in current or parent directories."""
-    current = Path.cwd()
-
-    # Check current directory
-    if (current / "manage.py").exists():
-        return current / "manage.py"
-
-    # Check parent directories (up to 3 levels)
-    for _ in range(3):
-        current = current.parent
-        if (current / "manage.py").exists():
-            return current / "manage.py"
-
-    return None
-
-
-def run_manage_command(command: list[str], capture_output: bool = False):
-    """Run a Django management command."""
-    manage_py = find_manage_py()
-
-    if not manage_py:
-        console.print("[red]Error: Could not find manage.py[/]")
-        console.print("[dim]Make sure you're in a Django project directory[/]")
-        raise typer.Exit(1)
-
-    full_command = [sys.executable, str(manage_py)] + command
-
-    if capture_output:
-        result = subprocess.run(full_command, capture_output=True, text=True, check=False)
-        return result
-
-    os.execv(sys.executable, full_command)  # noqa: S606
 
 
 @app.callback(invoke_without_command=True)
@@ -88,7 +53,7 @@ def serve(
 
     command.append(f"{host}:{port}")
 
-    run_manage_command(command)
+    run_manage_command(command, replace_process=True)
 
 
 @app.command()
@@ -116,7 +81,7 @@ def shell(
     else:
         command = ["shell"]
 
-    run_manage_command(command)
+    run_manage_command(command, replace_process=True)
 
 
 @app.command()
@@ -159,14 +124,14 @@ def test(
         if path:
             command.append(path)
 
-        run_manage_command(command)
+        run_manage_command(command, replace_process=True)
 
 
 @app.command()
 def check():
     """Run Django system checks."""
     console.print("\n[bold magenta]Running Django system checks...[/]\n")
-    run_manage_command(["check"])
+    run_manage_command(["check"], replace_process=True)
 
 
 @app.command()
@@ -183,4 +148,4 @@ def collectstatic(
     if clear:
         command.append("--clear")
 
-    run_manage_command(command)
+    run_manage_command(command, replace_process=True)

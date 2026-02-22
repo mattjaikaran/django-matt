@@ -15,6 +15,12 @@ from django_matt.cli.errors import (
 )
 from django_matt.cli.help import show_help_for, show_main_help
 from django_matt.cli.prompts import confirm, multiselect, path, select, text
+from django_matt.cli.utils import (
+    find_manage_py,
+    find_project_root,
+    run_manage_command,
+    setup_django,
+)
 
 __all__ = [
     # Console
@@ -23,6 +29,11 @@ __all__ = [
     "MattCommand",
     "InteractiveCommand",
     "GeneratorCommand",
+    # CLI utilities
+    "find_manage_py",
+    "find_project_root",
+    "run_manage_command",
+    "setup_django",
     # Prompts
     "text",
     "select",

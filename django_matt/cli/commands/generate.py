@@ -10,44 +10,15 @@ Usage:
     matt generate crud myapp.User  # Alias for crud
 """
 
-import subprocess
-import sys
-from pathlib import Path
 from typing import Optional
 
 import typer
 from rich.console import Console
 
+from django_matt.cli.utils import run_manage_command
+
 app = typer.Typer(help="Code generation and scaffolding")
 console = Console()
-
-
-def find_manage_py() -> Optional[Path]:
-    """Find manage.py in current or parent directories."""
-    current = Path.cwd()
-
-    if (current / "manage.py").exists():
-        return current / "manage.py"
-
-    for _ in range(3):
-        current = current.parent
-        if (current / "manage.py").exists():
-            return current / "manage.py"
-
-    return None
-
-
-def run_manage_command(command: list[str]):
-    """Run a Django management command."""
-    manage_py = find_manage_py()
-
-    if not manage_py:
-        console.print("[red]Error: Could not find manage.py[/]")
-        raise typer.Exit(1)
-
-    full_command = [sys.executable, str(manage_py)] + command
-    result = subprocess.run(full_command, check=False)
-    return result
 
 
 @app.callback(invoke_without_command=True)

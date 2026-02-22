@@ -547,3 +547,95 @@ class Command(MattCommand):
         if recommendations:
             self.console.newline()
             self.next_steps(recommendations[:5], title="Recommendations")
+
+        if fix:
+            self.console.newline()
+            self.console.header("Auto-Fix")
+            fixes = self._apply_fixes(results)
+            if fixes > 0:
+                self.console.box_success(f"Applied {fixes} fix(es)")
+            else:
+                self.console.info("No auto-fixable issues found. See instructions above.")
+
+    def _apply_fixes(self, results: dict[str, Any]) -> int:
+        """Apply automatic fixes for detected issues. Returns count of fixes applied."""
+        fixes_applied = 0
+
+        for check in results["checks"]:
+            if check["status"] in ("ok", "info"):
+                continue
+
+            fix_handler = self._get_fix_handler(check["name"])
+            if fix_handler:
+                fixed = fix_handler(check)
+                if fixed:
+                    fixes_applied += 1
+
+        return fixes_applied
+
+    def _get_fix_handler(self, check_name: str):
+        """Get the fix handler for a check, if available."""
+        handlers = {
+            "Migrations": self._fix_migrations,
+            "SECRET_KEY": self._fix_secret_key,
+            "ALLOWED_HOSTS": self._fix_allowed_hosts,
+            "DEBUG Mode": self._fix_debug_mode,
+        }
+        return handlers.get(check_name)
+
+    def _fix_migrations(self, check: dict[str, Any]) -> bool:
+        """Fix pending migrations by running migrate."""
+        if check["status"] != "warning":
+            return False
+
+        pending = check["details"].get("pending_migrations", 0)
+        if pending == 0:
+            return False
+
+        self.console.info(f"Applying {pending} pending migration(s)...")
+        try:
+            from django.core.management import call_command
+            call_command("migrate", verbosity=1)
+            self.console.success("Migrations applied successfully")
+            check["status"] = "ok"
+            check["message"] = "All migrations applied"
+            return True
+        except Exception as e:
+            self.console.error(f"Failed to apply migrations: {e}")
+            return False
+
+    def _fix_secret_key(self, check: dict[str, Any]) -> bool:
+        """Generate a secure SECRET_KEY and print instructions."""
+        from django.core.management.utils import get_random_secret_key
+
+        new_key = get_random_secret_key()
+        self.console.warning("Cannot auto-fix SECRET_KEY (requires settings file change)")
+        self.console.newline()
+        self.console.print("[bold]Add this to your environment or settings:[/]")
+        self.console.print(f"  [cyan]SECRET_KEY = '{new_key}'[/]")
+        self.console.newline()
+        self.console.print("[dim]Or set as environment variable:[/]")
+        self.console.print(f"  [cyan]export SECRET_KEY='{new_key}'[/]")
+        return False  # Not auto-fixable
+
+    def _fix_allowed_hosts(self, check: dict[str, Any]) -> bool:
+        """Print instructions for fixing ALLOWED_HOSTS."""
+        self.console.warning("Cannot auto-fix ALLOWED_HOSTS (requires settings file change)")
+        self.console.newline()
+        self.console.print("[bold]Add this to your settings:[/]")
+        self.console.print("  [cyan]ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'your-domain.com'][/]")
+        self.console.newline()
+        self.console.print("[dim]Or set as environment variable:[/]")
+        self.console.print("  [cyan]export ALLOWED_HOSTS=localhost,127.0.0.1[/]")
+        return False  # Not auto-fixable
+
+    def _fix_debug_mode(self, check: dict[str, Any]) -> bool:
+        """Print instructions for fixing DEBUG mode."""
+        self.console.warning("Cannot auto-fix DEBUG mode (requires settings file change)")
+        self.console.newline()
+        self.console.print("[bold]For production, set in your environment:[/]")
+        self.console.print("  [cyan]export DJANGO_DEBUG=False[/]")
+        self.console.newline()
+        self.console.print("[bold]Or in settings.py:[/]")
+        self.console.print("  [cyan]DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() == 'true'[/]")
+        return False  # Not auto-fixable

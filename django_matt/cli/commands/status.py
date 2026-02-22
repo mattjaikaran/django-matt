@@ -14,35 +14,10 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from django_matt.cli.utils import setup_django
+
 app = typer.Typer(help="Check project health and status")
 console = Console()
-
-
-def setup_django():
-    """Set up Django before running commands."""
-    import os
-
-    settings_module = os.environ.get("DJANGO_SETTINGS_MODULE")
-
-    if not settings_module:
-        for pattern in ["config.settings", "settings", "core.settings", "project.settings"]:
-            try:
-                os.environ["DJANGO_SETTINGS_MODULE"] = pattern
-                import django
-
-                django.setup()
-                return True
-            except Exception:
-                pass
-        return False
-
-    try:
-        import django
-
-        django.setup()
-        return True
-    except Exception:
-        return False
 
 
 @app.callback(invoke_without_command=True)

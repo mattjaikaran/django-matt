@@ -14,41 +14,10 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from django_matt.cli.utils import setup_django
+
 app = typer.Typer(help="Analyze your Django project")
 console = Console()
-
-
-def setup_django():
-    """Set up Django before running commands."""
-    import os
-
-    # Try to find Django settings
-    settings_module = os.environ.get("DJANGO_SETTINGS_MODULE")
-
-    if not settings_module:
-        # Try common patterns
-        for pattern in ["config.settings", "settings", "core.settings", "project.settings"]:
-            try:
-                os.environ["DJANGO_SETTINGS_MODULE"] = pattern
-                import django
-
-                django.setup()
-                return True
-            except Exception:
-                pass
-
-        console.print("[yellow]Warning: Could not find Django settings.[/]")
-        console.print("Set DJANGO_SETTINGS_MODULE environment variable.")
-        return False
-
-    try:
-        import django
-
-        django.setup()
-        return True
-    except Exception as e:
-        console.print(f"[red]Error setting up Django: {e}[/]")
-        return False
 
 
 @app.callback(invoke_without_command=True)
@@ -241,3 +210,59 @@ def endpoints_command(
 ):
     """List all API endpoints (alias for 'routes')."""
     routes(filter_pattern, method)
+
+
+@app.command()
+def deep(
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+):
+    """Run deep project analysis (delegates to matt_analyze)."""
+    from django_matt.cli.utils import run_manage_command
+
+    command = ["matt_analyze"]
+    if json_output:
+        command.append("--json")
+    run_manage_command(command)
+
+
+@app.command()
+def explain(
+    path: str = typer.Argument(..., help="URL path to explain"),
+):
+    """Explain request flow for a URL path."""
+    from django_matt.cli.utils import run_manage_command
+
+    run_manage_command(["matt_explain", path])
+
+
+@app.command(name="schemas")
+def schemas_command(
+    app_name: Optional[str] = typer.Option(None, "--app", "-a", help="Filter by app"),
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+):
+    """List all Pydantic schemas."""
+    from django_matt.cli.utils import run_manage_command
+
+    command = ["matt_schemas"]
+    if app_name:
+        command.extend(["--app", app_name])
+    if json_output:
+        command.append("--json")
+    run_manage_command(command)
+
+
+@app.command(name="validate")
+def validate_command(
+    prefix: str = typer.Option("/api/", "--prefix", help="URL prefix to scan"),
+    strict: bool = typer.Option(False, "--strict", help="Treat warnings as errors"),
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+):
+    """Validate API endpoints for issues."""
+    from django_matt.cli.utils import run_manage_command
+
+    command = ["validate_api", "--prefix", prefix]
+    if strict:
+        command.append("--strict")
+    if json_output:
+        command.append("--json")
+    run_manage_command(command)

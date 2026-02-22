@@ -94,8 +94,48 @@ class Command(GeneratorCommand):
             help="Type of test to generate",
         )
 
+        # analyze (delegates to matt_analyze)
+        analyze_parser = subparsers.add_parser("analyze", help="Deep project analysis")
+        analyze_parser.add_argument("--json", action="store_true", help="Output as JSON")
+        analyze_parser.add_argument("--check", nargs="*", help="Specific checks to run")
+
+        # endpoints (delegates to matt_endpoints)
+        endpoints_parser = subparsers.add_parser("endpoints", help="List all API endpoints")
+        endpoints_parser.add_argument("--json", action="store_true", help="Output as JSON")
+        endpoints_parser.add_argument("--prefix", default="/api/", help="URL prefix to scan")
+        endpoints_parser.add_argument("--method", "-m", help="Filter by HTTP method")
+
+        # explain (delegates to matt_explain)
+        explain_parser = subparsers.add_parser("explain", help="Explain request flow for a path")
+        explain_parser.add_argument("path", nargs="?", help="URL path to explain")
+
+        # schemas (delegates to matt_schemas)
+        schemas_parser = subparsers.add_parser("schemas", help="List all Pydantic schemas")
+        schemas_parser.add_argument("--json", action="store_true", help="Output as JSON")
+        schemas_parser.add_argument("--app", "-a", help="Filter by app name")
+
+        # validate (delegates to validate_api)
+        validate_parser = subparsers.add_parser("validate", help="Validate API endpoints")
+        validate_parser.add_argument("--prefix", default="/api/", help="URL prefix to scan")
+        validate_parser.add_argument("--strict", action="store_true", help="Treat warnings as errors")
+        validate_parser.add_argument("--json", action="store_true", help="Output as JSON")
+
+        # migrate-from (delegates to matt_migrate_from)
+        migrate_parser = subparsers.add_parser("migrate-from", help="Migrate from another framework")
+        migrate_parser.add_argument("framework", nargs="?", help="Source framework (e.g., ninja, drf)")
+        migrate_parser.add_argument("--dry-run", action="store_true", help="Preview without changes")
+
+        # ai (delegates to generate_ai_context)
+        ai_parser = subparsers.add_parser("ai", help="Generate AI context files")
+        ai_parser.add_argument("--format", "-f", default="all", help="Format: all, claude, cursor, copilot")
+        ai_parser.add_argument("--output", "-o", default=".", help="Output directory")
+        ai_parser.add_argument("--dry-run", action="store_true", help="Preview without writing")
+
     # Available subcommands for "did you mean" suggestions
-    SUBCOMMANDS = ["info", "doctor", "routes", "models", "version", "new"]
+    SUBCOMMANDS = [
+        "info", "doctor", "routes", "models", "version", "new",
+        "analyze", "endpoints", "explain", "schemas", "validate", "migrate-from", "ai",
+    ]
 
     def handle(self, *args, **options):
         subcommand = options.get("subcommand")
@@ -104,11 +144,12 @@ class Command(GeneratorCommand):
             self.show_help()
             return
 
-        handler = getattr(self, f"handle_{subcommand}", None)
+        # Handle hyphenated commands
+        handler_name = f"handle_{subcommand.replace('-', '_')}"
+        handler = getattr(self, handler_name, None)
         if handler:
             handler(options)
         else:
-            # Try to suggest a similar command
             suggestion = self._suggest_command(subcommand)
             if suggestion:
                 self.console.did_you_mean(subcommand, suggestion)
@@ -160,6 +201,25 @@ class Command(GeneratorCommand):
             [
                 ("routes", "List all API routes"),
                 ("models", "List all Django models"),
+            ],
+        )
+
+        self.console.command_group(
+            "Analysis Commands",
+            [
+                ("analyze", "Deep project analysis"),
+                ("endpoints", "List all API endpoints"),
+                ("explain <path>", "Explain request flow for a URL path"),
+                ("schemas", "List all Pydantic schemas"),
+                ("validate", "Validate API endpoints for issues"),
+            ],
+        )
+
+        self.console.command_group(
+            "Migration & AI",
+            [
+                ("migrate-from <fw>", "Migrate from another framework"),
+                ("ai", "Generate AI context files (CLAUDE.md, .cursorrules)"),
             ],
         )
 
@@ -218,6 +278,12 @@ class Command(GeneratorCommand):
 
     def handle_doctor(self, options):
         """Check project health."""
+        if options.get("fix"):
+            # Delegate to matt_status which has full --fix implementation
+            from django.core.management import call_command
+            call_command("matt_status", fix=True)
+            return
+
         self.console.header("Project Health Check")
 
         checks = []
@@ -477,6 +543,85 @@ class Command(GeneratorCommand):
                 f"  pytest {output_dir / filename}",
             ]
         )
+
+    # =========================================================================
+    # Delegating Subcommand Handlers
+    # =========================================================================
+
+    def handle_analyze(self, options):
+        """Deep project analysis (delegates to matt_analyze)."""
+        from django.core.management import call_command
+        kwargs = {}
+        if options.get("json"):
+            kwargs["json"] = True
+        if options.get("check"):
+            kwargs["check"] = options["check"]
+        call_command("matt_analyze", **kwargs)
+
+    def handle_endpoints(self, options):
+        """List all API endpoints (delegates to matt_endpoints)."""
+        from django.core.management import call_command
+        kwargs = {}
+        if options.get("json"):
+            kwargs["json"] = True
+        if options.get("prefix"):
+            kwargs["prefix"] = options["prefix"]
+        if options.get("method"):
+            kwargs["method"] = options["method"]
+        call_command("matt_endpoints", **kwargs)
+
+    def handle_explain(self, options):
+        """Explain request flow (delegates to matt_explain)."""
+        from django.core.management import call_command
+        args = []
+        if options.get("path"):
+            args.append(options["path"])
+        call_command("matt_explain", *args)
+
+    def handle_schemas(self, options):
+        """List all Pydantic schemas (delegates to matt_schemas)."""
+        from django.core.management import call_command
+        kwargs = {}
+        if options.get("json"):
+            kwargs["json"] = True
+        if options.get("app"):
+            kwargs["app"] = options["app"]
+        call_command("matt_schemas", **kwargs)
+
+    def handle_validate(self, options):
+        """Validate API endpoints (delegates to validate_api)."""
+        from django.core.management import call_command
+        kwargs = {}
+        if options.get("prefix"):
+            kwargs["prefix"] = options["prefix"]
+        if options.get("strict"):
+            kwargs["strict"] = True
+        if options.get("json"):
+            kwargs["json"] = True
+        call_command("validate_api", **kwargs)
+
+    def handle_migrate_from(self, options):
+        """Migrate from another framework (delegates to matt_migrate_from)."""
+        from django.core.management import call_command
+        args = []
+        if options.get("framework"):
+            args.append(options["framework"])
+        kwargs = {}
+        if options.get("dry_run"):
+            kwargs["dry_run"] = True
+        call_command("matt_migrate_from", *args, **kwargs)
+
+    def handle_ai(self, options):
+        """Generate AI context files (delegates to generate_ai_context)."""
+        from django.core.management import call_command
+        kwargs = {}
+        if options.get("format"):
+            kwargs["format"] = options["format"]
+        if options.get("output"):
+            kwargs["output"] = options["output"]
+        if options.get("dry_run"):
+            kwargs["dry_run"] = True
+        call_command("generate_ai_context", **kwargs)
 
     # =========================================================================
     # Helper Methods

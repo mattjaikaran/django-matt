@@ -14,15 +14,14 @@ Usage:
     matt --help             # Show all commands
 """
 
-import os
-import sys
-from pathlib import Path
 from typing import Optional
 
 import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+
+from django_matt.cli.utils import run_manage_command
 
 # Create the main Typer app
 app = typer.Typer(
@@ -33,69 +32,6 @@ app = typer.Typer(
 )
 
 console = Console()
-
-
-def find_project_root() -> Optional[Path]:
-    """Find the project root (directory containing manage.py)."""
-    current = Path.cwd()
-
-    if (current / "manage.py").exists():
-        return current
-
-    for _ in range(5):
-        current = current.parent
-        if (current / "manage.py").exists():
-            return current
-
-    return None
-
-
-def setup_django_settings():
-    """Try to auto-detect and set DJANGO_SETTINGS_MODULE."""
-    if os.environ.get("DJANGO_SETTINGS_MODULE"):
-        return True
-
-    # Common settings patterns
-    patterns = [
-        "config.settings",
-        "settings",
-        "core.settings",
-        "project.settings",
-        "{project}.settings",  # Will try project name
-    ]
-
-    project_root = find_project_root()
-    if project_root:
-        # Add project root to path
-        sys.path.insert(0, str(project_root))
-
-        # Try to guess project name from directory structure
-        project_name = None
-        for item in project_root.iterdir():
-            if item.is_dir() and (item / "settings.py").exists():
-                project_name = item.name
-                break
-            if item.is_dir() and (item / "__init__.py").exists():
-                settings_path = item / "settings.py"
-                wsgi_path = item / "wsgi.py"
-                if settings_path.exists() or wsgi_path.exists():
-                    project_name = item.name
-                    break
-
-        if project_name:
-            patterns.insert(0, f"{project_name}.settings")
-
-    for pattern in patterns:
-        try:
-            os.environ["DJANGO_SETTINGS_MODULE"] = pattern
-            import django
-
-            django.setup()
-            return True
-        except Exception:
-            del os.environ["DJANGO_SETTINGS_MODULE"]
-
-    return False
 
 
 def version_callback(value: bool):
@@ -206,6 +142,10 @@ def main(
         other_table.add_row("status", "Check project health")
         other_table.add_row("deploy", "Deploy to cloud platforms")
         other_table.add_row("ai", "Generate AI context files")
+        other_table.add_row("explain", "Explain request flow for a URL path")
+        other_table.add_row("schemas", "List all Pydantic schemas")
+        other_table.add_row("validate", "Validate API endpoints")
+        other_table.add_row("migrate-from", "Migrate from another framework")
 
         console.print(
             Panel(other_table, title="[bold]Analysis & Deployment[/]", border_style="blue")
@@ -307,26 +247,63 @@ def ai(
     dry_run: bool = typer.Option(False, "--dry-run", help="Preview without writing"),
 ):
     """Generate AI context files (CLAUDE.md, .cursorrules)."""
-    import subprocess
-    import sys
-
-    manage_py = find_project_root()
-    if manage_py:
-        manage_py = manage_py / "manage.py"
-    else:
-        console.print("[red]Error: Could not find manage.py[/]")
-        raise typer.Exit(1)
-
     console.print("\n[bold magenta]Generating AI context files...[/]\n")
 
-    command = [sys.executable, str(manage_py), "generate_ai_context"]
-    command.extend(["--output", output])
-    command.extend(["--format", format])
-
+    command = ["generate_ai_context", "--output", output, "--format", format]
     if dry_run:
         command.append("--dry-run")
 
-    subprocess.run(command, check=False)
+    run_manage_command(command)
+
+
+@app.command()
+def explain(
+    path: str = typer.Argument(..., help="URL path to explain (e.g., /api/users/)"),
+):
+    """Explain request flow for a URL path."""
+    console.print(f"\n[bold magenta]Explaining request flow for {path}...[/]\n")
+    run_manage_command(["matt_explain", path])
+
+
+@app.command()
+def schemas(
+    app_name: Optional[str] = typer.Option(None, "--app", "-a", help="Filter by app name"),
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+):
+    """List all Pydantic schemas in the project."""
+    command = ["matt_schemas"]
+    if app_name:
+        command.extend(["--app", app_name])
+    if json_output:
+        command.append("--json")
+    run_manage_command(command)
+
+
+@app.command()
+def validate(
+    prefix: str = typer.Option("/api/", "--prefix", help="URL prefix to scan"),
+    strict: bool = typer.Option(False, "--strict", help="Treat warnings as errors"),
+    json_output: bool = typer.Option(False, "--json", "-j", help="Output as JSON"),
+):
+    """Validate API endpoints for common issues."""
+    command = ["validate_api", "--prefix", prefix]
+    if strict:
+        command.append("--strict")
+    if json_output:
+        command.append("--json")
+    run_manage_command(command)
+
+
+@app.command(name="migrate-from")
+def migrate_from(
+    framework: str = typer.Argument(..., help="Source framework (e.g., ninja, drf)"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview without changes"),
+):
+    """Migrate from another framework to django-matt."""
+    command = ["matt_migrate_from", framework]
+    if dry_run:
+        command.append("--dry-run")
+    run_manage_command(command)
 
 
 if __name__ == "__main__":

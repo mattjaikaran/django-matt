@@ -169,6 +169,67 @@ class TestPatternInfo:
 
 
 @dataclass
+class ServiceInfo:
+    """Information about a service class in the project."""
+
+    name: str
+    module: str
+    methods: list[dict[str, Any]] = field(default_factory=list)
+    is_async: bool = False
+    docstring: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary representation."""
+        return {
+            "name": self.name,
+            "module": self.module,
+            "methods": self.methods,
+            "is_async": self.is_async,
+            "docstring": self.docstring,
+        }
+
+
+@dataclass
+class AsyncWarning:
+    """Warning about sync ORM usage in async context."""
+
+    file: str
+    line: int
+    function: str
+    issue: str
+    suggestion: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary representation."""
+        return {
+            "file": self.file,
+            "line": self.line,
+            "function": self.function,
+            "issue": self.issue,
+            "suggestion": self.suggestion,
+        }
+
+
+@dataclass
+class EnvironmentVar:
+    """Information about an environment variable used in settings."""
+
+    name: str
+    default: str | None = None
+    required: bool = True
+    source_file: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary representation."""
+        return {
+            "name": self.name,
+            "default": self.default,
+            "required": self.required,
+            "source_file": self.source_file,
+        }
+
+
+@dataclass
 class EnhancedProjectInfo:
     """Enhanced project information with deep introspection."""
 
@@ -185,6 +246,9 @@ class EnhancedProjectInfo:
     installed_apps: list[str] = field(default_factory=list)
     databases: dict[str, str] = field(default_factory=dict)
     code_examples: dict[str, list[dict[str, str]]] = field(default_factory=dict)
+    services: list[ServiceInfo] = field(default_factory=list)
+    environment: list[EnvironmentVar] = field(default_factory=list)
+    async_warnings: list[AsyncWarning] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
@@ -202,6 +266,9 @@ class EnhancedProjectInfo:
             "installed_apps": self.installed_apps,
             "databases": self.databases,
             "code_examples": self.code_examples,
+            "services": [s.to_dict() for s in self.services],
+            "environment": [e.to_dict() for e in self.environment],
+            "async_warnings": [w.to_dict() for w in self.async_warnings],
         }
 
 
@@ -316,6 +383,15 @@ class EnhancedIntrospector:
 
         # Introspect test patterns
         info.test_patterns = self._introspect_test_patterns()
+
+        # Introspect services
+        info.services = self._introspect_services()
+
+        # Introspect environment variables
+        info.environment = self._introspect_environment()
+
+        # Detect async safety issues
+        info.async_warnings = self._detect_async_patterns()
 
         # Extract code examples
         if self.include_examples:
@@ -860,6 +936,227 @@ class EnhancedIntrospector:
 
         return test_info
 
+    def _introspect_services(self) -> list[ServiceInfo]:
+        """Scan apps for services.py and extract service class info."""
+        services = []
+
+        for app_config in apps.get_app_configs():
+            if app_config.label in self.exclude_apps:
+                continue
+            if not self._is_project_app(app_config):
+                continue
+
+            # Look for services.py or service.py
+            for module_name in ["services", "service"]:
+                try:
+                    module = importlib.import_module(f"{app_config.name}.{module_name}")
+                except ImportError:
+                    continue
+
+                for name, obj in inspect.getmembers(module, inspect.isclass):
+                    if obj.__module__ != module.__name__:
+                        continue
+                    if name.startswith("_"):
+                        continue
+
+                    methods = []
+                    has_async = False
+                    for method_name, method in inspect.getmembers(obj, predicate=inspect.isfunction):
+                        if method_name.startswith("_") and method_name != "__init__":
+                            continue
+
+                        is_async = inspect.iscoroutinefunction(method)
+                        if is_async:
+                            has_async = True
+
+                        try:
+                            sig = inspect.signature(method)
+                            params = [
+                                {
+                                    "name": p.name,
+                                    "type": str(p.annotation)
+                                    if p.annotation != inspect.Parameter.empty
+                                    else "Any",
+                                }
+                                for p in sig.parameters.values()
+                                if p.name != "self"
+                            ]
+                            return_type = (
+                                str(sig.return_annotation)
+                                if sig.return_annotation != inspect.Signature.empty
+                                else None
+                            )
+                        except (ValueError, TypeError):
+                            params = []
+                            return_type = None
+
+                        methods.append(
+                            {
+                                "name": method_name,
+                                "is_async": is_async,
+                                "params": params,
+                                "return_type": return_type,
+                            }
+                        )
+
+                    services.append(
+                        ServiceInfo(
+                            name=name,
+                            module=module.__name__,
+                            methods=methods,
+                            is_async=has_async,
+                            docstring=inspect.getdoc(obj) or "",
+                        )
+                    )
+
+        return services
+
+    def _introspect_environment(self) -> list[EnvironmentVar]:
+        """Parse settings files for os.environ.get() / os.getenv() calls."""
+        env_vars: list[EnvironmentVar] = []
+        seen_names: set[str] = set()
+
+        # Patterns to match environment variable access
+        patterns = [
+            # os.environ.get("VAR", "default")
+            re.compile(r'os\.environ\.get\(\s*["\'](\w+)["\']\s*(?:,\s*(.+?))?\s*\)'),
+            # os.getenv("VAR", "default")
+            re.compile(r'os\.getenv\(\s*["\'](\w+)["\']\s*(?:,\s*(.+?))?\s*\)'),
+            # os.environ["VAR"]
+            re.compile(r'os\.environ\[\s*["\'](\w+)["\']\s*\]'),
+            # env("VAR", default="value") — django-environ style
+            re.compile(r'env\(\s*["\'](\w+)["\']\s*(?:,\s*default\s*=\s*(.+?))?\s*\)'),
+        ]
+
+        # Find settings files
+        settings_files = []
+        settings_module = getattr(settings, "SETTINGS_MODULE", "")
+        if settings_module:
+            parts = settings_module.replace(".", "/")
+            settings_path = self._project_root / f"{parts}.py"
+            if settings_path.exists():
+                settings_files.append(settings_path)
+            # Check for settings directory
+            settings_dir = self._project_root / parts
+            if settings_dir.is_dir():
+                settings_files.extend(settings_dir.glob("*.py"))
+
+        # Also check common settings locations
+        for candidate in ["settings.py", "config/settings.py", ".env.example"]:
+            candidate_path = self._project_root / candidate
+            if candidate_path.exists() and candidate_path not in settings_files:
+                settings_files.append(candidate_path)
+
+        for settings_file in settings_files:
+            try:
+                content = settings_file.read_text()
+                rel_path = str(settings_file.relative_to(self._project_root))
+
+                for pattern in patterns:
+                    for match in pattern.finditer(content):
+                        var_name = match.group(1)
+                        if var_name in seen_names:
+                            continue
+                        seen_names.add(var_name)
+
+                        default = match.group(2).strip("'\" ") if len(match.groups()) > 1 and match.group(2) else None
+                        env_vars.append(
+                            EnvironmentVar(
+                                name=var_name,
+                                default=default,
+                                required=default is None,
+                                source_file=rel_path,
+                            )
+                        )
+            except Exception:
+                continue
+
+        return env_vars
+
+    def _detect_async_patterns(self) -> list[AsyncWarning]:
+        """Detect async views using sync ORM calls (the #1 async footgun)."""
+        warnings: list[AsyncWarning] = []
+
+        # Sync ORM methods that should be async
+        sync_orm_methods = {
+            ".get(": ".aget(",
+            ".filter(": ".afilter(",
+            ".all()": ".aall()",
+            ".create(": ".acreate(",
+            ".save(": ".asave(",
+            ".delete(": ".adelete(",
+            ".update(": ".aupdate(",
+            ".first()": ".afirst()",
+            ".last()": ".alast()",
+            ".exists()": ".aexists()",
+            ".count()": ".acount()",
+            ".exclude(": ".aexclude(",
+            ".bulk_create(": ".abulk_create(",
+            ".bulk_update(": ".abulk_update(",
+        }
+
+        for app_config in apps.get_app_configs():
+            if app_config.label in self.exclude_apps:
+                continue
+            if not self._is_project_app(app_config):
+                continue
+
+            app_path = Path(app_config.path)
+
+            # Scan views.py, controllers.py, services.py
+            for filename in ["views.py", "controllers.py", "services.py"]:
+                filepath = app_path / filename
+                if not filepath.exists():
+                    continue
+
+                try:
+                    content = filepath.read_text()
+                    lines = content.split("\n")
+                    rel_path = str(filepath.relative_to(self._project_root))
+
+                    in_async_func = False
+                    current_func = ""
+                    indent_level = 0
+
+                    for i, line in enumerate(lines):
+                        stripped = line.lstrip()
+
+                        # Track async function definitions
+                        if stripped.startswith("async def "):
+                            in_async_func = True
+                            current_func = stripped.split("(")[0].replace("async def ", "")
+                            indent_level = len(line) - len(stripped)
+                        elif stripped.startswith("def ") and not stripped.startswith("def _"):
+                            in_async_func = False
+                        elif in_async_func and stripped and not line.startswith(" " * (indent_level + 1)):
+                            if not stripped.startswith("#") and not stripped.startswith("@"):
+                                in_async_func = False
+
+                        if not in_async_func:
+                            continue
+
+                        # Check for sync ORM calls
+                        for sync_call, async_call in sync_orm_methods.items():
+                            if sync_call in line and async_call not in line:
+                                # Skip comments and strings
+                                code_part = line.split("#")[0]
+                                if sync_call in code_part:
+                                    warnings.append(
+                                        AsyncWarning(
+                                            file=rel_path,
+                                            line=i + 1,
+                                            function=current_func,
+                                            issue=f"Sync ORM call `{sync_call.strip('(')}`"
+                                            f" in async function `{current_func}`",
+                                            suggestion=f"Use `{async_call.strip('(')}`"
+                                            f" instead of `{sync_call.strip('(')}`",
+                                        )
+                                    )
+                except Exception:
+                    continue
+
+        return warnings
+
     def _extract_code_examples(self) -> dict[str, list[dict[str, str]]]:
         """Extract code examples from the codebase."""
         examples: dict[str, list[dict[str, str]]] = {
@@ -955,12 +1252,15 @@ class EnhancedIntrospector:
 
 
 __all__ = [
+    "AsyncWarning",
     "AuthRequirement",
     "EndpointInfo",
     "EnhancedIntrospector",
     "EnhancedProjectInfo",
+    "EnvironmentVar",
     "ExamplePayload",
     "PydanticSchemaInfo",
     "SchemaFieldInfo",
+    "ServiceInfo",
     "TestPatternInfo",
 ]

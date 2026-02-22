@@ -37,6 +37,14 @@ CLAUDE_MD_TEMPLATE = """# {project_name} - AI Assistant Context
 
 {auth_section}
 
+{async_safety_section}
+
+{error_handling_section}
+
+{service_layer_section}
+
+{environment_section}
+
 {test_patterns_section}
 
 {code_examples_section}
@@ -147,6 +155,8 @@ CURSOR_RULES_TEMPLATE = """# {project_name} - Cursor Rules
 
 {schema_rules}
 
+{async_safety_rules}
+
 ## Import Preferences
 
 # Core imports
@@ -239,6 +249,10 @@ class CreateItemRequest(BaseModel):
 
 {schemas_context}
 
+{async_patterns_context}
+
+{error_handling_context}
+
 ## Authentication Patterns
 - `@jwt_required` - Requires valid JWT token
 - `@jwt_optional` - Token optional, sets request.user if present
@@ -324,15 +338,22 @@ def render_template(template: str, context: dict[str, Any]) -> str:
         "endpoints_section": "",
         "schemas_section": "",
         "auth_section": "",
+        "async_safety_section": "",
+        "error_handling_section": "",
+        "service_layer_section": "",
+        "environment_section": "",
         "test_patterns_section": "",
         "code_examples_section": "",
         "important_files": "",
         "models_rules": "",
         "endpoints_rules": "",
         "schema_rules": "",
+        "async_safety_rules": "",
         "models_context": "",
         "endpoints_context": "",
         "schemas_context": "",
+        "async_patterns_context": "",
+        "error_handling_context": "",
     }
 
     # Merge defaults with provided context
@@ -615,18 +636,177 @@ def format_schema_rules(schemas: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def format_async_safety_section(
+    async_warnings: list[dict[str, Any]],
+    endpoints: list[dict[str, Any]],
+) -> str:
+    """Format async safety section for CLAUDE.md."""
+    has_async = any(
+        ep.get("view_name", "").startswith("async") or ep.get("method", "") != ""
+        for ep in endpoints
+    )
+
+    lines = ["## Async Safety Guide", ""]
+    lines.append("### Rules")
+    lines.append("- **NEVER** use sync ORM methods in async views/functions")
+    lines.append("- Use async ORM methods: `.aget()`, `.afilter()`, `.acreate()`, `.asave()`, `.adelete()`")
+    lines.append("- For sync code in async context, wrap with `sync_to_async()`")
+    lines.append("")
+    lines.append("### Correct vs Incorrect")
+    lines.append("```python")
+    lines.append("# WRONG - blocks the event loop")
+    lines.append("async def get_user(request, pk):")
+    lines.append("    user = User.objects.get(pk=pk)  # sync call in async!")
+    lines.append("")
+    lines.append("# CORRECT - async ORM method")
+    lines.append("async def get_user(request, pk):")
+    lines.append("    user = await User.objects.aget(pk=pk)")
+    lines.append("")
+    lines.append("# CORRECT - sync_to_async wrapper")
+    lines.append("from asgiref.sync import sync_to_async")
+    lines.append("async def get_user(request, pk):")
+    lines.append("    user = await sync_to_async(User.objects.get)(pk=pk)")
+    lines.append("```")
+
+    if async_warnings:
+        lines.append("")
+        lines.append(f"### Current Issues ({len(async_warnings)} detected)")
+        for w in async_warnings[:10]:
+            lines.append(f"- `{w['file']}:{w['line']}` in `{w['function']}`: {w['issue']}")
+
+    return "\n".join(lines)
+
+
+def format_error_handling_section(project_info: dict[str, Any]) -> str:
+    """Format error handling section for CLAUDE.md."""
+    lines = ["## Error Handling", ""]
+    lines.append("### Framework Error Classes")
+    lines.append("```python")
+    lines.append("from django_matt.core.errors import (")
+    lines.append("    APIError,              # Base error (status, message, code)")
+    lines.append("    ValidationAPIError,    # 400 - validation failures")
+    lines.append("    AuthenticationError,   # 401 - not authenticated")
+    lines.append("    PermissionError,       # 403 - not authorized")
+    lines.append("    NotFoundAPIError,      # 404 - resource not found")
+    lines.append("    ConflictAPIError,      # 409 - resource conflict")
+    lines.append("    RateLimitError,        # 429 - rate limited")
+    lines.append(")")
+    lines.append("```")
+    lines.append("")
+    lines.append("### Usage Patterns")
+    lines.append("```python")
+    lines.append("# Raise specific errors — framework handles JSON response")
+    lines.append("raise NotFoundAPIError(f'User {pk} not found')")
+    lines.append("raise ValidationAPIError('Email is required', field='email')")
+    lines.append("")
+    lines.append("# Custom errors")
+    lines.append("raise APIError(status=402, message='Payment required', code='payment_required')")
+    lines.append("```")
+
+    return "\n".join(lines)
+
+
+def format_service_layer_section(services: list[dict[str, Any]]) -> str:
+    """Format service layer section for CLAUDE.md."""
+    if not services:
+        return ""
+
+    lines = ["## Service Layer", ""]
+    lines.append("Detected service classes in the project:")
+    lines.append("")
+
+    for svc in services[:15]:
+        async_badge = " (async)" if svc.get("is_async") else ""
+        lines.append(f"### `{svc['name']}`{async_badge}")
+        if svc.get("docstring"):
+            lines.append(f"_{svc['docstring'].split(chr(10))[0]}_")
+        lines.append(f"Module: `{svc['module']}`")
+        lines.append("")
+
+        if svc.get("methods"):
+            for method in svc["methods"][:8]:
+                async_prefix = "async " if method.get("is_async") else ""
+                params_str = ", ".join(p["name"] for p in method.get("params", []))
+                ret = f" -> {method['return_type']}" if method.get("return_type") else ""
+                lines.append(f"- `{async_prefix}{method['name']}({params_str}){ret}`")
+            if len(svc["methods"]) > 8:
+                lines.append(f"- ... and {len(svc['methods']) - 8} more methods")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def format_environment_section(environment: list[dict[str, Any]]) -> str:
+    """Format environment variables section for CLAUDE.md."""
+    if not environment:
+        return ""
+
+    lines = ["## Environment Variables", ""]
+
+    required = [e for e in environment if e.get("required", True)]
+    optional = [e for e in environment if not e.get("required", True)]
+
+    if required:
+        lines.append("### Required")
+        lines.append("| Variable | Source |")
+        lines.append("|----------|--------|")
+        for var in required[:20]:
+            lines.append(f"| `{var['name']}` | `{var.get('source_file', '')}` |")
+        lines.append("")
+
+    if optional:
+        lines.append("### Optional (with defaults)")
+        lines.append("| Variable | Default | Source |")
+        lines.append("|----------|---------|--------|")
+        for var in optional[:20]:
+            default = var.get("default", "")
+            if default and len(str(default)) > 30:
+                default = str(default)[:27] + "..."
+            lines.append(f"| `{var['name']}` | `{default}` | `{var.get('source_file', '')}` |")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def format_async_safety_rules(async_warnings: list[dict[str, Any]]) -> str:
+    """Format async safety rules for Cursor."""
+    lines = ["## Async Safety", ""]
+    lines.append("# CRITICAL: Never use sync ORM in async views")
+    lines.append("- .get() -> .aget()")
+    lines.append("- .filter() -> .afilter()")
+    lines.append("- .create() -> .acreate()")
+    lines.append("- .save() -> .asave()")
+    lines.append("- .delete() -> .adelete()")
+    lines.append("- .all() -> .aall()")
+    lines.append("- .first() -> .afirst()")
+    lines.append("- .exists() -> .aexists()")
+    lines.append("- .count() -> .acount()")
+    lines.append("- Or wrap with sync_to_async()")
+
+    if async_warnings:
+        lines.append("")
+        lines.append(f"# WARNING: {len(async_warnings)} async safety issue(s) detected in codebase")
+
+    return "\n".join(lines)
+
+
 __all__ = [
     "CLAUDE_MD_TEMPLATE",
     "COPILOT_INSTRUCTIONS_TEMPLATE",
     "CURSOR_RULES_TEMPLATE",
+    "format_async_safety_rules",
+    "format_async_safety_section",
     "format_auth_section",
     "format_code_examples_section",
     "format_endpoints_rules",
     "format_endpoints_section",
+    "format_environment_section",
+    "format_error_handling_section",
     "format_models_rules",
     "format_models_section",
     "format_schema_rules",
     "format_schemas_section",
+    "format_service_layer_section",
     "format_tech_stack",
     "format_test_patterns_section",
     "get_template",
