@@ -5,7 +5,7 @@ Service template generation.
 
 def generate_service_template(name: str) -> str:
     """
-    Generate a service layer template.
+    Generate a service layer template that inherits from CRUDService.
 
     Args:
         name: The model/resource name (e.g., "Product", "User")
@@ -20,91 +20,83 @@ def generate_service_template(name: str) -> str:
         f"{name} Service Layer.",
         "",
         f"Contains business logic for {name} operations.",
-        "Keep controllers thin - they should only handle HTTP concerns.",
+        "Keep controllers thin — they should only handle HTTP concerns.",
         '"""',
         "",
-        "from django.http import Http404",
+        "from __future__ import annotations",
+        "",
+        "from django_matt.services import CRUDService",
         "",
         f"from .models import {name}",
-        f"from .{name_lower}_schemas import {name}CreateSchema, {name}UpdateSchema",
         "",
         "",
-        f"class {name}Service:",
-        f'    """Service for {name} business logic."""',
+        f"class {name}Service(CRUDService[\"{name}\"]):",
+        f'    """Business logic for {name}."""',
+        "",
+        f"    model = {name}",
+        "",
+        "    def get_queryset(self):",
+        '        """Override to add select_related, default ordering, etc."""',
+        "        return super().get_queryset()",
+        "",
+        "    # ------------------------------------------------------------------",
+        "    # Domain methods (add your custom business logic below)",
+        "    # ------------------------------------------------------------------",
+        "",
+        f"    # async def get_active_{name_lower}s(self):",
+        f'    #     """Return only active {name_lower}s."""',
+        f"    #     return await self.all(is_active=True)",
         "",
     ]
-
-    lines.extend(_generate_list_method(name))
-    lines.extend(_generate_get_method(name))
-    lines.extend(_generate_create_method(name))
-    lines.extend(_generate_update_method(name))
-    lines.extend(_generate_delete_method(name))
 
     return "\n".join(lines)
 
 
-def _generate_list_method(name: str) -> list[str]:
-    """Generate the list method."""
-    return [
-        "    async def list(self, page: int = 1, page_size: int = 20, **filters):",
-        f'        """List {name} objects with pagination."""',
-        f"        queryset = {name}.objects.all()",
-        "        for key, value in filters.items():",
-        "            if value is not None:",
-        "                queryset = queryset.filter(**{key: value})",
-        "        total = await queryset.acount()",
-        "        offset = (page - 1) * page_size",
-        "        items = [item async for item in queryset[offset:offset + page_size]]",
-        "        return items, total",
+def generate_third_party_service_template(name: str, base_url: str = "") -> str:
+    """
+    Generate a third-party service template that inherits from BaseThirdPartyService.
+
+    Args:
+        name: The service name (e.g., "Stripe", "Resend")
+        base_url: The service's base URL
+
+    Returns:
+        Python code for the service
+    """
+    name_lower = name.lower()
+
+    lines = [
+        '"""',
+        f"{name} service client.",
+        "",
+        f"Wraps the {name} HTTP API.",
+        '"""',
+        "",
+        "from __future__ import annotations",
+        "",
+        "from django.conf import settings",
+        "",
+        "from django_matt.services import BaseThirdPartyService, ThirdPartyServiceError",
+        "",
+        "",
+        f"class {name}Service(BaseThirdPartyService):",
+        f'    """{name} API client."""',
+        "",
+        f'    base_url = "{base_url}"',
+        "",
+        "    def _auth_headers(self) -> dict:",
+        f'        """Return {name} auth headers."""',
+        f"        api_key = getattr(settings, \"{name.upper()}_API_KEY\", \"\")",
+        '        return {"Authorization": f"Bearer {api_key}"}',
+        "",
+        "    # ------------------------------------------------------------------",
+        "    # API methods",
+        "    # ------------------------------------------------------------------",
+        "",
+        f"    # async def example_call(self, param: str) -> dict:",
+        f'    #     """Example API call."""',
+        f'    #     return await self._post("/endpoint", {{"param": param}})',
         "",
     ]
 
-
-def _generate_get_method(name: str) -> list[str]:
-    """Generate the get method."""
-    return [
-        "    async def get(self, id: int):",
-        f'        """Get a single {name} by ID."""',
-        "        try:",
-        f"            return await {name}.objects.aget(pk=id)",
-        f"        except {name}.DoesNotExist:",
-        f'            raise Http404(f"{name} {{id}} not found")',
-        "",
-    ]
-
-
-def _generate_create_method(name: str) -> list[str]:
-    """Generate the create method."""
-    return [
-        f"    async def create(self, data: {name}CreateSchema, user=None):",
-        f'        """Create a new {name}."""',
-        "        create_data = data.model_dump()",
-        f"        return await {name}.objects.acreate(**create_data)",
-        "",
-    ]
-
-
-def _generate_update_method(name: str) -> list[str]:
-    """Generate the update method."""
-    return [
-        f"    async def update(self, id: int, data: {name}UpdateSchema, partial: bool = False):",
-        f'        """Update a {name}."""',
-        "        item = await self.get(id)",
-        "        update_data = data.model_dump(exclude_unset=partial)",
-        "        for key, value in update_data.items():",
-        "            setattr(item, key, value)",
-        "        await item.asave()",
-        "        return item",
-        "",
-    ]
-
-
-def _generate_delete_method(name: str) -> list[str]:
-    """Generate the delete method."""
-    return [
-        "    async def delete(self, id: int) -> bool:",
-        f'        """Delete a {name}."""',
-        "        item = await self.get(id)",
-        "        await item.adelete()",
-        "        return True",
-    ]
+    return "\n".join(lines)
