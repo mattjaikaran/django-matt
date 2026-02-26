@@ -8,10 +8,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Generic, TypeVar
-
-# Type variable for provider-specific config
-ConfigT = TypeVar("ConfigT")
+from typing import Any
 
 
 class BillingError(Exception):
@@ -256,7 +253,7 @@ class OAuthLinkData:
     state: str = ""
 
 
-class BillingProvider(ABC, Generic[ConfigT]):
+class BillingProvider[ConfigT](ABC):
     """
     Abstract base class for billing providers.
 

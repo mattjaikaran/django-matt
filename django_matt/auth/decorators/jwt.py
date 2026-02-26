@@ -5,16 +5,14 @@ JWT authentication decorators.
 import inspect
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, TypeVar
+from typing import Any
 
 from django.http import JsonResponse
 
 from django_matt.auth.decorators.base import get_request
 
-F = TypeVar("F", bound=Callable[..., Any])
 
-
-def jwt_required(func: F) -> F:
+def jwt_required[F: Callable[..., Any]](func: F) -> F:
     """
     Decorator that requires a valid JWT token.
 
@@ -150,7 +148,7 @@ def jwt_required(func: F) -> F:
     return sync_wrapper  # type: ignore
 
 
-def jwt_optional(func: F) -> F:
+def jwt_optional[F: Callable[..., Any]](func: F) -> F:
     """
     Decorator that optionally authenticates with JWT.
 
@@ -230,6 +228,6 @@ def jwt_optional(func: F) -> F:
     return sync_wrapper  # type: ignore
 
 
-def requires_auth(func: F) -> F:
+def requires_auth[F: Callable[..., Any]](func: F) -> F:
     """Alias for jwt_required."""
     return jwt_required(func)

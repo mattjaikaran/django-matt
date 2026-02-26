@@ -10,7 +10,6 @@ Provides decorators for:
 import inspect
 from collections.abc import Callable
 from functools import wraps
-from typing import TypeVar
 
 from .container import (
     Container,
@@ -24,10 +23,8 @@ from .container import (
 )
 from .depends import aresolve_dependencies, resolve_dependencies
 
-T = TypeVar("T")
 
-
-def injectable(
+def injectable[T](
     cls: type[T] = None,
     *,
     lifetime: ServiceLifetime = ServiceLifetime.TRANSIENT,
@@ -164,7 +161,7 @@ def inject(
     return decorator
 
 
-def provides(
+def provides[T](
     service_type: type[T] = None,
     *,
     lifetime: ServiceLifetime = ServiceLifetime.TRANSIENT,
@@ -223,7 +220,7 @@ def provides(
     return decorator
 
 
-def singleton(
+def singleton[T](
     cls: type[T] = None,
     *,
     as_type: type = None,
@@ -243,7 +240,7 @@ def singleton(
     return injectable(cls, lifetime=Singleton, as_type=as_type, container=container)
 
 
-def scoped(
+def scoped[T](
     cls: type[T] = None,
     *,
     as_type: type = None,
@@ -263,7 +260,7 @@ def scoped(
     return injectable(cls, lifetime=Scoped, as_type=as_type, container=container)
 
 
-def transient(
+def transient[T](
     cls: type[T] = None,
     *,
     as_type: type = None,

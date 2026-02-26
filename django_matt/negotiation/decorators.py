@@ -6,7 +6,7 @@ Decorators for customizing content negotiation on a per-view basis.
 
 import functools
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 
@@ -17,10 +17,8 @@ from django_matt.negotiation.negotiator import (
     render_format,
 )
 
-F = TypeVar("F", bound=Callable[..., Any])
 
-
-def renders(*formats: FormatType) -> Callable[[F], F]:
+def renders(*formats: FormatType) -> Callable:
     """
     Decorator to specify which formats a view supports.
 
@@ -37,7 +35,7 @@ def renders(*formats: FormatType) -> Callable[[F], F]:
             return users
     """
 
-    def decorator(func: F) -> F:
+    def decorator[F: Callable[..., Any]](func: F) -> F:
         @functools.wraps(func)
         def wrapper(request: HttpRequest, *args, **kwargs):
             # Check if requested format is supported
@@ -108,7 +106,7 @@ def renders(*formats: FormatType) -> Callable[[F], F]:
     return decorator
 
 
-def render_as(format_name: FormatType) -> Callable[[F], F]:
+def render_as(format_name: FormatType) -> Callable:
     """
     Decorator to force a specific output format.
 
@@ -125,7 +123,7 @@ def render_as(format_name: FormatType) -> Callable[[F], F]:
             return data
     """
 
-    def decorator(func: F) -> F:
+    def decorator[F: Callable[..., Any]](func: F) -> F:
         @functools.wraps(func)
         def wrapper(request: HttpRequest, *args, **kwargs):
             result = func(request, *args, **kwargs)
@@ -151,7 +149,7 @@ def render_as(format_name: FormatType) -> Callable[[F], F]:
     return decorator
 
 
-def content_negotiated(func: F) -> F:
+def content_negotiated[F: Callable[..., Any]](func: F) -> F:
     """
     Decorator to enable content negotiation for a view.
 
@@ -213,7 +211,7 @@ def content_negotiated(func: F) -> F:
     return wrapper  # type: ignore
 
 
-def with_template(template_name: str) -> Callable[[F], F]:
+def with_template(template_name: str) -> Callable:
     """
     Decorator to specify HTML template for HTML responses.
 
@@ -231,7 +229,7 @@ def with_template(template_name: str) -> Callable[[F], F]:
             return {"users": users}
     """
 
-    def decorator(func: F) -> F:
+    def decorator[F: Callable[..., Any]](func: F) -> F:
         @functools.wraps(func)
         def wrapper(request: HttpRequest, *args, **kwargs):
             negotiator = get_negotiator()

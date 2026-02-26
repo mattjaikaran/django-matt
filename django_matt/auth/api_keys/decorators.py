@@ -5,13 +5,10 @@ API Key authentication decorators.
 import inspect
 from collections.abc import Callable
 from functools import wraps
-from typing import TypeVar
 
 from django.http import HttpRequest, JsonResponse
 
 from .utils import api_key_config, get_api_key_from_request, get_client_ip
-
-F = TypeVar("F", bound=Callable)
 
 
 def _get_request(*args, **kwargs) -> HttpRequest | None:
@@ -29,7 +26,7 @@ def _get_request(*args, **kwargs) -> HttpRequest | None:
     return kwargs.get("request")
 
 
-def api_key_required(func: F) -> F:
+def api_key_required[F: Callable](func: F) -> F:
     """
     Require a valid API key for the endpoint.
 
@@ -154,7 +151,7 @@ def api_key_required(func: F) -> F:
     return sync_wrapper  # type: ignore
 
 
-def api_key_optional(func: F) -> F:
+def api_key_optional[F: Callable](func: F) -> F:
     """
     Optionally authenticate with API key.
 
@@ -240,7 +237,7 @@ def requires_scope(*scopes: str):
             ...
     """
 
-    def decorator(func: F) -> F:
+    def decorator[F: Callable](func: F) -> F:
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
             request = _get_request(*args, **kwargs)
@@ -296,7 +293,7 @@ def requires_scope(*scopes: str):
     return decorator
 
 
-def requires_live_key(func: F) -> F:
+def requires_live_key[F: Callable](func: F) -> F:
     """
     Require a live (non-test) API key.
 
@@ -372,7 +369,7 @@ def requires_plan(*plans: str):
             ...
     """
 
-    def decorator(func: F) -> F:
+    def decorator[F: Callable](func: F) -> F:
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
             request = _get_request(*args, **kwargs)

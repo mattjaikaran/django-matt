@@ -74,8 +74,18 @@ class Controller:
     """
 
     prefix: str = ""
+    # Each subclass gets its own independent tags list via __init_subclass__.
+    # Never use a shared mutable class-level default (tags = []) here —
+    # that single list object is shared across ALL subclasses.
     tags: list[str] = []
     auto_error_handling: bool = True  # Enable automatic error handling by default
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        super().__init_subclass__(**kwargs)
+        # Give every subclass its own independent tags list so that
+        # appending to one subclass never bleeds into another.
+        if "tags" not in cls.__dict__:
+            cls.tags = []
 
     def __init__(self):
         self._setup_methods()

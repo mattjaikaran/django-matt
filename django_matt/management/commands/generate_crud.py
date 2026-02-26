@@ -1021,12 +1021,18 @@ class Command(GeneratorCommand):
         lines.append("")
 
         # Find searchable text fields from model
+        from django.apps import apps as django_apps
+
         search_fields = []
-        for field in model._meta.get_fields():
-            if hasattr(field, "get_internal_type"):
-                ft = field.get_internal_type()
-                if ft in ("CharField", "TextField") and field.name != "id":
-                    search_fields.append(field.name)
+        try:
+            model_class = django_apps.get_model(app_label, model_name)
+            for field in model_class._meta.get_fields():
+                if hasattr(field, "get_internal_type"):
+                    ft = field.get_internal_type()
+                    if ft in ("CharField", "TextField") and field.name != "id":
+                        search_fields.append(field.name)
+        except LookupError:
+            search_fields = []
 
         if search_fields:
             lines.append("        if search:")

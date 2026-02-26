@@ -5,11 +5,9 @@ Provides base schemas for common WebSocket message patterns.
 """
 
 from datetime import datetime
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 from pydantic import BaseModel, Field
-
-DataT = TypeVar("DataT")
 
 
 class BaseMessage(BaseModel):
@@ -182,7 +180,7 @@ class PresenceListMessage(BaseMessage):
 # -----------------------------------------------------------------------------
 
 
-class DataMessage(BaseMessage, Generic[DataT]):
+class DataMessage[DataT](BaseMessage):
     """Generic data message with typed payload."""
 
     type: str = "data"

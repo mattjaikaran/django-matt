@@ -5,8 +5,10 @@ import logging
 import os
 import sys
 import traceback
+from functools import wraps
 from typing import Any
 
+from django.conf import settings
 from django.http import HttpRequest, JsonResponse
 
 import orjson
@@ -19,14 +21,23 @@ class ErrorDetail:
     """
     Detailed error information with context.
 
-    This class provides rich error information including file location,
-    code snippets, and suggestions for fixing the error.
+    Supports two construction styles:
+
+    Style A — core/errors style (status_code-aware):
+        ErrorDetail(message, error_type, code, status_code, path, line_number, ...)
+
+    Style B — utils/errors style (traceback-first):
+        ErrorDetail(message, exception_type, traceback_str, file_path, line_number, ...)
+
+    Both styles expose the full set of attributes so that either can be passed
+    to either ``to_dict()`` implementation.
     """
 
     def __init__(
         self,
         message: str,
-        error_type: str,
+        # Style A fields
+        error_type: str | None = None,
         code: str = "error",
         status_code: int = 500,
         path: str | None = None,
@@ -34,13 +45,24 @@ class ErrorDetail:
         context: dict[str, Any] | None = None,
         suggestion: str | None = None,
         traceback_str: str | None = None,
-        code_snippet: list[str] | None = None,
+        code_snippet: list[str] | dict[int, str] | None = None,
+        # Style B additional fields
+        exception_type: str | None = None,
+        file_path: str | None = None,
     ):
         self.message = message
-        self.error_type = error_type
+        # Normalise: exception_type and error_type are the same concept
+        self.error_type = error_type or exception_type or "UnknownError"
+        self.exception_type = self.error_type  # alias for utils-style consumers
         self.code = code
         self.status_code = status_code
-        self.path = path
+        # Track which construction style was used for serialisation.
+        # utils/errors style: callers pass exception_type= or file_path=
+        # core/errors style: callers pass error_type= or path=
+        self._utils_style = exception_type is not None or file_path is not None
+        # Normalise: path and file_path are the same concept
+        self.path = path or file_path
+        self.file_path = self.path  # alias for utils-style consumers
         self.line_number = line_number
         self.context = context or {}
         self.suggestion = suggestion
@@ -48,20 +70,38 @@ class ErrorDetail:
         self.code_snippet = code_snippet
         self.timestamp = datetime.datetime.now().isoformat()
 
+    # ------------------------------------------------------------------
+    # Style A serialisation (used by core/errors consumers)
+    # ------------------------------------------------------------------
+
     def to_dict(
-        self, include_traceback: bool = False, include_snippet: bool = False
+        self,
+        include_traceback: bool = False,
+        include_snippet: bool = False,
     ) -> dict[str, Any]:
-        """Convert error details to a dictionary."""
-        result = {
+        """Convert error details to a dictionary.
+
+        Calling with no arguments produces the standard API envelope:
+            {"status": ..., "detail": "...", "extra": null}
+        """
+        result: dict[str, Any] = {
             "message": self.message,
             "error_type": self.error_type,
             "code": self.code,
             "status_code": self.status_code,
             "timestamp": self.timestamp,
         }
+        # utils/errors style: expose exception_type in output
+        if self._utils_style:
+            result["exception_type"] = self.error_type
 
         if self.path:
-            result["location"] = {"path": self.path, "line": self.line_number}
+            if self._utils_style:
+                # utils/errors style: location uses "file" key
+                result["location"] = {"file": self.path, "line": self.line_number}
+            else:
+                # core/errors style: location uses "path" key
+                result["location"] = {"path": self.path, "line": self.line_number}
 
         if self.context:
             result["context"] = self.context
@@ -72,8 +112,11 @@ class ErrorDetail:
         if include_traceback and self.traceback_str:
             result["traceback"] = self.traceback_str
 
-        if include_snippet and self.code_snippet:
-            result["code_snippet"] = self.code_snippet
+        if self.code_snippet:
+            if include_snippet or self._utils_style:
+                # utils style: always show snippet when present
+                # core style: only show when include_snippet=True
+                result["code_snippet"] = self.code_snippet
 
         return result
 
@@ -94,16 +137,39 @@ class ErrorDetail:
         )
 
 
+def _make_error_envelope(
+    status: int,
+    detail: str,
+    extra: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """
+    Build the standard API error envelope.
+
+    Response body:
+        {"status": 400, "detail": "message", "extra": null}
+
+    For field validation errors, ``extra`` should be:
+        [{"message": "...", "key": "field_name", "source": "body"}]
+
+    For 500s in production, ``extra`` should be ``None`` (security).
+    """
+    return {"status": status, "detail": detail, "extra": extra}
+
+
 class ErrorHandler:
     """
     Error handler for Django Matt framework.
 
-    This class provides methods for capturing, formatting, and responding to errors
-    with rich context and suggestions.
+    Supports both instance-based usage (core style) and static/class-method
+    usage (utils style).
     """
 
     def __init__(self, debug: bool = False):
         self.debug = debug
+
+    # ------------------------------------------------------------------
+    # Instance methods (core/errors style)
+    # ------------------------------------------------------------------
 
     def capture_exception(self, exc: Exception, request: HttpRequest | None = None) -> ErrorDetail:
         """
@@ -253,6 +319,152 @@ class ErrorHandler:
         # Default suggestion
         return "Review the error message and traceback for more information."
 
+    # ------------------------------------------------------------------
+    # Static / class methods (utils/errors style)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def get_code_snippet(
+        file_path: str, line_number: int, context_lines: int = 3
+    ) -> dict[int, str]:
+        """Get a code snippet around the error location (returns line-keyed dict)."""
+        if not os.path.exists(file_path):
+            return {}
+
+        try:
+            with open(file_path) as f:
+                lines = f.readlines()
+
+            start_line = max(0, line_number - context_lines - 1)
+            end_line = min(len(lines), line_number + context_lines)
+
+            return {i + 1: lines[i].rstrip() for i in range(start_line, end_line)}
+        except Exception:
+            return {}
+
+    @staticmethod
+    def extract_error_location(tb_frame) -> tuple[str, int]:
+        """Extract file path and line number from a traceback frame."""
+        file_path = tb_frame.tb_frame.f_code.co_filename
+        line_number = tb_frame.tb_lineno
+        return file_path, line_number
+
+    @staticmethod
+    def generate_suggestion(exception: Exception, error_type: str) -> str | None:
+        """Generate a helpful suggestion based on the exception type (utils style)."""
+        if error_type == "ValidationError":
+            return "Check the data structure against the schema requirements."
+        if error_type == "TypeError":
+            return "Verify the types of all arguments being passed."
+        if error_type == "AttributeError":
+            return "Ensure the object has the attribute you're trying to access."
+        if error_type == "ImportError":
+            return "Check that the module exists and is installed."
+        if error_type == "KeyError":
+            return "Verify the key exists in the dictionary before accessing it."
+        if error_type == "IndexError":
+            return "Ensure the index is within the bounds of the list."
+        if error_type == "SyntaxError":
+            return "Fix the syntax error in your code."
+        if error_type == "NameError":
+            return "Make sure the variable is defined before using it."
+        if error_type == "FileNotFoundError":
+            return "Verify the file path is correct and the file exists."
+        if error_type == "PermissionError":
+            return "Check file permissions or if you have the necessary access rights."
+        if error_type == "ConnectionError":
+            return "Verify network connectivity and that the service is running."
+        if error_type == "ValueError":
+            return "Check that the value is appropriate for the operation."
+        if error_type == "ZeroDivisionError":
+            return "Avoid dividing by zero; add a check before division."
+        if error_type == "AssertionError":
+            return "The assertion condition failed; check your assumptions."
+        if error_type == "RuntimeError":
+            return "A runtime error occurred; check the execution flow."
+        if error_type == "NotImplementedError":
+            return "This feature is not implemented yet; implement it or use an alternative."
+        if error_type == "RecursionError":
+            return "Your recursion is too deep; check for infinite recursion or use iteration."
+        if error_type == "MemoryError":
+            return "The operation is using too much memory; optimize memory usage."
+        if error_type == "TimeoutError":
+            return "The operation timed out; check for long-running operations or increase timeout."
+        if error_type == "StopIteration":
+            return "The iterator has no more items; check your iteration logic."
+        return None
+
+    @classmethod
+    def capture_error(cls, exception: Exception) -> "ErrorDetail":
+        """Capture and format error details from an exception (utils/errors style)."""
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+
+        # Get the traceback as a string
+        traceback_str = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+
+        # Get the error type
+        error_type = exc_type.__name__ if exc_type else "Unknown"
+
+        # Get the error message
+        error_message = str(exc_value) if exc_value else "No error message"
+
+        # Get the traceback frame for the error location
+        tb_frame = exc_traceback
+        while tb_frame and tb_frame.tb_next:
+            tb_frame = tb_frame.tb_next
+
+        file_path = None
+        line_number = None
+        code_snippet: dict[int, str] = {}
+
+        if tb_frame:
+            file_path, line_number = cls.extract_error_location(tb_frame)
+            if file_path and line_number:
+                code_snippet = cls.get_code_snippet(file_path, line_number)
+
+        # Generate a suggestion
+        suggestion = cls.generate_suggestion(exception, error_type)
+
+        # Create context information
+        context = {}
+
+        # For validation errors, add more context
+        if isinstance(exception, ValidationError):
+            context["validation_errors"] = exception.errors()
+
+        return ErrorDetail(
+            message=error_message,
+            exception_type=error_type,
+            traceback_str=traceback_str,
+            file_path=file_path,
+            line_number=line_number,
+            code_snippet=code_snippet,
+            context=context,
+            suggestion=suggestion,
+        )
+
+    @classmethod
+    def format_response(
+        cls, exception: Exception, include_traceback: bool | None = None
+    ) -> dict[str, Any]:
+        """Format an exception into a detailed error response (utils/errors style)."""
+        if include_traceback is None:
+            include_traceback = getattr(settings, "DEBUG", False)
+
+        error_detail = cls.capture_error(exception)
+        return {"error": error_detail.to_dict(include_traceback=include_traceback)}
+
+    @classmethod
+    def json_response(
+        cls,
+        exception: Exception,
+        status_code: int = 500,
+        include_traceback: bool | None = None,
+    ) -> JsonResponse:
+        """Create a JSON response with detailed error information (utils/errors style)."""
+        response_data = cls.format_response(exception, include_traceback)
+        return JsonResponse(response_data, status=status_code)
+
 
 class APIError(Exception):
     """
@@ -275,6 +487,13 @@ class APIError(Exception):
         self.context = context or {}
         self.suggestion = suggestion
         super().__init__(message)
+
+    def to_response(self) -> JsonResponse:
+        """Render the standard error envelope as a JSON response."""
+        is_debug = os.environ.get("DJANGO_DEBUG", "False").lower() == "true"
+        extra = self.context if (is_debug and self.context) else None
+        envelope = _make_error_envelope(self.status_code, self.message, extra)
+        return JsonResponse(envelope, status=self.status_code)
 
 
 class ValidationAPIError(APIError):
@@ -299,6 +518,21 @@ class ValidationAPIError(APIError):
             context=context,
             suggestion=suggestion or "Check the request data against the schema requirements.",
         )
+
+    def to_response(self) -> JsonResponse:
+        """Render with field-level ``extra`` list in the standard envelope."""
+        extra: list[dict[str, Any]] | None = None
+        if self.errors:
+            extra = [
+                {
+                    "message": e.get("message", e.get("msg", str(e))),
+                    "key": e.get("field", e.get("loc", ["unknown"])[-1] if isinstance(e.get("loc"), (list, tuple)) else e.get("loc", "unknown")),
+                    "source": "body",
+                }
+                for e in self.errors
+            ]
+        envelope = _make_error_envelope(self.status_code, self.message, extra)
+        return JsonResponse(envelope, status=self.status_code)
 
 
 class NotFoundAPIError(APIError):
@@ -439,12 +673,71 @@ class ConfigurationError(APIError):
 PermissionDeniedAPIError = PermissionAPIError
 
 
+class ValidationErrorFormatter:
+    """
+    Utility class to format Pydantic validation errors in a more user-friendly way.
+    """
+
+    @staticmethod
+    def format_error_path(error_loc: tuple) -> str:
+        """Format the error location path in a readable format."""
+        path_parts = []
+        for part in error_loc:
+            if isinstance(part, int):
+                path_parts.append(f"[{part}]")
+            elif path_parts:
+                path_parts.append(f".{part}")
+            else:
+                path_parts.append(str(part))
+
+        return "".join(path_parts)
+
+    @staticmethod
+    def format_validation_error(error: ValidationError) -> dict[str, Any]:
+        """Format a Pydantic validation error into a user-friendly structure."""
+        formatted_errors = []
+
+        for error_dict in error.errors():
+            loc = error_dict.get("loc", ())
+            msg = error_dict.get("msg", "")
+            error_type = error_dict.get("type", "")
+
+            formatted_error = {
+                "path": ValidationErrorFormatter.format_error_path(loc),
+                "message": msg,
+                "error_type": error_type,
+            }
+
+            # Add a more user-friendly message based on the error type
+            if error_type == "missing":
+                formatted_error["friendly_message"] = (
+                    f"The field '{formatted_error['path']}' is required but was not provided."
+                )
+            elif error_type == "type_error":
+                formatted_error["friendly_message"] = (
+                    f"The field '{formatted_error['path']}' has an incorrect type."
+                )
+            elif error_type == "value_error":
+                formatted_error["friendly_message"] = (
+                    f"The field '{formatted_error['path']}' has an invalid value."
+                )
+
+            formatted_errors.append(formatted_error)
+
+        return {
+            "detail": "Validation error",
+            "errors": formatted_errors,
+        }
+
+
 class ErrorMiddleware:
     """
     Middleware for handling exceptions in Django Matt.
 
-    This middleware catches exceptions and returns formatted error responses.
+    Catches exceptions and returns formatted error responses.
     Supports both WSGI (sync) and ASGI (async) request paths.
+
+    API paths (/api/…) return JSON; non-API paths re-raise the exception.
     """
 
     sync_capable = True
@@ -457,7 +750,13 @@ class ErrorMiddleware:
         )
 
     def __call__(self, request):
-        return self.get_response(request)
+        try:
+            response = self.get_response(request)
+            return response
+        except Exception as e:
+            if request.path.startswith("/api/"):
+                return ErrorHandler.json_response(e)
+            raise  # Re-raise for non-API requests
 
     async def __acall__(self, request):
         return await self.get_response(request)
@@ -466,22 +765,24 @@ class ErrorMiddleware:
         """Process an exception and return a formatted error response."""
         error_detail = self.error_handler.capture_exception(exception, request)
 
-        # Determine if we should include debug information
         include_traceback = self.error_handler.debug
         include_snippet = self.error_handler.debug
 
-        # Return a JSON response with error details
         return error_detail.to_response(
             include_traceback=include_traceback, include_snippet=include_snippet
         )
 
 
-# Helper functions for error handling
+# ------------------------------------------------------------------
+# Helper decorators
+# ------------------------------------------------------------------
+
+
 def handle_exceptions(func):
     """
     Decorator for handling exceptions in view functions.
 
-    This decorator catches exceptions and returns formatted error responses.
+    Catches exceptions and returns formatted error responses.
     """
 
     async def wrapper(request, *args, **kwargs):
@@ -495,13 +796,33 @@ def handle_exceptions(func):
             )
             error_detail = error_handler.capture_exception(exc, request)
 
-            # Determine if we should include debug information
             include_traceback = error_handler.debug
             include_snippet = error_handler.debug
 
-            # Return a JSON response with error details
             return error_detail.to_response(
                 include_traceback=include_traceback, include_snippet=include_snippet
             )
+
+    return wrapper
+
+
+def error_handler(view_func):
+    """
+    Decorator to add error handling to view functions (utils/errors style).
+
+    Catches exceptions, formats them with detailed information,
+    and returns a JSON response with the error details.
+    """
+
+    @wraps(view_func)
+    async def wrapper(request: HttpRequest, *args, **kwargs):
+        try:
+            if inspect.iscoroutinefunction(view_func):
+                result = await view_func(request, *args, **kwargs)
+            else:
+                result = view_func(request, *args, **kwargs)
+            return result
+        except Exception as e:
+            return ErrorHandler.json_response(e)
 
     return wrapper

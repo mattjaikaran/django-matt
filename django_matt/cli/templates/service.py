@@ -45,7 +45,7 @@ def generate_service_template(name: str) -> str:
         "",
         f"    # async def get_active_{name_lower}s(self):",
         f'    #     """Return only active {name_lower}s."""',
-        f"    #     return await self.all(is_active=True)",
+        "    #     return await self.all(is_active=True)",
         "",
     ]
 
@@ -93,9 +93,9 @@ def generate_third_party_service_template(name: str, base_url: str = "") -> str:
         "    # API methods",
         "    # ------------------------------------------------------------------",
         "",
-        f"    # async def example_call(self, param: str) -> dict:",
-        f'    #     """Example API call."""',
-        f'    #     return await self._post("/endpoint", {{"param": param}})',
+        "    # async def example_call(self, param: str) -> dict:",
+        '    #     """Example API call."""',
+        '    #     return await self._post("/endpoint", {"param": param})',
         "",
     ]
 

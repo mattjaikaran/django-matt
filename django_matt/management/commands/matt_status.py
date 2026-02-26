@@ -388,11 +388,6 @@ class Command(MattCommand):
 
             check["message"] = f"Python {python_version}, Django {django.get_version()}"
 
-            # Check Python version compatibility
-            if sys.version_info < (3, 12):
-                check["status"] = "warning"
-                check["message"] += " (Python 3.12+ recommended)"
-
         except Exception as e:
             check["status"] = "error"
             check["message"] = str(e)

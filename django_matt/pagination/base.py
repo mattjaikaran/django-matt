@@ -4,17 +4,15 @@ Base pagination classes for django-matt.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 from django.db.models import QuerySet
 from django.http import HttpRequest
 
 from pydantic import BaseModel
 
-T = TypeVar("T")
 
-
-class PaginationResult(BaseModel, Generic[T]):
+class PaginationResult[T](BaseModel):
     """Standard pagination response structure."""
 
     items: list[T]

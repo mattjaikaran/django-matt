@@ -56,9 +56,9 @@ _LAZY_IMPORTS = {
     "get_swagger_ui": "django_matt.openapi",
     "get_redoc": "django_matt.openapi",
     # Errors
-    "ErrorHandler": "django_matt.utils.errors",
-    "ErrorMiddleware": "django_matt.utils.errors",
-    "error_handler": "django_matt.utils.errors",
+    "ErrorHandler": "django_matt.core.errors",
+    "ErrorMiddleware": "django_matt.core.errors",
+    "error_handler": "django_matt.core.errors",
     # Hot reload
     "HotReloadMiddleware": "django_matt.utils.hot_reload",
     "start_hot_reloading": "django_matt.utils.hot_reload",

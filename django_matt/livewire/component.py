@@ -9,24 +9,17 @@ import hashlib
 import uuid
 from collections.abc import Callable
 from functools import wraps
-from typing import (
-    Any,
-    ClassVar,
-    TypeVar,
-)
+from typing import Any, ClassVar
 
 import orjson
 from pydantic import BaseModel, ConfigDict, PrivateAttr
-
-T = TypeVar("T")
-
 
 # =============================================================================
 # Decorators
 # =============================================================================
 
 
-def reactive(field: T) -> T:
+def reactive[T](field: T) -> T:
     """
     Mark a field as reactive (triggers re-render on change).
 
@@ -37,7 +30,7 @@ def reactive(field: T) -> T:
     return field
 
 
-def computed(func: Callable[..., T]) -> property:
+def computed[T](func: Callable[..., T]) -> property:
     """
     Mark a method as a computed property (cached until dependencies change).
 

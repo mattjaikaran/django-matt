@@ -354,9 +354,31 @@ class APIRouter:
 
         return view_func
 
+    @staticmethod
+    def _is_parameterized_path(url_pattern) -> bool:
+        """Return True if the Django URLPattern contains a path converter (e.g. <str:id>)."""
+        # RoutePattern exposes _route; check for '<' which signals a converter.
+        route = getattr(url_pattern.pattern, "_route", None)
+        if route is None:
+            # Fallback: inspect the string representation of the pattern.
+            route = str(url_pattern.pattern)
+        return "<" in route
+
     def get_urls(self):
-        """Get Django URL patterns for all registered routes."""
-        url_patterns = []
+        """Get Django URL patterns for all registered routes.
+
+        Static (non-parameterized) patterns are always placed before
+        parameterized ones so that, e.g., ``/users/me`` is matched before
+        ``/users/<str:id>``.  Within each group declaration order is preserved.
+        """
+        static_patterns = []
+        param_patterns = []
+
+        def _append(pattern):
+            if self._is_parameterized_path(pattern):
+                param_patterns.append(pattern)
+            else:
+                static_patterns.append(pattern)
 
         # Add routes from decorators
         for route in self.routes:
@@ -366,7 +388,7 @@ class APIRouter:
                 status_code=route["status_code"],
                 methods=route["methods"],
             )
-            url_patterns.append(path(route["path"], view_func, name=route["name"]))
+            _append(path(route["path"], view_func, name=route["name"]))
 
         # Add routes from controllers
         for controller_class in self.controllers:
@@ -392,7 +414,7 @@ class APIRouter:
                     status_code=route_info.get("status_code", 200),
                     methods=route_info.get("methods"),
                 )
-                url_patterns.append(
+                _append(
                     path(
                         combined_prefix + route_info["path"],
                         view_func,
@@ -400,7 +422,8 @@ class APIRouter:
                     )
                 )
 
-        return url_patterns
+        # Static patterns first, then parameterized — preserves ordering within each group.
+        return static_patterns + param_patterns
 
 
 # Route decorators for controller methods

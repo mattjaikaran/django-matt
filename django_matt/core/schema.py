@@ -8,7 +8,7 @@ inspired by ninja-schema but with enhanced features.
 import datetime
 import uuid
 from decimal import Decimal
-from typing import Any, ClassVar, Optional, Union, get_args, get_origin
+from typing import Any, ClassVar, Literal, Optional, Union, get_args, get_origin
 
 from django.db import models
 
@@ -138,14 +138,19 @@ class ModelSchemaMetaclass(type(BaseModel)):
             # Get Python type
             python_type = _get_python_type_for_field(field, depth)
 
-            # Handle nullable/optional fields
+            # Handle nullable/optional fields.
+            # Rules:
+            #   - PKs are NEVER Optional in response schemas (they are always
+            #     present in DB rows).  Do not use field.blank as a signal —
+            #     blank only controls form validation, not DB nullability.
+            #   - A field is Optional only when field.null == True (DB nullable),
+            #     the schema-level optional list includes it, it has a default,
+            #     or all_optional is set.
             is_optional = (
-                field.null
-                or field.blank
+                (field.null and not field.primary_key)
                 or all_optional
                 or field_name in optional_fields
-                or field.has_default()
-                or field.primary_key  # PK is optional for creation
+                or (field.has_default() and not field.primary_key)
             )
 
             if is_optional and python_type is not type(None):
@@ -155,7 +160,7 @@ class ModelSchemaMetaclass(type(BaseModel)):
             annotations[field_name] = python_type
 
             # Set default value
-            if field.has_default():
+            if field.has_default() and not field.primary_key:
                 if callable(field.default):
                     namespace[field_name] = Field(default_factory=field.default)
                 elif field.default is not models.NOT_PROVIDED:
@@ -399,20 +404,19 @@ def create_schema_from_model(
         # Get the Python type for this field
         python_type = _get_python_type_for_field(field, depth)
 
-        # Handle nullable/optional fields
+        # Handle nullable/optional fields.
+        # PKs are never Optional; blank is not a DB-nullability signal.
         is_optional = (
-            field.null
-            or field.blank
+            (field.null and not field.primary_key)
             or field_name in optional
-            or field.has_default()
-            or field.primary_key
+            or (field.has_default() and not field.primary_key)
         )
 
         if is_optional:
             python_type = Optional[python_type]
 
         # Determine default value
-        if field.has_default():
+        if field.has_default() and not field.primary_key:
             if callable(field.default):
                 default = Field(default_factory=field.default)
             elif field.default is not models.NOT_PROVIDED:
@@ -505,6 +509,38 @@ def create_model_from_schema(
     return model_class
 
 
+def _get_choices_literal(field: models.Field) -> type | None:
+    """
+    If a field has ``choices`` defined, return a ``Literal[...]`` type built
+    from the choice *values* so OpenAPI emits an enum constraint.
+
+    Handles flat tuples ``[(val, label), ...]`` and grouped choices
+    ``[(group, [(val, label), ...]), ...]``.
+
+    Returns ``None`` when no choices are defined.
+    """
+    choices = getattr(field, "choices", None)
+    if not choices:
+        return None
+
+    values: list = []
+    for item in choices:
+        if isinstance(item, (list, tuple)) and len(item) == 2:
+            val, label = item
+            if isinstance(label, (list, tuple)):
+                # Grouped choices: (group_name, [(val, label), ...])
+                for sub_val, _sub_label in label:
+                    values.append(sub_val)
+            else:
+                values.append(val)
+
+    if not values:
+        return None
+
+    # Build Literal[val1, val2, ...]  — requires at least one value
+    return Literal[tuple(values)]  # type: ignore[return-value]
+
+
 def _get_python_type_for_field(field: models.Field, depth: int = 0) -> type:
     """Get the Python/Pydantic type for a Django model field."""
     # Handle foreign keys and one-to-one relationships
@@ -518,6 +554,12 @@ def _get_python_type_for_field(field: models.Field, depth: int = 0) -> type:
     # Handle many-to-many relationships
     if isinstance(field, models.ManyToManyField):
         return list[int]  # Use a list of IDs for M2M
+
+    # Choices → Literal enum (Task 1.3): check before general mapping so that
+    # e.g. a CharField with choices gets a union type rather than plain str.
+    choices_literal = _get_choices_literal(field)
+    if choices_literal is not None:
+        return choices_literal
 
     # Look up the type in the mapping
     for field_class, python_type in FIELD_TYPE_MAP.items():

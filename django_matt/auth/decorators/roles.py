@@ -5,16 +5,14 @@ Role and permission-based decorators.
 import inspect
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, TypeVar
+from typing import Any
 
 from django.http import JsonResponse
 
 from django_matt.auth.decorators.base import get_request
 
-F = TypeVar("F", bound=Callable[..., Any])
 
-
-def admin_required(func: F) -> F:
+def admin_required[F: Callable[..., Any]](func: F) -> F:
     """
     Decorator that requires admin (staff or superuser).
 
@@ -84,7 +82,7 @@ def admin_required(func: F) -> F:
     return sync_wrapper  # type: ignore
 
 
-def superuser_required(func: F) -> F:
+def superuser_required[F: Callable[..., Any]](func: F) -> F:
     """
     Decorator that requires superuser status.
 
@@ -154,7 +152,7 @@ def superuser_required(func: F) -> F:
     return sync_wrapper  # type: ignore
 
 
-def with_roles(*roles: str, require_all: bool = False) -> Callable[[F], F]:
+def with_roles(*roles: str, require_all: bool = False) -> Callable:
     """
     Decorator that requires specific role(s) from the RBAC system.
 
@@ -174,7 +172,7 @@ def with_roles(*roles: str, require_all: bool = False) -> Callable[[F], F]:
         require_all: If True, user must have all roles
     """
 
-    def decorator(func: F) -> F:
+    def decorator[F: Callable[..., Any]](func: F) -> F:
         @wraps(func)
         async def async_wrapper(self_or_request, *args, **kwargs):
             from django_matt.auth.rbac import get_user_roles
@@ -265,7 +263,7 @@ def with_roles(*roles: str, require_all: bool = False) -> Callable[[F], F]:
 def with_permission(
     permission: str,
     resource: str | None = None,
-) -> Callable[[F], F]:
+) -> Callable:
     """
     Decorator that requires a specific RBAC permission.
 
@@ -280,7 +278,7 @@ def with_permission(
         resource: Optional resource scope (e.g., "tasks", "users")
     """
 
-    def decorator(func: F) -> F:
+    def decorator[F: Callable[..., Any]](func: F) -> F:
         @wraps(func)
         async def async_wrapper(self_or_request, *args, **kwargs):
             from django_matt.auth.rbac import user_has_permission

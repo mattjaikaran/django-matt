@@ -347,6 +347,13 @@ ignore = [
 "**/__init__.py" = [
     "F401",    # unused import OK (re-exports for public API)
 ]
+"django_matt/graphql/**/*.py" = [
+    "UP046",   # Generic[T] needed for Strawberry type system compatibility
+    "UP047",   # TypeVar needed for Strawberry decorator signatures
+]
+"django_matt/views/base.py" = [
+    "UP046",   # Generic[ModelT, SchemaT] intentionally kept for stability
+]
 "tests/**/*.py" = [
     "S101",    # assert OK in tests
     "PLR2004", # magic values OK in tests

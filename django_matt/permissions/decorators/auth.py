@@ -3,15 +3,13 @@ Authentication-related permission decorators.
 """
 
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import Any
 
 from django_matt.permissions.common import IsAuthenticated
 from django_matt.permissions.decorators.base import create_permission_decorator
 
-F = TypeVar("F", bound=Callable[..., Any])
 
-
-def authenticated(func: F) -> F:
+def authenticated[F: Callable[..., Any]](func: F) -> F:
     """
     Decorator that requires authentication.
 
@@ -27,7 +25,7 @@ def authenticated(func: F) -> F:
     return decorator(func)
 
 
-def allow_any(func: F) -> F:
+def allow_any[F: Callable[..., Any]](func: F) -> F:
     """
     Decorator that explicitly marks a method as publicly accessible.
 
