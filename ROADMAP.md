@@ -57,6 +57,17 @@ django-matt consolidates features from multiple packages into one cohesive libra
 - [x] **1B.5** - Auth controllers (login, register, refresh, logout, me)
 - [x] **1B.6** - Multi-tenant support (B2B)
 
+### Phase 1C: Service Layer ✅ (Feb 2026)
+
+- [x] **1C.1** - `BaseService` — read-only queryset helpers (`get`, `get_or_none`, `get_by`, `exists`, `count`)
+- [x] **1C.2** - `CRUDService` — full async CRUD (`list`, `create`, `update`, `update_fields`, `delete`, `get_or_create`)
+- [x] **1C.3** - Bulk operations (`bulk_create`, `bulk_update`, `bulk_delete`)
+- [x] **1C.4** - Soft-delete integration (delegates to `soft_delete()` when available; `hard=True` for permanent delete)
+- [x] **1C.5** - Audit field auto-population (`created_by`, `updated_by` on create/update)
+- [x] **1C.6** - `BaseThirdPartyService` — async HTTP client base for external APIs (Stripe, Resend, Twilio, Slack, etc.)
+- [x] **1C.7** - `ServiceError` exception hierarchy (`NotFoundError`, `ValidationError`, `ConflictError`, `ThirdPartyServiceError`)
+- [x] **1C.8** - CRUD generator outputs service by default (`--no-service` to skip)
+
 ---
 
 ## Stage 2: Developer Experience ✅

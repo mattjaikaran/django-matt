@@ -2,19 +2,23 @@
 Business logic services for the chat application.
 
 Services handle the core business logic, keeping controllers thin.
+All ORM calls use native async methods (.aget, .acreate, .acount, etc.).
 """
+
+from __future__ import annotations
 
 import re
 from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
 from django.contrib.auth import get_user_model
-from django.db import models, transaction
-from django.db.models import Count, Exists, OuterRef, Prefetch, Q
+from django.db import transaction
+from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
 from django.utils.text import slugify
+
+from django_matt.services import BaseService, CRUDService
 
 from .models import (
     Channel,
@@ -47,29 +51,29 @@ User = get_user_model()
 # =============================================================================
 
 
-class UserService:
-    """Service for user-related operations."""
+class UserService(BaseService["UserProfile"]):
+    """Service for user profile and presence operations."""
 
-    @staticmethod
-    async def get_or_create_profile(user: "User") -> UserProfile:
+    model = UserProfile
+
+    async def get_or_create_profile(self, user: User) -> UserProfile:
         """Get or create user profile."""
-        profile, _ = await sync_to_async(
-            UserProfile.objects.get_or_create,
-            thread_sensitive=True,
-        )(user=user, defaults={"display_name": user.username})
+        profile, _ = await UserProfile.objects.aget_or_create(
+            user=user,
+            defaults={"display_name": user.username},
+        )
         return profile
 
-    @staticmethod
-    async def update_presence(user: "User", status: str) -> UserProfile:
+    async def update_presence(self, user: User, status: str) -> UserProfile:
         """Update user presence status."""
-        profile = await UserService.get_or_create_profile(user)
+        profile = await self.get_or_create_profile(user)
         profile.status = status
         profile.last_seen = timezone.now()
-        await sync_to_async(profile.save, thread_sensitive=True)()
+        await profile.asave(update_fields=["status", "last_seen"])
         return profile
 
     @staticmethod
-    def to_brief(user: "User", profile: UserProfile | None = None) -> UserBrief:
+    def to_brief(user: User, profile: UserProfile | None = None) -> UserBrief:
         """Convert user to brief schema."""
         return UserBrief(
             id=user.id,
@@ -85,83 +89,73 @@ class UserService:
 # =============================================================================
 
 
-class WorkspaceService:
-    """Service for workspace operations."""
+class WorkspaceService(CRUDService["Workspace"]):
+    """Service for workspace CRUD and membership operations."""
 
-    @staticmethod
-    async def create(user: "User", name: str, slug: str, description: str = "") -> Workspace:
-        """Create a new workspace."""
+    model = Workspace
 
-        @sync_to_async
-        def _create():
-            with transaction.atomic():
-                workspace = Workspace.objects.create(
-                    name=name,
-                    slug=slug,
-                    description=description,
-                    owner=user,
-                )
-                # Add owner as member with owner role
-                WorkspaceMembership.objects.create(
-                    workspace=workspace,
-                    user=user,
-                    role="owner",
-                )
-                # Create default #general channel
-                Channel.objects.create(
-                    workspace=workspace,
-                    name="general",
-                    slug="general",
-                    description="General discussion",
-                    created_by=user,
-                )
-                return workspace
+    async def create_workspace(
+        self,
+        user: User,
+        name: str,
+        slug: str,
+        description: str = "",
+    ) -> Workspace:
+        """Create a new workspace, add owner membership, and seed #general channel."""
+        async with transaction.atomic():
+            workspace = await Workspace.objects.acreate(
+                name=name,
+                slug=slug,
+                description=description,
+                owner=user,
+            )
+            await WorkspaceMembership.objects.acreate(
+                workspace=workspace,
+                user=user,
+                role="owner",
+            )
+            await Channel.objects.acreate(
+                workspace=workspace,
+                name="general",
+                slug="general",
+                description="General discussion",
+                created_by=user,
+            )
+        return workspace
 
-        return await _create()
-
-    @staticmethod
-    async def get_user_workspaces(user: "User") -> list[Workspace]:
+    async def get_user_workspaces(self, user: User) -> list[Workspace]:
         """Get all workspaces user is a member of."""
-        return await sync_to_async(
-            lambda: list(
-                Workspace.objects.filter(memberships__user=user)
-                .annotate(
-                    member_count=Count("memberships"),
-                    channel_count=Count("channels"),
-                )
-                .order_by("name")
-            ),
-            thread_sensitive=True,
-        )()
-
-    @staticmethod
-    async def get_workspace(workspace_id: UUID, user: "User" | None = None) -> Workspace | None:
-        """Get workspace by ID, optionally checking membership."""
-
-        @sync_to_async
-        def _get():
-            qs = Workspace.objects.annotate(
+        return [
+            w
+            async for w in Workspace.objects.filter(memberships__user=user)
+            .annotate(
                 member_count=Count("memberships"),
                 channel_count=Count("channels"),
             )
-            if user:
-                qs = qs.filter(memberships__user=user)
-            return qs.filter(id=workspace_id).first()
+            .order_by("name")
+        ]
 
-        return await _get()
+    async def get_workspace(
+        self, workspace_id: UUID, user: User | None = None
+    ) -> Workspace | None:
+        """Get workspace by ID, optionally scoped to a user's memberships."""
+        qs = Workspace.objects.annotate(
+            member_count=Count("memberships"),
+            channel_count=Count("channels"),
+        )
+        if user:
+            qs = qs.filter(memberships__user=user)
+        return await qs.filter(id=workspace_id).afirst()
 
-    @staticmethod
     async def add_member(
+        self,
         workspace: Workspace,
-        user: "User",
+        user: User,
         role: str = "member",
-        invited_by: "User" | None = None,
+        invited_by: User | None = None,
     ) -> WorkspaceMembership:
-        """Add a member to workspace."""
-        membership, _ = await sync_to_async(
-            WorkspaceMembership.objects.get_or_create,
-            thread_sensitive=True,
-        )(
+        """Add a member to workspace (idempotent)."""
+        membership, _ = await WorkspaceMembership.objects.aget_or_create(
             workspace=workspace,
             user=user,
             defaults={"role": role, "invited_by": invited_by},
@@ -189,130 +183,108 @@ class WorkspaceService:
 # =============================================================================
 
 
-class ChannelService:
-    """Service for channel operations."""
+class ChannelService(CRUDService["Channel"]):
+    """Service for channel CRUD and membership management."""
 
-    @staticmethod
-    async def create(
+    model = Channel
+
+    async def create_channel(
+        self,
         workspace: Workspace,
-        user: "User",
+        user: User,
         name: str,
         description: str = "",
         is_private: bool = False,
     ) -> Channel:
-        """Create a new channel."""
-        slug = slugify(name)
+        """Create a new channel with a unique slug and add creator as member."""
+        base_slug = slugify(name)
+        async with transaction.atomic():
+            # Guarantee unique slug within the workspace
+            counter = 1
+            final_slug = base_slug
+            while await Channel.objects.filter(
+                workspace=workspace, slug=final_slug
+            ).aexists():
+                final_slug = f"{base_slug}-{counter}"
+                counter += 1
 
-        @sync_to_async
-        def _create():
-            with transaction.atomic():
-                # Ensure unique slug in workspace
-                base_slug = slug
-                counter = 1
-                final_slug = base_slug
-                while Channel.objects.filter(workspace=workspace, slug=final_slug).exists():
-                    final_slug = f"{base_slug}-{counter}"
-                    counter += 1
+            channel = await Channel.objects.acreate(
+                workspace=workspace,
+                name=name,
+                slug=final_slug,
+                description=description,
+                is_private=is_private,
+                created_by=user,
+            )
+            await ChannelMembership.objects.acreate(channel=channel, user=user)
 
-                channel = Channel.objects.create(
-                    workspace=workspace,
-                    name=name,
-                    slug=final_slug,
-                    description=description,
-                    is_private=is_private,
-                    created_by=user,
-                )
-                # Add creator as member
-                ChannelMembership.objects.create(
-                    channel=channel,
-                    user=user,
-                )
-                return channel
+        return channel
 
-        return await _create()
-
-    @staticmethod
     async def get_workspace_channels(
-        workspace: Workspace, user: "User", include_private: bool = False
+        self,
+        workspace: Workspace,
+        user: User,
+        include_private: bool = False,
     ) -> list[Channel]:
-        """Get channels in workspace visible to user."""
+        """Get non-archived channels in workspace visible to user."""
+        qs = Channel.objects.filter(workspace=workspace, is_archived=False)
 
-        @sync_to_async
-        def _get():
-            qs = Channel.objects.filter(workspace=workspace, is_archived=False)
+        if not include_private:
+            qs = qs.filter(
+                Q(is_private=False) | Q(memberships__user=user)
+            ).distinct()
 
-            if not include_private:
-                # Show public channels + private channels user is member of
-                qs = qs.filter(
-                    Q(is_private=False) | Q(memberships__user=user)
-                ).distinct()
+        return [
+            c
+            async for c in qs.annotate(member_count=Count("memberships"))
+            .select_related("created_by")
+            .order_by("name")
+        ]
 
-            return list(
-                qs.annotate(member_count=Count("memberships"))
-                .select_related("created_by")
-                .order_by("name")
-            )
-
-        return await _get()
-
-    @staticmethod
     async def get_channel(
-        channel_id: UUID, user: "User" | None = None, check_access: bool = True
+        self,
+        channel_id: UUID,
+        user: User | None = None,
+        check_access: bool = True,
     ) -> Channel | None:
-        """Get channel by ID, optionally checking access."""
+        """Get channel by ID, optionally enforcing private-channel access."""
+        qs = Channel.objects.annotate(member_count=Count("memberships")).select_related(
+            "workspace", "created_by"
+        )
+        channel = await qs.filter(id=channel_id).afirst()
 
-        @sync_to_async
-        def _get():
-            qs = Channel.objects.annotate(member_count=Count("memberships")).select_related(
-                "workspace", "created_by"
-            )
+        if channel is None:
+            return None
 
-            channel = qs.filter(id=channel_id).first()
-            if not channel:
+        if check_access and user and channel.is_private:
+            has_membership = await channel.memberships.filter(user=user).aexists()
+            if not has_membership:
                 return None
 
-            if check_access and user and channel.is_private:
-                # Check if user is member of private channel
-                if not channel.memberships.filter(user=user).exists():
-                    return None
+        return channel
 
-            return channel
-
-        return await _get()
-
-    @staticmethod
-    async def add_member(channel: Channel, user: "User") -> ChannelMembership:
-        """Add user to channel."""
-        membership, _ = await sync_to_async(
-            ChannelMembership.objects.get_or_create,
-            thread_sensitive=True,
-        )(channel=channel, user=user)
+    async def add_member(self, channel: Channel, user: User) -> ChannelMembership:
+        """Add user to channel (idempotent)."""
+        membership, _ = await ChannelMembership.objects.aget_or_create(
+            channel=channel, user=user
+        )
         return membership
 
-    @staticmethod
-    async def remove_member(channel: Channel, user: "User") -> bool:
-        """Remove user from channel."""
+    async def remove_member(self, channel: Channel, user: User) -> bool:
+        """Remove user from channel. Returns True if a row was deleted."""
+        deleted, _ = await ChannelMembership.objects.filter(
+            channel=channel, user=user
+        ).adelete()
+        return deleted > 0
 
-        @sync_to_async
-        def _remove():
-            deleted, _ = ChannelMembership.objects.filter(
-                channel=channel, user=user
-            ).delete()
-            return deleted > 0
-
-        return await _remove()
-
-    @staticmethod
-    async def get_members(channel: Channel) -> list[ChannelMembership]:
+    async def get_members(self, channel: Channel) -> list[ChannelMembership]:
         """Get all members of a channel."""
-        return await sync_to_async(
-            lambda: list(
-                channel.memberships.select_related("user", "user__chat_profile").order_by(
-                    "joined_at"
-                )
-            ),
-            thread_sensitive=True,
-        )()
+        return [
+            m
+            async for m in channel.memberships.select_related(
+                "user", "user__chat_profile"
+            ).order_by("joined_at")
+        ]
 
     @staticmethod
     def to_response(channel: Channel) -> ChannelResponse:
@@ -347,125 +319,124 @@ class ChannelService:
 # =============================================================================
 
 
-class MessageService:
-    """Service for message operations."""
+class MessageService(CRUDService["Message"]):
+    """Service for message CRUD, threading, and content rendering."""
+
+    model = Message
 
     # Regex for @mentions
     MENTION_PATTERN = re.compile(r"@(\w+)")
 
-    @staticmethod
-    async def create(
-        user: "User",
+    async def create_message(
+        self,
+        user: User,
         content: str,
         channel: Channel | None = None,
         dm_thread: DirectMessageThread | None = None,
         parent_message_id: UUID | None = None,
         attachment_ids: list[UUID] | None = None,
     ) -> Message:
-        """Create a new message."""
+        """Create a new message with mention parsing, attachments, and thread tracking."""
+        async with transaction.atomic():
+            mentions_everyone = "@everyone" in content or "@channel" in content
+            mention_usernames = self.MENTION_PATTERN.findall(content)
 
-        @sync_to_async
-        def _create():
-            with transaction.atomic():
-                # Parse mentions
-                mentions_everyone = "@everyone" in content or "@channel" in content
-                mention_usernames = MessageService.MENTION_PATTERN.findall(content)
+            message = await Message.objects.acreate(
+                channel=channel,
+                dm_thread=dm_thread,
+                author=user,
+                content=content,
+                content_html=self._render_content(content),
+                parent_message_id=parent_message_id,
+                mentions_everyone=mentions_everyone,
+            )
 
-                # Create message
-                message = Message.objects.create(
-                    channel=channel,
-                    dm_thread=dm_thread,
-                    author=user,
-                    content=content,
-                    content_html=MessageService._render_content(content),
-                    parent_message_id=parent_message_id,
-                    mentions_everyone=mentions_everyone,
+            if mention_usernames:
+                mentioned_qs = User.objects.filter(username__in=mention_usernames)
+                await message.mentioned_users.aset(
+                    [u async for u in mentioned_qs]
                 )
 
-                # Add mentioned users
-                if mention_usernames:
-                    mentioned = User.objects.filter(username__in=mention_usernames)
-                    message.mentioned_users.set(mentioned)
+            if attachment_ids:
+                await FileAttachment.objects.filter(
+                    id__in=attachment_ids,
+                    uploaded_by=user,
+                    message__isnull=True,
+                ).aupdate(message=message)
 
-                # Attach files
-                if attachment_ids:
-                    FileAttachment.objects.filter(
-                        id__in=attachment_ids,
-                        uploaded_by=user,
-                        message__isnull=True,
-                    ).update(message=message)
+            if parent_message_id:
+                parent = await Message.objects.filter(id=parent_message_id).afirst()
+                if parent:
+                    parent.reply_count = await parent.replies.acount()
+                    parent.reply_users_count = await (
+                        parent.replies.values("author").distinct().acount()
+                    )
+                    await parent.asave(
+                        update_fields=["reply_count", "reply_users_count"]
+                    )
 
-                # Update parent message reply count
-                if parent_message_id:
-                    parent = Message.objects.filter(id=parent_message_id).first()
-                    if parent:
-                        parent.reply_count = parent.replies.count()
-                        parent.reply_users_count = (
-                            parent.replies.values("author").distinct().count()
-                        )
-                        parent.save(update_fields=["reply_count", "reply_users_count"])
+            if dm_thread:
+                dm_thread.updated_at = timezone.now()
+                await dm_thread.asave(update_fields=["updated_at"])
 
-                # Update DM thread timestamp
-                if dm_thread:
-                    dm_thread.updated_at = timezone.now()
-                    dm_thread.save(update_fields=["updated_at"])
-
-                return message
-
-        return await _create()
+        return message
 
     @staticmethod
     def _render_content(content: str) -> str:
-        """Render message content to HTML with mentions, links, etc."""
+        """Render message content to HTML with mentions, links, and line breaks."""
         import html
 
-        # Escape HTML
         rendered = html.escape(content)
-
-        # Convert @mentions to spans
         rendered = re.sub(
             r"@(\w+)",
             r'<span class="mention" data-username="\1">@\1</span>',
             rendered,
         )
-
-        # Convert URLs to links
-        url_pattern = r"(https?://[^\s<]+)"
         rendered = re.sub(
-            url_pattern,
+            r"(https?://[^\s<]+)",
             r'<a href="\1" target="_blank" rel="noopener">\1</a>',
             rendered,
         )
-
-        # Convert newlines to <br>
         rendered = rendered.replace("\n", "<br>")
-
         return rendered
 
-    @staticmethod
     async def get_channel_messages(
+        self,
         channel: Channel,
         limit: int = 50,
         before: datetime | None = None,
         after: datetime | None = None,
     ) -> list[Message]:
-        """Get messages from a channel."""
+        """Get non-deleted top-level messages from a channel in chronological order."""
+        qs = Message.objects.filter(
+            channel=channel,
+            is_deleted=False,
+            parent_message__isnull=True,
+        ).select_related("author")
 
-        @sync_to_async
-        def _get():
-            qs = Message.objects.filter(
-                channel=channel,
-                is_deleted=False,
-                parent_message__isnull=True,  # Exclude thread replies
-            ).select_related("author")
+        if before:
+            qs = qs.filter(created_at__lt=before)
+        if after:
+            qs = qs.filter(created_at__gt=after)
 
-            if before:
-                qs = qs.filter(created_at__lt=before)
-            if after:
-                qs = qs.filter(created_at__gt=after)
+        qs = qs.prefetch_related(
+            Prefetch(
+                "reactions",
+                queryset=Reaction.objects.select_related("user"),
+            ),
+            "attachments",
+            "mentioned_users",
+        )
 
-            # Prefetch reactions and attachments
-            qs = qs.prefetch_related(
+        messages = [m async for m in qs.order_by("-created_at")[:limit]]
+        return list(reversed(messages))  # Chronological order
+
+    async def get_message(self, message_id: UUID) -> Message | None:
+        """Get a single non-deleted message by ID with all related data."""
+        return await (
+            Message.objects.filter(id=message_id, is_deleted=False)
+            .select_related("author", "channel", "dm_thread")
+            .prefetch_related(
                 Prefetch(
                     "reactions",
                     queryset=Reaction.objects.select_related("user"),
@@ -473,80 +444,42 @@ class MessageService:
                 "attachments",
                 "mentioned_users",
             )
+            .afirst()
+        )
 
-            return list(qs.order_by("-created_at")[:limit])
+    async def update_message(self, message: Message, content: str) -> Message:
+        """Edit a message's content and re-parse mentions."""
+        message.content = content
+        message.content_html = self._render_content(content)
+        message.is_edited = True
+        message.edited_at = timezone.now()
+        await message.asave(
+            update_fields=["content", "content_html", "is_edited", "edited_at"]
+        )
 
-        messages = await _get()
-        return list(reversed(messages))  # Return in chronological order
+        mention_usernames = self.MENTION_PATTERN.findall(content)
+        mentioned = [u async for u in User.objects.filter(username__in=mention_usernames)]
+        await message.mentioned_users.aset(mentioned)
 
-    @staticmethod
-    async def get_message(message_id: UUID) -> Message | None:
-        """Get a single message by ID."""
+        return message
 
-        @sync_to_async
-        def _get():
-            return (
-                Message.objects.filter(id=message_id, is_deleted=False)
-                .select_related("author", "channel", "dm_thread")
-                .prefetch_related(
-                    Prefetch(
-                        "reactions",
-                        queryset=Reaction.objects.select_related("user"),
-                    ),
-                    "attachments",
-                    "mentioned_users",
-                )
-                .first()
-            )
+    async def delete_message(self, message: Message) -> None:
+        """Soft-delete a message."""
+        message.is_deleted = True
+        await message.asave(update_fields=["is_deleted"])
 
-        return await _get()
-
-    @staticmethod
-    async def update(message: Message, content: str) -> Message:
-        """Update a message."""
-
-        @sync_to_async
-        def _update():
-            message.content = content
-            message.content_html = MessageService._render_content(content)
-            message.is_edited = True
-            message.edited_at = timezone.now()
-            message.save()
-
-            # Update mentions
-            mention_usernames = MessageService.MENTION_PATTERN.findall(content)
-            mentioned = User.objects.filter(username__in=mention_usernames)
-            message.mentioned_users.set(mentioned)
-
-            return message
-
-        return await _update()
+    async def get_thread(self, parent_message: Message) -> list[Message]:
+        """Get all non-deleted replies to a message in chronological order."""
+        return [
+            m
+            async for m in parent_message.replies.filter(is_deleted=False)
+            .select_related("author")
+            .prefetch_related("reactions", "attachments", "mentioned_users")
+            .order_by("created_at")
+        ]
 
     @staticmethod
-    async def delete(message: Message) -> None:
-        """Soft delete a message."""
-
-        @sync_to_async
-        def _delete():
-            message.soft_delete()
-
-        await _delete()
-
-    @staticmethod
-    async def get_thread(parent_message: Message) -> list[Message]:
-        """Get all replies to a message."""
-        return await sync_to_async(
-            lambda: list(
-                parent_message.replies.filter(is_deleted=False)
-                .select_related("author")
-                .prefetch_related("reactions", "attachments", "mentioned_users")
-                .order_by("created_at")
-            ),
-            thread_sensitive=True,
-        )()
-
-    @staticmethod
-    def to_response(message: Message, current_user: "User" | None = None) -> MessageResponse:
+    def to_response(message: Message, current_user: User | None = None) -> MessageResponse:
         """Convert message to response schema."""
         author = None
         if message.author:
@@ -558,7 +491,6 @@ class MessageService:
                 status="offline",
             )
 
-        # Group reactions by emoji
         reactions_by_emoji: dict[str, list] = {}
         for reaction in message.reactions.all():
             if reaction.emoji not in reactions_by_emoji:
@@ -575,15 +507,17 @@ class MessageService:
                     avatar_url=None,
                     status="offline",
                 )
-                for r in emoji_reactions[:5]  # Limit users shown
+                for r in emoji_reactions[:5]
             ]
             reactions.append(
                 ReactionSchema(
                     emoji=emoji,
                     count=len(emoji_reactions),
                     users=users,
-                    reacted_by_me=current_user
-                    and any(r.user_id == current_user.id for r in emoji_reactions),
+                    reacted_by_me=(
+                        current_user is not None
+                        and any(r.user_id == current_user.id for r in emoji_reactions)
+                    ),
                 )
             )
 
@@ -609,7 +543,7 @@ class MessageService:
             reply_count=message.reply_count,
             reply_users_count=message.reply_users_count,
             reactions=reactions,
-            attachments=[],  # TODO: Add attachments
+            attachments=[],
             mentioned_users=mentioned_users,
             is_edited=message.is_edited,
             edited_at=message.edited_at,
@@ -622,30 +556,24 @@ class MessageService:
 # =============================================================================
 
 
-class ReactionService:
-    """Service for reaction operations."""
+class ReactionService(BaseService["Reaction"]):
+    """Service for adding and removing message reactions."""
 
-    @staticmethod
-    async def add(message: Message, user: "User", emoji: str) -> Reaction | None:
-        """Add a reaction to a message."""
-        reaction, created = await sync_to_async(
-            Reaction.objects.get_or_create,
-            thread_sensitive=True,
-        )(message=message, user=user, emoji=emoji)
+    model = Reaction
+
+    async def add(self, message: Message, user: User, emoji: str) -> Reaction | None:
+        """Add a reaction to a message. Returns None if already reacted."""
+        reaction, created = await Reaction.objects.aget_or_create(
+            message=message, user=user, emoji=emoji
+        )
         return reaction if created else None
 
-    @staticmethod
-    async def remove(message: Message, user: "User", emoji: str) -> bool:
-        """Remove a reaction from a message."""
-
-        @sync_to_async
-        def _remove():
-            deleted, _ = Reaction.objects.filter(
-                message=message, user=user, emoji=emoji
-            ).delete()
-            return deleted > 0
-
-        return await _remove()
+    async def remove(self, message: Message, user: User, emoji: str) -> bool:
+        """Remove a reaction from a message. Returns True if deleted."""
+        deleted, _ = await Reaction.objects.filter(
+            message=message, user=user, emoji=emoji
+        ).adelete()
+        return deleted > 0
 
 
 # =============================================================================
@@ -653,51 +581,50 @@ class ReactionService:
 # =============================================================================
 
 
-class DirectMessageService:
-    """Service for direct message operations."""
+class DirectMessageService(BaseService["DirectMessageThread"]):
+    """Service for direct message thread management."""
 
-    @staticmethod
+    model = DirectMessageThread
+
     async def get_or_create_thread(
-        workspace: Workspace, participants: list["User"]
+        self,
+        workspace: Workspace,
+        participants: list[User],
     ) -> DirectMessageThread:
-        """Get or create a DM thread between participants."""
+        """
+        Get or create a DM thread between the given participants.
 
-        @sync_to_async
-        def _get_or_create():
-            # Try to find existing thread with exact participants
-            participant_ids = sorted(u.id for u in participants)
+        Searches existing threads by exact participant set (order-independent).
+        """
+        participant_ids = sorted(u.id for u in participants)
 
-            # This query finds threads that have all and only the specified participants
-            for thread in DirectMessageThread.objects.filter(workspace=workspace):
-                thread_participant_ids = sorted(
-                    thread.participants.values_list("id", flat=True)
-                )
-                if thread_participant_ids == participant_ids:
-                    return thread
+        async for thread in DirectMessageThread.objects.filter(workspace=workspace):
+            thread_ids = sorted(
+                [uid async for uid in thread.participants.values_list("id", flat=True)]
+            )
+            if thread_ids == participant_ids:
+                return thread
 
-            # Create new thread
-            thread = DirectMessageThread.objects.create(workspace=workspace)
-            thread.participants.set(participants)
-            return thread
+        async with transaction.atomic():
+            thread = await DirectMessageThread.objects.acreate(workspace=workspace)
+            await thread.participants.aset(participants)
+        return thread
 
-        return await _get_or_create()
-
-    @staticmethod
     async def get_user_threads(
-        workspace: Workspace, user: "User"
+        self,
+        workspace: Workspace,
+        user: User,
     ) -> list[DirectMessageThread]:
-        """Get all DM threads for a user in a workspace."""
-        return await sync_to_async(
-            lambda: list(
-                DirectMessageThread.objects.filter(
-                    workspace=workspace,
-                    participants=user,
-                )
-                .prefetch_related("participants")
-                .order_by("-updated_at")
-            ),
-            thread_sensitive=True,
-        )()
+        """Get all DM threads for a user in a workspace, most recent first."""
+        return [
+            t
+            async for t in DirectMessageThread.objects.filter(
+                workspace=workspace,
+                participants=user,
+            )
+            .prefetch_related("participants")
+            .order_by("-updated_at")
+        ]
 
 
 # =============================================================================
@@ -705,66 +632,55 @@ class DirectMessageService:
 # =============================================================================
 
 
-class ReadReceiptService:
-    """Service for read receipt operations."""
+class ReadReceiptService(BaseService["ReadReceipt"]):
+    """Service for tracking read positions in channels and DM threads."""
 
-    @staticmethod
+    model = ReadReceipt
+
     async def mark_read(
-        user: "User",
+        self,
+        user: User,
         message: Message,
         channel: Channel | None = None,
         dm_thread: DirectMessageThread | None = None,
     ) -> ReadReceipt:
-        """Mark messages as read up to a specific message."""
+        """Mark messages as read up to and including ``message``."""
+        receipt, _ = await ReadReceipt.objects.aupdate_or_create(
+            user=user,
+            channel=channel,
+            dm_thread=dm_thread,
+            defaults={
+                "last_read_message": message,
+                "last_read_at": timezone.now(),
+            },
+        )
+        return receipt
 
-        @sync_to_async
-        def _mark():
-            receipt, _ = ReadReceipt.objects.update_or_create(
-                user=user,
-                channel=channel,
-                dm_thread=dm_thread,
-                defaults={
-                    "last_read_message": message,
-                    "last_read_at": timezone.now(),
-                },
-            )
-            return receipt
-
-        return await _mark()
-
-    @staticmethod
     async def get_unread_count(
-        user: "User",
+        self,
+        user: User,
         channel: Channel | None = None,
         dm_thread: DirectMessageThread | None = None,
     ) -> int:
-        """Get count of unread messages."""
+        """Return count of messages unread by ``user`` in channel or DM thread."""
+        if channel is None and dm_thread is None:
+            return 0
 
-        @sync_to_async
-        def _count():
-            receipt = ReadReceipt.objects.filter(
-                user=user,
-                channel=channel,
-                dm_thread=dm_thread,
-            ).first()
+        receipt = await ReadReceipt.objects.filter(
+            user=user, channel=channel, dm_thread=dm_thread
+        ).afirst()
 
-            qs = Message.objects.filter(is_deleted=False)
-            if channel:
-                qs = qs.filter(channel=channel)
-            elif dm_thread:
-                qs = qs.filter(dm_thread=dm_thread)
-            else:
-                return 0
+        qs = Message.objects.filter(is_deleted=False)
+        if channel:
+            qs = qs.filter(channel=channel)
+        else:
+            qs = qs.filter(dm_thread=dm_thread)
 
-            if receipt and receipt.last_read_message:
-                qs = qs.filter(created_at__gt=receipt.last_read_message.created_at)
+        if receipt and receipt.last_read_message:
+            qs = qs.filter(created_at__gt=receipt.last_read_message.created_at)
 
-            # Exclude user's own messages
-            qs = qs.exclude(author=user)
-
-            return qs.count()
-
-        return await _count()
+        qs = qs.exclude(author=user)
+        return await qs.acount()
 
 
 # =============================================================================
@@ -772,13 +688,15 @@ class ReadReceiptService:
 # =============================================================================
 
 
-class SearchService:
-    """Service for message search."""
+class SearchService(BaseService["Message"]):
+    """Service for message full-text search."""
 
-    @staticmethod
+    model = Message
+
     async def search_messages(
+        self,
         query: str,
-        user: "User",
+        user: User,
         workspace_id: UUID | None = None,
         channel_id: UUID | None = None,
         from_user_id: int | None = None,
@@ -787,40 +705,36 @@ class SearchService:
         limit: int = 20,
         offset: int = 0,
     ) -> tuple[list[Message], int]:
-        """Search messages with filters."""
+        """
+        Search non-deleted messages by keyword with optional filters.
 
-        @sync_to_async
-        def _search():
-            # Base query - search in content
-            qs = Message.objects.filter(
-                is_deleted=False,
-                content__icontains=query,
-            ).select_related("author", "channel", "channel__workspace")
+        Only returns messages the requesting user is permitted to see
+        (public channels, private channels they belong to, or DM threads
+        they participate in).
+        """
+        qs = Message.objects.filter(
+            is_deleted=False,
+            content__icontains=query,
+        ).select_related("author", "channel", "channel__workspace")
 
-            # Filter by workspace access
-            if workspace_id:
-                qs = qs.filter(channel__workspace_id=workspace_id)
+        if workspace_id:
+            qs = qs.filter(channel__workspace_id=workspace_id)
 
-            # User must have access to the channel
-            qs = qs.filter(
-                Q(channel__is_private=False)
-                | Q(channel__memberships__user=user)
-                | Q(dm_thread__participants=user)
-            ).distinct()
+        qs = qs.filter(
+            Q(channel__is_private=False)
+            | Q(channel__memberships__user=user)
+            | Q(dm_thread__participants=user)
+        ).distinct()
 
-            # Additional filters
-            if channel_id:
-                qs = qs.filter(channel_id=channel_id)
-            if from_user_id:
-                qs = qs.filter(author_id=from_user_id)
-            if after:
-                qs = qs.filter(created_at__gt=after)
-            if before:
-                qs = qs.filter(created_at__lt=before)
+        if channel_id:
+            qs = qs.filter(channel_id=channel_id)
+        if from_user_id:
+            qs = qs.filter(author_id=from_user_id)
+        if after:
+            qs = qs.filter(created_at__gt=after)
+        if before:
+            qs = qs.filter(created_at__lt=before)
 
-            total = qs.count()
-            messages = list(qs.order_by("-created_at")[offset : offset + limit])
-
-            return messages, total
-
-        return await _search()
+        total = await qs.acount()
+        messages = [m async for m in qs.order_by("-created_at")[offset : offset + limit]]
+        return messages, total

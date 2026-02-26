@@ -129,6 +129,35 @@ uv add django pydantic websockets
 uv add orjson  # For faster JSON rendering
 ```
 
+## Service Layer Pattern
+
+All examples follow the thin controller + service pattern: controllers parse requests and return responses; services own the business logic and ORM operations.
+
+```python
+# Typical layout in every example app
+class TodoService(CRUDService["Todo"]):
+    model = Todo
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("created_by")
+
+class TodoController(APIController):
+    def __init__(self):
+        self.service = TodoService()
+        super().__init__()
+
+    @api.get("/")
+    async def list_todos(self, request):
+        items, total = await self.service.list(created_by=request.user)
+        return {"items": items, "total": total}
+
+    @api.post("/")
+    async def create_todo(self, request, data: TodoCreateSchema):
+        return await self.service.create(data.model_dump(), user=request.user)
+```
+
+See the [Service Layer documentation](../docs/services/index.md) for the full API reference.
+
 ## Usage Tips
 
 1. Each example is a standalone application that can be run directly with Python.

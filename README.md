@@ -58,7 +58,7 @@ Django Matt consolidates the Django API ecosystem into a single, cohesive framew
 
 | Category | Features |
 |----------|----------|
-| **Core** | Async controllers, Pydantic schemas, OpenAPI 3.1, auto CRUD |
+| **Core** | Async controllers, Pydantic schemas, OpenAPI 3.1, auto CRUD, **service layer** (CRUDService, BaseThirdPartyService) |
 | **Auth** | JWT, Sessions, API Keys, OAuth (Google/GitHub/Apple/Microsoft), Passkeys, SAML/OIDC SSO |
 | **Data** | PostgreSQL, pgvector, query optimization, distributed caching, N+1 detection |
 | **Real-time** | WebSockets, messaging, notifications, presence, typing indicators |
@@ -131,6 +131,60 @@ class ProductController(CRUDController):
     permission_classes = [IsAuthenticated]
     # Auto-generates: GET /, POST /, GET /{id}, PATCH /{id}, DELETE /{id}
 ```
+
+### Service Layer
+
+Keep controllers thin. Services own the business logic.
+
+```python
+# todo/services.py
+from django_matt.services import CRUDService
+from .models import Todo
+
+class TodoService(CRUDService["Todo"]):
+    model = Todo
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("created_by")
+
+    async def for_user(self, user) -> list[Todo]:
+        return [t async for t in self.get_queryset().filter(created_by=user)]
+
+# todo/controllers.py
+@api.controller("/todos", tags=["Todos"])
+class TodoController(APIController):
+    def __init__(self):
+        self.service = TodoService()
+        super().__init__()
+
+    @api.get("/")
+    async def list_todos(self, request):
+        items, total = await self.service.list(created_by=request.user)
+        return {"items": items, "total": total}
+
+    @api.post("/")
+    async def create_todo(self, request, data: TodoCreateSchema):
+        return await self.service.create(data.model_dump(), user=request.user)
+```
+
+For external APIs (Stripe, Resend, Twilio), subclass `BaseThirdPartyService`:
+
+```python
+from django_matt.services import BaseThirdPartyService
+
+class ResendService(BaseThirdPartyService):
+    base_url = "https://api.resend.com"
+
+    def _auth_headers(self) -> dict:
+        from django.conf import settings
+        return {"Authorization": f"Bearer {settings.RESEND_API_KEY}"}
+
+    async def send_email(self, to: str, subject: str, html: str) -> dict:
+        return await self._post("/emails", {"from": "no-reply@example.com",
+                                             "to": to, "subject": subject, "html": html})
+```
+
+See the [Service Layer documentation](docs/services/index.md) for the full API reference.
 
 ### CLI Commands
 

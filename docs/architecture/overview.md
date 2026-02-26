@@ -20,7 +20,7 @@ graph TB
 
     subgraph "Application Layer"
         CTRL[Controllers]
-        SVC[Services]
+        SVC[Services<br/>CRUDService · BaseThirdPartyService]
         PERM[Permissions]
     end
 
@@ -118,6 +118,10 @@ django_matt/
 │   ├── base.py              # Base permission classes
 │   └── decorators.py        # @authenticated, @requires_role, etc.
 │
+├── services/                 # Service layer
+│   ├── base.py              # BaseService, CRUDService, ServiceError hierarchy
+│   └── third_party.py       # BaseThirdPartyService, ThirdPartyServiceError
+│
 ├── messaging/                # Real-time messaging
 │   ├── models/              # Conversation, Message, Attachment
 │   ├── services/            # ConversationService, MessageService
@@ -201,7 +205,48 @@ django_matt/
 - Tenant isolation for multi-tenancy
 
 ### Service Layer
-- Business logic encapsulation
+
+The service layer sits between the Application Layer (controllers) and the Domain/Infrastructure layers (models, external APIs). Controllers delegate all business logic to services; services own the domain behavior.
+
+**Internal services** (`BaseService`, `CRUDService`) manage Django ORM operations:
+
+```python
+# myapp/services.py
+from django_matt.services import CRUDService
+from .models import Order
+
+class OrderService(CRUDService["Order"]):
+    model = Order
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("user", "items")
+
+    async def cancel(self, pk: int, user, reason: str) -> Order:
+        return await self.update(pk, {"status": "cancelled", "cancel_reason": reason}, user=user)
+```
+
+**External services** (`BaseThirdPartyService`) wrap third-party HTTP APIs:
+
+```python
+# integrations/stripe_service.py
+from django_matt.services import BaseThirdPartyService
+
+class StripeService(BaseThirdPartyService):
+    base_url = "https://api.stripe.com/v1"
+
+    def _auth_headers(self) -> dict:
+        from django.conf import settings
+        return {"Authorization": f"Bearer {settings.STRIPE_SECRET_KEY}"}
+
+    async def create_customer(self, email: str, name: str) -> dict:
+        return await self._post("/customers", {"email": email, "name": name})
+```
+
+Responsibilities:
+- Business logic encapsulation (keep controllers HTTP-only)
+- Audit field management (`created_by`, `updated_by`)
+- Soft-delete handling
+- Atomic transactions around write operations
 - Cross-cutting concerns (caching, logging)
 - External service integration
 
@@ -268,6 +313,7 @@ class UserController(CRUDController):
 - [Core Components](./core.md) - Routing, controllers, and schemas
 - [Authentication](./authentication.md) - Auth strategies and flows
 - [Data Flow](./data-flow.md) - Request/response lifecycle
+- [Service Layer](../services/index.md) - CRUDService, BaseThirdPartyService, patterns
 - [Messaging](../messaging/overview.md) - Real-time messaging
 - [Notifications](../notifications/overview.md) - Multi-channel notifications
 - [Email](../email/overview.md) - Transactional email
