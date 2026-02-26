@@ -42,6 +42,7 @@ from typing import Literal
 from django.conf import settings
 
 AuthMethod = Literal["jwt", "session", "token", "anonymous"]
+WebSocketBackend = Literal["centrifugo", "channels"]
 
 
 @dataclass
@@ -56,6 +57,9 @@ class RateLimitConfig:
 @dataclass
 class WebSocketConfig:
     """Main WebSocket configuration."""
+
+    # Backend selection: "centrifugo" (default) or "channels"
+    backend: WebSocketBackend = "centrifugo"
 
     enabled: bool = True
     auth_required: bool = False
@@ -88,6 +92,7 @@ class WebSocketConfig:
         )
 
         return cls(
+            backend=config_dict.get("BACKEND", "centrifugo"),
             enabled=config_dict.get("ENABLED", True),
             auth_required=config_dict.get("AUTH_REQUIRED", False),
             auth_methods=config_dict.get("AUTH_METHODS", ["jwt", "session"]),

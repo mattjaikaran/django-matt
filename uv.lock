@@ -573,6 +573,9 @@ all = [
 billing = [
     { name = "stripe" },
 ]
+centrifugo = [
+    { name = "httpx" },
+]
 dev = [
     { name = "django-stubs" },
     { name = "httpx" },
@@ -673,6 +676,7 @@ requires-dist = [
     { name = "dramatiq", extras = ["redis"], marker = "extra == 'tasks'", specifier = ">=1.17.0" },
     { name = "email-validator", specifier = ">=2.3.0" },
     { name = "gunicorn", marker = "extra == 'server'", specifier = ">=23.0.0" },
+    { name = "httpx", marker = "extra == 'centrifugo'", specifier = ">=0.27.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27.0" },
     { name = "httpx", marker = "extra == 'oauth'", specifier = ">=0.25.0" },
     { name = "httpx", marker = "extra == 'testing'", specifier = ">=0.27.0" },
@@ -708,7 +712,7 @@ requires-dist = [
     { name = "watchdog", specifier = ">=6.0.0" },
     { name = "webauthn", marker = "extra == 'passkeys'", specifier = ">=2.1.0" },
 ]
-provides-extras = ["dev", "docs", "performance", "auth", "jwt-asymmetric", "oauth", "passkeys", "typegen", "files", "tasks", "email", "billing", "postgres", "server", "testing", "full", "all"]
+provides-extras = ["dev", "docs", "performance", "auth", "jwt-asymmetric", "oauth", "centrifugo", "passkeys", "typegen", "files", "tasks", "email", "billing", "postgres", "server", "testing", "full", "all"]
 
 [package.metadata.requires-dev]
 dev = [

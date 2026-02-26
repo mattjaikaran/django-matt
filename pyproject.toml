@@ -94,6 +94,11 @@ oauth = [
     "httpx>=0.25.0",
 ]
 
+# Centrifugo WebSocket backend
+centrifugo = [
+    "httpx>=0.27.0",
+]
+
 # Passkeys/WebAuthn
 passkeys = [
     "webauthn>=2.1.0",

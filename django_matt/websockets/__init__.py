@@ -55,6 +55,27 @@ Example usage:
     application = create_asgi_application(router)
 """
 
+# Centrifugo backend (optional — requires httpx)
+try:
+    from django_matt.websockets.centrifugo import (
+        CentrifugoAPIError,
+        CentrifugoClient,
+        CentrifugoConfig,
+        CentrifugoConnectProxy,
+        CentrifugoPublishProxy,
+        CentrifugoRPCProxy,
+        CentrifugoSubscribeProxy,
+        generate_connection_token,
+        generate_subscription_token,
+        get_centrifugo_client,
+        get_centrifugo_config,
+        get_centrifugo_urls,
+    )
+
+    _centrifugo_available = True
+except ImportError:
+    _centrifugo_available = False
+
 # Configuration
 # Authentication
 from django_matt.websockets.auth import (
@@ -143,6 +164,19 @@ from django_matt.websockets.schemas import (
 )
 
 __all__ = [
+    # Centrifugo backend
+    "CentrifugoConfig",
+    "get_centrifugo_config",
+    "CentrifugoClient",
+    "CentrifugoAPIError",
+    "get_centrifugo_client",
+    "generate_connection_token",
+    "generate_subscription_token",
+    "CentrifugoConnectProxy",
+    "CentrifugoSubscribeProxy",
+    "CentrifugoPublishProxy",
+    "CentrifugoRPCProxy",
+    "get_centrifugo_urls",
     # Configuration
     "WebSocketConfig",
     "RateLimitConfig",
