@@ -228,3 +228,8 @@ Verify these patterns are correctly implemented — bugs found in other framewor
 - [x] **Centrifugo WebSocket backend** — `django_matt/websockets/centrifugo/` (config, tokens, client, proxy); Centrifugo is now the default backend; 25 tests
 - [x] **Service layer** — `django_matt/services/` with `BaseService`, `CRUDService`, `BaseThirdPartyService`; `ServiceError` hierarchy; CLI template generator updated; 29 tests
 - [x] **Service layer across examples** — todo, ecommerce, saas-starter, realtime-chat all migrated; 4 new `docs/services/` files; README/ROADMAP/architecture updated; 4234 tests passing
+- [x] **Phase 6 architectural verification** — 2 bugs found+fixed (shared `tags` list in Controller, static routes not sorted before parameterized); 5 checks passed (method cloning, decorator order, auth→permissions order, ContextVar usage, decorator propagation)
+- [x] **Phase 1.1 error unification** — `utils/errors.py` merged into `core/errors.py`; standardized `{status, detail, extra}` envelope; shim for backwards compat
+- [x] **Phase 1.2 PK nullability** — PKs never Optional in response schemas; `field.null` not `field.blank` for optionality
+- [x] **Phase 1.3 choices → enums** — Django `TextChoices`/`IntegerChoices` → `Literal[...]` for OpenAPI enum constraints
+- [x] **Lint to zero** — migrated 35 UP046/UP047 Generic syntax to PEP 695; fixed F821, UP036; per-file-ignores for graphql/+views/base.py
