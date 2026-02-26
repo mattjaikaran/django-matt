@@ -225,3 +225,6 @@ Verify these patterns are correctly implemented — bugs found in other framewor
 - [x] Rename claude.md → CLAUDE.md
 - [x] Enhancement research — 9 frameworks analyzed, 200+ issues reviewed
 - [x] Enhancement plan — 6-phase plan + tentative Node ideas written
+- [x] **Centrifugo WebSocket backend** — `django_matt/websockets/centrifugo/` (config, tokens, client, proxy); Centrifugo is now the default backend; 25 tests
+- [x] **Service layer** — `django_matt/services/` with `BaseService`, `CRUDService`, `BaseThirdPartyService`; `ServiceError` hierarchy; CLI template generator updated; 29 tests
+- [x] **Service layer across examples** — todo, ecommerce, saas-starter, realtime-chat all migrated; 4 new `docs/services/` files; README/ROADMAP/architecture updated; 4234 tests passing

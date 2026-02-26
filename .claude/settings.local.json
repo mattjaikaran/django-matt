@@ -80,7 +80,26 @@
       "Bash(uv pip list:*)",
       "Bash(python3:*)",
       "Bash(uv build:*)",
-      "Bash(git -C /Users/mattjaikaran/dev/django-matt status:*)"
+      "Bash(git -C /Users/mattjaikaran/dev/django-matt status:*)",
+      "Bash(gh api:*)",
+      "Bash(grep:*)",
+      "Bash(git status:*)",
+      "Bash(# Check observability views - is health_view real? ls /Users/mattjaikaran/dev/django-matt/django_matt/observability/ grep -n \"\"def health_view\\\\|health_view\"\" /Users/mattjaikaran/dev/django-matt/django_matt/observability/views.py)",
+      "Bash(# Check if ''configure'' function exists in config module \\(it''s exported\\) grep -n \"\"^def configure\\\\|^configure\"\" /Users/mattjaikaran/dev/django-matt/django_matt/config/__init__.py)",
+      "Bash(comm:*)",
+      "Bash(for:*)",
+      "Bash(do)",
+      "Bash(if [ ! -f \"$dir__init__.py\" ])",
+      "Bash(then)",
+      "Bash(echo:*)",
+      "Bash(fi)",
+      "Bash(if [ ! -f \"tests/test_$mod.py\" ])",
+      "Bash([ ! -f \"tests/test_$mod_*.py\" ])",
+      "Bash(then echo \"NO TEST: auth.$sub \\(no dedicated coverage\\)\" fi done)",
+      "Bash(test:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(curl:*)"
     ]
   }
 }
