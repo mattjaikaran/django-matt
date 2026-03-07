@@ -117,8 +117,10 @@ pytest tests/test_auth.py -v           # specific file
 
 ## Known Issues
 
-- `conftest.py` sets `DJANGO_ALLOW_ASYNC_UNSAFE=true` globally, masking async/sync ORM bugs in tests
-- `testing/client.py` `AsyncAPITestClient.force_authenticate()` calls sync `create_access_token()` — should use `acreate_access_token()`
+No known issues. Phase 1 Correctness Audit (Plans 01-01 through 01-03) resolved all previously tracked issues:
+- DJANGO_ALLOW_ASYNC_UNSAFE=true was removed; all sync ORM calls in async handlers converted (Plan 01-01)
+- utils/errors.py duplication eliminated; canonical import is django_matt.core.errors (Plan 01-02)
+- AsyncAPITestClient.force_authenticate() uses acreate_access_token() (Plan 01-01)
 
 ## Important Files
 
