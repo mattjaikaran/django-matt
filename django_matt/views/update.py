@@ -87,11 +87,7 @@ class UpdateView(APIView):
         queryset = self.get_queryset(None)
 
         try:
-            if hasattr(queryset, "aget"):
-                return await queryset.aget(**{self.lookup_field: lookup_value})
-            from asgiref.sync import sync_to_async
-
-            return await sync_to_async(queryset.get)(**{self.lookup_field: lookup_value})
+            return await queryset.aget(**{self.lookup_field: lookup_value})
         except queryset.model.DoesNotExist:
             model_name = self.get_model().__name__
             raise NotFoundAPIError(
@@ -102,12 +98,7 @@ class UpdateView(APIView):
 
     async def _save_instance(self, instance: models.Model):
         """Save the model instance asynchronously."""
-        if hasattr(instance, "asave"):
-            await instance.asave()
-        else:
-            from asgiref.sync import sync_to_async
-
-            await sync_to_async(instance.save)()
+        await instance.asave()
 
 
 class PatchView(UpdateView):
@@ -141,8 +132,9 @@ class PatchView(UpdateView):
 
         instance = await self._get_instance(lookup_value)
 
-        # Only update provided fields (exclude_none for partial updates)
-        data_dict = data.model_dump(exclude_unset=True, exclude_none=True)
+        # Only update fields explicitly sent in the request body.
+        # Uses model_fields_set to distinguish "not sent" from "sent as null".
+        data_dict = {k: v for k, v in data.model_dump().items() if k in data.model_fields_set}
 
         # Run before_update hooks - allows modifying instance and data
         # Returns tuple of (instance, data_dict)
@@ -159,7 +151,19 @@ class PatchView(UpdateView):
         if self._viewset and hasattr(self._viewset, "perform_update"):
             instance = await self._viewset.perform_update(instance, data_dict, request)
         else:
+            field_names = {f.name for f in instance._meta.get_fields()}
             for key, value in data_dict.items():
+                # Coerce None to "" for CharField/TextField that disallow NULL.
+                # PATCH requests may send explicit nulls to clear a field; Django
+                # CharField/TextField require empty string instead of NULL at DB level.
+                if value is None and key in field_names:
+                    field = instance._meta.get_field(key)
+                    if (
+                        hasattr(field, "get_internal_type")
+                        and field.get_internal_type() in ("CharField", "TextField")
+                        and not field.null
+                    ):
+                        value = ""
                 setattr(instance, key, value)
             await self._save_instance(instance)
 
