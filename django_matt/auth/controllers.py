@@ -32,6 +32,7 @@ from django_matt.auth.jwt import (
     async_refresh_tokens,
 )
 from django_matt.auth.magic_link import (
+    averify_magic_link_token,
     create_magic_link_url,
     magic_link_config,
     send_magic_link_async,
@@ -831,8 +832,8 @@ class AuthController(APIController):
 
         ctx = _request_context(request)
 
-        # Verify the magic link token
-        result = verify_magic_link_token(data.token, create_user=True)
+        # Verify the magic link token (async — uses native async ORM)
+        result = await averify_magic_link_token(data.token, create_user=True)
 
         if not result.valid:
             await AuditLog.alog(
@@ -900,8 +901,8 @@ class AuthController(APIController):
                 status=400,
             )
 
-        # Verify without creating user
-        result = verify_magic_link_token(token, create_user=False)
+        # Verify without creating user (async — uses native async ORM)
+        result = await averify_magic_link_token(token, create_user=False)
 
         return JsonResponse(
             {

@@ -215,8 +215,6 @@ class TenantMiddlewareAsync:
         self.exempt_paths = getattr(settings, "TENANT_EXEMPT_PATHS", ["/auth/", "/health/"])
 
     async def __call__(self, request: HttpRequest) -> HttpResponse:
-        from asgiref.sync import sync_to_async
-
         from django_matt.multitenancy.models import Membership, Organization
 
         organization = None
@@ -231,9 +229,9 @@ class TenantMiddlewareAsync:
             organization = await self._resolve_from_session(request, Organization)
 
         if not organization and hasattr(request, "user"):
-            # Check if user is authenticated
-            is_authenticated = await sync_to_async(lambda: request.user.is_authenticated)()
-            if is_authenticated:
+            # request.user.is_authenticated is a simple boolean property on a Django user
+            # object — not a lazy attribute requiring DB access — safe to access directly.
+            if request.user.is_authenticated:
                 organization = await self._resolve_from_user(request, Organization, Membership)
 
         # Set the tenant context
@@ -259,22 +257,16 @@ class TenantMiddlewareAsync:
         self, request: HttpRequest, Organization
     ) -> Optional["Organization"]:
         """Resolve tenant from request headers."""
-        from asgiref.sync import sync_to_async
-
         org_id = request.headers.get(self.header_id)
         if org_id:
             try:
-                return await sync_to_async(
-                    Organization.objects.filter(id=org_id, is_active=True).first
-                )()
+                return await Organization.objects.filter(id=org_id, is_active=True).afirst()
             except (ValueError, Organization.DoesNotExist):
                 pass
 
         org_slug = request.headers.get(self.header_slug)
         if org_slug:
-            return await sync_to_async(
-                Organization.objects.filter(slug=org_slug, is_active=True).first
-            )()
+            return await Organization.objects.filter(slug=org_slug, is_active=True).afirst()
 
         return None
 
@@ -282,29 +274,21 @@ class TenantMiddlewareAsync:
         self, request: HttpRequest, Organization
     ) -> Optional["Organization"]:
         """Resolve tenant from URL parameters."""
-        from asgiref.sync import sync_to_async
-
         if hasattr(request, "resolver_match") and request.resolver_match:
             org_slug = request.resolver_match.kwargs.get(self.url_kwarg)
             if org_slug:
-                return await sync_to_async(
-                    Organization.objects.filter(slug=org_slug, is_active=True).first
-                )()
+                return await Organization.objects.filter(slug=org_slug, is_active=True).afirst()
         return None
 
     async def _resolve_from_session(
         self, request: HttpRequest, Organization
     ) -> Optional["Organization"]:
         """Resolve tenant from session."""
-        from asgiref.sync import sync_to_async
-
         if hasattr(request, "session"):
             org_id = request.session.get(self.session_key)
             if org_id:
                 try:
-                    return await sync_to_async(
-                        Organization.objects.filter(id=org_id, is_active=True).first
-                    )()
+                    return await Organization.objects.filter(id=org_id, is_active=True).afirst()
                 except (ValueError, Organization.DoesNotExist):
                     pass
         return None
@@ -313,18 +297,12 @@ class TenantMiddlewareAsync:
         self, request: HttpRequest, Organization, Membership
     ) -> Optional["Organization"]:
         """Resolve tenant from user's memberships."""
-        from asgiref.sync import sync_to_async
-
-        @sync_to_async
-        def get_first_org():
-            membership = (
-                Membership.objects.filter(user=request.user, organization__is_active=True)
-                .select_related("organization")
-                .first()
-            )
-            return membership.organization if membership else None
-
-        return await get_first_org()
+        membership = await (
+            Membership.objects.filter(user=request.user, organization__is_active=True)
+            .select_related("organization")
+            .afirst()
+        )
+        return membership.organization if membership else None
 
     def _requires_tenant(self, path: str) -> bool:
         """Check if the request path requires tenant context."""

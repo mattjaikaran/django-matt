@@ -229,7 +229,7 @@ class OAuthController:
         user, created = await _get_or_create_user(user_info, config)
 
         # Create or update OAuth connection
-        connection, _ = await _sync_to_async(OAuthConnection.objects.update_or_create)(
+        connection, _ = await OAuthConnection.objects.aupdate_or_create(
             provider=provider,
             provider_user_id=user_info.provider_user_id,
             defaults={
@@ -274,7 +274,9 @@ class OAuthController:
         """
         from django_matt.auth.oauth.models import OAuthConnection
 
-        connections = await _sync_to_async(list)(OAuthConnection.objects.filter(user=request.user))
+        connections = [
+            conn async for conn in OAuthConnection.objects.filter(user=request.user)
+        ]
 
         return OAuthConnectionListResponse(
             connections=[
@@ -301,7 +303,7 @@ class OAuthController:
         from django_matt.auth.oauth.models import OAuthConnection
 
         try:
-            connection = await _sync_to_async(OAuthConnection.objects.get)(
+            connection = await OAuthConnection.objects.aget(
                 user=request.user,
                 provider=provider,
             )
@@ -309,14 +311,14 @@ class OAuthController:
             raise NotFoundAPIError(f"No connection to {provider}")
 
         # Prevent disconnecting last auth method if user has no password
-        other_connections = await _sync_to_async(
-            OAuthConnection.objects.filter(user=request.user).exclude(provider=provider).count
-        )()
+        other_connections = await OAuthConnection.objects.filter(
+            user=request.user
+        ).exclude(provider=provider).acount()
 
         has_password = request.user.has_usable_password()
         has_passkeys = (
             hasattr(request.user, "passkey_credentials")
-            and await _sync_to_async(request.user.passkey_credentials.exists)()
+            and await request.user.passkey_credentials.aexists()
         )
 
         if not has_password and not has_passkeys and other_connections == 0:
@@ -324,7 +326,7 @@ class OAuthController:
                 "Cannot disconnect last OAuth provider when no other login method is available"
             )
 
-        await _sync_to_async(connection.delete)()
+        await connection.adelete()
 
         return {"success": True, "message": f"Disconnected from {provider}"}
 
@@ -347,13 +349,6 @@ class OAuthController:
 # =============================================================================
 
 
-def _sync_to_async(func):
-    """Convert sync function to async."""
-    from asgiref.sync import sync_to_async
-
-    return sync_to_async(func, thread_sensitive=True)
-
-
 async def _get_or_create_user(user_info: OAuthUserInfo, config) -> tuple:
     """
     Get existing user or create new one from OAuth user info.
@@ -361,10 +356,14 @@ async def _get_or_create_user(user_info: OAuthUserInfo, config) -> tuple:
     Returns:
         Tuple of (user, created)
     """
+    from asgiref.sync import sync_to_async
+
     from django_matt.auth.oauth.models import OAuthConnection
 
-    # First, check if we have an existing OAuth connection
-    connection = await _sync_to_async(OAuthConnection.get_or_none)(
+    # First, check if we have an existing OAuth connection.
+    # OAuthConnection.get_or_none is a custom classmethod with sync ORM internally —
+    # it must be wrapped with sync_to_async.
+    connection = await sync_to_async(OAuthConnection.get_or_none)(
         user_info.provider,
         user_info.provider_user_id,
     )
@@ -375,7 +374,7 @@ async def _get_or_create_user(user_info: OAuthUserInfo, config) -> tuple:
     # Check if we should link to existing user by email
     if config.link_existing_user and user_info.email:
         try:
-            user = await _sync_to_async(User.objects.get)(email=user_info.email)
+            user = await User.objects.aget(email=user_info.email)
             return user, False
         except User.DoesNotExist:
             pass
@@ -396,7 +395,7 @@ async def _get_or_create_user(user_info: OAuthUserInfo, config) -> tuple:
     username = base_username
     counter = 1
 
-    while await _sync_to_async(User.objects.filter(username=username).exists)():
+    while await User.objects.filter(username=username).aexists():
         username = f"{base_username}{counter}"
         counter += 1
 
@@ -412,6 +411,6 @@ async def _get_or_create_user(user_info: OAuthUserInfo, config) -> tuple:
     if hasattr(User, "last_name") and user_info.last_name:
         user_data["last_name"] = user_info.last_name
 
-    user = await _sync_to_async(User.objects.create_user)(**user_data)
+    user = await User.objects.acreate_user(**user_data)
 
     return user, True

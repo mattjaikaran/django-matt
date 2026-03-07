@@ -49,7 +49,10 @@ class APITestClient(Client):
         if token:
             self._auth_token = token
         elif user:
-            # Generate a token for the user
+            # Generate a token for the user.
+            # Sync create_access_token is safe here: force_authenticate() is called
+            # during test setup (not inside an async request handler) and APITestClient
+            # is a synchronous client. There is no event loop to block.
             try:
                 from django_matt.auth import create_access_token
 

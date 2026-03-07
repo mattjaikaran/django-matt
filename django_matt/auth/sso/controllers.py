@@ -11,6 +11,8 @@ Provides endpoints for:
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse, HttpResponseRedirect
 
+from asgiref.sync import sync_to_async
+
 from django_matt.auth.decorators import jwt_required
 from django_matt.auth.jwt import acreate_token_pair
 from django_matt.auth.sso.config import get_sso_config
@@ -84,8 +86,9 @@ class SSOController:
         if not domain:
             return SSOStatusResponse(sso_enabled=False)
 
-        # Find SSO connection for this domain
-        connection = await _sync_to_async(SSOConnection.get_for_domain)(domain)
+        # SSOConnection.get_for_domain is a custom classmethod with sync ORM internally —
+        # it must be wrapped with sync_to_async.
+        connection = await sync_to_async(SSOConnection.get_for_domain)(domain)
 
         if not connection:
             return SSOStatusResponse(sso_enabled=False)
@@ -115,7 +118,8 @@ class SSOController:
         """
         from django_matt.auth.sso.models import SSOConnection
 
-        connection = await _sync_to_async(SSOConnection.get_for_organization)(org_id)
+        # SSOConnection.get_for_organization is a custom classmethod with sync ORM internally.
+        connection = await sync_to_async(SSOConnection.get_for_organization)(org_id)
         if not connection:
             raise NotFoundAPIError(f"SSO not configured for organization: {org_id}")
 
@@ -142,7 +146,7 @@ class SSOController:
         """
         from django_matt.auth.sso.models import SSOConnection
 
-        connection = await _sync_to_async(SSOConnection.get_for_organization)(org_id)
+        connection = await sync_to_async(SSOConnection.get_for_organization)(org_id)
         if not connection:
             config = get_sso_config()
             return HttpResponseRedirect(
@@ -177,7 +181,7 @@ class SSOController:
         """
         from django_matt.auth.sso.models import SSOConnection, SSOUserLink
 
-        connection = await _sync_to_async(SSOConnection.get_for_organization)(org_id)
+        connection = await sync_to_async(SSOConnection.get_for_organization)(org_id)
         if not connection:
             raise NotFoundAPIError(f"SSO not configured for organization: {org_id}")
 
@@ -195,7 +199,7 @@ class SSOController:
         user, created = await _get_or_create_sso_user(connection, user_info)
 
         # Update or create SSO link
-        await _sync_to_async(SSOUserLink.objects.update_or_create)(
+        await SSOUserLink.objects.aupdate_or_create(
             connection=connection,
             idp_user_id=user_info.idp_user_id,
             defaults={
@@ -230,7 +234,7 @@ class SSOController:
         """
         from django_matt.auth.sso.models import SSOConnection
 
-        connection = await _sync_to_async(SSOConnection.get_for_organization)(org_id)
+        connection = await sync_to_async(SSOConnection.get_for_organization)(org_id)
         if not connection:
             raise NotFoundAPIError(f"SSO not configured for organization: {org_id}")
 
@@ -278,15 +282,16 @@ class SSOController:
         from django_matt.multitenancy import Organization, user_is_org_admin
 
         # Check if user is admin of this organization
-        organization = await _sync_to_async(Organization.objects.filter(id=org_id).first)()
+        organization = await Organization.objects.filter(id=org_id).afirst()
         if not organization:
             raise NotFoundAPIError(f"Organization not found: {org_id}")
 
-        is_admin = await _sync_to_async(user_is_org_admin)(request.user, organization)
+        # user_is_org_admin is a sync utility function with sync ORM internally.
+        is_admin = await sync_to_async(user_is_org_admin)(request.user, organization)
         if not is_admin:
             raise PermissionAPIError("Only organization admins can manage SSO settings")
 
-        connection = await _sync_to_async(SSOConnection.get_for_organization)(org_id)
+        connection = await sync_to_async(SSOConnection.get_for_organization)(org_id)
         if not connection:
             raise NotFoundAPIError(f"SSO not configured for organization: {org_id}")
 
@@ -348,7 +353,7 @@ class SSOController:
                 }
             )
 
-        connection, _ = await _sync_to_async(SSOConnection.objects.update_or_create)(
+        connection, _ = await SSOConnection.objects.aupdate_or_create(
             organization_id=org_id,
             defaults=connection_data,
         )
@@ -366,11 +371,11 @@ class SSOController:
         from django_matt.auth.sso.models import SSOConnection
 
         try:
-            connection = await _sync_to_async(SSOConnection.objects.get)(organization_id=org_id)
+            connection = await SSOConnection.objects.aget(organization_id=org_id)
         except SSOConnection.DoesNotExist:
             raise NotFoundAPIError(f"SSO not configured for organization: {org_id}")
 
-        await _sync_to_async(connection.delete)()
+        await connection.adelete()
 
         return {"success": True, "message": "SSO connection deleted"}
 
@@ -395,13 +400,6 @@ class SSOController:
 # =============================================================================
 
 
-def _sync_to_async(func):
-    """Convert sync function to async."""
-    from asgiref.sync import sync_to_async
-
-    return sync_to_async(func, thread_sensitive=True)
-
-
 async def _get_or_create_sso_user(connection, user_info: SSOUserInfo) -> tuple:
     """
     Get existing user or create new one from SSO user info.
@@ -413,8 +411,8 @@ async def _get_or_create_sso_user(connection, user_info: SSOUserInfo) -> tuple:
 
     config = get_sso_config()
 
-    # First, check for existing SSO link
-    existing_user = await _sync_to_async(SSOUserLink.get_user)(connection, user_info.idp_user_id)
+    # SSOUserLink.get_user is a custom classmethod with sync ORM internally.
+    existing_user = await sync_to_async(SSOUserLink.get_user)(connection, user_info.idp_user_id)
     if existing_user:
         # Optionally update user info
         if config.auto_update_user and user_info.email:
@@ -424,7 +422,7 @@ async def _get_or_create_sso_user(connection, user_info: SSOUserInfo) -> tuple:
     # Check for existing user by email
     if user_info.email:
         try:
-            user = await _sync_to_async(User.objects.get)(email=user_info.email)
+            user = await User.objects.aget(email=user_info.email)
             return user, False
         except User.DoesNotExist:
             pass
@@ -441,7 +439,7 @@ async def _get_or_create_sso_user(connection, user_info: SSOUserInfo) -> tuple:
     username = base_username
     counter = 1
 
-    while await _sync_to_async(User.objects.filter(username=username).exists)():
+    while await User.objects.filter(username=username).aexists():
         username = f"{base_username}{counter}"
         counter += 1
 
@@ -456,7 +454,7 @@ async def _get_or_create_sso_user(connection, user_info: SSOUserInfo) -> tuple:
     if hasattr(User, "last_name") and user_info.last_name:
         user_data["last_name"] = user_info.last_name
 
-    user = await _sync_to_async(User.objects.create_user)(**user_data)
+    user = await User.objects.acreate_user(**user_data)
 
     return user, True
 
@@ -476,4 +474,4 @@ async def _update_user_from_sso(user, user_info: SSOUserInfo):
             updated = True
 
     if updated:
-        await _sync_to_async(user.save)()
+        await user.asave()

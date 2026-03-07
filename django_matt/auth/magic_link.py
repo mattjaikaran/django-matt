@@ -328,6 +328,113 @@ def verify_magic_link_token(
         return MagicLinkVerifyResult(valid=False, error=f"Token verification failed: {e}")
 
 
+async def averify_magic_link_token(
+    token: str,
+    create_user: bool | None = None,
+) -> MagicLinkVerifyResult:
+    """
+    Async version of verify_magic_link_token.
+
+    Verify a magic link token and optionally get/create the user using native
+    async ORM methods. Use this from async request handlers.
+
+    Args:
+        token: The magic link token to verify
+        create_user: Override config for auto-creating users
+
+    Returns:
+        MagicLinkVerifyResult with verification status and user
+    """
+    if create_user is None:
+        create_user = magic_link_config.create_user_if_not_exists
+
+    try:
+        # Split token
+        parts = token.split(".")
+        if len(parts) != 2:
+            return MagicLinkVerifyResult(valid=False, error="Invalid token format")
+
+        encoded_payload, signature = parts
+
+        # Verify signature
+        expected_signature = _generate_signature(encoded_payload, magic_link_config.secret_key)
+        if not hmac.compare_digest(signature, expected_signature):
+            return MagicLinkVerifyResult(valid=False, error="Invalid token signature")
+
+        # Decode payload
+        payload = _decode_payload(encoded_payload)
+
+        # Check expiration
+        exp = payload.get("exp", 0)
+        now = datetime.now(UTC).timestamp()
+        if now > exp:
+            return MagicLinkVerifyResult(
+                valid=False, email=payload.get("email"), error="Token has expired"
+            )
+
+        email = payload.get("email")
+        if not email:
+            return MagicLinkVerifyResult(valid=False, error="Token missing email")
+
+        # Check one-time use: reject if token has already been consumed
+        cache_key = _get_token_cache_key(token)
+        if cache.get(cache_key):
+            return MagicLinkVerifyResult(
+                valid=False, email=email, error="Token has already been used"
+            )
+
+        # Get or create user using native async ORM
+        User = get_user_model()
+        user = None
+        user_created = False
+
+        try:
+            user = await User.objects.aget(email=email)
+        except User.DoesNotExist:
+            if create_user and magic_link_config.allow_registration:
+                # Create new user
+                username = email.split("@")[0]
+                # Ensure unique username
+                base_username = username
+                counter = 1
+                while await User.objects.filter(username=username).aexists():
+                    username = f"{base_username}{counter}"
+                    counter += 1
+
+                user = await User.objects.acreate_user(
+                    username=username,
+                    email=email,
+                    is_active=True,
+                )
+                user_created = True
+            elif not magic_link_config.allow_registration:
+                return MagicLinkVerifyResult(
+                    valid=False, email=email, error="User registration not allowed"
+                )
+            else:
+                return MagicLinkVerifyResult(valid=False, email=email, error="User not found")
+
+        # Check if user is active
+        if user and not user.is_active:
+            return MagicLinkVerifyResult(valid=False, email=email, error="User account is inactive")
+
+        # Mark token as used. TTL = remaining seconds until token expiry.
+        remaining_ttl = max(int(exp - now), 1)
+        cache.set(cache_key, True, remaining_ttl)
+
+        return MagicLinkVerifyResult(
+            valid=True,
+            email=email,
+            user=user,
+            user_created=user_created,
+        )
+
+    except MagicLinkTokenError as e:
+        return MagicLinkVerifyResult(valid=False, error=str(e))
+    except Exception as e:
+        return MagicLinkVerifyResult(valid=False, error=f"Token verification failed: {e}")
+
+
 def get_magic_link_payload(token: str) -> dict | None:
     """
     Get the payload from a magic link token without full verification.
@@ -555,6 +662,7 @@ __all__ = [
     "MagicLinkTokenError",
     "MagicLinkUserNotFoundError",
     "MagicLinkVerifyResult",
+    "averify_magic_link_token",
     "create_magic_link_token",
     "create_magic_link_url",
     "get_magic_link_payload",

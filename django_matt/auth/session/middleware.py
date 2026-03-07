@@ -240,8 +240,6 @@ class AsyncSessionAuthMiddleware:
 
     async def _aget_user_from_session(self, request: "HttpRequest"):
         """Get user from session (async)."""
-        from asgiref.sync import sync_to_async
-
         User = get_user_model()
 
         user_id = request.session.get("_auth_user_id")
@@ -249,7 +247,7 @@ class AsyncSessionAuthMiddleware:
             return AnonymousUser()
 
         try:
-            user = await sync_to_async(User.objects.get)(pk=user_id)
+            user = await User.objects.aget(pk=user_id)
             if not user.is_active:
                 return AnonymousUser()
             return user
