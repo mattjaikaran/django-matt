@@ -225,13 +225,138 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| *(populated during roadmap creation)* | | |
+| CORE-01 | Phase 3 | Pending |
+| CORE-02 | Phase 3 | Pending |
+| CORE-03 | Phase 1 | Pending |
+| CORE-04 | Phase 3 | Pending |
+| CORE-05 | Phase 3 | Pending |
+| CORE-06 | Phase 3 | Pending |
+| CORE-07 | Phase 1 | Pending |
+| CORE-08 | Phase 2 | Pending |
+| CORE-09 | Phase 2 | Pending |
+| CORE-10 | Phase 2 | Pending |
+| CORE-11 | Phase 3 | Pending |
+| CORE-12 | Phase 2 | Pending |
+| CORE-13 | Phase 3 | Pending |
+| CORE-14 | Phase 3 | Pending |
+| CORE-15 | Phase 3 | Pending |
+| CORE-16 | Phase 1 | Pending |
+| AUTH-01 | Phase 4 | Pending |
+| AUTH-02 | Phase 4 | Pending |
+| AUTH-03 | Phase 4 | Pending |
+| AUTH-04 | Phase 4 | Pending |
+| AUTH-05 | Phase 4 | Pending |
+| AUTH-06 | Phase 4 | Pending |
+| AUTH-07 | Phase 4 | Pending |
+| AUTH-08 | Phase 4 | Pending |
+| AUTH-09 | Phase 4 | Pending |
+| AUTH-10 | Phase 4 | Pending |
+| AUTH-11 | Phase 4 | Pending |
+| AUTH-12 | Phase 4 | Pending |
+| AUTH-13 | Phase 4 | Pending |
+| DX-01 | Phase 3 | Pending |
+| DX-02 | Phase 3 | Pending |
+| DX-03 | Phase 3 | Pending |
+| DX-04 | Phase 3 | Pending |
+| DX-05 | Phase 3 | Pending |
+| DX-06 | Phase 3 | Pending |
+| DX-07 | Phase 3 | Pending |
+| DX-08 | Phase 3 | Pending |
+| DX-09 | Phase 3 | Pending |
+| DX-10 | Phase 3 | Pending |
+| DX-11 | Phase 3 | Pending |
+| PERF-01 | Phase 7 | Pending |
+| PERF-02 | Phase 7 | Pending |
+| PERF-03 | Phase 7 | Pending |
+| PERF-04 | Phase 2 | Pending |
+| PERF-05 | Phase 2 | Pending |
+| PERF-06 | Phase 2 | Pending |
+| PERF-07 | Phase 2 | Pending |
+| PERF-08 | Phase 2 | Pending |
+| TENANT-01 | Phase 4 | Pending |
+| TENANT-02 | Phase 4 | Pending |
+| TENANT-03 | Phase 4 | Pending |
+| TENANT-04 | Phase 4 | Pending |
+| TENANT-05 | Phase 4 | Pending |
+| BILL-01 | Phase 5 | Pending |
+| BILL-02 | Phase 5 | Pending |
+| BILL-03 | Phase 5 | Pending |
+| BILL-04 | Phase 5 | Pending |
+| BILL-05 | Phase 5 | Pending |
+| FLAG-01 | Phase 5 | Pending |
+| FLAG-02 | Phase 5 | Pending |
+| FLAG-03 | Phase 5 | Pending |
+| FLAG-04 | Phase 5 | Pending |
+| FLAG-05 | Phase 5 | Pending |
+| FLAG-06 | Phase 5 | Pending |
+| FLAG-07 | Phase 5 | Pending |
+| ANLYT-01 | Phase 5 | Pending |
+| ANLYT-02 | Phase 5 | Pending |
+| ANLYT-03 | Phase 5 | Pending |
+| ANLYT-04 | Phase 5 | Pending |
+| EXP-01 | Phase 5 | Pending |
+| EXP-02 | Phase 5 | Pending |
+| EXP-03 | Phase 5 | Pending |
+| EXP-04 | Phase 5 | Pending |
+| RT-01 | Phase 6 | Pending |
+| RT-02 | Phase 6 | Pending |
+| RT-03 | Phase 6 | Pending |
+| MSG-01 | Phase 6 | Pending |
+| MSG-02 | Phase 6 | Pending |
+| MSG-03 | Phase 6 | Pending |
+| NOTIF-01 | Phase 6 | Pending |
+| NOTIF-02 | Phase 6 | Pending |
+| NOTIF-03 | Phase 6 | Pending |
+| NOTIF-04 | Phase 6 | Pending |
+| NOTIF-05 | Phase 6 | Pending |
+| EMAIL-01 | Phase 6 | Pending |
+| EMAIL-02 | Phase 6 | Pending |
+| EMAIL-03 | Phase 6 | Pending |
+| EMAIL-04 | Phase 6 | Pending |
+| EMAIL-05 | Phase 6 | Pending |
+| AI-01 | Phase 7 | Pending |
+| AI-02 | Phase 7 | Pending |
+| AI-03 | Phase 7 | Pending |
+| AI-04 | Phase 7 | Pending |
+| ML-01 | Phase 7 | Pending |
+| ML-02 | Phase 7 | Pending |
+| FILE-01 | Phase 7 | Pending |
+| FILE-02 | Phase 7 | Pending |
+| FILE-03 | Phase 7 | Pending |
+| FILE-04 | Phase 7 | Pending |
+| FILE-05 | Phase 7 | Pending |
+| TASK-01 | Phase 7 | Pending |
+| TASK-02 | Phase 7 | Pending |
+| TASK-03 | Phase 7 | Pending |
+| TASK-04 | Phase 7 | Pending |
+| AUDIT-01 | Phase 7 | Pending |
+| AUDIT-02 | Phase 7 | Pending |
+| AUDIT-03 | Phase 7 | Pending |
+| HTMX-01 | Phase 7 | Pending |
+| HTMX-02 | Phase 7 | Pending |
+| COMP-01 | Phase 7 | Pending |
+| GQL-01 | Phase 7 | Pending |
+| GQL-02 | Phase 7 | Pending |
+| GQL-03 | Phase 7 | Pending |
+| ADMIN-01 | Phase 7 | Pending |
+| ADMIN-02 | Phase 7 | Pending |
+| ADMIN-03 | Phase 7 | Pending |
+| DEPLOY-01 | Phase 7 | Pending |
+| DEPLOY-02 | Phase 7 | Pending |
+| DEPLOY-03 | Phase 7 | Pending |
+| DEPLOY-04 | Phase 7 | Pending |
+| DEPLOY-05 | Phase 7 | Pending |
+| DEPLOY-06 | Phase 7 | Pending |
+| OBS-01 | Phase 7 | Pending |
+| OBS-02 | Phase 7 | Pending |
+| OBS-03 | Phase 7 | Pending |
+| OBS-04 | Phase 7 | Pending |
 
 **Coverage:**
 - v1 requirements: 101 total
-- Mapped to phases: 0
-- Unmapped: 101 (pending roadmap creation)
+- Mapped to phases: 101
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-07*
-*Last updated: 2026-03-07 after initial definition*
+*Last updated: 2026-03-07 after roadmap creation — all 101 requirements mapped*
