@@ -15,7 +15,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **CORE-04**: CRUD ViewSet generates list/create/read/update/delete endpoints from model + schema
 - [ ] **CORE-05**: OpenAPI 3.1 schema auto-generated from routes, schemas, and type hints
 - [ ] **CORE-06**: Swagger UI and ReDoc served at configurable endpoints
-- [ ] **CORE-07**: Structured error handling with consistent JSON error format across all endpoints
+- [x] **CORE-07**: Structured error handling with consistent JSON error format across all endpoints
 - [ ] **CORE-08**: `model_construct()` fast path for list serialization (skip re-validation on ORM reads)
 - [ ] **CORE-09**: Startup-time introspection caching — zero per-request `get_type_hints()` or `_meta.fields` calls
 - [ ] **CORE-10**: orjson used for all JSON serialization/deserialization (router, controller, views, responses)
@@ -24,7 +24,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **CORE-13**: Dependency injection container with ContextVar-based request scoping
 - [ ] **CORE-14**: Content negotiation supporting JSON, XML, CSV, YAML, MsgPack
 - [ ] **CORE-15**: API versioning strategies (URL, header, query param)
-- [ ] **CORE-16**: PATCH requests use NotSet sentinel to distinguish "not sent" from "sent as null"
+- [x] **CORE-16**: PATCH requests use NotSet sentinel to distinguish "not sent" from "sent as null"
 
 ### Authentication & Security
 
@@ -231,7 +231,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CORE-04 | Phase 3 | Pending |
 | CORE-05 | Phase 3 | Pending |
 | CORE-06 | Phase 3 | Pending |
-| CORE-07 | Phase 1 | Pending |
+| CORE-07 | Phase 1 | Complete |
 | CORE-08 | Phase 2 | Pending |
 | CORE-09 | Phase 2 | Pending |
 | CORE-10 | Phase 2 | Pending |
@@ -240,7 +240,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CORE-13 | Phase 3 | Pending |
 | CORE-14 | Phase 3 | Pending |
 | CORE-15 | Phase 3 | Pending |
-| CORE-16 | Phase 1 | Pending |
+| CORE-16 | Phase 1 | Complete |
 | AUTH-01 | Phase 4 | Pending |
 | AUTH-02 | Phase 4 | Pending |
 | AUTH-03 | Phase 4 | Pending |
