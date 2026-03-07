@@ -27,7 +27,7 @@ from django_matt.utils.cache_invalidation import (
     _generate_view_cache_key,
     cached_view,
 )
-from django_matt.utils.errors import (
+from django_matt.core.errors import (
     ErrorDetail,
     ErrorHandler,
     ErrorMiddleware,

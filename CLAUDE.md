@@ -119,7 +119,6 @@ pytest tests/test_auth.py -v           # specific file
 
 - `conftest.py` sets `DJANGO_ALLOW_ASYNC_UNSAFE=true` globally, masking async/sync ORM bugs in tests
 - `testing/client.py` `AsyncAPITestClient.force_authenticate()` calls sync `create_access_token()` — should use `acreate_access_token()`
-- `utils/errors.py` duplicates error classes from `core/errors.py` — consolidate in a future pass
 
 ## Important Files
 
