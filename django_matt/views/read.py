@@ -71,11 +71,7 @@ class ReadView(APIView):
         queryset = self.optimize_queryset(queryset)
 
         try:
-            if hasattr(queryset, "aget"):
-                return await queryset.aget(**{self.lookup_field: lookup_value})
-            from asgiref.sync import sync_to_async
-
-            return await sync_to_async(queryset.get)(**{self.lookup_field: lookup_value})
+            return await queryset.aget(**{self.lookup_field: lookup_value})
         except queryset.model.DoesNotExist:
             model_name = self.get_model().__name__
             raise NotFoundAPIError(

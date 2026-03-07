@@ -92,11 +92,7 @@ class DeleteView(APIView):
         queryset = self.get_queryset(None)
 
         try:
-            if hasattr(queryset, "aget"):
-                return await queryset.aget(**{self.lookup_field: lookup_value})
-            from asgiref.sync import sync_to_async
-
-            return await sync_to_async(queryset.get)(**{self.lookup_field: lookup_value})
+            return await queryset.aget(**{self.lookup_field: lookup_value})
         except queryset.model.DoesNotExist:
             model_name = self.get_model().__name__
             raise NotFoundAPIError(
@@ -107,9 +103,4 @@ class DeleteView(APIView):
 
     async def _delete_instance(self, instance: models.Model):
         """Delete the model instance asynchronously."""
-        if hasattr(instance, "adelete"):
-            await instance.adelete()
-        else:
-            from asgiref.sync import sync_to_async
-
-            await sync_to_async(instance.delete)()
+        await instance.adelete()

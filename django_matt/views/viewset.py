@@ -232,10 +232,7 @@ class APIViewSet(HooksMixin, ViewSet):
             Created model instance
         """
         instance = self.model(**data)
-        if hasattr(instance, "asave"):
-            await instance.asave()
-        else:
-            instance.save()
+        await instance.asave()
         return instance
 
     async def perform_update(
@@ -257,10 +254,7 @@ class APIViewSet(HooksMixin, ViewSet):
         for key, value in data.items():
             setattr(instance, key, value)
 
-        if hasattr(instance, "asave"):
-            await instance.asave()
-        else:
-            instance.save()
+        await instance.asave()
 
         return instance
 
@@ -274,7 +268,4 @@ class APIViewSet(HooksMixin, ViewSet):
             instance: The model instance to delete
             request: The HTTP request
         """
-        if hasattr(instance, "adelete"):
-            await instance.adelete()
-        else:
-            instance.delete()
+        await instance.adelete()

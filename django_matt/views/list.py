@@ -348,9 +348,7 @@ class ListView(APIView):
         # If queryset is already a list (from cursor pagination), return length
         if isinstance(queryset, list):
             return len(queryset)
-        if hasattr(queryset, "acount"):
-            return await queryset.acount()
-        return queryset.count()
+        return await queryset.acount()
 
     def _is_valid_order_field(self, field_name: str) -> bool:
         """Check if a field is valid for ordering."""
