@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 01-correctness-audit/01-02-PLAN.md
-last_updated: "2026-03-07T20:47:14.308Z"
+stopped_at: Completed 01-correctness-audit/01-01-PLAN.md
+last_updated: "2026-03-07T20:51:24.626Z"
 last_activity: 2026-03-07 — Roadmap created; 101 requirements mapped to 7 phases
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -51,6 +51,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 01-correctness-audit P02 | 6 | 2 tasks | 5 files |
+| Phase 01-correctness-audit P01 | 9 | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,8 @@ Recent decisions affecting current work:
 - [Phase 01-correctness-audit]: model_fields_set over exclude_none for PATCH partial updates — distinguishes not-sent from sent-as-null
 - [Phase 01-correctness-audit]: Hard delete utils/errors.py with no deprecation period — internal library, single test consumer
 - [Phase 01-correctness-audit]: Canonical error import is django_matt.core.errors — zero utils.errors references remain
+- [Phase 01-correctness-audit]: Custom model classmethods (OAuthConnection.get_or_none, SSOConnection.get_for_*, SSOUserLink.get_user, user_is_org_admin) retain sync_to_async wrapping — they contain internal sync ORM and cannot be converted without touching model layer
+- [Phase 01-correctness-audit]: request.user.is_authenticated is a boolean property not a lazy DB attribute — safe to access directly in async context without sync_to_async
 
 ### Pending Todos
 
@@ -80,6 +83,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-07T20:47:14.304Z
-Stopped at: Completed 01-correctness-audit/01-02-PLAN.md
+Last session: 2026-03-07T20:51:24.621Z
+Stopped at: Completed 01-correctness-audit/01-01-PLAN.md
 Resume file: None

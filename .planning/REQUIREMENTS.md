@@ -11,7 +11,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **CORE-01**: Router supports async and sync view registration with automatic URL generation
 - [ ] **CORE-02**: Controller pattern provides class-based API endpoints with decorator-driven routing
-- [ ] **CORE-03**: Pydantic v2 schema validation on request bodies with structured error responses
+- [x] **CORE-03**: Pydantic v2 schema validation on request bodies with structured error responses
 - [ ] **CORE-04**: CRUD ViewSet generates list/create/read/update/delete endpoints from model + schema
 - [ ] **CORE-05**: OpenAPI 3.1 schema auto-generated from routes, schemas, and type hints
 - [ ] **CORE-06**: Swagger UI and ReDoc served at configurable endpoints
@@ -227,7 +227,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | CORE-01 | Phase 3 | Pending |
 | CORE-02 | Phase 3 | Pending |
-| CORE-03 | Phase 1 | Pending |
+| CORE-03 | Phase 1 | Complete |
 | CORE-04 | Phase 3 | Pending |
 | CORE-05 | Phase 3 | Pending |
 | CORE-06 | Phase 3 | Pending |

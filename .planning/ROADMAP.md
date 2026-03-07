@@ -151,7 +151,7 @@ Note: Phases 3, 4, and 7 can start after Phase 1 completes. Phases 5 and 6 requi
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Correctness Audit | 1/3 | In Progress|  |
+| 1. Correctness Audit | 2/3 | In Progress|  |
 | 2. Performance Baseline | 0/3 | Not started | - |
 | 3. CLI and Type Generation | 0/3 | Not started | - |
 | 4. Auth Hardening and Multi-Tenancy | 0/3 | Not started | - |
