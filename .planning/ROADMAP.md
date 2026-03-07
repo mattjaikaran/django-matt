@@ -49,12 +49,12 @@ Plans:
   3. No `get_type_hints()` or `inspect` call occurs per-request — confirmed by profiler showing zero calls in hot path after app startup
   4. `model_construct()` is used on all ORM-read list serialization paths — verified by code audit and query count test
   5. A test using `assert_query_count()` fails when N+1 is introduced into a queryset and passes when `optimize_queryset()` is correctly applied
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Build benchmark suite and run baseline comparison vs DRF/ninja/FastAPI
-- [ ] 02-02: Ship API-mode middleware profile and audit hot paths for per-request introspection
-- [ ] 02-03: Verify model_construct() coverage, streaming responses, caching utilities, and query count helpers
+- [ ] 02-01-PLAN.md — Build FrameworkComparisonScenario, RichTableReporter, wire `make benchmark`, audit orjson coverage
+- [ ] 02-02-PLAN.md — Ship MATT_API_MODE middleware stripping, cProfile hot-path verification test
+- [ ] 02-03-PLAN.md — Add assert_query_count, @cache_response, verify model_construct/streaming/N+1 prevention
 
 ### Phase 3: CLI and Type Generation
 **Goal**: A developer can scaffold a full CRUD module in one command, generate TypeScript/Swift/Zod types from the running app, export AI context for LLM coding tools, and use Rich CLI commands to inspect the project
