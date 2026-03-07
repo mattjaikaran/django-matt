@@ -36,7 +36,6 @@ from django_matt.auth.magic_link import (
     create_magic_link_url,
     magic_link_config,
     send_magic_link_async,
-    verify_magic_link_token,
 )
 from django_matt.auth.schemas import (
     AuthResponse,
