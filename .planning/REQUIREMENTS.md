@@ -1,0 +1,237 @@
+# Requirements: django-matt
+
+**Defined:** 2026-03-07
+**Core Value:** The fastest, most developer-friendly way to build Django APIs — if you can't ship faster with django-matt than with DRF or django-ninja, it hasn't shipped yet.
+
+## v1 Requirements
+
+Requirements for initial release. Each maps to roadmap phases.
+
+### Core API Framework
+
+- [ ] **CORE-01**: Router supports async and sync view registration with automatic URL generation
+- [ ] **CORE-02**: Controller pattern provides class-based API endpoints with decorator-driven routing
+- [ ] **CORE-03**: Pydantic v2 schema validation on request bodies with structured error responses
+- [ ] **CORE-04**: CRUD ViewSet generates list/create/read/update/delete endpoints from model + schema
+- [ ] **CORE-05**: OpenAPI 3.1 schema auto-generated from routes, schemas, and type hints
+- [ ] **CORE-06**: Swagger UI and ReDoc served at configurable endpoints
+- [ ] **CORE-07**: Structured error handling with consistent JSON error format across all endpoints
+- [ ] **CORE-08**: `model_construct()` fast path for list serialization (skip re-validation on ORM reads)
+- [ ] **CORE-09**: Startup-time introspection caching — zero per-request `get_type_hints()` or `_meta.fields` calls
+- [ ] **CORE-10**: orjson used for all JSON serialization/deserialization (router, controller, views, responses)
+- [ ] **CORE-11**: Static-before-parameterized URL ordering prevents `/users/me` vs `/users/<id>` conflicts
+- [ ] **CORE-12**: API-mode middleware profile — stripped middleware stack for maximum throughput on API-only projects
+- [ ] **CORE-13**: Dependency injection container with ContextVar-based request scoping
+- [ ] **CORE-14**: Content negotiation supporting JSON, XML, CSV, YAML, MsgPack
+- [ ] **CORE-15**: API versioning strategies (URL, header, query param)
+- [ ] **CORE-16**: PATCH requests use NotSet sentinel to distinguish "not sent" from "sent as null"
+
+### Authentication & Security
+
+- [ ] **AUTH-01**: JWT authentication with access and refresh token flow
+- [ ] **AUTH-02**: JWT token blacklist with bulk purge for revocation
+- [ ] **AUTH-03**: Session-based authentication for browser clients
+- [ ] **AUTH-04**: Permission classes: IsAuthenticated, IsAdmin, IsOwner, HasRole, HasPermission
+- [ ] **AUTH-05**: RBAC — role-based access control with role assignment and checking
+- [ ] **AUTH-06**: Password reset via email link flow
+- [ ] **AUTH-07**: Magic link passwordless login
+- [ ] **AUTH-08**: OAuth provider login (Google, GitHub, and extensible for others)
+- [ ] **AUTH-09**: SSO / SAML integration
+- [ ] **AUTH-10**: Passkey / WebAuthn authentication
+- [ ] **AUTH-11**: API key authentication with scoped permissions
+- [ ] **AUTH-12**: CSRF exemption correctly applied for JWT-authenticated API endpoints
+- [ ] **AUTH-13**: Permission decorators: `@jwt_required`, `@jwt_optional`, `@requires_role()`, `@requires_permission()`
+
+### Developer Experience
+
+- [ ] **DX-01**: `startapi` CLI command scaffolds new project with template selection (basic, b2b, etc.)
+- [ ] **DX-02**: `generate_crud` CLI command generates controller, schema, service, admin, and tests from model
+- [ ] **DX-03**: `sync_types` generates TypeScript types from Django models and Pydantic schemas
+- [ ] **DX-04**: `sync_types` generates Swift types for iOS/macOS clients
+- [ ] **DX-05**: `sync_types` generates Zod schemas for frontend runtime validation
+- [ ] **DX-06**: `generate_ai_context` exports project structure, types, routes for LLM consumption
+- [ ] **DX-07**: Rich CLI with `matt info`, `doctor`, `routes`, `models`, `new` commands
+- [ ] **DX-08**: CLI migration tool rewrites django-ninja imports/patterns to django-matt with TODO markers
+- [ ] **DX-09**: Async test client with `force_authenticate()` using async token creation
+- [ ] **DX-10**: Test factories and assertion helpers for common API testing patterns
+- [ ] **DX-11**: Example apps demonstrating all major features (todo, ecommerce, saas-starter, realtime-chat)
+
+### Performance & Data
+
+- [ ] **PERF-01**: Pagination: page number, limit/offset, and cursor-based
+- [ ] **PERF-02**: Filtering backend with Django filter integration, search, and ordering
+- [ ] **PERF-03**: Rate limiting / throttling with configurable backends
+- [ ] **PERF-04**: Auto `optimize_queryset()` detects FK/M2M from schema for select_related/prefetch_related
+- [ ] **PERF-05**: Streaming response support for large datasets
+- [ ] **PERF-06**: Caching utilities with configurable backends
+- [ ] **PERF-07**: Benchmark suite comparing django-matt vs DRF, django-ninja, and FastAPI on equivalent endpoints
+- [ ] **PERF-08**: Query count assertion helper for tests (`assert_query_count()`)
+
+### Multi-Tenancy
+
+- [ ] **TENANT-01**: Organization model with create/read/update/delete
+- [ ] **TENANT-02**: Team model with membership management
+- [ ] **TENANT-03**: Membership model with role-based team permissions
+- [ ] **TENANT-04**: Tenant-aware middleware scoping queries to current organization
+- [ ] **TENANT-05**: Tenant-aware controllers with automatic organization filtering
+
+### Billing
+
+- [ ] **BILL-01**: Stripe integration — subscriptions, one-time payments, webhooks
+- [ ] **BILL-02**: PayPal integration — payments and webhooks
+- [ ] **BILL-03**: Polar integration — open-source-friendly billing
+- [ ] **BILL-04**: Billing controllers with subscription lifecycle management
+- [ ] **BILL-05**: Webhook handlers with signature verification
+
+### Feature Flags
+
+- [ ] **FLAG-01**: Feature flag model with boolean/percentage/user-segment targeting
+- [ ] **FLAG-02**: Database backend for feature flags
+- [ ] **FLAG-03**: Redis backend for high-performance flag evaluation
+- [ ] **FLAG-04**: LaunchDarkly backend integration
+- [ ] **FLAG-05**: Unleash backend integration
+- [ ] **FLAG-06**: Feature flag decorators for views and controllers
+- [ ] **FLAG-07**: Feature flag middleware for request-scoped flag evaluation
+
+### Analytics & Experiments
+
+- [ ] **ANLYT-01**: Event tracking with pluggable backends
+- [ ] **ANLYT-02**: Session tracking and user journey recording
+- [ ] **ANLYT-03**: Funnel analysis with conversion tracking
+- [ ] **ANLYT-04**: Analytics aggregation queries (daily/weekly/monthly)
+- [ ] **EXP-01**: A/B test experiment model with variant assignment
+- [ ] **EXP-02**: Multi-armed bandit assignment strategy
+- [ ] **EXP-03**: Statistical significance analysis for experiment results
+- [ ] **EXP-04**: Experiment decorators for controller endpoints
+
+### Real-Time & Messaging
+
+- [ ] **RT-01**: WebSocket consumer base class with authentication middleware
+- [ ] **RT-02**: Presence tracking (who's online in a channel)
+- [ ] **RT-03**: WebSocket routing integrated with django-matt router
+- [ ] **MSG-01**: Conversation model with participants and messages
+- [ ] **MSG-02**: Message attachments (file references)
+- [ ] **MSG-03**: WebSocket transport for real-time message delivery
+
+### Notifications & Email
+
+- [ ] **NOTIF-01**: In-app notification system with read/unread tracking
+- [ ] **NOTIF-02**: Email notifications with template rendering
+- [ ] **NOTIF-03**: Push notifications via FCM and APNs
+- [ ] **NOTIF-04**: SMS notifications
+- [ ] **NOTIF-05**: Webhook notifications to external endpoints
+- [ ] **EMAIL-01**: SendGrid email backend
+- [ ] **EMAIL-02**: Mailgun email backend
+- [ ] **EMAIL-03**: AWS SES email backend
+- [ ] **EMAIL-04**: SMTP fallback backend
+- [ ] **EMAIL-05**: Email templates with variable substitution
+
+### AI & ML
+
+- [ ] **AI-01**: LLM integration helpers (prompt management, response parsing)
+- [ ] **AI-02**: Embedding generation and storage
+- [ ] **AI-03**: RAG (retrieval-augmented generation) pipeline utilities
+- [ ] **AI-04**: IDE context generation for AI coding tools
+- [ ] **ML-01**: Vector storage with pgvector integration
+- [ ] **ML-02**: Structured output parsing from LLM responses
+
+### File Management
+
+- [ ] **FILE-01**: File upload handling with validation (size, type)
+- [ ] **FILE-02**: S3 storage backend
+- [ ] **FILE-03**: Cloudflare R2 storage backend
+- [ ] **FILE-04**: MinIO storage backend
+- [ ] **FILE-05**: Signed URL generation for private files
+
+### Background Tasks
+
+- [ ] **TASK-01**: Celery task integration with django-matt
+- [ ] **TASK-02**: Dramatiq task integration
+- [ ] **TASK-03**: Django-Q task integration
+- [ ] **TASK-04**: Task status tracking and result retrieval
+
+### Audit & Compliance
+
+- [ ] **AUDIT-01**: Audit log capturing create/update/delete with user, timestamp, and diff
+- [ ] **AUDIT-02**: Soft delete support with restore capability
+- [ ] **AUDIT-03**: Audit log query API for admin dashboards
+
+### Frontend Integration
+
+- [ ] **HTMX-01**: HTMX response helpers (triggers, swaps, redirects)
+- [ ] **HTMX-02**: Livewire-style reactive component helpers
+- [ ] **COMP-01**: Backend-served component system for server-rendered UIs
+
+### GraphQL
+
+- [ ] **GQL-01**: Strawberry-based schema auto-generation from Django models
+- [ ] **GQL-02**: DataLoader integration for N+1 prevention
+- [ ] **GQL-03**: GraphQL endpoint served alongside REST from same app
+
+### Admin
+
+- [ ] **ADMIN-01**: Django Unfold integration for modern admin UI
+- [ ] **ADMIN-02**: Admin dashboard widgets
+- [ ] **ADMIN-03**: Admin inline configuration from django-matt models
+
+### Deployment & Observability
+
+- [ ] **DEPLOY-01**: Docker deployment template with ASGI (Granian/uvicorn)
+- [ ] **DEPLOY-02**: Fly.io deployment configuration
+- [ ] **DEPLOY-03**: Railway deployment configuration
+- [ ] **DEPLOY-04**: Render deployment configuration
+- [ ] **DEPLOY-05**: AWS deployment configuration
+- [ ] **DEPLOY-06**: `CONN_MAX_AGE=0` enforced in all ASGI deployment templates
+- [ ] **OBS-01**: Structured logging with configurable formatters
+- [ ] **OBS-02**: Metrics collection (Prometheus-compatible)
+- [ ] **OBS-03**: Distributed tracing (OpenTelemetry)
+- [ ] **OBS-04**: Request/response inspector for development
+
+## v2 Requirements
+
+Deferred to future release. Tracked but not in current roadmap.
+
+### matt-stack 2.0 Integration
+
+- **STACK-01**: `matt-stack` CLI scaffolds django-matt backend + React frontend projects
+- **STACK-02**: Shared type definitions between backend and frontend via `sync_types`
+- **STACK-03**: Development server coordination (backend + frontend)
+
+### Advanced AI
+
+- **AI-05**: MCP server integration for AI agent tooling
+- **AI-06**: AI-powered code review suggestions for django-matt projects
+
+### Frontend Framework
+
+- **FE-01**: Custom React meta-framework (matt-stack v3)
+- **FE-02**: Custom JS frontend framework
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| Python < 3.12 support | Modern Python only — leverage latest features |
+| Django < 5.2 support | No legacy compatibility burden |
+| Mobile SDKs | Web-first; Swift type gen covers iOS models |
+| GraphQL-first architecture | REST-first; GraphQL is an optional module |
+| Custom ORM | Django ORM is battle-tested; improve usage, don't replace |
+| Real-time video/audio | Too specialized; use dedicated services |
+| msgspec replacement for orjson | Requires Struct types incompatible with Pydantic; revisit post-v1 |
+
+## Traceability
+
+Which phases cover which requirements. Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| *(populated during roadmap creation)* | | |
+
+**Coverage:**
+- v1 requirements: 101 total
+- Mapped to phases: 0
+- Unmapped: 101 (pending roadmap creation)
+
+---
+*Requirements defined: 2026-03-07*
+*Last updated: 2026-03-07 after initial definition*
