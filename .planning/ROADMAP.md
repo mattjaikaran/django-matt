@@ -32,12 +32,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `from django_matt.core.errors import` is the single canonical error import — `utils/errors.py` re-exports with deprecation, no duplicate class definitions
   4. A PATCH request with an empty body leaves all existing fields unchanged — verified by dedicated test
   5. All endpoint responses return the same structured error JSON format regardless of error type (validation, auth, not-found, server)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Audit and fix async/sync ORM boundary violations across all modules
-- [ ] 01-02: Consolidate error classes, verify PATCH NotSet sentinel, fix test infrastructure
-- [ ] 01-03: Full test suite verification under strict async constraints
+- [ ] 01-01-PLAN.md — Audit and fix async/sync ORM boundary violations across views, auth, multitenancy, and testing modules
+- [ ] 01-02-PLAN.md — Consolidate error classes (delete utils/errors.py), fix PATCH null semantics with model_fields_set
+- [ ] 01-03-PLAN.md — Remove DJANGO_ALLOW_ASYNC_UNSAFE, verify full test suite, finalize CLAUDE.md
 
 ### Phase 2: Performance Baseline
 **Goal**: django-matt's throughput on equivalent CRUD endpoints is documented, matched against DRF/django-ninja/FastAPI, and the stripped middleware profile for API-only deployments ships and works
@@ -151,7 +151,7 @@ Note: Phases 3, 4, and 7 can start after Phase 1 completes. Phases 5 and 6 requi
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Correctness Audit | 0/3 | Not started | - |
+| 1. Correctness Audit | 0/3 | Planning complete | - |
 | 2. Performance Baseline | 0/3 | Not started | - |
 | 3. CLI and Type Generation | 0/3 | Not started | - |
 | 4. Auth Hardening and Multi-Tenancy | 0/3 | Not started | - |
