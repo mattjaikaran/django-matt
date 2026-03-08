@@ -144,6 +144,18 @@ class Command(BaseCommand):
             action="store_true",
             help="Include SWR hooks in API client",
         )
+        parser.add_argument(
+            "--from-openapi",
+            action="store_true",
+            default=False,
+            help="Generate types from the project's OpenAPI schema (calls OpenAPISchema.build())",
+        )
+        parser.add_argument(
+            "--openapi-file",
+            type=str,
+            default=None,
+            help="Path to a pre-generated OpenAPI JSON/YAML spec file (for CI use case)",
+        )
 
     def handle(self, *args, **options):
         config_option = options["config"]
@@ -200,9 +212,49 @@ class Command(BaseCommand):
             include_react_query = options["include_react_query"]
             include_swr = options["include_swr"]
 
+        from_openapi = options.get("from_openapi", False)
+        openapi_file = options.get("openapi_file", None)
+
         # Normalize target
         if target == "ts":
             target = "typescript"
+
+        # Handle --openapi-file: generate from pre-built OpenAPI spec
+        if openapi_file:
+            code = self._generate_from_openapi_file(
+                openapi_file=openapi_file,
+                target=target,
+                camel_case=camel_case,
+                base_url=base_url,
+                include_react_query=include_react_query,
+                include_swr=include_swr,
+            )
+            if output:
+                self._write_output(output, code)
+                self.stdout.write(
+                    self.style.SUCCESS(f"Generated {target} types from OpenAPI file to {output}")
+                )
+            else:
+                self.stdout.write(code)
+            return
+
+        # Handle --from-openapi: introspect project's OpenAPI schema
+        if from_openapi:
+            code = self._generate_from_project_openapi(
+                target=target,
+                camel_case=camel_case,
+                base_url=base_url,
+                include_react_query=include_react_query,
+                include_swr=include_swr,
+            )
+            if output:
+                self._write_output(output, code)
+                self.stdout.write(
+                    self.style.SUCCESS(f"Generated {target} types from OpenAPI schema to {output}")
+                )
+            else:
+                self.stdout.write(code)
+            return
 
         # Collect schemas and models
         schemas = self._collect_schemas(apps, modules)
@@ -352,7 +404,14 @@ class Command(BaseCommand):
             from django_matt.typegen.swift import SwiftGenerator
 
             generator = SwiftGenerator()
-            return generator.generate(schemas)
+            # Generate Codable structs
+            structs_code = generator.generate(schemas)
+            # Generate URLSession-based API client
+            api_client_code = generator.generate_api_client(
+                base_url=base_url,
+                schemas=schemas,
+            )
+            return f"{structs_code}\n{api_client_code}"
 
         if target == "api-client":
             from django_matt.typegen.api_client import APIClientGenerator
@@ -401,6 +460,190 @@ class Command(BaseCommand):
             return "\n".join(parts)
 
         raise CommandError(f"Unknown target: {target}")
+
+    def _generate_from_openapi_file(
+        self,
+        openapi_file: str,
+        target: str,
+        camel_case: bool = False,
+        base_url: str = "/api",
+        include_react_query: bool = False,
+        include_swr: bool = False,
+    ) -> str:
+        """Generate types from a pre-built OpenAPI spec file (JSON or YAML)."""
+        import json
+        from pathlib import Path
+
+        spec_path = Path(openapi_file)
+        if not spec_path.exists():
+            raise CommandError(f"OpenAPI spec file not found: {openapi_file}")
+
+        content = spec_path.read_text()
+
+        # Try JSON first, then YAML
+        try:
+            schema = json.loads(content)
+        except json.JSONDecodeError:
+            try:
+                import yaml  # type: ignore[import]
+
+                schema = yaml.safe_load(content)
+            except ImportError:
+                raise CommandError(
+                    "YAML spec files require PyYAML. Install it with: uv add pyyaml"
+                )
+
+        return self._generate_from_openapi_schema(
+            schema=schema,
+            target=target,
+            camel_case=camel_case,
+            base_url=base_url,
+            include_react_query=include_react_query,
+            include_swr=include_swr,
+        )
+
+    def _generate_from_project_openapi(
+        self,
+        target: str,
+        camel_case: bool = False,
+        base_url: str = "/api",
+        include_react_query: bool = False,
+        include_swr: bool = False,
+    ) -> str:
+        """Generate types from the project's live OpenAPI schema."""
+        try:
+            from django_matt.openapi.schema import OpenAPISchema
+
+            schema = OpenAPISchema.build()
+        except Exception as e:
+            self.stderr.write(
+                self.style.WARNING(
+                    f"Could not build OpenAPI schema: {e}. "
+                    "Ensure MattAPI is configured. Falling back to empty schema."
+                )
+            )
+            schema = {"openapi": "3.0.0", "info": {}, "paths": {}, "components": {"schemas": {}}}
+
+        return self._generate_from_openapi_schema(
+            schema=schema,
+            target=target,
+            camel_case=camel_case,
+            base_url=base_url,
+            include_react_query=include_react_query,
+            include_swr=include_swr,
+        )
+
+    def _generate_from_openapi_schema(
+        self,
+        schema: dict,
+        target: str,
+        camel_case: bool = False,
+        base_url: str = "/api",
+        include_react_query: bool = False,
+        include_swr: bool = False,
+    ) -> str:
+        """Generate code from an OpenAPI schema dict."""
+        components = schema.get("components", {})
+        openapi_schemas = components.get("schemas", {})
+
+        self.stdout.write(
+            f"Found {len(openapi_schemas)} component schemas in OpenAPI spec"
+        )
+
+        if target in ("typescript", "ts"):
+            from django_matt.typegen.api_client import APIClientGenerator
+
+            generator = APIClientGenerator(
+                base_url=base_url,
+                camel_case=camel_case,
+                include_react_query=include_react_query,
+                include_swr=include_swr,
+            )
+            return generator.generate_from_openapi(schema)
+
+        if target == "zod":
+            # Generate Zod types from OpenAPI schema definitions
+            from django_matt.typegen.api_client import APIClientGenerator
+
+            # Use TS generator to get type definitions, then convert comment
+            generator = APIClientGenerator(base_url=base_url, camel_case=camel_case)
+            ts_code = generator.generate_from_openapi(schema)
+            # For now, return TS types with a note — full Zod-from-OpenAPI is complex
+            lines = [
+                "// Auto-generated from OpenAPI schema",
+                '// Note: Use --target typescript for full OpenAPI type generation',
+                "",
+                ts_code,
+            ]
+            return "\n".join(lines)
+
+        if target == "api-client":
+            from django_matt.typegen.api_client import APIClientGenerator
+
+            generator = APIClientGenerator(
+                base_url=base_url,
+                camel_case=camel_case,
+                include_react_query=include_react_query,
+                include_swr=include_swr,
+            )
+            return generator.generate_from_openapi(schema)
+
+        if target == "swift":
+            # For OpenAPI → Swift, generate interfaces from components
+            lines = [
+                "// Auto-generated Swift types from OpenAPI schema",
+                "// Do not edit manually - regenerate with sync_types command",
+                "",
+                "import Foundation",
+                "",
+            ]
+            for schema_name, schema_def in openapi_schemas.items():
+                lines.append(f"public struct {schema_name}: Codable, Equatable {{")
+                properties = schema_def.get("properties", {})
+                required = set(schema_def.get("required", []))
+                for prop_name, prop_def in properties.items():
+                    swift_type = self._openapi_type_to_swift(prop_def)
+                    is_optional = prop_name not in required
+                    if is_optional:
+                        swift_type = f"{swift_type}?"
+                    lines.append(f"    public let {prop_name}: {swift_type}")
+                lines.append("}")
+                lines.append("")
+            return "\n".join(lines)
+
+        # Default: typescript
+        from django_matt.typegen.api_client import APIClientGenerator
+
+        generator = APIClientGenerator(base_url=base_url, camel_case=camel_case)
+        return generator.generate_from_openapi(schema)
+
+    def _openapi_type_to_swift(self, schema_def: dict) -> str:
+        """Convert an OpenAPI type definition to a Swift type."""
+        if "$ref" in schema_def:
+            return schema_def["$ref"].split("/")[-1]
+
+        schema_type = schema_def.get("type", "any")
+        schema_format = schema_def.get("format", "")
+
+        type_map = {
+            "string": "String",
+            "integer": "Int",
+            "number": "Double",
+            "boolean": "Bool",
+            "array": "[Any]",
+            "object": "[String: Any]",
+        }
+
+        if schema_type == "string" and schema_format in ("date-time", "date"):
+            return "Date"
+        if schema_type == "string" and schema_format == "uuid":
+            return "UUID"
+        if schema_type == "array":
+            items = schema_def.get("items", {})
+            inner = self._openapi_type_to_swift(items)
+            return f"[{inner}]"
+
+        return type_map.get(schema_type, "Any")
 
     def _generate_basic_client(
         self,

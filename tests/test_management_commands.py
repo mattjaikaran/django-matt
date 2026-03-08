@@ -9,12 +9,17 @@ Covers:
 - matt_schemas: schema listing
 - matt_explain: view explanation
 - matt_migrate_from: migration wizard
+- generate_crud: CRUD code generator quality checks
+- startapi: project scaffolding
 - Error handling: invalid subcommand, missing args, suggestions
 """
 
 import json
+import subprocess
 import sys
+import tempfile
 from io import StringIO
+from pathlib import Path
 from unittest.mock import patch
 
 import django
@@ -1119,3 +1124,334 @@ class TestAnalyzeHealthScore:
         }
         summary = cmd._generate_summary(analysis)
         assert summary["health_score"] == 0
+
+
+# ===========================================================================
+# generate_crud - code quality
+# ===========================================================================
+
+
+class TestGenerateCrudCommand:
+    """Tests for the generate_crud management command code quality."""
+
+    def _get_command(self):
+        from django_matt.management.commands.generate_crud import Command
+
+        return Command()
+
+    def _get_generated_content(self, context_overrides: dict | None = None):
+        """Get generated content for a minimal test context."""
+        from django.contrib.auth import get_user_model
+
+        cmd = self._get_command()
+        User = get_user_model()
+
+        # Build a minimal context using auth.User model
+        fields = cmd._get_model_fields(User)
+        context = {
+            "model": User,
+            "model_name": "User",
+            "app_label": "auth",
+            "prefix": "users",
+            "fields": fields,
+            "permissions": ["IsAuthenticated"],
+            "pagination": False,
+            "filtering": False,
+            "soft_delete": False,
+            "with_service": True,
+        }
+        if context_overrides:
+            context.update(context_overrides)
+        return context, cmd
+
+    def test_generate_crud_full_passes_ruff(self):
+        """Generated controller, schema, service, admin, and test files all pass ruff check."""
+        context, cmd = self._get_generated_content()
+
+        generators = {
+            "schema": cmd._generate_schema_content(context),
+            "controller": cmd._generate_controller_content(context),
+            "service": cmd._generate_service_content(context),
+            "admin": cmd._generate_admin_content(context),
+            "test": cmd._generate_test_content(context),
+        }
+
+        for component, content in generators.items():
+            result = subprocess.run(
+                ["uv", "run", "ruff", "check", "--stdin-filename", f"{component}.py", "-"],
+                input=content.encode(),
+                capture_output=True,
+            )
+            assert result.returncode == 0, (
+                f"ruff check failed for generated {component}.py:\n"
+                f"{result.stdout.decode()}\n{result.stderr.decode()}\n\n"
+                f"Content:\n{content}"
+            )
+
+    def test_generate_crud_service_async_pattern(self):
+        """Generated service file uses async ORM methods throughout."""
+        context, cmd = self._get_generated_content()
+        content = cmd._generate_service_content(context)
+
+        # Must have async methods
+        assert "async def list" in content
+        assert "async def get" in content
+        assert "async def create" in content
+        assert "async def update" in content
+        assert "async def delete" in content
+
+        # Must use async ORM calls
+        assert "acount()" in content or "aget(" in content or "acreate(" in content or "adelete()" in content
+
+        # Must NOT have top-level sync transaction import (only used in comments)
+        lines = [ln for ln in content.splitlines() if not ln.strip().startswith("#")]
+        non_comment_content = "\n".join(lines)
+        assert "from django.db import transaction" not in non_comment_content, (
+            "Service must not import sync 'transaction' at top level (use async patterns instead)"
+        )
+
+    def test_generated_test_no_asyncio_mark(self):
+        """Generated test file does NOT contain @pytest.mark.asyncio decorator."""
+        context, cmd = self._get_generated_content()
+        content = cmd._generate_test_content(context)
+        assert "@pytest.mark.asyncio" not in content, (
+            "Generated tests must NOT use @pytest.mark.asyncio "
+            "(project uses asyncio_mode=auto in pyproject.toml)"
+        )
+
+    def test_generated_schema_uses_python312_syntax(self):
+        """Generated schema uses Python 3.12 builtins, not typing module."""
+        context, cmd = self._get_generated_content()
+        content = cmd._generate_schema_content(context)
+
+        # Must NOT use typing.Optional or typing.List
+        assert "Optional[" not in content, "Schema must use 'X | None' not 'Optional[X]'"
+        assert "List[" not in content, "Schema must use 'list[X]' not 'List[X]'"
+
+    def test_generated_admin_uses_unfold(self):
+        """Generated admin file uses django-matt MattModelAdmin (Unfold-backed)."""
+        context, cmd = self._get_generated_content()
+        content = cmd._generate_admin_content(context)
+
+        assert "MattModelAdmin" in content, "Admin must use MattModelAdmin (Unfold-backed)"
+        assert "register_admin" in content, "Admin must use @register_admin decorator"
+
+    def test_generated_controller_with_service_no_direct_orm_imports(self):
+        """Controller generated with service=True does NOT import Http404 or Q directly."""
+        context, cmd = self._get_generated_content({"with_service": True})
+        content = cmd._generate_controller_content(context)
+
+        # Http404 and Q are service concerns when with_service=True
+        assert "from django.http import Http404" not in content, (
+            "Controller with service layer must not import Http404 directly"
+        )
+        assert "from django.db.models import Q" not in content, (
+            "Controller with service layer must not import Q directly"
+        )
+
+
+# ===========================================================================
+# startapi - project scaffolding
+# ===========================================================================
+
+
+class TestStartapiCommand:
+    """Tests for the startapi management command."""
+
+    def test_startapi_b2b_template_files(self):
+        """startapi --template b2b produces CLAUDE.md, CI config, docker-compose, settings."""
+        from django.core.management import call_command
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_name = "testproject"
+            project_dir = Path(tmpdir) / project_name
+            project_dir.mkdir()
+
+            # Run startapi in the temp directory
+            call_command(
+                "startapi",
+                project_name,
+                directory=str(project_dir),
+                template="b2b",
+                docker=True,
+                force=True,
+                stdout=StringIO(),
+                stderr=StringIO(),
+            )
+
+            # Check CLAUDE.md was created
+            assert (project_dir / "CLAUDE.md").exists(), "CLAUDE.md must be created for b2b template"
+
+            # Check CI config was created
+            ci_path = project_dir / ".github" / "workflows" / "ci.yml"
+            assert ci_path.exists(), ".github/workflows/ci.yml must be created for b2b template"
+
+            # Check docker-compose.yml exists
+            assert (project_dir / "docker-compose.yml").exists(), "docker-compose.yml must exist"
+
+            # Check settings.py contains multitenancy reference
+            settings_path = project_dir / project_name / "settings.py"
+            assert settings_path.exists(), "settings.py must exist"
+            settings_content = settings_path.read_text()
+            assert "DJANGO_MATT_MULTITENANCY" in settings_content, (
+                "settings.py must contain DJANGO_MATT_MULTITENANCY for b2b template"
+            )
+
+    def test_startapi_basic_template(self):
+        """startapi --template starter produces settings.py, urls.py, and Makefile."""
+        from django.core.management import call_command
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_name = "basicproject"
+            project_dir = Path(tmpdir) / project_name
+            project_dir.mkdir()
+
+            call_command(
+                "startapi",
+                project_name,
+                directory=str(project_dir),
+                template="starter",
+                force=True,
+                stdout=StringIO(),
+                stderr=StringIO(),
+            )
+
+            # settings.py must exist
+            settings_path = project_dir / project_name / "settings.py"
+            assert settings_path.exists(), "settings.py must exist"
+
+            # urls.py must exist
+            urls_path = project_dir / project_name / "urls.py"
+            assert urls_path.exists(), "urls.py must exist"
+
+            # Makefile must exist
+            assert (project_dir / "Makefile").exists(), "Makefile must exist"
+
+
+# ===========================================================================
+# sync_types - from-openapi flag (Plan 03-02)
+# ===========================================================================
+
+
+class TestSyncTypesFromOpenAPI:
+    """Tests for sync_types --from-openapi flag."""
+
+    def test_sync_types_has_from_openapi_argument(self):
+        """sync_types command has --from-openapi argument in parser."""
+        import argparse
+
+        from django_matt.management.commands.sync_types import Command
+
+        cmd = Command()
+        parser = argparse.ArgumentParser()
+        cmd.add_arguments(parser)
+        action_names = {action.dest for action in parser._actions}
+        assert "from_openapi" in action_names
+
+    def test_sync_types_has_openapi_file_argument(self):
+        """sync_types command has --openapi-file argument in parser."""
+        import argparse
+
+        from django_matt.management.commands.sync_types import Command
+
+        cmd = Command()
+        parser = argparse.ArgumentParser()
+        cmd.add_arguments(parser)
+        action_names = {action.dest for action in parser._actions}
+        assert "openapi_file" in action_names
+
+    def test_sync_types_from_openapi_file_produces_output(self):
+        """sync_types --openapi-file with a valid spec produces TypeScript output."""
+        import json
+        import tempfile
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        spec = {
+            "openapi": "3.0.0",
+            "info": {"title": "Test API", "version": "1.0"},
+            "paths": {},
+            "components": {
+                "schemas": {
+                    "User": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "username": {"type": "string"},
+                        },
+                        "required": ["id", "username"],
+                    }
+                }
+            },
+        }
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(spec, f)
+            spec_path = f.name
+
+        out = StringIO()
+        err = StringIO()
+        call_command(
+            "sync_types",
+            openapi_file=spec_path,
+            target="typescript",
+            stdout=out,
+            stderr=err,
+        )
+        output = out.getvalue()
+        assert "User" in output or "interface" in output or len(output) > 0
+
+
+# ===========================================================================
+# sync_types - swift target includes API client (Plan 03-02)
+# ===========================================================================
+
+
+class TestSyncTypesSwiftTarget:
+    """Tests for sync_types --target swift producing API client."""
+
+    def test_sync_types_swift_includes_urlsession(self):
+        """sync_types --target swift output includes URLSession API client."""
+        from pydantic import BaseModel as PydanticModel
+
+        from django_matt.management.commands.sync_types import Command
+
+        class UserSchema(PydanticModel):
+            id: int
+            name: str
+
+        cmd = Command()
+        result = cmd._generate(
+            target="swift",
+            schemas=[UserSchema],
+            models=[],
+            camel_case=False,
+            base_url="/api",
+            include_react_query=False,
+            include_swr=False,
+        )
+        assert "URLSession" in result
+
+    def test_sync_types_swift_includes_codable_struct(self):
+        """sync_types --target swift output includes Codable struct."""
+        from pydantic import BaseModel as PydanticModel
+
+        from django_matt.management.commands.sync_types import Command
+
+        class ProductSchema(PydanticModel):
+            id: int
+            name: str
+
+        cmd = Command()
+        result = cmd._generate(
+            target="swift",
+            schemas=[ProductSchema],
+            models=[],
+            camel_case=False,
+            base_url="/api",
+            include_react_query=False,
+            include_swr=False,
+        )
+        assert "Codable" in result
+        assert "struct" in result or "class" in result

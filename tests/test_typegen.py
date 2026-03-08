@@ -502,3 +502,144 @@ class TestCollectSchemasFromModule:
 
         with pytest.raises(ModuleNotFoundError):
             collect_schemas_from_module("nonexistent.module.path")
+
+
+# ---------------------------------------------------------------------------
+# 6. TypeScript type mapping completeness (~4 tests)
+# ---------------------------------------------------------------------------
+class TestTypeScriptTypeMappings:
+    """Test TypeScript type mappings for all Python types."""
+
+    def test_datetime_maps_to_string(self):
+        import datetime
+
+        from django_matt.typegen.typescript import TypeScriptGenerator
+
+        class DateSchema(BaseModel):
+            created_at: datetime.datetime
+
+        gen = TypeScriptGenerator()
+        result = gen.generate([DateSchema])
+        assert "created_at: string;" in result
+
+    def test_uuid_maps_to_string(self):
+        import uuid
+
+        from django_matt.typegen.typescript import TypeScriptGenerator
+
+        class UUIDSchema(BaseModel):
+            uid: uuid.UUID
+
+        gen = TypeScriptGenerator()
+        result = gen.generate([UUIDSchema])
+        assert "uid: string;" in result
+
+    def test_optional_maps_to_union_with_null(self):
+        from typing import Optional
+
+        from django_matt.typegen.typescript import TypeScriptGenerator
+
+        class OptSchema(BaseModel):
+            name: Optional[str] = None
+
+        gen = TypeScriptGenerator()
+        result = gen.generate([OptSchema])
+        assert "string | null" in result
+
+    def test_list_maps_to_array(self):
+        from django_matt.typegen.typescript import TypeScriptGenerator
+
+        class ListSchema(BaseModel):
+            items: list[str]
+
+        gen = TypeScriptGenerator()
+        result = gen.generate([ListSchema])
+        assert "string[]" in result
+
+
+# ---------------------------------------------------------------------------
+# 7. Zod type mapping completeness (~4 tests)
+# ---------------------------------------------------------------------------
+class TestZodTypeMappings:
+    """Test Zod type mappings for all Python types."""
+
+    def test_datetime_maps_to_z_string_datetime(self):
+        import datetime
+
+        from django_matt.typegen.zod import ZodGenerator
+
+        class DateSchema(BaseModel):
+            created_at: datetime.datetime
+
+        gen = ZodGenerator()
+        result = gen.generate([DateSchema])
+        assert "z.string().datetime()" in result
+
+    def test_uuid_maps_to_z_string_uuid(self):
+        import uuid
+
+        from django_matt.typegen.zod import ZodGenerator
+
+        class UUIDSchema(BaseModel):
+            uid: uuid.UUID
+
+        gen = ZodGenerator()
+        result = gen.generate([UUIDSchema])
+        assert "z.string().uuid()" in result
+
+    def test_optional_maps_to_nullable(self):
+        from typing import Optional
+
+        from django_matt.typegen.zod import ZodGenerator
+
+        class OptSchema(BaseModel):
+            name: Optional[str] = None
+
+        gen = ZodGenerator()
+        result = gen.generate([OptSchema])
+        assert ".nullable()" in result
+
+    def test_list_maps_to_z_array(self):
+        from django_matt.typegen.zod import ZodGenerator
+
+        class ListSchema(BaseModel):
+            items: list[str]
+
+        gen = ZodGenerator()
+        result = gen.generate([ListSchema])
+        assert "z.array(z.string())" in result
+
+
+# ---------------------------------------------------------------------------
+# 8. Swift API client generation (~4 tests)
+# ---------------------------------------------------------------------------
+class TestSwiftAPIClientGeneration:
+    """Test SwiftGenerator.generate_api_client() produces URLSession client."""
+
+    def test_swift_api_client_contains_urlsession(self):
+        from django_matt.typegen.swift import SwiftGenerator
+
+        gen = SwiftGenerator()
+        result = gen.generate_api_client(base_url="https://api.example.com")
+        assert "URLSession" in result
+
+    def test_swift_api_client_contains_async_throws(self):
+        from django_matt.typegen.swift import SwiftGenerator
+
+        gen = SwiftGenerator()
+        result = gen.generate_api_client()
+        assert "async throws" in result
+
+    def test_swift_api_client_contains_snake_case_decoder(self):
+        from django_matt.typegen.swift import SwiftGenerator
+
+        gen = SwiftGenerator()
+        result = gen.generate_api_client()
+        assert "convertFromSnakeCase" in result
+
+    def test_swift_api_client_contains_foundation_import(self):
+        from django_matt.typegen.swift import SwiftGenerator
+
+        gen = SwiftGenerator()
+        result = gen.generate_api_client()
+        assert "import Foundation" in result
