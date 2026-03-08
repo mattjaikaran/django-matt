@@ -7,8 +7,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
-from ecommerce.users.schemas import AddressCreate, AddressResponse
-
+from ecommerce.users.schemas import AddressCreate
 
 # =============================================================================
 # Coupon Schemas

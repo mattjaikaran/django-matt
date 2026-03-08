@@ -9,10 +9,11 @@ Includes:
 """
 
 import uuid
+
 from django.db import models
 from django.utils import timezone
 
-from core.models import User, Organization, Team
+from core.models import Organization, Team, User
 
 
 class ProjectStatus(models.TextChoices):

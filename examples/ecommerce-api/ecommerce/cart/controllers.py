@@ -3,10 +3,8 @@
 from decimal import Decimal
 from uuid import UUID
 
-from django.db import transaction
-
+from django_matt.auth import jwt_optional
 from django_matt.core import APIController
-from django_matt.auth import jwt_required, jwt_optional
 from django_matt.core.errors import NotFoundAPIError, ValidationAPIError
 
 from ecommerce.cart.models import Cart, CartItem

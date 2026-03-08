@@ -9,10 +9,11 @@ Includes:
 """
 
 import uuid
+
 from django.db import models
 from django.utils import timezone
 
-from core.models import User, Organization
+from core.models import Organization, User
 
 
 class NotificationType(models.TextChoices):

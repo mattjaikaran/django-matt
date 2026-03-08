@@ -10,27 +10,35 @@ Includes:
 - Webhook handling
 """
 
-from typing import Optional
 from uuid import UUID
-from django.conf import settings
+
 import stripe
-
-from django_matt.core import APIController, api_controller
+from django.conf import settings
 from django_matt.auth import jwt_required
-from django_matt.permissions import IsAuthenticated, AllowAny
+from django_matt.core import APIController, api_controller
+from django_matt.permissions import AllowAny, IsAuthenticated
 
-from core.models import Organization, Membership, AuditLog
-from billing.models import Subscription, Invoice, PaymentMethod, UsageRecord
+from billing.models import Invoice, PaymentMethod, Subscription
 from billing.schemas import (
-    SubscriptionResponse, SubscriptionDetailResponse,
-    SubscriptionUpdateRequest, SubscriptionCancelRequest,
-    InvoiceResponse, InvoiceDetailResponse, InvoiceListResponse,
-    PaymentMethodResponse, PaymentMethodCreateRequest, PaymentMethodSetDefaultRequest,
-    CheckoutSessionRequest, CheckoutSessionResponse,
-    BillingPortalRequest, BillingPortalResponse,
-    BillingOverviewResponse, PlanResponse, PlansListResponse,
-    UsageSummaryResponse, CouponApplyRequest, CouponApplyResponse,
+    BillingOverviewResponse,
+    BillingPortalRequest,
+    BillingPortalResponse,
+    CheckoutSessionRequest,
+    CheckoutSessionResponse,
+    InvoiceDetailResponse,
+    InvoiceListResponse,
+    InvoiceResponse,
+    PaymentMethodCreateRequest,
+    PaymentMethodResponse,
+    PaymentMethodSetDefaultRequest,
+    PlanResponse,
+    PlansListResponse,
+    SubscriptionCancelRequest,
+    SubscriptionDetailResponse,
+    SubscriptionResponse,
+    SubscriptionUpdateRequest,
 )
+from core.models import AuditLog, Membership, Organization
 
 # Initialize Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY

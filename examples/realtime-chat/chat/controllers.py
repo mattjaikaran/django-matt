@@ -7,15 +7,14 @@ Uses django-matt APIController for clean, organized endpoints.
 from datetime import datetime
 from uuid import UUID
 
-from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth import get_user_model
 from django.http import HttpRequest
 
-from django_matt import MattAPI
 from django_matt.auth import create_token_pair, jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import NotFoundAPIError, PermissionDeniedAPIError, ValidationAPIError
 
-from .models import Channel, DirectMessageThread, Message, Workspace
+from .models import DirectMessageThread, Message
 from .schemas import (
     ChannelCreate,
     ChannelMember,
@@ -46,7 +45,6 @@ from .services import (
     DirectMessageService,
     MessageService,
     ReactionService,
-    ReadReceiptService,
     SearchService,
     UserService,
     WorkspaceService,
@@ -336,8 +334,8 @@ class ChannelController(APIController):
                     and m.user.chat_profile.display_name,
                     avatar_url=getattr(m.user, "chat_profile", None)
                     and m.user.chat_profile.avatar_url,
-                    status=getattr(m.user, "chat_profile", None)
-                    and m.user.chat_profile.status
+                    status=(getattr(m.user, "chat_profile", None)
+                    and m.user.chat_profile.status)
                     or "offline",
                 ),
                 joined_at=m.joined_at,

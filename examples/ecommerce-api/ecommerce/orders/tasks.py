@@ -139,7 +139,6 @@ def generate_daily_report():
     )
 
     # Get top products
-    from django.db.models import F
 
     from ecommerce.orders.models import OrderItem
 

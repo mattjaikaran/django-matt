@@ -7,21 +7,23 @@ Includes:
 - Preferences
 """
 
-from typing import Optional
 from uuid import UUID
-from django.db import models
 
-from django_matt.core import APIController, api_controller
+from django.db import models
 from django_matt.auth import jwt_required
+from django_matt.core import APIController, api_controller
 from django_matt.permissions import IsAuthenticated
 
-from core.models import Organization, Membership
+from core.models import Membership, Organization
 from notifications.models import Notification, NotificationPreference
 from notifications.schemas import (
-    NotificationResponse, NotificationListResponse,
-    NotificationMarkReadRequest, NotificationMarkAllReadRequest,
-    NotificationCountResponse, NotificationPreferenceUpdate,
+    NotificationCountResponse,
+    NotificationListResponse,
+    NotificationMarkAllReadRequest,
+    NotificationMarkReadRequest,
     NotificationPreferenceResponse,
+    NotificationPreferenceUpdate,
+    NotificationResponse,
 )
 
 
@@ -38,7 +40,7 @@ class NotificationController(APIController):
     async def list_notifications(
         self,
         request,
-        org_slug: Optional[str] = None,
+        org_slug: str | None = None,
         unread_only: bool = False,
         page: int = 1,
         page_size: int = 20,
@@ -92,7 +94,7 @@ class NotificationController(APIController):
 
     @APIController.get("/count", response=NotificationCountResponse, permissions=[IsAuthenticated])
     @jwt_required
-    async def get_notification_count(self, request, org_slug: Optional[str] = None):
+    async def get_notification_count(self, request, org_slug: str | None = None):
         """
         Get notification counts for the current user.
         """

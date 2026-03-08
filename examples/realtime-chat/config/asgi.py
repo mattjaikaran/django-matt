@@ -11,12 +11,12 @@ import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
 
-from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
 
-from django_matt.websockets import AuthMiddlewareStack
-
+from channels.routing import ProtocolTypeRouter, URLRouter
 from chat.routing import websocket_urlpatterns
+
+from django_matt.websockets import AuthMiddlewareStack
 
 # Get the standard Django ASGI application for HTTP requests
 django_asgi_app = get_asgi_application()

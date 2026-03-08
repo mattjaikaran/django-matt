@@ -8,17 +8,16 @@ middleware, and OpenAPI documentation.
 from django_matt import MattAPI
 from django_matt.openapi import OpenAPIConfig
 
+from .analytics import AnalyticsController
 from .auth import AuthController
+from .billing import BillingController
+from .comments import CommentController
+from .health import HealthController
+from .notifications import NotificationController
 from .organizations import OrganizationController
-from .teams import TeamController
 from .projects import ProjectController
 from .tasks import TaskController
-from .comments import CommentController
-from .billing import BillingController
-from .notifications import NotificationController
-from .analytics import AnalyticsController
-from .health import HealthController
-
+from .teams import TeamController
 
 # Create the main API instance
 api = MattAPI(

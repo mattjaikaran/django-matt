@@ -10,12 +10,11 @@ Includes:
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 from uuid import UUID
-from pydantic import BaseModel, Field
+
+from pydantic import BaseModel
 
 from core.schemas import OrganizationMiniResponse
-
 
 # =============================================================================
 # Plan Schemas
@@ -56,10 +55,10 @@ class SubscriptionResponse(BaseModel):
     quantity: int
     current_period_start: datetime
     current_period_end: datetime
-    trial_start: Optional[datetime] = None
-    trial_end: Optional[datetime] = None
+    trial_start: datetime | None = None
+    trial_end: datetime | None = None
     cancel_at_period_end: bool
-    canceled_at: Optional[datetime] = None
+    canceled_at: datetime | None = None
     days_until_renewal: int = 0
     is_active: bool
     is_trialing: bool = False
@@ -78,7 +77,7 @@ class SubscriptionDetailResponse(SubscriptionResponse):
 
 class SubscriptionUpdateRequest(BaseModel):
     plan_id: str  # Stripe price ID
-    quantity: Optional[int] = None
+    quantity: int | None = None
 
 
 class SubscriptionCancelRequest(BaseModel):
@@ -116,8 +115,8 @@ class InvoiceResponse(BaseModel):
     amount_due: int
     currency: str
     invoice_date: datetime
-    due_date: Optional[datetime] = None
-    paid_at: Optional[datetime] = None
+    due_date: datetime | None = None
+    paid_at: datetime | None = None
     invoice_pdf_url: str = ""
     hosted_invoice_url: str = ""
     is_paid: bool
@@ -131,7 +130,7 @@ class InvoiceResponse(BaseModel):
 class InvoiceDetailResponse(InvoiceResponse):
     """Invoice with line items."""
     line_items: list[InvoiceLineItem] = []
-    subscription_id: Optional[UUID] = None
+    subscription_id: UUID | None = None
     metadata: dict = {}
 
 
@@ -152,8 +151,8 @@ class PaymentMethodResponse(BaseModel):
     type: str
     card_brand: str = ""
     card_last4: str = ""
-    card_exp_month: Optional[int] = None
-    card_exp_year: Optional[int] = None
+    card_exp_month: int | None = None
+    card_exp_year: int | None = None
     billing_name: str = ""
     billing_email: str = ""
     is_default: bool
@@ -181,9 +180,9 @@ class BillingAddress(BaseModel):
 
 
 class PaymentMethodUpdateRequest(BaseModel):
-    billing_name: Optional[str] = None
-    billing_email: Optional[str] = None
-    billing_address: Optional[BillingAddress] = None
+    billing_name: str | None = None
+    billing_email: str | None = None
+    billing_address: BillingAddress | None = None
 
 
 # =============================================================================
@@ -195,8 +194,8 @@ class CheckoutSessionRequest(BaseModel):
     quantity: int = 1
     success_url: str
     cancel_url: str
-    coupon_code: Optional[str] = None
-    trial_days: Optional[int] = None
+    coupon_code: str | None = None
+    trial_days: int | None = None
 
 
 class CheckoutSessionResponse(BaseModel):
@@ -234,7 +233,7 @@ class UsageRecordCreate(BaseModel):
     metric: str
     quantity: Decimal
     action: str = "increment"
-    timestamp: Optional[datetime] = None
+    timestamp: datetime | None = None
 
 
 class UsageRecordResponse(BaseModel):
@@ -254,13 +253,13 @@ class UsageSummaryResponse(BaseModel):
     total: Decimal
     period_start: datetime
     period_end: datetime
-    limit: Optional[int] = None
-    percentage_used: Optional[float] = None
+    limit: int | None = None
+    percentage_used: float | None = None
 
 
 class UsageDashboardResponse(BaseModel):
     metrics: list[UsageSummaryResponse]
-    subscription: Optional[SubscriptionResponse] = None
+    subscription: SubscriptionResponse | None = None
 
 
 # =============================================================================
@@ -275,9 +274,9 @@ class CouponResponse(BaseModel):
     discount_value: Decimal
     currency: str
     duration: str
-    duration_months: Optional[int] = None
+    duration_months: int | None = None
     is_valid: bool
-    valid_until: Optional[datetime] = None
+    valid_until: datetime | None = None
 
     class Config:
         from_attributes = True
@@ -309,8 +308,8 @@ class WebhookEventResponse(BaseModel):
 
 class BillingOverviewResponse(BaseModel):
     """Complete billing overview for organization."""
-    subscription: Optional[SubscriptionResponse] = None
-    upcoming_invoice: Optional[InvoiceResponse] = None
-    default_payment_method: Optional[PaymentMethodResponse] = None
+    subscription: SubscriptionResponse | None = None
+    upcoming_invoice: InvoiceResponse | None = None
+    default_payment_method: PaymentMethodResponse | None = None
     usage: list[UsageSummaryResponse] = []
     recent_invoices: list[InvoiceResponse] = []

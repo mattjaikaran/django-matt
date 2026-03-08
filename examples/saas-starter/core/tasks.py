@@ -7,6 +7,7 @@ Includes:
 """
 
 from datetime import timedelta
+
 from celery import shared_task
 from django.utils import timezone
 
@@ -52,9 +53,10 @@ def update_user_activity_stats():
 
     Runs daily.
     """
+    from django.db.models import Count
+
     from core.models import User
     from notifications.models import AnalyticsEvent
-    from django.db.models import Count
 
     yesterday = timezone.now().date() - timedelta(days=1)
 

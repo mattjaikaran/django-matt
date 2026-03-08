@@ -13,4 +13,3 @@ class ChatConfig(AppConfig):
     def ready(self):
         """Initialize app when Django starts."""
         # Import signal handlers
-        pass

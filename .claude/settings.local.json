@@ -99,7 +99,23 @@
       "Bash(test:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:api.github.com)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Skill(gsd:progress)",
+      "Bash(node:*)",
+      "WebFetch(domain:www.jujens.eu)",
+      "WebFetch(domain:jcristharif.com)",
+      "WebFetch(domain:fastlaunchapi.dev)",
+      "WebFetch(domain:django-ninja.dev)",
+      "WebFetch(domain:hakibenita.com)",
+      "WebFetch(domain:news.ycombinator.com)",
+      "WebFetch(domain:pypi.org)",
+      "WebFetch(domain:pydantic.dev)",
+      "WebFetch(domain:testdriven.io)",
+      "WebFetch(domain:lp.jetbrains.com)",
+      "Skill(gsd:plan-phase)",
+      "Skill(gsd:execute-phase)",
+      "Bash(wait:*)",
+      "Bash(cat:*)"
     ]
   }
 }

@@ -1,37 +1,28 @@
 """API controllers for catalog app."""
 
 from decimal import Decimal
-from typing import Any
 from uuid import UUID
 
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.core.cache import cache
-from django.db import models
 from django.db.models import Avg, Count, F, Q
-
+from django_matt.auth import jwt_required
 from django_matt.core import APIController
-from django_matt.auth import jwt_required, jwt_optional
-from django_matt.permissions import IsAuthenticated, IsAdmin
 from django_matt.core.errors import NotFoundAPIError, ValidationAPIError
 
-from ecommerce.catalog.models import Category, Inventory, Product, ProductImage, ProductVariant
+from ecommerce.catalog.models import Category, Inventory, Product
 from ecommerce.catalog.schemas import (
     CategoryCreate,
     CategoryResponse,
     CategoryTreeResponse,
     CategoryUpdate,
-    InventoryResponse,
     PaginatedProductsResponse,
     ProductCreate,
     ProductDetailResponse,
     ProductListResponse,
-    ProductSearchParams,
     ProductUpdate,
-    ProductVariantCreate,
     ProductVariantResponse,
-    ProductVariantUpdate,
 )
-
 
 # =============================================================================
 # Category Controller

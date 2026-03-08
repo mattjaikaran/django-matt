@@ -11,7 +11,7 @@ from django.conf import settings
 from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 
-from .models import User, Organization, Membership, MembershipRole
+from .models import Membership, MembershipRole, Organization, User
 
 
 @receiver(post_save, sender=User)

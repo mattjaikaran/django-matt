@@ -204,7 +204,7 @@ def demo_react_hooks():
 
 def demo_react_components():
     """Demonstrate React component generation."""
-    from django_matt.codegen import generate_react_form, generate_react_list, generate_react_detail
+    from django_matt.codegen import generate_react_detail, generate_react_form, generate_react_list
 
     print_header("4. React Component Generation")
 
@@ -377,8 +377,14 @@ def demo_write_to_disk():
 def demo_core_primitives():
     """Demonstrate core code generation primitives."""
     from django_matt.codegen import (
-        Interface, Property, Function, Parameter,
-        ImportFrom, CodeFile, Return, Statement
+        CodeFile,
+        Function,
+        ImportFrom,
+        Interface,
+        Parameter,
+        Property,
+        Return,
+        Statement,
     )
 
     print_header("8. Core Code Generation Primitives")

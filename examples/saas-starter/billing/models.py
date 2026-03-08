@@ -9,10 +9,11 @@ Includes:
 """
 
 import uuid
+
 from django.db import models
 from django.utils import timezone
 
-from core.models import User, Organization
+from core.models import Organization, User
 
 
 class SubscriptionStatus(models.TextChoices):
@@ -378,9 +379,7 @@ class Coupon(models.Model):
             return False
         if self.valid_until and timezone.now() > self.valid_until:
             return False
-        if self.max_redemptions and self.times_redeemed >= self.max_redemptions:
-            return False
-        return True
+        return not (self.max_redemptions and self.times_redeemed >= self.max_redemptions)
 
 
 class CouponRedemption(models.Model):

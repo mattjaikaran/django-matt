@@ -8,10 +8,11 @@ Includes:
 """
 
 from datetime import timedelta
+
+import stripe
 from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
-import stripe
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -109,7 +110,7 @@ def report_usage_to_stripe():
 
     Runs hourly.
     """
-    from billing.models import Subscription, UsageRecord
+    from billing.models import UsageRecord
 
     reported = 0
 
@@ -137,7 +138,7 @@ def report_usage_to_stripe():
                     reported += 1
                     break
 
-        except stripe.error.StripeError as e:
+        except stripe.error.StripeError:
             # Log error but continue with other records
             pass
 
@@ -151,8 +152,8 @@ def sync_invoices_from_stripe():
 
     Runs daily.
     """
-    from core.models import Organization
     from billing.models import Invoice
+    from core.models import Organization
 
     synced = 0
 

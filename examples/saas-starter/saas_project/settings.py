@@ -12,6 +12,7 @@ A comprehensive example application showcasing django-matt features:
 
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 load_dotenv()

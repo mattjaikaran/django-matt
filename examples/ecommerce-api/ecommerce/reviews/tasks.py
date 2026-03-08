@@ -84,7 +84,6 @@ def notify_review_approved(review_id: str):
 @shared_task(name="ecommerce.reviews.tasks.auto_moderate_reviews")
 def auto_moderate_reviews():
     """Auto-approve reviews from trusted users."""
-    from django.db.models import Count
 
     from ecommerce.reviews.models import Review
 

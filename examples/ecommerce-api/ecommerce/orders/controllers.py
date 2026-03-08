@@ -5,12 +5,10 @@ from typing import Any
 from uuid import UUID
 
 from django.conf import settings
-from django.db import transaction
-
-from django_matt.core import APIController
 from django_matt.auth import jwt_required
-from django_matt.permissions import IsAuthenticated
+from django_matt.core import APIController
 from django_matt.core.errors import NotFoundAPIError, ValidationAPIError
+from django_matt.permissions import IsAuthenticated
 
 from ecommerce.cart.models import Cart
 from ecommerce.catalog.models import Inventory
@@ -34,7 +32,6 @@ from ecommerce.orders.schemas import (
     TaxCalculationResponse,
 )
 from ecommerce.payments.services import create_payment_intent
-
 
 # =============================================================================
 # Order Controller

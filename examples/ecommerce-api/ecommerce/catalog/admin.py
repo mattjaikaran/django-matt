@@ -1,7 +1,6 @@
 """Django admin configuration for catalog app."""
 
 from django.contrib import admin
-from django.db.models import Sum
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.decorators import action, display

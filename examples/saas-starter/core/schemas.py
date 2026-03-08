@@ -9,10 +9,9 @@ Includes:
 """
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
-from pydantic import BaseModel, EmailStr, Field
 
+from pydantic import BaseModel, EmailStr, Field
 
 # =============================================================================
 # User Schemas
@@ -29,12 +28,12 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    avatar_url: Optional[str] = None
-    timezone: Optional[str] = None
-    locale: Optional[str] = None
-    notification_preferences: Optional[dict] = None
+    first_name: str | None = None
+    last_name: str | None = None
+    avatar_url: str | None = None
+    timezone: str | None = None
+    locale: str | None = None
+    notification_preferences: dict | None = None
 
 
 class UserResponse(UserBase):
@@ -53,8 +52,8 @@ class UserResponse(UserBase):
 class UserProfileResponse(UserResponse):
     """Extended user profile with preferences."""
     notification_preferences: dict = {}
-    last_login_at: Optional[datetime] = None
-    last_activity_at: Optional[datetime] = None
+    last_login_at: datetime | None = None
+    last_activity_at: datetime | None = None
 
 
 class UserMiniResponse(BaseModel):
@@ -90,12 +89,12 @@ class OrganizationCreate(OrganizationBase):
 
 
 class OrganizationUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    logo_url: Optional[str] = None
-    website: Optional[str] = None
-    settings: Optional[dict] = None
-    allowed_email_domains: Optional[list[str]] = None
+    name: str | None = None
+    description: str | None = None
+    logo_url: str | None = None
+    website: str | None = None
+    settings: dict | None = None
+    allowed_email_domains: list[str] | None = None
 
 
 class OrganizationResponse(OrganizationBase):
@@ -146,9 +145,9 @@ class TeamCreate(TeamBase):
 
 
 class TeamUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    settings: Optional[dict] = None
+    name: str | None = None
+    description: str | None = None
+    settings: dict | None = None
 
 
 class TeamResponse(TeamBase):
@@ -172,15 +171,15 @@ class TeamDetailResponse(TeamResponse):
 # =============================================================================
 
 class MembershipCreate(BaseModel):
-    user_id: Optional[UUID] = None
-    email: Optional[EmailStr] = None  # For invitations
+    user_id: UUID | None = None
+    email: EmailStr | None = None  # For invitations
     role: str = "member"
     team_ids: list[UUID] = []
 
 
 class MembershipUpdate(BaseModel):
-    role: Optional[str] = None
-    team_ids: Optional[list[UUID]] = None
+    role: str | None = None
+    team_ids: list[UUID] | None = None
 
 
 class MembershipResponse(BaseModel):
@@ -198,9 +197,9 @@ class MembershipResponse(BaseModel):
 class MembershipDetailResponse(MembershipResponse):
     """Membership with teams."""
     teams: list[TeamResponse] = []
-    invited_by: Optional[UserMiniResponse] = None
-    invited_at: Optional[datetime] = None
-    accepted_at: Optional[datetime] = None
+    invited_by: UserMiniResponse | None = None
+    invited_at: datetime | None = None
+    accepted_at: datetime | None = None
 
 
 # =============================================================================
@@ -220,7 +219,7 @@ class InvitationResponse(BaseModel):
     organization: OrganizationMiniResponse
     role: str
     status: str
-    invited_by: Optional[UserMiniResponse] = None
+    invited_by: UserMiniResponse | None = None
     message: str = ""
     created_at: datetime
     expires_at: datetime
@@ -299,19 +298,19 @@ class PasswordChangeRequest(BaseModel):
 # =============================================================================
 
 class OAuthAuthorizationRequest(BaseModel):
-    redirect_uri: Optional[str] = None
-    state: Optional[str] = None
+    redirect_uri: str | None = None
+    state: str | None = None
 
 
 class OAuthCallbackRequest(BaseModel):
     code: str
-    state: Optional[str] = None
+    state: str | None = None
 
 
 class OAuthConnectResponse(BaseModel):
     provider: str
     connected: bool
-    email: Optional[str] = None
+    email: str | None = None
 
 
 # =============================================================================
@@ -320,12 +319,12 @@ class OAuthConnectResponse(BaseModel):
 
 class AuditLogResponse(BaseModel):
     id: UUID
-    user: Optional[UserMiniResponse] = None
+    user: UserMiniResponse | None = None
     action: str
     resource_type: str = ""
     resource_id: str = ""
     data: dict = {}
-    ip_address: Optional[str] = None
+    ip_address: str | None = None
     created_at: datetime
 
     class Config:
@@ -333,8 +332,8 @@ class AuditLogResponse(BaseModel):
 
 
 class AuditLogFilter(BaseModel):
-    user_id: Optional[UUID] = None
-    action: Optional[str] = None
-    resource_type: Optional[str] = None
-    from_date: Optional[datetime] = None
-    to_date: Optional[datetime] = None
+    user_id: UUID | None = None
+    action: str | None = None
+    resource_type: str | None = None
+    from_date: datetime | None = None
+    to_date: datetime | None = None

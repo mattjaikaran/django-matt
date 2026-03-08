@@ -7,25 +7,27 @@ Includes:
 - Invitations
 """
 
-from typing import Optional
+import secrets
+from datetime import timedelta
 from uuid import UUID
+
 from django.conf import settings
 from django.utils import timezone
-from datetime import timedelta
-import secrets
-
-from django_matt.core import APIController, api_controller
 from django_matt.auth import jwt_required
+from django_matt.core import APIController, api_controller
 from django_matt.permissions import IsAuthenticated
 
-from core.models import (
-    User, Organization, Membership, MembershipRole, Invitation, AuditLog
-)
+from core.models import AuditLog, Invitation, Membership, MembershipRole, Organization
 from core.schemas import (
-    OrganizationCreate, OrganizationUpdate, OrganizationResponse,
-    OrganizationDetailResponse, MembershipCreate, MembershipUpdate,
-    MembershipResponse, MembershipDetailResponse, InvitationCreate,
-    InvitationResponse, InvitationAccept, UserMiniResponse,
+    InvitationAccept,
+    InvitationCreate,
+    InvitationResponse,
+    MembershipDetailResponse,
+    MembershipUpdate,
+    OrganizationCreate,
+    OrganizationDetailResponse,
+    OrganizationResponse,
+    OrganizationUpdate,
 )
 
 

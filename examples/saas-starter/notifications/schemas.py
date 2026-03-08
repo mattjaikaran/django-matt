@@ -9,12 +9,11 @@ Includes:
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 from uuid import UUID
+
 from pydantic import BaseModel, Field
 
-from core.schemas import UserMiniResponse, OrganizationMiniResponse
-
+from core.schemas import UserMiniResponse
 
 # =============================================================================
 # Notification Schemas
@@ -25,14 +24,14 @@ class NotificationResponse(BaseModel):
     type: str
     title: str
     message: str
-    actor: Optional[UserMiniResponse] = None
+    actor: UserMiniResponse | None = None
     resource_type: str = ""
     resource_id: str = ""
     action_url: str = ""
     action_label: str = ""
     data: dict = {}
     is_read: bool
-    read_at: Optional[datetime] = None
+    read_at: datetime | None = None
     email_sent: bool
     created_at: datetime
 
@@ -53,7 +52,7 @@ class NotificationMarkReadRequest(BaseModel):
 
 
 class NotificationMarkAllReadRequest(BaseModel):
-    organization_id: Optional[UUID] = None  # If None, mark all for user
+    organization_id: UUID | None = None  # If None, mark all for user
 
 
 class NotificationCountResponse(BaseModel):
@@ -73,15 +72,15 @@ class NotificationTypePreference(BaseModel):
 
 
 class NotificationPreferenceUpdate(BaseModel):
-    email_enabled: Optional[bool] = None
-    email_digest: Optional[str] = None
-    push_enabled: Optional[bool] = None
-    in_app_enabled: Optional[bool] = None
-    type_preferences: Optional[dict[str, NotificationTypePreference]] = None
-    quiet_hours_enabled: Optional[bool] = None
-    quiet_hours_start: Optional[str] = None  # "22:00"
-    quiet_hours_end: Optional[str] = None  # "08:00"
-    quiet_hours_timezone: Optional[str] = None
+    email_enabled: bool | None = None
+    email_digest: str | None = None
+    push_enabled: bool | None = None
+    in_app_enabled: bool | None = None
+    type_preferences: dict[str, NotificationTypePreference] | None = None
+    quiet_hours_enabled: bool | None = None
+    quiet_hours_start: str | None = None  # "22:00"
+    quiet_hours_end: str | None = None  # "08:00"
+    quiet_hours_timezone: str | None = None
 
 
 class NotificationPreferenceResponse(BaseModel):
@@ -92,8 +91,8 @@ class NotificationPreferenceResponse(BaseModel):
     in_app_enabled: bool
     type_preferences: dict = {}
     quiet_hours_enabled: bool
-    quiet_hours_start: Optional[str] = None
-    quiet_hours_end: Optional[str] = None
+    quiet_hours_start: str | None = None
+    quiet_hours_end: str | None = None
     quiet_hours_timezone: str = "UTC"
 
     class Config:
@@ -130,8 +129,8 @@ class AnalyticsEventResponse(BaseModel):
 class AnalyticsBatchCreate(BaseModel):
     """Batch create analytics events."""
     events: list[AnalyticsEventCreate]
-    session_id: Optional[str] = None
-    anonymous_id: Optional[str] = None
+    session_id: str | None = None
+    anonymous_id: str | None = None
 
 
 class AnalyticsBatchResponse(BaseModel):
@@ -152,8 +151,8 @@ class TimeSeriesDataPoint(BaseModel):
 class MetricSummary(BaseModel):
     metric_name: str
     current_value: Decimal
-    previous_value: Optional[Decimal] = None
-    change_percentage: Optional[float] = None
+    previous_value: Decimal | None = None
+    change_percentage: float | None = None
     trend: str = "neutral"  # "up", "down", "neutral"
 
 
@@ -190,8 +189,8 @@ class ExperimentResponse(BaseModel):
 class ExperimentResultResponse(BaseModel):
     experiment_id: str
     variants: dict[str, dict]  # variant -> {"count": 100, "conversion_rate": 0.15}
-    winner: Optional[str] = None
-    confidence: Optional[float] = None
+    winner: str | None = None
+    confidence: float | None = None
 
 
 # =============================================================================
@@ -224,7 +223,7 @@ class PresenceMessage(BaseModel):
     type: str = "presence"
     user_id: UUID
     status: str  # "online", "offline", "away"
-    last_seen: Optional[datetime] = None
+    last_seen: datetime | None = None
 
 
 class TypingIndicatorMessage(BaseModel):

@@ -7,8 +7,7 @@ The actual chat functionality is handled via WebSockets and the REST API.
 
 from uuid import UUID
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, render
 
 from .models import Channel, Workspace
 

@@ -7,12 +7,11 @@ Includes:
 - Task consumer (task room for comments)
 """
 
-import json
-from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.db import database_sync_to_async
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
-from core.models import User, Membership
-from projects.models import Project, Task, ProjectMember
+from core.models import Membership
+from projects.models import Project, ProjectMember, Task
 
 
 class NotificationConsumer(AsyncJsonWebsocketConsumer):

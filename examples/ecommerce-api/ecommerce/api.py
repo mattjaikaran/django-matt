@@ -2,8 +2,8 @@
 
 from django_matt import MattAPI
 
-from ecommerce.catalog.controllers import CategoryController, ProductController
 from ecommerce.cart.controllers import CartController
+from ecommerce.catalog.controllers import CategoryController, ProductController
 from ecommerce.orders.controllers import CouponController, OrderController
 from ecommerce.payments.controllers import PaymentController, WebhookController
 from ecommerce.reviews.controllers import ReviewController

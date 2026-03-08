@@ -9,41 +9,19 @@ Handles:
 - Reactions
 """
 
-import json
 import logging
 from datetime import datetime
-from typing import Any
 from uuid import UUID
 
-from asgiref.sync import sync_to_async
 from django.contrib.auth import get_user_model
 
 from django_matt.websockets import (
     AuthenticatedConsumer,
-    PresenceManager,
     RoomConsumer,
-    broadcast,
     get_presence_manager,
-    send_to_user,
 )
 
-from .models import Channel, Message
-from .schemas import (
-    MessageResponse,
-    UserBrief,
-    WSChannelJoined,
-    WSChannelLeft,
-    WSError,
-    WSMessageDeleted,
-    WSMessageNew,
-    WSMessageUpdated,
-    WSPresenceChanged,
-    WSReactionAdded,
-    WSReactionRemoved,
-    WSTypingUpdate,
-    WSUserJoined,
-    WSUserLeft,
-)
+from .models import Channel
 from .services import (
     ChannelService,
     MessageService,
@@ -325,7 +303,7 @@ class ChatConsumer(RoomConsumer):
 
         except Exception as e:
             logger.exception(f"Error sending message: {e}")
-            await self.send_error(5000, f"Failed to send message: {str(e)}")
+            await self.send_error(5000, f"Failed to send message: {e!s}")
 
     async def handle_message_update(self, data: dict) -> None:
         """Handle message.update event."""
@@ -366,7 +344,7 @@ class ChatConsumer(RoomConsumer):
 
         except Exception as e:
             logger.exception(f"Error updating message: {e}")
-            await self.send_error(5000, f"Failed to update message: {str(e)}")
+            await self.send_error(5000, f"Failed to update message: {e!s}")
 
     async def handle_message_delete(self, data: dict) -> None:
         """Handle message.delete event."""
@@ -403,7 +381,7 @@ class ChatConsumer(RoomConsumer):
 
         except Exception as e:
             logger.exception(f"Error deleting message: {e}")
-            await self.send_error(5000, f"Failed to delete message: {str(e)}")
+            await self.send_error(5000, f"Failed to delete message: {e!s}")
 
     # =========================================================================
     # Typing Events
@@ -533,7 +511,7 @@ class ChatConsumer(RoomConsumer):
 
         except Exception as e:
             logger.exception(f"Error adding reaction: {e}")
-            await self.send_error(5000, f"Failed to add reaction: {str(e)}")
+            await self.send_error(5000, f"Failed to add reaction: {e!s}")
 
     async def handle_reaction_remove(self, data: dict) -> None:
         """Handle reaction.remove event."""
@@ -568,7 +546,7 @@ class ChatConsumer(RoomConsumer):
 
         except Exception as e:
             logger.exception(f"Error removing reaction: {e}")
-            await self.send_error(5000, f"Failed to remove reaction: {str(e)}")
+            await self.send_error(5000, f"Failed to remove reaction: {e!s}")
 
     # =========================================================================
     # Read Receipt Events

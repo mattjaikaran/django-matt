@@ -4,10 +4,9 @@ Health check API controller.
 Provides health and readiness endpoints for monitoring.
 """
 
-from django.db import connection
-from django.core.cache import cache
 from django.conf import settings
-
+from django.core.cache import cache
+from django.db import connection
 from django_matt.core import APIController, api_controller
 from django_matt.permissions import AllowAny
 
@@ -79,8 +78,9 @@ class HealthController(APIController):
         """
         Get application information.
         """
-        import django
         import sys
+
+        import django
 
         return {
             "name": "SaaS Starter API",

@@ -133,3 +133,14 @@ None - no external service configuration required.
 ---
 *Phase: 05-billing-feature-flags-and-analytics*
 *Completed: 2026-03-08*
+
+## Self-Check: PASSED
+
+- FOUND: django_matt/billing/signals.py
+- FOUND: django_matt/billing/testing.py
+- FOUND: django_matt/billing/models.py (with amark_processed)
+- FOUND: django_matt/billing/controllers.py (with aupdate_or_create x3)
+- FOUND: .planning/phases/05-billing-feature-flags-and-analytics/05-01-SUMMARY.md
+- FOUND commit: 7dc3b16 (feat task 1)
+- FOUND commit: c75a7c6 (test task 2)
+- FOUND commit: 32f730e (docs metadata)

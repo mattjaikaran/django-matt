@@ -2,13 +2,12 @@
 
 import uuid
 from decimal import Decimal
-from typing import Any
 
 from django.db import models
 from django.utils import timezone
 
 from ecommerce.catalog.models import Product, ProductVariant
-from ecommerce.users.models import Address, User
+from ecommerce.users.models import User
 
 
 class Coupon(models.Model):

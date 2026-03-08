@@ -10,12 +10,11 @@ Includes:
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
 from uuid import UUID
+
 from pydantic import BaseModel, Field
 
-from core.schemas import UserMiniResponse, OrganizationMiniResponse, TeamResponse
-
+from core.schemas import TeamResponse, UserMiniResponse
 
 # =============================================================================
 # Label Schemas
@@ -28,20 +27,20 @@ class LabelBase(BaseModel):
 
 class LabelCreate(LabelBase):
     description: str = ""
-    project_id: Optional[UUID] = None  # If None, org-level label
+    project_id: UUID | None = None  # If None, org-level label
 
 
 class LabelUpdate(BaseModel):
-    name: Optional[str] = None
-    color: Optional[str] = None
-    description: Optional[str] = None
+    name: str | None = None
+    color: str | None = None
+    description: str | None = None
 
 
 class LabelResponse(LabelBase):
     id: UUID
     description: str = ""
     organization_id: UUID
-    project_id: Optional[UUID] = None
+    project_id: UUID | None = None
     created_at: datetime
 
     class Config:
@@ -62,21 +61,21 @@ class ProjectCreate(ProjectBase):
     color: str = "#3B82F6"
     icon: str = "folder"
     team_ids: list[UUID] = []
-    start_date: Optional[date] = None
-    due_date: Optional[date] = None
+    start_date: date | None = None
+    due_date: date | None = None
 
 
 class ProjectUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    color: Optional[str] = None
-    icon: Optional[str] = None
-    status: Optional[str] = None
-    is_public: Optional[bool] = None
-    start_date: Optional[date] = None
-    due_date: Optional[date] = None
-    settings: Optional[dict] = None
-    team_ids: Optional[list[UUID]] = None
+    name: str | None = None
+    description: str | None = None
+    color: str | None = None
+    icon: str | None = None
+    status: str | None = None
+    is_public: bool | None = None
+    start_date: date | None = None
+    due_date: date | None = None
+    settings: dict | None = None
+    team_ids: list[UUID] | None = None
 
 
 class ProjectResponse(ProjectBase):
@@ -90,8 +89,8 @@ class ProjectResponse(ProjectBase):
     task_count: int = 0
     completed_task_count: int = 0
     progress_percentage: int = 0
-    start_date: Optional[date] = None
-    due_date: Optional[date] = None
+    start_date: date | None = None
+    due_date: date | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -101,7 +100,7 @@ class ProjectResponse(ProjectBase):
 
 class ProjectDetailResponse(ProjectResponse):
     """Project with owner, teams, and members."""
-    owner: Optional[UserMiniResponse] = None
+    owner: UserMiniResponse | None = None
     teams: list[TeamResponse] = []
     settings: dict = {}
 
@@ -152,38 +151,38 @@ class TaskBase(BaseModel):
 
 class TaskCreate(TaskBase):
     description: str = ""
-    assignee_id: Optional[UUID] = None
-    parent_id: Optional[UUID] = None
+    assignee_id: UUID | None = None
+    parent_id: UUID | None = None
     status: str = "todo"
     priority: str = "medium"
     labels: list[str] = []
-    estimated_hours: Optional[Decimal] = None
-    start_date: Optional[date] = None
-    due_date: Optional[date] = None
+    estimated_hours: Decimal | None = None
+    start_date: date | None = None
+    due_date: date | None = None
     custom_fields: dict = {}
 
 
 class TaskUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    assignee_id: Optional[UUID] = None
-    status: Optional[str] = None
-    priority: Optional[str] = None
-    position: Optional[int] = None
-    labels: Optional[list[str]] = None
-    estimated_hours: Optional[Decimal] = None
-    actual_hours: Optional[Decimal] = None
-    start_date: Optional[date] = None
-    due_date: Optional[date] = None
-    custom_fields: Optional[dict] = None
+    title: str | None = None
+    description: str | None = None
+    assignee_id: UUID | None = None
+    status: str | None = None
+    priority: str | None = None
+    position: int | None = None
+    labels: list[str] | None = None
+    estimated_hours: Decimal | None = None
+    actual_hours: Decimal | None = None
+    start_date: date | None = None
+    due_date: date | None = None
+    custom_fields: dict | None = None
 
 
 class TaskBulkUpdate(BaseModel):
     """Update multiple tasks at once."""
     task_ids: list[UUID]
-    status: Optional[str] = None
-    priority: Optional[str] = None
-    assignee_id: Optional[UUID] = None
+    status: str | None = None
+    priority: str | None = None
+    assignee_id: UUID | None = None
     labels_add: list[str] = []
     labels_remove: list[str] = []
 
@@ -197,19 +196,19 @@ class TaskMove(BaseModel):
 class TaskResponse(TaskBase):
     id: UUID
     project_id: UUID
-    parent_id: Optional[UUID] = None
+    parent_id: UUID | None = None
     description: str = ""
-    assignee: Optional[UserMiniResponse] = None
-    reporter: Optional[UserMiniResponse] = None
+    assignee: UserMiniResponse | None = None
+    reporter: UserMiniResponse | None = None
     status: str
     priority: str
     position: int
     labels: list[str] = []
-    estimated_hours: Optional[Decimal] = None
-    actual_hours: Optional[Decimal] = None
-    start_date: Optional[date] = None
-    due_date: Optional[date] = None
-    completed_at: Optional[datetime] = None
+    estimated_hours: Decimal | None = None
+    actual_hours: Decimal | None = None
+    start_date: date | None = None
+    due_date: date | None = None
+    completed_at: datetime | None = None
     is_overdue: bool = False
     subtask_count: int = 0
     comment_count: int = 0
@@ -233,8 +232,8 @@ class TaskMiniResponse(BaseModel):
     title: str
     status: str
     priority: str
-    assignee: Optional[UserMiniResponse] = None
-    due_date: Optional[date] = None
+    assignee: UserMiniResponse | None = None
+    due_date: date | None = None
     is_overdue: bool = False
 
     class Config:
@@ -247,7 +246,7 @@ class TaskMiniResponse(BaseModel):
 
 class CommentCreate(BaseModel):
     content: str = Field(min_length=1)
-    parent_id: Optional[UUID] = None
+    parent_id: UUID | None = None
     attachments: list[dict] = []
 
 
@@ -258,14 +257,14 @@ class CommentUpdate(BaseModel):
 class CommentResponse(BaseModel):
     id: UUID
     task_id: UUID
-    author: Optional[UserMiniResponse] = None
-    parent_id: Optional[UUID] = None
+    author: UserMiniResponse | None = None
+    parent_id: UUID | None = None
     content: str
     content_html: str = ""
     reactions: dict = {}
     attachments: list[dict] = []
     is_edited: bool
-    edited_at: Optional[datetime] = None
+    edited_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -290,11 +289,11 @@ class ReactionRequest(BaseModel):
 class TaskActivityResponse(BaseModel):
     id: UUID
     task_id: UUID
-    user: Optional[UserMiniResponse] = None
+    user: UserMiniResponse | None = None
     action: str
     field: str = ""
-    old_value: Optional[dict] = None
-    new_value: Optional[dict] = None
+    old_value: dict | None = None
+    new_value: dict | None = None
     metadata: dict = {}
     created_at: datetime
 
@@ -308,18 +307,18 @@ class TaskActivityResponse(BaseModel):
 
 class TaskFilter(BaseModel):
     """Task list filters."""
-    project_id: Optional[UUID] = None
-    status: Optional[list[str]] = None
-    priority: Optional[list[str]] = None
-    assignee_id: Optional[UUID] = None
-    reporter_id: Optional[UUID] = None
-    labels: Optional[list[str]] = None
-    is_overdue: Optional[bool] = None
-    has_due_date: Optional[bool] = None
-    due_before: Optional[date] = None
-    due_after: Optional[date] = None
-    search: Optional[str] = None
-    parent_id: Optional[UUID] = None  # None = top-level tasks only
+    project_id: UUID | None = None
+    status: list[str] | None = None
+    priority: list[str] | None = None
+    assignee_id: UUID | None = None
+    reporter_id: UUID | None = None
+    labels: list[str] | None = None
+    is_overdue: bool | None = None
+    has_due_date: bool | None = None
+    due_before: date | None = None
+    due_after: date | None = None
+    search: str | None = None
+    parent_id: UUID | None = None  # None = top-level tasks only
 
 
 class TaskListResponse(BaseModel):
@@ -334,10 +333,10 @@ class TaskListResponse(BaseModel):
 
 class ProjectFilter(BaseModel):
     """Project list filters."""
-    status: Optional[list[str]] = None
-    team_id: Optional[UUID] = None
-    owner_id: Optional[UUID] = None
-    search: Optional[str] = None
+    status: list[str] | None = None
+    team_id: UUID | None = None
+    owner_id: UUID | None = None
+    search: str | None = None
 
 
 class ProjectListResponse(BaseModel):

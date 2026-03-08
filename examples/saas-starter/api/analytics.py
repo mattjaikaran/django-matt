@@ -7,25 +7,30 @@ Includes:
 - A/B testing
 """
 
-from typing import Optional
-from uuid import UUID
-from datetime import datetime, timedelta
+import contextlib
+from datetime import timedelta
+
 from django.db import models
 from django.utils import timezone
-
+from django_matt.auth import jwt_optional, jwt_required
 from django_matt.core import APIController, api_controller
-from django_matt.auth import jwt_required, jwt_optional
-from django_matt.permissions import IsAuthenticated, AllowAny
-from django_matt.flags import feature_enabled, get_variant
+from django_matt.flags import get_variant
+from django_matt.permissions import AllowAny, IsAuthenticated
 
-from core.models import Organization, Membership
-from notifications.models import AnalyticsEvent, AggregatedMetric
+from core.models import Membership, Organization
+from notifications.models import AnalyticsEvent
 from notifications.schemas import (
-    AnalyticsEventCreate, AnalyticsEventResponse,
-    AnalyticsBatchCreate, AnalyticsBatchResponse,
-    AnalyticsDashboardResponse, MetricSummary, TimeSeriesDataPoint,
-    ExperimentResponse, ExperimentResultResponse,
-    TopEventsResponse, EventCountResponse,
+    AnalyticsBatchCreate,
+    AnalyticsBatchResponse,
+    AnalyticsDashboardResponse,
+    AnalyticsEventCreate,
+    AnalyticsEventResponse,
+    EventCountResponse,
+    ExperimentResponse,
+    ExperimentResultResponse,
+    MetricSummary,
+    TimeSeriesDataPoint,
+    TopEventsResponse,
 )
 
 
@@ -51,10 +56,8 @@ class AnalyticsController(APIController):
         org = None
         org_slug = request.headers.get("X-Organization")
         if org_slug:
-            try:
+            with contextlib.suppress(Organization.DoesNotExist):
                 org = await Organization.objects.aget(slug=org_slug)
-            except Organization.DoesNotExist:
-                pass
 
         # Extract device info from user agent
         user_agent = request.META.get("HTTP_USER_AGENT", "")
@@ -250,7 +253,7 @@ class AnalyticsController(APIController):
             time_series=time_series,
         )
 
-    def _calc_change(self, current: int, previous: int) -> Optional[float]:
+    def _calc_change(self, current: int, previous: int) -> float | None:
         """Calculate percentage change."""
         if previous == 0:
             return None

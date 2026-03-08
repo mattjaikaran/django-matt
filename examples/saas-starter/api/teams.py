@@ -6,16 +6,14 @@ Includes:
 - Team member management
 """
 
-from typing import Optional
 from uuid import UUID
-from django.utils.text import slugify
 
-from django_matt.core import APIController, api_controller
 from django_matt.auth import jwt_required
+from django_matt.core import APIController, api_controller
 from django_matt.permissions import IsAuthenticated
 
-from core.models import Organization, Team, Membership, AuditLog
-from core.schemas import TeamCreate, TeamUpdate, TeamResponse, TeamDetailResponse, UserMiniResponse
+from core.models import AuditLog, Membership, Organization, Team
+from core.schemas import TeamCreate, TeamDetailResponse, TeamUpdate, UserMiniResponse
 
 
 @api_controller("/organizations/{org_slug}/teams", tags=["Teams"])

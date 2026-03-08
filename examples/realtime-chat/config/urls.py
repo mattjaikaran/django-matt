@@ -7,8 +7,6 @@ Includes both REST API and HTML template routes.
 from django.contrib import admin
 from django.urls import include, path
 
-from django_matt import MattAPI
-
 from chat.controllers import (
     AuthController,
     ChannelController,
@@ -18,6 +16,8 @@ from chat.controllers import (
     SearchController,
     WorkspaceController,
 )
+
+from django_matt import MattAPI
 
 # Create the API instance
 api = MattAPI(
