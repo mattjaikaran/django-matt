@@ -152,6 +152,13 @@ class Command(BaseCommand):
             self.stdout.write("Generating README...")
             self._create_readme(project_name, template, auth, frontend, docker)
 
+            # Generate CLAUDE.md and CI config for b2b/saas templates (DX requirement)
+            if template in ("b2b", "saas"):
+                self.stdout.write("Generating CLAUDE.md...")
+                self._create_claude_md(project_name, template, auth, docker, frontend)
+                self.stdout.write("Generating CI configuration...")
+                self._create_ci_config(project_name)
+
             self.stdout.write(
                 self.style.SUCCESS(f"\nSuccessfully created django-matt API project {project_name}")
             )
@@ -161,6 +168,137 @@ class Command(BaseCommand):
         finally:
             # Change back to the original directory
             os.chdir(original_dir)
+
+    def _create_claude_md(
+        self, project_name: str, template: str, auth: str, docker: bool, frontend: str
+    ):
+        """Create CLAUDE.md with project-specific instructions for AI assistants."""
+        template_desc = {"b2b": "B2B multi-tenant SaaS", "saas": "SaaS consumer app"}.get(
+            template, "Django API"
+        )
+        docker_cmd = "docker compose exec api " if docker else ""
+
+        content = f"""# {project_name}
+
+> {template_desc} built with [django-matt](https://github.com/mattjaikaran/django-matt).
+
+## Stack
+
+- Python 3.12+ / Django 5.2+ / Pydantic 2.0+ / `uv`
+- Async-first, type hints everywhere, ruff for lint/format
+- Authentication: {auth}
+- Template: {template}
+
+## Package Managers
+
+- Python: `uv` (NOT pip, NOT poetry)
+- JavaScript/TypeScript: `bun` (NOT npm, NOT yarn)
+
+## Testing
+
+```bash
+{docker_cmd}uv run pytest tests/ -x -q          # all tests
+{docker_cmd}uv run pytest tests/ --cov=.        # with coverage
+{docker_cmd}uv run pytest tests/test_api.py -v  # specific file
+```
+
+## Linting
+
+```bash
+{docker_cmd}uv run ruff check .      # lint
+{docker_cmd}uv run ruff format .     # format
+```
+
+## Key Patterns
+
+```python
+# Controller
+@api.controller("/resource", tags=["Resource"])
+class ResourceController(APIController):
+    permission_classes = [IsAuthenticated]
+
+    @api.get("/")
+    async def list_resource(self): ...
+
+    @api.post("/")
+    async def create_resource(self, data: ResourceCreateSchema) -> ResourceSchema: ...
+```
+
+## Code Style
+
+- Python: ruff for linting/formatting, type hints always, async when possible
+- Generated code: `uv run python manage.py generate_crud myapp.Model --full`
+
+## What You Never Do
+
+- Never use pip, npm, or yarn (use uv, bun)
+- Never apply temporary fixes or skip root cause analysis
+- Never mark a task done without verification
+- Never use sync Django ORM in async handlers
+"""
+        with open("CLAUDE.md", "w") as f:
+            f.write(content)
+
+    def _create_ci_config(self, project_name: str):
+        """Create GitHub Actions CI configuration."""
+        ci_dir = Path(".github/workflows")
+        os.makedirs(ci_dir, exist_ok=True)
+
+        ci_content = f"""# CI/CD Pipeline for {project_name}
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run linting
+        run: uv run ruff check .
+
+      - name: Run tests
+        run: uv run pytest tests/ -x -q
+        env:
+          DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb
+          SECRET_KEY: ci-test-secret-key
+          DEBUG: 'True'
+"""
+        with open(ci_dir / "ci.yml", "w") as f:
+            f.write(ci_content)
 
     def _print_next_steps(self, directory: str, docker: bool, frontend: str):
         """Print next steps for the user."""
