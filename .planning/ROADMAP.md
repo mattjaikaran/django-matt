@@ -66,12 +66,13 @@ Plans:
   3. `python manage.py sync_types --target swift` produces Swift Codable structs for all models
   4. `python manage.py generate_ai_context --format all` produces a structured file an LLM can read to understand the project routes, types, and conventions
   5. `matt routes` lists all registered API routes with methods, paths, and handler names; `matt doctor` reports any configuration issues
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 03-01: Complete generate_crud and startapi CLI scaffolding commands
-- [ ] 03-02: Complete sync_types (TypeScript interfaces, Zod schemas, Swift structs) and generate_ai_context
-- [ ] 03-03: Complete Rich CLI (matt info/doctor/routes/models/new), async test client fix, django-ninja migration tool
+- [ ] 03-01-PLAN.md — Complete generate_crud and startapi CLI scaffolding commands (DX-01, DX-02)
+- [ ] 03-02-PLAN.md — Complete sync_types (TS/Zod/Swift + --from-openapi) and generate_ai_context (--depth flag) (DX-03, DX-04, DX-05, DX-06)
+- [ ] 03-03-PLAN.md — Verify all CORE requirements, add CORE-11 static-before-parameterized URL test (CORE-01, CORE-02, CORE-04, CORE-05, CORE-06, CORE-11, CORE-13, CORE-14, CORE-15)
+- [ ] 03-04-PLAN.md — Complete Rich CLI (doctor/routes), migration tool, verify testing module and example apps (DX-07, DX-08, DX-09, DX-10, DX-11)
 
 ### Phase 4: Auth Hardening and Multi-Tenancy
 **Goal**: Authentication is production-secure with verified token revocation, CSRF safety on JWT endpoints, and working OAuth/SSO/Passkeys; multi-tenancy delivers Organization/Team/Membership with org-scoped API access
@@ -153,7 +154,7 @@ Note: Phases 3, 4, and 7 can start after Phase 1 completes. Phases 5 and 6 requi
 |-------|----------------|--------|-----------|
 | 1. Correctness Audit | 3/3 | Complete   | 2026-03-07 |
 | 2. Performance Baseline | 3/3 | Complete   | 2026-03-08 |
-| 3. CLI and Type Generation | 0/3 | Not started | - |
+| 3. CLI and Type Generation | 0/4 | Not started | - |
 | 4. Auth Hardening and Multi-Tenancy | 0/3 | Not started | - |
 | 5. Billing, Feature Flags, and Analytics | 0/3 | Not started | - |
 | 6. Real-Time, Notifications, and Communications | 0/3 | Not started | - |
