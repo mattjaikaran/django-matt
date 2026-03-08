@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 4 context gathered
-last_updated: "2026-03-08T02:28:41.957Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-03-08T03:24:43.445Z"
 last_activity: 2026-03-07 — Roadmap created; 101 requirements mapped to 7 phases
 progress:
   total_phases: 7
   completed_phases: 3
-  total_plans: 10
-  completed_plans: 10
+  total_plans: 13
+  completed_plans: 11
   percent: 0
 ---
 
@@ -60,6 +60,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03-cli-and-type-generation P02 | 436 | 2 tasks | 6 files |
 | Phase 03-cli-and-type-generation P01 | 15 | 2 tasks | 4 files |
 | Phase 03-cli-and-type-generation P04 | 25 | 2 tasks | 22 files |
+| Phase 04-auth-hardening-and-multi-tenancy P02 | 45 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,9 @@ Recent decisions affecting current work:
 - [Phase 03-cli-and-type-generation]: CheckResult dataclass for doctor tiers: typed structure enables pattern matching and easier testing than dict
 - [Phase 03-cli-and-type-generation]: collect_routes_data() extracted as module-level helper: separates data collection from Rich rendering for testability
 - [Phase 03-cli-and-type-generation]: getattr(settings, 'BASE_DIR', Path.cwd()) in matt_migrate_from: safe fallback when test settings don't define BASE_DIR
+- [Phase 04-auth-hardening-and-multi-tenancy]: IsOrgMember/IsOrgAdmin/IsOrgOwner use sync Membership.objects.filter() — permission checks called from sync pipeline; TENANT_SUPERUSER_BYPASS defaults True for B2B convenience
+- [Phase 04-auth-hardening-and-multi-tenancy]: SSOConfig.from_settings() fixed to use _defaults=cls() instance instead of cls.field_name to read dataclass field(default_factory=...) values safely
+- [Phase 04-auth-hardening-and-multi-tenancy]: Integration tests patch get_sso_config at consuming module namespace (controllers.get_sso_config), not definition site (config.get_sso_config)
 
 ### Pending Todos
 
@@ -108,6 +112,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-08T02:28:41.953Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-auth-hardening-and-multi-tenancy/04-CONTEXT.md
+Last session: 2026-03-08T03:24:43.441Z
+Stopped at: Completed 04-02-PLAN.md
+Resume file: None

@@ -31,13 +31,13 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **AUTH-01**: JWT authentication with access and refresh token flow
 - [ ] **AUTH-02**: JWT token blacklist with bulk purge for revocation
 - [ ] **AUTH-03**: Session-based authentication for browser clients
-- [ ] **AUTH-04**: Permission classes: IsAuthenticated, IsAdmin, IsOwner, HasRole, HasPermission
-- [ ] **AUTH-05**: RBAC — role-based access control with role assignment and checking
+- [x] **AUTH-04**: Permission classes: IsAuthenticated, IsAdmin, IsOwner, HasRole, HasPermission
+- [x] **AUTH-05**: RBAC — role-based access control with role assignment and checking
 - [ ] **AUTH-06**: Password reset via email link flow
 - [ ] **AUTH-07**: Magic link passwordless login
-- [ ] **AUTH-08**: OAuth provider login (Google, GitHub, and extensible for others)
-- [ ] **AUTH-09**: SSO / SAML integration
-- [ ] **AUTH-10**: Passkey / WebAuthn authentication
+- [x] **AUTH-08**: OAuth provider login (Google, GitHub, and extensible for others)
+- [x] **AUTH-09**: SSO / SAML integration
+- [x] **AUTH-10**: Passkey / WebAuthn authentication
 - [ ] **AUTH-11**: API key authentication with scoped permissions
 - [ ] **AUTH-12**: CSRF exemption correctly applied for JWT-authenticated API endpoints
 - [ ] **AUTH-13**: Permission decorators: `@jwt_required`, `@jwt_optional`, `@requires_role()`, `@requires_permission()`
@@ -244,13 +244,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-01 | Phase 4 | Pending |
 | AUTH-02 | Phase 4 | Pending |
 | AUTH-03 | Phase 4 | Pending |
-| AUTH-04 | Phase 4 | Pending |
-| AUTH-05 | Phase 4 | Pending |
+| AUTH-04 | Phase 4 | Complete |
+| AUTH-05 | Phase 4 | Complete |
 | AUTH-06 | Phase 4 | Pending |
 | AUTH-07 | Phase 4 | Pending |
-| AUTH-08 | Phase 4 | Pending |
-| AUTH-09 | Phase 4 | Pending |
-| AUTH-10 | Phase 4 | Pending |
+| AUTH-08 | Phase 4 | Complete |
+| AUTH-09 | Phase 4 | Complete |
+| AUTH-10 | Phase 4 | Complete |
 | AUTH-11 | Phase 4 | Pending |
 | AUTH-12 | Phase 4 | Pending |
 | AUTH-13 | Phase 4 | Pending |
