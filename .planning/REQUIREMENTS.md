@@ -18,7 +18,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **CORE-07**: Structured error handling with consistent JSON error format across all endpoints
 - [ ] **CORE-08**: `model_construct()` fast path for list serialization (skip re-validation on ORM reads)
 - [x] **CORE-09**: Startup-time introspection caching — zero per-request `get_type_hints()` or `_meta.fields` calls
-- [ ] **CORE-10**: orjson used for all JSON serialization/deserialization (router, controller, views, responses)
+- [x] **CORE-10**: orjson used for all JSON serialization/deserialization (router, controller, views, responses)
 - [ ] **CORE-11**: Static-before-parameterized URL ordering prevents `/users/me` vs `/users/<id>` conflicts
 - [x] **CORE-12**: API-mode middleware profile — stripped middleware stack for maximum throughput on API-only projects
 - [ ] **CORE-13**: Dependency injection container with ContextVar-based request scoping
@@ -64,7 +64,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **PERF-04**: Auto `optimize_queryset()` detects FK/M2M from schema for select_related/prefetch_related
 - [ ] **PERF-05**: Streaming response support for large datasets
 - [ ] **PERF-06**: Caching utilities with configurable backends
-- [ ] **PERF-07**: Benchmark suite comparing django-matt vs DRF, django-ninja, and FastAPI on equivalent endpoints
+- [x] **PERF-07**: Benchmark suite comparing django-matt vs DRF, django-ninja, and FastAPI on equivalent endpoints
 - [ ] **PERF-08**: Query count assertion helper for tests (`assert_query_count()`)
 
 ### Multi-Tenancy
@@ -234,7 +234,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CORE-07 | Phase 1 | Complete |
 | CORE-08 | Phase 2 | Pending |
 | CORE-09 | Phase 2 | Complete |
-| CORE-10 | Phase 2 | Pending |
+| CORE-10 | Phase 2 | Complete |
 | CORE-11 | Phase 3 | Pending |
 | CORE-12 | Phase 2 | Complete |
 | CORE-13 | Phase 3 | Pending |
@@ -271,7 +271,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PERF-04 | Phase 2 | Pending |
 | PERF-05 | Phase 2 | Pending |
 | PERF-06 | Phase 2 | Pending |
-| PERF-07 | Phase 2 | Pending |
+| PERF-07 | Phase 2 | Complete |
 | PERF-08 | Phase 2 | Pending |
 | TENANT-01 | Phase 4 | Pending |
 | TENANT-02 | Phase 4 | Pending |
