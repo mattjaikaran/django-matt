@@ -84,12 +84,12 @@ Plans:
   3. A user can log in via OAuth (Google) and via magic link — both flows complete without error in integration test
   4. An org admin can create a team, add a member with a role, and that member's API requests are automatically scoped to their organization — verified end-to-end by test
   5. An API request without a valid org membership receives a 403, not a 500 or data from another org
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: Audit and harden JWT blacklist, CSRF exemption, password reset, magic links, and API keys
-- [ ] 04-02: Complete OAuth (Google/GitHub), SSO/SAML, and Passkeys/WebAuthn modules
-- [ ] 04-03: Complete multitenancy (Organization, Team, Membership) with middleware and controller integration
+- [ ] 04-01-PLAN.md — Harden JWT blacklist (default to cache), bulk token revocation, CSRF exemption for API endpoints
+- [ ] 04-02-PLAN.md — Add org-aware permission classes, OAuth/SSO/Passkeys integration tests
+- [ ] 04-03-PLAN.md — Convert multitenancy controllers to async, add TenantMiddlewareAsync tests and cross-org isolation tests
 
 ### Phase 5: Billing, Feature Flags, and Analytics
 **Goal**: Stripe/PayPal/Polar billing, feature flags with multiple backends, analytics event tracking, and A/B experiments are complete, documented, and covered by tests
