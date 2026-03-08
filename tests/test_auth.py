@@ -2623,3 +2623,377 @@ class TestMinimalAuthController:
         )
         response = await MinimalAuthController.refresh(controller, request)
         assert response.status_code == 200
+
+
+# =============================================================================
+# Org-Aware Permission Classes Tests
+# =============================================================================
+
+
+@pytest.mark.django_db
+class TestOrgPermissionClasses:
+    """Tests for IsOrgMember, IsOrgAdmin, IsOrgOwner permission classes."""
+
+    @pytest.fixture
+    def rf(self):
+        return RequestFactory()
+
+    @pytest.fixture
+    def org(self):
+        from django_matt.multitenancy.models import Organization
+        return Organization.objects.create(
+            name="Test Org",
+            slug="test-org",
+        )
+
+    @pytest.fixture
+    def member_user(self):
+        return User.objects.create_user(
+            username="member_user",
+            email="member@example.com",
+            password="pass123",
+        )
+
+    @pytest.fixture
+    def admin_user(self):
+        return User.objects.create_user(
+            username="admin_user",
+            email="admin@example.com",
+            password="pass123",
+        )
+
+    @pytest.fixture
+    def owner_user(self):
+        return User.objects.create_user(
+            username="owner_user",
+            email="owner@example.com",
+            password="pass123",
+        )
+
+    @pytest.fixture
+    def superuser(self):
+        return User.objects.create_superuser(
+            username="super_user",
+            email="super@example.com",
+            password="pass123",
+        )
+
+    @pytest.fixture
+    def member_membership(self, org, member_user):
+        from django_matt.multitenancy.models import Membership
+        return Membership.objects.create(
+            organization=org,
+            user=member_user,
+            role="member",
+        )
+
+    @pytest.fixture
+    def admin_membership(self, org, admin_user):
+        from django_matt.multitenancy.models import Membership
+        return Membership.objects.create(
+            organization=org,
+            user=admin_user,
+            role="admin",
+        )
+
+    @pytest.fixture
+    def owner_membership(self, org, owner_user):
+        from django_matt.multitenancy.models import Membership
+        return Membership.objects.create(
+            organization=org,
+            user=owner_user,
+            role="owner",
+        )
+
+    def _make_request(self, rf, user=None, organization=None):
+        """Create a mock request with user and organization attributes."""
+        request = rf.get("/")
+        if user is not None:
+            request.user = user
+        if organization is not None:
+            request.organization = organization
+        return request
+
+    # ------------------------------------------------------------------
+    # IsOrgMember
+    # ------------------------------------------------------------------
+
+    def test_is_org_member_true_for_member(self, rf, org, member_user, member_membership):
+        """IsOrgMember returns True for a user with any membership in request.organization."""
+        from django_matt.permissions.common import IsOrgMember
+        request = self._make_request(rf, user=member_user, organization=org)
+        assert IsOrgMember().has_permission(request) is True
+
+    def test_is_org_member_false_when_no_membership(self, rf, org, member_user):
+        """IsOrgMember returns False when user has no membership in request.organization."""
+        from django_matt.permissions.common import IsOrgMember
+        request = self._make_request(rf, user=member_user, organization=org)
+        assert IsOrgMember().has_permission(request) is False
+
+    def test_is_org_member_false_when_no_organization(self, rf, member_user):
+        """IsOrgMember returns False when request has no organization attribute."""
+        from django_matt.permissions.common import IsOrgMember
+        request = self._make_request(rf, user=member_user)
+        # No organization set on request
+        assert IsOrgMember().has_permission(request) is False
+
+    def test_is_org_member_false_for_unauthenticated(self, rf, org):
+        """IsOrgMember returns False for unauthenticated user."""
+        from django_matt.permissions.common import IsOrgMember
+        request = self._make_request(rf, user=AnonymousUser(), organization=org)
+        assert IsOrgMember().has_permission(request) is False
+
+    def test_is_org_member_superuser_bypass_true(self, rf, org, superuser):
+        """Superuser passes IsOrgMember even without membership when TENANT_SUPERUSER_BYPASS=True."""
+        from django_matt.permissions.common import IsOrgMember
+        request = self._make_request(rf, user=superuser, organization=org)
+        with patch("django.conf.settings.TENANT_SUPERUSER_BYPASS", True, create=True):
+            # No membership created for superuser, should still pass
+            assert IsOrgMember().has_permission(request) is True
+
+    def test_is_org_member_superuser_bypass_false(self, rf, org, superuser):
+        """Superuser FAILS IsOrgMember when TENANT_SUPERUSER_BYPASS=False and no membership."""
+        from django_matt.permissions.common import IsOrgMember
+        request = self._make_request(rf, user=superuser, organization=org)
+        with patch("django.conf.settings.TENANT_SUPERUSER_BYPASS", False, create=True):
+            # No membership, bypass disabled — should fail
+            assert IsOrgMember().has_permission(request) is False
+
+    # ------------------------------------------------------------------
+    # IsOrgAdmin
+    # ------------------------------------------------------------------
+
+    def test_is_org_admin_false_for_member_role(self, rf, org, member_user, member_membership):
+        """IsOrgAdmin returns False for member role."""
+        from django_matt.permissions.common import IsOrgAdmin
+        request = self._make_request(rf, user=member_user, organization=org)
+        assert IsOrgAdmin().has_permission(request) is False
+
+    def test_is_org_admin_true_for_admin_role(self, rf, org, admin_user, admin_membership):
+        """IsOrgAdmin returns True for admin role."""
+        from django_matt.permissions.common import IsOrgAdmin
+        request = self._make_request(rf, user=admin_user, organization=org)
+        assert IsOrgAdmin().has_permission(request) is True
+
+    def test_is_org_admin_true_for_owner_role(self, rf, org, owner_user, owner_membership):
+        """IsOrgAdmin returns True for owner role (owners are also admins)."""
+        from django_matt.permissions.common import IsOrgAdmin
+        request = self._make_request(rf, user=owner_user, organization=org)
+        assert IsOrgAdmin().has_permission(request) is True
+
+    def test_is_org_admin_false_for_unauthenticated(self, rf, org):
+        """IsOrgAdmin returns False for unauthenticated user."""
+        from django_matt.permissions.common import IsOrgAdmin
+        request = self._make_request(rf, user=AnonymousUser(), organization=org)
+        assert IsOrgAdmin().has_permission(request) is False
+
+    # ------------------------------------------------------------------
+    # IsOrgOwner
+    # ------------------------------------------------------------------
+
+    def test_is_org_owner_true_for_owner_role(self, rf, org, owner_user, owner_membership):
+        """IsOrgOwner returns True only for owner role."""
+        from django_matt.permissions.common import IsOrgOwner
+        request = self._make_request(rf, user=owner_user, organization=org)
+        assert IsOrgOwner().has_permission(request) is True
+
+    def test_is_org_owner_false_for_admin_role(self, rf, org, admin_user, admin_membership):
+        """IsOrgOwner returns False for admin role."""
+        from django_matt.permissions.common import IsOrgOwner
+        request = self._make_request(rf, user=admin_user, organization=org)
+        assert IsOrgOwner().has_permission(request) is False
+
+    def test_is_org_owner_false_for_member_role(self, rf, org, member_user, member_membership):
+        """IsOrgOwner returns False for member role."""
+        from django_matt.permissions.common import IsOrgOwner
+        request = self._make_request(rf, user=member_user, organization=org)
+        assert IsOrgOwner().has_permission(request) is False
+
+    def test_is_org_owner_false_for_unauthenticated(self, rf, org):
+        """IsOrgOwner returns False for unauthenticated user."""
+        from django_matt.permissions.common import IsOrgOwner
+        request = self._make_request(rf, user=AnonymousUser(), organization=org)
+        assert IsOrgOwner().has_permission(request) is False
+
+
+# =============================================================================
+# JWT blacklist integration tests: logout and change_password
+# =============================================================================
+
+
+@pytest.mark.django_db
+class TestLogoutBlacklistsToken:
+    """Test that logout blacklists the access token JTI."""
+
+    def test_logout_blacklists_jti(self, rf, user, settings):
+        """After logout, the access token JTI should be blacklisted."""
+        import json
+
+        settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "cache"}
+        from django_matt.auth.blacklist.core import reset_backend
+
+        reset_backend()
+
+        from django_matt.auth.controllers import AuthController
+        from django_matt.auth.jwt import create_access_token, verify_access_token
+
+        token = create_access_token(user)
+        payload = verify_access_token(token)
+
+        controller = AuthController()
+        request = rf.post(
+            "/auth/logout",
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        # Attach auth info to request as the jwt_required decorator would
+        request.user = user
+        request.token_payload = payload
+
+        import asyncio
+
+        response = asyncio.get_event_loop().run_until_complete(controller.logout(request))
+        assert response.status_code == 200
+
+        # Now the JTI should be blacklisted
+        from django_matt.auth.blacklist.core import is_token_blacklisted
+
+        assert is_token_blacklisted(payload.jti) is True
+
+        reset_backend()
+
+
+@pytest.mark.django_db
+class TestChangePasswordRevokesOldTokens:
+    """Test that change_password bulk-revokes user tokens."""
+
+    @pytest.mark.asyncio
+    async def test_change_password_calls_bulk_revoke(self, settings):
+        """change_password calls abulk_revoke_tokens_for_user before issuing new tokens."""
+        import json
+
+        from asgiref.sync import sync_to_async
+
+        settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "cache"}
+        from django_matt.auth.blacklist.core import reset_backend
+
+        reset_backend()
+
+        user = await sync_to_async(User.objects.create_user)(
+            username="pwchange",
+            email="pwchange@test.com",
+            password="OldPass123!",
+        )
+
+        from django_matt.auth.controllers import AuthController
+        from django.test import RequestFactory
+
+        factory = RequestFactory()
+        request = factory.post(
+            "/auth/change-password",
+            data=json.dumps(
+                {
+                    "current_password": "OldPass123!",
+                    "new_password": "NewPass456!",
+                    "new_password_confirm": "NewPass456!",
+                }
+            ),
+            content_type="application/json",
+        )
+        request.user = user
+
+        revoke_called_with = []
+
+        async def mock_bulk_revoke(user_id):
+            revoke_called_with.append(user_id)
+
+        from unittest.mock import patch
+
+        with patch(
+            "django_matt.auth.controllers.abulk_revoke_tokens_for_user",
+            side_effect=mock_bulk_revoke,
+        ):
+            controller = AuthController()
+            response = await controller.change_password(request)
+
+        assert response.status_code == 200
+        assert len(revoke_called_with) == 1
+        assert str(revoke_called_with[0]) == str(user.pk)
+
+        reset_backend()
+
+
+# =============================================================================
+# CSRF exemption tests
+# =============================================================================
+
+
+class TestCSRFExemption:
+    """Test that MattAPI sets _csrf_exempt on registered view functions."""
+
+    def test_csrf_false_sets_exempt_on_view_funcs(self):
+        """MattAPI(csrf=False) marks all view functions as _csrf_exempt."""
+        from django_matt import MattAPI
+
+        api = MattAPI(csrf=False)
+
+        @api.get("/test-endpoint")
+        def my_view(request):
+            return {"ok": True}
+
+        url_patterns = api.get_urls()
+        # Find the view for our endpoint
+        view_func = None
+        for pattern in url_patterns:
+            if hasattr(pattern, "pattern") and "test-endpoint" in str(pattern.pattern):
+                view_func = pattern.callback
+                break
+
+        assert view_func is not None
+        assert getattr(view_func, "_csrf_exempt", False) is True
+
+    def test_csrf_true_does_not_set_exempt(self):
+        """MattAPI(csrf=True) does NOT set _csrf_exempt on view functions."""
+        from django_matt import MattAPI
+
+        api = MattAPI(csrf=True)
+
+        @api.get("/test-csrf-endpoint")
+        def my_view(request):
+            return {"ok": True}
+
+        url_patterns = api.get_urls()
+        view_func = None
+        for pattern in url_patterns:
+            if hasattr(pattern, "pattern") and "test-csrf-endpoint" in str(pattern.pattern):
+                view_func = pattern.callback
+                break
+
+        assert view_func is not None
+        assert getattr(view_func, "_csrf_exempt", False) is False
+
+    def test_csrf_exempt_on_controller_view_funcs(self):
+        """MattAPI(csrf=False) marks controller-registered views as _csrf_exempt."""
+        from django_matt import MattAPI
+        from django_matt.core.controller import APIController
+        from django_matt.core.router import post
+
+        api = MattAPI(csrf=False)
+
+        class MyController(APIController):
+            prefix = "myctrl"
+
+            @post("action")
+            async def action(self, request):
+                return {"done": True}
+
+        api.register_controller(MyController)
+        url_patterns = api.get_urls()
+
+        exempt_count = 0
+        for pattern in url_patterns:
+            cb = getattr(pattern, "callback", None)
+            if cb and getattr(cb, "_csrf_exempt", False):
+                exempt_count += 1
+
+        assert exempt_count > 0, "Expected at least one view function to have _csrf_exempt=True"

@@ -307,3 +307,105 @@ class IsAdminOrReadOnly(BasePermission):
         if user is None or not user.is_authenticated:
             return False
         return user.is_staff or user.is_superuser
+
+
+# ---------------------------------------------------------------------------
+# Multi-tenancy / Org-aware permission classes
+# ---------------------------------------------------------------------------
+
+
+class IsOrgMember(BasePermission):
+    """
+    Requires user to be a member of request.organization.
+
+    Reads the organization from ``request.organization`` (set by
+    TenantMiddleware or multitenancy middleware).  Superusers bypass this
+    check when ``settings.TENANT_SUPERUSER_BYPASS`` is ``True`` (the
+    default).
+
+    Example:
+        class OrgController(APIController):
+            permission_classes = [IsAuthenticated, IsOrgMember]
+    """
+
+    message: ClassVar[str] = "Organization membership required."
+    status_code: ClassVar[int] = 403
+
+    def has_permission(self, request: HttpRequest, view: Any = None) -> bool:
+        """Check if user is a member of request.organization."""
+        user = getattr(request, "user", None)
+        if user is None or not getattr(user, "is_authenticated", False):
+            return False
+        org = getattr(request, "organization", None)
+        if org is None:
+            return False
+        # Superuser bypass (configurable via settings)
+        from django.conf import settings
+        if getattr(settings, "TENANT_SUPERUSER_BYPASS", True) and getattr(user, "is_superuser", False):
+            return True
+        from django_matt.multitenancy.models import Membership
+        return Membership.objects.filter(organization=org, user=user).exists()
+
+
+class IsOrgAdmin(BasePermission):
+    """
+    Requires user to be admin or owner of request.organization.
+
+    Both the ``admin`` and ``owner`` roles satisfy this check.  Superusers
+    bypass when ``settings.TENANT_SUPERUSER_BYPASS`` is ``True``.
+
+    Example:
+        class OrgAdminController(APIController):
+            permission_classes = [IsAuthenticated, IsOrgAdmin]
+    """
+
+    message: ClassVar[str] = "Organization admin access required."
+    status_code: ClassVar[int] = 403
+
+    def has_permission(self, request: HttpRequest, view: Any = None) -> bool:
+        """Check if user is admin or owner of request.organization."""
+        user = getattr(request, "user", None)
+        if user is None or not getattr(user, "is_authenticated", False):
+            return False
+        org = getattr(request, "organization", None)
+        if org is None:
+            return False
+        from django.conf import settings
+        if getattr(settings, "TENANT_SUPERUSER_BYPASS", True) and getattr(user, "is_superuser", False):
+            return True
+        from django_matt.multitenancy.models import Membership
+        return Membership.objects.filter(
+            organization=org, user=user, role__in=["admin", "owner"]
+        ).exists()
+
+
+class IsOrgOwner(BasePermission):
+    """
+    Requires user to be the owner of request.organization.
+
+    Only the ``owner`` role satisfies this check.  Superusers bypass when
+    ``settings.TENANT_SUPERUSER_BYPASS`` is ``True``.
+
+    Example:
+        class OrgOwnerController(APIController):
+            permission_classes = [IsAuthenticated, IsOrgOwner]
+    """
+
+    message: ClassVar[str] = "Organization owner access required."
+    status_code: ClassVar[int] = 403
+
+    def has_permission(self, request: HttpRequest, view: Any = None) -> bool:
+        """Check if user is the owner of request.organization."""
+        user = getattr(request, "user", None)
+        if user is None or not getattr(user, "is_authenticated", False):
+            return False
+        org = getattr(request, "organization", None)
+        if org is None:
+            return False
+        from django.conf import settings
+        if getattr(settings, "TENANT_SUPERUSER_BYPASS", True) and getattr(user, "is_superuser", False):
+            return True
+        from django_matt.multitenancy.models import Membership
+        return Membership.objects.filter(
+            organization=org, user=user, role="owner"
+        ).exists()

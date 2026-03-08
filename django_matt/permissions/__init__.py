@@ -34,6 +34,9 @@ from django_matt.permissions.common import (
     IsAdminOrReadOnly,
     IsAuthenticated,
     IsAuthenticatedOrReadOnly,
+    IsOrgAdmin,
+    IsOrgMember,
+    IsOrgOwner,
     IsOwner,
     IsStaff,
     IsSuperUser,
@@ -65,6 +68,10 @@ __all__ = [
     "HasPermission",
     "IsAuthenticatedOrReadOnly",
     "IsAdminOrReadOnly",
+    # Org-aware permissions (multi-tenancy)
+    "IsOrgMember",
+    "IsOrgAdmin",
+    "IsOrgOwner",
     # Decorators
     "requires_permission",
     "requires_permissions",
