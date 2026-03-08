@@ -24,6 +24,7 @@ from asgiref.sync import sync_to_async
 from django_matt.audit.context import extract_client_ip, extract_user_agent
 from django_matt.audit.enums import AuditAction, AuditSeverity
 from django_matt.audit.models import AuditLog
+from django_matt.auth.blacklist.core import abulk_revoke_tokens_for_user
 from django_matt.auth.decorators import jwt_optional, jwt_required
 from django_matt.auth.jwt import (
     ExpiredSignatureError,
@@ -570,7 +571,10 @@ class AuthController(APIController):
         user.set_password(data.new_password)
         await user.asave()
 
-        # Generate new tokens (old tokens should be invalidated)
+        # Bulk-revoke all previously issued tokens for this user
+        await abulk_revoke_tokens_for_user(user.pk)
+
+        # Generate new tokens (old tokens are now revoked)
         tokens = await acreate_token_pair(user)
 
         await AuditLog.alog(

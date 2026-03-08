@@ -16,8 +16,8 @@ class BlacklistConfig:
 
     @property
     def backend(self) -> str:
-        """Backend type: 'null', 'cache', 'database'. Default: 'null' (disabled)."""
-        return self._config.get("BLACKLIST_BACKEND", "null")
+        """Backend type: 'null', 'cache', 'database'. Default: 'cache' (enabled)."""
+        return self._config.get("BLACKLIST_BACKEND", "cache")
 
     @property
     def enabled(self) -> bool:

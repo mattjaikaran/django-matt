@@ -318,6 +318,33 @@ class Command(MattCommand):
 
             checks.append(ssl_check)
 
+        # JWT Blacklist check
+        jwt_blacklist_check = {
+            "name": "JWT Blacklist",
+            "status": "ok",
+            "message": "",
+            "details": {},
+        }
+        try:
+            from django_matt.auth.blacklist.config import blacklist_config
+
+            if not blacklist_config.enabled:
+                jwt_blacklist_check["status"] = "warning"
+                jwt_blacklist_check["message"] = (
+                    "JWT blacklist backend is 'null' — token revocation disabled. "
+                    "Set DJANGO_MATT_JWT['BLACKLIST_BACKEND'] = 'cache' for production."
+                )
+                jwt_blacklist_check["details"]["backend"] = "null"
+            else:
+                jwt_blacklist_check["message"] = (
+                    f"JWT blacklist enabled (backend: {blacklist_config.backend})"
+                )
+                jwt_blacklist_check["details"]["backend"] = blacklist_config.backend
+        except Exception as e:
+            jwt_blacklist_check["status"] = "warning"
+            jwt_blacklist_check["message"] = f"Could not check JWT blacklist config: {e}"
+        checks.append(jwt_blacklist_check)
+
         # CORS check
         cors_check = {
             "name": "CORS",

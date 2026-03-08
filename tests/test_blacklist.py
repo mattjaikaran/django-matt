@@ -16,8 +16,13 @@ from django_matt.auth.blacklist.backends import (
 from django_matt.auth.blacklist.config import BlacklistConfig
 from django_matt.auth.blacklist.core import (
     _get_backend,
+    ablacklist_token,
+    abulk_revoke_tokens_for_user,
+    ais_user_tokens_revoked,
     blacklist_token,
+    bulk_revoke_tokens_for_user,
     is_token_blacklisted,
+    is_user_tokens_revoked,
     prune_expired_tokens,
     reset_backend,
 )
@@ -45,13 +50,23 @@ def _past(seconds: int = 3600) -> datetime:
 
 
 class TestBlacklistConfig:
-    def test_default_backend_is_null(self, settings):
+    def test_default_backend_is_cache(self, settings):
         settings.DJANGO_MATT_JWT = {}
+        config = BlacklistConfig()
+        assert config.backend == "cache"
+
+    def test_null_backend_when_explicitly_set(self, settings):
+        settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "null"}
         config = BlacklistConfig()
         assert config.backend == "null"
 
-    def test_enabled_false_for_null(self, settings):
+    def test_enabled_true_for_default(self, settings):
         settings.DJANGO_MATT_JWT = {}
+        config = BlacklistConfig()
+        assert config.enabled is True
+
+    def test_enabled_false_for_null(self, settings):
+        settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "null"}
         config = BlacklistConfig()
         assert config.enabled is False
 
@@ -276,8 +291,13 @@ class TestCoreAPI:
     def setup_method(self):
         reset_backend()
 
-    def test_default_backend_is_null(self, settings):
+    def test_default_backend_is_cache(self, settings):
         settings.DJANGO_MATT_JWT = {}
+        backend = _get_backend()
+        assert isinstance(backend, CacheBlacklistBackend)
+
+    def test_null_backend_when_explicitly_set(self, settings):
+        settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "null"}
         backend = _get_backend()
         assert isinstance(backend, NullBlacklistBackend)
 
@@ -300,18 +320,18 @@ class TestCoreAPI:
         assert type(b1) is not type(b2)
 
     def test_blacklist_token_with_null_backend(self, settings):
-        settings.DJANGO_MATT_JWT = {}
+        settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "null"}
         # Should not raise
         blacklist_token(_jti(), _future())
 
     def test_is_token_blacklisted_with_null_backend(self, settings):
-        settings.DJANGO_MATT_JWT = {}
+        settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "null"}
         jti = _jti()
         blacklist_token(jti, _future())
         assert is_token_blacklisted(jti) is False
 
     def test_prune_with_null_backend(self, settings):
-        settings.DJANGO_MATT_JWT = {}
+        settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "null"}
         assert prune_expired_tokens() == 0
 
     def test_blacklist_and_check_with_cache(self, settings):
@@ -339,6 +359,8 @@ class TestJWTBlacklistIntegration:
 
         fake_payload = MagicMock()
         fake_payload.jti = "revoked-jti-123"
+        # Set sub=None so per-user sentinel check is skipped in this test
+        fake_payload.sub = None
 
         with (
             patch("django_matt.auth.jwt.decode_token", return_value=fake_payload) as mock_decode,
@@ -354,6 +376,8 @@ class TestJWTBlacklistIntegration:
 
         fake_payload = MagicMock()
         fake_payload.jti = "valid-jti-456"
+        # Set sub=None so per-user sentinel check is skipped in this test
+        fake_payload.sub = None
 
         with (
             patch("django_matt.auth.jwt.decode_token", return_value=fake_payload),
@@ -368,6 +392,8 @@ class TestJWTBlacklistIntegration:
 
         fake_payload = MagicMock()
         fake_payload.jti = None
+        # Set sub=None so per-user sentinel check is also skipped
+        fake_payload.sub = None
 
         with (
             patch("django_matt.auth.jwt.decode_token", return_value=fake_payload),
@@ -519,6 +545,157 @@ class TestRefreshTokensBlacklist:
             mock_abl.side_effect = _mock_ablacklist
             await async_refresh_tokens("fake.refresh.token")
             mock_abl.assert_called_once_with(fake_payload.jti, fake_payload.exp)
+
+    def teardown_method(self):
+        reset_backend()
+
+
+# ============================================================================
+# Bulk revocation tests
+# ============================================================================
+
+
+class TestBulkRevocation:
+    def setup_method(self):
+        reset_backend()
+
+    def test_bulk_revoke_stores_sentinel(self, settings):
+        """bulk_revoke_tokens_for_user stores a per-user sentinel in cache."""
+        import time
+
+        settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "cache"}
+        reset_backend()
+        user_id = 42
+        bulk_revoke_tokens_for_user(user_id)
+        old_iat = time.time() - 10  # issued 10 seconds ago
+        assert is_user_tokens_revoked(user_id, old_iat) is True
+
+    def test_bulk_revoke_null_backend_is_noop(self, settings):
+        """bulk_revoke_tokens_for_user with null backend does nothing."""
+        import time
+
+        settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "null"}
+        reset_backend()
+        user_id = 99
+        bulk_revoke_tokens_for_user(user_id)
+        assert is_user_tokens_revoked(user_id, time.time() - 10) is False
+
+    def test_is_user_tokens_revoked_false_for_new_token(self, settings):
+        """Tokens issued AFTER the sentinel are NOT revoked."""
+        import time
+
+        settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "cache"}
+        reset_backend()
+        user_id = 55
+        bulk_revoke_tokens_for_user(user_id)
+        new_iat = time.time() + 5  # issued after revocation
+        assert is_user_tokens_revoked(user_id, new_iat) is False
+
+    def test_is_user_tokens_revoked_false_when_no_sentinel(self, settings):
+        """is_user_tokens_revoked returns False when no sentinel exists."""
+        import time
+
+        settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "cache"}
+        reset_backend()
+        user_id = 77
+        assert is_user_tokens_revoked(user_id, time.time() - 10) is False
+
+    @pytest.mark.asyncio
+    async def test_abulk_revoke_stores_sentinel(self, settings):
+        """abulk_revoke_tokens_for_user async stores sentinel."""
+        import time
+
+        settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "cache"}
+        reset_backend()
+        user_id = 88
+        await abulk_revoke_tokens_for_user(user_id)
+        old_iat = time.time() - 5
+        assert await ais_user_tokens_revoked(user_id, old_iat) is True
+
+    @pytest.mark.asyncio
+    async def test_ais_user_tokens_revoked_false_when_no_sentinel(self, settings):
+        """ais_user_tokens_revoked returns False when no sentinel exists."""
+        import time
+
+        settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "cache"}
+        reset_backend()
+        user_id = 100
+        assert await ais_user_tokens_revoked(user_id, time.time() - 10) is False
+
+    def teardown_method(self):
+        reset_backend()
+
+
+# ============================================================================
+# averify_access_token user-revocation sentinel tests
+# ============================================================================
+
+
+class TestAverifyAccessTokenBulkRevocation:
+    def setup_method(self):
+        reset_backend()
+
+    @pytest.mark.asyncio
+    async def test_averify_access_token_rejects_user_revoked_token(self, settings):
+        """averify_access_token rejects a token issued before user's revocation sentinel."""
+        from django_matt.auth.jwt import InvalidTokenError, averify_access_token
+
+        settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "cache"}
+        reset_backend()
+
+        fake_payload = MagicMock()
+        fake_payload.jti = "user-revoked-jti"
+        fake_payload.sub = "123"
+        fake_payload.iat = datetime(2020, 1, 1, tzinfo=UTC)
+
+        async def _mock_ais_revoked(user_id, iat):
+            return True
+
+        # Patch at the source module since jwt.py imports inline
+        with (
+            patch("django_matt.auth.jwt.decode_token", return_value=fake_payload),
+            patch(
+                "django_matt.auth.blacklist.core.ais_token_blacklisted",
+                return_value=False,
+            ),
+            patch(
+                "django_matt.auth.blacklist.core.ais_user_tokens_revoked",
+                side_effect=_mock_ais_revoked,
+            ),
+        ):
+            with pytest.raises(InvalidTokenError, match="revoked"):
+                await averify_access_token("fake.token.here")
+
+    @pytest.mark.asyncio
+    async def test_averify_access_token_allows_post_revocation_token(self, settings):
+        """averify_access_token allows a token issued after user's revocation sentinel."""
+        from django_matt.auth.jwt import averify_access_token
+
+        settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "cache"}
+        reset_backend()
+
+        fake_payload = MagicMock()
+        fake_payload.jti = "post-revoke-jti"
+        fake_payload.sub = "123"
+        fake_payload.iat = datetime(2030, 1, 1, tzinfo=UTC)
+
+        async def _mock_ais_revoked(user_id, iat):
+            return False
+
+        # Patch at the source module since jwt.py imports inline
+        with (
+            patch("django_matt.auth.jwt.decode_token", return_value=fake_payload),
+            patch(
+                "django_matt.auth.blacklist.core.ais_token_blacklisted",
+                return_value=False,
+            ),
+            patch(
+                "django_matt.auth.blacklist.core.ais_user_tokens_revoked",
+                side_effect=_mock_ais_revoked,
+            ),
+        ):
+            result = await averify_access_token("fake.token.here")
+            assert result is fake_payload
 
     def teardown_method(self):
         reset_backend()

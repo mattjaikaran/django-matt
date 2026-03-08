@@ -349,6 +349,13 @@ def verify_access_token(token: str) -> TokenPayload:
 
         if is_token_blacklisted(payload.jti):
             raise InvalidTokenError("Token has been revoked")
+    # Check per-user bulk revocation sentinel
+    if payload.iat and payload.sub:
+        from django_matt.auth.blacklist.core import is_user_tokens_revoked
+
+        iat_ts = payload.iat.timestamp()
+        if is_user_tokens_revoked(payload.sub, iat_ts):
+            raise InvalidTokenError("Token has been revoked")
     return payload
 
 
@@ -359,6 +366,13 @@ async def averify_access_token(token: str) -> TokenPayload:
         from django_matt.auth.blacklist.core import ais_token_blacklisted
 
         if await ais_token_blacklisted(payload.jti):
+            raise InvalidTokenError("Token has been revoked")
+    # Check per-user bulk revocation sentinel
+    if payload.iat and payload.sub:
+        from django_matt.auth.blacklist.core import ais_user_tokens_revoked
+
+        iat_ts = payload.iat.timestamp()
+        if await ais_user_tokens_revoked(payload.sub, iat_ts):
             raise InvalidTokenError("Token has been revoked")
     return payload
 

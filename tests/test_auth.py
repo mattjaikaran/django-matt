@@ -2821,24 +2821,35 @@ class TestOrgPermissionClasses:
 # =============================================================================
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestLogoutBlacklistsToken:
     """Test that logout blacklists the access token JTI."""
 
-    def test_logout_blacklists_jti(self, rf, user, settings):
+    @pytest.mark.asyncio
+    async def test_logout_blacklists_jti(self, rf, settings):
         """After logout, the access token JTI should be blacklisted."""
         import json
+
+        from asgiref.sync import sync_to_async
 
         settings.DJANGO_MATT_JWT = {"BLACKLIST_BACKEND": "cache"}
         from django_matt.auth.blacklist.core import reset_backend
 
         reset_backend()
 
-        from django_matt.auth.controllers import AuthController
-        from django_matt.auth.jwt import create_access_token, verify_access_token
+        # Create user in async context to avoid SQLite locking
+        test_user = await sync_to_async(User.objects.create_user)(
+            username="logout_test_user",
+            email="logout_test@example.com",
+            password="TestPass123!",
+        )
 
-        token = create_access_token(user)
-        payload = verify_access_token(token)
+        from django_matt.auth.controllers import AuthController
+        from django_matt.auth.jwt import acreate_access_token, decode_token
+
+        # Use async token creation to avoid sync ORM in async context
+        token = await acreate_access_token(test_user)
+        payload = decode_token(token, verify_type="access")
 
         controller = AuthController()
         request = rf.post(
@@ -2847,12 +2858,11 @@ class TestLogoutBlacklistsToken:
             content_type="application/json",
         )
         # Attach auth info to request as the jwt_required decorator would
-        request.user = user
+        request.user = test_user
         request.token_payload = payload
 
-        import asyncio
-
-        response = asyncio.get_event_loop().run_until_complete(controller.logout(request))
+        # Call the raw logout method (logout has no @jwt_required, so use unbound method)
+        response = await AuthController.logout(controller, request)
         assert response.status_code == 200
 
         # Now the JTI should be blacklisted
@@ -2914,7 +2924,8 @@ class TestChangePasswordRevokesOldTokens:
             side_effect=mock_bulk_revoke,
         ):
             controller = AuthController()
-            response = await controller.change_password(request)
+            # Use __wrapped__ to bypass jwt_required decorator (we set request.user manually)
+            response = await AuthController.change_password.__wrapped__(controller, request)
 
         assert response.status_code == 200
         assert len(revoke_called_with) == 1

@@ -18,6 +18,8 @@ class DjangoMattConfig(AppConfig):
 
     def ready(self):
         """Called when Django starts."""
+        import warnings
+
         from django.conf import settings
 
         if getattr(settings, "MATT_API_MODE", False):
@@ -28,3 +30,14 @@ class DjangoMattConfig(AppConfig):
             # running during migrations, collectstatic, and other management commands
             # that don't go through the full WSGI/ASGI startup path.
             settings.MIDDLEWARE = apply_api_mode(list(settings.MIDDLEWARE))
+
+        # Warn in production when JWT blacklist is disabled
+        if not getattr(settings, "DEBUG", True):
+            from django_matt.auth.blacklist.config import blacklist_config
+
+            if not blacklist_config.enabled:
+                warnings.warn(
+                    "JWT blacklist backend is 'null' — token revocation is disabled. "
+                    "Set DJANGO_MATT_JWT['BLACKLIST_BACKEND'] = 'cache' for production.",
+                    stacklevel=2,
+                )
