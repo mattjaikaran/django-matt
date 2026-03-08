@@ -5,10 +5,12 @@ This module provides various output formats for benchmark results:
 - Console output with colors and formatting
 - JSON export
 - Markdown report generation
+- Rich table reporter (uses rich.table.Table)
 """
 
 from abc import ABC, abstractmethod
 from datetime import datetime
+from io import StringIO
 from pathlib import Path
 from typing import Any, TextIO
 
@@ -601,3 +603,221 @@ class HTMLReporter(BenchmarkReporter):
         if ops >= 1_000:
             return f"{ops / 1_000:.2f}K"
         return f"{ops:.2f}"
+
+
+class RichTableReporter(BenchmarkReporter):
+    """
+    Rich table reporter for framework comparison benchmarks.
+
+    Uses rich.console.Console and rich.table.Table to render a colored
+    terminal table.  For framework_comparison scenarios the table has
+    dedicated columns; other scenarios fall back to a generic layout.
+
+    Usage:
+        reporter = RichTableReporter()
+        reporter.print_report(results)
+        text = reporter.report(results)
+    """
+
+    def _format_rich_ops(self, ops: float) -> str:
+        """Format ops/s as a human-readable string."""
+        if ops >= 1_000_000:
+            return f"{ops / 1_000_000:.2f}M ops/s"
+        if ops >= 1_000:
+            return f"{ops / 1_000:.2f}K ops/s"
+        return f"{ops:.2f} ops/s"
+
+    def _format_rich_ms(self, ms: float) -> str:
+        """Format milliseconds."""
+        if ms <= 0:
+            return "-"
+        if ms < 1:
+            return f"{ms * 1000:.2f} us"
+        if ms < 1000:
+            return f"{ms:.3f} ms"
+        return f"{ms / 1000:.3f} s"
+
+    def _build_comparison_table(self, results: list[BenchmarkResult]) -> Any:
+        """Build a rich Table for framework_comparison scenario results."""
+        from rich.table import Table
+
+        # Separate list and create results
+        list_results: dict[str, BenchmarkResult] = {}
+        create_results: dict[str, BenchmarkResult] = {}
+
+        for r in results:
+            fw = r.metadata.get("framework", r.name)
+            if "list" in r.name.lower():
+                list_results[fw] = r
+            else:
+                create_results[fw] = r
+
+        # Find DRF ops for "vs DRF" column
+        drf_list_ops: float | None = None
+        if "DRF" in list_results and not list_results["DRF"].metadata.get("skipped"):
+            drf_list_ops = list_results["DRF"].ops_per_second
+
+        # Collect frameworks in insertion order
+        all_frameworks: list[str] = []
+        for r in results:
+            fw = r.metadata.get("framework", r.name)
+            if fw not in all_frameworks:
+                all_frameworks.append(fw)
+
+        table = Table(
+            title="Framework Comparison Benchmark",
+            show_header=True,
+            header_style="bold cyan",
+            border_style="blue",
+        )
+        table.add_column("Framework", style="bold", min_width=14)
+        table.add_column("List (ops/s)", justify="right", min_width=14)
+        table.add_column("Create (ops/s)", justify="right", min_width=14)
+        table.add_column("Median (ms)", justify="right", min_width=12)
+        table.add_column("vs DRF", justify="right", min_width=8)
+
+        # django-matt first, then others
+        ordered = ["django-matt"] + [f for f in all_frameworks if f != "django-matt"]
+
+        for fw in ordered:
+            list_r = list_results.get(fw)
+            create_r = create_results.get(fw)
+
+            if list_r is None and create_r is None:
+                continue
+
+            list_skipped = list_r is None or list_r.metadata.get("skipped", False)
+            create_skipped = create_r is None or create_r.metadata.get("skipped", False)
+
+            list_ops_str = (
+                "[NOT INSTALLED]"
+                if list_skipped
+                else self._format_rich_ops(list_r.ops_per_second)  # type: ignore[union-attr]
+            )
+            create_ops_str = (
+                "[NOT INSTALLED]"
+                if create_skipped
+                else self._format_rich_ops(create_r.ops_per_second)  # type: ignore[union-attr]
+            )
+
+            if not list_skipped and list_r is not None:
+                median_str = self._format_rich_ms(list_r.median_time_ms)
+            elif not create_skipped and create_r is not None:
+                median_str = self._format_rich_ms(create_r.median_time_ms)  # type: ignore[union-attr]
+            else:
+                median_str = "-"
+
+            if (
+                drf_list_ops
+                and not list_skipped
+                and list_r is not None
+                and list_r.ops_per_second > 0
+            ):
+                speedup = list_r.ops_per_second / drf_list_ops
+                vs_drf_str = f"{speedup:.1f}x"
+            else:
+                vs_drf_str = "N/A"
+
+            row_style = "green" if fw == "django-matt" else ""
+            table.add_row(
+                fw,
+                list_ops_str,
+                create_ops_str,
+                median_str,
+                vs_drf_str,
+                style=row_style,
+            )
+
+        return table
+
+    def _build_generic_table(self, scenario_name: str, results: list[BenchmarkResult]) -> Any:
+        """Build a generic rich Table for non-comparison scenarios."""
+        from rich.table import Table
+
+        table = Table(
+            title=f"Benchmark: {scenario_name}",
+            show_header=True,
+            header_style="bold cyan",
+            border_style="blue",
+        )
+        table.add_column("Benchmark", style="bold", min_width=30)
+        table.add_column("Mean (ms)", justify="right", min_width=12)
+        table.add_column("Ops/s", justify="right", min_width=14)
+        table.add_column("Min (ms)", justify="right", min_width=10)
+        table.add_column("Max (ms)", justify="right", min_width=10)
+
+        for r in sorted(results, key=lambda x: x.ops_per_second, reverse=True):
+            if r.metadata.get("skipped"):
+                table.add_row(r.name, "-", "[SKIPPED]", "-", "-")
+            else:
+                table.add_row(
+                    r.name,
+                    self._format_rich_ms(r.mean_time_ms),
+                    self._format_rich_ops(r.ops_per_second),
+                    self._format_rich_ms(r.min_time_ms),
+                    self._format_rich_ms(r.max_time_ms),
+                )
+
+        return table
+
+    def report(
+        self,
+        results: list[BenchmarkResult],
+        comparisons: list[BenchmarkComparison] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> str:
+        """
+        Render benchmark results as a rich table string.
+
+        For framework_comparison scenarios this produces a cross-framework
+        comparison table.  All other scenarios fall back to a generic layout.
+
+        Returns the rendered string (ANSI escape codes included).
+        """
+        from io import StringIO
+
+        from rich.console import Console
+
+        buffer = StringIO()
+        console = Console(file=buffer, highlight=False)
+
+        scenarios: dict[str, list[BenchmarkResult]] = {}
+        for r in results:
+            scenarios.setdefault(r.scenario, []).append(r)
+
+        for scenario_name, scenario_results in scenarios.items():
+            if scenario_name == "framework_comparison":
+                table = self._build_comparison_table(scenario_results)
+            else:
+                table = self._build_generic_table(scenario_name, scenario_results)
+            console.print(table)
+
+        if metadata and metadata.get("saved_to"):
+            console.print(f"[dim]Results saved to {metadata['saved_to']}[/dim]")
+
+        return buffer.getvalue()
+
+    def print_report(
+        self,
+        results: list[BenchmarkResult],
+        comparisons: list[BenchmarkComparison] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        """Print the rich table report directly to the terminal."""
+        from rich.console import Console
+
+        console = Console(highlight=False)
+
+        scenarios: dict[str, list[BenchmarkResult]] = {}
+        for r in results:
+            scenarios.setdefault(r.scenario, []).append(r)
+
+        for scenario_name, scenario_results in scenarios.items():
+            if scenario_name == "framework_comparison":
+                table = self._build_comparison_table(scenario_results)
+            else:
+                table = self._build_generic_table(scenario_name, scenario_results)
+            console.print(table)
+
+        if metadata and metadata.get("saved_to"):
+            console.print(f"[dim]Results saved to {metadata['saved_to']}[/dim]")

@@ -34,12 +34,14 @@ Programmatic usage:
     )
 """
 
+from django_matt.benchmarks.comparison import FrameworkComparisonScenario
 from django_matt.benchmarks.reporters import (
     BenchmarkReporter,
     ConsoleReporter,
     HTMLReporter,
     JSONReporter,
     MarkdownReporter,
+    RichTableReporter,
 )
 from django_matt.benchmarks.runner import (
     Benchmark,
@@ -69,10 +71,12 @@ __all__ = [
     "RoutingScenario",
     "DatabaseScenario",
     "CachingScenario",
+    "FrameworkComparisonScenario",
     # Reporters
     "BenchmarkReporter",
     "ConsoleReporter",
     "HTMLReporter",
     "JSONReporter",
     "MarkdownReporter",
+    "RichTableReporter",
 ]
