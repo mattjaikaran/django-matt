@@ -210,8 +210,17 @@ class MattAPI(APIRouter):
         return decorator
 
     def get_urls(self) -> list:
-        """Get Django URL patterns including documentation and resource endpoints."""
-        url_patterns = super().get_urls()
+        """Get Django URL patterns including documentation and resource endpoints.
+
+        When ``csrf=False`` (the default), all registered view functions will
+        have ``_csrf_exempt = True`` set so that Django's CSRF middleware (and
+        django_matt's own CSRFMiddleware) skips CSRF validation on API endpoints.
+        JWT-authenticated APIs don't use cookies, so CSRF protection is not
+        needed and would reject legitimate clients that don't send a CSRF token.
+        """
+        # csrf=False means "do not require CSRF", so we exempt all views
+        csrf_exempt = not self.csrf
+        url_patterns = super().get_urls(csrf_exempt=csrf_exempt)
 
         # Add resource ViewSet URLs
         for viewset_cls in self._resource_viewsets:

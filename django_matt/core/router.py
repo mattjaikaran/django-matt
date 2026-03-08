@@ -364,12 +364,18 @@ class APIRouter:
             route = str(url_pattern.pattern)
         return "<" in route
 
-    def get_urls(self):
+    def get_urls(self, csrf_exempt: bool = False):
         """Get Django URL patterns for all registered routes.
 
         Static (non-parameterized) patterns are always placed before
         parameterized ones so that, e.g., ``/users/me`` is matched before
         ``/users/<str:id>``.  Within each group declaration order is preserved.
+
+        Args:
+            csrf_exempt: When True, set ``_csrf_exempt = True`` on every view
+                         function so that CSRF middleware skips those endpoints.
+                         This is set automatically by ``MattAPI`` when
+                         ``csrf=False`` (the default).
         """
         static_patterns = []
         param_patterns = []
@@ -388,6 +394,8 @@ class APIRouter:
                 status_code=route["status_code"],
                 methods=route["methods"],
             )
+            if csrf_exempt:
+                view_func._csrf_exempt = True
             _append(path(route["path"], view_func, name=route["name"]))
 
         # Add routes from controllers
@@ -414,6 +422,8 @@ class APIRouter:
                     status_code=route_info.get("status_code", 200),
                     methods=route_info.get("methods"),
                 )
+                if csrf_exempt:
+                    view_func._csrf_exempt = True
                 _append(
                     path(
                         combined_prefix + route_info["path"],
