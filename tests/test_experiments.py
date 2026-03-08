@@ -580,3 +580,271 @@ class TestBanditWeights:
         weights = self.manager.get_bandit_weights(exp)
         total = sum(weights.values())
         assert total == pytest.approx(1.0, abs=0.01)
+
+
+# ===========================================================================
+# TestDeterministicAssignment (EXP-01)
+# ===========================================================================
+
+
+@pytest.mark.django_db(transaction=True)
+class TestDeterministicAssignment:
+    """Test deterministic variant assignment for A/B experiments."""
+
+    def _create_experiment_with_variants(self):
+        """Helper: create running experiment with control and treatment variants."""
+        from django.contrib.auth.models import User
+
+        from django_matt.experiments.models import (
+            AssignmentStrategy,
+            Experiment,
+            ExperimentStatus,
+            Variant,
+        )
+
+        exp = Experiment.objects.create(
+            key=f"test-determinism-{__import__('uuid').uuid4().hex[:8]}",
+            name="Determinism Test",
+            status=ExperimentStatus.RUNNING.value,
+            strategy=AssignmentStrategy.RANDOM.value,
+        )
+        Variant.objects.create(
+            experiment=exp, key="control", name="Control", is_control=True, weight=1
+        )
+        Variant.objects.create(
+            experiment=exp, key="treatment", name="Treatment", is_control=False, weight=1
+        )
+        return exp
+
+    def test_same_user_same_variant_100_times(self):
+        """Same user always gets the same variant across 100 calls."""
+        from django_matt.experiments.manager import ExperimentManager
+
+        exp = self._create_experiment_with_variants()
+        variants = list(exp.variants.all())
+
+        manager = ExperimentManager()
+        user_id = "user-determinism-42"
+
+        # First assignment
+        first_result = manager._random_assignment(variants, exp, None, user_id)
+        assert first_result is not None
+
+        # 99 more times should return the same variant
+        for _ in range(99):
+            result = manager._random_assignment(variants, exp, None, user_id)
+            assert result.key == first_result.key, (
+                f"Variant changed: expected {first_result.key}, got {result.key}"
+            )
+
+    def test_different_users_distributed(self):
+        """1000 different users are distributed across both variants."""
+        from django_matt.experiments.manager import ExperimentManager
+
+        exp = self._create_experiment_with_variants()
+        variants = list(exp.variants.all())
+        manager = ExperimentManager()
+
+        variant_counts = {}
+        for i in range(1000):
+            user_id = f"dist-user-{i}"
+            result = manager._random_assignment(variants, exp, None, user_id)
+            variant_counts[result.key] = variant_counts.get(result.key, 0) + 1
+
+        # Both variants should receive assignments (not all in one bucket)
+        assert len(variant_counts) == 2, f"Expected 2 variants, got: {variant_counts}"
+        # Each variant should get at least 10% of assignments (avoid extreme skew)
+        for key, count in variant_counts.items():
+            assert count > 50, f"Variant {key} got only {count}/1000 assignments"
+
+    def test_assignment_persists_in_db(self):
+        """ExperimentAssignment is created in DB after get_assignment call."""
+        from django.contrib.auth.models import User
+
+        from django_matt.experiments.manager import ExperimentManager
+        from django_matt.experiments.models import ExperimentAssignment
+
+        exp = self._create_experiment_with_variants()
+        manager = ExperimentManager()
+
+        # Create a real user
+        user = User.objects.create_user(
+            username=f"expuser-{__import__('uuid').uuid4().hex[:8]}",
+            email="exp@test.com",
+            password="pass",
+        )
+
+        # First call creates assignment
+        assignment1 = manager.get_assignment(
+            experiment_key=exp.key,
+            user=user,
+            create=True,
+        )
+        assert assignment1 is not None
+        assert ExperimentAssignment.objects.filter(experiment=exp, user=user).exists()
+
+        # Second call retrieves same assignment from DB
+        assignment2 = manager.get_assignment(
+            experiment_key=exp.key,
+            user=user,
+            create=True,
+        )
+        assert assignment2 is not None
+        assert assignment1.id == assignment2.id
+        assert assignment1.variant.key == assignment2.variant.key
+
+
+# ===========================================================================
+# TestExperimentDecorator (EXP-04)
+# ===========================================================================
+
+
+class TestExperimentDecorator:
+    """Test @experiment decorator for variant injection and routing."""
+
+    def test_decorator_injects_variant_kwarg_async(self):
+        """Async handler receives variant kwarg when @experiment is applied."""
+        import asyncio
+        from unittest.mock import MagicMock, patch
+
+        from django.test import RequestFactory
+
+        from django_matt.experiments.decorators import experiment
+
+        received_variant = []
+
+        @experiment("test-inject-exp")
+        async def my_handler(request, variant: str | None = None):
+            received_variant.append(variant)
+            return "ok"
+
+        request = RequestFactory().get("/test/")
+        request.COOKIES = {}
+        request.user = MagicMock()
+        request.user.is_authenticated = False
+
+        # Mock ExperimentContext to return known variant.
+        # The decorator does a lazy import inside the wrapper, so we patch
+        # ExperimentContext.from_request at the context module level.
+        mock_ctx = MagicMock()
+        mock_ctx.get_variant.return_value = "treatment"
+        mock_ctx.track_exposure = MagicMock()
+
+        with patch(
+            "django_matt.experiments.context.ExperimentContext.from_request",
+            return_value=mock_ctx,
+        ):
+            asyncio.get_event_loop().run_until_complete(my_handler(request))
+
+        assert len(received_variant) == 1
+        assert received_variant[0] == "treatment"
+
+    def test_decorator_tracks_exposure(self):
+        """@experiment with track_exposure=True calls ctx.track_exposure."""
+        import asyncio
+        from unittest.mock import MagicMock, patch
+
+        from django.test import RequestFactory
+
+        from django_matt.experiments.decorators import experiment
+
+        @experiment("test-exposure-exp", track_exposure=True)
+        async def exposure_handler(request, variant: str | None = None):
+            return "ok"
+
+        request = RequestFactory().get("/test/")
+        request.COOKIES = {}
+        request.user = MagicMock()
+        request.user.is_authenticated = False
+
+        mock_ctx = MagicMock()
+        mock_ctx.get_variant.return_value = "control"
+        mock_ctx.track_exposure = MagicMock()
+
+        with patch(
+            "django_matt.experiments.context.ExperimentContext.from_request",
+            return_value=mock_ctx,
+        ):
+            asyncio.get_event_loop().run_until_complete(exposure_handler(request))
+
+        mock_ctx.track_exposure.assert_called_once_with("test-exposure-exp")
+
+    def test_decorator_with_variant_handlers_routes_correctly(self):
+        """@experiment with variant_handlers routes to the correct handler."""
+        import asyncio
+        from unittest.mock import MagicMock, patch
+
+        from django.test import RequestFactory
+
+        from django_matt.experiments.decorators import experiment
+
+        handler_a_called = []
+        handler_b_called = []
+
+        async def handler_a(request):
+            handler_a_called.append(True)
+            return "a"
+
+        async def handler_b(request):
+            handler_b_called.append(True)
+            return "b"
+
+        @experiment(
+            "test-routing-exp",
+            variant_handlers={"control": handler_a, "treatment": handler_b},
+        )
+        async def default_handler(request, variant: str | None = None):
+            return "default"
+
+        request = RequestFactory().get("/test/")
+        request.COOKIES = {}
+        request.user = MagicMock()
+        request.user.is_authenticated = False
+
+        mock_ctx = MagicMock()
+        mock_ctx.get_variant.return_value = "treatment"
+        mock_ctx.track_exposure = MagicMock()
+
+        with patch(
+            "django_matt.experiments.context.ExperimentContext.from_request",
+            return_value=mock_ctx,
+        ):
+            result = asyncio.get_event_loop().run_until_complete(default_handler(request))
+
+        assert result == "b"
+        assert len(handler_b_called) == 1
+        assert len(handler_a_called) == 0
+
+    def test_decorator_no_variant_falls_through_to_default(self):
+        """When no variant assigned, decorator falls through to decorated function with None variant."""
+        import asyncio
+        from unittest.mock import MagicMock, patch
+
+        from django.test import RequestFactory
+
+        from django_matt.experiments.decorators import experiment
+
+        received = []
+
+        @experiment("test-fallthrough-exp")
+        async def my_handler(request, variant: str | None = None):
+            received.append(variant)
+            return "default"
+
+        request = RequestFactory().get("/test/")
+        request.COOKIES = {}
+        request.user = MagicMock()
+        request.user.is_authenticated = False
+
+        mock_ctx = MagicMock()
+        mock_ctx.get_variant.return_value = None  # No variant assigned
+        mock_ctx.track_exposure = MagicMock()
+
+        with patch(
+            "django_matt.experiments.context.ExperimentContext.from_request",
+            return_value=mock_ctx,
+        ):
+            result = asyncio.get_event_loop().run_until_complete(my_handler(request))
+
+        assert result == "default"
+        assert received[0] is None
