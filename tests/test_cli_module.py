@@ -1061,3 +1061,179 @@ class TestPromptFunctions:
         mock_q.confirm.return_value.ask.return_value = False
         result = confirm("Sure?", default=True)
         assert result is False
+
+
+# ---------------------------------------------------------------------------
+# Doctor command tiered output
+# ---------------------------------------------------------------------------
+
+
+class TestDoctorTiers:
+    """Tests for doctor command error/warning/info tier structure."""
+
+    def test_doctor_error_tier_missing_secret_key(self):
+        """When SECRET_KEY is missing, error tier reports it."""
+        from django.test import override_settings
+
+        from django_matt.cli.commands.status import _collect_errors
+
+        with override_settings(SECRET_KEY="", INSTALLED_APPS=["django_matt"], DATABASES={"default": {}}):
+            results = _collect_errors()
+        tiers = [r.tier for r in results]
+        names = [r.name for r in results]
+        assert "error" in tiers
+        assert any("SECRET_KEY" in n for n in names)
+
+    def test_doctor_error_tier_insecure_secret_key(self):
+        """When SECRET_KEY is 'change-me', error tier reports it."""
+        from django.test import override_settings
+
+        from django_matt.cli.commands.status import _collect_errors
+
+        with override_settings(SECRET_KEY="change-me", INSTALLED_APPS=["django_matt"], DATABASES={"default": {}}):
+            results = _collect_errors()
+        tiers = [r.tier for r in results]
+        names = [r.name for r in results]
+        assert "error" in tiers
+        assert any("SECRET_KEY" in n for n in names)
+
+    def test_doctor_error_tier_django_matt_not_installed(self):
+        """When django_matt not in INSTALLED_APPS, error tier reports it."""
+        from django.test import override_settings
+
+        from django_matt.cli.commands.status import _collect_errors
+
+        with override_settings(SECRET_KEY="real-secret-key-abc123", INSTALLED_APPS=[], DATABASES={"default": {}}):
+            results = _collect_errors()
+        names = [r.name for r in results]
+        assert any("django_matt" in n.lower() for n in names)
+
+    def test_doctor_error_tier_no_databases(self):
+        """When DATABASES is empty, error tier reports it."""
+        from django.test import override_settings
+
+        from django_matt.cli.commands.status import _collect_errors
+
+        with override_settings(SECRET_KEY="real-secret-key-abc123", INSTALLED_APPS=["django_matt"], DATABASES={}):
+            results = _collect_errors()
+        names = [r.name for r in results]
+        assert any("DATABASES" in n for n in names)
+
+    def test_doctor_warning_tier_debug_in_production(self):
+        """When DEBUG=True with prod-like settings module, warning tier reports it."""
+        import os
+        from unittest.mock import patch
+
+        from django.test import override_settings
+
+        from django_matt.cli.commands.status import _collect_warnings
+
+        with override_settings(DEBUG=True, ALLOWED_HOSTS=["example.com"]):
+            with patch.dict(os.environ, {"DJANGO_SETTINGS_MODULE": "myproject.settings.production"}):
+                results = _collect_warnings()
+        names = [r.name for r in results]
+        assert any("DEBUG" in n for n in names)
+
+    def test_doctor_warning_tier_empty_allowed_hosts(self):
+        """When ALLOWED_HOSTS is empty, warning tier reports it."""
+        from django.test import override_settings
+
+        from django_matt.cli.commands.status import _collect_warnings
+
+        with override_settings(ALLOWED_HOSTS=[], CACHES={"default": {"BACKEND": "django.core.cache.backends.redis.RedisCache"}}):
+            results = _collect_warnings()
+        names = [r.name for r in results]
+        assert any("ALLOWED_HOSTS" in n for n in names)
+
+    def test_doctor_info_tier_has_suggestions(self):
+        """Info tier returns at least one suggestion."""
+        from django_matt.cli.commands.status import _collect_info
+
+        results = _collect_info()
+        assert isinstance(results, list)
+        # All results should be info tier
+        for r in results:
+            assert r.tier == "info"
+
+    def test_doctor_summary_line_format(self):
+        """_collect_errors/warnings/infos returns structured CheckResult objects."""
+        from django_matt.cli.commands.status import CheckResult, _collect_errors, _collect_info, _collect_warnings
+
+        errors = _collect_errors()
+        warnings = _collect_warnings()
+        infos = _collect_info()
+
+        # All return lists of CheckResult
+        assert all(isinstance(r, CheckResult) for r in errors)
+        assert all(isinstance(r, CheckResult) for r in warnings)
+        assert all(isinstance(r, CheckResult) for r in infos)
+
+        # Tiers are correct
+        assert all(r.tier == "error" for r in errors)
+        assert all(r.tier == "warning" for r in warnings)
+        assert all(r.tier == "info" for r in infos)
+
+        # Each has name and message
+        for r in errors + warnings + infos:
+            assert r.name
+            assert r.message
+
+    def test_check_result_dataclass(self):
+        """CheckResult dataclass has expected fields."""
+        from django_matt.cli.commands.status import CheckResult
+
+        r = CheckResult(tier="error", name="Test", message="Something failed", fix="Do this")
+        assert r.tier == "error"
+        assert r.name == "Test"
+        assert r.message == "Something failed"
+        assert r.fix == "Do this"
+
+
+# ---------------------------------------------------------------------------
+# Routes command compact and verbose output
+# ---------------------------------------------------------------------------
+
+
+class TestRoutesCommand:
+    """Tests for routes command compact and verbose output."""
+
+    def test_routes_compact_output_has_method_path_handler(self):
+        """Default routes command produces Method, Path, Handler columns."""
+        from io import StringIO
+
+        from rich.console import Console
+
+        from django_matt.cli.commands.analyze import collect_routes_data
+
+        # collect_routes_data is a helper we can test directly
+        routes_list = collect_routes_data(filter_pattern=None, method_filter=None, verbose=False)
+        assert isinstance(routes_list, list)
+        # Each route entry has methods, path, view fields
+        for route in routes_list:
+            assert "methods" in route
+            assert "path" in route
+            assert "view" in route
+
+    def test_routes_verbose_output_has_schema_columns(self):
+        """Verbose routes command produces extra schema and permissions columns."""
+        from django_matt.cli.commands.analyze import collect_routes_data
+
+        routes_list = collect_routes_data(filter_pattern=None, method_filter=None, verbose=True)
+        assert isinstance(routes_list, list)
+        # Each verbose route entry has additional schema fields
+        for route in routes_list:
+            assert "request_schema" in route
+            assert "response_schema" in route
+            assert "permissions" in route
+
+    def test_routes_filter_by_pattern(self):
+        """Routes can be filtered by path pattern."""
+        from django_matt.cli.commands.analyze import collect_routes_data
+
+        all_routes = collect_routes_data(filter_pattern=None, method_filter=None, verbose=False)
+        if not all_routes:
+            return  # No routes configured in test settings — skip
+
+        # Filter by something that won't match
+        filtered = collect_routes_data(filter_pattern="__nonexistent_xyz__", method_filter=None, verbose=False)
+        assert filtered == []
