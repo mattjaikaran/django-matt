@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 03-cli-and-type-generation-03-PLAN.md
-last_updated: "2026-03-08T01:38:50.840Z"
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-03-08T01:43:26.642Z"
 last_activity: 2026-03-07 — Roadmap created; 101 requirements mapped to 7 phases
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 10
-  completed_plans: 7
+  completed_plans: 8
   percent: 0
 ---
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02-performance-baseline P01 | 5 | 2 tasks | 8 files |
 | Phase 02-performance-baseline P03 | 15 | 2 tasks | 6 files |
 | Phase 03-cli-and-type-generation P03 | 2 | 2 tasks | 1 files |
+| Phase 03-cli-and-type-generation P02 | 436 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,8 @@ Recent decisions affecting current work:
 - [Phase 02-performance-baseline]: assert_query_count wraps CaptureQueriesContext — context manager + decorator; cache key md5(prefix:path:querystring)
 - [Phase 02-performance-baseline]: TestCacheResponseDecorator uses content equality not object identity — Django cache pickles responses across locmem cache
 - [Phase 03-cli-and-type-generation]: CORE-11 implementation was already correct; only missing test coverage — 9 dedicated tests added to lock in static-before-parameterized URL ordering
+- [Phase 03-cli-and-type-generation]: sync_types --from-openapi triggers live OpenAPISchema.build(); --openapi-file reads pre-built spec for CI use case
+- [Phase 03-cli-and-type-generation]: generate_ai_context --depth (minimal/standard/full) drives max_endpoints/max_models/max_schemas via depth_config dict; minimal routes-only sets model/schema counts to 0
 
 ### Pending Todos
 
@@ -97,6 +100,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-08T01:38:50.838Z
-Stopped at: Completed 03-cli-and-type-generation-03-PLAN.md
+Last session: 2026-03-08T01:43:26.635Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None
