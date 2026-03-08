@@ -213,7 +213,7 @@ class Command(BaseCommand):
             include_swr = options["include_swr"]
 
         from_openapi = options.get("from_openapi", False)
-        openapi_file = options.get("openapi_file", None)
+        openapi_file = options.get("openapi_file")
 
         # Normalize target
         if target == "ts":
