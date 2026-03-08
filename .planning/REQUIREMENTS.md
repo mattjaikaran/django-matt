@@ -16,7 +16,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **CORE-05**: OpenAPI 3.1 schema auto-generated from routes, schemas, and type hints
 - [ ] **CORE-06**: Swagger UI and ReDoc served at configurable endpoints
 - [x] **CORE-07**: Structured error handling with consistent JSON error format across all endpoints
-- [ ] **CORE-08**: `model_construct()` fast path for list serialization (skip re-validation on ORM reads)
+- [x] **CORE-08**: `model_construct()` fast path for list serialization (skip re-validation on ORM reads)
 - [x] **CORE-09**: Startup-time introspection caching — zero per-request `get_type_hints()` or `_meta.fields` calls
 - [x] **CORE-10**: orjson used for all JSON serialization/deserialization (router, controller, views, responses)
 - [ ] **CORE-11**: Static-before-parameterized URL ordering prevents `/users/me` vs `/users/<id>` conflicts
@@ -61,11 +61,11 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **PERF-01**: Pagination: page number, limit/offset, and cursor-based
 - [ ] **PERF-02**: Filtering backend with Django filter integration, search, and ordering
 - [ ] **PERF-03**: Rate limiting / throttling with configurable backends
-- [ ] **PERF-04**: Auto `optimize_queryset()` detects FK/M2M from schema for select_related/prefetch_related
-- [ ] **PERF-05**: Streaming response support for large datasets
-- [ ] **PERF-06**: Caching utilities with configurable backends
+- [x] **PERF-04**: Auto `optimize_queryset()` detects FK/M2M from schema for select_related/prefetch_related
+- [x] **PERF-05**: Streaming response support for large datasets
+- [x] **PERF-06**: Caching utilities with configurable backends
 - [x] **PERF-07**: Benchmark suite comparing django-matt vs DRF, django-ninja, and FastAPI on equivalent endpoints
-- [ ] **PERF-08**: Query count assertion helper for tests (`assert_query_count()`)
+- [x] **PERF-08**: Query count assertion helper for tests (`assert_query_count()`)
 
 ### Multi-Tenancy
 
@@ -232,7 +232,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CORE-05 | Phase 3 | Pending |
 | CORE-06 | Phase 3 | Pending |
 | CORE-07 | Phase 1 | Complete |
-| CORE-08 | Phase 2 | Pending |
+| CORE-08 | Phase 2 | Complete |
 | CORE-09 | Phase 2 | Complete |
 | CORE-10 | Phase 2 | Complete |
 | CORE-11 | Phase 3 | Pending |
@@ -268,11 +268,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PERF-01 | Phase 7 | Pending |
 | PERF-02 | Phase 7 | Pending |
 | PERF-03 | Phase 7 | Pending |
-| PERF-04 | Phase 2 | Pending |
-| PERF-05 | Phase 2 | Pending |
-| PERF-06 | Phase 2 | Pending |
+| PERF-04 | Phase 2 | Complete |
+| PERF-05 | Phase 2 | Complete |
+| PERF-06 | Phase 2 | Complete |
 | PERF-07 | Phase 2 | Complete |
-| PERF-08 | Phase 2 | Pending |
+| PERF-08 | Phase 2 | Complete |
 | TENANT-01 | Phase 4 | Pending |
 | TENANT-02 | Phase 4 | Pending |
 | TENANT-03 | Phase 4 | Pending |

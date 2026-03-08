@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 02-performance-baseline-01-PLAN.md
-last_updated: "2026-03-08T00:25:38.759Z"
+stopped_at: Completed 02-performance-baseline-03-PLAN.md
+last_updated: "2026-03-08T00:53:58.630Z"
 last_activity: 2026-03-07 — Roadmap created; 101 requirements mapped to 7 phases
 progress:
   total_phases: 7
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
   percent: 0
 ---
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-correctness-audit P03 | 8 | 2 tasks | 2 files |
 | Phase 02-performance-baseline P02 | 2 | 2 tasks | 3 files |
 | Phase 02-performance-baseline P01 | 5 | 2 tasks | 8 files |
+| Phase 02-performance-baseline P03 | 15 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,8 @@ Recent decisions affecting current work:
 - [Phase 02-performance-baseline]: cProfile test pattern: 10 warmup calls to populate _hints_cache, then profile 100 calls — absence of get_type_hints in pstats proves zero per-request introspection (CORE-09)
 - [Phase 02-performance-baseline]: Skipped framework rows use metadata skipped=True rather than silent omission — rich table shows [NOT INSTALLED]
 - [Phase 02-performance-baseline]: run_all.py always saves timestamped JSON to .matt/benchmarks/ unconditionally — not only when --save is passed
+- [Phase 02-performance-baseline]: assert_query_count wraps CaptureQueriesContext — context manager + decorator; cache key md5(prefix:path:querystring)
+- [Phase 02-performance-baseline]: TestCacheResponseDecorator uses content equality not object identity — Django cache pickles responses across locmem cache
 
 ### Pending Todos
 
@@ -92,6 +95,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-08T00:25:38.754Z
-Stopped at: Completed 02-performance-baseline-01-PLAN.md
+Last session: 2026-03-08T00:53:58.624Z
+Stopped at: Completed 02-performance-baseline-03-PLAN.md
 Resume file: None
