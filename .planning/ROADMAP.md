@@ -101,12 +101,12 @@ Plans:
   3. `@feature_flag("my-flag")` on a controller endpoint returns 404 when the flag is disabled and the normal response when enabled
   4. An analytics event is tracked per user, session aggregations can be queried, and a funnel conversion rate is calculable from recorded events — verified by test
   5. An A/B experiment assigns users to variants deterministically, and the statistical significance of results can be computed — verified by test
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: Complete billing (Stripe, PayPal, Polar) with webhook verification and subscription management
-- [ ] 05-02: Complete feature flags (DB, Redis, LaunchDarkly, Unleash backends, decorators, middleware)
-- [ ] 05-03: Complete analytics (event tracking, session recording, funnel analysis) and experiments (A/B, bandit, stats)
+- [ ] 05-01-PLAN.md — Fix billing async ORM violations, implement subscription lifecycle sync, add signals and mock event factories
+- [ ] 05-02-PLAN.md — Audit and complete feature flag backends (DB/Redis/LD/Unleash), decorator, and middleware with tests
+- [ ] 05-03-PLAN.md — Complete analytics funnel analysis and aggregation, experiment deterministic assignment and decorator with tests
 
 ### Phase 6: Real-Time, Notifications, and Communications
 **Goal**: WebSocket consumers with auth middleware and presence work end-to-end; messaging delivers conversation and message models with WebSocket transport; notification dispatch (in-app, push, SMS, webhook) and email backends are complete
