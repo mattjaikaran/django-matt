@@ -409,6 +409,14 @@ class WebhookEvent(models.Model):
             self.processing_error = error
         self.save(update_fields=["processed", "processed_at", "processing_error"])
 
+    async def amark_processed(self, error: str = "") -> None:
+        """Async version of mark_processed. Safe to use in async handlers."""
+        self.processed = True
+        self.processed_at = timezone.now()
+        if error:
+            self.processing_error = error
+        await self.asave(update_fields=["processed", "processed_at", "processing_error"])
+
 
 class ConnectedAccount(models.Model):
     """

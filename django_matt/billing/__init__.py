@@ -124,6 +124,21 @@ from django_matt.billing.schemas import (
     UsageRecordResponse,
 )
 
+# Signals
+from django_matt.billing.signals import (
+    invoice_paid,
+    subscription_canceled,
+    subscription_synced,
+    webhook_received,
+)
+
+# Testing helpers
+from django_matt.billing.testing import (
+    mock_paypal_event,
+    mock_polar_event,
+    mock_stripe_event,
+)
+
 # Models (import separately to avoid Django app loading issues)
 # from django_matt.billing.models import (
 #     BillingCustomer,
@@ -197,4 +212,13 @@ __all__ = [
     # Controllers
     "BillingController",
     "WebhookController",
+    # Signals
+    "subscription_synced",
+    "subscription_canceled",
+    "invoice_paid",
+    "webhook_received",
+    # Testing helpers
+    "mock_stripe_event",
+    "mock_paypal_event",
+    "mock_polar_event",
 ]

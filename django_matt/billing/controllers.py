@@ -10,9 +10,13 @@ Provides REST API endpoints for:
 """
 
 import logging
+from datetime import UTC, datetime
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse
+from django.utils import timezone
+
+from asgiref.sync import sync_to_async
 
 from django_matt.billing.config import ProviderType, get_billing_config
 from django_matt.billing.providers import (
@@ -40,6 +44,24 @@ from django_matt.billing.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_timestamp(ts: int | str | None) -> datetime | None:
+    """Convert a Unix epoch int, ISO-8601 string, or None to a timezone-aware datetime."""
+    if ts is None:
+        return None
+    if isinstance(ts, int):
+        return datetime.fromtimestamp(ts, tz=UTC)
+    if isinstance(ts, str):
+        try:
+            dt = datetime.fromisoformat(ts)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=UTC)
+            return dt
+        except ValueError:
+            logger.warning("Could not parse timestamp string: %r", ts)
+            return None
+    return None
 
 
 class BillingController:
@@ -712,13 +734,24 @@ class WebhookController:
                 logger.info(f"Webhook event {event.id} already processed")
                 return HttpResponse(status=200)
 
+            # Fire webhook_received signal (before processing)
+            from django_matt.billing.signals import webhook_received
+
+            await sync_to_async(webhook_received.send)(
+                sender=self.__class__,
+                event_id=event.id,
+                event_type=event.type,
+                provider=provider_name,
+                raw_data=event.data,
+            )
+
             # Process the event
             try:
                 await self._process_webhook_event(provider_name, event)
-                webhook_event.mark_processed()
+                await webhook_event.amark_processed()
             except Exception as e:
                 logger.exception(f"Error processing webhook event {event.id}")
-                webhook_event.mark_processed(error=str(e))
+                await webhook_event.amark_processed(error=str(e))
                 # Still return 200 to acknowledge receipt
                 return HttpResponse(status=200)
 
@@ -769,40 +802,199 @@ class WebhookController:
         provider: ProviderType,
         data: dict,
     ) -> None:
-        """Handle subscription.created event."""
-        logger.info(f"Subscription created: {data.get('id')}")
-        # Sync to local database
-        # Override in subclass for custom logic
+        """Handle subscription.created event — sync to local Subscription model."""
+        from django_matt.billing.models import BillingCustomer, Subscription
+        from django_matt.billing.signals import subscription_synced
+
+        sub_id = data.get("id", "")
+        customer_id = data.get("customer")
+
+        # Resolve BillingCustomer by provider-specific customer ID
+        billing_customer: BillingCustomer | None = None
+        if customer_id:
+            try:
+                billing_customer = await BillingCustomer.objects.aget(
+                    **{f"{provider}_customer_id": customer_id}
+                )
+            except BillingCustomer.DoesNotExist:
+                logger.warning(
+                    "BillingCustomer not found for %s customer_id=%s",
+                    provider,
+                    customer_id,
+                )
+
+        if billing_customer is None:
+            logger.warning(
+                "Cannot sync subscription %s: no BillingCustomer found", sub_id
+            )
+            return
+
+        defaults: dict[str, Any] = {
+            "status": data.get("status", Subscription.Status.ACTIVE),
+            "cancel_at_period_end": data.get("cancel_at_period_end", False),
+            "current_period_start": _parse_timestamp(data.get("current_period_start")),
+            "current_period_end": _parse_timestamp(data.get("current_period_end")),
+            "customer": billing_customer,
+        }
+
+        subscription, _ = await Subscription.objects.aupdate_or_create(
+            provider=provider,
+            provider_subscription_id=sub_id,
+            defaults=defaults,
+        )
+
+        await sync_to_async(subscription_synced.send)(
+            sender=Subscription,
+            subscription=subscription,
+            provider=provider,
+            event_type="created",
+            raw_data=data,
+        )
+        logger.info("Subscription created/synced: %s", sub_id)
 
     async def _handle_subscription_updated(
         self,
         provider: ProviderType,
         data: dict,
     ) -> None:
-        """Handle subscription.updated event."""
-        logger.info(f"Subscription updated: {data.get('id')}")
-        # Sync to local database
-        # Override in subclass for custom logic
+        """Handle subscription.updated event — sync status to local Subscription model."""
+        from django_matt.billing.models import BillingCustomer, Subscription
+        from django_matt.billing.signals import subscription_synced
+
+        sub_id = data.get("id", "")
+        customer_id = data.get("customer")
+
+        billing_customer: BillingCustomer | None = None
+        if customer_id:
+            try:
+                billing_customer = await BillingCustomer.objects.aget(
+                    **{f"{provider}_customer_id": customer_id}
+                )
+            except BillingCustomer.DoesNotExist:
+                logger.warning(
+                    "BillingCustomer not found for %s customer_id=%s",
+                    provider,
+                    customer_id,
+                )
+
+        defaults: dict[str, Any] = {
+            "status": data.get("status", Subscription.Status.ACTIVE),
+            "cancel_at_period_end": data.get("cancel_at_period_end", False),
+            "current_period_start": _parse_timestamp(data.get("current_period_start")),
+            "current_period_end": _parse_timestamp(data.get("current_period_end")),
+        }
+        if billing_customer is not None:
+            defaults["customer"] = billing_customer
+
+        subscription, _ = await Subscription.objects.aupdate_or_create(
+            provider=provider,
+            provider_subscription_id=sub_id,
+            defaults=defaults,
+        )
+
+        await sync_to_async(subscription_synced.send)(
+            sender=Subscription,
+            subscription=subscription,
+            provider=provider,
+            event_type="updated",
+            raw_data=data,
+        )
+        logger.info("Subscription updated/synced: %s", sub_id)
 
     async def _handle_subscription_canceled(
         self,
         provider: ProviderType,
         data: dict,
     ) -> None:
-        """Handle subscription.canceled event."""
-        logger.info(f"Subscription canceled: {data.get('id')}")
-        # Update local database
-        # Override in subclass for custom logic
+        """Handle subscription.canceled event — set canceled status in local model."""
+        from django_matt.billing.models import BillingCustomer, Subscription
+        from django_matt.billing.signals import subscription_canceled, subscription_synced
+
+        sub_id = data.get("id", "")
+        customer_id = data.get("customer")
+
+        billing_customer: BillingCustomer | None = None
+        if customer_id:
+            try:
+                billing_customer = await BillingCustomer.objects.aget(
+                    **{f"{provider}_customer_id": customer_id}
+                )
+            except BillingCustomer.DoesNotExist:
+                logger.warning(
+                    "BillingCustomer not found for %s customer_id=%s",
+                    provider,
+                    customer_id,
+                )
+
+        defaults: dict[str, Any] = {
+            "status": Subscription.Status.CANCELED,
+            "canceled_at": timezone.now(),
+            "cancel_at_period_end": data.get("cancel_at_period_end", False),
+            "current_period_start": _parse_timestamp(data.get("current_period_start")),
+            "current_period_end": _parse_timestamp(data.get("current_period_end")),
+        }
+        if billing_customer is not None:
+            defaults["customer"] = billing_customer
+
+        subscription, _ = await Subscription.objects.aupdate_or_create(
+            provider=provider,
+            provider_subscription_id=sub_id,
+            defaults=defaults,
+        )
+
+        await sync_to_async(subscription_synced.send)(
+            sender=Subscription,
+            subscription=subscription,
+            provider=provider,
+            event_type="canceled",
+            raw_data=data,
+        )
+        await sync_to_async(subscription_canceled.send)(
+            sender=Subscription,
+            subscription=subscription,
+            provider=provider,
+            raw_data=data,
+        )
+        logger.info("Subscription canceled/synced: %s", sub_id)
 
     async def _handle_invoice_paid(
         self,
         provider: ProviderType,
         data: dict,
     ) -> None:
-        """Handle invoice.paid event."""
-        logger.info(f"Invoice paid: {data.get('id')}")
-        # Update local database
-        # Override in subclass for custom logic
+        """Handle invoice.paid event — update local Invoice model and fire signal."""
+        from django_matt.billing.models import Invoice
+        from django_matt.billing.signals import invoice_paid
+
+        invoice_id = data.get("id", "")
+        invoice_obj: Invoice | None = None
+        if invoice_id:
+            try:
+                invoice_obj = await Invoice.objects.aget(
+                    provider=provider,
+                    provider_invoice_id=invoice_id,
+                )
+                invoice_obj.status = Invoice.Status.PAID
+                invoice_obj.amount_paid = data.get("amount_paid", invoice_obj.amount_paid)
+                invoice_obj.amount_remaining = 0
+                invoice_obj.paid_at = timezone.now()
+                await invoice_obj.asave(
+                    update_fields=["status", "amount_paid", "amount_remaining", "paid_at", "updated_at"]
+                )
+            except Invoice.DoesNotExist:
+                logger.warning(
+                    "Invoice not found for %s provider_invoice_id=%s; skipping sync",
+                    provider,
+                    invoice_id,
+                )
+
+        await sync_to_async(invoice_paid.send)(
+            sender=Invoice,
+            invoice=invoice_obj,
+            provider=provider,
+            raw_data=data,
+        )
+        logger.info("Invoice paid/synced: %s", invoice_id)
 
     async def _handle_invoice_payment_failed(
         self,
