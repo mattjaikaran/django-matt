@@ -37,6 +37,7 @@ from django_matt.email.providers.console import ConsoleProvider
 from django_matt.email.providers.mailgun import MailgunProvider
 from django_matt.email.providers.sendgrid import SendGridProvider
 from django_matt.email.providers.ses import SESProvider
+from django_matt.email.providers.smtp import SMTPProvider
 from django_matt.email.service import EmailService, send_email, send_template_email
 
 
@@ -1007,3 +1008,236 @@ class TestConvenienceFunctions:
                 to="user@example.com",
                 template_name="nonexistent_template",
             )
+
+
+# ---------------------------------------------------------------------------
+# Tests: SMTPProvider
+# ---------------------------------------------------------------------------
+
+
+class TestSMTPProvider:
+    """Test SMTPProvider with Django's locmem backend."""
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_send_success(self):
+        from django.core import mail
+
+        provider = SMTPProvider()
+        with patch.object(provider, "filter_suppressed", return_value=["user@example.com"]):
+            result = provider.send(
+                to=["user@example.com"],
+                subject="SMTP Test",
+                text="Hello from SMTP",
+                from_email="sender@example.com",
+            )
+        assert result.success is True
+        assert result.provider == "smtp"
+        assert result.message_id  # non-empty UUID
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].subject == "SMTP Test"
+        assert mail.outbox[0].to == ["user@example.com"]
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_send_with_html(self):
+        from django.core import mail
+
+        provider = SMTPProvider()
+        with patch.object(provider, "filter_suppressed", return_value=["user@example.com"]):
+            result = provider.send(
+                to=["user@example.com"],
+                subject="HTML SMTP",
+                html="<h1>Hello</h1>",
+                from_email="sender@example.com",
+            )
+        assert result.success is True
+        assert len(mail.outbox) == 1
+        assert "<h1>Hello</h1>" in mail.outbox[0].alternatives[0][0]
+
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_send_with_cc_bcc_reply_to(self):
+        from django.core import mail
+
+        provider = SMTPProvider()
+        with patch.object(provider, "filter_suppressed", return_value=["user@example.com"]):
+            result = provider.send(
+                to=["user@example.com"],
+                subject="CC SMTP",
+                text="body",
+                from_email="sender@example.com",
+                cc=["cc@example.com"],
+                bcc=["bcc@example.com"],
+                reply_to="reply@example.com",
+            )
+        assert result.success is True
+        msg = mail.outbox[0]
+        assert msg.cc == ["cc@example.com"]
+        assert msg.bcc == ["bcc@example.com"]
+        assert msg.reply_to == ["reply@example.com"]
+
+    def test_send_all_suppressed(self):
+        provider = SMTPProvider()
+        with patch.object(provider, "filter_suppressed", return_value=[]):
+            result = provider.send(
+                to=["suppressed@example.com"],
+                subject="Test",
+                text="body",
+            )
+        assert result.success is False
+        assert "suppressed" in result.error.lower()
+
+    def test_send_exception_handling(self):
+        provider = SMTPProvider()
+        with patch.object(provider, "filter_suppressed", return_value=["user@example.com"]):
+            with patch(
+                "django_matt.email.providers.smtp.EmailMultiAlternatives.send",
+                side_effect=Exception("SMTP connection refused"),
+            ):
+                result = provider.send(
+                    to=["user@example.com"],
+                    subject="Test",
+                    text="body",
+                    from_email="sender@example.com",
+                )
+        assert result.success is False
+        assert "connection refused" in result.error.lower()
+
+    def test_name_attribute(self):
+        provider = SMTPProvider()
+        assert provider.name == "smtp"
+
+
+# ---------------------------------------------------------------------------
+# Tests: EMAIL Requirement Success Criteria
+# ---------------------------------------------------------------------------
+
+
+class TestEmailRequirements:
+    """Tests aligned with EMAIL-01 through EMAIL-05 success criteria."""
+
+    @pytest.mark.django_db
+    @override_settings(SENDGRID_API_KEY="sg-test-key-123")
+    def test_email_01_sendgrid_backend_sends(self):
+        """EMAIL-01: SendGrid email backend sends via mock HTTP and returns success."""
+        import sys
+
+        with patch.dict(sys.modules, {
+            "sendgrid": MagicMock(),
+            "sendgrid.helpers": MagicMock(),
+            "sendgrid.helpers.mail": MagicMock(),
+        }):
+            provider = SendGridProvider()
+            mock_response = MagicMock()
+            mock_response.status_code = 202
+            mock_response.body = ""
+            mock_response.headers = {"X-Message-Id": "sg-req-test"}
+
+            mock_client = MagicMock()
+            mock_client.send.return_value = mock_response
+            provider._client = mock_client
+
+            with patch.object(provider, "filter_suppressed", return_value=["alice@example.com"]):
+                result = provider.send(
+                    to=["alice@example.com"],
+                    subject="SendGrid Requirement Test",
+                    text="EMAIL-01 verification",
+                )
+        assert result.success is True
+        assert result.provider == "sendgrid"
+        mock_client.send.assert_called_once()
+
+    @pytest.mark.django_db
+    @override_settings(
+        MAILGUN_API_KEY="mg-test-key",
+        MAILGUN_DOMAIN="mail.example.com",
+    )
+    def test_email_02_mailgun_backend_sends(self):
+        """EMAIL-02: Mailgun email backend sends via mock HTTP and returns success."""
+        provider = MailgunProvider()
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "id": "<req-test@mail.example.com>",
+            "message": "Queued",
+        }
+
+        with patch.object(provider, "filter_suppressed", return_value=["alice@example.com"]):
+            with patch("requests.post", return_value=mock_response) as mock_post:
+                result = provider.send(
+                    to=["alice@example.com"],
+                    subject="Mailgun Requirement Test",
+                    text="EMAIL-02 verification",
+                )
+        assert result.success is True
+        assert result.provider == "mailgun"
+        mock_post.assert_called_once()
+
+    @pytest.mark.django_db
+    @override_settings(AWS_SES_REGION_NAME="us-east-1")
+    def test_email_03_ses_backend_sends(self):
+        """EMAIL-03: AWS SES email backend sends via mock boto3 and returns success."""
+        provider = SESProvider()
+        mock_client = MagicMock()
+        mock_client.send_email.return_value = {"MessageId": "ses-req-test"}
+
+        provider._client = mock_client
+        with patch.object(provider, "filter_suppressed", return_value=["alice@example.com"]):
+            result = provider.send(
+                to=["alice@example.com"],
+                subject="SES Requirement Test",
+                text="EMAIL-03 verification",
+                from_email="sender@example.com",
+            )
+        assert result.success is True
+        assert result.message_id == "ses-req-test"
+        assert result.provider == "ses"
+        mock_client.send_email.assert_called_once()
+
+    @pytest.mark.django_db
+    @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_email_04_smtp_backend_sends(self):
+        """EMAIL-04: SMTP fallback backend sends via Django mail backend."""
+        from django.core import mail
+
+        provider = SMTPProvider()
+        with patch.object(provider, "filter_suppressed", return_value=["alice@example.com"]):
+            result = provider.send(
+                to=["alice@example.com"],
+                subject="SMTP Requirement Test",
+                text="EMAIL-04 verification",
+                from_email="sender@example.com",
+            )
+        assert result.success is True
+        assert result.provider == "smtp"
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].subject == "SMTP Requirement Test"
+        assert mail.outbox[0].body == "EMAIL-04 verification"
+
+    @pytest.mark.django_db
+    @override_settings(EMAIL_PROVIDER="console")
+    def test_email_05_template_variable_substitution(self):
+        """EMAIL-05: Email templates with {{ variable }} substitution render and dispatch correctly."""
+        # Create a template with variable placeholders
+        EmailTemplate.objects.create(
+            name="req_test_welcome",
+            subject="Hello {{ first_name }}",
+            text_body="Welcome, {{ first_name }}! Your account {{ email }} is ready.",
+            html_body="<p>Welcome, {{ first_name }}! Your account {{ email }} is ready.</p>",
+            is_active=True,
+        )
+
+        # Send through the template pipeline
+        email = send_template_email(
+            to="alice@example.com",
+            template_name="req_test_welcome",
+            context={"first_name": "Alice", "email": "alice@example.com"},
+        )
+
+        # Verify rendered subject
+        assert email.subject == "Hello Alice"
+        # Verify rendered text body contains substituted values
+        assert "Welcome, Alice!" in email.text_body
+        assert "alice@example.com" in email.text_body
+        # Verify rendered HTML body
+        assert "Welcome, Alice!" in email.html_body
+        # Verify the email was sent successfully
+        assert email.status == EmailStatus.SENT
