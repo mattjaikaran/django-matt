@@ -17,13 +17,26 @@ Tests cover:
 import hashlib
 import json
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, Mock, patch, PropertyMock
+from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
-import pytest
 from django.http import HttpRequest, JsonResponse
 from django.test import RequestFactory
 from django.utils import timezone
 
+import pytest
+
+from django_matt.flags.backends import (
+    FlagBackend,
+    MemoryBackend,
+)
+from django_matt.flags.context import FlagContext, get_current_context, set_current_context
+from django_matt.flags.decorators import (
+    FlagEnabledMixin,
+    feature_flag,
+    requires_flag,
+    variant_flag,
+    with_flag_context,
+)
 from django_matt.flags.models import (
     FeatureFlag,
     FlagAuditLog,
@@ -32,29 +45,16 @@ from django_matt.flags.models import (
     FlagType,
     OverrideType,
 )
-from django_matt.flags.context import FlagContext, get_current_context, set_current_context
-from django_matt.flags.decorators import (
-    feature_flag,
-    requires_flag,
-    variant_flag,
-    with_flag_context,
-    FlagEnabledMixin,
-)
-from django_matt.flags.backends import (
-    MemoryBackend,
-    FlagBackend,
-)
 from django_matt.flags.schemas import (
-    FlagTypeEnum,
-    FlagStatusEnum,
-    OverrideTypeEnum,
     FeatureFlagCreate,
     FeatureFlagUpdate,
-    FlagOverrideCreate,
     FlagEvaluationContext,
+    FlagOverrideCreate,
+    FlagStatusEnum,
+    FlagTypeEnum,
+    OverrideTypeEnum,
     VariantSchema,
 )
-
 
 # ==============================================================================
 # Helpers
@@ -672,8 +672,10 @@ class TestDatabaseBackend:
         from django_matt.flags.backends import DatabaseBackend
 
         backend = DatabaseBackend(use_cache=False)
-        with patch("django_matt.flags.models.FeatureFlag.objects") as mock_qs:
-            mock_qs.prefetch_related.return_value.get.side_effect = FeatureFlag.DoesNotExist
+        # The local import in _get_flag() fetches FeatureFlag from django_matt.flags.models
+        with patch("django_matt.flags.models.FeatureFlag") as mock_model:
+            mock_model.objects.prefetch_related.return_value.get.side_effect = FeatureFlag.DoesNotExist
+            mock_model.DoesNotExist = FeatureFlag.DoesNotExist
             result = backend.is_enabled("missing_flag", default=True)
             assert result is True
 
@@ -684,6 +686,136 @@ class TestDatabaseBackend:
         with patch("django_matt.flags.backends.cache") as mock_cache:
             backend.invalidate_cache("some_flag")
             mock_cache.delete.assert_called_once_with("test_flags:some_flag")
+
+    def test_is_enabled_boolean_flag_true(self):
+        """DatabaseBackend.is_enabled() returns True for enabled boolean flag (FLAG-02)."""
+        from django_matt.flags.backends import DatabaseBackend
+
+        backend = DatabaseBackend(use_cache=False)
+        mock_flag = MagicMock(spec=FeatureFlag)
+        mock_flag.is_active = True
+        mock_flag.flag_type = FlagType.BOOLEAN.value
+        mock_flag.enabled_by_default = True
+        mock_flag.overrides = MagicMock()
+        mock_flag.overrides.filter.return_value.first.return_value = None
+        mock_flag.targeting_rules = []
+        mock_flag.is_enabled_for_user = lambda **kwargs: True
+
+        # FeatureFlag is imported locally inside _get_flag(), so patch at models level
+        with patch("django_matt.flags.models.FeatureFlag") as mock_model:
+            mock_model.objects.prefetch_related.return_value.get.return_value = mock_flag
+            mock_model.DoesNotExist = FeatureFlag.DoesNotExist
+            result = backend.is_enabled("my-flag")
+            assert result is True
+
+    def test_is_enabled_uses_cache_on_second_call(self):
+        """DatabaseBackend.is_enabled() uses cache on second call (TTL cache verification) (FLAG-02)."""
+        from django_matt.flags.backends import DatabaseBackend
+
+        backend = DatabaseBackend(use_cache=True, cache_prefix="flags:", cache_timeout=30)
+        mock_flag = MagicMock(spec=FeatureFlag)
+        mock_flag.is_active = True
+        mock_flag.flag_type = FlagType.BOOLEAN.value
+        mock_flag.enabled_by_default = True
+        mock_flag.overrides = MagicMock()
+        mock_flag.overrides.filter.return_value.first.return_value = None
+        mock_flag.targeting_rules = []
+
+        with patch("django_matt.flags.backends.cache") as mock_cache:
+            # First call: cache miss (returns None), DB hit
+            mock_cache.get.return_value = None
+            with patch("django_matt.flags.models.FeatureFlag") as mock_model:
+                mock_model.objects.prefetch_related.return_value.get.return_value = mock_flag
+                mock_model.DoesNotExist = FeatureFlag.DoesNotExist
+                mock_flag.is_enabled_for_user = lambda **kwargs: True
+                result1 = backend.is_enabled("cached-flag")
+                # Verify cache.set() was called to populate cache
+                mock_cache.set.assert_called_once_with("flags:cached-flag", mock_flag, 30)
+                assert result1 is True
+
+            # Second call: cache hit (returns mock_flag)
+            mock_cache.get.return_value = mock_flag
+            mock_cache.reset_mock()
+            with patch("django_matt.flags.models.FeatureFlag") as mock_model2:
+                mock_model2.DoesNotExist = FeatureFlag.DoesNotExist
+                mock_flag.is_enabled_for_user = lambda **kwargs: True
+                result2 = backend.is_enabled("cached-flag")
+                # DB should NOT be hit
+                mock_model2.objects.prefetch_related.return_value.get.assert_not_called()
+                assert result2 is True
+
+    def test_percentage_rollout_deterministic(self):
+        """DatabaseBackend percentage rollout is hash-based and deterministic (FLAG-02)."""
+        from django_matt.flags.backends import DatabaseBackend
+
+        backend = DatabaseBackend(use_cache=False)
+
+        # Use FeatureFlag's real percentage rollout logic
+        mock_flag = MagicMock(spec=FeatureFlag)
+        mock_flag.is_active = True
+        mock_flag.key = "pct-flag"
+        mock_flag.flag_type = FlagType.PERCENTAGE.value
+        mock_flag.rollout_percentage = 50
+        mock_flag.overrides = MagicMock()
+        mock_flag.overrides.filter.return_value.first.return_value = None
+        mock_flag.targeting_rules = []
+
+        # Bind real methods to the mock
+        mock_flag._is_in_percentage_rollout = lambda u: FeatureFlag._is_in_percentage_rollout(mock_flag, u)
+        mock_flag.is_enabled_for_user = lambda **kwargs: FeatureFlag.is_enabled_for_user(mock_flag, **kwargs)
+
+        with patch("django_matt.flags.models.FeatureFlag") as mock_model:
+            mock_model.objects.prefetch_related.return_value.get.return_value = mock_flag
+            mock_model.DoesNotExist = FeatureFlag.DoesNotExist
+
+            user = make_mock_user(pk=42)
+            result1 = backend.is_enabled("pct-flag", user=user)
+            result2 = backend.is_enabled("pct-flag", user=user)
+            # Same user must always get same result
+            assert result1 == result2
+            assert isinstance(result1, bool)
+
+    def test_invalidate_clears_cache_key(self):
+        """DatabaseBackend.invalidate() clears the correct cache key (FLAG-02)."""
+        from django_matt.flags.backends import DatabaseBackend
+
+        backend = DatabaseBackend(use_cache=True, cache_prefix="flags:")
+        with patch("django_matt.flags.backends.cache") as mock_cache:
+            backend.invalidate("my-flag")
+            mock_cache.delete.assert_called_once_with("flags:my-flag")
+
+    def test_org_scoped_flag_via_override(self):
+        """Org-scoped flags: is_enabled() with organization param respects FlagOverride (FLAG-01)."""
+        from django_matt.flags.backends import DatabaseBackend
+
+        backend = DatabaseBackend(use_cache=False)
+
+        org = MagicMock()
+        org.pk = "org-123"
+
+        # Override: org-123 → disabled
+        mock_override = MagicMock(spec=FlagOverride)
+        mock_override.enabled = False
+        mock_override.is_expired = False
+
+        mock_flag = MagicMock(spec=FeatureFlag)
+        mock_flag.is_active = True
+        mock_flag.flag_type = FlagType.BOOLEAN.value
+        mock_flag.enabled_by_default = True  # Would be True without override
+        mock_flag.targeting_rules = []
+        mock_flag.overrides = MagicMock()
+        # With user=None (anonymous), the first filter().first() call is the org check
+        mock_flag.overrides.filter.return_value.first.return_value = mock_override
+
+        # Bind real is_enabled_for_user
+        mock_flag.is_enabled_for_user = lambda **kwargs: FeatureFlag.is_enabled_for_user(mock_flag, **kwargs)
+
+        with patch("django_matt.flags.models.FeatureFlag") as mock_model:
+            mock_model.objects.prefetch_related.return_value.get.return_value = mock_flag
+            mock_model.DoesNotExist = FeatureFlag.DoesNotExist
+
+            result = backend.is_enabled("my-flag", organization=org)
+            assert result is False  # disabled by org override
 
 
 # ==============================================================================
@@ -736,6 +868,386 @@ class TestRedisBackend:
         backend.close()
         mock_client.close.assert_called_once()
         assert backend._client is None
+
+    def _make_redis_backend(self):
+        """Create a RedisBackend with a mocked Redis client."""
+        redis = pytest.importorskip("redis")
+        from django_matt.flags.backends import RedisBackend
+
+        backend = RedisBackend.__new__(RedisBackend)
+        backend.redis_url = "redis://localhost:6379/0"
+        backend.cache_timeout = 300
+        backend.key_prefix = "feature_flags:"
+        mock_client = MagicMock()
+        backend._client = mock_client
+        return backend, mock_client
+
+    def _make_flag_data(self, key="pct-flag", percentage=50, flag_type="percentage", status="active", enabled_by_default=False):
+        """Return serialized flag data dict as RedisBackend._get_flag_data() returns it."""
+        import orjson
+        data = {
+            "key": key,
+            "flag_type": flag_type,
+            "status": status,
+            "enabled_by_default": enabled_by_default,
+            "rollout_percentage": percentage,
+            "variants": {},
+            "targeting_rules": [],
+            "scheduled_enable_at": None,
+            "scheduled_disable_at": None,
+            "overrides": [],
+        }
+        # Return as dict (deserialized)
+        return data
+
+    def test_is_enabled_percentage_rollout(self):
+        """RedisBackend.is_enabled() evaluates percentage rollout deterministically (FLAG-03)."""
+        redis_mod = pytest.importorskip("redis")
+        from django_matt.flags.backends import RedisBackend
+
+        backend, mock_client = self._make_redis_backend()
+        flag_data = self._make_flag_data(key="pct-flag", percentage=50)
+        import orjson
+        serialized = orjson.dumps(flag_data).decode()
+        # Redis returns bytes
+        mock_client.get.return_value = serialized.encode()
+
+        user = make_mock_user(pk=42)
+        result = backend.is_enabled("pct-flag", user=user)
+        assert isinstance(result, bool)
+        # Verify client.get was called
+        mock_client.get.assert_called_once_with("feature_flags:pct-flag")
+
+    def test_percentage_deterministic_consistency(self):
+        """RedisBackend percentage rollout: same user always gets same result (FLAG-03)."""
+        redis_mod = pytest.importorskip("redis")
+        from django_matt.flags.backends import RedisBackend
+
+        backend, mock_client = self._make_redis_backend()
+        flag_data = self._make_flag_data(key="stable-flag", percentage=50)
+        import orjson
+        serialized = orjson.dumps(flag_data).decode()
+        mock_client.get.return_value = serialized.encode()
+
+        user = make_mock_user(pk=99)
+        # Call is_enabled 10 times for the same user
+        results = [backend.is_enabled("stable-flag", user=user) for _ in range(10)]
+        # All results must be identical (deterministic hash)
+        assert len(set(results)) == 1, f"Expected consistent result, got: {results}"
+
+    def test_percentage_rollout_distributes_users(self):
+        """RedisBackend 50% rollout assigns ~half of users (FLAG-03)."""
+        redis_mod = pytest.importorskip("redis")
+        from django_matt.flags.backends import RedisBackend
+
+        backend, mock_client = self._make_redis_backend()
+        flag_data = self._make_flag_data(key="half-flag", percentage=50)
+        import orjson
+        serialized = orjson.dumps(flag_data).decode()
+        mock_client.get.return_value = serialized.encode()
+
+        enabled_count = 0
+        for i in range(100):
+            user = make_mock_user(pk=i)
+            if backend.is_enabled("half-flag", user=user):
+                enabled_count += 1
+
+        # With 50% rollout over 100 users, expect 30-70 enabled (hash distribution)
+        assert 20 <= enabled_count <= 80, f"Unexpected distribution: {enabled_count}/100 enabled"
+
+    def test_is_enabled_zero_percentage_returns_false(self):
+        """RedisBackend 0% rollout always returns False (FLAG-03)."""
+        redis_mod = pytest.importorskip("redis")
+        backend, mock_client = self._make_redis_backend()
+        flag_data = self._make_flag_data(key="zero-flag", percentage=0)
+        import orjson
+        serialized = orjson.dumps(flag_data).decode()
+        mock_client.get.return_value = serialized.encode()
+
+        for i in range(10):
+            user = make_mock_user(pk=i)
+            assert backend.is_enabled("zero-flag", user=user) is False
+
+    def test_is_enabled_full_percentage_returns_true(self):
+        """RedisBackend 100% rollout always returns True (FLAG-03)."""
+        redis_mod = pytest.importorskip("redis")
+        backend, mock_client = self._make_redis_backend()
+        flag_data = self._make_flag_data(key="full-flag", percentage=100)
+        import orjson
+        serialized = orjson.dumps(flag_data).decode()
+        mock_client.get.return_value = serialized.encode()
+
+        for i in range(10):
+            user = make_mock_user(pk=i)
+            assert backend.is_enabled("full-flag", user=user) is True
+
+
+# ==============================================================================
+# LaunchDarklyBackend (skipped when ldclient not installed)
+# ==============================================================================
+
+
+class TestLaunchDarklyBackend:
+    def test_is_enabled_delegates_to_ldclient(self):
+        """LaunchDarklyBackend.is_enabled() delegates to ldclient.get().variation() (FLAG-04)."""
+        ldclient = pytest.importorskip("ldclient")
+        from django_matt.flags.backends import LaunchDarklyBackend
+
+        mock_ld_client = MagicMock()
+        mock_ld_client.is_initialized.return_value = True
+        mock_ld_client.variation.return_value = True
+
+        # Inject the mock client directly to avoid real SDK initialization
+        backend = LaunchDarklyBackend.__new__(LaunchDarklyBackend)
+        backend.sdk_key = "fake-sdk-key"
+        backend._config = {}
+        backend._client = mock_ld_client
+
+        user = make_mock_user(pk=1, email="user@example.com")
+
+        # Patch Context builder so we don't need a live SDK
+        mock_context = MagicMock()
+        with patch("django_matt.flags.backends.LaunchDarklyBackend._build_context", return_value=mock_context):
+            result = backend.is_enabled("flag-key", user=user)
+
+        assert result is True
+        mock_ld_client.variation.assert_called_once_with("flag-key", mock_context, False)
+
+    def test_get_variant_delegates_to_ldclient(self):
+        """LaunchDarklyBackend.get_variant() delegates to ldclient.variation() (FLAG-04)."""
+        ldclient = pytest.importorskip("ldclient")
+        from django_matt.flags.backends import LaunchDarklyBackend
+
+        mock_ld_client = MagicMock()
+        mock_ld_client.variation.return_value = "treatment_a"
+
+        backend = LaunchDarklyBackend.__new__(LaunchDarklyBackend)
+        backend.sdk_key = "fake-sdk-key"
+        backend._config = {}
+        backend._client = mock_ld_client
+
+        user = make_mock_user(pk=1)
+        mock_context = MagicMock()
+        with patch("django_matt.flags.backends.LaunchDarklyBackend._build_context", return_value=mock_context):
+            result = backend.get_variant("flag-key", user=user, default="control")
+
+        assert result == "treatment_a"
+        mock_ld_client.variation.assert_called_once_with("flag-key", mock_context, "control")
+
+    def test_invalidate_is_noop(self):
+        """LaunchDarklyBackend.invalidate() is a no-op (LD manages its own cache) (FLAG-04)."""
+        ldclient = pytest.importorskip("ldclient")
+        from django_matt.flags.backends import LaunchDarklyBackend
+
+        backend = LaunchDarklyBackend.__new__(LaunchDarklyBackend)
+        backend.sdk_key = "fake-sdk-key"
+        backend._config = {}
+        backend._client = None
+        # Should not raise
+        backend.invalidate("some-flag")
+        backend.invalidate_all()
+
+    def test_missing_sdk_raises_import_error(self):
+        """LaunchDarklyBackend raises ImportError when ldclient not installed (FLAG-04)."""
+        from django_matt.flags.backends import LaunchDarklyBackend
+
+        backend = LaunchDarklyBackend.__new__(LaunchDarklyBackend)
+        backend.sdk_key = "fake-sdk-key"
+        backend._config = {}
+        backend._client = None
+
+        with patch.dict("sys.modules", {"ldclient": None, "ldclient.config": None}), pytest.raises(
+            ImportError, match="launchdarkly-server-sdk is required"
+        ):
+            _ = backend.client
+
+
+# ==============================================================================
+# UnleashBackend (skipped when UnleashClient not installed)
+# ==============================================================================
+
+
+class TestUnleashBackend:
+    def test_is_enabled_delegates_to_unleash_client(self):
+        """UnleashBackend.is_enabled() delegates to UnleashClient.is_enabled() (FLAG-05)."""
+        UnleashClient = pytest.importorskip("UnleashClient")
+        from django_matt.flags.backends import UnleashBackend
+
+        mock_unleash = MagicMock()
+        mock_unleash.is_enabled.return_value = True
+
+        backend = UnleashBackend.__new__(UnleashBackend)
+        backend.url = "http://unleash.example.com"
+        backend.app_name = "test-app"
+        backend.instance_id = None
+        backend.custom_headers = {}
+        backend._client = mock_unleash
+
+        user = make_mock_user(pk=1)
+        result = backend.is_enabled("my-flag", user=user)
+
+        assert result is True
+        # Verify delegation: context should include userId
+        call_args = mock_unleash.is_enabled.call_args
+        assert call_args[0][0] == "my-flag"  # first positional arg is flag key
+        context_arg = call_args[0][1]  # second positional arg is context dict
+        assert context_arg.get("userId") == "1"
+
+    def test_get_variant_delegates_to_unleash_client(self):
+        """UnleashBackend.get_variant() delegates to UnleashClient.get_variant() (FLAG-05)."""
+        UnleashClient = pytest.importorskip("UnleashClient")
+        from django_matt.flags.backends import UnleashBackend
+
+        mock_unleash = MagicMock()
+        mock_unleash.get_variant.return_value = {"enabled": True, "name": "v2"}
+
+        backend = UnleashBackend.__new__(UnleashBackend)
+        backend.url = "http://unleash.example.com"
+        backend.app_name = "test-app"
+        backend.instance_id = None
+        backend.custom_headers = {}
+        backend._client = mock_unleash
+
+        user = make_mock_user(pk=1)
+        result = backend.get_variant("experiment-flag", user=user, default="control")
+
+        assert result == "v2"
+        mock_unleash.get_variant.assert_called_once()
+
+    def test_invalidate_is_noop(self):
+        """UnleashBackend.invalidate() is a no-op (Unleash manages its own polling) (FLAG-05)."""
+        UnleashClient = pytest.importorskip("UnleashClient")
+        from django_matt.flags.backends import UnleashBackend
+
+        backend = UnleashBackend.__new__(UnleashBackend)
+        backend.url = "http://unleash.example.com"
+        backend.app_name = "test-app"
+        backend.instance_id = None
+        backend.custom_headers = {}
+        backend._client = None
+        # Should not raise
+        backend.invalidate("some-flag")
+        backend.invalidate_all()
+
+    def test_missing_sdk_raises_import_error(self):
+        """UnleashBackend raises ImportError when UnleashClient not installed (FLAG-05)."""
+        from django_matt.flags.backends import UnleashBackend
+
+        backend = UnleashBackend.__new__(UnleashBackend)
+        backend.url = "http://unleash.example.com"
+        backend.app_name = "test-app"
+        backend.instance_id = None
+        backend.custom_headers = {}
+        backend._client = None
+
+        with patch.dict("sys.modules", {"UnleashClient": None}), pytest.raises(
+            ImportError, match="UnleashClient is required"
+        ):
+            _ = backend.client
+
+
+# ==============================================================================
+# FlagMiddleware
+# ==============================================================================
+
+
+class TestFlagMiddleware:
+    def test_middleware_sets_flag_context_on_request(self):
+        """FlagMiddleware sets flag context on request.flag_context (FLAG-07)."""
+        from django_matt.flags.middleware import FlagMiddleware
+
+        def get_response(request):
+            # Verify flag_context was set on request
+            assert hasattr(request, "flag_context")
+            assert isinstance(request.flag_context, FlagContext)
+            from django.http import HttpResponse
+            return HttpResponse("ok")
+
+        middleware = FlagMiddleware(get_response)
+        user = make_mock_user()
+        request = make_request(user=user)
+
+        response = middleware(request)
+        assert response.status_code == 200
+
+    def test_middleware_handles_anonymous_user(self):
+        """FlagMiddleware handles anonymous user without crashing (FLAG-07)."""
+        from django_matt.flags.middleware import FlagMiddleware
+
+        def get_response(request):
+            # Must have flag_context even for anonymous users
+            assert hasattr(request, "flag_context")
+            ctx = request.flag_context
+            assert ctx.user is None  # anonymous → no user on context
+            from django.http import HttpResponse
+            return HttpResponse("ok")
+
+        middleware = FlagMiddleware(get_response)
+        request = make_request()  # No authenticated user
+
+        response = middleware(request)
+        assert response.status_code == 200
+
+    def test_middleware_sets_contextvar_for_downstream(self):
+        """FlagMiddleware sets ContextVar so get_current_context() works in views (FLAG-07)."""
+        from django_matt.flags.middleware import FlagMiddleware
+
+        captured_ctx = []
+
+        def get_response(request):
+            ctx = get_current_context()
+            captured_ctx.append(ctx)
+            from django.http import HttpResponse
+            return HttpResponse("ok")
+
+        middleware = FlagMiddleware(get_response)
+        request = make_request(user=make_mock_user())
+
+        middleware(request)
+        assert len(captured_ctx) == 1
+        assert captured_ctx[0] is not None
+        # After request, context should be cleared
+        assert get_current_context() is None
+
+    def test_middleware_includes_organization_from_request(self):
+        """FlagMiddleware includes organization from request.organization (FLAG-07)."""
+        from django_matt.flags.middleware import FlagMiddleware
+
+        captured_ctx = []
+
+        def get_response(request):
+            captured_ctx.append(request.flag_context)
+            from django.http import HttpResponse
+            return HttpResponse("ok")
+
+        middleware = FlagMiddleware(get_response)
+        user = make_mock_user()
+        request = make_request(user=user)
+
+        # Simulate multitenancy middleware setting request.organization
+        org = MagicMock()
+        org.pk = "org-456"
+        request.organization = org
+
+        middleware(request)
+        assert len(captured_ctx) == 1
+        # Organization should be captured from request.organization
+        assert captured_ctx[0].organization is org
+
+    def test_middleware_clears_context_after_request(self):
+        """FlagMiddleware clears ContextVar after request completes (FLAG-07)."""
+        from django_matt.flags.middleware import FlagMiddleware
+
+        def get_response(request):
+            from django.http import HttpResponse
+            return HttpResponse("ok")
+
+        middleware = FlagMiddleware(get_response)
+        request = make_request()
+
+        middleware(request)
+        # Context must be cleared after response
+        assert get_current_context() is None
 
 
 # ==============================================================================
