@@ -44,12 +44,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Developer Experience
 
-- [ ] **DX-01**: `startapi` CLI command scaffolds new project with template selection (basic, b2b, etc.)
-- [ ] **DX-02**: `generate_crud` CLI command generates controller, schema, service, admin, and tests from model
-- [ ] **DX-03**: `sync_types` generates TypeScript types from Django models and Pydantic schemas
-- [ ] **DX-04**: `sync_types` generates Swift types for iOS/macOS clients
-- [ ] **DX-05**: `sync_types` generates Zod schemas for frontend runtime validation
-- [ ] **DX-06**: `generate_ai_context` exports project structure, types, routes for LLM consumption
+- [x] **DX-01**: `startapi` CLI command scaffolds new project with template selection (basic, b2b, etc.)
+- [x] **DX-02**: `generate_crud` CLI command generates controller, schema, service, admin, and tests from model
+- [x] **DX-03**: `sync_types` generates TypeScript types from Django models and Pydantic schemas
+- [x] **DX-04**: `sync_types` generates Swift types for iOS/macOS clients
+- [x] **DX-05**: `sync_types` generates Zod schemas for frontend runtime validation
+- [x] **DX-06**: `generate_ai_context` exports project structure, types, routes for LLM consumption
 - [ ] **DX-07**: Rich CLI with `matt info`, `doctor`, `routes`, `models`, `new` commands
 - [ ] **DX-08**: CLI migration tool rewrites django-ninja imports/patterns to django-matt with TODO markers
 - [ ] **DX-09**: Async test client with `force_authenticate()` using async token creation
@@ -254,12 +254,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-11 | Phase 4 | Pending |
 | AUTH-12 | Phase 4 | Pending |
 | AUTH-13 | Phase 4 | Pending |
-| DX-01 | Phase 3 | Pending |
-| DX-02 | Phase 3 | Pending |
-| DX-03 | Phase 3 | Pending |
-| DX-04 | Phase 3 | Pending |
-| DX-05 | Phase 3 | Pending |
-| DX-06 | Phase 3 | Pending |
+| DX-01 | Phase 3 | Complete |
+| DX-02 | Phase 3 | Complete |
+| DX-03 | Phase 3 | Complete |
+| DX-04 | Phase 3 | Complete |
+| DX-05 | Phase 3 | Complete |
+| DX-06 | Phase 3 | Complete |
 | DX-07 | Phase 3 | Pending |
 | DX-08 | Phase 3 | Pending |
 | DX-09 | Phase 3 | Pending |

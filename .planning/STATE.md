@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-03-08T01:43:26.642Z"
+stopped_at: Completed 03-cli-and-type-generation-01-PLAN.md
+last_updated: "2026-03-08T01:51:40.129Z"
 last_activity: 2026-03-07 — Roadmap created; 101 requirements mapped to 7 phases
 progress:
   total_phases: 7
   completed_phases: 2
   total_plans: 10
-  completed_plans: 8
+  completed_plans: 9
   percent: 0
 ---
 
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02-performance-baseline P03 | 15 | 2 tasks | 6 files |
 | Phase 03-cli-and-type-generation P03 | 2 | 2 tasks | 1 files |
 | Phase 03-cli-and-type-generation P02 | 436 | 2 tasks | 6 files |
+| Phase 03-cli-and-type-generation P01 | 15 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,9 @@ Recent decisions affecting current work:
 - [Phase 03-cli-and-type-generation]: CORE-11 implementation was already correct; only missing test coverage — 9 dedicated tests added to lock in static-before-parameterized URL ordering
 - [Phase 03-cli-and-type-generation]: sync_types --from-openapi triggers live OpenAPISchema.build(); --openapi-file reads pre-built spec for CI use case
 - [Phase 03-cli-and-type-generation]: generate_ai_context --depth (minimal/standard/full) drives max_endpoints/max_models/max_schemas via depth_config dict; minimal routes-only sets model/schema counts to 0
+- [Phase 03-cli-and-type-generation]: isort section ordering for generated code: stdlib -> django -> third-party -> first-party -> local-folder (matches project ruff config)
+- [Phase 03-cli-and-type-generation]: Generated tests omit @pytest.mark.asyncio — project uses asyncio_mode=auto globally
+- [Phase 03-cli-and-type-generation]: startapi CLAUDE.md and CI config generation scoped to b2b/saas templates only
 
 ### Pending Todos
 
@@ -100,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-08T01:43:26.635Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-03-08T01:51:40.123Z
+Stopped at: Completed 03-cli-and-type-generation-01-PLAN.md
 Resume file: None
