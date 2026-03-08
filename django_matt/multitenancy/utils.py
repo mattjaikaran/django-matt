@@ -1,5 +1,8 @@
 """
 Utility functions for multi-tenancy operations.
+
+Provides both sync (for management commands and non-async contexts) and async
+(for ASGI controllers and async views) variants of key utility functions.
 """
 
 from typing import TYPE_CHECKING, Optional
@@ -109,6 +112,8 @@ def user_is_org_admin(user: "AbstractUser", organization: "Organization") -> boo
     """
     Check if a user is an admin (or owner) of an organization.
 
+    Sync version — safe for management commands and non-async contexts.
+
     Args:
         user: The user to check
         organization: The organization
@@ -124,9 +129,32 @@ def user_is_org_admin(user: "AbstractUser", organization: "Organization") -> boo
     ).exists()
 
 
+async def auser_is_org_admin(user: "AbstractUser", organization: "Organization") -> bool:
+    """
+    Async check if a user is an admin (or owner) of an organization.
+
+    Async version — use this in async controllers and views.
+
+    Args:
+        user: The user to check
+        organization: The organization
+
+    Returns:
+        True if user is admin or owner
+    """
+    from django_matt.multitenancy.models import MembershipRole
+
+    return await organization.memberships.filter(
+        user=user,
+        role__in=[MembershipRole.OWNER.value, MembershipRole.ADMIN.value],
+    ).aexists()
+
+
 def user_is_org_owner(user: "AbstractUser", organization: "Organization") -> bool:
     """
     Check if a user is the owner of an organization.
+
+    Sync version — safe for management commands and non-async contexts.
 
     Args:
         user: The user to check
@@ -143,6 +171,27 @@ def user_is_org_owner(user: "AbstractUser", organization: "Organization") -> boo
     ).exists()
 
 
+async def auser_is_org_owner(user: "AbstractUser", organization: "Organization") -> bool:
+    """
+    Async check if a user is the owner of an organization.
+
+    Async version — use this in async controllers and views.
+
+    Args:
+        user: The user to check
+        organization: The organization
+
+    Returns:
+        True if user is owner
+    """
+    from django_matt.multitenancy.models import MembershipRole
+
+    return await organization.memberships.filter(
+        user=user,
+        role=MembershipRole.OWNER.value,
+    ).aexists()
+
+
 def user_can_manage_team(
     user: "AbstractUser",
     team: "Team",
@@ -153,6 +202,8 @@ def user_can_manage_team(
     A user can manage a team if they are:
     - An owner or admin of the organization
     - An owner or admin of the team
+
+    Sync version — safe for management commands and non-async contexts.
 
     Args:
         user: The user to check
@@ -172,6 +223,39 @@ def user_can_manage_team(
         user=user,
         role__in=[MembershipRole.OWNER.value, MembershipRole.ADMIN.value],
     ).exists()
+
+
+async def auser_can_manage_team(
+    user: "AbstractUser",
+    team: "Team",
+) -> bool:
+    """
+    Async check if a user can manage a team.
+
+    A user can manage a team if they are:
+    - An owner or admin of the organization
+    - An owner or admin of the team
+
+    Async version — use this in async controllers and views.
+
+    Args:
+        user: The user to check
+        team: The team
+
+    Returns:
+        True if user can manage the team
+    """
+    from django_matt.multitenancy.models import MembershipRole
+
+    # Check organization-level access first
+    if await auser_is_org_admin(user, team.organization):
+        return True
+
+    # Check team-level access
+    return await team.memberships.filter(
+        user=user,
+        role__in=[MembershipRole.OWNER.value, MembershipRole.ADMIN.value],
+    ).aexists()
 
 
 def user_has_org_permission(
@@ -211,6 +295,8 @@ def create_organization_with_owner(
     """
     Create a new organization with the specified user as owner.
 
+    Sync version — safe for management commands, fixtures, and non-async contexts.
+
     Args:
         name: Organization name
         slug: Organization slug
@@ -229,6 +315,43 @@ def create_organization_with_owner(
     )
 
     organization.add_member(user=owner, role=MembershipRole.OWNER.value)
+
+    return organization
+
+
+async def acreate_organization_with_owner(
+    name: str,
+    slug: str,
+    owner: "AbstractUser",
+    **kwargs,
+) -> "Organization":
+    """
+    Async create a new organization with the specified user as owner.
+
+    Async version — use this in async controllers and views.
+
+    Args:
+        name: Organization name
+        slug: Organization slug
+        owner: User to set as owner
+        **kwargs: Additional fields for Organization
+
+    Returns:
+        The created Organization
+    """
+    from django_matt.multitenancy.models import Membership, MembershipRole, Organization
+
+    organization = await Organization.objects.acreate(
+        name=name,
+        slug=slug,
+        **kwargs,
+    )
+
+    await Membership.objects.acreate(
+        organization=organization,
+        user=owner,
+        role=MembershipRole.OWNER.value,
+    )
 
     return organization
 

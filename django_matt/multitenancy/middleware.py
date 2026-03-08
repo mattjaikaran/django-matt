@@ -134,12 +134,14 @@ class TenantMiddleware:
 
     def _resolve_from_header(self, request: HttpRequest, Organization) -> Optional["Organization"]:
         """Resolve tenant from request headers."""
+        from django.core.exceptions import ValidationError
+
         # Try ID header first
         org_id = request.headers.get(self.header_id)
         if org_id:
             try:
                 return Organization.objects.filter(id=org_id, is_active=True).first()
-            except (ValueError, Organization.DoesNotExist):
+            except (ValueError, ValidationError, Organization.DoesNotExist):
                 pass
 
         # Try slug header
@@ -257,11 +259,13 @@ class TenantMiddlewareAsync:
         self, request: HttpRequest, Organization
     ) -> Optional["Organization"]:
         """Resolve tenant from request headers."""
+        from django.core.exceptions import ValidationError
+
         org_id = request.headers.get(self.header_id)
         if org_id:
             try:
                 return await Organization.objects.filter(id=org_id, is_active=True).afirst()
-            except (ValueError, Organization.DoesNotExist):
+            except (ValueError, ValidationError, Organization.DoesNotExist):
                 pass
 
         org_slug = request.headers.get(self.header_slug)

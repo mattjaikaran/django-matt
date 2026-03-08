@@ -1254,43 +1254,43 @@ class TestDecorators:
 # Controller tests
 # ---------------------------------------------------------------------------
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestOrganizationController:
-    def test_list_unauthenticated(self, rf):
+    async def test_list_unauthenticated(self, rf):
         from django_matt.multitenancy.controllers import OrganizationController
 
         controller = OrganizationController()
         request = rf.get("/")
         request.user = MagicMock(is_authenticated=False)
-        resp = controller.list(request)
+        resp = await controller.list(request)
         assert resp.status_code == 401
 
-    def test_list_returns_user_orgs(self, rf, org_with_members, owner):
+    async def test_list_returns_user_orgs(self, rf, org_with_members, owner):
         from django_matt.multitenancy.controllers import OrganizationController
 
         controller = OrganizationController()
         request = rf.get("/")
         request.user = owner
-        resp = controller.list(request)
+        resp = await controller.list(request)
         assert resp.status_code == 200
         import json
         data = json.loads(resp.content)
         slugs = [o["slug"] for o in data]
         assert "acme-corp" in slugs
 
-    def test_create_organization(self, rf, db):
+    async def test_create_organization(self, rf):
         from django_matt.multitenancy.controllers import OrganizationController
 
-        user = User.objects.create_user(username="creator", email="c@example.com", password="pass")
+        user = await User.objects.acreate(username="creator", email="c@example.com", password="pass")
         controller = OrganizationController()
         request = rf.post("/")
         request.user = user
         data = OrganizationCreate(name="New Corp", slug="new-corp")
-        resp = controller.create(request, data)
+        resp = await controller.create(request, data)
         assert resp.status_code == 201
-        assert Organization.objects.filter(slug="new-corp").exists()
+        assert await Organization.objects.filter(slug="new-corp").aexists()
 
-    def test_create_duplicate_slug_raises(self, rf, org, owner):
+    async def test_create_duplicate_slug_raises(self, rf, org, owner):
         from django_matt.multitenancy.controllers import OrganizationController, ConflictError
 
         controller = OrganizationController()
@@ -1298,82 +1298,81 @@ class TestOrganizationController:
         request.user = owner
         data = OrganizationCreate(name="Dupe", slug="acme-corp")
         with pytest.raises(ConflictError):
-            controller.create(request, data)
+            await controller.create(request, data)
 
-    def test_retrieve_organization(self, rf, org_with_members, owner):
+    async def test_retrieve_organization(self, rf, org_with_members, owner):
         from django_matt.multitenancy.controllers import OrganizationController
 
         controller = OrganizationController()
         request = rf.get("/")
         request.user = owner
-        resp = controller.retrieve(request, str(org_with_members.id))
+        resp = await controller.retrieve(request, str(org_with_members.id))
         assert resp.status_code == 200
 
-    def test_retrieve_non_member_forbidden(self, rf, org, outsider):
-        from django_matt.multitenancy.controllers import OrganizationController, ForbiddenError
+    async def test_retrieve_non_member_forbidden(self, rf, org, outsider):
+        from django_matt.multitenancy.controllers import OrganizationController
 
         controller = OrganizationController()
         request = rf.get("/")
         request.user = outsider
-        with pytest.raises(ForbiddenError):
-            controller.retrieve(request, str(org.id))
+        resp = await controller.retrieve(request, str(org.id))
+        assert resp.status_code == 403
 
-    def test_retrieve_invalid_uuid(self, rf, owner):
+    async def test_retrieve_invalid_uuid(self, rf, owner):
         from django_matt.multitenancy.controllers import OrganizationController
-        from django_matt.core.errors import NotFoundAPIError
 
         controller = OrganizationController()
         request = rf.get("/")
         request.user = owner
-        with pytest.raises(NotFoundAPIError):
-            controller.retrieve(request, "not-a-uuid")
+        resp = await controller.retrieve(request, "not-a-uuid")
+        assert resp.status_code == 403
 
-    def test_update_as_admin(self, rf, org_with_members, admin_user):
+    async def test_update_as_admin(self, rf, org_with_members, admin_user):
         from django_matt.multitenancy.controllers import OrganizationController
 
         controller = OrganizationController()
         request = rf.put("/")
         request.user = admin_user
         data = OrganizationUpdate(name="Updated Corp")
-        resp = controller.update(request, str(org_with_members.id), data)
+        resp = await controller.update(request, str(org_with_members.id), data)
         assert resp.status_code == 200
-        org_with_members.refresh_from_db()
+        await org_with_members.arefresh_from_db()
         assert org_with_members.name == "Updated Corp"
 
-    def test_update_as_member_forbidden(self, rf, org_with_members, member_user):
-        from django_matt.multitenancy.controllers import OrganizationController, ForbiddenError
+    async def test_update_as_member_forbidden(self, rf, org_with_members, member_user):
+        from django_matt.multitenancy.controllers import OrganizationController
 
         controller = OrganizationController()
         request = rf.put("/")
         request.user = member_user
         data = OrganizationUpdate(name="Nope")
-        with pytest.raises(ForbiddenError):
-            controller.update(request, str(org_with_members.id), data)
+        resp = await controller.update(request, str(org_with_members.id), data)
+        assert resp.status_code == 403
 
-    def test_delete_as_owner(self, rf, org_with_members, owner):
+    async def test_delete_as_owner(self, rf, org_with_members, owner):
         from django_matt.multitenancy.controllers import OrganizationController
 
         controller = OrganizationController()
         request = rf.delete("/")
         request.user = owner
         org_id = str(org_with_members.id)
-        resp = controller.delete(request, org_id)
+        resp = await controller.delete(request, org_id)
         assert resp.status_code == 200
-        assert Organization.objects.filter(id=org_id).exists() is False
+        assert await Organization.objects.filter(id=org_id).aexists() is False
 
-    def test_delete_as_admin_forbidden(self, rf, org_with_members, admin_user):
-        from django_matt.multitenancy.controllers import OrganizationController, ForbiddenError
+    async def test_delete_as_admin_forbidden(self, rf, org_with_members, admin_user):
+        from django_matt.multitenancy.controllers import OrganizationController
 
         controller = OrganizationController()
         request = rf.delete("/")
         request.user = admin_user
-        with pytest.raises(ForbiddenError):
-            controller.delete(request, str(org_with_members.id))
+        resp = await controller.delete(request, str(org_with_members.id))
+        assert resp.status_code == 403
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestMembershipController:
-    def test_list_members(self, rf, org_with_members, owner):
+    async def test_list_members(self, rf, org_with_members, owner):
         """Verify that the list endpoint queries the correct memberships.
 
         Note: The controller constructs MemberResponse with user_id as UUID,
@@ -1383,14 +1382,14 @@ class TestMembershipController:
         memberships = Membership.objects.filter(
             organization=org_with_members,
         ).select_related("user")
-        assert memberships.count() == 4
-        roles = set(memberships.values_list("role", flat=True))
+        assert await memberships.acount() == 4
+        roles = set([m.role async for m in memberships])
         assert MembershipRole.OWNER.value in roles
         assert MembershipRole.ADMIN.value in roles
         assert MembershipRole.MEMBER.value in roles
         assert MembershipRole.VIEWER.value in roles
 
-    def test_update_member_role(self, rf, org_with_members, owner, member_user):
+    async def test_update_member_role(self, rf, org_with_members, owner, member_user):
         """Owner can promote a member to admin.
 
         Note: The controller's update() constructs MembershipResponse with
@@ -1400,200 +1399,204 @@ class TestMembershipController:
         from django_matt.multitenancy.controllers import MembershipController
 
         controller = MembershipController()
-        membership = Membership.objects.get(
+        membership = await Membership.objects.aget(
             organization=org_with_members, user=member_user
         )
         request = rf.put("/")
         request.user = owner
+        request.organization = org_with_members
         data = MembershipUpdate(role=MembershipRole.ADMIN.value)
         # The controller's update will fail at the schema serialization step
         # because Django User has int PK but schema expects UUID.
         # We test the actual role update logic by catching the Pydantic error
         # and verifying the DB was updated.
         try:
-            resp = controller.update(request, str(membership.id), data)
+            resp = await controller.update(request, str(membership.id), data)
             assert resp.status_code == 200
         except Exception:
             # Schema serialization may fail with int PKs; verify DB state
             pass
-        membership.refresh_from_db()
+        await membership.arefresh_from_db()
         assert membership.role == MembershipRole.ADMIN.value
 
-    def test_update_member_role_as_non_admin_forbidden(self, rf, org_with_members, member_user, viewer_user):
+    async def test_update_member_role_as_non_admin_forbidden(self, rf, org_with_members, member_user, viewer_user):
         from django_matt.multitenancy.controllers import MembershipController, ForbiddenError
 
         controller = MembershipController()
-        membership = Membership.objects.get(
+        membership = await Membership.objects.aget(
             organization=org_with_members, user=viewer_user
         )
         request = rf.put("/")
         request.user = member_user
+        request.organization = org_with_members
         data = MembershipUpdate(role=MembershipRole.ADMIN.value)
         with pytest.raises(ForbiddenError):
-            controller.update(request, str(membership.id), data)
+            await controller.update(request, str(membership.id), data)
 
-    def test_cannot_assign_role_above_own(self, rf, org_with_members, admin_user, member_user):
+    async def test_cannot_assign_role_above_own(self, rf, org_with_members, admin_user, member_user):
         from django_matt.multitenancy.controllers import MembershipController, ForbiddenError
 
         controller = MembershipController()
-        membership = Membership.objects.get(
+        membership = await Membership.objects.aget(
             organization=org_with_members, user=member_user
         )
         request = rf.put("/")
         request.user = admin_user
+        request.organization = org_with_members
         data = MembershipUpdate(role=MembershipRole.OWNER.value)
         with pytest.raises(ForbiddenError):
-            controller.update(request, str(membership.id), data)
+            await controller.update(request, str(membership.id), data)
 
-    def test_delete_member(self, rf, org_with_members, owner, viewer_user):
+    async def test_delete_member(self, rf, org_with_members, owner, viewer_user):
         from django_matt.multitenancy.controllers import MembershipController
 
         controller = MembershipController()
-        membership = Membership.objects.get(
+        membership = await Membership.objects.aget(
             organization=org_with_members, user=viewer_user
         )
         request = rf.delete("/")
         request.user = owner
-        resp = controller.delete(request, str(membership.id))
+        request.organization = org_with_members
+        resp = await controller.delete(request, str(membership.id))
         assert resp.status_code == 200
-        assert Membership.objects.filter(
+        assert await Membership.objects.filter(
             organization=org_with_members, user=viewer_user
-        ).exists() is False
+        ).aexists() is False
 
-    def test_last_owner_cannot_remove_self(self, rf, org_with_members, owner):
+    async def test_last_owner_cannot_remove_self(self, rf, org_with_members, owner):
         from django_matt.multitenancy.controllers import MembershipController, ForbiddenError
 
         controller = MembershipController()
-        membership = Membership.objects.get(
+        membership = await Membership.objects.aget(
             organization=org_with_members, user=owner
         )
         request = rf.delete("/")
         request.user = owner
+        request.organization = org_with_members
         with pytest.raises(ForbiddenError, match="only owner"):
-            controller.delete(request, str(membership.id))
+            await controller.delete(request, str(membership.id))
 
-    def test_owner_can_remove_self_when_multiple_owners(self, rf, org_with_members, owner, admin_user):
+    async def test_owner_can_remove_self_when_multiple_owners(self, rf, org_with_members, owner, admin_user):
         from django_matt.multitenancy.controllers import MembershipController
 
         # Promote admin to owner so there are two owners
-        admin_membership = Membership.objects.get(
+        admin_membership = await Membership.objects.aget(
             organization=org_with_members, user=admin_user
         )
         admin_membership.role = MembershipRole.OWNER.value
-        admin_membership.save()
+        await admin_membership.asave()
 
         controller = MembershipController()
-        membership = Membership.objects.get(
+        membership = await Membership.objects.aget(
             organization=org_with_members, user=owner
         )
         request = rf.delete("/")
         request.user = owner
-        resp = controller.delete(request, str(membership.id))
+        request.organization = org_with_members
+        resp = await controller.delete(request, str(membership.id))
         assert resp.status_code == 200
 
-    def test_cannot_remove_higher_role(self, rf, org_with_members, admin_user, owner):
+    async def test_cannot_remove_higher_role(self, rf, org_with_members, admin_user, owner):
         from django_matt.multitenancy.controllers import MembershipController, ForbiddenError
 
         controller = MembershipController()
-        owner_membership = Membership.objects.get(
+        owner_membership = await Membership.objects.aget(
             organization=org_with_members, user=owner
         )
         request = rf.delete("/")
         request.user = admin_user
+        request.organization = org_with_members
         with pytest.raises(ForbiddenError):
-            controller.delete(request, str(owner_membership.id))
+            await controller.delete(request, str(owner_membership.id))
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestTeamController:
-    def test_create_team(self, rf, org_with_members, admin_user):
+    async def test_create_team(self, rf, org_with_members, admin_user):
         from django_matt.multitenancy.controllers import TeamController
 
         controller = TeamController()
         request = rf.post("/")
         request.user = admin_user
         request.organization = org_with_members
-        set_current_tenant(org_with_members)
-        try:
-            data = TeamCreate(name="Design", slug="design")
-            resp = controller.create(request, data)
-            assert resp.status_code == 201
-            assert Team.objects.filter(
-                organization=org_with_members, slug="design"
-            ).exists()
-        finally:
-            clear_current_tenant()
+        data = TeamCreate(name="Design", slug="design")
+        resp = await controller.create(request, data)
+        assert resp.status_code == 201
+        assert await Team.objects.filter(
+            organization=org_with_members, slug="design"
+        ).aexists()
 
-    def test_create_team_member_forbidden(self, rf, org_with_members, member_user):
+    async def test_create_team_member_forbidden(self, rf, org_with_members, member_user):
         from django_matt.multitenancy.controllers import TeamController, ForbiddenError
 
         controller = TeamController()
         request = rf.post("/")
         request.user = member_user
         request.organization = org_with_members
-        set_current_tenant(org_with_members)
-        try:
-            data = TeamCreate(name="Nope", slug="nope")
-            with pytest.raises(ForbiddenError):
-                controller.create(request, data)
-        finally:
-            clear_current_tenant()
+        data = TeamCreate(name="Nope", slug="nope")
+        with pytest.raises(ForbiddenError):
+            await controller.create(request, data)
 
-    def test_retrieve_team(self, rf, org_with_members, team, owner):
+    async def test_retrieve_team(self, rf, org_with_members, team, owner):
         from django_matt.multitenancy.controllers import TeamController
 
         controller = TeamController()
         request = rf.get("/")
         request.user = owner
-        resp = controller.retrieve(request, str(team.id))
+        request.organization = org_with_members
+        resp = await controller.retrieve(request, str(team.id))
         assert resp.status_code == 200
 
-    def test_retrieve_team_non_member_forbidden(self, rf, team, outsider):
-        from django_matt.multitenancy.controllers import TeamController, ForbiddenError
+    async def test_retrieve_team_non_member_forbidden(self, rf, team, outsider):
+        from django_matt.multitenancy.controllers import TeamController
 
         controller = TeamController()
         request = rf.get("/")
         request.user = outsider
-        with pytest.raises(ForbiddenError):
-            controller.retrieve(request, str(team.id))
+        request.organization = None
+        resp = await controller.retrieve(request, str(team.id))
+        assert resp.status_code == 403
 
-    def test_update_team(self, rf, org_with_members, team, admin_user):
+    async def test_update_team(self, rf, org_with_members, team, admin_user):
         from django_matt.multitenancy.controllers import TeamController
 
         controller = TeamController()
         request = rf.put("/")
         request.user = admin_user
+        request.organization = org_with_members
         data = TeamUpdate(name="Updated Team")
-        resp = controller.update(request, str(team.id), data)
+        resp = await controller.update(request, str(team.id), data)
         assert resp.status_code == 200
-        team.refresh_from_db()
+        await team.arefresh_from_db()
         assert team.name == "Updated Team"
 
-    def test_delete_team(self, rf, org_with_members, team, owner):
+    async def test_delete_team(self, rf, org_with_members, team, owner):
         from django_matt.multitenancy.controllers import TeamController
 
         controller = TeamController()
         request = rf.delete("/")
         request.user = owner
+        request.organization = org_with_members
         team_id = str(team.id)
-        resp = controller.delete(request, team_id)
+        resp = await controller.delete(request, team_id)
         assert resp.status_code == 200
-        assert Team.objects.filter(id=team_id).exists() is False
+        assert await Team.objects.filter(id=team_id).aexists() is False
 
-    def test_delete_team_member_forbidden(self, rf, org_with_members, team, member_user):
+    async def test_delete_team_member_forbidden(self, rf, org_with_members, team, member_user):
         from django_matt.multitenancy.controllers import TeamController, ForbiddenError
 
         controller = TeamController()
         request = rf.delete("/")
         request.user = member_user
+        request.organization = org_with_members
         with pytest.raises(ForbiddenError):
-            controller.delete(request, str(team.id))
+            await controller.delete(request, str(team.id))
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestInvitationController:
     @patch("django_matt.multitenancy.emails.send_invitation_email")
-    def test_create_invitation(self, mock_email, rf, org_with_members, owner):
+    async def test_create_invitation(self, mock_email, rf, org_with_members, owner):
         from django_matt.multitenancy.controllers import InvitationController
 
         mock_email.return_value = True
@@ -1601,47 +1604,39 @@ class TestInvitationController:
         request = rf.post("/")
         request.user = owner
         request.organization = org_with_members
-        set_current_tenant(org_with_members)
+        data = InvitationCreate(email="newinvite@example.com", role="member")
+        # Controller creates invitation then serializes via InvitationResponse.
+        # InvitationResponse expects invited_by_id as UUID but Django's
+        # built-in User has int PK. Catch serialization error, verify DB.
         try:
-            data = InvitationCreate(email="newinvite@example.com", role="member")
-            # Controller creates invitation then serializes via InvitationResponse.
-            # InvitationResponse expects invited_by_id as UUID but Django's
-            # built-in User has int PK. Catch serialization error, verify DB.
-            try:
-                resp = controller.create(request, data)
-                assert resp.status_code == 201
-            except Exception:
-                pass
-            assert Invitation.objects.filter(
-                organization=org_with_members,
-                email="newinvite@example.com",
-            ).exists()
-            mock_email.assert_called_once()
-        finally:
-            clear_current_tenant()
+            resp = await controller.create(request, data)
+            assert resp.status_code == 201
+        except Exception:
+            pass
+        assert await Invitation.objects.filter(
+            organization=org_with_members,
+            email="newinvite@example.com",
+        ).aexists()
+        mock_email.assert_called_once()
 
     @patch("django_matt.multitenancy.emails.send_invitation_email")
-    def test_create_invitation_non_admin_forbidden(self, mock_email, rf, org_with_members, member_user):
+    async def test_create_invitation_non_admin_forbidden(self, mock_email, rf, org_with_members, member_user):
         from django_matt.multitenancy.controllers import InvitationController, ForbiddenError
 
         controller = InvitationController()
         request = rf.post("/")
         request.user = member_user
         request.organization = org_with_members
-        set_current_tenant(org_with_members)
-        try:
-            data = InvitationCreate(email="nope@example.com")
-            with pytest.raises(ForbiddenError):
-                controller.create(request, data)
-        finally:
-            clear_current_tenant()
+        data = InvitationCreate(email="nope@example.com")
+        with pytest.raises(ForbiddenError):
+            await controller.create(request, data)
 
     @patch("django_matt.multitenancy.emails.send_invitation_email")
-    def test_create_invitation_duplicate_pending(self, mock_email, rf, org_with_members, owner):
+    async def test_create_invitation_duplicate_pending(self, mock_email, rf, org_with_members, owner):
         from django_matt.multitenancy.controllers import InvitationController, ConflictError
 
         mock_email.return_value = True
-        Invitation.objects.create(
+        await Invitation.objects.acreate(
             organization=org_with_members,
             email="dupe@example.com",
             invited_by=owner,
@@ -1651,35 +1646,27 @@ class TestInvitationController:
         request = rf.post("/")
         request.user = owner
         request.organization = org_with_members
-        set_current_tenant(org_with_members)
-        try:
-            data = InvitationCreate(email="dupe@example.com")
-            with pytest.raises(ConflictError):
-                controller.create(request, data)
-        finally:
-            clear_current_tenant()
+        data = InvitationCreate(email="dupe@example.com")
+        with pytest.raises(ConflictError):
+            await controller.create(request, data)
 
     @patch("django_matt.multitenancy.emails.send_invitation_email")
-    def test_create_invitation_existing_member_conflict(self, mock_email, rf, org_with_members, owner, member_user):
+    async def test_create_invitation_existing_member_conflict(self, mock_email, rf, org_with_members, owner, member_user):
         from django_matt.multitenancy.controllers import InvitationController, ConflictError
 
         controller = InvitationController()
         request = rf.post("/")
         request.user = owner
         request.organization = org_with_members
-        set_current_tenant(org_with_members)
-        try:
-            data = InvitationCreate(email=member_user.email)
-            with pytest.raises(ConflictError, match="already a member"):
-                controller.create(request, data)
-        finally:
-            clear_current_tenant()
+        data = InvitationCreate(email=member_user.email)
+        with pytest.raises(ConflictError, match="already a member"):
+            await controller.create(request, data)
 
-    def test_accept_invitation(self, rf, org, owner, outsider):
+    async def test_accept_invitation(self, rf, org, owner, outsider):
         from django_matt.multitenancy.controllers import InvitationController
         from django_matt.multitenancy.schemas import InvitationAcceptRequest
 
-        invitation = Invitation.objects.create(
+        invitation = await Invitation.objects.acreate(
             organization=org,
             email=outsider.email,
             role=MembershipRole.MEMBER.value,
@@ -1689,16 +1676,16 @@ class TestInvitationController:
         request = rf.post("/")
         request.user = outsider
         data = InvitationAcceptRequest(token=invitation.token)
-        resp = controller.accept(request, data)
+        resp = await controller.accept(request, data)
         assert resp.status_code == 200
-        assert org.is_member(outsider) is True
+        assert await Membership.objects.filter(organization=org, user=outsider).aexists() is True
 
-    def test_accept_expired_invitation(self, rf, org, owner, outsider):
+    async def test_accept_expired_invitation(self, rf, org, owner, outsider):
         from django_matt.multitenancy.controllers import InvitationController
         from django_matt.multitenancy.schemas import InvitationAcceptRequest
         from django_matt.core.errors import APIError
 
-        invitation = Invitation.objects.create(
+        invitation = await Invitation.objects.acreate(
             organization=org,
             email=outsider.email,
             invited_by=owner,
@@ -1709,12 +1696,12 @@ class TestInvitationController:
         request.user = outsider
         data = InvitationAcceptRequest(token=invitation.token)
         with pytest.raises(APIError):
-            controller.accept(request, data)
+            await controller.accept(request, data)
 
-    def test_revoke_invitation(self, rf, org_with_members, owner):
+    async def test_revoke_invitation(self, rf, org_with_members, owner):
         from django_matt.multitenancy.controllers import InvitationController
 
-        invitation = Invitation.objects.create(
+        invitation = await Invitation.objects.acreate(
             organization=org_with_members,
             email="revoke@example.com",
             invited_by=owner,
@@ -1722,15 +1709,16 @@ class TestInvitationController:
         controller = InvitationController()
         request = rf.delete("/")
         request.user = owner
-        resp = controller.delete(request, str(invitation.id))
+        request.organization = org_with_members
+        resp = await controller.delete(request, str(invitation.id))
         assert resp.status_code == 200
-        invitation.refresh_from_db()
+        await invitation.arefresh_from_db()
         assert invitation.status == InvitationStatus.REVOKED.value
 
-    def test_revoke_non_admin_forbidden(self, rf, org_with_members, member_user, owner):
+    async def test_revoke_non_admin_forbidden(self, rf, org_with_members, member_user, owner):
         from django_matt.multitenancy.controllers import InvitationController, ForbiddenError
 
-        invitation = Invitation.objects.create(
+        invitation = await Invitation.objects.acreate(
             organization=org_with_members,
             email="revokenon@example.com",
             invited_by=owner,
@@ -1738,15 +1726,16 @@ class TestInvitationController:
         controller = InvitationController()
         request = rf.delete("/")
         request.user = member_user
+        request.organization = org_with_members
         with pytest.raises(ForbiddenError):
-            controller.delete(request, str(invitation.id))
+            await controller.delete(request, str(invitation.id))
 
     @patch("django_matt.multitenancy.emails.send_invitation_email")
-    def test_resend_invitation(self, mock_email, rf, org_with_members, owner):
+    async def test_resend_invitation(self, mock_email, rf, org_with_members, owner):
         from django_matt.multitenancy.controllers import InvitationController
 
         mock_email.return_value = True
-        invitation = Invitation.objects.create(
+        invitation = await Invitation.objects.acreate(
             organization=org_with_members,
             email="resend@example.com",
             invited_by=owner,
@@ -1755,14 +1744,15 @@ class TestInvitationController:
         controller = InvitationController()
         request = rf.post("/")
         request.user = owner
+        request.organization = org_with_members
         # InvitationResponse expects invited_by_id as UUID but Django's
         # built-in User has int PK. Verify DB state instead.
         try:
-            resp = controller.resend(request, str(invitation.id))
+            resp = await controller.resend(request, str(invitation.id))
             assert resp.status_code == 200
         except Exception:
             pass
-        invitation.refresh_from_db()
+        await invitation.arefresh_from_db()
         assert invitation.token != old_token
         mock_email.assert_called_once()
 
@@ -1971,3 +1961,446 @@ class TestEdgeCases:
             slug="bare",
         )
         assert team.description is None
+
+
+# ---------------------------------------------------------------------------
+# TenantMiddlewareAsync tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db(transaction=True)
+class TestTenantMiddlewareAsync:
+    """Tests for TenantMiddlewareAsync — all 4 resolution strategies."""
+
+    def _make_middleware(self, get_response=None):
+        from django_matt.multitenancy.middleware import TenantMiddlewareAsync
+
+        if get_response is None:
+            async def default_get_response(request):
+                from django.http import HttpResponse
+                return HttpResponse("OK")
+            get_response = default_get_response
+
+        return TenantMiddlewareAsync(get_response)
+
+    async def test_resolve_from_header_by_id(self, rf, org):
+        """Middleware resolves org from X-Organization-ID header."""
+        from django_matt.multitenancy.middleware import TenantMiddlewareAsync
+
+        async def view(request):
+            from django.http import HttpResponse
+            assert request.organization is not None
+            assert request.organization.slug == org.slug
+            return HttpResponse("OK")
+
+        middleware = TenantMiddlewareAsync(view)
+        # Use sync RequestFactory — it correctly places HTTP_X_ORGANIZATION_ID in META
+        request = rf.get("/", HTTP_X_ORGANIZATION_ID=str(org.id))
+        request.user = MagicMock(is_authenticated=False)
+        request.resolver_match = None
+        response = await middleware(request)
+        assert response.status_code == 200
+
+    async def test_resolve_from_url_kwarg(self, rf, org):
+        """Middleware resolves org from URL org_slug kwarg."""
+        from django_matt.multitenancy.middleware import TenantMiddlewareAsync
+
+        async def view(request):
+            from django.http import HttpResponse
+            assert request.organization is not None
+            assert request.organization.id == org.id
+            return HttpResponse("OK")
+
+        middleware = TenantMiddlewareAsync(view)
+        request = rf.get(f"/orgs/{org.slug}/")
+        request.user = MagicMock(is_authenticated=False)
+        # Simulate URL resolver match with org_slug kwarg
+        resolver_match = MagicMock()
+        resolver_match.kwargs = {"org_slug": org.slug}
+        request.resolver_match = resolver_match
+        response = await middleware(request)
+        assert response.status_code == 200
+
+    async def test_resolve_from_session(self, rf, org):
+        """Middleware resolves org from session key."""
+        from django_matt.multitenancy.middleware import TenantMiddlewareAsync
+
+        async def view(request):
+            from django.http import HttpResponse
+            assert request.organization is not None
+            assert request.organization.id == org.id
+            return HttpResponse("OK")
+
+        middleware = TenantMiddlewareAsync(view)
+        request = rf.get("/")
+        request.user = MagicMock(is_authenticated=False)
+        request.session = {"current_organization_id": str(org.id)}
+        request.resolver_match = None
+        response = await middleware(request)
+        assert response.status_code == 200
+
+    async def test_resolve_from_user_membership_fallback(self, rf, org, owner):
+        """Middleware resolves org from user's first membership (fallback)."""
+        from django_matt.multitenancy.middleware import TenantMiddlewareAsync
+
+        async def view(request):
+            from django.http import HttpResponse
+            assert request.organization is not None
+            assert request.organization.id == org.id
+            return HttpResponse("OK")
+
+        middleware = TenantMiddlewareAsync(view)
+        request = rf.get("/")
+        request.user = owner
+        request.resolver_match = None
+        response = await middleware(request)
+        assert response.status_code == 200
+
+    async def test_unauthenticated_request_sets_none(self, rf):
+        """Unauthenticated request with no org hints results in request.organization = None."""
+        from django_matt.multitenancy.middleware import TenantMiddlewareAsync
+
+        async def view(request):
+            from django.http import HttpResponse
+            assert request.organization is None
+            return HttpResponse("OK")
+
+        middleware = TenantMiddlewareAsync(view)
+        request = rf.get("/")
+        request.user = MagicMock(is_authenticated=False)
+        request.resolver_match = None
+        response = await middleware(request)
+        assert response.status_code == 200
+
+    async def test_invalid_org_id_in_header_sets_none(self, rf):
+        """Invalid UUID in X-Organization-ID header results in request.organization = None."""
+        from django_matt.multitenancy.middleware import TenantMiddlewareAsync
+
+        async def view(request):
+            from django.http import HttpResponse
+            assert request.organization is None
+            return HttpResponse("OK")
+
+        middleware = TenantMiddlewareAsync(view)
+        request = rf.get("/", HTTP_X_ORGANIZATION_ID="not-a-uuid")
+        request.user = MagicMock(is_authenticated=False)
+        request.resolver_match = None
+        response = await middleware(request)
+        assert response.status_code == 200
+
+    async def test_inactive_org_not_resolved(self, rf):
+        """Inactive organization is not resolved from header."""
+        from django_matt.multitenancy.middleware import TenantMiddlewareAsync
+
+        inactive_org = await Organization.objects.acreate(
+            name="Inactive Org",
+            slug="inactive-test",
+            is_active=False,
+        )
+
+        async def view(request):
+            from django.http import HttpResponse
+            assert request.organization is None
+            return HttpResponse("OK")
+
+        middleware = TenantMiddlewareAsync(view)
+        request = rf.get("/", HTTP_X_ORGANIZATION_ID=str(inactive_org.id))
+        request.user = MagicMock(is_authenticated=False)
+        request.resolver_match = None
+        response = await middleware(request)
+        assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Cross-org isolation tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db(transaction=True)
+class TestCrossOrgIsolation:
+    """
+    Proves that cross-org data leakage is impossible.
+
+    Per user decision: resource outside user's org returns 403 Forbidden (not 404).
+    This is the explicit denial pattern for B2B SaaS.
+    """
+
+    async def test_member_cannot_access_other_org_team(self, rf, org_with_members, owner):
+        """User A cannot retrieve Team belonging to Org B — gets 403 Forbidden."""
+        from django_matt.multitenancy.controllers import TeamController
+
+        # Create Org B and a team in it
+        user_b = await User.objects.acreate(
+            username="user_b_isolation", email="b@isolation.example.com", password="pass"
+        )
+        org_b = await Organization.objects.acreate(name="Org B Isolation", slug="org-b-isolation")
+        await Membership.objects.acreate(
+            organization=org_b, user=user_b, role=MembershipRole.OWNER.value
+        )
+        team_b = await Team.objects.acreate(
+            organization=org_b, name="Org B Team", slug="org-b-team"
+        )
+
+        # User A (owner of org_with_members) tries to retrieve Org B's team
+        controller = TeamController()
+        request = rf.get("/")
+        request.user = owner
+        request.organization = org_with_members  # User A's org context
+
+        # Org-scoped filter: Team not in org_with_members → 403
+        resp = await controller.retrieve(request, str(team_b.id))
+        assert resp.status_code == 403, f"Expected 403, got {resp.status_code}"
+
+    async def test_member_sees_only_own_org_teams(self, rf, org_with_members, owner):
+        """TeamController.list returns only teams in request.organization."""
+        from django_matt.multitenancy.controllers import TeamController
+        import json
+
+        # Create a team in org_with_members
+        team_a = await Team.objects.acreate(
+            organization=org_with_members, name="Team A", slug="team-a-isolation"
+        )
+
+        # Create Org B with a separate team
+        user_b = await User.objects.acreate(
+            username="user_b_list", email="blist@isolation.example.com", password="pass"
+        )
+        org_b = await Organization.objects.acreate(name="Org B List", slug="org-b-list")
+        await Membership.objects.acreate(
+            organization=org_b, user=user_b, role=MembershipRole.OWNER.value
+        )
+        await Team.objects.acreate(organization=org_b, name="Team B", slug="team-b-isolation")
+
+        controller = TeamController()
+        request = rf.get("/")
+        request.user = owner
+        request.organization = org_with_members
+
+        resp = await controller.list(request)
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        slugs = [t["slug"] for t in data]
+        # Must see own org's team
+        assert "team-a-isolation" in slugs
+        # Must NOT see other org's team
+        assert "team-b-isolation" not in slugs
+
+    async def test_non_member_gets_403_on_org_scoped_endpoint(self, rf, org_with_members, outsider):
+        """User with no membership gets 403 when accessing org-scoped endpoint."""
+        from django_matt.multitenancy.controllers import TeamController
+
+        controller = TeamController()
+        request = rf.get("/")
+        request.user = outsider
+        request.organization = org_with_members
+
+        # The controller checks org admin for create — outsider is not even a member
+        from django_matt.multitenancy.controllers import ForbiddenError
+        from django_matt.multitenancy.schemas import TeamCreate
+        with pytest.raises(ForbiddenError):
+            await controller.create(request, TeamCreate(name="Infiltrate", slug="infiltrate"))
+
+    async def test_cross_org_org_list_isolation(self, rf, org_with_members, owner):
+        """OrganizationController.list returns only orgs where user has membership."""
+        from django_matt.multitenancy.controllers import OrganizationController
+        import json
+
+        # Create orgs that owner is NOT a member of
+        await Organization.objects.acreate(name="Hidden Org 1", slug="hidden-1")
+        await Organization.objects.acreate(name="Hidden Org 2", slug="hidden-2")
+
+        controller = OrganizationController()
+        request = rf.get("/")
+        request.user = owner
+        resp = await controller.list(request)
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        slugs = [o["slug"] for o in data]
+        # Only orgs where owner has membership
+        assert "acme-corp" in slugs
+        assert "hidden-1" not in slugs
+        assert "hidden-2" not in slugs
+
+    async def test_member_cannot_access_other_org_memberships(self, rf, org_with_members, owner):
+        """MembershipController.update on a cross-org membership returns 403."""
+        from django_matt.multitenancy.controllers import MembershipController
+
+        # Create Org B with a separate member
+        user_b = await User.objects.acreate(
+            username="user_b_membership", email="bmem@isolation.example.com", password="pass"
+        )
+        org_b = await Organization.objects.acreate(name="Org B Mem", slug="org-b-mem")
+        membership_b = await Membership.objects.acreate(
+            organization=org_b, user=user_b, role=MembershipRole.MEMBER.value
+        )
+
+        controller = MembershipController()
+        request = rf.put("/")
+        request.user = owner
+        request.organization = org_with_members  # User A's org context
+
+        from django_matt.multitenancy.schemas import MembershipUpdate
+        # Cross-org membership lookup — scoped filter returns nothing → 403
+        resp = await controller.update(request, str(membership_b.id), MembershipUpdate(role="admin"))
+        assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Async decorator tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.django_db(transaction=True)
+class TestAsyncDecorators:
+    """Tests that decorators correctly wrap async view functions."""
+
+    def _make_async_view(self):
+        """Create a dummy async view function for decorator testing."""
+        async def view(request, *args, **kwargs):
+            from django.http import JsonResponse
+            return JsonResponse({"ok": True})
+        return view
+
+    async def test_requires_organization_async_no_context(self, rf):
+        """requires_organization wraps async view — returns 400 without org context."""
+        from django_matt.multitenancy.decorators import requires_organization
+
+        view = requires_organization(self._make_async_view())
+        request = rf.get("/")
+        clear_current_tenant()
+        resp = await view(request)
+        assert resp.status_code == 400
+
+    async def test_requires_organization_async_with_context(self, rf, org):
+        """requires_organization wraps async view — passes through with org."""
+        from django_matt.multitenancy.decorators import requires_organization
+
+        view = requires_organization(self._make_async_view())
+        request = rf.get("/")
+        request.organization = org
+        set_current_tenant(org)
+        try:
+            resp = await view(request)
+            assert resp.status_code == 200
+        finally:
+            clear_current_tenant()
+
+    async def test_requires_org_membership_async_unauthenticated(self, rf):
+        """requires_org_membership async — 401 if unauthenticated."""
+        from django_matt.multitenancy.decorators import requires_org_membership
+
+        view = requires_org_membership(self._make_async_view())
+        request = rf.get("/")
+        request.user = MagicMock(is_authenticated=False)
+        resp = await view(request)
+        assert resp.status_code == 401
+
+    async def test_requires_org_membership_async_non_member(self, rf, org, outsider):
+        """requires_org_membership async — 403 for non-members."""
+        from django_matt.multitenancy.decorators import requires_org_membership
+
+        view = requires_org_membership(self._make_async_view())
+        request = rf.get("/")
+        request.user = outsider
+        request.organization = org
+        set_current_tenant(org)
+        try:
+            resp = await view(request)
+            assert resp.status_code == 403
+        finally:
+            clear_current_tenant()
+
+    async def test_requires_org_membership_async_success(self, rf, org_with_members, owner):
+        """requires_org_membership async — 200 for members."""
+        from django_matt.multitenancy.decorators import requires_org_membership
+
+        view = requires_org_membership(self._make_async_view())
+        request = rf.get("/")
+        request.user = owner
+        request.organization = org_with_members
+        set_current_tenant(org_with_members)
+        try:
+            resp = await view(request)
+            assert resp.status_code == 200
+        finally:
+            clear_current_tenant()
+
+    async def test_requires_org_admin_async_admin_passes(self, rf, org_with_members, admin_user):
+        """requires_org_admin async — admin role passes."""
+        from django_matt.multitenancy.decorators import requires_org_admin
+
+        view = requires_org_admin(self._make_async_view())
+        request = rf.get("/")
+        request.user = admin_user
+        request.organization = org_with_members
+        set_current_tenant(org_with_members)
+        try:
+            resp = await view(request)
+            assert resp.status_code == 200
+        finally:
+            clear_current_tenant()
+
+    async def test_requires_org_admin_async_member_fails(self, rf, org_with_members, member_user):
+        """requires_org_admin async — member role blocked."""
+        from django_matt.multitenancy.decorators import requires_org_admin
+
+        view = requires_org_admin(self._make_async_view())
+        request = rf.get("/")
+        request.user = member_user
+        request.organization = org_with_members
+        set_current_tenant(org_with_members)
+        try:
+            resp = await view(request)
+            assert resp.status_code == 403
+        finally:
+            clear_current_tenant()
+
+    async def test_requires_min_org_role_async_allows_higher(self, rf, org_with_members, owner):
+        """requires_min_org_role async — owner passes member threshold."""
+        from django_matt.multitenancy.decorators import requires_min_org_role
+
+        view = requires_min_org_role("member")(self._make_async_view())
+        request = rf.get("/")
+        request.user = owner
+        request.organization = org_with_members
+        set_current_tenant(org_with_members)
+        try:
+            resp = await view(request)
+            assert resp.status_code == 200
+        finally:
+            clear_current_tenant()
+
+    async def test_requires_min_org_role_async_viewer_blocked(self, rf, org_with_members, viewer_user):
+        """requires_min_org_role async — viewer blocked below member threshold."""
+        from django_matt.multitenancy.decorators import requires_min_org_role
+
+        view = requires_min_org_role("member")(self._make_async_view())
+        request = rf.get("/")
+        request.user = viewer_user
+        request.organization = org_with_members
+        set_current_tenant(org_with_members)
+        try:
+            resp = await view(request)
+            assert resp.status_code == 403
+        finally:
+            clear_current_tenant()
+
+    async def test_requires_team_membership_async_success(self, rf, org_with_members, team, owner):
+        """requires_team_membership async — team member passes."""
+        from django_matt.multitenancy.decorators import requires_team_membership
+        from asgiref.sync import sync_to_async
+
+        await sync_to_async(team.add_member)(owner)
+        view = requires_team_membership("team_id")(self._make_async_view())
+        request = rf.get("/")
+        request.user = owner
+        resp = await view(request, team_id=team.pk)
+        assert resp.status_code == 200
+        assert request.team == team
+
+    async def test_requires_team_membership_async_non_member_blocked(self, rf, team, outsider):
+        """requires_team_membership async — non-team-member blocked."""
+        from django_matt.multitenancy.decorators import requires_team_membership
+
+        view = requires_team_membership("team_id")(self._make_async_view())
+        request = rf.get("/")
+        request.user = outsider
+        resp = await view(request, team_id=team.pk)
+        assert resp.status_code == 403

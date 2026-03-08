@@ -2,16 +2,17 @@
 Controllers for multi-tenancy endpoints.
 
 Provides API endpoints for managing organizations, teams, memberships, and invitations.
+All methods are async to avoid blocking the ASGI event loop.
 """
 
 import uuid
 
+from asgiref.sync import sync_to_async
 from django.db import IntegrityError
 from django.http import HttpRequest, JsonResponse
 
 from django_matt.core.controller import APIController
 from django_matt.core.errors import APIError, NotFoundAPIError
-from django_matt.multitenancy.middleware import get_current_tenant
 from django_matt.multitenancy.models import (
     Invitation,
     InvitationStatus,
@@ -40,10 +41,9 @@ from django_matt.multitenancy.schemas import (
     TenantContext,
 )
 from django_matt.multitenancy.utils import (
-    create_organization_with_owner,
-    user_can_manage_team,
-    user_is_org_admin,
-    user_is_org_owner,
+    acreate_organization_with_owner,
+    auser_can_manage_team,
+    auser_is_org_admin,
 )
 
 
@@ -77,18 +77,16 @@ class OrganizationController(APIController):
     prefix = "organizations"
     tags = ["Organizations"]
 
-    def list(self, request: HttpRequest) -> list[OrganizationListResponse]:
+    async def list(self, request: HttpRequest) -> list[OrganizationListResponse]:
         """List all organizations the user is a member of."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
 
-        memberships = Membership.objects.filter(
+        results = []
+        async for membership in Membership.objects.filter(
             user=request.user,
             organization__is_active=True,
-        ).select_related("organization")
-
-        results = []
-        for membership in memberships:
+        ).select_related("organization"):
             org = membership.organization
             results.append(
                 OrganizationListResponse(
@@ -104,13 +102,13 @@ class OrganizationController(APIController):
 
         return JsonResponse([r.model_dump(mode="json") for r in results], safe=False)
 
-    def create(self, request: HttpRequest, data: OrganizationCreate) -> OrganizationResponse:
+    async def create(self, request: HttpRequest, data: OrganizationCreate) -> OrganizationResponse:
         """Create a new organization with the current user as owner."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
 
         try:
-            organization = create_organization_with_owner(
+            organization = await acreate_organization_with_owner(
                 name=data.name,
                 slug=data.slug,
                 owner=request.user,
@@ -126,37 +124,32 @@ class OrganizationController(APIController):
             status=201,
         )
 
-    def retrieve(self, request: HttpRequest, id: str) -> OrganizationResponse:
-        """Get organization details."""
+    async def retrieve(self, request: HttpRequest, id: str) -> OrganizationResponse:
+        """Get organization details (only if user is a member)."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
 
         try:
             org_id = uuid.UUID(id)
         except ValueError:
-            raise NotFoundAPIError(
-                message="Organization not found",
-                resource_type="Organization",
-                resource_id=id,
-            )
+            return JsonResponse({"detail": "Forbidden"}, status=403)
 
-        organization = Organization.objects.filter(id=org_id, is_active=True).first()
-        if not organization:
-            raise NotFoundAPIError(
-                message="Organization not found",
-                resource_type="Organization",
-                resource_id=id,
-            )
+        # Org-scoped query: only retrieve if user has membership (avoids timing leak)
+        membership = await Membership.objects.filter(
+            user=request.user,
+            organization_id=org_id,
+            organization__is_active=True,
+        ).select_related("organization").afirst()
 
-        # Check if user is a member
-        if not organization.is_member(request.user):
-            raise ForbiddenError("You are not a member of this organization")
+        if not membership:
+            return JsonResponse({"detail": "Forbidden"}, status=403)
 
+        organization = membership.organization
         return JsonResponse(
             OrganizationResponse.model_validate(organization).model_dump(mode="json")
         )
 
-    def update(
+    async def update(
         self,
         request: HttpRequest,
         id: str,
@@ -169,23 +162,19 @@ class OrganizationController(APIController):
         try:
             org_id = uuid.UUID(id)
         except ValueError:
-            raise NotFoundAPIError(
-                message="Organization not found",
-                resource_type="Organization",
-                resource_id=id,
-            )
+            return JsonResponse({"detail": "Forbidden"}, status=403)
 
-        organization = Organization.objects.filter(id=org_id).first()
-        if not organization:
-            raise NotFoundAPIError(
-                message="Organization not found",
-                resource_type="Organization",
-                resource_id=id,
-            )
+        # Org-scoped query with membership check
+        membership = await Membership.objects.filter(
+            user=request.user,
+            organization_id=org_id,
+            role__in=[MembershipRole.ADMIN.value, MembershipRole.OWNER.value],
+        ).select_related("organization").afirst()
 
-        # Check if user is admin
-        if not user_is_org_admin(request.user, organization):
-            raise ForbiddenError("Only admins can update organizations")
+        if not membership:
+            return JsonResponse({"detail": "Forbidden"}, status=403)
+
+        organization = membership.organization
 
         # Update fields
         update_data = data.model_dump(exclude_unset=True)
@@ -194,7 +183,7 @@ class OrganizationController(APIController):
                 setattr(organization, field, value)
 
         try:
-            organization.save()
+            await organization.asave()
         except IntegrityError:
             raise ConflictError(f"Organization with slug '{data.slug}' already exists")
 
@@ -202,7 +191,7 @@ class OrganizationController(APIController):
             OrganizationResponse.model_validate(organization).model_dump(mode="json")
         )
 
-    def delete(self, request: HttpRequest, id: str) -> JsonResponse:
+    async def delete(self, request: HttpRequest, id: str) -> JsonResponse:
         """Delete an organization (owner only)."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
@@ -210,28 +199,22 @@ class OrganizationController(APIController):
         try:
             org_id = uuid.UUID(id)
         except ValueError:
-            raise NotFoundAPIError(
-                message="Organization not found",
-                resource_type="Organization",
-                resource_id=id,
-            )
+            return JsonResponse({"detail": "Forbidden"}, status=403)
 
-        organization = Organization.objects.filter(id=org_id).first()
-        if not organization:
-            raise NotFoundAPIError(
-                message="Organization not found",
-                resource_type="Organization",
-                resource_id=id,
-            )
+        # Org-scoped query: only owners can delete
+        membership = await Membership.objects.filter(
+            user=request.user,
+            organization_id=org_id,
+            role=MembershipRole.OWNER.value,
+        ).select_related("organization").afirst()
 
-        # Check if user is owner
-        if not user_is_org_owner(request.user, organization):
-            raise ForbiddenError("Only owners can delete organizations")
+        if not membership:
+            return JsonResponse({"detail": "Forbidden"}, status=403)
 
-        organization.delete()
+        await membership.organization.adelete()
         return JsonResponse({"message": "Organization deleted"}, status=200)
 
-    def switch(
+    async def switch(
         self,
         request: HttpRequest,
         data: SwitchOrganizationRequest,
@@ -243,15 +226,15 @@ class OrganizationController(APIController):
         organization = None
 
         if data.organization_id:
-            organization = Organization.objects.filter(
+            organization = await Organization.objects.filter(
                 id=data.organization_id,
                 is_active=True,
-            ).first()
+            ).afirst()
         elif data.organization_slug:
-            organization = Organization.objects.filter(
+            organization = await Organization.objects.filter(
                 slug=data.organization_slug,
                 is_active=True,
-            ).first()
+            ).afirst()
 
         if not organization:
             raise NotFoundAPIError(
@@ -260,14 +243,14 @@ class OrganizationController(APIController):
                 resource_id=str(data.organization_id or data.organization_slug),
             )
 
-        # Check if user is a member
-        membership = Membership.objects.filter(
+        # Check if user is a member (org-scoped)
+        membership = await Membership.objects.filter(
             organization=organization,
             user=request.user,
-        ).first()
+        ).afirst()
 
         if not membership:
-            raise ForbiddenError("You are not a member of this organization")
+            return JsonResponse({"detail": "Forbidden"}, status=403)
 
         # Store in session
         if hasattr(request, "session"):
@@ -298,29 +281,24 @@ class TeamController(APIController):
     prefix = "teams"
     tags = ["Teams"]
 
-    def list(self, request: HttpRequest) -> list[TeamListResponse]:
+    async def list(self, request: HttpRequest) -> list[TeamListResponse]:
         """List all teams in the current organization."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
 
-        organization = get_current_tenant()
-        if not organization:
-            organization = getattr(request, "organization", None)
-
+        organization = getattr(request, "organization", None)
         if not organization:
             return JsonResponse({"error": "Organization context required"}, status=400)
 
-        teams = Team.objects.filter(organization=organization)
-
         results = []
-        for team in teams:
+        async for team in Team.objects.filter(organization=organization):
             # Get user's role in team if member
-            team_membership = TeamMembership.objects.filter(
+            team_membership = await TeamMembership.objects.filter(
                 team=team,
                 user=request.user,
-            ).first()
+            ).afirst()
 
-            member_count = team.memberships.count()
+            member_count = await team.memberships.acount()
 
             results.append(
                 TeamListResponse(
@@ -336,27 +314,32 @@ class TeamController(APIController):
 
         return JsonResponse([r.model_dump(mode="json") for r in results], safe=False)
 
-    def create(self, request: HttpRequest, data: TeamCreate) -> TeamResponse:
+    async def create(self, request: HttpRequest, data: TeamCreate) -> TeamResponse:
         """Create a new team in the organization."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
 
-        organization = get_current_tenant()
-        if not organization:
-            organization = getattr(request, "organization", None)
+        organization = getattr(request, "organization", None)
 
         if data.organization_id:
-            organization = Organization.objects.filter(id=data.organization_id).first()
+            # Org-scoped: verify user is member before using requested org
+            membership = await Membership.objects.filter(
+                user=request.user,
+                organization_id=data.organization_id,
+            ).afirst()
+            if not membership:
+                return JsonResponse({"detail": "Forbidden"}, status=403)
+            organization = await Organization.objects.filter(id=data.organization_id).afirst()
 
         if not organization:
             return JsonResponse({"error": "Organization context required"}, status=400)
 
         # Check if user is admin
-        if not user_is_org_admin(request.user, organization):
+        if not await auser_is_org_admin(request.user, organization):
             raise ForbiddenError("Only admins can create teams")
 
         try:
-            team = Team.objects.create(
+            team = await Team.objects.acreate(
                 organization=organization,
                 name=data.name,
                 slug=data.slug,
@@ -372,63 +355,72 @@ class TeamController(APIController):
             status=201,
         )
 
-    def retrieve(self, request: HttpRequest, id: str) -> TeamResponse:
-        """Get team details."""
+    async def retrieve(self, request: HttpRequest, id: str) -> TeamResponse:
+        """Get team details (org-scoped: 403 if outside user's org)."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
+
+        organization = getattr(request, "organization", None)
 
         try:
             team_id = uuid.UUID(id)
         except ValueError:
-            raise NotFoundAPIError(
-                message="Team not found",
-                resource_type="Team",
-                resource_id=id,
-            )
+            return JsonResponse({"detail": "Forbidden"}, status=403)
 
-        team = Team.objects.filter(id=team_id).select_related("organization").first()
-        if not team:
-            raise NotFoundAPIError(
-                message="Team not found",
-                resource_type="Team",
-                resource_id=id,
-            )
-
-        # Check if user is a member of the organization
-        if not team.organization.is_member(request.user):
-            raise ForbiddenError("You are not a member of this organization")
+        if organization:
+            # Org-scoped lookup: returns 403 for cross-org access (explicit denial)
+            team = await Team.objects.filter(
+                organization=organization,
+                id=team_id,
+            ).select_related("organization").afirst()
+            if not team:
+                return JsonResponse({"detail": "Forbidden"}, status=403)
+        else:
+            # No org context: still check membership
+            team = await Team.objects.filter(id=team_id).select_related("organization").afirst()
+            if not team:
+                return JsonResponse({"detail": "Forbidden"}, status=403)
+            is_member = await Membership.objects.filter(
+                organization=team.organization,
+                user=request.user,
+            ).aexists()
+            if not is_member:
+                return JsonResponse({"detail": "Forbidden"}, status=403)
 
         return JsonResponse(TeamResponse.model_validate(team).model_dump(mode="json"))
 
-    def update(
+    async def update(
         self,
         request: HttpRequest,
         id: str,
         data: TeamUpdate,
     ) -> TeamResponse:
-        """Update a team."""
+        """Update a team (org-scoped, admin/team-lead only)."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
+
+        organization = getattr(request, "organization", None)
 
         try:
             team_id = uuid.UUID(id)
         except ValueError:
-            raise NotFoundAPIError(
-                message="Team not found",
-                resource_type="Team",
-                resource_id=id,
-            )
+            return JsonResponse({"detail": "Forbidden"}, status=403)
 
-        team = Team.objects.filter(id=team_id).select_related("organization").first()
-        if not team:
-            raise NotFoundAPIError(
-                message="Team not found",
-                resource_type="Team",
-                resource_id=id,
-            )
+        if organization:
+            # Org-scoped lookup: 403 for cross-org (explicit denial per user decision)
+            team = await Team.objects.filter(
+                organization=organization,
+                id=team_id,
+            ).select_related("organization").afirst()
+            if not team:
+                return JsonResponse({"detail": "Forbidden"}, status=403)
+        else:
+            team = await Team.objects.filter(id=team_id).select_related("organization").afirst()
+            if not team:
+                return JsonResponse({"detail": "Forbidden"}, status=403)
 
         # Check if user can manage team
-        if not user_can_manage_team(request.user, team):
+        if not await auser_can_manage_team(request.user, team):
             raise ForbiddenError("You don't have permission to update this team")
 
         # Update fields
@@ -438,39 +430,42 @@ class TeamController(APIController):
                 setattr(team, field, value)
 
         try:
-            team.save()
+            await team.asave()
         except IntegrityError:
             raise ConflictError(f"Team with slug '{data.slug}' already exists in this organization")
 
         return JsonResponse(TeamResponse.model_validate(team).model_dump(mode="json"))
 
-    def delete(self, request: HttpRequest, id: str) -> JsonResponse:
-        """Delete a team."""
+    async def delete(self, request: HttpRequest, id: str) -> JsonResponse:
+        """Delete a team (org admin only, org-scoped)."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
+
+        organization = getattr(request, "organization", None)
 
         try:
             team_id = uuid.UUID(id)
         except ValueError:
-            raise NotFoundAPIError(
-                message="Team not found",
-                resource_type="Team",
-                resource_id=id,
-            )
+            return JsonResponse({"detail": "Forbidden"}, status=403)
 
-        team = Team.objects.filter(id=team_id).select_related("organization").first()
-        if not team:
-            raise NotFoundAPIError(
-                message="Team not found",
-                resource_type="Team",
-                resource_id=id,
-            )
+        if organization:
+            # Org-scoped: 403 for cross-org (explicit denial)
+            team = await Team.objects.filter(
+                organization=organization,
+                id=team_id,
+            ).select_related("organization").afirst()
+            if not team:
+                return JsonResponse({"detail": "Forbidden"}, status=403)
+        else:
+            team = await Team.objects.filter(id=team_id).select_related("organization").afirst()
+            if not team:
+                return JsonResponse({"detail": "Forbidden"}, status=403)
 
         # Check if user is org admin
-        if not user_is_org_admin(request.user, team.organization):
+        if not await auser_is_org_admin(request.user, team.organization):
             raise ForbiddenError("Only organization admins can delete teams")
 
-        team.delete()
+        await team.adelete()
         return JsonResponse({"message": "Team deleted"}, status=200)
 
 
@@ -489,24 +484,19 @@ class MembershipController(APIController):
     prefix = "members"
     tags = ["Members"]
 
-    def list(self, request: HttpRequest) -> list[MemberResponse]:
+    async def list(self, request: HttpRequest) -> list[MemberResponse]:
         """List all members of the current organization."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
 
-        organization = get_current_tenant()
-        if not organization:
-            organization = getattr(request, "organization", None)
-
+        organization = getattr(request, "organization", None)
         if not organization:
             return JsonResponse({"error": "Organization context required"}, status=400)
 
-        memberships = Membership.objects.filter(
-            organization=organization,
-        ).select_related("user")
-
         results = []
-        for membership in memberships:
+        async for membership in Membership.objects.filter(
+            organization=organization,
+        ).select_related("user"):
             user = membership.user
             results.append(
                 MemberResponse(
@@ -523,44 +513,53 @@ class MembershipController(APIController):
 
         return JsonResponse([r.model_dump(mode="json") for r in results], safe=False)
 
-    def update(
+    async def update(
         self,
         request: HttpRequest,
         id: str,
         data: MembershipUpdate,
     ) -> MembershipResponse:
-        """Update a member's role."""
+        """Update a member's role (org-scoped)."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
+
+        organization = getattr(request, "organization", None)
 
         try:
             membership_id = uuid.UUID(id)
         except ValueError:
-            raise NotFoundAPIError(
-                message="Membership not found",
-                resource_type="Membership",
-                resource_id=id,
-            )
+            return JsonResponse({"detail": "Forbidden"}, status=403)
 
-        membership = (
-            Membership.objects.filter(id=membership_id).select_related("organization").first()
-        )
-        if not membership:
-            raise NotFoundAPIError(
-                message="Membership not found",
-                resource_type="Membership",
-                resource_id=id,
+        if organization:
+            # Org-scoped: only see memberships within request.organization
+            membership = await Membership.objects.filter(
+                id=membership_id,
+                organization=organization,
+            ).select_related("organization", "user").afirst()
+            if not membership:
+                return JsonResponse({"detail": "Forbidden"}, status=403)
+        else:
+            membership = await (
+                Membership.objects.filter(id=membership_id)
+                .select_related("organization", "user")
+                .afirst()
             )
+            if not membership:
+                raise NotFoundAPIError(
+                    message="Membership not found",
+                    resource_type="Membership",
+                    resource_id=id,
+                )
 
-        # Check if user is admin
-        if not user_is_org_admin(request.user, membership.organization):
+        # Check if user is admin in the membership's org
+        if not await auser_is_org_admin(request.user, membership.organization):
             raise ForbiddenError("Only admins can update member roles")
 
         # Get actor's membership
-        actor_membership = Membership.objects.filter(
+        actor_membership = await Membership.objects.filter(
             organization=membership.organization,
             user=request.user,
-        ).first()
+        ).afirst()
 
         # Check role hierarchy
         if not MembershipRole.can_manage(actor_membership.role, membership.role):
@@ -570,58 +569,67 @@ class MembershipController(APIController):
             raise ForbiddenError("Cannot assign a role higher than or equal to your own")
 
         membership.role = data.role
-        membership.save(update_fields=["role", "updated_at"])
+        await membership.asave(update_fields=["role", "updated_at"])
 
         return JsonResponse(MembershipResponse.model_validate(membership).model_dump(mode="json"))
 
-    def delete(self, request: HttpRequest, id: str) -> JsonResponse:
-        """Remove a member from the organization."""
+    async def delete(self, request: HttpRequest, id: str) -> JsonResponse:
+        """Remove a member from the organization (org-scoped)."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
+
+        organization = getattr(request, "organization", None)
 
         try:
             membership_id = uuid.UUID(id)
         except ValueError:
-            raise NotFoundAPIError(
-                message="Membership not found",
-                resource_type="Membership",
-                resource_id=id,
-            )
+            return JsonResponse({"detail": "Forbidden"}, status=403)
 
-        membership = (
-            Membership.objects.filter(id=membership_id).select_related("organization").first()
-        )
-        if not membership:
-            raise NotFoundAPIError(
-                message="Membership not found",
-                resource_type="Membership",
-                resource_id=id,
+        if organization:
+            # Org-scoped: only see memberships within request.organization
+            membership = await Membership.objects.filter(
+                id=membership_id,
+                organization=organization,
+            ).select_related("organization", "user").afirst()
+            if not membership:
+                return JsonResponse({"detail": "Forbidden"}, status=403)
+        else:
+            membership = await (
+                Membership.objects.filter(id=membership_id)
+                .select_related("organization", "user")
+                .afirst()
             )
+            if not membership:
+                raise NotFoundAPIError(
+                    message="Membership not found",
+                    resource_type="Membership",
+                    resource_id=id,
+                )
 
         # Check if user is admin
-        if not user_is_org_admin(request.user, membership.organization):
+        if not await auser_is_org_admin(request.user, membership.organization):
             raise ForbiddenError("Only admins can remove members")
 
         # Get actor's membership
-        actor_membership = Membership.objects.filter(
+        actor_membership = await Membership.objects.filter(
             organization=membership.organization,
             user=request.user,
-        ).first()
+        ).afirst()
 
         # Can't remove yourself if you're the only owner
-        if membership.user == request.user:
+        if membership.user_id == request.user.pk:
             if membership.role == MembershipRole.OWNER.value:
-                owner_count = Membership.objects.filter(
+                owner_count = await Membership.objects.filter(
                     organization=membership.organization,
                     role=MembershipRole.OWNER.value,
-                ).count()
+                ).acount()
                 if owner_count <= 1:
                     raise ForbiddenError("Cannot remove the only owner. Transfer ownership first.")
         # Check role hierarchy
         elif not MembershipRole.can_manage(actor_membership.role, membership.role):
             raise ForbiddenError("Cannot remove a member with higher or equal role")
 
-        membership.delete()
+        await membership.adelete()
         return JsonResponse({"message": "Member removed"}, status=200)
 
 
@@ -640,47 +648,48 @@ class InvitationController(APIController):
     prefix = "invitations"
     tags = ["Invitations"]
 
-    def list(self, request: HttpRequest) -> list[InvitationResponse]:
+    async def list(self, request: HttpRequest) -> list[InvitationResponse]:
         """List all invitations for the current organization."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
 
-        organization = get_current_tenant()
-        if not organization:
-            organization = getattr(request, "organization", None)
-
+        organization = getattr(request, "organization", None)
         if not organization:
             return JsonResponse({"error": "Organization context required"}, status=400)
 
         # Check if user is admin
-        if not user_is_org_admin(request.user, organization):
+        if not await auser_is_org_admin(request.user, organization):
             raise ForbiddenError("Only admins can view invitations")
 
-        invitations = Invitation.objects.filter(organization=organization)
-
         results = [
-            InvitationResponse.model_validate(inv).model_dump(mode="json") for inv in invitations
+            InvitationResponse.model_validate(inv).model_dump(mode="json")
+            async for inv in Invitation.objects.filter(organization=organization)
         ]
 
         return JsonResponse(results, safe=False)
 
-    def create(self, request: HttpRequest, data: InvitationCreate) -> InvitationResponse:
-        """Create a new invitation."""
+    async def create(self, request: HttpRequest, data: InvitationCreate) -> InvitationResponse:
+        """Create a new invitation (org-scoped)."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
 
-        organization = get_current_tenant()
-        if not organization:
-            organization = getattr(request, "organization", None)
+        organization = getattr(request, "organization", None)
 
         if data.organization_id:
-            organization = Organization.objects.filter(id=data.organization_id).first()
+            # Org-scoped: verify user is member before using requested org
+            membership = await Membership.objects.filter(
+                user=request.user,
+                organization_id=data.organization_id,
+            ).afirst()
+            if not membership:
+                return JsonResponse({"detail": "Forbidden"}, status=403)
+            organization = await Organization.objects.filter(id=data.organization_id).afirst()
 
         if not organization:
             return JsonResponse({"error": "Organization context required"}, status=400)
 
         # Check if user is admin
-        if not user_is_org_admin(request.user, organization):
+        if not await auser_is_org_admin(request.user, organization):
             raise ForbiddenError("Only admins can send invitations")
 
         # Check if email is already a member
@@ -688,24 +697,32 @@ class InvitationController(APIController):
 
         User = get_user_model()
 
-        existing_user = User.objects.filter(email=data.email).first()
-        if existing_user and organization.is_member(existing_user):
-            raise ConflictError("User is already a member of this organization")
+        existing_user = await User.objects.filter(email=data.email).afirst()
+        if existing_user:
+            is_member = await Membership.objects.filter(
+                organization=organization,
+                user=existing_user,
+            ).aexists()
+            if is_member:
+                raise ConflictError("User is already a member of this organization")
 
         # Check for pending invitation
-        existing_invitation = Invitation.objects.filter(
+        existing_invitation = await Invitation.objects.filter(
             organization=organization,
             email=data.email,
             status=InvitationStatus.PENDING.value,
-        ).first()
+        ).afirst()
 
         if existing_invitation:
             raise ConflictError("An invitation is already pending for this email")
 
-        # Get team if specified
+        # Get team if specified (org-scoped)
         team = None
         if data.team_id:
-            team = Team.objects.filter(id=data.team_id, organization=organization).first()
+            team = await Team.objects.filter(
+                id=data.team_id,
+                organization=organization,
+            ).afirst()
             if not team:
                 raise NotFoundAPIError(
                     message="Team not found",
@@ -713,7 +730,7 @@ class InvitationController(APIController):
                     resource_id=str(data.team_id),
                 )
 
-        invitation = Invitation.objects.create(
+        invitation = await Invitation.objects.acreate(
             organization=organization,
             team=team,
             email=data.email,
@@ -721,27 +738,27 @@ class InvitationController(APIController):
             invited_by=request.user,
         )
 
-        # Send invitation email
+        # Send invitation email (sync function — wrap for async context)
         from django_matt.multitenancy.emails import send_invitation_email
 
-        send_invitation_email(invitation)
+        await sync_to_async(send_invitation_email)(invitation)
 
         return JsonResponse(
             InvitationResponse.model_validate(invitation).model_dump(mode="json"),
             status=201,
         )
 
-    def accept(self, request: HttpRequest, data: InvitationAcceptRequest) -> JsonResponse:
+    async def accept(self, request: HttpRequest, data: InvitationAcceptRequest) -> JsonResponse:
         """Accept an invitation."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
 
-        invitation = (
+        invitation = await (
             Invitation.objects.filter(
                 token=data.token,
             )
             .select_related("organization", "team")
-            .first()
+            .afirst()
         )
 
         if not invitation:
@@ -752,7 +769,7 @@ class InvitationController(APIController):
             )
 
         try:
-            membership = invitation.accept(request.user)
+            membership = await sync_to_async(invitation.accept)(request.user)
         except ValueError as e:
             raise APIError(str(e), status_code=400)
 
@@ -765,74 +782,88 @@ class InvitationController(APIController):
             }
         )
 
-    def delete(self, request: HttpRequest, id: str) -> JsonResponse:
-        """Revoke an invitation."""
+    async def delete(self, request: HttpRequest, id: str) -> JsonResponse:
+        """Revoke an invitation (org-scoped)."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
+
+        organization = getattr(request, "organization", None)
 
         try:
             invitation_id = uuid.UUID(id)
         except ValueError:
-            raise NotFoundAPIError(
-                message="Invitation not found",
-                resource_type="Invitation",
-                resource_id=id,
-            )
+            return JsonResponse({"detail": "Forbidden"}, status=403)
 
-        invitation = (
-            Invitation.objects.filter(id=invitation_id).select_related("organization").first()
-        )
-        if not invitation:
-            raise NotFoundAPIError(
-                message="Invitation not found",
-                resource_type="Invitation",
-                resource_id=id,
+        if organization:
+            # Org-scoped: 403 for cross-org (explicit denial)
+            invitation = await Invitation.objects.filter(
+                id=invitation_id,
+                organization=organization,
+            ).select_related("organization").afirst()
+            if not invitation:
+                return JsonResponse({"detail": "Forbidden"}, status=403)
+        else:
+            invitation = await (
+                Invitation.objects.filter(id=invitation_id).select_related("organization").afirst()
             )
+            if not invitation:
+                raise NotFoundAPIError(
+                    message="Invitation not found",
+                    resource_type="Invitation",
+                    resource_id=id,
+                )
 
         # Check if user is admin
-        if not user_is_org_admin(request.user, invitation.organization):
+        if not await auser_is_org_admin(request.user, invitation.organization):
             raise ForbiddenError("Only admins can revoke invitations")
 
         try:
-            invitation.revoke()
+            await sync_to_async(invitation.revoke)()
         except ValueError as e:
             raise APIError(str(e), status_code=400)
 
         return JsonResponse({"message": "Invitation revoked"})
 
-    def resend(self, request: HttpRequest, id: str) -> InvitationResponse:
-        """Resend an invitation."""
+    async def resend(self, request: HttpRequest, id: str) -> InvitationResponse:
+        """Resend an invitation (org-scoped)."""
         if not request.user.is_authenticated:
             return JsonResponse({"error": "Authentication required"}, status=401)
+
+        organization = getattr(request, "organization", None)
 
         try:
             invitation_id = uuid.UUID(id)
         except ValueError:
-            raise NotFoundAPIError(
-                message="Invitation not found",
-                resource_type="Invitation",
-                resource_id=id,
-            )
+            return JsonResponse({"detail": "Forbidden"}, status=403)
 
-        invitation = (
-            Invitation.objects.filter(id=invitation_id).select_related("organization").first()
-        )
-        if not invitation:
-            raise NotFoundAPIError(
-                message="Invitation not found",
-                resource_type="Invitation",
-                resource_id=id,
+        if organization:
+            # Org-scoped: 403 for cross-org (explicit denial)
+            invitation = await Invitation.objects.filter(
+                id=invitation_id,
+                organization=organization,
+            ).select_related("organization").afirst()
+            if not invitation:
+                return JsonResponse({"detail": "Forbidden"}, status=403)
+        else:
+            invitation = await (
+                Invitation.objects.filter(id=invitation_id).select_related("organization").afirst()
             )
+            if not invitation:
+                raise NotFoundAPIError(
+                    message="Invitation not found",
+                    resource_type="Invitation",
+                    resource_id=id,
+                )
 
         # Check if user is admin
-        if not user_is_org_admin(request.user, invitation.organization):
+        if not await auser_is_org_admin(request.user, invitation.organization):
             raise ForbiddenError("Only admins can resend invitations")
 
-        invitation.resend()
+        await sync_to_async(invitation.resend)()
 
-        # Send invitation email
+        # Send invitation email (sync function — wrap for async context)
         from django_matt.multitenancy.emails import send_invitation_email
 
-        send_invitation_email(invitation)
+        await sync_to_async(send_invitation_email)(invitation)
 
         return JsonResponse(InvitationResponse.model_validate(invitation).model_dump(mode="json"))
