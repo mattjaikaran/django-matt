@@ -298,3 +298,150 @@ class TestGlobalInstances(TestCase):
         # Get the value
         cached_value = cache_manager.get(key)
         self.assertEqual(cached_value, value)
+
+
+# ---------------------------------------------------------------------------
+# MATT_API_MODE and hot-path introspection caching tests (CORE-12, CORE-09)
+# ---------------------------------------------------------------------------
+
+_FULL_MIDDLEWARE_STACK = [
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
+
+
+class TestApiModeMiddlewareStripping(TestCase):
+    """CORE-12: MATT_API_MODE=True strips browser-oriented middleware."""
+
+    def test_api_mode_strips_middleware(self):
+        """
+        With MATT_API_MODE=True and a full middleware stack, apply_api_mode()
+        must remove CSRF, Sessions, Messages, and Clickjacking middleware while
+        keeping SecurityMiddleware and CommonMiddleware.
+        """
+        from django_matt.config.components.performance import apply_api_mode
+
+        result = apply_api_mode(list(_FULL_MIDDLEWARE_STACK))
+
+        # Stripped middleware must be absent
+        self.assertNotIn("django.middleware.csrf.CsrfViewMiddleware", result)
+        self.assertNotIn("django.contrib.sessions.middleware.SessionMiddleware", result)
+        self.assertNotIn("django.contrib.messages.middleware.MessageMiddleware", result)
+        self.assertNotIn("django.middleware.clickjacking.XFrameOptionsMiddleware", result)
+
+        # Security and Common middleware must always remain
+        self.assertIn("django.middleware.security.SecurityMiddleware", result)
+        self.assertIn("django.middleware.common.CommonMiddleware", result)
+
+    def test_api_mode_keeps_security_middleware(self):
+        """SecurityMiddleware is never stripped even with MATT_API_MODE=True."""
+        from django_matt.config.components.performance import (
+            MIDDLEWARE_KEEP_LIST,
+            MIDDLEWARE_STRIP_LIST,
+            apply_api_mode,
+        )
+
+        # Confirm SecurityMiddleware is not accidentally in the strip list
+        self.assertNotIn(
+            "django.middleware.security.SecurityMiddleware",
+            MIDDLEWARE_STRIP_LIST,
+        )
+        # And it IS in the keep list
+        self.assertIn(
+            "django.middleware.security.SecurityMiddleware",
+            MIDDLEWARE_KEEP_LIST,
+        )
+
+        # Even if only SecurityMiddleware is present, apply_api_mode keeps it
+        result = apply_api_mode(["django.middleware.security.SecurityMiddleware"])
+        self.assertEqual(result, ["django.middleware.security.SecurityMiddleware"])
+
+    def test_api_mode_disabled_by_default(self):
+        """Without MATT_API_MODE setting in Django settings it defaults to False."""
+        from django.conf import settings
+
+        value = getattr(settings, "MATT_API_MODE", False)
+        self.assertFalse(value)
+
+    def test_api_mode_does_not_strip_unknown_middleware(self):
+        """Third-party middleware not in the strip list is left untouched."""
+        from django_matt.config.components.performance import apply_api_mode
+
+        custom_mw = [
+            "django.middleware.security.SecurityMiddleware",
+            "myapp.middleware.CustomMiddleware",
+            "django.middleware.csrf.CsrfViewMiddleware",
+        ]
+        result = apply_api_mode(custom_mw)
+
+        self.assertIn("myapp.middleware.CustomMiddleware", result)
+        self.assertNotIn("django.middleware.csrf.CsrfViewMiddleware", result)
+
+
+class TestNoGetTypeHintsPerRequest(TestCase):
+    """CORE-09: Zero get_type_hints() calls after warmup."""
+
+    def test_no_get_type_hints_per_request(self):
+        """
+        After warming up the router with N requests (populating the cache),
+        subsequent calls to get_body_schema() must produce zero get_type_hints()
+        invocations — verified via cProfile.
+        """
+        import cProfile
+        import io
+        import pstats
+        from typing import get_type_hints
+
+        from pydantic import BaseModel
+
+        from django_matt.core.router import _hints_cache, get_body_schema
+
+        class ItemSchema(BaseModel):
+            name: str
+            price: float
+
+        def test_endpoint(request, body: ItemSchema) -> dict:
+            return {"ok": True}
+
+        # Ensure the endpoint is not in the cache at the start of this test
+        endpoint_key = id(test_endpoint)
+        _hints_cache.pop(endpoint_key, None)
+
+        # --- WARMUP: populate the hints cache ---
+        for _ in range(10):
+            get_body_schema(test_endpoint)
+
+        # The cache must be populated after warmup
+        self.assertIn(endpoint_key, _hints_cache)
+
+        # --- PROFILE: run 100 more calls and check for get_type_hints ---
+        pr = cProfile.Profile()
+        pr.enable()
+        for _ in range(100):
+            get_body_schema(test_endpoint)
+        pr.disable()
+
+        # Capture pstats output to a string
+        buf = io.StringIO()
+        stats = pstats.Stats(pr, stream=buf)
+        stats.print_stats("get_type_hints")
+        output = buf.getvalue()
+
+        # If get_type_hints was called during the profiled 100 iterations, its
+        # function name appears in the pstats output table. Assert it is absent.
+        # pstats lists function entries only if they have at least one call, so
+        # absence means zero calls during the profiled section.
+        self.assertNotIn(
+            "get_type_hints",
+            output,
+            msg=(
+                "get_type_hints() was called during the profiled 100 requests — "
+                "router-level caching in _hints_cache is broken.\n"
+                f"pstats output:\n{output}"
+            ),
+        )
