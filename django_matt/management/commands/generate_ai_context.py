@@ -123,6 +123,18 @@ class Command(BaseCommand):
             action="store_true",
             help="Minimal output",
         )
+        parser.add_argument(
+            "--depth",
+            "-d",
+            type=str,
+            choices=["minimal", "standard", "full"],
+            default="standard",
+            help=(
+                "Content depth: minimal (routes only), standard (routes + types), "
+                "full (routes + types + relationships + conventions + settings). "
+                "Default: standard."
+            ),
+        )
 
     def handle(self, *args, **options):
         output_dir = Path(options["output"])
@@ -137,6 +149,7 @@ class Command(BaseCommand):
         show_hook = options["show_hook"]
         dry_run = options["dry_run"]
         quiet = options["quiet"]
+        depth = options.get("depth", "standard")
 
         # Handle hook commands
         if show_hook:
@@ -178,6 +191,7 @@ class Command(BaseCommand):
             include_examples=include_examples,
             dry_run=dry_run,
             quiet=quiet,
+            depth=depth,
         )
 
     def _get_formats(self, format_type: str) -> list[str]:
@@ -197,8 +211,14 @@ class Command(BaseCommand):
         include_examples: bool,
         dry_run: bool,
         quiet: bool,
+        depth: str = "standard",
     ):
-        """Generate context files."""
+        """Generate context files.
+
+        Args:
+            depth: Content depth — "minimal" (routes only), "standard" (routes + types),
+                   "full" (routes + types + relationships + conventions + settings).
+        """
         from django_matt.ai.context import (
             ClaudeMdGenerator,
             CopilotInstructionsGenerator,
@@ -211,11 +231,37 @@ class Command(BaseCommand):
         if not dry_run:
             output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Create introspector
+        # Map depth to content controls
+        # minimal: routes only (no examples, few schemas/models)
+        # standard: routes + types (some examples, standard counts)
+        # full: everything (all examples, high counts)
+        depth_config = {
+            "minimal": {
+                "include_examples": False,
+                "max_endpoints": 100,
+                "max_models": 0,
+                "max_schemas": 0,
+            },
+            "standard": {
+                "include_examples": include_examples,
+                "max_endpoints": 50,
+                "max_models": 30,
+                "max_schemas": 30,
+            },
+            "full": {
+                "include_examples": True,
+                "max_endpoints": 200,
+                "max_models": 100,
+                "max_schemas": 100,
+            },
+        }
+        cfg = depth_config.get(depth, depth_config["standard"])
+
+        # Create introspector — use depth-driven include_examples
         introspector = EnhancedIntrospector(
             include_third_party=include_third_party,
             exclude_apps=exclude_apps,
-            include_examples=include_examples,
+            include_examples=cfg["include_examples"],
         )
 
         if not quiet:
@@ -241,7 +287,10 @@ class Command(BaseCommand):
         if "claude" in formats:
             generator = ClaudeMdGenerator(
                 introspector=introspector,
-                include_examples=include_examples,
+                include_examples=cfg["include_examples"],
+                max_endpoints=cfg["max_endpoints"],
+                max_models=cfg["max_models"],
+                max_schemas=cfg["max_schemas"],
             )
             content = generator.generate(project_info)
 

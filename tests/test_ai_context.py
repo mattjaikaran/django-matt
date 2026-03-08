@@ -442,3 +442,142 @@ class TestTemplates:
         result = render_template(template, {})
 
         assert "Project:" in result
+
+
+# ---------------------------------------------------------------------------
+# Plan 03-02: --depth flag and --include-examples tests
+# ---------------------------------------------------------------------------
+
+class TestGenerateAiContextDepthFlag:
+    """Tests for generate_ai_context --depth flag."""
+
+    def test_generate_ai_context_has_depth_argument(self):
+        """generate_ai_context command has --depth argument."""
+        import argparse
+
+        from django_matt.management.commands.generate_ai_context import Command
+
+        cmd = Command()
+        parser = argparse.ArgumentParser()
+        cmd.add_arguments(parser)
+        action_names = {action.dest for action in parser._actions}
+        assert "depth" in action_names
+
+    def test_generate_ai_context_depth_choices(self):
+        """--depth accepts minimal, standard, full."""
+        import argparse
+
+        from django_matt.management.commands.generate_ai_context import Command
+
+        cmd = Command()
+        parser = argparse.ArgumentParser()
+        cmd.add_arguments(parser)
+        depth_action = next(
+            a for a in parser._actions if a.dest == "depth"
+        )
+        assert "minimal" in depth_action.choices
+        assert "standard" in depth_action.choices
+        assert "full" in depth_action.choices
+
+    def test_depth_minimal_routes_only(self):
+        """--depth minimal produces routes but not full type/relationship output."""
+        import tempfile
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            out = StringIO()
+            err = StringIO()
+            call_command(
+                "generate_ai_context",
+                output=tmpdir,
+                format="claude",
+                depth="minimal",
+                stdout=out,
+                stderr=err,
+            )
+            # Command should run without error
+            import os
+            assert os.path.exists(os.path.join(tmpdir, "CLAUDE.md"))
+
+    def test_depth_standard_default(self):
+        """--depth standard is the default."""
+        import argparse
+
+        from django_matt.management.commands.generate_ai_context import Command
+
+        cmd = Command()
+        parser = argparse.ArgumentParser()
+        cmd.add_arguments(parser)
+        depth_action = next(
+            a for a in parser._actions if a.dest == "depth"
+        )
+        assert depth_action.default == "standard"
+
+    def test_depth_full_runs_without_error(self):
+        """--depth full completes without error."""
+        import tempfile
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            out = StringIO()
+            err = StringIO()
+            call_command(
+                "generate_ai_context",
+                output=tmpdir,
+                format="claude",
+                depth="full",
+                stdout=out,
+                stderr=err,
+            )
+            import os
+            assert os.path.exists(os.path.join(tmpdir, "CLAUDE.md"))
+
+    def test_format_all_produces_all_files(self):
+        """--format all creates CLAUDE.md, .cursorrules, .copilot-instructions, and JSON."""
+        import tempfile
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            out = StringIO()
+            err = StringIO()
+            call_command(
+                "generate_ai_context",
+                output=tmpdir,
+                format="all",
+                depth="minimal",
+                stdout=out,
+                stderr=err,
+            )
+            import os
+            assert os.path.exists(os.path.join(tmpdir, "CLAUDE.md"))
+            assert os.path.exists(os.path.join(tmpdir, ".cursorrules"))
+            assert os.path.exists(os.path.join(tmpdir, ".copilot-instructions"))
+            assert os.path.exists(os.path.join(tmpdir, "introspection.json"))
+
+    def test_include_examples_flag_accepted(self):
+        """--include-examples flag is accepted without error."""
+        import tempfile
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            out = StringIO()
+            err = StringIO()
+            call_command(
+                "generate_ai_context",
+                output=tmpdir,
+                format="claude",
+                include_examples=True,
+                depth="minimal",
+                stdout=out,
+                stderr=err,
+            )
+            import os
+            assert os.path.exists(os.path.join(tmpdir, "CLAUDE.md"))
