@@ -19,10 +19,11 @@ from __future__ import annotations
 from datetime import time, timedelta
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.contrib.auth.models import User
 from django.test import RequestFactory, override_settings
 from django.utils import timezone
+
+import pytest
 
 from django_matt.notifications.enums import (
     NotificationChannel,
@@ -35,6 +36,7 @@ from django_matt.notifications.models import (
     NotificationDelivery,
     NotificationPreferences,
     NotificationRule,
+    PushToken,
 )
 from django_matt.notifications.services.delivery import (
     DeliveryService,
@@ -42,9 +44,9 @@ from django_matt.notifications.services.delivery import (
     InAppDeliveryHandler,
     PushDeliveryHandler,
     SMSDeliveryHandler,
+    WebhookDeliveryHandler,
 )
 from django_matt.notifications.services.notification import NotificationService
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -826,8 +828,8 @@ class TestNotificationController:
 
     @pytest.mark.django_db
     def test_controller_get_not_found(self, rf, user):
-        from django_matt.notifications.controllers.notification import NotificationController
         from django_matt.core.errors import NotFoundAPIError
+        from django_matt.notifications.controllers.notification import NotificationController
 
         request = rf.get("/notifications/99999/")
         request.user = user
@@ -835,3 +837,375 @@ class TestNotificationController:
         controller = NotificationController()
         with pytest.raises(NotFoundAPIError):
             controller.get(request, 99999)
+
+
+# ---------------------------------------------------------------------------
+# Tests: Notification Mark Read (NOTIF-01)
+# ---------------------------------------------------------------------------
+
+
+class TestNotificationMarkRead:
+    """Test notification create, retrieve, and mark_as_read with timestamp (NOTIF-01)."""
+
+    @pytest.mark.django_db
+    def test_create_and_mark_read(self, user):
+        """Create Notification, verify read_at is None, mark_as_read, verify read_at is set."""
+        notif = Notification.objects.create(
+            recipient=user,
+            title="NOTIF-01 Test",
+            message="Verify mark_as_read sets read_at",
+            notification_type=NotificationType.SYSTEM,
+        )
+        assert notif.read_at is None
+        assert notif.is_read is False
+
+        notif.mark_as_read()
+        notif.refresh_from_db()
+
+        assert notif.read_at is not None
+        assert notif.is_read is True
+
+    @pytest.mark.django_db
+    def test_unread_manager_query(self, user):
+        """Create 2 notifications (one read, one unread), verify for_user + unread filtering works."""
+        n1 = Notification.objects.create(
+            recipient=user, title="Unread One", message="msg"
+        )
+        n2 = Notification.objects.create(
+            recipient=user, title="Read One", message="msg"
+        )
+        n2.mark_as_read()
+
+        # Use manager's for_user and filter for unread
+        unread = Notification.objects.for_user(user).filter(
+            read_at__isnull=True, dismissed_at__isnull=True
+        )
+        assert unread.count() == 1
+        assert unread.first().pk == n1.pk
+
+
+# ---------------------------------------------------------------------------
+# Tests: PushToken Model (NOTIF-03 prerequisite)
+# ---------------------------------------------------------------------------
+
+
+class TestPushTokenModel:
+    """Test PushToken model CRUD and constraints."""
+
+    @pytest.mark.django_db
+    def test_create_push_token(self, user):
+        """Create PushToken with user, token, platform='fcm', verify fields."""
+        pt = PushToken.objects.create(
+            user=user,
+            token="fcm-token-abc123",
+            platform="fcm",
+            device_id="device-001",
+        )
+        assert pt.user == user
+        assert pt.token == "fcm-token-abc123"
+        assert pt.platform == "fcm"
+        assert pt.device_id == "device-001"
+        assert pt.active is True
+        assert pt.created_at is not None
+        assert str(pt) == f"PushToken(fcm) for {user}"
+
+    @pytest.mark.django_db
+    def test_push_token_unique_constraint(self, user):
+        """Create duplicate (user, token), verify IntegrityError."""
+        from django.db import IntegrityError
+
+        PushToken.objects.create(
+            user=user, token="dup-token", platform="fcm"
+        )
+        with pytest.raises(IntegrityError):
+            PushToken.objects.create(
+                user=user, token="dup-token", platform="apns"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Tests: PushDeliveryHandler (NOTIF-03)
+# ---------------------------------------------------------------------------
+
+
+class TestPushDeliveryHandler:
+    """Test PushDeliveryHandler with real PushToken model (NOTIF-03)."""
+
+    @pytest.mark.django_db
+    def test_deliver_with_push_tokens(self, user, notification):
+        """Create PushToken, deliver push notification, verify delivery marked sent."""
+        PushToken.objects.create(
+            user=user, token="test-fcm-token", platform="fcm"
+        )
+        delivery = NotificationDelivery.objects.create(
+            notification=notification,
+            channel=NotificationChannel.PUSH,
+        )
+        handler = PushDeliveryHandler()
+        with patch.object(handler, "_send_push") as mock_send_push:
+            result = handler.deliver(delivery)
+
+        assert result is True
+        mock_send_push.assert_called_once_with(notification, "test-fcm-token")
+        delivery.refresh_from_db()
+        assert delivery.status == NotificationStatus.SENT
+
+    @pytest.mark.django_db
+    def test_deliver_with_multiple_push_tokens(self, user, notification):
+        """Multiple PushTokens triggers _send_push for each token."""
+        PushToken.objects.create(user=user, token="token-1", platform="fcm")
+        PushToken.objects.create(user=user, token="token-2", platform="apns")
+        delivery = NotificationDelivery.objects.create(
+            notification=notification,
+            channel=NotificationChannel.PUSH,
+        )
+        handler = PushDeliveryHandler()
+        with patch.object(handler, "_send_push") as mock_send_push:
+            result = handler.deliver(delivery)
+
+        assert result is True
+        assert mock_send_push.call_count == 2
+
+    @pytest.mark.django_db
+    def test_deliver_no_push_tokens(self, user, notification):
+        """No PushToken records means delivery fails with 'No push tokens registered'."""
+        delivery = NotificationDelivery.objects.create(
+            notification=notification,
+            channel=NotificationChannel.PUSH,
+        )
+        handler = PushDeliveryHandler()
+        result = handler.deliver(delivery)
+
+        assert result is False
+        delivery.refresh_from_db()
+        assert delivery.status == NotificationStatus.FAILED
+        assert "No push tokens registered" in delivery.error_message
+
+    @pytest.mark.django_db
+    def test_deliver_inactive_tokens_ignored(self, user, notification):
+        """Inactive PushTokens are not returned by _get_push_tokens."""
+        PushToken.objects.create(
+            user=user, token="inactive-token", platform="fcm", active=False
+        )
+        delivery = NotificationDelivery.objects.create(
+            notification=notification,
+            channel=NotificationChannel.PUSH,
+        )
+        handler = PushDeliveryHandler()
+        result = handler.deliver(delivery)
+
+        assert result is False
+        delivery.refresh_from_db()
+        assert delivery.status == NotificationStatus.FAILED
+
+
+# ---------------------------------------------------------------------------
+# Tests: EmailDeliveryHandler via EmailService (NOTIF-02)
+# ---------------------------------------------------------------------------
+
+
+class TestEmailDeliveryViaEmailService:
+    """Test EmailDeliveryHandler dispatches through EmailService (NOTIF-02)."""
+
+    @pytest.mark.django_db
+    def test_email_delivery_uses_email_service(self, user, notification):
+        """EmailDeliveryHandler calls EmailService.send() with correct to/subject/text."""
+        delivery = NotificationDelivery.objects.create(
+            notification=notification,
+            channel=NotificationChannel.EMAIL,
+        )
+        mock_msg = MagicMock()
+        mock_msg.id = 99
+        handler = EmailDeliveryHandler()
+
+        with patch("django_matt.email.service.EmailService.send", return_value=mock_msg) as mock_send:
+            result = handler.deliver(delivery)
+
+        assert result is True
+        mock_send.assert_called_once()
+
+        call_kwargs = mock_send.call_args
+        assert call_kwargs.kwargs["to"] == user.email
+        assert call_kwargs.kwargs["subject"] == notification.title
+        assert notification.title in call_kwargs.kwargs["text"]
+        assert notification.message in call_kwargs.kwargs["text"]
+        assert call_kwargs.kwargs["metadata"]["notification_id"] == notification.id
+
+        delivery.refresh_from_db()
+        assert delivery.status == NotificationStatus.SENT
+
+    @pytest.mark.django_db
+    def test_email_delivery_with_action_url(self, user):
+        """Action URL is included in email text content."""
+        notif = Notification.objects.create(
+            recipient=user,
+            title="Action Required",
+            message="Please review",
+            action_url="https://example.com/review",
+            action_label="Review Now",
+        )
+        delivery = NotificationDelivery.objects.create(
+            notification=notif,
+            channel=NotificationChannel.EMAIL,
+        )
+        mock_msg = MagicMock()
+        mock_msg.id = 100
+        handler = EmailDeliveryHandler()
+
+        with patch("django_matt.email.service.EmailService.send", return_value=mock_msg) as mock_send:
+            handler.deliver(delivery)
+
+        text = mock_send.call_args.kwargs["text"]
+        assert "Review Now" in text
+        assert "https://example.com/review" in text
+
+
+# ---------------------------------------------------------------------------
+# Tests: SMS Delivery Handler (NOTIF-04)
+# ---------------------------------------------------------------------------
+
+
+class TestSMSDeliveryHandlerChannel:
+    """Test SMSDeliveryHandler formats message and calls _send_sms (NOTIF-04)."""
+
+    @pytest.mark.django_db
+    def test_sms_format_and_send(self, user, notification):
+        """SMSDeliveryHandler formats message and calls _send_sms with phone and message."""
+        # Give user a phone attribute
+        user.phone = "+15551234567"
+        delivery = NotificationDelivery.objects.create(
+            notification=notification,
+            channel=NotificationChannel.SMS,
+        )
+        handler = SMSDeliveryHandler()
+        with patch.object(handler, "_send_sms") as mock_sms:
+            result = handler.deliver(delivery)
+
+        assert result is True
+        mock_sms.assert_called_once()
+        phone_arg, msg_arg = mock_sms.call_args[0]
+        assert phone_arg == "+15551234567"
+        assert notification.title in msg_arg
+
+        delivery.refresh_from_db()
+        assert delivery.status == NotificationStatus.SENT
+
+
+# ---------------------------------------------------------------------------
+# Tests: Webhook Delivery Handler (NOTIF-05)
+# ---------------------------------------------------------------------------
+
+
+class TestWebhookDeliveryHandlerChannel:
+    """Test WebhookDeliveryHandler sends POST with HMAC-SHA256 signature (NOTIF-05)."""
+
+    @pytest.mark.django_db
+    def test_webhook_delivery_with_hmac_signature(self, user, notification):
+        """Webhook delivers POST with X-Webhook-Signature and X-Webhook-Timestamp headers."""
+        delivery = NotificationDelivery.objects.create(
+            notification=notification,
+            channel=NotificationChannel.WEBHOOK,
+            metadata={"webhook_url": "https://hooks.example.com/notify"},
+        )
+        handler = WebhookDeliveryHandler()
+
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+
+        with patch("requests.post", return_value=mock_response) as mock_post:
+            result = handler.deliver(delivery)
+
+        assert result is True
+        mock_post.assert_called_once()
+
+        call_kwargs = mock_post.call_args
+        # URL is the first positional argument to requests.post()
+        assert call_kwargs.args[0] == "https://hooks.example.com/notify"
+        headers = call_kwargs.kwargs["headers"]
+        assert "X-Webhook-Signature" in headers
+        assert "X-Webhook-Timestamp" in headers
+        assert headers["Content-Type"] == "application/json"
+
+        # Verify signature is a hex string (64 chars for SHA256)
+        assert len(headers["X-Webhook-Signature"]) == 64
+
+        delivery.refresh_from_db()
+        assert delivery.status == NotificationStatus.SENT
+
+    @pytest.mark.django_db
+    def test_webhook_delivery_no_url(self, user, notification):
+        """Webhook delivery fails when no webhook URL configured."""
+        delivery = NotificationDelivery.objects.create(
+            notification=notification,
+            channel=NotificationChannel.WEBHOOK,
+            metadata={},
+        )
+        handler = WebhookDeliveryHandler()
+        result = handler.deliver(delivery)
+
+        assert result is False
+        delivery.refresh_from_db()
+        assert delivery.status == NotificationStatus.FAILED
+        assert "No webhook URL" in delivery.error_message
+
+
+# ---------------------------------------------------------------------------
+# Tests: DeliveryService Integration
+# ---------------------------------------------------------------------------
+
+
+class TestDeliveryServiceIntegration:
+    """Test DeliveryService.deliver_notification dispatches to all pending channels."""
+
+    @pytest.mark.django_db
+    def test_deliver_notification_dispatches_all_channels(self, user, notification):
+        """Create Notification with 2 deliveries (in_app + email), verify both dispatched."""
+        NotificationDelivery.objects.create(
+            notification=notification,
+            channel=NotificationChannel.IN_APP,
+        )
+        NotificationDelivery.objects.create(
+            notification=notification,
+            channel=NotificationChannel.EMAIL,
+        )
+
+        mock_msg = MagicMock()
+        mock_msg.id = 200
+
+        with (
+            patch.object(InAppDeliveryHandler, "_broadcast_websocket"),
+            patch("django_matt.email.service.EmailService.send", return_value=mock_msg),
+        ):
+            results = DeliveryService.deliver_notification(notification)
+
+        assert results.get(NotificationChannel.IN_APP) is True
+        assert results.get(NotificationChannel.EMAIL) is True
+
+        # Verify delivery statuses in DB
+        in_app_delivery = NotificationDelivery.objects.get(
+            notification=notification, channel=NotificationChannel.IN_APP
+        )
+        email_delivery = NotificationDelivery.objects.get(
+            notification=notification, channel=NotificationChannel.EMAIL
+        )
+        assert in_app_delivery.status == NotificationStatus.DELIVERED
+        assert email_delivery.status == NotificationStatus.SENT
+
+    @pytest.mark.django_db
+    def test_deliver_notification_partial_failure(self, user, notification):
+        """If one channel fails, others still succeed."""
+        NotificationDelivery.objects.create(
+            notification=notification,
+            channel=NotificationChannel.IN_APP,
+        )
+        NotificationDelivery.objects.create(
+            notification=notification,
+            channel=NotificationChannel.PUSH,
+        )
+        # No PushToken exists, so push will fail
+
+        with patch.object(InAppDeliveryHandler, "_broadcast_websocket"):
+            results = DeliveryService.deliver_notification(notification)
+
+        assert results.get(NotificationChannel.IN_APP) is True
+        assert results.get(NotificationChannel.PUSH) is False

@@ -248,7 +248,7 @@ class PushDeliveryHandler(DeliveryHandler):
         try:
             from django.apps import apps
 
-            PushToken = apps.get_model("notifications", "PushToken")
+            PushToken = apps.get_model("django_matt", "PushToken")
             return list(
                 PushToken.objects.filter(user=user, active=True).values_list("token", flat=True)
             )
