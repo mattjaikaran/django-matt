@@ -50,11 +50,11 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **DX-04**: `sync_types` generates Swift types for iOS/macOS clients
 - [x] **DX-05**: `sync_types` generates Zod schemas for frontend runtime validation
 - [x] **DX-06**: `generate_ai_context` exports project structure, types, routes for LLM consumption
-- [ ] **DX-07**: Rich CLI with `matt info`, `doctor`, `routes`, `models`, `new` commands
-- [ ] **DX-08**: CLI migration tool rewrites django-ninja imports/patterns to django-matt with TODO markers
-- [ ] **DX-09**: Async test client with `force_authenticate()` using async token creation
-- [ ] **DX-10**: Test factories and assertion helpers for common API testing patterns
-- [ ] **DX-11**: Example apps demonstrating all major features (todo, ecommerce, saas-starter, realtime-chat)
+- [x] **DX-07**: Rich CLI with `matt info`, `doctor`, `routes`, `models`, `new` commands
+- [x] **DX-08**: CLI migration tool rewrites django-ninja imports/patterns to django-matt with TODO markers
+- [x] **DX-09**: Async test client with `force_authenticate()` using async token creation
+- [x] **DX-10**: Test factories and assertion helpers for common API testing patterns
+- [x] **DX-11**: Example apps demonstrating all major features (todo, ecommerce, saas-starter, realtime-chat)
 
 ### Performance & Data
 
@@ -260,11 +260,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DX-04 | Phase 3 | Complete |
 | DX-05 | Phase 3 | Complete |
 | DX-06 | Phase 3 | Complete |
-| DX-07 | Phase 3 | Pending |
-| DX-08 | Phase 3 | Pending |
-| DX-09 | Phase 3 | Pending |
-| DX-10 | Phase 3 | Pending |
-| DX-11 | Phase 3 | Pending |
+| DX-07 | Phase 3 | Complete |
+| DX-08 | Phase 3 | Complete |
+| DX-09 | Phase 3 | Complete |
+| DX-10 | Phase 3 | Complete |
+| DX-11 | Phase 3 | Complete |
 | PERF-01 | Phase 7 | Pending |
 | PERF-02 | Phase 7 | Pending |
 | PERF-03 | Phase 7 | Pending |

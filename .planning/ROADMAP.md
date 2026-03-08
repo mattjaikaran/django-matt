@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Correctness Audit** - Remove async/sync ORM violations, consolidate error classes, verify PATCH sentinel, confirm all 4143 tests pass under strict async constraints (completed 2026-03-07)
 - [x] **Phase 2: Performance Baseline** - Benchmark django-matt vs DRF/ninja/FastAPI, ship stripped middleware profile, audit all hot paths for per-request introspection (completed 2026-03-08)
-- [ ] **Phase 3: CLI and Type Generation** - Complete scaffolding commands, TypeScript/Swift/Zod type gen, AI context export, Rich CLI commands
+- [x] **Phase 3: CLI and Type Generation** - Complete scaffolding commands, TypeScript/Swift/Zod type gen, AI context export, Rich CLI commands (completed 2026-03-08)
 - [ ] **Phase 4: Auth Hardening and Multi-Tenancy** - Harden JWT blacklist/revocation, complete OAuth/SSO/Passkeys, wire Organization/Team/Membership with permission integration
 - [ ] **Phase 5: Billing, Feature Flags, and Analytics** - Complete Stripe/PayPal/Polar billing, flag backends (DB/Redis/LaunchDarkly/Unleash), analytics event tracking and A/B experiments
 - [ ] **Phase 6: Real-Time, Notifications, and Communications** - Complete WebSocket consumers with auth/presence, messaging module, notification dispatch (in-app, push, SMS), email backends
@@ -154,7 +154,7 @@ Note: Phases 3, 4, and 7 can start after Phase 1 completes. Phases 5 and 6 requi
 |-------|----------------|--------|-----------|
 | 1. Correctness Audit | 3/3 | Complete   | 2026-03-07 |
 | 2. Performance Baseline | 3/3 | Complete   | 2026-03-08 |
-| 3. CLI and Type Generation | 3/4 | In Progress|  |
+| 3. CLI and Type Generation | 4/4 | Complete   | 2026-03-08 |
 | 4. Auth Hardening and Multi-Tenancy | 0/3 | Not started | - |
 | 5. Billing, Feature Flags, and Analytics | 0/3 | Not started | - |
 | 6. Real-Time, Notifications, and Communications | 0/3 | Not started | - |
