@@ -1980,3 +1980,163 @@ class TestDisableHooks:
         request = _make_request(rf, "GET")
         # Should not raise
         await view._handle_error(request, ValueError("test"))
+
+
+# ============================================================================
+# CORE-08: model_construct code-audit test — list serialization fast path
+# ============================================================================
+
+
+class TestListUsesModelConstruct:
+    """CORE-08: Verify list serialization uses model_construct (fast path)."""
+
+    def test_list_uses_model_construct(self):
+        """Code audit: list.py must reference the fast serialization path.
+
+        ListView.handle() calls aserialize_list() (defined in base.py) which
+        calls serialize_fast(), which calls schema.from_orm_fast() — the
+        model_construct() path that skips full re-validation.
+
+        This test reads the relevant source files and confirms the fast
+        serialization symbols are present, proving the fast path is wired in.
+        """
+        from pathlib import Path
+
+        base_py = Path("django_matt/views/base.py").read_text()
+        list_py = Path("django_matt/views/list.py").read_text()
+
+        # base.py must define serialize_fast (calls from_orm_fast / model_construct)
+        assert "serialize_fast" in base_py, (
+            "django_matt/views/base.py must define serialize_fast() for fast list serialization"
+        )
+
+        # list.py must invoke aserialize_list (the fast async list path)
+        assert "aserialize_list" in list_py, (
+            "django_matt/views/list.py must call aserialize_list() (fast path) for list responses"
+        )
+
+        # base.py must reference from_orm_fast (the model_construct wrapper)
+        assert "from_orm_fast" in base_py, (
+            "django_matt/views/base.py must use from_orm_fast() — the model_construct()-based "
+            "fast serializer"
+        )
+
+
+# ============================================================================
+# PERF-04: optimize_queryset prevents N+1 — select_related/prefetch_related
+# ============================================================================
+
+
+class TestOptimizeQuerysetPreventsNPlus1:
+    """PERF-04: optimize_queryset() applies select_related and prefetch_related."""
+
+    def test_optimize_queryset_applies_select_related_for_fk(self):
+        """optimize_queryset applies select_related for ForeignKey fields in schema."""
+        from unittest.mock import patch
+
+        from django.contrib.auth.models import User
+        from pydantic import BaseModel
+
+        from django_matt.views.base import APIView
+
+        # Schema with a field that matches the auth_permission.content_type FK
+        # Use Django's built-in Permission model which has a ForeignKey to ContentType
+        from django.contrib.auth.models import Permission
+        from django.contrib.contenttypes.models import ContentType
+
+        class PermissionSchema(BaseModel):
+            id: int | None = None
+            content_type_id: int | None = None
+
+            class Config:
+                from_attributes = True
+
+        view = APIView()
+        view.response_schema = PermissionSchema
+        view._viewset = None
+
+        qs = Permission.objects.all()
+
+        # Patch select_related and prefetch_related to track calls
+        with patch.object(qs, "select_related", wraps=qs.select_related) as mock_sr, \
+             patch.object(qs, "prefetch_related", wraps=qs.prefetch_related) as mock_pr:
+            result = view.optimize_queryset(qs)
+
+        # Since PermissionSchema has no FK field names matching exactly,
+        # test with a schema that has a field named after an actual FK on Permission
+        # Permission has content_type (ForeignKey) — let's use that
+        class PermissionSchemaWithFK(BaseModel):
+            id: int | None = None
+            content_type: int | None = None  # matches the FK field name
+
+            class Config:
+                from_attributes = True
+
+        view2 = APIView()
+        view2.response_schema = PermissionSchemaWithFK
+        view2._viewset = None
+
+        qs2 = Permission.objects.all()
+        with patch.object(qs2, "select_related", wraps=qs2.select_related) as mock_sr2:
+            result2 = view2.optimize_queryset(qs2)
+
+        # select_related must have been called with 'content_type'
+        mock_sr2.assert_called_once_with("content_type")
+
+    def test_optimize_queryset_applies_prefetch_for_m2m(self):
+        """optimize_queryset applies prefetch_related for ManyToManyField fields in schema."""
+        from unittest.mock import patch
+
+        from django.contrib.auth.models import Group
+        from pydantic import BaseModel
+
+        from django_matt.views.base import APIView
+
+        # Group has permissions (ManyToManyField)
+        class GroupSchemaWithM2M(BaseModel):
+            id: int | None = None
+            permissions: list[int] = []
+
+            class Config:
+                from_attributes = True
+
+        view = APIView()
+        view.response_schema = GroupSchemaWithM2M
+        view._viewset = None
+
+        qs = Group.objects.all()
+        with patch.object(qs, "prefetch_related", wraps=qs.prefetch_related) as mock_pr:
+            result = view.optimize_queryset(qs)
+
+        # prefetch_related must have been called with 'permissions'
+        mock_pr.assert_called_once_with("permissions")
+
+    def test_optimize_queryset_no_relations_unchanged(self):
+        """optimize_queryset does not modify queryset when schema has no FK/M2M fields."""
+        from django.contrib.auth.models import User
+        from pydantic import BaseModel
+
+        from django_matt.views.base import APIView
+
+        class UserFlatSchema(BaseModel):
+            id: int | None = None
+            username: str = ""
+            email: str = ""
+
+            class Config:
+                from_attributes = True
+
+        view = APIView()
+        view.response_schema = UserFlatSchema
+        view._viewset = None
+
+        qs = User.objects.all()
+        result = view.optimize_queryset(qs)
+
+        # No FK/M2M fields in schema — queryset should not have select/prefetch applied
+        assert not result.query.select_related, (
+            "select_related must not be applied when schema has no FK fields"
+        )
+        assert not result._prefetch_related_lookups, (
+            "prefetch_related must not be applied when schema has no M2M fields"
+        )

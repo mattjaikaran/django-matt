@@ -475,3 +475,184 @@ def test_orjson_used_everywhere():
                         f"{filepath} uses json.{node.attr} — use orjson instead "
                         f"(line {node.lineno})"
                     )
+
+
+# ---------------------------------------------------------------------------
+# PERF-08: assert_query_count — context manager, decorator, error details
+# ---------------------------------------------------------------------------
+
+
+@override_settings(DEBUG=True)
+class TestAssertQueryCount(TestCase):
+    """PERF-08: assert_query_count raises AssertionError with SQL details on mismatch."""
+
+    def test_context_manager_correct_count_passes(self):
+        """Context manager with exactly the right number of queries does not raise."""
+        from django.contrib.auth.models import User
+
+        from django_matt.testing.assertions import assert_query_count
+
+        with assert_query_count(1):
+            list(User.objects.all())
+
+    def test_context_manager_wrong_count_raises(self):
+        """Context manager raises AssertionError when actual count != expected."""
+        from django.contrib.auth.models import User
+
+        from django_matt.testing.assertions import assert_query_count
+
+        with self.assertRaises(AssertionError) as cm:
+            with assert_query_count(99):
+                list(User.objects.all())
+
+        # The error message must report the mismatch
+        error_msg = str(cm.exception)
+        self.assertIn("99", error_msg)
+        self.assertIn("1", error_msg)
+
+    def test_context_manager_shows_sql_on_failure(self):
+        """AssertionError message includes actual SQL queries for debugging."""
+        from django.contrib.auth.models import User
+
+        from django_matt.testing.assertions import assert_query_count
+
+        with self.assertRaises(AssertionError) as cm:
+            with assert_query_count(0):
+                list(User.objects.all())
+
+        error_msg = str(cm.exception)
+        # The SQL text for a User query must appear in the error message
+        self.assertIn("SELECT", error_msg.upper())
+
+    def test_decorator_correct_count_passes(self):
+        """Decorated test function with the right query count does not raise."""
+        from django.contrib.auth.models import User
+
+        from django_matt.testing.assertions import assert_query_count
+
+        @assert_query_count(1)
+        def run():
+            list(User.objects.all())
+
+        # Should not raise
+        run()
+
+    def test_decorator_wrong_count_raises(self):
+        """Decorated function raises AssertionError when count mismatches."""
+        from django.contrib.auth.models import User
+
+        from django_matt.testing.assertions import assert_query_count
+
+        @assert_query_count(99)
+        def run():
+            list(User.objects.all())
+
+        with self.assertRaises(AssertionError):
+            run()
+
+
+# ---------------------------------------------------------------------------
+# PERF-05: Streaming memory threshold — 10k records < 50 MB peak
+# ---------------------------------------------------------------------------
+
+
+class TestStreamingMemoryThreshold(TestCase):
+    """PERF-05: Stream 10k dict records via stream_json_list with < 50MB peak memory."""
+
+    def test_streaming_memory_threshold(self):
+        """10k records via stream_json_list must use < 50 MB peak memory."""
+        import tracemalloc
+
+        from django_matt.utils.performance import StreamingJsonResponse, stream_json_list
+
+        def generate_records():
+            for i in range(10_000):
+                yield {"id": i, "name": f"Item {i}", "value": i * 1.5}
+
+        tracemalloc.start()
+        response = StreamingJsonResponse(
+            streaming_content=stream_json_list(generate_records())
+        )
+        # Consume the entire streaming response to measure actual peak memory
+        content = b"".join(
+            chunk.encode("utf-8") if isinstance(chunk, str) else chunk
+            for chunk in response.streaming_content
+        )
+        _, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+
+        peak_mb = peak / (1024 * 1024)
+        self.assertGreater(len(content), 0, "Streaming response must produce content")
+        self.assertLess(
+            peak_mb,
+            50,
+            f"Peak memory {peak_mb:.2f} MB exceeded 50 MB threshold for 10k record stream",
+        )
+
+
+# ---------------------------------------------------------------------------
+# PERF-06: cache_response decorator — caches result, returns on repeat call
+# ---------------------------------------------------------------------------
+
+
+@override_settings(
+    CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+)
+class TestCacheResponseDecorator(TestCase):
+    """PERF-06: cache_response decorator must cache view responses."""
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+
+    def test_view_executed_only_once_for_same_url(self):
+        """View body executes only once; second call returns cached result."""
+        from django.core.cache import cache
+        from django.http import HttpResponse
+
+        from django_matt.utils.performance import cache_response
+
+        call_counter = [0]
+
+        @cache_response(timeout=300)
+        def my_view(request):
+            call_counter[0] += 1
+            return HttpResponse(f"count={call_counter[0]}")
+
+        request = RequestFactory().get("/test-cache/")
+
+        response1 = my_view(request)
+        response2 = my_view(request)
+
+        # View body must have been called exactly once
+        self.assertEqual(call_counter[0], 1, "View must execute only once when cached")
+
+        # Both responses must return the same content (from cache)
+        self.assertEqual(
+            response1.content,
+            response2.content,
+            "Second call must return the same content as the cached response",
+        )
+
+    def test_different_urls_produce_different_cache_entries(self):
+        """Requests to different paths are cached independently."""
+        from django.http import HttpResponse
+
+        from django_matt.utils.performance import cache_response
+
+        call_counter = [0]
+
+        @cache_response(timeout=300)
+        def my_view(request):
+            call_counter[0] += 1
+            return HttpResponse(f"count={call_counter[0]}")
+
+        request_a = RequestFactory().get("/path-a/")
+        request_b = RequestFactory().get("/path-b/")
+
+        my_view(request_a)
+        my_view(request_b)
+
+        # Both paths are different → view body must be called twice
+        self.assertEqual(call_counter[0], 2, "Different paths must produce separate cache entries")
