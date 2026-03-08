@@ -85,13 +85,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Feature Flags
 
-- [ ] **FLAG-01**: Feature flag model with boolean/percentage/user-segment targeting
-- [ ] **FLAG-02**: Database backend for feature flags
-- [ ] **FLAG-03**: Redis backend for high-performance flag evaluation
-- [ ] **FLAG-04**: LaunchDarkly backend integration
-- [ ] **FLAG-05**: Unleash backend integration
-- [ ] **FLAG-06**: Feature flag decorators for views and controllers
-- [ ] **FLAG-07**: Feature flag middleware for request-scoped flag evaluation
+- [x] **FLAG-01**: Feature flag model with boolean/percentage/user-segment targeting
+- [x] **FLAG-02**: Database backend for feature flags
+- [x] **FLAG-03**: Redis backend for high-performance flag evaluation
+- [x] **FLAG-04**: LaunchDarkly backend integration
+- [x] **FLAG-05**: Unleash backend integration
+- [x] **FLAG-06**: Feature flag decorators for views and controllers
+- [x] **FLAG-07**: Feature flag middleware for request-scoped flag evaluation
 
 ### Analytics & Experiments
 
@@ -283,13 +283,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BILL-03 | Phase 5 | Complete |
 | BILL-04 | Phase 5 | Complete |
 | BILL-05 | Phase 5 | Complete |
-| FLAG-01 | Phase 5 | Pending |
-| FLAG-02 | Phase 5 | Pending |
-| FLAG-03 | Phase 5 | Pending |
-| FLAG-04 | Phase 5 | Pending |
-| FLAG-05 | Phase 5 | Pending |
-| FLAG-06 | Phase 5 | Pending |
-| FLAG-07 | Phase 5 | Pending |
+| FLAG-01 | Phase 5 | Complete |
+| FLAG-02 | Phase 5 | Complete |
+| FLAG-03 | Phase 5 | Complete |
+| FLAG-04 | Phase 5 | Complete |
+| FLAG-05 | Phase 5 | Complete |
+| FLAG-06 | Phase 5 | Complete |
+| FLAG-07 | Phase 5 | Complete |
 | ANLYT-01 | Phase 5 | Pending |
 | ANLYT-02 | Phase 5 | Pending |
 | ANLYT-03 | Phase 5 | Pending |
