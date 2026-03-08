@@ -821,3 +821,217 @@ class TestSSOUserLinkModel:
                 connection=connection,
                 idp_user_id="idp-u-dup",
             )
+
+
+# ===================================================================
+# OIDC End-to-End Integration Tests
+# ===================================================================
+
+
+@pytest.mark.django_db(transaction=True)
+class TestOIDCIntegration:
+    """End-to-end integration tests for the OIDC SSO flow (HTTP mocked)."""
+
+    @pytest.fixture
+    def oidc_connection(self):
+        """Create a real OIDC SSOConnection in the DB."""
+        return SSOConnection.objects.create(
+            organization_id="oidc-org",
+            provider_type="oidc",
+            name="Test OIDC Provider",
+            client_id="oidc-client-123",
+            client_secret="oidc-secret-456",
+            authorization_url="https://idp.example.com/authorize",
+            token_url="https://idp.example.com/token",
+            userinfo_url="https://idp.example.com/userinfo",
+            domains=["oidctest.com"],
+            is_active=True,
+        )
+
+    @pytest.fixture
+    def sso_cfg(self):
+        return _make_sso_config()
+
+    @pytest.mark.asyncio
+    async def test_login_returns_oidc_authorization_url(self, oidc_connection, sso_cfg):
+        """SSOController.login returns a login_url pointing to the OIDC IdP."""
+        from django_matt.auth.sso.controllers import SSOController
+        from django.test import RequestFactory as RF
+        from urllib.parse import urlparse, parse_qs
+
+        request = RF().post("/auth/sso/oidc-org/login")
+
+        with patch("django_matt.auth.sso.controllers.get_sso_config", return_value=sso_cfg), \
+             patch("django_matt.auth.sso.config.get_sso_config", return_value=sso_cfg):
+            response = await SSOController.login(request, org_id="oidc-org")
+
+        assert response.organization_id == "oidc-org"
+        assert response.provider_type == "oidc"
+        assert "idp.example.com" in response.login_url
+
+        parsed = urlparse(response.login_url)
+        params = parse_qs(parsed.query)
+        assert params["client_id"] == ["oidc-client-123"]
+        assert params["response_type"] == ["code"]
+        assert "state" in params
+        assert "nonce" in params
+        assert "code_challenge" in params
+
+    @pytest.mark.asyncio
+    async def test_callback_creates_user_and_links_sso(self, oidc_connection, sso_cfg):
+        """Full OIDC callback: process code -> map user attributes -> create user -> JWT tokens."""
+        from django_matt.auth.sso.controllers import SSOController
+        from django_matt.auth.sso.models import SSOUserLink
+        from django_matt.auth.sso.providers.oidc import OIDCProvider
+        from django.core.cache import cache as django_cache
+        from django.test import RequestFactory as RF
+
+        # Prepare state, PKCE and nonce in cache (as login would)
+        with patch("django_matt.auth.sso.config.get_sso_config", return_value=sso_cfg):
+            provider = OIDCProvider(oidc_connection)
+            state = provider.generate_state()
+            code_verifier = "test-verifier-xyz"
+            nonce = "test-nonce-abc"
+            django_cache.set(f"sso_state:pkce:{state}", code_verifier, 600)
+            django_cache.set(f"sso_state:nonce:{state}", nonce, 600)
+
+        # Mock the OIDC token endpoint
+        id_payload = {
+            "sub": "oidc-user-001",
+            "email": "oidcuser@oidctest.com",
+            "email_verified": True,
+            "name": "OIDC User",
+            "given_name": "OIDC",
+            "family_name": "User",
+            "nonce": nonce,
+        }
+
+        token_response = MagicMock()
+        token_response.status_code = 200
+        token_response.json.return_value = {
+            "access_token": "oidc-at",
+            "token_type": "Bearer",
+            # No id_token — force fallback to userinfo endpoint
+        }
+
+        userinfo_response = MagicMock()
+        userinfo_response.status_code = 200
+        userinfo_response.json.return_value = id_payload
+
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=token_response)
+        mock_client.get = AsyncMock(return_value=userinfo_response)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        request = RF().get(
+            "/auth/sso/oidc-org/callback",
+            {"code": "oidc-auth-code", "state": state},
+        )
+
+        with (
+            patch("django_matt.auth.sso.controllers.get_sso_config", return_value=sso_cfg),
+            patch("django_matt.auth.sso.config.get_sso_config", return_value=sso_cfg),
+            patch("httpx.AsyncClient", return_value=mock_client),
+        ):
+            response = await SSOController.callback(request, org_id="oidc-org")
+
+        assert response.success is True
+        assert response.organization_id == "oidc-org"
+        assert response.access_token is not None
+        assert response.refresh_token is not None
+
+        # Verify SSOUserLink was created
+        link = await SSOUserLink.objects.aget(
+            connection=oidc_connection,
+            idp_user_id="oidc-user-001",
+        )
+        assert link is not None
+        assert link.idp_email == "oidcuser@oidctest.com"
+
+    @pytest.mark.asyncio
+    async def test_callback_links_existing_user_by_email(self, oidc_connection, sso_cfg):
+        """OIDC callback links to existing user when email matches."""
+        from django_matt.auth.sso.controllers import SSOController
+        from django_matt.auth.sso.providers.oidc import OIDCProvider
+        from django.core.cache import cache as django_cache
+        from django.test import RequestFactory as RF
+
+        # Pre-create user
+        existing_user = await User.objects.acreate_user(
+            username="existing_oidc",
+            email="existing@oidctest.com",
+            password="pass",
+        )
+
+        with patch("django_matt.auth.sso.config.get_sso_config", return_value=sso_cfg):
+            provider = OIDCProvider(oidc_connection)
+            state = provider.generate_state()
+            nonce = "nonce-link"
+            django_cache.set(f"sso_state:pkce:{state}", "verifier", 600)
+            django_cache.set(f"sso_state:nonce:{state}", nonce, 600)
+
+        userinfo_response = MagicMock()
+        userinfo_response.status_code = 200
+        userinfo_response.json.return_value = {
+            "sub": "oidc-user-existing",
+            "email": "existing@oidctest.com",
+            "email_verified": True,
+            "name": "Existing User",
+            "nonce": nonce,
+        }
+
+        token_response = MagicMock()
+        token_response.status_code = 200
+        token_response.json.return_value = {"access_token": "at"}
+
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=token_response)
+        mock_client.get = AsyncMock(return_value=userinfo_response)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        request = RF().get("/auth/sso/oidc-org/callback", {"code": "c", "state": state})
+
+        with (
+            patch("django_matt.auth.sso.controllers.get_sso_config", return_value=sso_cfg),
+            patch("django_matt.auth.sso.config.get_sso_config", return_value=sso_cfg),
+            patch("httpx.AsyncClient", return_value=mock_client),
+        ):
+            response = await SSOController.callback(request, org_id="oidc-org")
+
+        # Linked to existing user, not created
+        assert response.created is False
+        assert response.user_id == existing_user.pk
+
+    @pytest.mark.asyncio
+    async def test_domain_check_returns_sso_enabled(self, oidc_connection, sso_cfg):
+        """check_domain returns sso_enabled=True for a domain with SSO configured."""
+        from django_matt.auth.sso.controllers import SSOController
+        from django_matt.auth.sso.schemas import SSODomainCheckRequest
+        from django.test import RequestFactory as RF
+
+        request = RF().post("/auth/sso/check")
+        data = SSODomainCheckRequest(email="user@oidctest.com")
+
+        with patch("django_matt.auth.sso.controllers.get_sso_config", return_value=sso_cfg):
+            response = await SSOController.check_domain(request, data=data)
+
+        assert response.sso_enabled is True
+        assert response.organization_id == "oidc-org"
+        assert response.provider_type == "oidc"
+
+    @pytest.mark.asyncio
+    async def test_domain_check_returns_sso_disabled_for_unknown(self, oidc_connection, sso_cfg):
+        """check_domain returns sso_enabled=False for domain without SSO."""
+        from django_matt.auth.sso.controllers import SSOController
+        from django_matt.auth.sso.schemas import SSODomainCheckRequest
+        from django.test import RequestFactory as RF
+
+        request = RF().post("/auth/sso/check")
+        data = SSODomainCheckRequest(email="user@unregistered-domain.io")
+
+        with patch("django_matt.auth.sso.controllers.get_sso_config", return_value=sso_cfg):
+            response = await SSOController.check_domain(request, data=data)
+
+        assert response.sso_enabled is False

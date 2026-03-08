@@ -950,3 +950,317 @@ class TestOAuthErrors:
         assert issubclass(OAuthConfigError, OAuthError)
         assert issubclass(OAuthAuthenticationError, OAuthError)
         assert issubclass(OAuthUserInfoError, OAuthError)
+
+
+# ---------------------------------------------------------------------------
+# End-to-end integration tests (mocked HTTP)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db(transaction=True)
+class TestOAuthGoogleIntegration:
+    """End-to-end integration tests for the Google OAuth flow (HTTP mocked)."""
+
+    def _make_config(self):
+        return _make_oauth_config()
+
+    @pytest.mark.asyncio
+    async def test_login_generates_authorization_url(self):
+        """OAuthController.login returns an authorization_url with expected Google params."""
+        from django_matt.auth.oauth.controllers import OAuthController
+        from django.test import RequestFactory as RF
+
+        config = self._make_config()
+
+        with _patch_config(config):
+            request = RF().post("/auth/oauth/google/login")
+            response = await OAuthController.login(request, provider="google")
+
+        assert hasattr(response, "authorization_url")
+        assert "accounts.google.com" in response.authorization_url
+        assert response.provider == "google"
+        assert isinstance(response.state, str)
+        assert len(response.state) > 10
+
+    @pytest.mark.asyncio
+    async def test_callback_creates_user_and_returns_tokens(self):
+        """Full Google callback: exchange code -> user info -> create user -> JWT tokens."""
+        from django_matt.auth.oauth.controllers import OAuthController
+        from django_matt.auth.oauth.models import OAuthConnection
+        from django.test import RequestFactory as RF
+
+        config = self._make_config()
+
+        # 1. Generate a state token
+        with _patch_config(config):
+            provider = GoogleOAuthProvider()
+            state = provider.generate_state()
+
+        # 2. Mock the token exchange response
+        token_response = base64.urlsafe_b64encode(
+            json.dumps({"sub": "google-user-1", "email": "guser@gmail.com",
+                        "email_verified": True, "name": "Google User",
+                        "given_name": "Google", "family_name": "User"}).encode()
+        ).decode().rstrip("=")
+        id_token = f"header.{token_response}.sig"
+
+        mock_http_response = MagicMock()
+        mock_http_response.status_code = 200
+        mock_http_response.json.return_value = {
+            "access_token": "goog-at",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+            "id_token": id_token,
+        }
+
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=mock_http_response)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        request = RF().get(
+            "/auth/oauth/google/callback",
+            {"code": "goog-code", "state": state},
+        )
+
+        with _patch_config(config), patch("httpx.AsyncClient", return_value=mock_client):
+            response = await OAuthController.callback(
+                request, provider="google",
+                code="goog-code", state=state,
+            )
+
+        assert response.success is True
+        assert response.provider == "google"
+        assert response.access_token is not None
+        assert response.refresh_token is not None
+
+        # Verify OAuthConnection was created
+        conn = await OAuthConnection.objects.aget(
+            provider="google", provider_user_id="google-user-1"
+        )
+        assert conn is not None
+
+    @pytest.mark.asyncio
+    async def test_callback_links_existing_user_by_email(self):
+        """Callback links to an existing user when email matches (link_existing_user=True)."""
+        from django_matt.auth.oauth.controllers import OAuthController
+        from django_matt.auth.oauth.config import OAuthConfig
+        from django.test import RequestFactory as RF
+
+        config = OAuthConfig(
+            redirect_uri_base="https://example.com",
+            auto_create_user=True,
+            link_existing_user=True,
+            google=_make_oauth_config().google,
+        )
+
+        # Pre-create the user
+        existing_user = await User.objects.acreate_user(
+            username="googlematch",
+            email="matched@gmail.com",
+            password="pass",
+        )
+
+        with _patch_config(config):
+            provider = GoogleOAuthProvider()
+            state = provider.generate_state()
+
+        token_payload = json.dumps({
+            "sub": "google-link-user",
+            "email": "matched@gmail.com",
+            "email_verified": True,
+            "name": "Linked User",
+        })
+        id_token = (
+            base64.urlsafe_b64encode(b"hdr").decode().rstrip("=") + "." +
+            base64.urlsafe_b64encode(token_payload.encode()).decode().rstrip("=") + ".sig"
+        )
+
+        mock_http_response = MagicMock()
+        mock_http_response.status_code = 200
+        mock_http_response.json.return_value = {
+            "access_token": "at",
+            "id_token": id_token,
+        }
+
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=mock_http_response)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        request = RF().get("/auth/oauth/google/callback", {"code": "c", "state": state})
+
+        with _patch_config(config), patch("httpx.AsyncClient", return_value=mock_client):
+            response = await OAuthController.callback(
+                request, provider="google", code="c", state=state
+            )
+
+        # Should NOT create a new user — linked to existing
+        assert response.created is False
+        assert response.user_id == existing_user.pk
+
+    @pytest.mark.asyncio
+    async def test_callback_invalid_state_raises(self):
+        """Callback raises validation error on invalid state."""
+        from django_matt.auth.oauth.controllers import OAuthController
+        from django_matt.core.errors import ValidationAPIError
+        from django.test import RequestFactory as RF
+
+        config = self._make_config()
+
+        request = RF().get("/auth/oauth/google/callback", {"code": "c", "state": "invalid"})
+
+        with _patch_config(config), pytest.raises(ValidationAPIError, match="Invalid or expired state"):
+            await OAuthController.callback(
+                request, provider="google", code="c", state="invalid"
+            )
+
+    @pytest.mark.asyncio
+    async def test_callback_missing_code_raises(self):
+        """Callback raises validation error when authorization code is missing."""
+        from django_matt.auth.oauth.controllers import OAuthController
+        from django_matt.core.errors import ValidationAPIError
+        from django.test import RequestFactory as RF
+
+        config = self._make_config()
+        request = RF().get("/auth/oauth/google/callback", {})
+
+        with _patch_config(config), pytest.raises(ValidationAPIError, match="Authorization code"):
+            await OAuthController.callback(
+                request, provider="google", code=None, state=None
+            )
+
+
+@pytest.mark.django_db(transaction=True)
+class TestOAuthGitHubIntegration:
+    """End-to-end integration tests for the GitHub OAuth flow (HTTP mocked)."""
+
+    @pytest.mark.asyncio
+    async def test_login_generates_authorization_url(self):
+        """OAuthController.login returns a GitHub authorization URL."""
+        from django_matt.auth.oauth.controllers import OAuthController
+        from django.test import RequestFactory as RF
+
+        config = _make_oauth_config()
+
+        with _patch_config(config):
+            request = RF().post("/auth/oauth/github/login")
+            response = await OAuthController.login(request, provider="github")
+
+        assert "github.com" in response.authorization_url
+        assert response.provider == "github"
+        assert isinstance(response.state, str)
+
+    @pytest.mark.asyncio
+    async def test_callback_creates_user_via_github(self):
+        """Full GitHub callback: token exchange -> user info (with email endpoint) -> create user -> JWT."""
+        from django_matt.auth.oauth.controllers import OAuthController
+        from django_matt.auth.oauth.models import OAuthConnection
+        from django.test import RequestFactory as RF
+
+        config = _make_oauth_config()
+
+        with _patch_config(config):
+            provider = GitHubOAuthProvider()
+            state = provider.generate_state()
+
+        # GitHub token exchange response (no id_token — GitHub uses bearer tokens)
+        token_response = MagicMock()
+        token_response.status_code = 200
+        token_response.json.return_value = {
+            "access_token": "gh-token-xyz",
+            "token_type": "bearer",
+            "scope": "user:email",
+        }
+
+        # GitHub user info response
+        user_info_response = MagicMock()
+        user_info_response.status_code = 200
+        user_info_response.json.return_value = {
+            "id": 98765,
+            "login": "testgithubuser",
+            "name": "GitHub User",
+            "email": "ghuser@github.com",
+            "email_verified": True,
+            "avatar_url": "https://avatars.github.com/98765",
+        }
+
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=token_response)
+        mock_client.get = AsyncMock(return_value=user_info_response)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        request = RF().get(
+            "/auth/oauth/github/callback",
+            {"code": "gh-code", "state": state},
+        )
+
+        with _patch_config(config), patch("httpx.AsyncClient", return_value=mock_client):
+            response = await OAuthController.callback(
+                request, provider="github", code="gh-code", state=state
+            )
+
+        assert response.success is True
+        assert response.provider == "github"
+        assert response.access_token is not None
+
+        # Verify OAuthConnection linked to GitHub provider user
+        conn = await OAuthConnection.objects.aget(
+            provider="github", provider_user_id="98765"
+        )
+        assert conn is not None
+        assert conn.email == "ghuser@github.com"
+
+    @pytest.mark.asyncio
+    async def test_callback_github_private_email_fetched(self):
+        """Callback fetches private email from /user/emails when profile email is null."""
+        from django_matt.auth.oauth.controllers import OAuthController
+        from django_matt.auth.oauth.models import OAuthConnection
+        from django.test import RequestFactory as RF
+
+        config = _make_oauth_config()
+
+        with _patch_config(config):
+            provider = GitHubOAuthProvider()
+            state = provider.generate_state()
+
+        token_response = MagicMock()
+        token_response.status_code = 200
+        token_response.json.return_value = {"access_token": "gh-priv-token", "token_type": "bearer"}
+
+        # User info has no email (private account)
+        user_info_response = MagicMock()
+        user_info_response.status_code = 200
+        user_info_response.json.return_value = {
+            "id": 11111,
+            "login": "privateuser",
+            "name": "Private User",
+            "email": None,
+        }
+
+        # Email list endpoint
+        emails_response = MagicMock()
+        emails_response.status_code = 200
+        emails_response.json.return_value = [
+            {"email": "secondary@example.com", "primary": False, "verified": True},
+            {"email": "primary@example.com", "primary": True, "verified": True},
+        ]
+
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=token_response)
+        mock_client.get = AsyncMock(side_effect=[user_info_response, emails_response])
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        request = RF().get("/auth/oauth/github/callback", {"code": "c", "state": state})
+
+        with _patch_config(config), patch("httpx.AsyncClient", return_value=mock_client):
+            response = await OAuthController.callback(
+                request, provider="github", code="c", state=state
+            )
+
+        assert response.success is True
+
+        conn = await OAuthConnection.objects.aget(provider="github", provider_user_id="11111")
+        assert conn.email == "primary@example.com"

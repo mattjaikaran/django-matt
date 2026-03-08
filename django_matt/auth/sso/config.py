@@ -79,19 +79,22 @@ class SSOConfig:
         """
         config_dict = getattr(settings, "DJANGO_MATT_SSO", {})
 
+        # Build a default instance to safely read default values from field(default_factory=...)
+        _defaults = cls()
+
         config = cls(
-            enabled=config_dict.get("ENABLED", cls.enabled),
+            enabled=config_dict.get("ENABLED", _defaults.enabled),
             callback_url_base=config_dict.get("CALLBACK_URL_BASE", ""),
-            allowed_providers=config_dict.get("ALLOWED_PROVIDERS", cls.allowed_providers),
+            allowed_providers=config_dict.get("ALLOWED_PROVIDERS", _defaults.allowed_providers),
             require_email_verification=config_dict.get(
-                "REQUIRE_EMAIL_VERIFICATION", cls.require_email_verification
+                "REQUIRE_EMAIL_VERIFICATION", _defaults.require_email_verification
             ),
-            auto_create_user=config_dict.get("AUTO_CREATE_USER", cls.auto_create_user),
-            auto_update_user=config_dict.get("AUTO_UPDATE_USER", cls.auto_update_user),
-            default_role=config_dict.get("DEFAULT_ROLE", cls.default_role),
-            session_timeout=config_dict.get("SESSION_TIMEOUT", cls.session_timeout),
-            state_cache_prefix=config_dict.get("STATE_CACHE_PREFIX", cls.state_cache_prefix),
-            state_timeout=config_dict.get("STATE_TIMEOUT", cls.state_timeout),
+            auto_create_user=config_dict.get("AUTO_CREATE_USER", _defaults.auto_create_user),
+            auto_update_user=config_dict.get("AUTO_UPDATE_USER", _defaults.auto_update_user),
+            default_role=config_dict.get("DEFAULT_ROLE", _defaults.default_role),
+            session_timeout=config_dict.get("SESSION_TIMEOUT", _defaults.session_timeout),
+            state_cache_prefix=config_dict.get("STATE_CACHE_PREFIX", _defaults.state_cache_prefix),
+            state_timeout=config_dict.get("STATE_TIMEOUT", _defaults.state_timeout),
         )
 
         # Load provider settings
