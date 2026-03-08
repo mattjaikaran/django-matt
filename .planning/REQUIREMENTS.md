@@ -69,11 +69,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Multi-Tenancy
 
-- [ ] **TENANT-01**: Organization model with create/read/update/delete
-- [ ] **TENANT-02**: Team model with membership management
-- [ ] **TENANT-03**: Membership model with role-based team permissions
-- [ ] **TENANT-04**: Tenant-aware middleware scoping queries to current organization
-- [ ] **TENANT-05**: Tenant-aware controllers with automatic organization filtering
+- [x] **TENANT-01**: Organization model with create/read/update/delete
+- [x] **TENANT-02**: Team model with membership management
+- [x] **TENANT-03**: Membership model with role-based team permissions
+- [x] **TENANT-04**: Tenant-aware middleware scoping queries to current organization
+- [x] **TENANT-05**: Tenant-aware controllers with automatic organization filtering
 
 ### Billing
 
@@ -273,11 +273,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PERF-06 | Phase 2 | Complete |
 | PERF-07 | Phase 2 | Complete |
 | PERF-08 | Phase 2 | Complete |
-| TENANT-01 | Phase 4 | Pending |
-| TENANT-02 | Phase 4 | Pending |
-| TENANT-03 | Phase 4 | Pending |
-| TENANT-04 | Phase 4 | Pending |
-| TENANT-05 | Phase 4 | Pending |
+| TENANT-01 | Phase 4 | Complete |
+| TENANT-02 | Phase 4 | Complete |
+| TENANT-03 | Phase 4 | Complete |
+| TENANT-04 | Phase 4 | Complete |
+| TENANT-05 | Phase 4 | Complete |
 | BILL-01 | Phase 5 | Pending |
 | BILL-02 | Phase 5 | Pending |
 | BILL-03 | Phase 5 | Pending |

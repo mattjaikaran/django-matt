@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 04-auth-hardening-and-multi-tenancy/04-01-PLAN.md
-last_updated: "2026-03-08T03:34:15.010Z"
+stopped_at: Completed 04-auth-hardening-and-multi-tenancy/04-03-PLAN.md
+last_updated: "2026-03-08T05:26:53.764Z"
 last_activity: 2026-03-07 — Roadmap created; 101 requirements mapped to 7 phases
 progress:
   total_phases: 7
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 13
-  completed_plans: 12
+  completed_plans: 13
   percent: 0
 ---
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03-cli-and-type-generation P04 | 25 | 2 tasks | 22 files |
 | Phase 04-auth-hardening-and-multi-tenancy P02 | 45 | 2 tasks | 6 files |
 | Phase 04-auth-hardening-and-multi-tenancy P01 | 90 | 2 tasks | 10 files |
+| Phase 04-auth-hardening-and-multi-tenancy P03 | 45 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -103,6 +104,9 @@ Recent decisions affecting current work:
 - [Phase 04-auth-hardening-and-multi-tenancy]: Per-user revocation sentinel stored in cache with TTL=refresh_token_lifetime — no migration, auto-expires, iat<sentinel_ts rejects pre-revocation tokens
 - [Phase 04-auth-hardening-and-multi-tenancy]: CSRF exemption via view_func._csrf_exempt=True in get_urls() — cleanest integration point, doesn't require decorator changes
 - [Phase 04-auth-hardening-and-multi-tenancy]: change_password calls abulk_revoke_tokens_for_user before acreate_token_pair — strict ordering ensures old tokens invalid before new ones issued
+- [Phase 04-auth-hardening-and-multi-tenancy]: Cross-org access returns 403 Forbidden (not 404) — explicit denial, avoids timing-leak attacks, consistent B2B SaaS pattern
+- [Phase 04-auth-hardening-and-multi-tenancy]: Org-scoped filter-before-lookup pattern: .filter(organization=request.organization, id=id).afirst() — never global lookup then membership check
+- [Phase 04-auth-hardening-and-multi-tenancy]: Sync model methods (Invitation.accept/revoke/resend, send_invitation_email) wrapped with sync_to_async in async controllers — model layer stays sync for non-async callers
 
 ### Pending Todos
 
@@ -117,6 +121,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-08T03:34:15.005Z
-Stopped at: Completed 04-auth-hardening-and-multi-tenancy/04-01-PLAN.md
+Last session: 2026-03-08T05:26:53.759Z
+Stopped at: Completed 04-auth-hardening-and-multi-tenancy/04-03-PLAN.md
 Resume file: None
