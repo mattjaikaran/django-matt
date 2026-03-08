@@ -154,7 +154,7 @@ Note: Phases 3, 4, and 7 can start after Phase 1 completes. Phases 5 and 6 requi
 |-------|----------------|--------|-----------|
 | 1. Correctness Audit | 3/3 | Complete   | 2026-03-07 |
 | 2. Performance Baseline | 3/3 | Complete   | 2026-03-08 |
-| 3. CLI and Type Generation | 0/4 | Not started | - |
+| 3. CLI and Type Generation | 1/4 | In Progress|  |
 | 4. Auth Hardening and Multi-Tenancy | 0/3 | Not started | - |
 | 5. Billing, Feature Flags, and Analytics | 0/3 | Not started | - |
 | 6. Real-Time, Notifications, and Communications | 0/3 | Not started | - |

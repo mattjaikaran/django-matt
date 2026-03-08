@@ -9,21 +9,21 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Core API Framework
 
-- [ ] **CORE-01**: Router supports async and sync view registration with automatic URL generation
-- [ ] **CORE-02**: Controller pattern provides class-based API endpoints with decorator-driven routing
+- [x] **CORE-01**: Router supports async and sync view registration with automatic URL generation
+- [x] **CORE-02**: Controller pattern provides class-based API endpoints with decorator-driven routing
 - [x] **CORE-03**: Pydantic v2 schema validation on request bodies with structured error responses
-- [ ] **CORE-04**: CRUD ViewSet generates list/create/read/update/delete endpoints from model + schema
-- [ ] **CORE-05**: OpenAPI 3.1 schema auto-generated from routes, schemas, and type hints
-- [ ] **CORE-06**: Swagger UI and ReDoc served at configurable endpoints
+- [x] **CORE-04**: CRUD ViewSet generates list/create/read/update/delete endpoints from model + schema
+- [x] **CORE-05**: OpenAPI 3.1 schema auto-generated from routes, schemas, and type hints
+- [x] **CORE-06**: Swagger UI and ReDoc served at configurable endpoints
 - [x] **CORE-07**: Structured error handling with consistent JSON error format across all endpoints
 - [x] **CORE-08**: `model_construct()` fast path for list serialization (skip re-validation on ORM reads)
 - [x] **CORE-09**: Startup-time introspection caching — zero per-request `get_type_hints()` or `_meta.fields` calls
 - [x] **CORE-10**: orjson used for all JSON serialization/deserialization (router, controller, views, responses)
-- [ ] **CORE-11**: Static-before-parameterized URL ordering prevents `/users/me` vs `/users/<id>` conflicts
+- [x] **CORE-11**: Static-before-parameterized URL ordering prevents `/users/me` vs `/users/<id>` conflicts
 - [x] **CORE-12**: API-mode middleware profile — stripped middleware stack for maximum throughput on API-only projects
-- [ ] **CORE-13**: Dependency injection container with ContextVar-based request scoping
-- [ ] **CORE-14**: Content negotiation supporting JSON, XML, CSV, YAML, MsgPack
-- [ ] **CORE-15**: API versioning strategies (URL, header, query param)
+- [x] **CORE-13**: Dependency injection container with ContextVar-based request scoping
+- [x] **CORE-14**: Content negotiation supporting JSON, XML, CSV, YAML, MsgPack
+- [x] **CORE-15**: API versioning strategies (URL, header, query param)
 - [x] **CORE-16**: PATCH requests use NotSet sentinel to distinguish "not sent" from "sent as null"
 
 ### Authentication & Security
@@ -225,21 +225,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CORE-01 | Phase 3 | Pending |
-| CORE-02 | Phase 3 | Pending |
+| CORE-01 | Phase 3 | Complete |
+| CORE-02 | Phase 3 | Complete |
 | CORE-03 | Phase 1 | Complete |
-| CORE-04 | Phase 3 | Pending |
-| CORE-05 | Phase 3 | Pending |
-| CORE-06 | Phase 3 | Pending |
+| CORE-04 | Phase 3 | Complete |
+| CORE-05 | Phase 3 | Complete |
+| CORE-06 | Phase 3 | Complete |
 | CORE-07 | Phase 1 | Complete |
 | CORE-08 | Phase 2 | Complete |
 | CORE-09 | Phase 2 | Complete |
 | CORE-10 | Phase 2 | Complete |
-| CORE-11 | Phase 3 | Pending |
+| CORE-11 | Phase 3 | Complete |
 | CORE-12 | Phase 2 | Complete |
-| CORE-13 | Phase 3 | Pending |
-| CORE-14 | Phase 3 | Pending |
-| CORE-15 | Phase 3 | Pending |
+| CORE-13 | Phase 3 | Complete |
+| CORE-14 | Phase 3 | Complete |
+| CORE-15 | Phase 3 | Complete |
 | CORE-16 | Phase 1 | Complete |
 | AUTH-01 | Phase 4 | Pending |
 | AUTH-02 | Phase 4 | Pending |
