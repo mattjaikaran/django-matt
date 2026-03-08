@@ -167,50 +167,48 @@ class EmailDeliveryHandler(DeliveryHandler):
             return False
 
     def _send_email(self, notification: Notification, email: str) -> str:
-        """Send the actual email. Returns message ID."""
-        from django.conf import settings
-        from django.core.mail import send_mail
-        from django.template.loader import render_to_string
-
-        # Build email content
-        context = {
-            "notification": notification,
-            "recipient": notification.recipient,
-            "action_url": notification.action_url,
-            "action_label": notification.action_label or "View",
-        }
-
-        # Try to render template, fall back to plain text
+        """Send the actual email via EmailService for tracking and suppression."""
         try:
-            html_content = render_to_string(
-                "notifications/email/notification.html",
-                context,
+            from django_matt.email.service import EmailService
+
+            text_content = f"{notification.title}\n\n{notification.message}"
+            if notification.action_url:
+                text_content += (
+                    f"\n\n{notification.action_label or 'View'}: {notification.action_url}"
+                )
+
+            email_msg = EmailService.send(
+                to=email,
+                subject=notification.title,
+                text=text_content,
+                metadata={"notification_id": notification.id},
             )
-        except Exception:
-            html_content = None
+            return str(email_msg.id) if email_msg else ""
+        except ImportError:
+            # Fallback to django.core.mail if email module not available
+            from django.conf import settings as django_settings
+            from django.core.mail import send_mail
 
-        # Plain text fallback
-        text_content = f"{notification.title}\n\n{notification.message}"
-        if notification.action_url:
-            text_content += f"\n\n{notification.action_label or 'View'}: {notification.action_url}"
+            text_content = f"{notification.title}\n\n{notification.message}"
+            if notification.action_url:
+                text_content += (
+                    f"\n\n{notification.action_label or 'View'}: {notification.action_url}"
+                )
 
-        # Send email
-        from_email = getattr(
-            settings,
-            "NOTIFICATION_FROM_EMAIL",
-            settings.DEFAULT_FROM_EMAIL,
-        )
+            from_email = getattr(
+                django_settings,
+                "NOTIFICATION_FROM_EMAIL",
+                django_settings.DEFAULT_FROM_EMAIL,
+            )
 
-        send_mail(
-            subject=notification.title,
-            message=text_content,
-            from_email=from_email,
-            recipient_list=[email],
-            html_message=html_content,
-            fail_silently=False,
-        )
-
-        return ""  # Django send_mail doesn't return message ID
+            send_mail(
+                subject=notification.title,
+                message=text_content,
+                from_email=from_email,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+            return ""
 
 
 class PushDeliveryHandler(DeliveryHandler):

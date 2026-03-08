@@ -5,6 +5,7 @@ Notification models.
 from django_matt.notifications.models.notification import (
     Notification,
     NotificationDelivery,
+    PushToken,
 )
 from django_matt.notifications.models.preferences import (
     NotificationPreferences,
@@ -16,4 +17,5 @@ __all__ = [
     "NotificationDelivery",
     "NotificationPreferences",
     "NotificationRule",
+    "PushToken",
 ]

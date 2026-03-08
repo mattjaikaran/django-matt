@@ -613,7 +613,9 @@ class TestDeliveryService:
             notification=notification,
             channel=NotificationChannel.EMAIL,
         )
-        with patch("django.core.mail.send_mail") as mock_send:
+        mock_msg = MagicMock()
+        mock_msg.id = 42
+        with patch("django_matt.email.service.EmailService.send", return_value=mock_msg) as mock_send:
             results = DeliveryService.deliver_notification(notification)
         assert results.get(NotificationChannel.EMAIL) is True
         mock_send.assert_called_once()
@@ -700,7 +702,9 @@ class TestEmailDeliveryHandler:
             channel=NotificationChannel.EMAIL,
         )
         handler = EmailDeliveryHandler()
-        with patch("django.core.mail.send_mail"):
+        mock_msg = MagicMock()
+        mock_msg.id = 42
+        with patch("django_matt.email.service.EmailService.send", return_value=mock_msg):
             result = handler.deliver(delivery)
         assert result is True
         delivery.refresh_from_db()
