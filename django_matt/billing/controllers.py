@@ -774,8 +774,6 @@ class WebhookController:
 
         Override this method to add custom webhook handling logic.
         """
-        from django_matt.billing.providers import get_provider
-
         provider = get_provider(provider_name)
         normalized_type = provider.normalize_webhook_type(event.type)
 

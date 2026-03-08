@@ -21,11 +21,12 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from django.contrib.auth.models import User
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
 from django.utils import timezone
+
+import pytest
 
 from django_matt.billing.config import (
     BillingConfig,
@@ -42,6 +43,8 @@ from django_matt.billing.models import (
     Invoice,
     Subscription,
     UsageRecord,
+)
+from django_matt.billing.models import (
     WebhookEvent as WebhookEventModel,
 )
 from django_matt.billing.providers.base import (
@@ -89,7 +92,6 @@ from django_matt.billing.schemas import (
     UsageRecordCreate,
     UsageRecordResponse,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -2762,9 +2764,9 @@ class TestStripeSubscriptionStatusMapping:
         mock_sub.current_period_start = 1704067200
         mock_sub.current_period_end = 1706745600
         mock_sub.cancel_at_period_end = kwargs.get("cancel_at_period_end", False)
-        mock_sub.canceled_at = kwargs.get("canceled_at", None)
-        mock_sub.trial_start = kwargs.get("trial_start", None)
-        mock_sub.trial_end = kwargs.get("trial_end", None)
+        mock_sub.canceled_at = kwargs.get("canceled_at")
+        mock_sub.trial_start = kwargs.get("trial_start")
+        mock_sub.trial_end = kwargs.get("trial_end")
         mock_sub.metadata = {}
         mock_sub.created = 1704067200
         mock_sub.to_dict.return_value = {"id": f"sub_{status}"}
@@ -2917,3 +2919,439 @@ class TestBillingModelRelationships:
         subscription.delete()
         invoice.refresh_from_db()
         assert invoice.subscription is None
+
+
+# ---------------------------------------------------------------------------
+# Webhook Lifecycle Sync Tests (Phase 05-01)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db(transaction=True)
+class TestWebhookLifecycleSync:
+    """End-to-end webhook-to-DB-sync tests for all three providers."""
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _make_mock_provider(self, webhook_event_obj):
+        """Return a MagicMock provider that verify_webhook returns the given event."""
+        mock_provider = MagicMock()
+        mock_provider.verify_webhook = AsyncMock(return_value=webhook_event_obj)
+        mock_provider.normalize_webhook_type.return_value = "subscription.created"
+        return mock_provider
+
+    # ------------------------------------------------------------------
+    # amark_processed
+    # ------------------------------------------------------------------
+
+    async def test_amark_processed_async(self):
+        """amark_processed() should update processed=True and processed_at without SynchronousOnlyOperation."""
+        event = await WebhookEventModel.objects.acreate(
+            provider="stripe",
+            provider_event_id="evt_amark_test",
+            event_type="customer.subscription.created",
+            payload={"id": "sub_test"},
+        )
+        assert event.processed is False
+        assert event.processed_at is None
+
+        await event.amark_processed()
+
+        await event.arefresh_from_db()
+        assert event.processed is True
+        assert event.processed_at is not None
+
+    async def test_amark_processed_with_error(self):
+        """amark_processed(error=...) should store the error string."""
+        event = await WebhookEventModel.objects.acreate(
+            provider="stripe",
+            provider_event_id="evt_amark_error_test",
+            event_type="invoice.paid",
+            payload={"id": "inv_test"},
+        )
+        await event.amark_processed(error="something went wrong")
+
+        await event.arefresh_from_db()
+        assert event.processed is True
+        assert event.processing_error == "something went wrong"
+
+    # ------------------------------------------------------------------
+    # Mock factory signature validity
+    # ------------------------------------------------------------------
+
+    async def test_mock_stripe_event_valid_signature(self, stripe_config):
+        """mock_stripe_event() output should pass StripeProvider.verify_webhook()."""
+        from django_matt.billing.testing import mock_stripe_event
+
+        secret = stripe_config.webhook_secret
+        payload, sig_header = mock_stripe_event(
+            "customer.subscription.created",
+            data={"id": "sub_123", "status": "active", "customer": "cus_stripe_123"},
+            secret=secret,
+        )
+
+        provider = StripeProvider(stripe_config)
+        event = await provider.verify_webhook(payload, sig_header)
+        assert event.type == "customer.subscription.created"
+        assert event.provider == "stripe"
+
+    async def test_mock_polar_event_valid_signature(self, polar_config):
+        """mock_polar_event() output should pass PolarProvider.verify_webhook()."""
+        from django_matt.billing.testing import mock_polar_event
+
+        secret = polar_config.webhook_secret
+        payload, sig_header = mock_polar_event(
+            "subscription.created",
+            data={"id": "sub_polar_123", "customer_id": "cus_polar_123"},
+            secret=secret,
+        )
+
+        provider = PolarProvider(polar_config)
+        event = await provider.verify_webhook(payload, sig_header)
+        assert event.provider == "polar"
+
+    async def test_mock_paypal_event_valid_signature(self, paypal_config):
+        """mock_paypal_event() output should pass PayPalProvider.verify_webhook()."""
+        from django_matt.billing.testing import mock_paypal_event
+
+        payload, headers = mock_paypal_event(
+            "BILLING.SUBSCRIPTION.CREATED",
+            data={"id": "I-PAYPAL123"},
+            client_secret=paypal_config.client_secret,
+            webhook_id=paypal_config.webhook_id,
+        )
+
+        provider = PayPalProvider(paypal_config)
+        # PayPal verify_webhook needs headers kwarg
+        event = await provider.verify_webhook(payload, headers.get("PAYPAL-TRANSMISSION-SIG", ""), headers=headers)
+        assert event.provider == "paypal"
+
+    # ------------------------------------------------------------------
+    # Stripe webhook creates Subscription in DB (BILL-01)
+    # ------------------------------------------------------------------
+
+    @patch("django_matt.billing.controllers.get_provider")
+    async def test_stripe_webhook_creates_subscription(self, mock_get_provider, billing_customer, rf):
+        """Stripe subscription.created webhook should create a local Subscription record."""
+        mock_provider = MagicMock()
+        mock_provider.verify_webhook = AsyncMock(
+            return_value=WebhookEvent(
+                id="evt_stripe_create",
+                type="customer.subscription.created",
+                provider="stripe",
+                data={
+                    "id": "sub_stripe_new",
+                    "status": "active",
+                    "customer": billing_customer.stripe_customer_id,
+                    "current_period_start": 1700000000,
+                    "current_period_end": 1702592000,
+                },
+            )
+        )
+        mock_provider.normalize_webhook_type.return_value = "subscription.created"
+        mock_get_provider.return_value = mock_provider
+
+        controller = WebhookController()
+        request = rf.post(
+            "/billing/webhooks/stripe",
+            data=b'{"id": "evt_stripe_create"}',
+            content_type="application/json",
+        )
+        request.META["HTTP_STRIPE_SIGNATURE"] = "t=1,v1=sig"
+
+        response = await controller.handle_stripe_webhook(request)
+        assert response.status_code == 200
+
+        # Subscription must exist in DB
+        assert await Subscription.objects.filter(
+            provider="stripe", provider_subscription_id="sub_stripe_new"
+        ).aexists()
+
+        sub = await Subscription.objects.aget(provider="stripe", provider_subscription_id="sub_stripe_new")
+        assert sub.status == Subscription.Status.ACTIVE
+
+    # ------------------------------------------------------------------
+    # Subscription.updated changes status (BILL-04)
+    # ------------------------------------------------------------------
+
+    @patch("django_matt.billing.controllers.get_provider")
+    async def test_subscription_updated_changes_status(self, mock_get_provider, billing_customer, billing_price, rf):
+        """subscription.updated webhook should update existing subscription status."""
+        # Pre-create a subscription
+        sub = await Subscription.objects.acreate(
+            customer=billing_customer,
+            price=billing_price,
+            provider="stripe",
+            provider_subscription_id="sub_to_update",
+            status=Subscription.Status.ACTIVE,
+        )
+
+        mock_provider = MagicMock()
+        mock_provider.verify_webhook = AsyncMock(
+            return_value=WebhookEvent(
+                id="evt_stripe_update",
+                type="customer.subscription.updated",
+                provider="stripe",
+                data={
+                    "id": "sub_to_update",
+                    "status": "past_due",
+                    "customer": billing_customer.stripe_customer_id,
+                },
+            )
+        )
+        mock_provider.normalize_webhook_type.return_value = "subscription.updated"
+        mock_get_provider.return_value = mock_provider
+
+        controller = WebhookController()
+        request = rf.post(
+            "/billing/webhooks/stripe",
+            data=b'{"id": "evt_stripe_update"}',
+            content_type="application/json",
+        )
+        request.META["HTTP_STRIPE_SIGNATURE"] = "t=1,v1=sig"
+
+        response = await controller.handle_stripe_webhook(request)
+        assert response.status_code == 200
+
+        await sub.arefresh_from_db()
+        assert sub.status == "past_due"
+
+    # ------------------------------------------------------------------
+    # Subscription.canceled sets status + canceled_at (BILL-04)
+    # ------------------------------------------------------------------
+
+    @patch("django_matt.billing.controllers.get_provider")
+    async def test_subscription_canceled_sets_canceled_at(self, mock_get_provider, billing_customer, billing_price, rf):
+        """subscription.canceled webhook should set status=canceled and canceled_at."""
+        sub = await Subscription.objects.acreate(
+            customer=billing_customer,
+            price=billing_price,
+            provider="stripe",
+            provider_subscription_id="sub_to_cancel",
+            status=Subscription.Status.ACTIVE,
+        )
+
+        mock_provider = MagicMock()
+        mock_provider.verify_webhook = AsyncMock(
+            return_value=WebhookEvent(
+                id="evt_stripe_cancel",
+                type="customer.subscription.deleted",
+                provider="stripe",
+                data={
+                    "id": "sub_to_cancel",
+                    "status": "canceled",
+                    "customer": billing_customer.stripe_customer_id,
+                },
+            )
+        )
+        mock_provider.normalize_webhook_type.return_value = "subscription.canceled"
+        mock_get_provider.return_value = mock_provider
+
+        controller = WebhookController()
+        request = rf.post(
+            "/billing/webhooks/stripe",
+            data=b'{"id": "evt_stripe_cancel"}',
+            content_type="application/json",
+        )
+        request.META["HTTP_STRIPE_SIGNATURE"] = "t=1,v1=sig"
+
+        response = await controller.handle_stripe_webhook(request)
+        assert response.status_code == 200
+
+        await sub.arefresh_from_db()
+        assert sub.status == Subscription.Status.CANCELED
+        assert sub.canceled_at is not None
+
+    # ------------------------------------------------------------------
+    # Duplicate webhook skipped (BILL-05)
+    # ------------------------------------------------------------------
+
+    @patch("django_matt.billing.controllers.get_provider")
+    async def test_duplicate_webhook_skipped(self, mock_get_provider, billing_customer, rf):
+        """Same webhook event_id sent twice should be idempotent — only one Subscription row."""
+        mock_provider = MagicMock()
+        mock_provider.verify_webhook = AsyncMock(
+            return_value=WebhookEvent(
+                id="evt_dup_test",
+                type="customer.subscription.created",
+                provider="stripe",
+                data={
+                    "id": "sub_dup",
+                    "status": "active",
+                    "customer": billing_customer.stripe_customer_id,
+                },
+            )
+        )
+        mock_provider.normalize_webhook_type.return_value = "subscription.created"
+        mock_get_provider.return_value = mock_provider
+
+        controller = WebhookController()
+        request = rf.post(
+            "/billing/webhooks/stripe",
+            data=b'{"id": "evt_dup_test"}',
+            content_type="application/json",
+        )
+        request.META["HTTP_STRIPE_SIGNATURE"] = "t=1,v1=sig"
+
+        # First call
+        r1 = await controller.handle_stripe_webhook(request)
+        assert r1.status_code == 200
+
+        # Second call with same event_id
+        r2 = await controller.handle_stripe_webhook(request)
+        assert r2.status_code == 200
+
+        # Only ONE WebhookEvent and ONE Subscription should exist
+        assert await WebhookEventModel.objects.filter(provider="stripe", provider_event_id="evt_dup_test").acount() == 1
+        assert await Subscription.objects.filter(provider="stripe", provider_subscription_id="sub_dup").acount() == 1
+
+    # ------------------------------------------------------------------
+    # Invalid signature returns 400 (BILL-05)
+    # ------------------------------------------------------------------
+
+    @patch("django_matt.billing.controllers.get_provider")
+    async def test_invalid_signature_returns_400(self, mock_get_provider, rf):
+        """Webhook with invalid signature should return 400."""
+        from django_matt.billing.providers.base import BillingWebhookError as BWE
+
+        mock_provider = MagicMock()
+        mock_provider.verify_webhook = AsyncMock(side_effect=BWE("Bad signature"))
+        mock_get_provider.return_value = mock_provider
+
+        controller = WebhookController()
+        request = rf.post(
+            "/billing/webhooks/stripe",
+            data=b'{"id": "evt_bad"}',
+            content_type="application/json",
+        )
+        request.META["HTTP_STRIPE_SIGNATURE"] = "bad_signature"
+
+        response = await controller.handle_stripe_webhook(request)
+        assert response.status_code == 400
+
+    # ------------------------------------------------------------------
+    # Django signal fires after subscription sync
+    # ------------------------------------------------------------------
+
+    @patch("django_matt.billing.controllers.get_provider")
+    async def test_subscription_synced_signal_fires(self, mock_get_provider, billing_customer, rf):
+        """subscription_synced signal should fire with correct kwargs after webhook sync."""
+        from django_matt.billing.signals import subscription_synced
+
+        fired_kwargs: dict = {}
+
+        def on_synced(sender, **kwargs):
+            fired_kwargs.update(kwargs)
+
+        subscription_synced.connect(on_synced)
+        try:
+            mock_provider = MagicMock()
+            mock_provider.verify_webhook = AsyncMock(
+                return_value=WebhookEvent(
+                    id="evt_signal_test",
+                    type="customer.subscription.created",
+                    provider="stripe",
+                    data={
+                        "id": "sub_signal_test",
+                        "status": "active",
+                        "customer": billing_customer.stripe_customer_id,
+                    },
+                )
+            )
+            mock_provider.normalize_webhook_type.return_value = "subscription.created"
+            mock_get_provider.return_value = mock_provider
+
+            controller = WebhookController()
+            request = rf.post(
+                "/billing/webhooks/stripe",
+                data=b'{"id": "evt_signal_test"}',
+                content_type="application/json",
+            )
+            request.META["HTTP_STRIPE_SIGNATURE"] = "t=1,v1=sig"
+
+            response = await controller.handle_stripe_webhook(request)
+            assert response.status_code == 200
+        finally:
+            subscription_synced.disconnect(on_synced)
+
+        assert "subscription" in fired_kwargs
+        assert fired_kwargs.get("event_type") == "created"
+        assert fired_kwargs.get("provider") == "stripe"
+
+    # ------------------------------------------------------------------
+    # PayPal webhook syncs subscription (BILL-02)
+    # ------------------------------------------------------------------
+
+    @patch("django_matt.billing.controllers.get_provider")
+    async def test_paypal_webhook_creates_subscription(self, mock_get_provider, billing_customer, rf):
+        """PayPal subscription.created webhook should create a local Subscription record."""
+        mock_provider = MagicMock()
+        mock_provider.verify_webhook = AsyncMock(
+            return_value=WebhookEvent(
+                id="evt_paypal_create",
+                type="BILLING.SUBSCRIPTION.CREATED",
+                provider="paypal",
+                data={
+                    "id": "I-PAYPAL_SUB",
+                    "status": "ACTIVE",
+                    "subscriber": {"payer_id": billing_customer.paypal_customer_id},
+                    "customer": billing_customer.paypal_customer_id,
+                },
+            )
+        )
+        mock_provider.normalize_webhook_type.return_value = "subscription.created"
+        mock_get_provider.return_value = mock_provider
+
+        controller = WebhookController()
+        request = rf.post(
+            "/billing/webhooks/paypal",
+            data=b'{"id": "evt_paypal_create"}',
+            content_type="application/json",
+        )
+        request.META["HTTP_PAYPAL_TRANSMISSION_SIG"] = "test_sig"
+
+        response = await controller.handle_paypal_webhook(request)
+        assert response.status_code == 200
+
+        assert await Subscription.objects.filter(
+            provider="paypal", provider_subscription_id="I-PAYPAL_SUB"
+        ).aexists()
+
+    # ------------------------------------------------------------------
+    # Polar webhook creates subscription (BILL-03)
+    # ------------------------------------------------------------------
+
+    @patch("django_matt.billing.controllers.get_provider")
+    async def test_polar_webhook_creates_subscription(self, mock_get_provider, billing_customer, rf):
+        """Polar subscription.created webhook should create a local Subscription record."""
+        mock_provider = MagicMock()
+        mock_provider.verify_webhook = AsyncMock(
+            return_value=WebhookEvent(
+                id="evt_polar_create",
+                type="subscription.created",
+                provider="polar",
+                data={
+                    "id": "sub_polar_new",
+                    "status": "active",
+                    "customer": billing_customer.polar_customer_id,
+                },
+            )
+        )
+        mock_provider.normalize_webhook_type.return_value = "subscription.created"
+        mock_get_provider.return_value = mock_provider
+
+        controller = WebhookController()
+        request = rf.post(
+            "/billing/webhooks/polar",
+            data=b'{"id": "evt_polar_create"}',
+            content_type="application/json",
+        )
+        request.META["HTTP_X_POLAR_SIGNATURE"] = "sha256=test_sig"
+
+        response = await controller.handle_polar_webhook(request)
+        assert response.status_code == 200
+
+        assert await Subscription.objects.filter(
+            provider="polar", provider_subscription_id="sub_polar_new"
+        ).aexists()
