@@ -29,7 +29,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
 from django.db.models import Avg, Count
-from django.db.models.functions import TruncDate
+from django.db.models.functions import TruncDate, TruncMonth, TruncWeek
 from django.utils import timezone
 
 if TYPE_CHECKING:
@@ -117,6 +117,65 @@ class Aggregator:
             "events_by_category": events_by_category,
             "events_over_time": events_over_time,
         }
+
+    # =========================================================================
+    # Event Metrics by Name (with granularity)
+    # =========================================================================
+
+    async def get_event_metrics_by_name(
+        self,
+        event_name: str,
+        start: datetime,
+        end: datetime,
+        granularity: str = "day",
+        organization_id: str | None = None,
+    ) -> list[dict]:
+        """
+        Get event count metrics for a specific event name with time granularity.
+
+        Args:
+            event_name: Event name to filter by
+            start: Start datetime
+            end: End datetime
+            granularity: Time granularity - "day", "week", or "month"
+            organization_id: Optional organization filter
+
+        Returns:
+            List of dicts with "date" and "count" keys, ordered by date.
+        """
+        from .models import AnalyticsEvent
+
+        qs = AnalyticsEvent.objects.filter(
+            name=event_name,
+            timestamp__gte=start,
+            timestamp__lt=end,
+        )
+
+        if organization_id:
+            qs = qs.filter(organization_id=organization_id)
+
+        if granularity == "month":
+            trunc_fn = TruncMonth
+        elif granularity == "week":
+            trunc_fn = TruncWeek
+        else:
+            trunc_fn = TruncDate
+
+        results = []
+        async for item in (
+            qs.annotate(period=trunc_fn("timestamp"))
+            .values("period")
+            .annotate(count=Count("id"))
+            .order_by("period")
+        ):
+            results.append(
+                {
+                    "date": item["period"].isoformat() if item["period"] else None,
+                    "count": item["count"],
+                }
+            )
+
+        return results
 
     # =========================================================================
     # Page Metrics

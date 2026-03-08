@@ -82,15 +82,15 @@ def experiment(
             if track_exposure and variant:
                 ctx.track_exposure(experiment_key)
 
-            # Route to variant handler
+            # Route to variant handler if variant_handlers provided
             if variant and variant in handlers:
                 handler = handlers[variant]
                 if inspect.iscoroutinefunction(handler):
                     return await handler(request, *args, **kwargs)
                 return handler(request, *args, **kwargs)
 
-            # Fall through to default handler
-            return await func(request, *args, **kwargs)
+            # Fall through to default handler with variant injected as kwarg
+            return await func(request, *args, variant=variant, **kwargs)
 
         @functools.wraps(func)
         def sync_wrapper(request: "HttpRequest", *args, **kwargs):
@@ -106,7 +106,8 @@ def experiment(
                 handler = handlers[variant]
                 return handler(request, *args, **kwargs)
 
-            return func(request, *args, **kwargs)
+            # Fall through to default handler with variant injected as kwarg
+            return func(request, *args, variant=variant, **kwargs)
 
         if inspect.iscoroutinefunction(func):
             return async_wrapper
