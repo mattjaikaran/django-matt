@@ -28,19 +28,19 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Authentication & Security
 
-- [ ] **AUTH-01**: JWT authentication with access and refresh token flow
-- [ ] **AUTH-02**: JWT token blacklist with bulk purge for revocation
-- [ ] **AUTH-03**: Session-based authentication for browser clients
+- [x] **AUTH-01**: JWT authentication with access and refresh token flow
+- [x] **AUTH-02**: JWT token blacklist with bulk purge for revocation
+- [x] **AUTH-03**: Session-based authentication for browser clients
 - [x] **AUTH-04**: Permission classes: IsAuthenticated, IsAdmin, IsOwner, HasRole, HasPermission
 - [x] **AUTH-05**: RBAC — role-based access control with role assignment and checking
-- [ ] **AUTH-06**: Password reset via email link flow
-- [ ] **AUTH-07**: Magic link passwordless login
+- [x] **AUTH-06**: Password reset via email link flow
+- [x] **AUTH-07**: Magic link passwordless login
 - [x] **AUTH-08**: OAuth provider login (Google, GitHub, and extensible for others)
 - [x] **AUTH-09**: SSO / SAML integration
 - [x] **AUTH-10**: Passkey / WebAuthn authentication
-- [ ] **AUTH-11**: API key authentication with scoped permissions
-- [ ] **AUTH-12**: CSRF exemption correctly applied for JWT-authenticated API endpoints
-- [ ] **AUTH-13**: Permission decorators: `@jwt_required`, `@jwt_optional`, `@requires_role()`, `@requires_permission()`
+- [x] **AUTH-11**: API key authentication with scoped permissions
+- [x] **AUTH-12**: CSRF exemption correctly applied for JWT-authenticated API endpoints
+- [x] **AUTH-13**: Permission decorators: `@jwt_required`, `@jwt_optional`, `@requires_role()`, `@requires_permission()`
 
 ### Developer Experience
 
@@ -241,19 +241,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CORE-14 | Phase 3 | Complete |
 | CORE-15 | Phase 3 | Complete |
 | CORE-16 | Phase 1 | Complete |
-| AUTH-01 | Phase 4 | Pending |
-| AUTH-02 | Phase 4 | Pending |
-| AUTH-03 | Phase 4 | Pending |
+| AUTH-01 | Phase 4 | Complete |
+| AUTH-02 | Phase 4 | Complete |
+| AUTH-03 | Phase 4 | Complete |
 | AUTH-04 | Phase 4 | Complete |
 | AUTH-05 | Phase 4 | Complete |
-| AUTH-06 | Phase 4 | Pending |
-| AUTH-07 | Phase 4 | Pending |
+| AUTH-06 | Phase 4 | Complete |
+| AUTH-07 | Phase 4 | Complete |
 | AUTH-08 | Phase 4 | Complete |
 | AUTH-09 | Phase 4 | Complete |
 | AUTH-10 | Phase 4 | Complete |
-| AUTH-11 | Phase 4 | Pending |
-| AUTH-12 | Phase 4 | Pending |
-| AUTH-13 | Phase 4 | Pending |
+| AUTH-11 | Phase 4 | Complete |
+| AUTH-12 | Phase 4 | Complete |
+| AUTH-13 | Phase 4 | Complete |
 | DX-01 | Phase 3 | Complete |
 | DX-02 | Phase 3 | Complete |
 | DX-03 | Phase 3 | Complete |

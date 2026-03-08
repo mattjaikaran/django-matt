@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-03-08T03:24:43.445Z"
+stopped_at: Completed 04-auth-hardening-and-multi-tenancy/04-01-PLAN.md
+last_updated: "2026-03-08T03:34:15.010Z"
 last_activity: 2026-03-07 — Roadmap created; 101 requirements mapped to 7 phases
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 13
-  completed_plans: 11
+  completed_plans: 12
   percent: 0
 ---
 
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03-cli-and-type-generation P01 | 15 | 2 tasks | 4 files |
 | Phase 03-cli-and-type-generation P04 | 25 | 2 tasks | 22 files |
 | Phase 04-auth-hardening-and-multi-tenancy P02 | 45 | 2 tasks | 6 files |
+| Phase 04-auth-hardening-and-multi-tenancy P01 | 90 | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -98,6 +99,10 @@ Recent decisions affecting current work:
 - [Phase 04-auth-hardening-and-multi-tenancy]: IsOrgMember/IsOrgAdmin/IsOrgOwner use sync Membership.objects.filter() — permission checks called from sync pipeline; TENANT_SUPERUSER_BYPASS defaults True for B2B convenience
 - [Phase 04-auth-hardening-and-multi-tenancy]: SSOConfig.from_settings() fixed to use _defaults=cls() instance instead of cls.field_name to read dataclass field(default_factory=...) values safely
 - [Phase 04-auth-hardening-and-multi-tenancy]: Integration tests patch get_sso_config at consuming module namespace (controllers.get_sso_config), not definition site (config.get_sso_config)
+- [Phase 04-auth-hardening-and-multi-tenancy]: Default blacklist backend changed to 'cache' — production secure out of box, null requires explicit opt-out
+- [Phase 04-auth-hardening-and-multi-tenancy]: Per-user revocation sentinel stored in cache with TTL=refresh_token_lifetime — no migration, auto-expires, iat<sentinel_ts rejects pre-revocation tokens
+- [Phase 04-auth-hardening-and-multi-tenancy]: CSRF exemption via view_func._csrf_exempt=True in get_urls() — cleanest integration point, doesn't require decorator changes
+- [Phase 04-auth-hardening-and-multi-tenancy]: change_password calls abulk_revoke_tokens_for_user before acreate_token_pair — strict ordering ensures old tokens invalid before new ones issued
 
 ### Pending Todos
 
@@ -112,6 +117,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-08T03:24:43.441Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-03-08T03:34:15.005Z
+Stopped at: Completed 04-auth-hardening-and-multi-tenancy/04-01-PLAN.md
 Resume file: None
