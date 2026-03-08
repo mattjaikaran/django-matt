@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 5 context gathered
-last_updated: "2026-03-08T05:46:02.113Z"
+stopped_at: Completed 05-billing-feature-flags-and-analytics-01-PLAN.md
+last_updated: "2026-03-08T06:12:29.730Z"
 last_activity: 2026-03-07 — Roadmap created; 101 requirements mapped to 7 phases
 progress:
   total_phases: 7
   completed_phases: 4
-  total_plans: 13
-  completed_plans: 13
+  total_plans: 16
+  completed_plans: 14
   percent: 0
 ---
 
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04-auth-hardening-and-multi-tenancy P02 | 45 | 2 tasks | 6 files |
 | Phase 04-auth-hardening-and-multi-tenancy P01 | 90 | 2 tasks | 10 files |
 | Phase 04-auth-hardening-and-multi-tenancy P03 | 45 | 2 tasks | 5 files |
+| Phase 05-billing-feature-flags-and-analytics P01 | 25 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,7 @@ Recent decisions affecting current work:
 - [Phase 04-auth-hardening-and-multi-tenancy]: Cross-org access returns 403 Forbidden (not 404) — explicit denial, avoids timing-leak attacks, consistent B2B SaaS pattern
 - [Phase 04-auth-hardening-and-multi-tenancy]: Org-scoped filter-before-lookup pattern: .filter(organization=request.organization, id=id).afirst() — never global lookup then membership check
 - [Phase 04-auth-hardening-and-multi-tenancy]: Sync model methods (Invitation.accept/revoke/resend, send_invitation_email) wrapped with sync_to_async in async controllers — model layer stays sync for non-async callers
+- [Phase 05-billing-feature-flags-and-analytics]: Billing async ORM: amark_processed uses asave(update_fields) — targeted async write; _process_webhook_event removed local get_provider import so @patch decorators work; webhook_received fires before sync, subscription_synced fires after; missing BillingCustomer logs warning and returns (non-fatal data-sync race)
 
 ### Pending Todos
 
@@ -121,6 +123,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-08T05:46:02.106Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-billing-feature-flags-and-analytics/05-CONTEXT.md
+Last session: 2026-03-08T06:12:29.723Z
+Stopped at: Completed 05-billing-feature-flags-and-analytics-01-PLAN.md
+Resume file: None

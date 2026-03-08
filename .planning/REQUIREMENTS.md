@@ -77,11 +77,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Billing
 
-- [ ] **BILL-01**: Stripe integration — subscriptions, one-time payments, webhooks
-- [ ] **BILL-02**: PayPal integration — payments and webhooks
-- [ ] **BILL-03**: Polar integration — open-source-friendly billing
-- [ ] **BILL-04**: Billing controllers with subscription lifecycle management
-- [ ] **BILL-05**: Webhook handlers with signature verification
+- [x] **BILL-01**: Stripe integration — subscriptions, one-time payments, webhooks
+- [x] **BILL-02**: PayPal integration — payments and webhooks
+- [x] **BILL-03**: Polar integration — open-source-friendly billing
+- [x] **BILL-04**: Billing controllers with subscription lifecycle management
+- [x] **BILL-05**: Webhook handlers with signature verification
 
 ### Feature Flags
 
@@ -278,11 +278,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TENANT-03 | Phase 4 | Complete |
 | TENANT-04 | Phase 4 | Complete |
 | TENANT-05 | Phase 4 | Complete |
-| BILL-01 | Phase 5 | Pending |
-| BILL-02 | Phase 5 | Pending |
-| BILL-03 | Phase 5 | Pending |
-| BILL-04 | Phase 5 | Pending |
-| BILL-05 | Phase 5 | Pending |
+| BILL-01 | Phase 5 | Complete |
+| BILL-02 | Phase 5 | Complete |
+| BILL-03 | Phase 5 | Complete |
+| BILL-04 | Phase 5 | Complete |
+| BILL-05 | Phase 5 | Complete |
 | FLAG-01 | Phase 5 | Pending |
 | FLAG-02 | Phase 5 | Pending |
 | FLAG-03 | Phase 5 | Pending |
