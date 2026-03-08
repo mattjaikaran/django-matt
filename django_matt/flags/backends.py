@@ -98,6 +98,19 @@ class FlagBackend(ABC):
             Dict of flag key -> enabled status
         """
 
+    @abstractmethod
+    def invalidate(self, key: str) -> None:
+        """
+        Invalidate cache for a specific flag.
+
+        Args:
+            key: Flag key to invalidate
+        """
+
+    @abstractmethod
+    def invalidate_all(self) -> None:
+        """Invalidate all cached flags."""
+
     def close(self):
         """Clean up resources."""
 
@@ -202,14 +215,29 @@ class DatabaseBackend(FlagBackend):
 
         return result
 
+    def invalidate(self, key: str) -> None:
+        """Invalidate cache for a specific flag."""
+        cache.delete(self._get_cache_key(key))
+
+    def invalidate_all(self) -> None:
+        """Invalidate all flag caches.
+
+        Note: Django's default cache does not support pattern-based deletion.
+        Use a cache backend that supports key scanning (e.g., Redis-backed Django
+        cache) for full invalidation, or invalidate flags individually.
+        """
+        # No-op for generic cache backends; Redis-backed Django cache can use
+        # cache.delete_pattern() from django-redis if available.
+
     def invalidate_cache(self, key: str | None = None):
-        """Invalidate cache for a specific flag or all flags."""
+        """Invalidate cache for a specific flag or all flags.
+
+        Deprecated: use invalidate(key) or invalidate_all() instead.
+        """
         if key:
-            cache.delete(self._get_cache_key(key))
+            self.invalidate(key)
         else:
-            # Clear all flag caches - pattern deletion if supported
-            # For simplicity, we just clear specific keys as needed
-            pass
+            self.invalidate_all()
 
 
 class RedisBackend(FlagBackend):
@@ -594,6 +622,12 @@ class LaunchDarklyBackend(FlagBackend):
         state = self.client.all_flags_state(context)
         return state.to_values_map()
 
+    def invalidate(self, key: str) -> None:
+        """LaunchDarkly manages its own cache; this is a no-op."""
+
+    def invalidate_all(self) -> None:
+        """LaunchDarkly manages its own cache; this is a no-op."""
+
     def close(self):
         """Close LaunchDarkly client."""
         if self._client:
@@ -708,6 +742,12 @@ class UnleashBackend(FlagBackend):
         # We'd need to maintain a list of known flags
         logger.warning("get_all_flags is not fully supported with Unleash backend")
         return {}
+
+    def invalidate(self, key: str) -> None:
+        """Unleash manages its own polling cache; this is a no-op."""
+
+    def invalidate_all(self) -> None:
+        """Unleash manages its own polling cache; this is a no-op."""
 
     def close(self):
         """Close Unleash client."""
@@ -836,6 +876,14 @@ class MemoryBackend(FlagBackend):
         attributes: dict[str, Any] | None = None,
     ) -> dict[str, bool]:
         return {key: self.is_enabled(key, user, organization, attributes) for key in self._flags}
+
+    def invalidate(self, key: str) -> None:
+        """Remove a flag from memory."""
+        self._flags.pop(key, None)
+
+    def invalidate_all(self) -> None:
+        """Clear all flags from memory."""
+        self._flags.clear()
 
 
 # Backend registry
