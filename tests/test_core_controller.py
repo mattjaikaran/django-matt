@@ -9,6 +9,7 @@ from __future__ import annotations
 import pytest
 from django.contrib.auth.models import User, Group
 from django.test import RequestFactory
+from django.urls import path as django_path
 
 from pydantic import BaseModel
 
@@ -22,6 +23,7 @@ from django_matt.core.controller import (
     DJANGO_VERSION,
 )
 from django_matt.core.errors import ConfigurationError, NotFoundAPIError
+from django_matt.core.router import APIRouter
 
 
 # Test Schemas using Pydantic BaseModel directly
@@ -325,6 +327,141 @@ class TestCRUDControllerInheritance:
         """CRUDController should have handle_exception from APIController."""
         controller = UserController()
         assert hasattr(controller, "handle_exception")
+
+
+class TestStaticBeforeParameterizedOrdering:
+    """Test CORE-11: Static routes are matched before parameterized routes.
+
+    Verifies that APIRouter.get_urls() returns URL patterns such that
+    static (non-parameterized) paths always appear before parameterized paths,
+    regardless of the registration order.
+    """
+
+    def _dummy_view(self):
+        """Minimal async callable for route registration."""
+        async def view(request, *args, **kwargs):
+            from django.http import JsonResponse
+            return JsonResponse({})
+        return view
+
+    def test_static_route_before_parameterized(self):
+        """CORE-11: /users/me sorts before /users/<str:id> regardless of registration order."""
+        router = APIRouter()
+        dummy = self._dummy_view()
+
+        # Register parameterized route FIRST to prove ordering is not based on
+        # insertion order.
+        router.add_route("users/<str:id>", dummy, methods=["GET"], name="user_detail")
+        router.add_route("users/me", dummy, methods=["GET"], name="user_me")
+
+        urls = router.get_urls()
+        assert len(urls) == 2
+
+        routes = [getattr(u.pattern, "_route", str(u.pattern)) for u in urls]
+        me_idx = next(i for i, r in enumerate(routes) if "me" in r)
+        id_idx = next(i for i, r in enumerate(routes) if "<str:id>" in r)
+
+        assert me_idx < id_idx, (
+            f"Expected 'users/me' (idx={me_idx}) before 'users/<str:id>' (idx={id_idx}); "
+            f"got routes={routes}"
+        )
+
+    def test_multiple_static_routes_preserve_declaration_order(self):
+        """CORE-11: Multiple static routes appear before parameterized, preserving their own order."""
+        router = APIRouter()
+        dummy = self._dummy_view()
+
+        # Register mixed order: static, param, static
+        router.add_route("items/featured", dummy, methods=["GET"], name="items_featured")
+        router.add_route("items/<int:id>", dummy, methods=["GET"], name="item_detail")
+        router.add_route("items/popular", dummy, methods=["GET"], name="items_popular")
+
+        urls = router.get_urls()
+        assert len(urls) == 3
+
+        routes = [getattr(u.pattern, "_route", str(u.pattern)) for u in urls]
+        featured_idx = next(i for i, r in enumerate(routes) if "featured" in r)
+        popular_idx = next(i for i, r in enumerate(routes) if "popular" in r)
+        param_idx = next(i for i, r in enumerate(routes) if "<int:id>" in r)
+
+        # Both statics must precede the parameterized route
+        assert featured_idx < param_idx, (
+            f"Expected 'items/featured' (idx={featured_idx}) before 'items/<int:id>' (idx={param_idx})"
+        )
+        assert popular_idx < param_idx, (
+            f"Expected 'items/popular' (idx={popular_idx}) before 'items/<int:id>' (idx={param_idx})"
+        )
+        # Declaration order within statics is preserved: featured was added before popular
+        assert featured_idx < popular_idx, (
+            f"Expected 'items/featured' (idx={featured_idx}) before 'items/popular' (idx={popular_idx})"
+        )
+
+    def test_is_parameterized_path_static_returns_false(self):
+        """_is_parameterized_path returns False for a static URL pattern."""
+        pattern = django_path("users/me", lambda r: None, name="users_me")
+        assert APIRouter._is_parameterized_path(pattern) is False
+
+    def test_is_parameterized_path_parameterized_returns_true(self):
+        """_is_parameterized_path returns True for a parameterized URL pattern."""
+        pattern = django_path("users/<str:id>", lambda r: None, name="users_id")
+        assert APIRouter._is_parameterized_path(pattern) is True
+
+    def test_is_parameterized_path_int_converter_returns_true(self):
+        """_is_parameterized_path returns True for <int:id> converter patterns."""
+        pattern = django_path("items/<int:id>", lambda r: None, name="item_detail")
+        assert APIRouter._is_parameterized_path(pattern) is True
+
+    def test_is_parameterized_path_nested_param_returns_true(self):
+        """_is_parameterized_path returns True for nested parameterized patterns."""
+        pattern = django_path("items/<int:id>/reviews/<int:review_id>", lambda r: None, name="review")
+        assert APIRouter._is_parameterized_path(pattern) is True
+
+    def test_all_static_routes_no_parameterized(self):
+        """All-static routes are returned in declaration order unchanged."""
+        router = APIRouter()
+        dummy = self._dummy_view()
+
+        router.add_route("alpha", dummy, methods=["GET"], name="alpha")
+        router.add_route("beta", dummy, methods=["GET"], name="beta")
+        router.add_route("gamma", dummy, methods=["GET"], name="gamma")
+
+        urls = router.get_urls()
+        routes = [getattr(u.pattern, "_route", str(u.pattern)) for u in urls]
+        assert routes == ["alpha", "beta", "gamma"]
+
+    def test_all_parameterized_routes_no_static(self):
+        """All-parameterized routes are returned in declaration order."""
+        router = APIRouter()
+        dummy = self._dummy_view()
+
+        router.add_route("users/<str:username>", dummy, methods=["GET"], name="user_name")
+        router.add_route("items/<int:id>", dummy, methods=["GET"], name="item_id")
+
+        urls = router.get_urls()
+        routes = [getattr(u.pattern, "_route", str(u.pattern)) for u in urls]
+        assert routes == ["users/<str:username>", "items/<int:id>"]
+
+    def test_decorator_registered_routes_also_sort(self):
+        """Routes registered via @router.get() decorator also respect static-first ordering."""
+        router = APIRouter()
+
+        @router.get("users/<str:id>")
+        async def get_user(request, id: str):
+            from django.http import JsonResponse
+            return JsonResponse({})
+
+        @router.get("users/me")
+        async def get_me(request):
+            from django.http import JsonResponse
+            return JsonResponse({})
+
+        urls = router.get_urls()
+        assert len(urls) == 2
+
+        routes = [getattr(u.pattern, "_route", str(u.pattern)) for u in urls]
+        me_idx = next(i for i, r in enumerate(routes) if "me" in r)
+        id_idx = next(i for i, r in enumerate(routes) if "<str:id>" in r)
+        assert me_idx < id_idx, f"Decorator routes not sorted: {routes}"
 
 
 @pytest.fixture
