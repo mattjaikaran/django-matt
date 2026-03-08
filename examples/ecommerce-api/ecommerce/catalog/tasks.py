@@ -3,8 +3,9 @@
 import logging
 
 from celery import shared_task
-from django.core.cache import cache
 from django.contrib.postgres.search import SearchVector
+from django.core.cache import cache
+from django.db import models
 
 logger = logging.getLogger(__name__)
 
@@ -169,6 +170,3 @@ def cleanup_orphaned_images():
 
     logger.info(f"Cleaned up {orphaned_count} orphaned images")
     return orphaned_count
-
-
-from django.db import models

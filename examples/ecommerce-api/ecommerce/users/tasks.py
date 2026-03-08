@@ -7,6 +7,7 @@ from celery import shared_task
 from django.conf import settings
 from django.contrib.sessions.models import Session
 from django.core.mail import send_mail
+from django.db import models
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -116,7 +117,6 @@ def sync_user_stats():
     """Sync user statistics (total orders, total spent, etc.)."""
     from django.db.models import Count, Sum
 
-    from ecommerce.orders.models import Order
     from ecommerce.users.models import User
 
     logger.info("Syncing user stats...")
@@ -214,6 +214,3 @@ def export_user_data(user_id: str):
     logger.info(f"Exported data for user {user.email}")
 
     return json.dumps(data, indent=2)
-
-
-from django.db import models

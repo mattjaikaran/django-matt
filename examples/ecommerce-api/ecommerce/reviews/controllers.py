@@ -1,14 +1,11 @@
 """API controllers for reviews app."""
 
-from typing import Any
 from uuid import UUID
 
-from django.db import models
 from django.db.models import Avg, Count, Q
-
+from django.utils import timezone
+from django_matt.auth import jwt_required
 from django_matt.core import APIController
-from django_matt.auth import jwt_required, jwt_optional
-from django_matt.permissions import IsAuthenticated
 from django_matt.core.errors import NotFoundAPIError, ValidationAPIError
 
 from ecommerce.catalog.models import Product
@@ -378,6 +375,3 @@ class ReviewController(APIController):
             created_at=review.created_at,
             updated_at=review.updated_at,
         )
-
-
-from django.utils import timezone

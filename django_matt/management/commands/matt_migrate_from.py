@@ -117,7 +117,7 @@ class Command(GeneratorCommand):
             pass
 
         # Search for imports in code
-        base_dir = Path(settings.BASE_DIR)
+        base_dir = Path(getattr(settings, "BASE_DIR", Path.cwd()))
         for py_file in base_dir.glob("**/*.py"):
             if "__pycache__" in str(py_file) or "migrations" in str(py_file):
                 continue
@@ -144,7 +144,7 @@ class Command(GeneratorCommand):
             "suggestions": [],
         }
 
-        base_dir = Path(settings.BASE_DIR)
+        base_dir = Path(getattr(settings, "BASE_DIR", Path.cwd()))
 
         for app_config in apps.get_app_configs():
             if app_config.name.startswith("django."):
@@ -365,7 +365,7 @@ class Command(GeneratorCommand):
             "suggestions": [],
         }
 
-        base_dir = Path(settings.BASE_DIR)
+        base_dir = Path(getattr(settings, "BASE_DIR", Path.cwd()))
 
         for app_config in apps.get_app_configs():
             if app_config.name.startswith("django."):

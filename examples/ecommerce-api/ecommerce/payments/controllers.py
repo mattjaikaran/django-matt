@@ -2,16 +2,15 @@
 
 import json
 from decimal import Decimal
-from typing import Any
 from uuid import UUID
 
 from django.conf import settings
+from django.db import models
 from django.http import HttpRequest
-
-from django_matt.core import APIController
 from django_matt.auth import jwt_required
-from django_matt.permissions import IsAuthenticated
+from django_matt.core import APIController
 from django_matt.core.errors import NotFoundAPIError, ValidationAPIError
+from django_matt.permissions import IsAuthenticated
 
 from ecommerce.orders.models import Order
 from ecommerce.payments.models import Payment, PaymentWebhookLog, Refund
@@ -32,7 +31,6 @@ from ecommerce.payments.services import (
     create_refund,
     process_stripe_webhook,
 )
-
 
 # =============================================================================
 # Payment Controller
@@ -278,7 +276,3 @@ class WebhookController(APIController):
                 processed=False,
                 message=str(e),
             )
-
-
-# Import models for Sum
-from django.db import models

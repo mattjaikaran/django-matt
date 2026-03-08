@@ -7,18 +7,22 @@ Includes:
 - Mentions handling
 """
 
-from uuid import UUID
 import re
+from uuid import UUID
 
-from django_matt.core import APIController, api_controller
-from django_matt.auth import jwt_required
-from django_matt.permissions import IsAuthenticated
+from django.db import models
 from django.utils import timezone
+from django_matt.auth import jwt_required
+from django_matt.core import APIController, api_controller
+from django_matt.permissions import IsAuthenticated
 
-from core.models import Organization, Membership, User
-from projects.models import Project, Task, Comment, TaskActivity, ProjectMember
+from core.models import Membership, Organization, User
+from projects.models import Comment, Project, ProjectMember, Task, TaskActivity
 from projects.schemas import (
-    CommentCreate, CommentUpdate, CommentResponse, CommentDetailResponse,
+    CommentCreate,
+    CommentDetailResponse,
+    CommentResponse,
+    CommentUpdate,
     ReactionRequest,
 )
 
@@ -314,7 +318,3 @@ class CommentController(APIController):
 
         except Comment.DoesNotExist:
             return {"error": "Comment not found"}, 404
-
-
-# Import models for Q lookups
-from django.db import models

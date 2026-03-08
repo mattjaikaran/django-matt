@@ -7,20 +7,27 @@ Includes:
 - Kanban board view
 """
 
-from typing import Optional
 from uuid import UUID
 
-from django_matt.core import APIController, api_controller
+from django.db import models
 from django_matt.auth import jwt_required
+from django_matt.core import APIController, api_controller
 from django_matt.permissions import IsAuthenticated
 
-from core.models import Organization, Membership, AuditLog, User
+from core.models import AuditLog, Membership, Organization, User
 from projects.models import Project, ProjectMember, TaskStatus
 from projects.schemas import (
-    ProjectCreate, ProjectUpdate, ProjectResponse, ProjectDetailResponse,
-    ProjectMiniResponse, ProjectMemberCreate, ProjectMemberUpdate,
-    ProjectMemberResponse, ProjectFilter, ProjectListResponse,
-    KanbanBoardResponse, KanbanColumn, TaskMiniResponse,
+    KanbanBoardResponse,
+    KanbanColumn,
+    ProjectCreate,
+    ProjectDetailResponse,
+    ProjectMemberCreate,
+    ProjectMemberResponse,
+    ProjectMemberUpdate,
+    ProjectMiniResponse,
+    ProjectResponse,
+    ProjectUpdate,
+    TaskMiniResponse,
 )
 
 
@@ -97,9 +104,9 @@ class ProjectController(APIController):
         self,
         request,
         org_slug: str,
-        status: Optional[str] = None,
-        team_id: Optional[UUID] = None,
-        search: Optional[str] = None,
+        status: str | None = None,
+        team_id: UUID | None = None,
+        search: str | None = None,
     ):
         """
         List projects in the organization.
@@ -500,7 +507,3 @@ class ProjectController(APIController):
 
         except Project.DoesNotExist:
             return {"error": "Project not found"}, 404
-
-
-# Import models for Q lookups
-from django.db import models

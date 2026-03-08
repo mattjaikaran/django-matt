@@ -10,23 +10,34 @@ Includes:
 - Password reset
 """
 
-from typing import Optional
+import contextlib
+import secrets
+from datetime import timedelta
+
 from django.conf import settings
 from django.utils import timezone
-from datetime import timedelta
-import secrets
-
+from django_matt.auth import jwt_required
 from django_matt.core import APIController, api_controller
-from django_matt.auth import jwt_required, jwt_optional
 from django_matt.permissions import AllowAny, IsAuthenticated
 
-from core.models import User, MagicLinkToken, AuditLog
+from core.models import AuditLog, MagicLinkToken, User
 from core.schemas import (
-    LoginRequest, LoginResponse, RefreshRequest, TokenResponse,
-    RegisterRequest, RegisterResponse, UserResponse, UserProfileResponse,
-    UserUpdate, MagicLinkRequest, MagicLinkVerifyRequest,
-    PasswordResetRequest, PasswordResetConfirmRequest, PasswordChangeRequest,
-    OAuthAuthorizationRequest, OAuthCallbackRequest, OAuthConnectResponse,
+    LoginRequest,
+    LoginResponse,
+    MagicLinkRequest,
+    MagicLinkVerifyRequest,
+    OAuthAuthorizationRequest,
+    OAuthCallbackRequest,
+    PasswordChangeRequest,
+    PasswordResetConfirmRequest,
+    PasswordResetRequest,
+    RefreshRequest,
+    RegisterRequest,
+    RegisterResponse,
+    TokenResponse,
+    UserProfileResponse,
+    UserResponse,
+    UserUpdate,
 )
 
 
@@ -128,7 +139,7 @@ class AuthController(APIController):
         """
         Refresh access token using refresh token.
         """
-        from django_matt.auth.jwt import decode_token, create_access_token
+        from django_matt.auth.jwt import create_access_token, decode_token
 
         try:
             payload = decode_token(data.refresh_token, token_type="refresh")
@@ -282,12 +293,10 @@ class AuthController(APIController):
         Request password reset email.
         """
         # Always return success to prevent email enumeration
-        try:
-            user = await User.objects.aget(email=data.email.lower())
+        with contextlib.suppress(User.DoesNotExist):
+            await User.objects.aget(email=data.email.lower())
             # TODO: Send password reset email
             # send_password_reset_email.delay(user.id)
-        except User.DoesNotExist:
-            pass
 
         return {"message": "If the email exists, a password reset link has been sent."}
 

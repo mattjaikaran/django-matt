@@ -8,7 +8,7 @@ Usage:
 
 import os
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from importlib import import_module
 from typing import Literal
 

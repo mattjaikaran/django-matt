@@ -8,6 +8,7 @@ Includes:
 """
 
 from datetime import timedelta
+
 from celery import shared_task
 from django.conf import settings
 from django.core.mail import send_mail
@@ -68,7 +69,7 @@ def send_notification_email(self, notification_id: str):
         pass  # Notification was deleted
     except Exception as exc:
         # Retry on failure
-        raise self.retry(exc=exc, countdown=60 * (self.request.retries + 1))
+        raise self.retry(exc=exc, countdown=60 * (self.request.retries + 1)) from exc
 
 
 @shared_task
@@ -132,10 +133,10 @@ def aggregate_analytics():
 
     Runs daily at midnight.
     """
-    from notifications.models import AnalyticsEvent, AggregatedMetric
+    from django.db.models import Count
+
     from core.models import Organization
-    from django.db.models import Count, F
-    from django.db.models.functions import TruncDay
+    from notifications.models import AggregatedMetric, AnalyticsEvent
 
     yesterday = timezone.now().date() - timedelta(days=1)
     period_start = timezone.make_aware(
@@ -265,7 +266,7 @@ def send_invitation_email(self, invitation_id: str):
     except Invitation.DoesNotExist:
         pass
     except Exception as exc:
-        raise self.retry(exc=exc, countdown=60 * (self.request.retries + 1))
+        raise self.retry(exc=exc, countdown=60 * (self.request.retries + 1)) from exc
 
 
 @shared_task
@@ -275,8 +276,8 @@ def send_overdue_task_notifications():
 
     Runs daily.
     """
-    from projects.models import Task, TaskStatus
     from notifications.models import Notification, NotificationType
+    from projects.models import Task, TaskStatus
 
     today = timezone.now().date()
 

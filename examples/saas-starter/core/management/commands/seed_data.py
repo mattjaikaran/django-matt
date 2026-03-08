@@ -10,12 +10,13 @@ Usage:
     python manage.py seed_data --users=10       # Custom user count
 """
 
-from django.core.management.base import BaseCommand
-from django.conf import settings
-from django.utils import timezone
-from datetime import timedelta
 import random
 import secrets
+from datetime import timedelta
+
+from django.conf import settings
+from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 
 class Command(BaseCommand):
@@ -63,14 +64,6 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        from core.models import User, Organization, Team, Membership, MembershipRole, AuditLog
-        from projects.models import (
-            Project, Task, TaskStatus, TaskPriority, Comment, Label, ProjectMember, TaskActivity
-        )
-        from billing.models import Subscription, SubscriptionStatus, Invoice, InvoiceStatus, Coupon
-        from notifications.models import (
-            Notification, NotificationType, NotificationPreference, AnalyticsEvent
-        )
 
         # Increase counts for full mode
         if options["full"]:
@@ -135,10 +128,10 @@ class Command(BaseCommand):
 
     def clear_data(self):
         """Clear all seeded data."""
-        from core.models import User, Organization, Team, Membership, AuditLog
-        from projects.models import Project, Task, Comment, Label, TaskActivity, ProjectMember
-        from billing.models import Subscription, Invoice, PaymentMethod, Coupon, CouponRedemption
-        from notifications.models import Notification, NotificationPreference, AnalyticsEvent
+        from billing.models import Coupon, CouponRedemption, Invoice, PaymentMethod, Subscription
+        from core.models import AuditLog, Membership, Organization, Team, User
+        from notifications.models import AnalyticsEvent, Notification, NotificationPreference
+        from projects.models import Comment, Label, Project, ProjectMember, Task, TaskActivity
 
         self.stdout.write("Clearing existing data...")
 
@@ -183,7 +176,7 @@ class Command(BaseCommand):
             admin_user.set_password("admin123")
             admin_user.save()
             self.stdout.write(self.style.SUCCESS(
-                f"Created admin user: admin@saas-starter.local / admin123"
+                "Created admin user: admin@saas-starter.local / admin123"
             ))
         return admin_user
 
@@ -242,7 +235,7 @@ class Command(BaseCommand):
 
     def create_organizations(self, admin_user, demo_users, count):
         """Create organizations with teams and memberships."""
-        from core.models import Organization, Team, Membership, MembershipRole
+        from core.models import Organization
 
         organizations = []
         org_data = [
@@ -381,7 +374,7 @@ class Command(BaseCommand):
 
     def create_projects(self, org, users, count):
         """Create projects for an organization."""
-        from projects.models import Project, ProjectStatus, ProjectMember
+        from projects.models import Project, ProjectMember, ProjectStatus
 
         projects_data = [
             ("Website Redesign", "website-redesign", "Redesign the company website with modern UI", "#3B82F6"),
@@ -438,7 +431,7 @@ class Command(BaseCommand):
 
     def create_tasks(self, project, users, labels, count):
         """Create tasks for a project."""
-        from projects.models import Task, TaskStatus, TaskPriority, Comment, TaskActivity
+        from projects.models import Task, TaskPriority, TaskStatus
 
         task_titles = [
             "Set up development environment",
@@ -495,7 +488,7 @@ class Command(BaseCommand):
 
         statuses = list(TaskStatus.values)
         priorities = list(TaskPriority.values)
-        label_names = [l.name for l in labels]
+        label_names = [lbl.name for lbl in labels]
 
         for i, title in enumerate(task_titles[:count]):
             status = random.choice(statuses)
@@ -565,7 +558,7 @@ class Command(BaseCommand):
 
     def create_task_activity(self, task, users):
         """Create activity log entries for a task."""
-        from projects.models import TaskActivity, TaskStatus
+        from projects.models import TaskActivity
 
         activities = [
             ("created", None, None, None),
@@ -706,7 +699,7 @@ class Command(BaseCommand):
                 ("onboarding_ab", "Onboarding A/B", "A/B test for onboarding flow", True, "variant"),
             ]
 
-            for name, display_name, description, enabled, flag_type, *args in flags_data:
+            for name, _display_name, description, enabled, flag_type, *args in flags_data:
                 flag, created = FeatureFlag.objects.get_or_create(
                     name=name,
                     defaults={
@@ -784,8 +777,8 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("=" * 60))
         self.stdout.write("")
         self.stdout.write(self.style.HTTP_INFO("Demo Credentials:"))
-        self.stdout.write(f"  Admin: admin@saas-starter.local / admin123")
-        self.stdout.write(f"  Demo users: <firstname>.<lastname><n>@demo.local / demo123")
+        self.stdout.write("  Admin: admin@saas-starter.local / admin123")
+        self.stdout.write("  Demo users: <firstname>.<lastname><n>@demo.local / demo123")
         self.stdout.write("")
         self.stdout.write(self.style.HTTP_INFO("Organizations:"))
         for org in organizations:

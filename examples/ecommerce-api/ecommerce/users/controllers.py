@@ -1,17 +1,14 @@
 """API controllers for users app."""
 
-from typing import Any
 from uuid import UUID
 
-from django.contrib.auth import authenticate
-from django.db import transaction
-
-from django_matt import MattAPI
+from django.db import models
+from django_matt.auth import create_tokens, jwt_required, refresh_access_token
 from django_matt.core import APIController
-from django_matt.auth import jwt_required, create_tokens, refresh_access_token
+from django_matt.core.errors import NotFoundAPIError, ValidationAPIError
 from django_matt.permissions import IsAuthenticated
-from django_matt.core.errors import APIError, NotFoundAPIError, ValidationAPIError
 
+from ecommerce.catalog.models import Product
 from ecommerce.users.models import Address, User, Wishlist, WishlistItem
 from ecommerce.users.schemas import (
     AddressCreate,
@@ -33,8 +30,6 @@ from ecommerce.users.schemas import (
     WishlistResponse,
     WishlistUpdate,
 )
-from ecommerce.catalog.models import Product
-
 
 # =============================================================================
 # Auth Controller
@@ -88,7 +83,7 @@ class AuthController(APIController):
         try:
             access_token = refresh_access_token(data.refresh_token)
             return TokenResponse(access_token=access_token)
-        except Exception as e:
+        except Exception:
             raise ValidationAPIError("Invalid refresh token")
 
     @staticmethod
@@ -374,7 +369,3 @@ class WishlistController(APIController):
         if not deleted:
             raise NotFoundAPIError("Wishlist item not found")
         return {"message": "Item removed from wishlist"}
-
-
-# Need to import models for Count
-from django.db import models

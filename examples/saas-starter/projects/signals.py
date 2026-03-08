@@ -8,13 +8,15 @@ Handles:
 """
 
 import re
+
+from django.db import models
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 from core.models import User
 from notifications.models import Notification, NotificationType
-from .models import Task, TaskStatus, Comment, TaskActivity
 
+from .models import Comment, Task, TaskActivity, TaskStatus
 
 # Track pre-save state for change detection
 _task_pre_save_state = {}
@@ -81,19 +83,18 @@ def handle_task_changes(sender, instance, created, **kwargs):
         )
 
         # Notify reporter when task is completed
-        if instance.status == TaskStatus.DONE and instance.reporter:
-            if instance.assignee and instance.assignee != instance.reporter:
-                Notification.objects.create(
-                    user=instance.reporter,
-                    organization=instance.organization,
-                    type=NotificationType.TASK_COMPLETED,
-                    title="Task completed",
-                    message=f'"{instance.title}" has been marked as complete',
-                    actor=instance.assignee,
-                    resource_type="task",
-                    resource_id=str(instance.id),
-                    action_url=f"/projects/{instance.project.slug}/tasks/{instance.id}",
-                )
+        if instance.status == TaskStatus.DONE and instance.reporter and instance.assignee and instance.assignee != instance.reporter:
+            Notification.objects.create(
+                user=instance.reporter,
+                organization=instance.organization,
+                type=NotificationType.TASK_COMPLETED,
+                title="Task completed",
+                message=f'"{instance.title}" has been marked as complete',
+                actor=instance.assignee,
+                resource_type="task",
+                resource_id=str(instance.id),
+                action_url=f"/projects/{instance.project.slug}/tasks/{instance.id}",
+            )
 
     # Assignee change
     old_assignee = old_state.get("assignee_id")
@@ -176,20 +177,15 @@ def handle_new_comment(sender, instance, created, **kwargs):
         )
 
     # Notify task assignee about new comment (if not the author)
-    if instance.task.assignee and instance.task.assignee != instance.author:
-        if instance.task.assignee not in mentioned_users:
-            Notification.objects.create(
-                user=instance.task.assignee,
-                organization=instance.organization,
-                type=NotificationType.TASK_COMMENTED,
-                title="New comment on your task",
-                message=f'{instance.author.display_name} commented on "{instance.task.title}"',
-                actor=instance.author,
-                resource_type="comment",
-                resource_id=str(instance.id),
-                action_url=f"/projects/{instance.task.project.slug}/tasks/{instance.task.id}#comment-{instance.id}",
-            )
-
-
-# Import models needed for signals
-from django.db import models
+    if instance.task.assignee and instance.task.assignee != instance.author and instance.task.assignee not in mentioned_users:
+        Notification.objects.create(
+            user=instance.task.assignee,
+            organization=instance.organization,
+            type=NotificationType.TASK_COMMENTED,
+            title="New comment on your task",
+            message=f'{instance.author.display_name} commented on "{instance.task.title}"',
+            actor=instance.author,
+            resource_type="comment",
+            resource_id=str(instance.id),
+            action_url=f"/projects/{instance.task.project.slug}/tasks/{instance.task.id}#comment-{instance.id}",
+        )

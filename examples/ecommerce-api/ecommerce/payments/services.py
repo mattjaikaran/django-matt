@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import Any
 
 from django.conf import settings
+from django.db import models
 from django.utils import timezone
 
 from ecommerce.orders.models import Order
@@ -275,7 +276,7 @@ async def _handle_checkout_completed(data) -> None:
         return
 
     # Create payment record from checkout session
-    payment = await Payment.objects.acreate(
+    await Payment.objects.acreate(
         order=order,
         payment_method="card",
         amount=Decimal(data.amount_total) / 100,
@@ -288,6 +289,3 @@ async def _handle_checkout_completed(data) -> None:
     order.status = Order.Status.CONFIRMED
     await order.asave()
 
-
-# Import for Sum
-from django.db import models

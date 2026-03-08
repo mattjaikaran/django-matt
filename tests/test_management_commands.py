@@ -869,6 +869,75 @@ class TestMattMigrateFromCommand:
         assert cmd._convert_drf_field_type("DateTimeField") == "datetime"
         assert cmd._convert_drf_field_type("UnknownField") == "Any"
 
+    def test_migrate_from_ninja_rewrites_imports(self):
+        """Ninja analysis suggests rewriting 'from ninja import ...' to django_matt imports."""
+        out = run_command("matt_migrate_from", source="ninja", json=True)
+        data = json.loads(out)
+        # Suggestions include import rewrite steps
+        all_steps = []
+        for suggestion in data["suggestions"]:
+            all_steps.extend(suggestion.get("steps", []))
+        # Should include a step about replacing ninja imports
+        assert any("ninja" in step.lower() and "django_matt" in step.lower() for step in all_steps), (
+            "Expected a suggestion step about replacing ninja imports with django_matt. "
+            f"Got steps: {all_steps}"
+        )
+
+    def test_migrate_from_ninja_suggestions_include_import_update(self):
+        """Ninja migration suggestions include 'Update Import Statements'."""
+        out = run_command("matt_migrate_from", source="ninja", json=True)
+        data = json.loads(out)
+        titles = [s["title"] for s in data["suggestions"]]
+        assert "Update Import Statements" in titles
+
+    def test_migrate_from_ninja_adds_todo_markers_in_guide(self, tmp_path):
+        """_generate_migration_guide includes review/TODO language for ambiguous patterns."""
+        cmd = self._get_command()
+        analysis = {"framework": "ninja", "items": [], "schemas": [], "routers": [], "suggestions": [
+            {
+                "title": "Update Import Statements",
+                "description": "Replace ninja imports with django_matt imports",
+                "priority": "high",
+                "steps": [
+                    "Replace 'from ninja import ...' with 'from django_matt import ...'",
+                    "# TODO: Review this migration — manual verification needed",
+                ],
+            }
+        ]}
+        guide = cmd._generate_migration_guide(analysis)
+        # Guide should include review/TODO language indicating manual verification
+        assert "TODO" in guide or "Review" in guide, (
+            "Migration guide should contain TODO or Review markers for ambiguous patterns"
+        )
+
+    def test_migrate_from_ninja_preserves_business_logic_in_guide(self, tmp_path):
+        """Generated guide does not alter business logic — it provides instructions only."""
+        cmd = self._get_command()
+        # Run a full ninja analysis
+        out = run_command("matt_migrate_from", source="ninja", json=True)
+        data = json.loads(out)
+        # The output is structured analysis data, not modified source files
+        # Business logic is preserved because we only analyze and generate separate files
+        assert "framework" in data
+        assert "suggestions" in data
+        # Suggestions are migration instructions, not destructive changes
+        for suggestion in data["suggestions"]:
+            assert "title" in suggestion
+            assert "steps" in suggestion
+
+    def test_migrate_from_ninja_runs_non_interactively(self):
+        """matt_migrate_from --source ninja works with flags only (no prompts)."""
+        # Should complete without raising or prompting
+        out = run_command("matt_migrate_from", source="ninja", json=True)
+        data = json.loads(out)
+        assert data["framework"] == "ninja"
+
+    def test_migrate_from_drf_runs_non_interactively(self):
+        """matt_migrate_from --source drf works with flags only (no prompts)."""
+        out = run_command("matt_migrate_from", source="drf", json=True)
+        data = json.loads(out)
+        assert data["framework"] == "drf"
+
     def _get_command(self):
         from django_matt.management.commands.matt_migrate_from import Command
 

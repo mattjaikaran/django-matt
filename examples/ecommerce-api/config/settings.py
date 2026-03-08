@@ -5,6 +5,7 @@ Production-quality configuration with django-matt.
 """
 
 import os
+import re
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -93,8 +94,6 @@ DATABASE_URL = os.environ.get(
 )
 
 # Parse DATABASE_URL
-import re
-
 db_match = re.match(r"postgres://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)", DATABASE_URL)
 if db_match:
     DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME = db_match.groups()

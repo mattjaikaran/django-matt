@@ -8,21 +8,26 @@ Includes:
 - Real-time updates via WebSocket
 """
 
-from typing import Optional, List
 from uuid import UUID
+
 from django.db import models
 from django.utils import timezone
-
-from django_matt.core import APIController, api_controller
 from django_matt.auth import jwt_required
+from django_matt.core import APIController, api_controller
 from django_matt.permissions import IsAuthenticated
 
-from core.models import Organization, Membership, AuditLog, User
-from projects.models import Project, Task, TaskStatus, TaskActivity, ProjectMember
+from core.models import AuditLog, Membership, Organization, User
+from projects.models import Project, ProjectMember, Task, TaskActivity, TaskStatus
 from projects.schemas import (
-    TaskCreate, TaskUpdate, TaskResponse, TaskDetailResponse,
-    TaskMiniResponse, TaskMove, TaskBulkUpdate, TaskFilter,
-    TaskListResponse, TaskActivityResponse,
+    TaskActivityResponse,
+    TaskBulkUpdate,
+    TaskCreate,
+    TaskDetailResponse,
+    TaskListResponse,
+    TaskMiniResponse,
+    TaskMove,
+    TaskResponse,
+    TaskUpdate,
 )
 
 
@@ -96,10 +101,10 @@ class TaskController(APIController):
         request,
         org_slug: str,
         project_slug: str,
-        status: Optional[str] = None,
-        priority: Optional[str] = None,
-        assignee_id: Optional[UUID] = None,
-        search: Optional[str] = None,
+        status: str | None = None,
+        priority: str | None = None,
+        assignee_id: UUID | None = None,
+        search: str | None = None,
         page: int = 1,
         page_size: int = 50,
     ):
@@ -478,7 +483,7 @@ class TaskController(APIController):
                 if data.labels_add:
                     task.labels = list(set(task.labels + data.labels_add))
                 if data.labels_remove:
-                    task.labels = [l for l in task.labels if l not in data.labels_remove]
+                    task.labels = [label for label in task.labels if label not in data.labels_remove]
                 await task.asave(update_fields=["labels"])
 
         # Broadcast updates
