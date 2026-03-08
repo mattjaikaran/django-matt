@@ -8,6 +8,8 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from asgiref.sync import sync_to_async
+
 from django_matt.messaging.enums import DeliveryStatus, MessageType
 from django_matt.messaging.models import (
     ConversationMember,
@@ -321,6 +323,34 @@ class MessageService:
             Queryset of matching messages
         """
         return Message.objects.search(query, conversation, user)[:limit]
+
+    @staticmethod
+    async def asend_message(
+        conversation,
+        sender,
+        content,
+        message_type=MessageType.TEXT,
+        reply_to=None,
+        attachments=None,
+        metadata=None,
+    ):
+        """Async wrapper for send_message using sync_to_async."""
+        return await sync_to_async(MessageService.send_message)(
+            conversation,
+            sender,
+            content,
+            message_type=message_type,
+            reply_to=reply_to,
+            attachments=attachments,
+            metadata=metadata,
+        )
+
+    @staticmethod
+    async def amark_as_read(conversation, user, up_to_message=None):
+        """Async wrapper for mark_as_read using sync_to_async."""
+        return await sync_to_async(MessageService.mark_as_read)(
+            conversation, user, up_to_message
+        )
 
     @staticmethod
     def get_unread_counts(user):

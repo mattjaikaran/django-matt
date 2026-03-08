@@ -177,6 +177,12 @@ class Conversation(models.Model):
         """Check if user is an active member."""
         return self.members.filter(user=user, is_active=True).exists()
 
+    async def ais_member(self, user) -> bool:
+        """Async wrapper for is_member using sync_to_async."""
+        from asgiref.sync import sync_to_async
+
+        return await sync_to_async(self.is_member)(user)
+
     def get_member_role(self, user):
         """Get user's role in the conversation."""
         try:

@@ -4,7 +4,7 @@ Pydantic schemas for WebSocket messages.
 Provides base schemas for common WebSocket message patterns.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -37,14 +37,14 @@ class PingMessage(BaseMessage):
     """Ping message for heartbeat."""
 
     type: str = "ping"
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class PongMessage(BaseMessage):
     """Pong response to ping."""
 
     type: str = "pong"
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # -----------------------------------------------------------------------------
@@ -60,7 +60,7 @@ class ChatMessage(BaseMessage):
     user: str | None = Field(None, description="Username of sender")
     user_id: str | None = Field(None, description="User ID of sender")
     room: str | None = Field(None, description="Room/channel name")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -71,7 +71,7 @@ class ChatJoinMessage(BaseMessage):
     user: str = Field(..., description="Username who joined")
     user_id: str | None = None
     room: str = Field(..., description="Room joined")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class ChatLeaveMessage(BaseMessage):
@@ -81,7 +81,7 @@ class ChatLeaveMessage(BaseMessage):
     user: str = Field(..., description="Username who left")
     user_id: str | None = None
     room: str = Field(..., description="Room left")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class TypingMessage(BaseMessage):
@@ -149,7 +149,7 @@ class NotificationMessage(BaseMessage):
     body: str = Field(..., description="Notification body")
     level: str = Field("info", description="Notification level (info, warning, error)")
     action_url: str | None = Field(None, description="URL for action button")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     data: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -193,7 +193,7 @@ class EventMessage(BaseMessage):
     type: str = "event"
     event: str = Field(..., description="Event name")
     data: dict[str, Any] = Field(default_factory=dict, description="Event data")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # -----------------------------------------------------------------------------
@@ -289,4 +289,4 @@ class PublishMessage(BaseMessage):
     type: str = "publish"
     channel: str = Field(..., description="Channel published to")
     data: dict[str, Any] = Field(..., description="Published data")
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))

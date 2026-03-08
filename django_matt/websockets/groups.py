@@ -98,6 +98,12 @@ class PresenceManager:
         # Store with TTL
         cache.set(key, data, timeout=86400)  # 24 hours
 
+        # Update reverse index (user -> groups)
+        reverse_key = f"{self._prefix}user:{user_id}:groups"
+        user_groups = cache.get(reverse_key) or set()
+        user_groups.add(group_name)
+        cache.set(reverse_key, user_groups, timeout=86400)
+
         logger.debug(f"User {user_id} joined group {group_name}")
 
     async def user_left(self, group_name: str, user_id: str) -> None:
@@ -109,6 +115,15 @@ class PresenceManager:
         if user_id in data:
             del data[user_id]
             cache.set(key, data, timeout=86400)
+
+        # Update reverse index (user -> groups)
+        reverse_key = f"{self._prefix}user:{user_id}:groups"
+        user_groups = cache.get(reverse_key) or set()
+        user_groups.discard(group_name)
+        if user_groups:
+            cache.set(reverse_key, user_groups, timeout=86400)
+        else:
+            cache.delete(reverse_key)
 
         logger.debug(f"User {user_id} left group {group_name}")
 
@@ -152,16 +167,10 @@ class PresenceManager:
         return user_id in data
 
     async def get_user_groups(self, user_id: str) -> list[str]:
-        """Get all groups a user is in."""
-        # This requires scanning all groups - not efficient for large scale
-        # Consider using a reverse index in production
+        """Get all groups a user is in via reverse index."""
         cache = self._get_cache()
-
-        # This is a simplified implementation
-        # In production, maintain a user -> groups index
-        groups = []
-        # Would need to iterate through all group keys
-        return groups
+        reverse_key = f"{self._prefix}user:{user_id}:groups"
+        return list(cache.get(reverse_key) or set())
 
     async def clear_group(self, group_name: str) -> None:
         """Clear all presence data for a group."""
