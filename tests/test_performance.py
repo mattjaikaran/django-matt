@@ -2,8 +2,10 @@
 Tests for the performance utilities in Django Matt.
 """
 
+import ast
 import json
 import time
+from pathlib import Path
 
 from django.http import HttpRequest, JsonResponse
 from django.test import RequestFactory, TestCase, override_settings
@@ -445,3 +447,31 @@ class TestNoGetTypeHintsPerRequest(TestCase):
                 f"pstats output:\n{output}"
             ),
         )
+
+# ---------------------------------------------------------------------------
+# CORE-10: Verify no stdlib json in hot-path files
+# ---------------------------------------------------------------------------
+
+
+def test_orjson_used_everywhere():
+    """CORE-10: Verify no stdlib json.dumps or json.loads in hot-path files.
+
+    The hot paths (core/router.py, core/controller.py, views/base.py) must
+    use orjson — never stdlib json — for all JSON serialization/deserialization.
+    """
+    hot_path_files = [
+        "django_matt/core/router.py",
+        "django_matt/core/controller.py",
+        "django_matt/views/base.py",
+    ]
+
+    for filepath in hot_path_files:
+        source = Path(filepath).read_text()
+        tree = ast.parse(source)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+                if node.value.id == "json" and node.attr in ("dumps", "loads"):
+                    pytest.fail(
+                        f"{filepath} uses json.{node.attr} — use orjson instead "
+                        f"(line {node.lineno})"
+                    )

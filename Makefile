@@ -659,12 +659,13 @@ ai-context-all: ## Generate all AI context formats
 ## Performance & Benchmarking
 # ============================================================================
 
-benchmark: ## Run performance benchmarks (SUITE=json|schema|database|throughput)
+benchmark: ## Run performance benchmarks (SUITE=json|schema|database|throughput; default runs framework comparison + all suites)
+	# Requires: uv add --dev djangorestframework django-ninja fastapi for full comparison
 	@echo "$(CYAN)Running benchmarks...$(RESET)"
 	@if [ -n "$(SUITE)" ]; then \
 		uv run python benchmarks/bench_$(SUITE).py $(ARGS); \
 	else \
-		uv run python benchmarks/run_all.py $(ARGS); \
+		uv run python benchmarks/run_all.py --comparison --rich $(ARGS); \
 	fi
 
 benchmark-json: ## Run JSON serialization benchmarks

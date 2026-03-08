@@ -6,6 +6,8 @@ This script runs all available benchmarks and generates a comprehensive report.
 
 Usage:
     python benchmarks/run_all.py
+    python benchmarks/run_all.py --comparison          # include framework comparison
+    python benchmarks/run_all.py --rich                # use RichTableReporter output
     python benchmarks/run_all.py --format json --output results.json
     python benchmarks/run_all.py --compare
     python benchmarks/run_all.py --save
@@ -39,6 +41,7 @@ from benchmarks.bench_utils import (
 def run_all_benchmarks(
     iterations_multiplier: float = 1.0,
     skip: list[str] | None = None,
+    include_comparison: bool = False,
 ) -> dict[str, list[BenchmarkResult]]:
     """
     Run all benchmark suites.
@@ -46,12 +49,47 @@ def run_all_benchmarks(
     Args:
         iterations_multiplier: Multiply default iterations by this factor
         skip: List of benchmark suites to skip
+        include_comparison: Include FrameworkComparisonScenario results
 
     Returns:
         Dict mapping suite name to list of results
     """
     skip = skip or []
     results = {}
+
+    # Framework comparison (django-matt vs DRF, ninja, FastAPI, Starlette)
+    if include_comparison:
+        print("\n" + "=" * 70)
+        print(" Running Framework Comparison Benchmarks")
+        print("=" * 70)
+        try:
+            from django_matt.benchmarks.comparison import FrameworkComparisonScenario
+            from django_matt.benchmarks.runner import BenchmarkResult as _BR
+
+            scenario = FrameworkComparisonScenario(
+                iterations=int(1000 * iterations_multiplier), warmup=10
+            )
+            comparison_results = scenario.run()
+            # Convert to bench_utils BenchmarkResult for downstream compatibility
+            converted: list[BenchmarkResult] = []
+            for r in comparison_results:
+                converted.append(
+                    BenchmarkResult(
+                        name=r.name,
+                        total_time_ms=r.total_time_ms,
+                        mean_time_ms=r.mean_time_ms,
+                        median_time_ms=r.median_time_ms,
+                        min_time_ms=r.min_time_ms,
+                        max_time_ms=r.max_time_ms,
+                        std_dev_ms=r.std_dev_ms,
+                        ops_per_second=r.ops_per_second,
+                        iterations=r.iterations,
+                        metadata=r.metadata,
+                    )
+                )
+            results["comparison"] = converted
+        except Exception as exc:
+            print(f"  Warning: framework comparison failed: {exc}")
 
     # JSON benchmarks
     if "json" not in skip:
@@ -184,6 +222,37 @@ def generate_json_report(
     return json.dumps(data, indent=2)
 
 
+def _save_to_matt_benchmarks(all_results: list[BenchmarkResult], metadata: dict) -> Path:
+    """Save results to .matt/benchmarks/ as a timestamped JSON file."""
+    import orjson
+
+    storage_dir = Path(".matt/benchmarks")
+    storage_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filepath = storage_dir / f"benchmark_{timestamp}.json"
+
+    data = {
+        "timestamp": datetime.now().isoformat(),
+        "metadata": metadata,
+        "results": [r.to_dict() for r in all_results],
+        "summary": {
+            "total_benchmarks": len(all_results),
+            "total_iterations": sum(r.iterations for r in all_results),
+        },
+    }
+
+    with open(filepath, "wb") as f:
+        f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2))
+
+    # Also keep a "latest" copy
+    latest_path = storage_dir / "latest.json"
+    with open(latest_path, "wb") as f:
+        f.write(orjson.dumps(data, option=orjson.OPT_INDENT_2))
+
+    return filepath
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run all Django Matt benchmarks")
     parser.add_argument(
@@ -229,6 +298,23 @@ def main():
         default=5.0,
         help="Regression threshold percentage (default: 5.0)",
     )
+    parser.add_argument(
+        "--rich",
+        action="store_true",
+        default=True,
+        help="Use RichTableReporter for terminal output (default: True)",
+    )
+    parser.add_argument(
+        "--no-rich",
+        dest="rich",
+        action="store_false",
+        help="Disable RichTableReporter; fall back to ANSI console output",
+    )
+    parser.add_argument(
+        "--comparison",
+        action="store_true",
+        help="Include FrameworkComparisonScenario (django-matt vs DRF/ninja/FastAPI/Starlette)",
+    )
     args = parser.parse_args()
 
     print("\n" + "=" * 70)
@@ -241,6 +327,7 @@ def main():
     results = run_all_benchmarks(
         iterations_multiplier=args.iterations,
         skip=args.skip,
+        include_comparison=args.comparison,
     )
 
     all_results = flatten_results(results)
@@ -251,6 +338,31 @@ def main():
         output = generate_json_report(results, metadata)
     elif args.format == "markdown":
         output = generate_markdown_report(results, metadata)
+    elif args.rich and args.comparison and results.get("comparison"):
+        # Use RichTableReporter for the comparison section
+        try:
+            from django_matt.benchmarks.comparison import FrameworkComparisonScenario
+            from django_matt.benchmarks.reporters import RichTableReporter
+            from django_matt.benchmarks.runner import BenchmarkResult as _BR
+
+            # Re-run comparison scenario to get proper BenchmarkResult objects
+            scenario = FrameworkComparisonScenario(
+                iterations=int(1000 * args.iterations), warmup=10
+            )
+            rich_results = scenario.run()
+
+            reporter = RichTableReporter()
+            reporter.print_report(rich_results)
+        except Exception as exc:
+            print(f"Rich reporter failed, falling back: {exc}")
+            for suite_name, suite_results in results.items():
+                print_table(suite_results, f"{suite_name.title()} Results")
+
+        # Also print standard suites
+        for suite_name, suite_results in results.items():
+            if suite_name != "comparison":
+                print_table(suite_results, f"{suite_name.title()} Results")
+        output = None
     else:
         # Console output
         for suite_name, suite_results in results.items():
@@ -264,10 +376,12 @@ def main():
         print(f"Total iterations: {sum(r.iterations for r in all_results):,}")
 
         if all_results:
-            fastest = min(all_results, key=lambda r: r.mean_time_ms)
-            slowest = max(all_results, key=lambda r: r.mean_time_ms)
-            print(f"\nFastest: {fastest.name} ({fastest.ops_per_second:,.0f} ops/s)")
-            print(f"Slowest: {slowest.name} ({slowest.ops_per_second:,.0f} ops/s)")
+            non_skipped = [r for r in all_results if not r.metadata.get("skipped")]
+            if non_skipped:
+                fastest = min(non_skipped, key=lambda r: r.mean_time_ms)
+                slowest = max(non_skipped, key=lambda r: r.mean_time_ms)
+                print(f"\nFastest: {fastest.name} ({fastest.ops_per_second:,.0f} ops/s)")
+                print(f"Slowest: {slowest.name} ({slowest.ops_per_second:,.0f} ops/s)")
 
         output = None
 
@@ -280,10 +394,14 @@ def main():
         else:
             print(output)
 
-    # Save results
+    # Always save to .matt/benchmarks/ (timestamped JSON)
+    saved_path = _save_to_matt_benchmarks(all_results, metadata)
+    print(f"\nResults saved to {saved_path}")
+
+    # Legacy save results
     if args.save:
         filepath = save_results(all_results)
-        print(f"\nResults saved to {filepath}")
+        print(f"Legacy baseline saved to {filepath}")
 
     # Compare with baseline
     if args.compare:
