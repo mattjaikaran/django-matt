@@ -118,12 +118,12 @@ Plans:
   3. An in-app notification is created for a user, they retrieve it via the notifications API, and marking it read updates the read timestamp — verified by test
   4. An email with variable substitution renders correctly and dispatches through the configured backend (SendGrid, Mailgun, SES, or SMTP) — verified by test with mock backend
   5. A push notification can be enqueued for dispatch to FCM and APNs targets — verified by test with mock dispatch
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: Complete WebSocket consumers (auth middleware, presence tracking, router integration)
-- [ ] 06-02: Complete messaging module (conversation, message, attachment models with WebSocket transport)
-- [ ] 06-03: Complete notifications (in-app, push FCM/APNs, SMS, webhook) and email backends (SendGrid, Mailgun, SES, SMTP, templates)
+- [ ] 06-01-PLAN.md — Fix messaging async boundary bugs (asend_message, amark_as_read, ais_member), PresenceManager reverse index, datetime.utcnow() fix, messaging model/service/consumer tests
+- [ ] 06-02-PLAN.md — Add PushToken model, wire EmailDeliveryHandler to EmailService, notification delivery pipeline tests
+- [ ] 06-03-PLAN.md — Verify email backends (SendGrid, Mailgun, SES, SMTP) and template variable substitution with success-criteria-aligned tests
 
 ### Phase 7: Deployment, Observability, and Completion
 **Goal**: All deployment configs emit correct ASGI settings, observability (logging/metrics/tracing) is wired, and the remaining optional modules (audit, file uploads, background tasks, admin, GraphQL, HTMX, AI/ML) reach v1 quality
