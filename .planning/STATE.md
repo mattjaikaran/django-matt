@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 2 context gathered
-last_updated: "2026-03-07T21:19:27.742Z"
+stopped_at: Completed 02-performance-baseline 02-02-PLAN.md
+last_updated: "2026-03-08T00:21:11.455Z"
 last_activity: 2026-03-07 — Roadmap created; 101 requirements mapped to 7 phases
 progress:
   total_phases: 7
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 6
+  completed_plans: 4
   percent: 0
 ---
 
@@ -53,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-correctness-audit P02 | 6 | 2 tasks | 5 files |
 | Phase 01-correctness-audit P01 | 9 | 2 tasks | 13 files |
 | Phase 01-correctness-audit P03 | 8 | 2 tasks | 2 files |
+| Phase 02-performance-baseline P02 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,8 @@ Recent decisions affecting current work:
 - [Phase 01-correctness-audit]: request.user.is_authenticated is a boolean property not a lazy DB attribute — safe to access directly in async context without sync_to_async
 - [Phase 01-correctness-audit]: DJANGO_ALLOW_ASYNC_UNSAFE=true was already absent from all project files — Plans 01-01 and 01-02 had already eliminated all sync/async ORM boundary violations
 - [Phase 01-correctness-audit]: CLAUDE.md Known Issues section cleared — all 3 stale items resolved by Phase 1 plans; section rewritten with resolution references
+- [Phase 02-performance-baseline]: apply_api_mode() strips by dotted path match, always guards MIDDLEWARE_KEEP_LIST; mutation only in AppConfig.ready() to avoid side effects during management commands
+- [Phase 02-performance-baseline]: cProfile test pattern: 10 warmup calls to populate _hints_cache, then profile 100 calls — absence of get_type_hints in pstats proves zero per-request introspection (CORE-09)
 
 ### Pending Todos
 
@@ -86,6 +89,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-07T21:19:27.738Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-performance-baseline/02-CONTEXT.md
+Last session: 2026-03-08T00:21:11.452Z
+Stopped at: Completed 02-performance-baseline 02-02-PLAN.md
+Resume file: None

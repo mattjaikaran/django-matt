@@ -17,10 +17,10 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **CORE-06**: Swagger UI and ReDoc served at configurable endpoints
 - [x] **CORE-07**: Structured error handling with consistent JSON error format across all endpoints
 - [ ] **CORE-08**: `model_construct()` fast path for list serialization (skip re-validation on ORM reads)
-- [ ] **CORE-09**: Startup-time introspection caching — zero per-request `get_type_hints()` or `_meta.fields` calls
+- [x] **CORE-09**: Startup-time introspection caching — zero per-request `get_type_hints()` or `_meta.fields` calls
 - [ ] **CORE-10**: orjson used for all JSON serialization/deserialization (router, controller, views, responses)
 - [ ] **CORE-11**: Static-before-parameterized URL ordering prevents `/users/me` vs `/users/<id>` conflicts
-- [ ] **CORE-12**: API-mode middleware profile — stripped middleware stack for maximum throughput on API-only projects
+- [x] **CORE-12**: API-mode middleware profile — stripped middleware stack for maximum throughput on API-only projects
 - [ ] **CORE-13**: Dependency injection container with ContextVar-based request scoping
 - [ ] **CORE-14**: Content negotiation supporting JSON, XML, CSV, YAML, MsgPack
 - [ ] **CORE-15**: API versioning strategies (URL, header, query param)
@@ -233,10 +233,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CORE-06 | Phase 3 | Pending |
 | CORE-07 | Phase 1 | Complete |
 | CORE-08 | Phase 2 | Pending |
-| CORE-09 | Phase 2 | Pending |
+| CORE-09 | Phase 2 | Complete |
 | CORE-10 | Phase 2 | Pending |
 | CORE-11 | Phase 3 | Pending |
-| CORE-12 | Phase 2 | Pending |
+| CORE-12 | Phase 2 | Complete |
 | CORE-13 | Phase 3 | Pending |
 | CORE-14 | Phase 3 | Pending |
 | CORE-15 | Phase 3 | Pending |
