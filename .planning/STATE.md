@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 6 context gathered
-last_updated: "2026-03-08T17:45:08.459Z"
-last_activity: 2026-03-07 — Roadmap created; 101 requirements mapped to 7 phases
+status: executing
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-03-08T21:58:00.000Z"
+last_activity: 2026-03-08 — Phase 6 Plan 01 complete; async wrappers + presence reverse index + 23 tests
 progress:
   total_phases: 7
   completed_phases: 5
-  total_plans: 16
-  completed_plans: 16
-  percent: 0
+  total_plans: 19
+  completed_plans: 17
+  percent: 89
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-07)
 
 **Core value:** The fastest, most developer-friendly way to build Django APIs — if you can't ship faster with django-matt than with DRF or django-ninja, it hasn't shipped yet.
-**Current focus:** Phase 1 — Correctness Audit
+**Current focus:** Phase 6 — Real-Time, Notifications, and Communications
 
 ## Current Position
 
-Phase: 1 of 7 (Correctness Audit)
-Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-03-07 — Roadmap created; 101 requirements mapped to 7 phases
+Phase: 6 of 7 (Real-Time, Notifications, and Communications)
+Plan: 1 of 3 in current phase
+Status: Executing
+Last activity: 2026-03-08 — Phase 6 Plan 01 complete; async wrappers + presence reverse index + 23 tests
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [=========-] 89%
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 05-billing-feature-flags-and-analytics P01 | 25 | 2 tasks | 6 files |
 | Phase 05-billing-feature-flags-and-analytics P02 | 25min | 2 tasks | 2 files |
 | Phase 05-billing-feature-flags-and-analytics P03 | 30 | 2 tasks | 4 files |
+| Phase 06-real-time-notifications-and-communications P01 | 3 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -117,6 +118,8 @@ Recent decisions affecting current work:
 - [Phase 05-billing-feature-flags-and-analytics]: @experiment decorator injects variant=variant kwarg to default handler; variant_handlers routing path unchanged -- two distinct behaviors coexist
 - [Phase 05-billing-feature-flags-and-analytics]: Funnel tests use real User FK objects (not string IDs) -- analyze_funnel() excludes null user events
 - [Phase 05-billing-feature-flags-and-analytics]: Decorator tests patch ExperimentContext.from_request at context module level (lazy import pattern)
+- [Phase 06-real-time-notifications-and-communications]: Lazy import of sync_to_async in Conversation.ais_member() following Phase 4 model-layer pattern
+- [Phase 06-real-time-notifications-and-communications]: PresenceManager reverse index uses cache with 24h TTL matching forward index TTL
 
 ### Pending Todos
 
@@ -131,6 +134,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-08T17:45:08.454Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-real-time-notifications-and-communications/06-CONTEXT.md
+Last session: 2026-03-08T21:58:00.000Z
+Stopped at: Completed 06-01-PLAN.md
+Resume file: .planning/phases/06-real-time-notifications-and-communications/06-01-SUMMARY.md

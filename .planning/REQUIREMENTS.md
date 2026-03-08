@@ -106,12 +106,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Real-Time & Messaging
 
-- [ ] **RT-01**: WebSocket consumer base class with authentication middleware
-- [ ] **RT-02**: Presence tracking (who's online in a channel)
-- [ ] **RT-03**: WebSocket routing integrated with django-matt router
-- [ ] **MSG-01**: Conversation model with participants and messages
-- [ ] **MSG-02**: Message attachments (file references)
-- [ ] **MSG-03**: WebSocket transport for real-time message delivery
+- [x] **RT-01**: WebSocket consumer base class with authentication middleware
+- [x] **RT-02**: Presence tracking (who's online in a channel)
+- [x] **RT-03**: WebSocket routing integrated with django-matt router
+- [x] **MSG-01**: Conversation model with participants and messages
+- [x] **MSG-02**: Message attachments (file references)
+- [x] **MSG-03**: WebSocket transport for real-time message delivery
 
 ### Notifications & Email
 
@@ -298,12 +298,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EXP-02 | Phase 5 | Complete |
 | EXP-03 | Phase 5 | Complete |
 | EXP-04 | Phase 5 | Complete |
-| RT-01 | Phase 6 | Pending |
-| RT-02 | Phase 6 | Pending |
-| RT-03 | Phase 6 | Pending |
-| MSG-01 | Phase 6 | Pending |
-| MSG-02 | Phase 6 | Pending |
-| MSG-03 | Phase 6 | Pending |
+| RT-01 | Phase 6 | Complete |
+| RT-02 | Phase 6 | Complete |
+| RT-03 | Phase 6 | Complete |
+| MSG-01 | Phase 6 | Complete |
+| MSG-02 | Phase 6 | Complete |
+| MSG-03 | Phase 6 | Complete |
 | NOTIF-01 | Phase 6 | Pending |
 | NOTIF-02 | Phase 6 | Pending |
 | NOTIF-03 | Phase 6 | Pending |
