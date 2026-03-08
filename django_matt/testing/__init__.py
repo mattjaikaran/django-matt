@@ -32,6 +32,7 @@ from django_matt.testing.assertions import (
     assert_json_equal,
     assert_no_content,
     assert_not_found,
+    assert_query_count,
     assert_status,
     assert_unauthorized,
     assert_validation_error,
@@ -113,6 +114,7 @@ __all__ = [
     "assert_unauthorized",
     "assert_created",
     "assert_no_content",
+    "assert_query_count",
     # Fixtures
     "get_api_client",
     "get_authenticated_client",

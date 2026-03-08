@@ -2,6 +2,7 @@
 Custom assertions for API testing.
 """
 
+import functools
 from typing import Any
 
 from django.http import HttpResponse
@@ -322,3 +323,75 @@ def assert_pagination(
 
     if not has_pagination:
         raise AssertionError(f"Response doesn't contain pagination. Keys: {list(data.keys())}")
+
+
+class assert_query_count:
+    """Context manager and decorator for asserting database query counts.
+
+    Wraps Django's CaptureQueriesContext to capture queries and assert
+    the exact count, raising AssertionError with full SQL details on mismatch.
+
+    Usage as context manager:
+        with assert_query_count(3):
+            list(MyModel.objects.all())
+
+    Usage as decorator:
+        @assert_query_count(3)
+        def test_something(self):
+            list(MyModel.objects.all())
+
+    Note: Requires DEBUG=True (or use @override_settings(DEBUG=True)) so
+    Django logs queries to the connection.queries list.
+    """
+
+    def __init__(self, expected: int, using: str = "default"):
+        """
+        Args:
+            expected: Expected number of database queries.
+            using: Database alias to capture queries for (default: "default").
+        """
+        self.expected = expected
+        self.using = using
+        self._ctx = None
+
+    def __enter__(self):
+        from django.db import connections
+        from django.test.utils import CaptureQueriesContext
+
+        conn = connections[self.using]
+        self._ctx = CaptureQueriesContext(conn)
+        self._ctx.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._ctx.__exit__(exc_type, exc_val, exc_tb)
+        # Only assert query count if no exception was raised in the body
+        if exc_type is None:
+            actual = len(self._ctx.captured_queries)
+            if actual != self.expected:
+                queries = "\n".join(
+                    f"  {i + 1}. {q['sql']}"
+                    for i, q in enumerate(self._ctx.captured_queries)
+                )
+                raise AssertionError(
+                    f"Expected {self.expected} queries, got {actual}.\n"
+                    f"Queries:\n{queries}"
+                )
+        return False  # Do not suppress exceptions from the body
+
+    @property
+    def captured_queries(self):
+        """Access the captured queries list (available after the context exits)."""
+        if self._ctx is None:
+            return []
+        return self._ctx.captured_queries
+
+    def __call__(self, func):
+        """Use as a decorator: @assert_query_count(N)."""
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            with assert_query_count(self.expected, self.using):
+                return func(*args, **kwargs)
+
+        return wrapper

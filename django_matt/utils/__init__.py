@@ -41,6 +41,7 @@ from django_matt.utils.performance import (
     StreamingJsonResponse,
     benchmark,
     cache_manager,
+    cache_response,
     distributed_cache,
     optimize_queryset,
     performance_suggester,
@@ -74,6 +75,7 @@ __all__ = [
     "CacheManager",
     "DistributedCacheManager",
     "cache_manager",
+    "cache_response",
     "distributed_cache",
     # Cache Invalidation
     "CacheInvalidator",

@@ -414,6 +414,86 @@ class CacheManager:
             )
 
 
+def cache_response(timeout: int = 300, key_prefix: str = "matt_cache"):
+    """Standalone decorator to cache a view or controller method response.
+
+    Uses Django's default cache backend. The cache key is derived from the
+    request path and query string, so different URLs produce different keys.
+
+    Supports both sync and async view functions/methods.
+
+    Usage:
+        class MyController(APIController):
+            @api.get("/items")
+            @cache_response(timeout=300)
+            async def list_items(self, request):
+                return await self.get_queryset()
+
+        # Or on a plain view function:
+        @cache_response(timeout=60)
+        def my_view(request):
+            return HttpResponse("hello")
+
+    Args:
+        timeout: Cache lifetime in seconds (default: 300).
+        key_prefix: Prefix for the cache key (default: "matt_cache").
+    """
+
+    def decorator(func):
+        import asyncio as _asyncio
+
+        @functools.wraps(func)
+        async def async_wrapper(self_or_request, *args, **kwargs):
+            # Resolve the request object: handle both plain-function and method calls.
+            request = None
+            if hasattr(self_or_request, "method"):
+                # self_or_request IS the request (plain function)
+                request = self_or_request
+            elif args and hasattr(args[0], "method"):
+                # self_or_request is `self`, first positional arg is the request
+                request = args[0]
+
+            if request is not None:
+                raw_key = f"{key_prefix}:{request.path}:{request.GET.urlencode()}"
+                cache_key = hashlib.md5(raw_key.encode()).hexdigest()
+                cached = django_cache.get(cache_key)
+                if cached is not None:
+                    return cached
+
+            result = await func(self_or_request, *args, **kwargs)
+
+            if request is not None:
+                django_cache.set(cache_key, result, timeout)
+            return result
+
+        @functools.wraps(func)
+        def sync_wrapper(self_or_request, *args, **kwargs):
+            request = None
+            if hasattr(self_or_request, "method"):
+                request = self_or_request
+            elif args and hasattr(args[0], "method"):
+                request = args[0]
+
+            if request is not None:
+                raw_key = f"{key_prefix}:{request.path}:{request.GET.urlencode()}"
+                cache_key = hashlib.md5(raw_key.encode()).hexdigest()
+                cached = django_cache.get(cache_key)
+                if cached is not None:
+                    return cached
+
+            result = func(self_or_request, *args, **kwargs)
+
+            if request is not None:
+                django_cache.set(cache_key, result, timeout)
+            return result
+
+        if _asyncio.iscoroutinefunction(func):
+            return async_wrapper
+        return sync_wrapper
+
+    return decorator
+
+
 class APIBenchmark:
     """
     A utility for benchmarking API endpoints.
