@@ -95,14 +95,14 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Analytics & Experiments
 
-- [ ] **ANLYT-01**: Event tracking with pluggable backends
-- [ ] **ANLYT-02**: Session tracking and user journey recording
-- [ ] **ANLYT-03**: Funnel analysis with conversion tracking
-- [ ] **ANLYT-04**: Analytics aggregation queries (daily/weekly/monthly)
-- [ ] **EXP-01**: A/B test experiment model with variant assignment
-- [ ] **EXP-02**: Multi-armed bandit assignment strategy
-- [ ] **EXP-03**: Statistical significance analysis for experiment results
-- [ ] **EXP-04**: Experiment decorators for controller endpoints
+- [x] **ANLYT-01**: Event tracking with pluggable backends
+- [x] **ANLYT-02**: Session tracking and user journey recording
+- [x] **ANLYT-03**: Funnel analysis with conversion tracking
+- [x] **ANLYT-04**: Analytics aggregation queries (daily/weekly/monthly)
+- [x] **EXP-01**: A/B test experiment model with variant assignment
+- [x] **EXP-02**: Multi-armed bandit assignment strategy
+- [x] **EXP-03**: Statistical significance analysis for experiment results
+- [x] **EXP-04**: Experiment decorators for controller endpoints
 
 ### Real-Time & Messaging
 
@@ -290,14 +290,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FLAG-05 | Phase 5 | Complete |
 | FLAG-06 | Phase 5 | Complete |
 | FLAG-07 | Phase 5 | Complete |
-| ANLYT-01 | Phase 5 | Pending |
-| ANLYT-02 | Phase 5 | Pending |
-| ANLYT-03 | Phase 5 | Pending |
-| ANLYT-04 | Phase 5 | Pending |
-| EXP-01 | Phase 5 | Pending |
-| EXP-02 | Phase 5 | Pending |
-| EXP-03 | Phase 5 | Pending |
-| EXP-04 | Phase 5 | Pending |
+| ANLYT-01 | Phase 5 | Complete |
+| ANLYT-02 | Phase 5 | Complete |
+| ANLYT-03 | Phase 5 | Complete |
+| ANLYT-04 | Phase 5 | Complete |
+| EXP-01 | Phase 5 | Complete |
+| EXP-02 | Phase 5 | Complete |
+| EXP-03 | Phase 5 | Complete |
+| EXP-04 | Phase 5 | Complete |
 | RT-01 | Phase 6 | Pending |
 | RT-02 | Phase 6 | Pending |
 | RT-03 | Phase 6 | Pending |

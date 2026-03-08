@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 05-billing-feature-flags-and-analytics-02-PLAN.md
-last_updated: "2026-03-08T06:13:28.970Z"
+stopped_at: Completed 05-billing-feature-flags-and-analytics-03-PLAN.md
+last_updated: "2026-03-08T06:13:43.057Z"
 last_activity: 2026-03-07 — Roadmap created; 101 requirements mapped to 7 phases
 progress:
   total_phases: 7
@@ -113,6 +113,10 @@ Recent decisions affecting current work:
 - [Phase 05-billing-feature-flags-and-analytics]: Billing async ORM: amark_processed uses asave(update_fields) — targeted async write; _process_webhook_event removed local get_provider import so @patch decorators work; webhook_received fires before sync, subscription_synced fires after; missing BillingCustomer logs warning and returns (non-fatal data-sync race)
 - [Phase 05-billing-feature-flags-and-analytics]: FlagBackend ABC gains abstract invalidate()/invalidate_all() — all backends must implement; LD/Unleash are no-ops, DB delegates to Django cache.delete(), Memory removes from _flags dict
 - [Phase 05-billing-feature-flags-and-analytics]: Percentage rollout hash pattern: hashlib.md5(f'{flag_key}:{user.pk}'.encode()).hexdigest() % 100 < percentage — consistent across DatabaseBackend, RedisBackend, MemoryBackend
+- [Phase 05-billing-feature-flags-and-analytics]: get_event_metrics_by_name() added as new method (backward compatible) with TruncDate/TruncWeek/TruncMonth ORM granularity switching for ANLYT-04
+- [Phase 05-billing-feature-flags-and-analytics]: @experiment decorator injects variant=variant kwarg to default handler; variant_handlers routing path unchanged -- two distinct behaviors coexist
+- [Phase 05-billing-feature-flags-and-analytics]: Funnel tests use real User FK objects (not string IDs) -- analyze_funnel() excludes null user events
+- [Phase 05-billing-feature-flags-and-analytics]: Decorator tests patch ExperimentContext.from_request at context module level (lazy import pattern)
 
 ### Pending Todos
 
@@ -127,6 +131,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-08T06:13:15.423Z
-Stopped at: Completed 05-billing-feature-flags-and-analytics-02-PLAN.md
+Last session: 2026-03-08T06:13:43.049Z
+Stopped at: Completed 05-billing-feature-flags-and-analytics-03-PLAN.md
 Resume file: None
