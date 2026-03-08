@@ -10,7 +10,6 @@ This module provides various output formats for benchmark results:
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from io import StringIO
 from pathlib import Path
 from typing import Any, TextIO
 

@@ -492,8 +492,8 @@ class Command(GeneratorCommand):
         # Determine imports needed
         imports = self._get_schema_imports(fields)
 
-        # Build schema content
-        lines = [imports, ""]
+        # Build schema content (two blank lines after imports before first class, per PEP8)
+        lines = [imports, "", ""]
 
         # Base response schema
         lines.append(f"class {model_name}Schema(BaseModel):")
@@ -561,13 +561,12 @@ class Command(GeneratorCommand):
         lines.append("    total: int")
         lines.append("    page: int = 1")
         lines.append("    page_size: int = 20")
+        lines.append("")
 
         return "\n".join(lines)
 
     def _get_schema_imports(self, fields: list[dict]) -> str:
-        """Generate import statements for schemas."""
-        imports = ["from pydantic import BaseModel, Field"]
-
+        """Generate import statements for schemas (isort-compatible: stdlib, then third-party)."""
         # Check if we need special types
         needs_datetime = any(f["type"] == "datetime" for f in fields)
         needs_date = any(f["type"] == "date" for f in fields)
@@ -577,39 +576,42 @@ class Command(GeneratorCommand):
         needs_url = any(f["pydantic_type"] == "HttpUrl" for f in fields)
         needs_any = any(f["type"] == "Any" for f in fields)
 
-        typing_imports = []
+        # Build stdlib section (sorted alphabetically by module)
+        stdlib_lines: list[str] = []
         if needs_any:
-            typing_imports.append("Any")
-
-        if typing_imports:
-            imports.insert(0, f"from typing import {', '.join(typing_imports)}")
-
-        datetime_imports = []
-        if needs_datetime:
-            datetime_imports.append("datetime")
-        if needs_date:
-            datetime_imports.append("date")
-        if needs_time:
-            datetime_imports.append("time")
-
-        if datetime_imports:
-            imports.insert(0, f"from datetime import {', '.join(datetime_imports)}")
-
+            stdlib_lines.append("from typing import Any")
+        datetime_parts = sorted(
+            ([("datetime", "datetime")] if needs_datetime else [])
+            + ([("datetime", "date")] if needs_date else [])
+            + ([("datetime", "time")] if needs_time else [])
+        )
+        if datetime_parts:
+            names = ", ".join(sorted({n for _, n in datetime_parts}))
+            stdlib_lines.append(f"from datetime import {names}")
         if needs_uuid:
-            imports.insert(0, "from uuid import UUID")
+            stdlib_lines.append("from uuid import UUID")
 
-        pydantic_extras = []
-        if needs_email:
-            pydantic_extras.append("EmailStr")
-        if needs_url:
-            pydantic_extras.append("HttpUrl")
+        # Sort stdlib lines
+        stdlib_lines.sort()
 
+        # Build third-party section
+        thirdparty_lines: list[str] = []
+        pydantic_extras = sorted(
+            (["EmailStr"] if needs_email else []) + (["HttpUrl"] if needs_url else [])
+        )
         if pydantic_extras:
-            imports[imports.index("from pydantic import BaseModel, Field")] = (
+            thirdparty_lines.append(
                 f"from pydantic import BaseModel, Field, {', '.join(pydantic_extras)}"
             )
+        else:
+            thirdparty_lines.append("from pydantic import BaseModel, Field")
 
-        return "\n".join(imports)
+        # Combine with blank line between stdlib and third-party
+        sections = []
+        if stdlib_lines:
+            sections.append("\n".join(stdlib_lines))
+        sections.append("\n".join(thirdparty_lines))
+        return "\n\n".join(sections)
 
     def _generate_controller_content(self, context: dict) -> str:
         """Generate a CRUD controller for a model."""
@@ -623,26 +625,31 @@ class Command(GeneratorCommand):
 
         lines = []
 
-        # Imports
+        # Imports — ordered per isort: django, then first-party (django_matt), then local-folder
         if not with_service:
-            lines.append("from django.http import Http404")
             lines.append("from django.db.models import Q")
+            lines.append("from django.http import Http404")
             lines.append("")
         lines.append("from django_matt.core.controller import APIController")
-        lines.append("from django_matt.core.router import get, post, put, patch, delete")
+        lines.append("from django_matt.core.router import delete, get, patch, post, put")
 
         if permissions:
-            perm_imports = ", ".join(permissions)
+            perm_imports = ", ".join(sorted(permissions))
             lines.append(f"from django_matt.permissions import {perm_imports}")
 
         lines.append("")
         if not with_service:
             lines.append(f"from .models import {model_name}")
+        # Schema imports sorted alphabetically
+        schema_names = sorted([
+            f"{model_name}CreateSchema",
+            f"{model_name}ListSchema",
+            f"{model_name}Schema",
+            f"{model_name}UpdateSchema",
+        ])
         lines.append("from .schemas import (")
-        lines.append(f"    {model_name}Schema,")
-        lines.append(f"    {model_name}CreateSchema,")
-        lines.append(f"    {model_name}UpdateSchema,")
-        lines.append(f"    {model_name}ListSchema,")
+        for name in schema_names:
+            lines.append(f"    {name},")
         lines.append(")")
 
         if with_service:
@@ -857,6 +864,7 @@ class Command(GeneratorCommand):
                 f'        return {{"success": True, "message": f"{model_name} {{id}} deleted"}}'
             )
 
+        lines.append("")
         return "\n".join(lines)
 
     def _generate_test_content(self, context: dict) -> str:
@@ -867,12 +875,12 @@ class Command(GeneratorCommand):
 
         lines = []
 
-        # Imports
-        lines.append("import pytest")
+        # Imports: sorted per isort (django section before third-party, blank line between sections)
         lines.append("from django.test import AsyncClient")
         lines.append("")
+        lines.append("import pytest")
+        lines.append("")
         lines.append(f"from .models import {model_name}")
-        lines.append(f"from .schemas import {model_name}CreateSchema")
         lines.append("")
         lines.append("")
 
@@ -884,8 +892,7 @@ class Command(GeneratorCommand):
         lines.append(f'    base_url = "/api/{prefix}"')
         lines.append("")
 
-        # Test list
-        lines.append("    @pytest.mark.asyncio")
+        # Test list (no @pytest.mark.asyncio — project uses asyncio_mode=auto)
         lines.append(f"    async def test_list_{prefix}(self, async_client: AsyncClient):")
         lines.append(f'        """Test listing {model_name} objects."""')
         lines.append("        response = await async_client.get(self.base_url)")
@@ -896,7 +903,6 @@ class Command(GeneratorCommand):
         lines.append("")
 
         # Test create
-        lines.append("    @pytest.mark.asyncio")
         lines.append(
             f"    async def test_create_{model_name.lower()}(self, async_client: AsyncClient):"
         )
@@ -909,7 +915,6 @@ class Command(GeneratorCommand):
         lines.append("")
 
         # Test get
-        lines.append("    @pytest.mark.asyncio")
         lines.append(
             f"    async def test_get_{model_name.lower()}(self, async_client: AsyncClient):"
         )
@@ -923,7 +928,6 @@ class Command(GeneratorCommand):
         lines.append("")
 
         # Test update
-        lines.append("    @pytest.mark.asyncio")
         lines.append(
             f"    async def test_update_{model_name.lower()}(self, async_client: AsyncClient):"
         )
@@ -941,7 +945,6 @@ class Command(GeneratorCommand):
         lines.append("")
 
         # Test delete
-        lines.append("    @pytest.mark.asyncio")
         lines.append(
             f"    async def test_delete_{model_name.lower()}(self, async_client: AsyncClient):"
         )
@@ -954,13 +957,13 @@ class Command(GeneratorCommand):
         lines.append("")
 
         # Test not found
-        lines.append("    @pytest.mark.asyncio")
         lines.append(
             f"    async def test_{model_name.lower()}_not_found(self, async_client: AsyncClient):"
         )
         lines.append(f'        """Test 404 for non-existent {model_name}."""')
         lines.append('        response = await async_client.get(f"{self.base_url}/99999")')
         lines.append("        assert response.status_code == 404")
+        lines.append("")
 
         return "\n".join(lines)
 
@@ -981,7 +984,6 @@ class Command(GeneratorCommand):
         lines.append("they should only handle HTTP concerns and delegate to services.")
         lines.append('"""')
         lines.append("")
-        lines.append("from django.db import transaction")
         lines.append("from django.http import Http404")
         lines.append("")
         lines.append(f"from .models import {model_name}")
@@ -1145,6 +1147,7 @@ class Command(GeneratorCommand):
         lines.append(f"    #         return await {model_name}.objects.abulk_create([")
         lines.append(f"    #             {model_name}(**item.model_dump()) for item in items")
         lines.append("    #         ])")
+        lines.append("")
 
         return "\n".join(lines)
 
@@ -1165,17 +1168,17 @@ class Command(GeneratorCommand):
         lines.append("Make sure you have 'unfold' in INSTALLED_APPS before 'django.contrib.admin'.")
         lines.append('"""')
         lines.append("")
-        lines.append("from django.contrib import admin")
-        lines.append("")
+        # Sorted imports: first-party django_matt, then local-folder
+        # django_matt.admin exports are sorted alphabetically
+        admin_imports = sorted([
+            "MattModelAdmin",
+            "export_as_csv",
+            "export_as_json",
+            "register_admin",
+        ] + (["SoftDeleteAdminMixin"] if soft_delete else []))
         lines.append("from django_matt.admin import (")
-        lines.append("    MattModelAdmin,")
-        lines.append("    register_admin,")
-
-        if soft_delete:
-            lines.append("    SoftDeleteAdminMixin,")
-
-        lines.append("    export_as_csv,")
-        lines.append("    export_as_json,")
+        for imp in admin_imports:
+            lines.append(f"    {imp},")
         lines.append(")")
         lines.append("")
         lines.append(f"from .models import {model_name}")
@@ -1306,5 +1309,6 @@ class Command(GeneratorCommand):
         lines.append("    #     if not change:  # Creating new object")
         lines.append("    #         obj.created_by = request.user")
         lines.append("    #     super().save_model(request, obj, form, change)")
+        lines.append("")
 
         return "\n".join(lines)
