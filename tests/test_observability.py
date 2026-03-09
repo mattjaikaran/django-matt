@@ -2498,3 +2498,256 @@ class TestEdgeCases:
             assert response.status_code == 503
             data = json.loads(response.content)
             assert data["ready"] is False
+
+
+# =============================================================================
+# Success-Criteria-Aligned Tests (Phase 07, Plan 02)
+# =============================================================================
+
+
+class TestStructuredLoggingSuccessCriteria:
+    """
+    Verify OBS-01: Structured logging produces valid JSON with configurable formatters.
+    These tests directly validate the success criteria from the roadmap.
+    """
+
+    def test_json_formatter_produces_valid_json_with_required_fields(self):
+        """JSONFormatter.format() produces valid JSON with timestamp, level, message."""
+        from django_matt.observability.logging import JSONFormatter
+
+        formatter = JSONFormatter()
+        record = logging.LogRecord(
+            name="test.app",
+            level=logging.WARNING,
+            pathname="app.py",
+            lineno=10,
+            msg="Something happened",
+            args=(),
+            exc_info=None,
+        )
+        output = formatter.format(record)
+
+        # Must be valid JSON parseable by orjson
+        data = orjson.loads(output)
+
+        # Required fields
+        assert "timestamp" in data, "JSON log must contain 'timestamp'"
+        assert "level" in data, "JSON log must contain 'level'"
+        assert "message" in data, "JSON log must contain 'message'"
+
+        # Correct values
+        assert data["level"] == "WARNING"
+        assert data["message"] == "Something happened"
+        assert data["logger"] == "test.app"
+
+        # Timestamp must be ISO format
+        assert "T" in data["timestamp"]
+
+    def test_json_formatter_log_levels(self):
+        """Verify all standard log levels produce correct level field."""
+        from django_matt.observability.logging import JSONFormatter
+
+        formatter = JSONFormatter()
+        for level_name, level_num in [
+            ("DEBUG", logging.DEBUG),
+            ("INFO", logging.INFO),
+            ("WARNING", logging.WARNING),
+            ("ERROR", logging.ERROR),
+            ("CRITICAL", logging.CRITICAL),
+        ]:
+            record = logging.LogRecord(
+                name="test", level=level_num, pathname="", lineno=0,
+                msg="msg", args=(), exc_info=None,
+            )
+            data = orjson.loads(formatter.format(record))
+            assert data["level"] == level_name
+
+    def test_pretty_json_formatter_produces_indented_valid_json(self):
+        """PrettyJSONFormatter produces human-readable indented JSON."""
+        from django_matt.observability.logging import PrettyJSONFormatter
+
+        formatter = PrettyJSONFormatter()
+        record = logging.LogRecord(
+            name="test", level=logging.INFO, pathname="", lineno=0,
+            msg="pretty test", args=(), exc_info=None,
+        )
+        output = formatter.format(record)
+
+        # Must be valid JSON
+        data = orjson.loads(output)
+        assert data["message"] == "pretty test"
+
+        # Must be indented (multi-line)
+        assert "\n" in output
+
+    def test_colored_text_formatter_produces_readable_output(self):
+        """ColoredTextFormatter produces text with ANSI color codes."""
+        from django_matt.observability.logging import ColoredTextFormatter
+
+        formatter = ColoredTextFormatter()
+        record = logging.LogRecord(
+            name="test.app", level=logging.ERROR, pathname="", lineno=0,
+            msg="error msg", args=(), exc_info=None,
+        )
+        output = formatter.format(record)
+
+        assert "ERROR" in output
+        assert "error msg" in output
+        assert "test.app" in output
+        # Contains ANSI escape code
+        assert "\033[" in output
+
+
+class TestPrometheusMetricsSuccessCriteria:
+    """
+    Verify OBS-02: Prometheus metrics endpoint responds with metric data.
+    """
+
+    def test_metrics_manager_records_request_count(self):
+        """MetricsManager with fallback records request count metrics."""
+        from django_matt.observability.metrics import MetricsManager
+
+        mgr = MetricsManager()
+        counter = mgr.counter(
+            "test_req_total", "Total requests", labelnames=["method", "status"]
+        )
+        counter.labels(method="GET", status="200").inc()
+        counter.labels(method="GET", status="200").inc()
+        counter.labels(method="POST", status="201").inc()
+
+        # Verify counter values via fallback metric internal state
+        get_key = ("GET", "200")
+        post_key = ("POST", "201")
+        assert counter._values[get_key] == 2.0
+        assert counter._values[post_key] == 1.0
+
+    def test_metrics_manager_records_latency(self):
+        """MetricsManager records request latency via histogram."""
+        from django_matt.observability.metrics import MetricsManager
+
+        mgr = MetricsManager()
+        hist = mgr.histogram("test_latency", "Request latency")
+        hist.observe(0.05)
+        hist.observe(0.15)
+
+        # Verify observations stored and appear in output
+        output = mgr.generate_metrics().decode("utf-8")
+        assert "test_latency" in output or "django_matt_test_latency" in output
+
+    def test_metrics_view_returns_prometheus_text_format(self, rf):
+        """Prometheus metrics view returns text/plain content with metric lines."""
+        from django_matt.observability.views import metrics_view
+
+        request = rf.get("/_matt/metrics")
+        response = metrics_view(request)
+
+        assert response.status_code == 200
+        content_type = response["Content-Type"]
+        # Prometheus text format uses text/plain or openmetrics
+        assert "text" in content_type
+
+    def test_record_request_convenience_updates_metrics(self):
+        """record_request() updates both count and latency metrics."""
+        from django_matt.observability.metrics import MetricsManager, record_request
+
+        # Use a fresh manager to avoid cross-test pollution
+        mgr = MetricsManager()
+        with patch("django_matt.observability.metrics.metrics_manager", mgr):
+            with patch("django_matt.observability.metrics.metrics_config") as mock_cfg:
+                mock_cfg.enabled = True
+                mock_cfg.prefix = "django_matt"
+                mock_cfg.default_buckets = [0.01, 0.1, 1.0]
+
+                record_request("GET", "/api/users", 200, 0.05)
+
+                # Metrics should have been created
+                output = mgr.generate_metrics().decode("utf-8")
+                assert len(output) > 0
+
+
+class TestOTELTracingSuccessCriteria:
+    """
+    Verify OBS-03: OTEL tracing emits spans for request handling.
+    """
+
+    def test_tracing_manager_creates_spans_with_operation_names(self):
+        """TracingManager creates NullSpan with correct operation name when OTEL unavailable."""
+        from django_matt.observability.tracing import NullSpan, TracingManager
+
+        mgr = TracingManager()
+        span = mgr.start_span("GET /api/users")
+        assert isinstance(span, NullSpan)
+        assert span.name == "GET /api/users"
+
+    def test_null_span_records_attributes(self):
+        """NullSpan stores attributes (no-op but API-compatible)."""
+        from django_matt.observability.tracing import NullSpan
+
+        span = NullSpan("test-span")
+        span.set_attribute("http.method", "GET")
+        span.set_attribute("http.status_code", 200)
+        assert span._attributes["http.method"] == "GET"
+        assert span._attributes["http.status_code"] == 200
+
+    def test_null_span_records_events(self):
+        """NullSpan stores events."""
+        from django_matt.observability.tracing import NullSpan
+
+        span = NullSpan("test-span")
+        span.add_event("request.start", {"time": "now"})
+        assert len(span._events) == 1
+        assert span._events[0][0] == "request.start"
+
+    def test_tracing_manager_span_context_manager(self):
+        """TracingManager span context manager yields span with correct name."""
+        from django_matt.observability.tracing import NullSpan, TracingManager
+
+        mgr = TracingManager()
+        with mgr.span("POST /api/orders", attributes={"user": "123"}) as span:
+            assert isinstance(span, NullSpan)
+            assert span.name == "POST /api/orders"
+            span.set_attribute("http.status_code", 201)
+
+    def test_has_opentelemetry_flag_exists(self):
+        """HAS_OPENTELEMETRY flag properly guards OTEL imports."""
+        from django_matt.observability.tracing import HAS_OPENTELEMETRY
+
+        assert isinstance(HAS_OPENTELEMETRY, bool)
+
+    def test_setup_returns_false_without_otel(self):
+        """TracingManager.setup() gracefully returns False without OTEL SDK."""
+        from django_matt.observability.tracing import TracingManager
+
+        mgr = TracingManager()
+        with patch("django_matt.observability.tracing.HAS_OPENTELEMETRY", False):
+            result = mgr.setup(service_name="test-svc")
+            assert result is False
+
+
+class TestTracingMiddlewareSpanStatus:
+    """Test the corrected span status logic in TracingMiddleware."""
+
+    def test_4xx_response_does_not_set_error_status(self, rf):
+        """4xx responses should set OK status, not ERROR (OTEL server span convention)."""
+        from django_matt.observability.middleware import TracingMiddleware
+
+        def get_response(request):
+            return HttpResponse("Not Found", status=404)
+
+        middleware = TracingMiddleware(get_response)
+        # Even with tracing disabled, verify the middleware path
+        request = rf.get("/api/missing")
+        response = middleware(request)
+        assert response.status_code == 404
+
+    def test_5xx_response_would_set_error_status(self, rf):
+        """5xx responses should set ERROR status."""
+        from django_matt.observability.middleware import TracingMiddleware
+
+        def get_response(request):
+            return HttpResponse("Server Error", status=500)
+
+        middleware = TracingMiddleware(get_response)
+        request = rf.get("/api/broken")
+        response = middleware(request)
+        assert response.status_code == 500

@@ -590,3 +590,136 @@ class TestInspectorIntegration(TestCase):
         storage.resume_capture()
         storage.add(CapturedRequest(path="/api/test/3"))
         self.assertEqual(storage.count(), 2)  # Should increase
+
+
+# =============================================================================
+# Success-Criteria-Aligned Tests (Phase 07, Plan 02)
+# =============================================================================
+
+
+class TestInspectorCaptureSuccessCriteria(TestCase):
+    """
+    Verify OBS-04: Request inspector captures request/response pairs in dev mode.
+    """
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        reset_storage()
+
+    def tearDown(self):
+        reset_storage()
+
+    def test_inspector_captures_method_path_status_body(self):
+        """Inspector middleware captures request method, path, status code, response body."""
+        with patch.object(
+            RequestCaptureMiddleware,
+            "_get_config",
+            return_value={
+                "enabled": True,
+                "max_body_size": 65536,
+                "ignore_paths": [],
+                "ignore_extensions": [],
+                "capture_headers": True,
+                "capture_body": True,
+                "capture_response": True,
+            },
+        ):
+            mock_response = MagicMock(
+                status_code=200,
+                content=b'{"users": []}',
+                items=lambda: [("Content-Type", "application/json")],
+            )
+            mock_response.get = lambda k, d=None: "application/json" if k == "Content-Type" else d
+            get_response = MagicMock(return_value=mock_response)
+            middleware = RequestCaptureMiddleware(get_response)
+
+            request = self.factory.post(
+                "/api/users",
+                data='{"name": "test"}',
+                content_type="application/json",
+            )
+            middleware(request)
+
+            storage = get_storage()
+            self.assertEqual(storage.count(), 1)
+
+            captured = storage.list()[0]
+            self.assertEqual(captured.method, "POST")
+            self.assertEqual(captured.path, "/api/users")
+            self.assertEqual(captured.response_status, 200)
+            self.assertIn("users", captured.response_body)
+
+    def test_inspector_disabled_when_debug_false(self):
+        """Inspector is disabled when DEBUG=False (production gating)."""
+        with patch.object(
+            RequestCaptureMiddleware,
+            "_get_config",
+            return_value={
+                "enabled": False,  # Simulates DEBUG=False
+                "max_body_size": 65536,
+                "ignore_paths": [],
+                "ignore_extensions": [],
+                "capture_headers": True,
+                "capture_body": True,
+                "capture_response": True,
+            },
+        ):
+            get_response = MagicMock(return_value=MagicMock(status_code=200))
+            middleware = RequestCaptureMiddleware(get_response)
+
+            request = self.factory.get("/api/test")
+            middleware(request)
+
+            storage = get_storage()
+            self.assertEqual(storage.count(), 0)
+
+    def test_inspector_storage_retrieves_captured_requests(self):
+        """Inspector storage retrieves captured requests by ID."""
+        storage = MemoryStorage(max_requests=100)
+
+        req = CapturedRequest(
+            method="GET",
+            path="/api/items",
+            response_status=200,
+            response_body='[{"id":1}]',
+        )
+        storage.add(req)
+
+        retrieved = storage.get(req.id)
+        self.assertIsNotNone(retrieved)
+        self.assertEqual(retrieved.method, "GET")
+        self.assertEqual(retrieved.path, "/api/items")
+        self.assertEqual(retrieved.response_status, 200)
+        self.assertEqual(retrieved.response_body, '[{"id":1}]')
+
+    def test_inspector_captures_duration(self):
+        """Inspector captures request duration."""
+        with patch.object(
+            RequestCaptureMiddleware,
+            "_get_config",
+            return_value={
+                "enabled": True,
+                "max_body_size": 65536,
+                "ignore_paths": [],
+                "ignore_extensions": [],
+                "capture_headers": True,
+                "capture_body": True,
+                "capture_response": True,
+            },
+        ):
+            mock_response = MagicMock(
+                status_code=200,
+                content=b"OK",
+                items=lambda: [("Content-Type", "text/plain")],
+            )
+            mock_response.get = lambda k, d=None: "text/plain" if k == "Content-Type" else d
+            get_response = MagicMock(return_value=mock_response)
+            middleware = RequestCaptureMiddleware(get_response)
+
+            request = self.factory.get("/api/test")
+            middleware(request)
+
+            storage = get_storage()
+            captured = storage.list()[0]
+            self.assertIsNotNone(captured.duration_ms)
+            self.assertGreaterEqual(captured.duration_ms, 0)
