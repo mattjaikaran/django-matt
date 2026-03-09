@@ -135,19 +135,19 @@ Plans:
   3. Create, update, and delete operations on an audited model produce audit log entries with user, timestamp, before/after diff — and soft-deleted records are restorable — verified by test
   4. A file uploaded through the framework is stored to the configured backend (S3/R2/MinIO) and a signed URL is generated for private access — verified by test with mock storage
   5. A Celery task registered via the tasks module executes and its result is retrievable via the task status API — verified by test
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 07-01: Complete deployment configs (Docker, Fly, Railway, Render, AWS) with CONN_MAX_AGE=0 enforcement
-- [ ] 07-02: Complete observability (structured logging, Prometheus metrics, OTEL tracing, request inspector)
-- [ ] 07-03: Complete audit logging, soft delete, file uploads (S3/R2/MinIO/signed URLs), background tasks (Celery/Dramatiq/Django-Q)
-- [ ] 07-04: Complete admin (Unfold integration, widgets, inlines), GraphQL (Strawberry, DataLoaders), HTMX helpers, backend components, AI/ML modules
-- [ ] 07-05: Complete pagination/filtering/throttling, django-ninja migration guide, and final integration verification
+- [ ] 07-01-PLAN.md — Enforce CONN_MAX_AGE=0 across all deployment configs and config environments (DEPLOY-01 through DEPLOY-06)
+- [ ] 07-02-PLAN.md — Verify and complete observability module (structured logging, Prometheus metrics, OTEL tracing, request inspector) (OBS-01 through OBS-04)
+- [ ] 07-03-PLAN.md — Complete audit logging with soft delete, file uploads with S3/R2/MinIO signed URLs, background tasks with status tracking (AUDIT-01 through AUDIT-03, FILE-01 through FILE-05, TASK-01 through TASK-04)
+- [ ] 07-04-PLAN.md — Verify admin (Unfold, widgets, inlines), GraphQL (Strawberry, DataLoaders), HTMX helpers, backend components (ADMIN-01 through ADMIN-03, GQL-01 through GQL-03, HTMX-01, HTMX-02, COMP-01)
+- [ ] 07-05-PLAN.md — Verify AI/ML modules (LLM, embeddings, RAG, vector storage) and performance modules (pagination, filtering, throttling) (AI-01 through AI-04, ML-01, ML-02, PERF-01 through PERF-03)
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 Note: Phases 3, 4, and 7 can start after Phase 1 completes. Phases 5 and 6 require Phase 4.
 
 | Phase | Plans Complete | Status | Completed |
