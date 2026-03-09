@@ -7,7 +7,7 @@ Provides the core abstractions for background tasks.
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -270,7 +270,7 @@ class Task:
             TaskResult with the result
         """
         task_id = str(uuid.uuid4())
-        started_at = datetime.utcnow()
+        started_at = datetime.now(UTC)
 
         try:
             if self.bind:
@@ -283,7 +283,7 @@ class Task:
                 status=TaskStatus.SUCCESS,
                 result=result,
                 started_at=started_at,
-                completed_at=datetime.utcnow(),
+                completed_at=datetime.now(UTC),
             )
         except Exception as e:
             if throw:
@@ -293,7 +293,7 @@ class Task:
                 status=TaskStatus.FAILURE,
                 error=str(e),
                 started_at=started_at,
-                completed_at=datetime.utcnow(),
+                completed_at=datetime.now(UTC),
             )
 
     def s(self, *args, **kwargs) -> "Signature":

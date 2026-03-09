@@ -198,9 +198,7 @@ class S3Storage(BaseStorage):
             extra_args["Metadata"] = {k: str(v) for k, v in metadata.items()}
 
         # Upload to S3 (run in thread pool for async)
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
-            None,
+        await asyncio.to_thread(
             lambda: self.client.put_object(
                 Bucket=self.bucket,
                 Key=key,
@@ -214,9 +212,7 @@ class S3Storage(BaseStorage):
     async def get(self, key: str) -> bytes:
         """Get a file's contents from S3."""
         try:
-            loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(
-                None,
+            response = await asyncio.to_thread(
                 lambda: self.client.get_object(
                     Bucket=self.bucket,
                     Key=key,
@@ -233,9 +229,7 @@ class S3Storage(BaseStorage):
     async def get_stream(self, key: str, chunk_size: int = 8192) -> Iterator[bytes]:
         """Get a file's contents as a stream."""
         try:
-            loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(
-                None,
+            response = await asyncio.to_thread(
                 lambda: self.client.get_object(
                     Bucket=self.bucket,
                     Key=key,
@@ -259,9 +253,7 @@ class S3Storage(BaseStorage):
         if not await self.exists(key):
             raise FileNotFoundError(key)
 
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
-            None,
+        await asyncio.to_thread(
             lambda: self.client.delete_object(
                 Bucket=self.bucket,
                 Key=key,
@@ -271,9 +263,7 @@ class S3Storage(BaseStorage):
     async def exists(self, key: str) -> bool:
         """Check if a file exists in S3."""
         try:
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(
-                None,
+            await asyncio.to_thread(
                 lambda: self.client.head_object(
                     Bucket=self.bucket,
                     Key=key,
@@ -286,9 +276,7 @@ class S3Storage(BaseStorage):
     async def info(self, key: str) -> FileInfo:
         """Get information about a file."""
         try:
-            loop = asyncio.get_event_loop()
-            response = await loop.run_in_executor(
-                None,
+            response = await asyncio.to_thread(
                 lambda: self.client.head_object(
                     Bucket=self.bucket,
                     Key=key,
@@ -315,8 +303,6 @@ class S3Storage(BaseStorage):
         cursor: str = None,
     ) -> tuple[list[FileInfo], str | None]:
         """List files in S3."""
-        loop = asyncio.get_event_loop()
-
         params = {
             "Bucket": self.bucket,
             "Prefix": prefix,
@@ -328,8 +314,7 @@ class S3Storage(BaseStorage):
         if cursor:
             params["ContinuationToken"] = cursor
 
-        response = await loop.run_in_executor(
-            None,
+        response = await asyncio.to_thread(
             lambda: self.client.list_objects_v2(**params),
         )
 
@@ -387,9 +372,7 @@ class S3Storage(BaseStorage):
                 conditions.append({meta_key: str(v)})
                 fields[meta_key] = str(v)
 
-        loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(
-            None,
+        response = await asyncio.to_thread(
             lambda: self.client.generate_presigned_post(
                 Bucket=self.bucket,
                 Key=key,
@@ -423,9 +406,7 @@ class S3Storage(BaseStorage):
         if filename:
             params["ResponseContentDisposition"] = f'attachment; filename="{filename}"'
 
-        loop = asyncio.get_event_loop()
-        url = await loop.run_in_executor(
-            None,
+        url = await asyncio.to_thread(
             lambda: self.client.generate_presigned_url(
                 "get_object",
                 Params=params,
@@ -449,9 +430,7 @@ class S3Storage(BaseStorage):
         if not overwrite and await self.exists(dest_key):
             raise FileExistsError(dest_key)
 
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
-            None,
+        await asyncio.to_thread(
             lambda: self.client.copy_object(
                 Bucket=self.bucket,
                 Key=dest_key,
@@ -466,9 +445,7 @@ class S3Storage(BaseStorage):
         if not keys:
             return []
 
-        loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(
-            None,
+        response = await asyncio.to_thread(
             lambda: self.client.delete_objects(
                 Bucket=self.bucket,
                 Delete={

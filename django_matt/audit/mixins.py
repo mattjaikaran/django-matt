@@ -218,16 +218,55 @@ class AuditableMixin(models.Model):
                 description=f"Created {self._meta.verbose_name}",
                 new_values=self._get_auditable_values(),
             )
-        elif not is_new and self.audit_on_update and changes:
-            AuditLog.log(
-                action=AuditAction.UPDATE,
-                user=user,
-                obj=self,
-                description=f"Updated {self._meta.verbose_name}",
-                changes=changes,
-                old_values=self._audit_original_values,
-                new_values=self._get_auditable_values(),
-            )
+        elif not is_new and changes:
+            # Detect soft-delete/restore via deleted_at field changes
+            if "deleted_at" in changes and hasattr(self, "deleted_at"):
+                old_deleted = changes["deleted_at"].get("old")
+                new_deleted = changes["deleted_at"].get("new")
+                if old_deleted is None and new_deleted is not None:
+                    # Soft delete: deleted_at went from None to a timestamp
+                    if self.audit_on_delete:
+                        AuditLog.log(
+                            action=AuditAction.DELETE,
+                            user=user,
+                            obj=self,
+                            description=f"Soft-deleted {self._meta.verbose_name}",
+                            changes=changes,
+                            old_values=self._audit_original_values,
+                            new_values=self._get_auditable_values(),
+                        )
+                elif old_deleted is not None and new_deleted is None:
+                    # Restore: deleted_at went from a timestamp to None
+                    if self.audit_on_update:
+                        AuditLog.log(
+                            action=AuditAction.RESTORE,
+                            user=user,
+                            obj=self,
+                            description=f"Restored {self._meta.verbose_name}",
+                            changes=changes,
+                            old_values=self._audit_original_values,
+                            new_values=self._get_auditable_values(),
+                        )
+                elif self.audit_on_update:
+                    AuditLog.log(
+                        action=AuditAction.UPDATE,
+                        user=user,
+                        obj=self,
+                        description=f"Updated {self._meta.verbose_name}",
+                        changes=changes,
+                        old_values=self._audit_original_values,
+                        new_values=self._get_auditable_values(),
+                    )
+            elif self.audit_on_update:
+                AuditLog.log(
+                    action=AuditAction.UPDATE,
+                    user=user,
+                    obj=self,
+                    description=f"Updated {self._meta.verbose_name}",
+                    changes=changes,
+                    old_values=self._audit_original_values,
+                    new_values=self._get_auditable_values(),
+                )
 
         # Update stored values for next change detection
         self._store_original_values()
