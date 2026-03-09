@@ -273,7 +273,11 @@ class LLMProvider(ABC):
         """Synchronous version of complete()."""
         import asyncio
 
-        return asyncio.get_event_loop().run_until_complete(self.complete(messages, **kwargs))
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(self.complete(messages, **kwargs))
+        finally:
+            loop.close()
 
     def stream_sync(
         self,
@@ -289,7 +293,11 @@ class LLMProvider(ABC):
                 chunks.append(chunk)
             return chunks
 
-        chunks = asyncio.get_event_loop().run_until_complete(collect())
+        loop = asyncio.new_event_loop()
+        try:
+            chunks = loop.run_until_complete(collect())
+        finally:
+            loop.close()
         yield from chunks
 
 
@@ -357,7 +365,11 @@ class EmbeddingProvider(ABC):
         """Synchronous version of embed()."""
         import asyncio
 
-        return asyncio.get_event_loop().run_until_complete(self.embed(texts, **kwargs))
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(self.embed(texts, **kwargs))
+        finally:
+            loop.close()
 
 
 T = TypeVar("T", bound=BaseModel)
