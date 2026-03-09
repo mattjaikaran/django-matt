@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-03-07)
 ## Current Position
 
 Phase: 7 of 7 (Deployment, Observability, and Completion)
-Plan: 2 of 5 in current phase
+Plan: 4 of 5 in current phase
 Status: Executing
-Last activity: 2026-03-09 — Phase 7 Plan 01 complete; CONN_MAX_AGE=0 enforced across all deploy/config + 13 tests
+Last activity: 2026-03-09 — Phase 7 Plan 04 complete; admin inline gen, GraphQL/HTMX/component verification + 28 tests
 
 Progress: [=========-] 88%
 
@@ -122,6 +122,7 @@ Recent decisions affecting current work:
 - [Phase 05-billing-feature-flags-and-analytics]: Decorator tests patch ExperimentContext.from_request at context module level (lazy import pattern)
 - [Phase 06-real-time-notifications-and-communications]: Lazy import of sync_to_async in Conversation.ais_member() following Phase 4 model-layer pattern
 - [Phase 06-real-time-notifications-and-communications]: PresenceManager reverse index uses cache with 24h TTL matching forward index TTL
+- [Phase 07-deployment-observability-and-completion]: AdminGenerator._generate_inlines uses TabularInline for <=6 fields, StackedInline for >6; no LiveComponent class needed -- htmx/components.py OOB/modal/toast patterns provide Livewire-style reactivity
 - [Phase 07]: OTEL server span convention: only 5xx responses set ERROR status, 4xx responses are OK
 - [Phase 07]: CONN_MAX_AGE=0 everywhere -- persistent connections leak under ASGI (Django #33497); connection pooling at psycopg3 pool layer, not Django CONN_MAX_AGE
 - [Phase 07]: DockerfileConfig.use_asgi defaults True -- django-matt is async-first, WSGI is legacy
@@ -140,5 +141,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-09T03:44:01.827Z
-Stopped at: Completed 07-01-PLAN.md
+Stopped at: Completed 07-04-PLAN.md
 Resume file: None

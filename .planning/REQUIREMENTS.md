@@ -158,21 +158,21 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Frontend Integration
 
-- [ ] **HTMX-01**: HTMX response helpers (triggers, swaps, redirects)
-- [ ] **HTMX-02**: Livewire-style reactive component helpers
-- [ ] **COMP-01**: Backend-served component system for server-rendered UIs
+- [x] **HTMX-01**: HTMX response helpers (triggers, swaps, redirects)
+- [x] **HTMX-02**: Livewire-style reactive component helpers
+- [x] **COMP-01**: Backend-served component system for server-rendered UIs
 
 ### GraphQL
 
-- [ ] **GQL-01**: Strawberry-based schema auto-generation from Django models
-- [ ] **GQL-02**: DataLoader integration for N+1 prevention
-- [ ] **GQL-03**: GraphQL endpoint served alongside REST from same app
+- [x] **GQL-01**: Strawberry-based schema auto-generation from Django models
+- [x] **GQL-02**: DataLoader integration for N+1 prevention
+- [x] **GQL-03**: GraphQL endpoint served alongside REST from same app
 
 ### Admin
 
-- [ ] **ADMIN-01**: Django Unfold integration for modern admin UI
-- [ ] **ADMIN-02**: Admin dashboard widgets
-- [ ] **ADMIN-03**: Admin inline configuration from django-matt models
+- [x] **ADMIN-01**: Django Unfold integration for modern admin UI
+- [x] **ADMIN-02**: Admin dashboard widgets
+- [x] **ADMIN-03**: Admin inline configuration from django-matt models
 
 ### Deployment & Observability
 
@@ -332,15 +332,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUDIT-01 | Phase 7 | Pending |
 | AUDIT-02 | Phase 7 | Pending |
 | AUDIT-03 | Phase 7 | Pending |
-| HTMX-01 | Phase 7 | Pending |
-| HTMX-02 | Phase 7 | Pending |
-| COMP-01 | Phase 7 | Pending |
-| GQL-01 | Phase 7 | Pending |
-| GQL-02 | Phase 7 | Pending |
-| GQL-03 | Phase 7 | Pending |
-| ADMIN-01 | Phase 7 | Pending |
-| ADMIN-02 | Phase 7 | Pending |
-| ADMIN-03 | Phase 7 | Pending |
+| HTMX-01 | Phase 7 | Complete |
+| HTMX-02 | Phase 7 | Complete |
+| COMP-01 | Phase 7 | Complete |
+| GQL-01 | Phase 7 | Complete |
+| GQL-02 | Phase 7 | Complete |
+| GQL-03 | Phase 7 | Complete |
+| ADMIN-01 | Phase 7 | Complete |
+| ADMIN-02 | Phase 7 | Complete |
+| ADMIN-03 | Phase 7 | Complete |
 | DEPLOY-01 | Phase 7 | Complete |
 | DEPLOY-02 | Phase 7 | Complete |
 | DEPLOY-03 | Phase 7 | Complete |
