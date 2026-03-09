@@ -311,10 +311,63 @@ class AdminGenerator:
         return None
 
     def _generate_inlines(self, opts) -> list[type]:
-        """Generate inline classes for related models."""
-        # Note: This is complex and often requires manual configuration
-        # We'll skip auto-generation of inlines for now
-        return []
+        """Generate inline classes for related models.
+
+        Auto-generates TabularInline classes for models that have
+        ForeignKey relationships pointing to the current model.
+        Uses StackedInline when the related model has many fields (>6).
+        """
+        from django_matt.admin.base import MattStackedInline, MattTabularInline
+
+        inlines = []
+        for relation in opts.get_fields():
+            # Only process reverse ForeignKey relations (one-to-many)
+            if not (relation.one_to_many and hasattr(relation, "related_model")):
+                continue
+
+            related_model = relation.related_model
+            if related_model is None:
+                continue
+
+            # Skip if the related model is the same as the current model
+            if related_model == opts.model:
+                continue
+
+            # Count concrete fields to decide TabularInline vs StackedInline
+            concrete_fields = [
+                f for f in related_model._meta.get_fields()
+                if hasattr(f, "column") and f.name not in self.exclude_fields
+            ]
+
+            # Use StackedInline for complex models, TabularInline for simple ones
+            base_inline = MattStackedInline if len(concrete_fields) > 6 else MattTabularInline
+
+            # Build inline class attributes
+            inline_attrs = {
+                "model": related_model,
+                "extra": 0,
+                "show_change_link": True,
+            }
+
+            # Generate readonly fields for the inline
+            readonly = []
+            for field_name in self.always_readonly:
+                try:
+                    related_model._meta.get_field(field_name)
+                    readonly.append(field_name)
+                except Exception:
+                    continue
+            if readonly:
+                inline_attrs["readonly_fields"] = tuple(readonly)
+
+            inline_class = type(
+                f"{related_model.__name__}Inline",
+                (base_inline,),
+                inline_attrs,
+            )
+            inlines.append(inline_class)
+
+        return inlines
 
 
 def generate_admin_class(
