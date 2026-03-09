@@ -595,3 +595,119 @@ class TestFileConfig:
             assert config.default_storage == "s3"
             assert config.s3_bucket == "my-bucket"
             assert config.max_file_size == 50 * 1024 * 1024
+
+
+# ==============================================================================
+# S3Storage Mock Tests (07-03)
+# ==============================================================================
+
+
+@pytest.mark.asyncio
+class TestS3StorageWithMock:
+    """Tests for S3Storage with mocked boto3 client.
+
+    Verifies:
+    - save() calls put_object
+    - presigned_download_url() returns signed URL
+    - R2Storage sets correct endpoint
+    - MinIOStorage sets correct endpoint
+    - File upload validator rejects oversized files
+    """
+
+    @pytest.fixture(autouse=True)
+    def setup_storage(self):
+        from django_matt.files.s3 import S3Storage
+
+        self.storage = S3Storage(
+            bucket="test-bucket",
+            region="us-east-1",
+            access_key="AKTEST",
+            secret_key="SECRET",
+        )
+        # Pre-create a mock client
+        self.mock_client = MagicMock()
+        self.storage._client = self.mock_client
+
+    async def test_save_calls_put_object(self):
+        """Test: S3Storage.save() calls put_object with correct params."""
+        content = b"hello world"
+        self.mock_client.put_object.return_value = {}
+
+        key = await self.storage.save(
+            content,
+            key="test.txt",
+            content_type="text/plain",
+        )
+
+        assert key == "test.txt"
+        self.mock_client.put_object.assert_called_once()
+        call_kwargs = self.mock_client.put_object.call_args[1]
+        assert call_kwargs["Bucket"] == "test-bucket"
+        assert call_kwargs["Key"] == "test.txt"
+        assert call_kwargs["Body"] == content
+        assert call_kwargs["ContentType"] == "text/plain"
+
+    async def test_presigned_download_url_returns_url(self):
+        """Test: presigned_download_url() returns a PresignedUrl with signed URL."""
+        self.mock_client.generate_presigned_url.return_value = (
+            "https://test-bucket.s3.amazonaws.com/file.txt?X-Amz-Signature=abc123"
+        )
+
+        result = await self.storage.presigned_download_url("file.txt", expires=3600)
+
+        assert isinstance(result, PresignedUrl)
+        assert "X-Amz-Signature=abc123" in result.url
+        assert result.method == "GET"
+        assert result.expires_at is not None
+
+        self.mock_client.generate_presigned_url.assert_called_once()
+        call_args = self.mock_client.generate_presigned_url.call_args
+        assert call_args[0][0] == "get_object"
+        assert call_args[1]["Params"]["Bucket"] == "test-bucket"
+        assert call_args[1]["Params"]["Key"] == "file.txt"
+        assert call_args[1]["ExpiresIn"] == 3600
+
+    async def test_save_with_folder_prepends_path(self):
+        """Test: save() with folder prepends folder to key."""
+        self.mock_client.put_object.return_value = {}
+
+        key = await self.storage.save(
+            b"data",
+            key="file.txt",
+            folder="uploads",
+        )
+
+        assert key == "uploads/file.txt"
+
+    def test_r2_storage_sets_correct_endpoint(self):
+        """Test: R2Storage configures R2-specific endpoint."""
+        from django_matt.files.s3 import R2Storage
+
+        storage = R2Storage(
+            bucket="r2-bucket",
+            account_id="acc123",
+            access_key="ak",
+            secret_key="sk",
+        )
+        assert storage.endpoint == "https://acc123.r2.cloudflarestorage.com"
+        assert storage.region == "auto"
+
+    def test_minio_storage_sets_correct_endpoint(self):
+        """Test: MinIOStorage configures MinIO-specific settings."""
+        from django_matt.files.s3 import MinIOStorage
+
+        storage = MinIOStorage(
+            bucket="minio-bucket",
+            endpoint="http://localhost:9000",
+        )
+        assert storage.endpoint == "http://localhost:9000"
+        assert storage.addressing_style == "path"
+        assert storage.use_ssl is False
+
+    def test_file_upload_validator_rejects_oversized(self):
+        """Test: FileValidator rejects files exceeding max_size."""
+        validator = FileValidator(max_size=100)
+        oversized = UploadedFile.from_bytes(b"x" * 200, filename="big.txt")
+
+        with pytest.raises(FileTooLargeError):
+            validator.validate(oversized)

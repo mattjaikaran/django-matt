@@ -940,3 +940,95 @@ class TestSignatureFunction:
         assert sig.args == (1, 2)
         assert sig.kwargs == {"key": "val"}
         assert sig.options["queue"] == "low"
+
+
+# ==============================================================================
+# Task Execution + Status Tests (07-03)
+# ==============================================================================
+
+
+class TestTaskExecution:
+    """Tests for task execution with status tracking.
+
+    Verifies:
+    - @task decorated function executes and returns TaskResult with SUCCESS
+    - TaskResult contains the return value
+    - Task status is retrievable after execution
+    - datetime.now(UTC) is used (not utcnow)
+    """
+
+    def setup_method(self):
+        self._original_tasks = task_registry._tasks.copy()
+
+    def teardown_method(self):
+        task_registry._tasks = self._original_tasks
+
+    def test_task_decorator_execute_returns_success(self):
+        """Test: @task function executes with .apply() and returns SUCCESS."""
+        @task
+        def add_numbers(x, y):
+            return x + y
+
+        result = add_numbers.apply(args=(3, 7))
+
+        assert isinstance(result, TaskResult)
+        assert result.status == TaskStatus.SUCCESS
+        assert result.result == 10
+        assert result.error is None
+
+    def test_task_result_contains_return_value(self):
+        """Test: TaskResult.result contains the function's return value."""
+        @task
+        def make_greeting(name):
+            return f"Hello, {name}!"
+
+        result = make_greeting.apply(args=("World",))
+
+        assert result.result == "Hello, World!"
+        assert result.is_success is True
+        assert result.is_complete is True
+
+    def test_task_status_retrievable_via_sync_backend(self):
+        """Test: Task status is retrievable after execution via SyncBackend."""
+        backend = SyncBackend()
+
+        @task
+        def compute(x):
+            return x * x
+
+        compute._backend = backend
+        async_result = compute.delay(5)
+
+        assert async_result.status == TaskStatus.SUCCESS
+        assert async_result.result == 25
+
+        # Verify retrievable via get_result
+        fetched = backend.get_result(async_result.task_id)
+        assert fetched.status == TaskStatus.SUCCESS
+        assert fetched.result == 25
+
+    def test_task_apply_timestamps_use_utc(self):
+        """Test: Task.apply() uses datetime.now(UTC) for timestamps."""
+        @task
+        def noop():
+            return None
+
+        result = noop.apply()
+
+        assert result.started_at is not None
+        assert result.completed_at is not None
+        # After fix: timestamps should be timezone-aware (UTC)
+        assert result.started_at.tzinfo is not None
+        assert result.completed_at.tzinfo is not None
+
+    def test_task_failure_status_retrievable(self):
+        """Test: Failed task has FAILURE status with error message."""
+        @task
+        def failing_task():
+            raise ValueError("something went wrong")
+
+        result = failing_task.apply(throw=False)
+
+        assert result.status == TaskStatus.FAILURE
+        assert result.is_failure is True
+        assert "something went wrong" in result.error
