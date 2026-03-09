@@ -1491,6 +1491,11 @@ class TestPayPalProvider:
     @pytest.mark.asyncio
     async def test_verify_webhook_valid_json(self, paypal_config):
         """Should parse valid PayPal webhook payload."""
+        import base64
+        import hashlib
+        import hmac as hmac_mod
+        import zlib
+
         payload = json.dumps({
             "id": "WH-123",
             "event_type": "BILLING.SUBSCRIPTION.CREATED",
@@ -1499,7 +1504,23 @@ class TestPayPalProvider:
         }).encode()
 
         provider = PayPalProvider(paypal_config)
-        event = await provider.verify_webhook(payload, "sig_doesnt_matter")
+        # Build valid HMAC signature matching PayPal's verification scheme
+        transmission_id = "test-transmission-id"
+        transmission_time = "2024-01-01T00:00:00Z"
+        crc = zlib.crc32(payload) & 0xFFFFFFFF
+        message = f"{transmission_id}|{transmission_time}|{paypal_config.webhook_id}|{crc}"
+        sig_bytes = hmac_mod.new(
+            paypal_config.client_secret.encode(),
+            message.encode(),
+            hashlib.sha256,
+        ).digest()
+        sig = base64.b64encode(sig_bytes).decode()
+        headers = {
+            "PAYPAL-TRANSMISSION-ID": transmission_id,
+            "PAYPAL-TRANSMISSION-TIME": transmission_time,
+            "PAYPAL-TRANSMISSION-SIG": sig,
+        }
+        event = await provider.verify_webhook(payload, sig, headers=headers)
 
         assert event.id == "WH-123"
         assert event.type == "BILLING.SUBSCRIPTION.CREATED"

@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: CLI and Type Generation** - Complete scaffolding commands, TypeScript/Swift/Zod type gen, AI context export, Rich CLI commands (completed 2026-03-08)
 - [x] **Phase 4: Auth Hardening and Multi-Tenancy** - Harden JWT blacklist/revocation, complete OAuth/SSO/Passkeys, wire Organization/Team/Membership with permission integration (completed 2026-03-08)
 - [x] **Phase 5: Billing, Feature Flags, and Analytics** - Complete Stripe/PayPal/Polar billing, flag backends (DB/Redis/LaunchDarkly/Unleash), analytics event tracking and A/B experiments (completed 2026-03-08)
-- [ ] **Phase 6: Real-Time, Notifications, and Communications** - Complete WebSocket consumers with auth/presence, messaging module, notification dispatch (in-app, push, SMS), email backends
+- [x] **Phase 6: Real-Time, Notifications, and Communications** - Complete WebSocket consumers with auth/presence, messaging module, notification dispatch (in-app, push, SMS), email backends (completed 2026-03-08)
 - [x] **Phase 7: Deployment, Observability, and Completion** - Deployment configs with CONN_MAX_AGE=0, observability (logging/metrics/tracing), plus audit/file/task/admin/GraphQL/HTMX/AI module completion (completed 2026-03-09)
 
 ## Phase Details
@@ -157,5 +157,5 @@ Note: Phases 3, 4, and 7 can start after Phase 1 completes. Phases 5 and 6 requi
 | 3. CLI and Type Generation | 4/4 | Complete   | 2026-03-08 |
 | 4. Auth Hardening and Multi-Tenancy | 3/3 | Complete   | 2026-03-08 |
 | 5. Billing, Feature Flags, and Analytics | 3/3 | Complete   | 2026-03-08 |
-| 6. Real-Time, Notifications, and Communications | 1/3 | In Progress|  |
+| 6. Real-Time, Notifications, and Communications | 3/3 | Complete   | 2026-03-08 |
 | 7. Deployment, Observability, and Completion | 5/5 | Complete   | 2026-03-09 |
