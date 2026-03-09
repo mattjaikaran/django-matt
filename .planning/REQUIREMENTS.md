@@ -58,9 +58,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Performance & Data
 
-- [ ] **PERF-01**: Pagination: page number, limit/offset, and cursor-based
-- [ ] **PERF-02**: Filtering backend with Django filter integration, search, and ordering
-- [ ] **PERF-03**: Rate limiting / throttling with configurable backends
+- [x] **PERF-01**: Pagination: page number, limit/offset, and cursor-based
+- [x] **PERF-02**: Filtering backend with Django filter integration, search, and ordering
+- [x] **PERF-03**: Rate limiting / throttling with configurable backends
 - [x] **PERF-04**: Auto `optimize_queryset()` detects FK/M2M from schema for select_related/prefetch_related
 - [x] **PERF-05**: Streaming response support for large datasets
 - [x] **PERF-06**: Caching utilities with configurable backends
@@ -128,12 +128,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### AI & ML
 
-- [ ] **AI-01**: LLM integration helpers (prompt management, response parsing)
-- [ ] **AI-02**: Embedding generation and storage
-- [ ] **AI-03**: RAG (retrieval-augmented generation) pipeline utilities
-- [ ] **AI-04**: IDE context generation for AI coding tools
-- [ ] **ML-01**: Vector storage with pgvector integration
-- [ ] **ML-02**: Structured output parsing from LLM responses
+- [x] **AI-01**: LLM integration helpers (prompt management, response parsing)
+- [x] **AI-02**: Embedding generation and storage
+- [x] **AI-03**: RAG (retrieval-augmented generation) pipeline utilities
+- [x] **AI-04**: IDE context generation for AI coding tools
+- [x] **ML-01**: Vector storage with pgvector integration
+- [x] **ML-02**: Structured output parsing from LLM responses
 
 ### File Management
 
@@ -265,9 +265,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DX-09 | Phase 3 | Complete |
 | DX-10 | Phase 3 | Complete |
 | DX-11 | Phase 3 | Complete |
-| PERF-01 | Phase 7 | Pending |
-| PERF-02 | Phase 7 | Pending |
-| PERF-03 | Phase 7 | Pending |
+| PERF-01 | Phase 7 | Complete |
+| PERF-02 | Phase 7 | Complete |
+| PERF-03 | Phase 7 | Complete |
 | PERF-04 | Phase 2 | Complete |
 | PERF-05 | Phase 2 | Complete |
 | PERF-06 | Phase 2 | Complete |
@@ -314,12 +314,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EMAIL-03 | Phase 6 | Pending |
 | EMAIL-04 | Phase 6 | Pending |
 | EMAIL-05 | Phase 6 | Pending |
-| AI-01 | Phase 7 | Pending |
-| AI-02 | Phase 7 | Pending |
-| AI-03 | Phase 7 | Pending |
-| AI-04 | Phase 7 | Pending |
-| ML-01 | Phase 7 | Pending |
-| ML-02 | Phase 7 | Pending |
+| AI-01 | Phase 7 | Complete |
+| AI-02 | Phase 7 | Complete |
+| AI-03 | Phase 7 | Complete |
+| AI-04 | Phase 7 | Complete |
+| ML-01 | Phase 7 | Complete |
+| ML-02 | Phase 7 | Complete |
 | FILE-01 | Phase 7 | Complete |
 | FILE-02 | Phase 7 | Complete |
 | FILE-03 | Phase 7 | Complete |
