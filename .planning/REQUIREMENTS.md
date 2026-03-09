@@ -176,12 +176,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Deployment & Observability
 
-- [ ] **DEPLOY-01**: Docker deployment template with ASGI (Granian/uvicorn)
-- [ ] **DEPLOY-02**: Fly.io deployment configuration
-- [ ] **DEPLOY-03**: Railway deployment configuration
-- [ ] **DEPLOY-04**: Render deployment configuration
-- [ ] **DEPLOY-05**: AWS deployment configuration
-- [ ] **DEPLOY-06**: `CONN_MAX_AGE=0` enforced in all ASGI deployment templates
+- [x] **DEPLOY-01**: Docker deployment template with ASGI (Granian/uvicorn)
+- [x] **DEPLOY-02**: Fly.io deployment configuration
+- [x] **DEPLOY-03**: Railway deployment configuration
+- [x] **DEPLOY-04**: Render deployment configuration
+- [x] **DEPLOY-05**: AWS deployment configuration
+- [x] **DEPLOY-06**: `CONN_MAX_AGE=0` enforced in all ASGI deployment templates
 - [x] **OBS-01**: Structured logging with configurable formatters
 - [x] **OBS-02**: Metrics collection (Prometheus-compatible)
 - [x] **OBS-03**: Distributed tracing (OpenTelemetry)
@@ -341,12 +341,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ADMIN-01 | Phase 7 | Pending |
 | ADMIN-02 | Phase 7 | Pending |
 | ADMIN-03 | Phase 7 | Pending |
-| DEPLOY-01 | Phase 7 | Pending |
-| DEPLOY-02 | Phase 7 | Pending |
-| DEPLOY-03 | Phase 7 | Pending |
-| DEPLOY-04 | Phase 7 | Pending |
-| DEPLOY-05 | Phase 7 | Pending |
-| DEPLOY-06 | Phase 7 | Pending |
+| DEPLOY-01 | Phase 7 | Complete |
+| DEPLOY-02 | Phase 7 | Complete |
+| DEPLOY-03 | Phase 7 | Complete |
+| DEPLOY-04 | Phase 7 | Complete |
+| DEPLOY-05 | Phase 7 | Complete |
+| DEPLOY-06 | Phase 7 | Complete |
 | OBS-01 | Phase 7 | Complete |
 | OBS-02 | Phase 7 | Complete |
 | OBS-03 | Phase 7 | Complete |

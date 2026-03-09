@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 07-02-PLAN.md
-last_updated: "2026-03-09T03:43:43.848Z"
-last_activity: 2026-03-08 — Phase 6 Plan 01 complete; async wrappers + presence reverse index + 23 tests
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-03-09T03:44:01.830Z"
+last_activity: 2026-03-09 — Phase 7 Plan 01 complete; CONN_MAX_AGE=0 enforced across all deploy/config + 13 tests
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 24
-  completed_plans: 21
-  percent: 89
+  completed_plans: 22
+  percent: 88
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-07)
 
 **Core value:** The fastest, most developer-friendly way to build Django APIs — if you can't ship faster with django-matt than with DRF or django-ninja, it hasn't shipped yet.
-**Current focus:** Phase 6 — Real-Time, Notifications, and Communications
+**Current focus:** Phase 7 — Deployment, Observability, and Completion
 
 ## Current Position
 
-Phase: 6 of 7 (Real-Time, Notifications, and Communications)
-Plan: 1 of 3 in current phase
+Phase: 7 of 7 (Deployment, Observability, and Completion)
+Plan: 2 of 5 in current phase
 Status: Executing
-Last activity: 2026-03-08 — Phase 6 Plan 01 complete; async wrappers + presence reverse index + 23 tests
+Last activity: 2026-03-09 — Phase 7 Plan 01 complete; CONN_MAX_AGE=0 enforced across all deploy/config + 13 tests
 
-Progress: [=========-] 89%
+Progress: [=========-] 88%
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Progress: [=========-] 89%
 | Phase 05-billing-feature-flags-and-analytics P03 | 30 | 2 tasks | 4 files |
 | Phase 06-real-time-notifications-and-communications P01 | 3 | 2 tasks | 5 files |
 | Phase 07 P02 | 2 | 2 tasks | 3 files |
+| Phase 07 P01 | 3 | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -122,6 +123,8 @@ Recent decisions affecting current work:
 - [Phase 06-real-time-notifications-and-communications]: Lazy import of sync_to_async in Conversation.ais_member() following Phase 4 model-layer pattern
 - [Phase 06-real-time-notifications-and-communications]: PresenceManager reverse index uses cache with 24h TTL matching forward index TTL
 - [Phase 07]: OTEL server span convention: only 5xx responses set ERROR status, 4xx responses are OK
+- [Phase 07]: CONN_MAX_AGE=0 everywhere -- persistent connections leak under ASGI (Django #33497); connection pooling at psycopg3 pool layer, not Django CONN_MAX_AGE
+- [Phase 07]: DockerfileConfig.use_asgi defaults True -- django-matt is async-first, WSGI is legacy
 
 ### Pending Todos
 
@@ -136,6 +139,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-09T03:43:37.752Z
-Stopped at: Completed 07-02-PLAN.md
+Last session: 2026-03-09T03:44:01.827Z
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None
