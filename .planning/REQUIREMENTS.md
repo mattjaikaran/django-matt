@@ -182,10 +182,10 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **DEPLOY-04**: Render deployment configuration
 - [ ] **DEPLOY-05**: AWS deployment configuration
 - [ ] **DEPLOY-06**: `CONN_MAX_AGE=0` enforced in all ASGI deployment templates
-- [ ] **OBS-01**: Structured logging with configurable formatters
-- [ ] **OBS-02**: Metrics collection (Prometheus-compatible)
-- [ ] **OBS-03**: Distributed tracing (OpenTelemetry)
-- [ ] **OBS-04**: Request/response inspector for development
+- [x] **OBS-01**: Structured logging with configurable formatters
+- [x] **OBS-02**: Metrics collection (Prometheus-compatible)
+- [x] **OBS-03**: Distributed tracing (OpenTelemetry)
+- [x] **OBS-04**: Request/response inspector for development
 
 ## v2 Requirements
 
@@ -347,10 +347,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DEPLOY-04 | Phase 7 | Pending |
 | DEPLOY-05 | Phase 7 | Pending |
 | DEPLOY-06 | Phase 7 | Pending |
-| OBS-01 | Phase 7 | Pending |
-| OBS-02 | Phase 7 | Pending |
-| OBS-03 | Phase 7 | Pending |
-| OBS-04 | Phase 7 | Pending |
+| OBS-01 | Phase 7 | Complete |
+| OBS-02 | Phase 7 | Complete |
+| OBS-03 | Phase 7 | Complete |
+| OBS-04 | Phase 7 | Complete |
 
 **Coverage:**
 - v1 requirements: 101 total
