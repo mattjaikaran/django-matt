@@ -699,3 +699,121 @@ class TestHtmxTemplateContextMiddleware:
 
         assert captured_htmx is not None
         assert captured_htmx.request is True
+
+
+# ==============================================================================
+# Requirement-aligned tests (07-04)
+# ==============================================================================
+
+
+class TestHtmxResponseHeaders:
+    """HTMX-01: Verify HTMX response helpers set correct headers."""
+
+    def test_hx_trigger_header_set_correctly(self):
+        """Test HtmxResponse.trigger sets HX-Trigger header."""
+        response = HtmxResponse("<div>Content</div>")
+        response.trigger("itemAdded")
+
+        assert "HX-Trigger" in response
+        assert "itemAdded" in response["HX-Trigger"]
+
+    def test_hx_redirect_header_set_correctly(self):
+        """Test HtmxResponse.redirect sets HX-Redirect header."""
+        response = HtmxResponse("<div>Content</div>")
+        response.redirect("/dashboard/")
+
+        assert response["HX-Redirect"] == "/dashboard/"
+
+    def test_hx_swap_header_set_correctly(self):
+        """Test HtmxResponse.reswap sets HX-Reswap header."""
+        response = HtmxResponse("<div>Content</div>")
+        response.reswap("outerHTML")
+
+        assert response["HX-Reswap"] == "outerHTML"
+
+    def test_hx_push_url_header_set_correctly(self):
+        """Test HtmxResponse.push_url sets HX-Push-Url header."""
+        response = HtmxResponse("<div>Content</div>")
+        response.push_url("/items/42/")
+
+        assert response["HX-Push-Url"] == "/items/42/"
+
+    def test_htmx_redirect_response_class(self):
+        """Test HtmxRedirectResponse sets HX-Redirect on construction."""
+        response = HtmxRedirectResponse("/login/")
+        assert response["HX-Redirect"] == "/login/"
+
+    def test_trigger_client_event_on_plain_response(self):
+        """Test trigger_client_event works on plain HttpResponse."""
+        response = HttpResponse("OK")
+        trigger_client_event(response, "formSaved", {"id": 1})
+
+        header = response["HX-Trigger"]
+        parsed = json.loads(header)
+        assert parsed["formSaved"] == {"id": 1}
+
+
+class TestHtmxComponentPatterns:
+    """HTMX-02: Verify Livewire-style component patterns work."""
+
+    def test_oob_builder_produces_response(self):
+        """Test OobBuilder produces HtmxResponse with OOB swaps."""
+        from django_matt.htmx.components import OobBuilder
+
+        response = (
+            OobBuilder()
+            .main("<div>Main content</div>")
+            .swap("sidebar", "<ul>Updated</ul>")
+            .delete("old-element")
+            .build()
+        )
+
+        assert isinstance(response, HtmxResponse)
+        content = response.content.decode()
+        assert "Main content" in content
+        assert 'hx-swap-oob="innerHTML"' in content
+        assert 'hx-swap-oob="delete"' in content
+
+    def test_infinite_scroll_config_generates_trigger(self):
+        """Test InfiniteScrollConfig generates trigger HTML."""
+        from django_matt.htmx.components import InfiniteScrollConfig
+
+        config = InfiniteScrollConfig()
+        html = config.get_trigger_html("/items/", page=1, has_more=True)
+
+        assert "hx-get" in html
+        assert "page=2" in html
+        assert "intersect" in html
+
+    def test_infinite_scroll_no_trigger_when_no_more(self):
+        """Test InfiniteScrollConfig returns empty when no more pages."""
+        from django_matt.htmx.components import InfiniteScrollConfig
+
+        config = InfiniteScrollConfig()
+        html = config.get_trigger_html("/items/", page=5, has_more=False)
+
+        assert html == ""
+
+    def test_modal_open_and_close(self):
+        """Test modal open/close return HtmxResponse with correct headers."""
+        from django_matt.htmx.components import open_modal, close_modal
+
+        response = open_modal("<p>Modal content</p>", title="My Modal")
+        assert isinstance(response, HtmxResponse)
+        assert response["HX-Retarget"] == "#modal"
+        assert response["HX-Reswap"] == "innerHTML"
+        content = response.content.decode()
+        assert "My Modal" in content
+
+        close_response = close_modal()
+        assert isinstance(close_response, HtmxResponse)
+
+    def test_toast_show_returns_response(self):
+        """Test show_toast returns HtmxResponse with toast HTML."""
+        from django_matt.htmx.components import show_toast
+
+        response = show_toast("Item saved!", type="success")
+        assert isinstance(response, HtmxResponse)
+        content = response.content.decode()
+        assert "Item saved!" in content
+        assert "toast-success" in content

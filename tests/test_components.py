@@ -549,3 +549,102 @@ class TestComponentIntegration:
 
         assert restored.id == original.id
         assert restored.class_name == original.class_name
+
+
+# =============================================================================
+# Requirement-aligned tests (07-04)
+# =============================================================================
+
+
+class TestComponentRendersToHTML:
+    """COMP-01: Verify backend component renders to HTML string."""
+
+    def test_component_to_json_produces_dict(self):
+        """Test component renders to serializable dict (HTML generation input)."""
+        from django_matt.components.base import Component, ComponentType
+
+        component = Component(
+            type=ComponentType.CARD,
+            id="test-card",
+            class_name="shadow-md",
+        )
+        data = component.to_json()
+
+        assert isinstance(data, dict)
+        assert data["type"] == "card"
+        assert data["id"] == "test-card"
+        assert data["class_name"] == "shadow-md"
+
+    def test_component_tree_renders_children(self):
+        """Test component tree with children serializes correctly."""
+        from django_matt.components.base import Component, ComponentType
+
+        parent = Component(type=ComponentType.CONTAINER, id="parent")
+        child1 = Component(type=ComponentType.TEXT, id="child1")
+        child2 = Component(type=ComponentType.BUTTON, id="child2")
+
+        parent.add_child(child1).add_child(child2)
+        data = parent.to_json()
+
+        assert len(data["children"]) == 2
+        assert data["children"][0]["id"] == "child1"
+        assert data["children"][1]["id"] == "child2"
+
+    def test_html_component_response_returns_html(self):
+        """Test HtmlComponentResponse renders component to HTML."""
+        from django_matt.components.base import Component, ComponentType
+        from django_matt.components.serving import HtmlComponentResponse
+
+        component = Component(type=ComponentType.CONTAINER, id="test-html")
+
+        response = HtmlComponentResponse(component)
+        assert response.status_code == 200
+        assert response["Content-Type"] == "text/html"
+        # Content should be a string (rendered HTML)
+        assert len(response.content) > 0
+
+    def test_component_response_returns_response(self):
+        """Test ComponentResponse wraps component in HttpResponse."""
+        from django_matt.components.base import Component, ComponentType
+        from django_matt.components.serving import ComponentResponse
+        from django.http import HttpResponse
+
+        component = Component(type=ComponentType.CONTAINER, id="test-resp")
+
+        response = ComponentResponse(component)
+        assert isinstance(response, HttpResponse)
+        assert response.status_code == 200
+
+    def test_page_builder_renders(self):
+        """Test Page builder adds components and renders."""
+        from django_matt.components.base import Component, ComponentType
+        from django_matt.components.serving import Page
+        from django.http import HttpResponse
+
+        page = Page(title="Test Page")
+        page.add(Component(type=ComponentType.CONTAINER, id="section1"))
+        page.add(Component(type=ComponentType.CARD, id="card1"))
+
+        assert len(page.components) == 2
+        assert page.title == "Test Page"
+
+        # Render without request
+        response = page.render()
+        assert isinstance(response, HttpResponse)
+
+    def test_create_component_factory(self):
+        """Test create_component creates component by type name."""
+        from django_matt.components.serving import create_component
+        from django_matt.components.base import registry, Component, ComponentType
+
+        # Register a test component
+        @registry.register("test_widget_07")
+        class TestWidget(Component):
+            type: ComponentType = ComponentType.CONTAINER
+            label: str = ""
+
+        widget = create_component("test_widget_07", label="Hello")
+        assert widget.label == "Hello"
+
+        # Clean up
+        registry.unregister("test_widget_07")
