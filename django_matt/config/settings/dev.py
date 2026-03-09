@@ -69,8 +69,7 @@ settings: dict[str, Any] = {
             "PASSWORD": os.environ.get("DB_PASSWORD", ""),
             "HOST": os.environ.get("DB_HOST", "localhost"),
             "PORT": os.environ.get("DB_PORT", "5432"),
-            # Connection settings for development
-            "CONN_MAX_AGE": 60,  # Shorter for dev to catch connection issues
+            "CONN_MAX_AGE": 0,  # ASGI requires 0 (Django #33497)
             **({"CONN_HEALTH_CHECKS": True} if DJANGO_5_2_PLUS else {}),
             "OPTIONS": {},
         }

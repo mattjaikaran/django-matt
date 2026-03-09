@@ -250,7 +250,7 @@ class EnvironmentConfig:
             "csrf_cookie_secure": True,
             "secure_hsts_seconds": 31536000,  # 1 year
             "log_level": "WARNING",
-            "conn_max_age": 600,
+            "conn_max_age": 0,  # ASGI requires 0 (Django #33497)
         }
         defaults.update(kwargs)
         return cls(**defaults)

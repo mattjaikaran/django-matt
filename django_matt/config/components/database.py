@@ -50,8 +50,8 @@ def get_connection_pool_config() -> dict[str, Any]:
     config = {}
 
     # Basic connection persistence (Django 4.0+)
-    # None = persistent connections (recommended for production)
-    # 0 = close connection after each request
+    # 0 = close connection after each request (required for ASGI, Django #33497)
+    # None = persistent connections (unsafe under ASGI)
     # N = keep connection for N seconds
     conn_max_age = os.environ.get("DB_CONN_MAX_AGE")
     if conn_max_age is not None:
@@ -60,9 +60,8 @@ def get_connection_pool_config() -> dict[str, Any]:
         else:
             config["CONN_MAX_AGE"] = int(conn_max_age)
     else:
-        # Default: 600 seconds in dev, persistent in prod
-        env = os.environ.get("DJANGO_ENV", "development")
-        config["CONN_MAX_AGE"] = None if env == "production" else 600
+        # Default: always 0 for ASGI safety
+        config["CONN_MAX_AGE"] = 0  # ASGI requires 0 (Django #33497)
 
     # Connection health checks (Django 5.1+)
     if DJANGO_5_1_PLUS:

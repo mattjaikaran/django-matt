@@ -23,7 +23,7 @@ class DockerfileConfig:
     worker_class: str = "uvicorn.workers.UvicornWorker"
     wsgi_module: str = "config.wsgi:application"
     asgi_module: str = "config.asgi:application"
-    use_asgi: bool = False
+    use_asgi: bool = True  # ASGI by default (Django #33497 — WSGI is legacy)
     system_packages: list[str] = field(
         default_factory=lambda: [
             "build-essential",
