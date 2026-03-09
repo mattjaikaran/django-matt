@@ -581,3 +581,329 @@ class TestGenerateAiContextDepthFlag:
             )
             import os
             assert os.path.exists(os.path.join(tmpdir, "CLAUDE.md"))
+
+
+# ---------------------------------------------------------------------------
+# Plan 07-05: Requirement-aligned LLM helper tests
+# ---------------------------------------------------------------------------
+
+
+class TestLLMHelpers:
+    """Tests for LLM base helpers (AI-01)."""
+
+    def test_messages_to_prompt_chatml(self):
+        """messages_to_prompt renders ChatML format with variable content."""
+        from django_matt.ai.base import Message, messages_to_prompt
+
+        messages = [
+            Message.system("You are a {role} assistant.".format(role="helpful")),
+            Message.user("Hello, {name}!".format(name="World")),
+        ]
+        result = messages_to_prompt(messages, format="chatml")
+        assert "<|im_start|>system" in result
+        assert "You are a helpful assistant." in result
+        assert "<|im_start|>user" in result
+        assert "Hello, World!" in result
+        assert "<|im_start|>assistant" in result
+
+    def test_messages_to_prompt_simple(self):
+        """messages_to_prompt renders simple format."""
+        from django_matt.ai.base import Message, messages_to_prompt
+
+        messages = [
+            Message.system("Be helpful"),
+            Message.user("Hi"),
+        ]
+        result = messages_to_prompt(messages, format="simple")
+        assert "System: Be helpful" in result
+        assert "User: Hi" in result
+        assert "Assistant:" in result
+
+    def test_messages_to_prompt_llama(self):
+        """messages_to_prompt renders Llama format."""
+        from django_matt.ai.base import Message, messages_to_prompt
+
+        messages = [
+            Message.system("System prompt"),
+            Message.user("User question"),
+        ]
+        result = messages_to_prompt(messages, format="llama")
+        assert "[INST]" in result
+        assert "<<SYS>>" in result
+
+    def test_message_factory_methods(self):
+        """Message.system/user/assistant/tool factory methods set roles correctly."""
+        from django_matt.ai.base import Message, Role
+
+        assert Message.system("s").role == Role.SYSTEM
+        assert Message.user("u").role == Role.USER
+        assert Message.assistant("a").role == Role.ASSISTANT
+        assert Message.tool("t", tool_call_id="tc1").role == Role.TOOL
+
+    def test_message_to_dict(self):
+        """Message.to_dict includes role, content, and optional fields."""
+        from django_matt.ai.base import Message
+
+        msg = Message.user("Hello")
+        d = msg.to_dict()
+        assert d["role"] == "user"
+        assert d["content"] == "Hello"
+        assert "name" not in d
+        assert "tool_call_id" not in d
+
+    def test_completion_response_has_tool_calls(self):
+        """CompletionResponse.has_tool_calls detects tool calls."""
+        from django_matt.ai.base import CompletionResponse, ToolCall
+
+        resp_no_tools = CompletionResponse(content="hello")
+        assert not resp_no_tools.has_tool_calls
+
+        resp_with_tools = CompletionResponse(
+            content="",
+            tool_calls=[ToolCall(id="1", name="f", arguments={})],
+        )
+        assert resp_with_tools.has_tool_calls
+
+
+class TestEmbeddingHelpers:
+    """Tests for embedding utilities (AI-02)."""
+
+    def test_cosine_similarity(self):
+        """cosine_similarity returns 1.0 for identical vectors."""
+        from django_matt.ai.embeddings import cosine_similarity
+
+        v = [1.0, 0.0, 0.0]
+        assert abs(cosine_similarity(v, v) - 1.0) < 1e-6
+
+    def test_cosine_similarity_orthogonal(self):
+        """cosine_similarity returns 0 for orthogonal vectors."""
+        from django_matt.ai.embeddings import cosine_similarity
+
+        a = [1.0, 0.0]
+        b = [0.0, 1.0]
+        assert abs(cosine_similarity(a, b)) < 1e-6
+
+    def test_find_most_similar(self):
+        """find_most_similar returns ranked results by cosine similarity."""
+        from django_matt.ai.embeddings import find_most_similar
+
+        query = [1.0, 0.0, 0.0]
+        embeddings = [
+            [0.0, 1.0, 0.0],   # orthogonal
+            [0.9, 0.1, 0.0],   # close
+            [1.0, 0.0, 0.0],   # identical
+        ]
+        results = find_most_similar(query, embeddings, top_k=2)
+        assert len(results) == 2
+        assert results[0][0] == 2  # identical vector first
+        assert results[1][0] == 1  # close vector second
+
+    def test_normalize_vector(self):
+        """normalize_vector returns unit-length vector."""
+        import math
+
+        from django_matt.ai.embeddings import normalize_vector
+
+        v = [3.0, 4.0]
+        normed = normalize_vector(v)
+        length = math.sqrt(sum(x * x for x in normed))
+        assert abs(length - 1.0) < 1e-6
+
+
+class TestRAGPipeline:
+    """Tests for RAG pipeline (AI-03)."""
+
+    @pytest.mark.asyncio
+    async def test_rag_chain_query_retrieves_and_augments(self):
+        """RAGChain.query retrieves docs from vector store and augments prompt."""
+        from unittest.mock import AsyncMock
+
+        from django_matt.ai.base import CompletionResponse, Message
+        from django_matt.ai.rag import RAGChain
+        from django_matt.ai.vectorstore import Document, SearchResult
+
+        mock_llm = AsyncMock()
+        mock_llm.complete = AsyncMock(
+            return_value=CompletionResponse(content="Python is a language")
+        )
+
+        mock_store = AsyncMock()
+        mock_store.search = AsyncMock(
+            return_value=[
+                SearchResult(
+                    document=Document(id="1", text="Python is interpreted"),
+                    score=0.9,
+                    rank=0,
+                ),
+                SearchResult(
+                    document=Document(id="2", text="Python uses indentation"),
+                    score=0.8,
+                    rank=1,
+                ),
+            ]
+        )
+
+        rag = RAGChain(llm=mock_llm, vector_store=mock_store, top_k=2)
+        response = await rag.query("What is Python?")
+
+        assert response.answer == "Python is a language"
+        assert len(response.sources) == 2
+        assert response.sources[0].document.text == "Python is interpreted"
+        mock_store.search.assert_awaited_once()
+        mock_llm.complete.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_rag_chain_prompt_includes_context(self):
+        """RAGChain prompt includes retrieved document text."""
+        from unittest.mock import AsyncMock
+
+        from django_matt.ai.base import CompletionResponse
+        from django_matt.ai.rag import RAGChain
+        from django_matt.ai.vectorstore import Document, SearchResult
+
+        mock_llm = AsyncMock()
+        captured_messages = []
+
+        async def capture_complete(messages, **kwargs):
+            captured_messages.extend(messages)
+            return CompletionResponse(content="answer")
+
+        mock_llm.complete = capture_complete
+
+        mock_store = AsyncMock()
+        mock_store.search = AsyncMock(
+            return_value=[
+                SearchResult(
+                    document=Document(id="1", text="Django is a web framework"),
+                    score=0.95,
+                    rank=0,
+                ),
+            ]
+        )
+
+        rag = RAGChain(llm=mock_llm, vector_store=mock_store)
+        await rag.query("What is Django?")
+
+        # The user message should contain the context text
+        user_content = captured_messages[-1].content
+        assert "Django is a web framework" in user_content
+        assert "What is Django?" in user_content
+
+
+class TestVectorStoreOperations:
+    """Tests for vector store insert and similarity search (ML-01)."""
+
+    @pytest.mark.asyncio
+    async def test_in_memory_store_add_and_search(self):
+        """InMemoryVectorStore: add docs, then search returns ranked results."""
+        from unittest.mock import AsyncMock
+
+        from django_matt.ai.base import EmbeddingResponse
+        from django_matt.ai.vectorstore import Document, InMemoryVectorStore
+
+        mock_embedder = AsyncMock()
+        mock_embedder.dimensions = 3
+
+        # Return different embeddings for different texts
+        call_count = 0
+
+        async def mock_embed_single(text, **kwargs):
+            embeddings_map = {
+                "Hello world": [1.0, 0.0, 0.0],
+                "Goodbye world": [0.0, 1.0, 0.0],
+                "Hi there": [0.9, 0.1, 0.0],  # similar to Hello
+            }
+            return embeddings_map.get(text, [0.0, 0.0, 1.0])
+
+        mock_embedder.embed_single = mock_embed_single
+
+        store = InMemoryVectorStore(embedding_provider=mock_embedder)
+
+        # Add documents
+        ids = await store.add([
+            Document(id="1", text="Hello world"),
+            Document(id="2", text="Goodbye world"),
+        ])
+        assert len(ids) == 2
+
+        # Search with a vector similar to "Hello world"
+        results = await store.search([0.95, 0.05, 0.0], top_k=2)
+        assert len(results) == 2
+        # "Hello world" should rank first (closest to query)
+        assert results[0].document.id == "1"
+        assert results[0].score > results[1].score
+
+    @pytest.mark.asyncio
+    async def test_in_memory_store_delete(self):
+        """InMemoryVectorStore: delete removes documents."""
+        from django_matt.ai.vectorstore import Document, InMemoryVectorStore
+
+        store = InMemoryVectorStore(dimensions=3)
+        await store.add([
+            Document(id="1", text="doc1", embedding=[1.0, 0.0, 0.0]),
+            Document(id="2", text="doc2", embedding=[0.0, 1.0, 0.0]),
+        ])
+
+        deleted = await store.delete(["1"])
+        assert deleted == 1
+
+        remaining = await store.get(["1", "2"])
+        assert len(remaining) == 1
+        assert remaining[0].id == "2"
+
+    @pytest.mark.asyncio
+    async def test_in_memory_store_metadata_filter(self):
+        """InMemoryVectorStore: search with metadata filter."""
+        from django_matt.ai.vectorstore import Document, InMemoryVectorStore
+
+        store = InMemoryVectorStore(dimensions=3)
+        await store.add([
+            Document(id="1", text="doc1", embedding=[1.0, 0.0, 0.0], metadata={"category": "A"}),
+            Document(id="2", text="doc2", embedding=[0.9, 0.1, 0.0], metadata={"category": "B"}),
+        ])
+
+        results = await store.search([1.0, 0.0, 0.0], filter={"category": "B"})
+        assert len(results) == 1
+        assert results[0].document.id == "2"
+
+
+class TestStructuredOutput:
+    """Tests for structured output parsing (ML-02)."""
+
+    @pytest.mark.asyncio
+    async def test_localai_complete_structured(self):
+        """LocalAIProvider.complete_structured extracts typed fields from JSON."""
+        from unittest.mock import AsyncMock
+
+        from pydantic import BaseModel
+
+        from django_matt.ai.base import Message
+        from django_matt.ml.localai import LocalAIProvider
+
+        class PersonInfo(BaseModel):
+            name: str
+            age: int
+
+        provider = LocalAIProvider(base_url="http://localhost:8080", model="test")
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(
+            return_value={
+                "choices": [
+                    {
+                        "message": {"content": '{"name": "Alice", "age": 30}'},
+                        "finish_reason": "stop",
+                    }
+                ],
+                "model": "test",
+            }
+        )
+        provider._client = mock_client
+
+        result = await provider.complete_structured(
+            [Message.user("Extract: Alice is 30")],
+            response_model=PersonInfo,
+        )
+
+        assert isinstance(result, PersonInfo)
+        assert result.name == "Alice"
+        assert result.age == 30

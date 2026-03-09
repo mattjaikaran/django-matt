@@ -261,7 +261,7 @@ class TestDockerfileConfig(TestCase):
         self.assertEqual(config.working_dir, "/app")
         self.assertEqual(config.port, 8000)
         self.assertEqual(config.workers, 4)
-        self.assertFalse(config.use_asgi)
+        self.assertTrue(config.use_asgi)  # ASGI by default (Django #33497)
 
     def test_custom_values(self):
         """Test custom configuration values."""
@@ -1108,3 +1108,155 @@ class TestHetznerProvider(TestCase):
         self.assertIn("example.com", caddyfile)
         self.assertIn("reverse_proxy", caddyfile)
         self.assertIn("encode gzip", caddyfile)
+
+
+# =============================================================================
+# CONN_MAX_AGE Enforcement Tests
+# =============================================================================
+
+
+class TestConnMaxAgeEnforcement(TestCase):
+    """
+    Tests that CONN_MAX_AGE=0 is enforced across all deployment providers,
+    environment configs, and settings files.
+
+    Django ticket #33497: persistent connections leak under ASGI.
+    """
+
+    # ---- Environment Config Presets ----
+
+    def test_production_env_config_conn_max_age_zero(self):
+        """Production EnvironmentConfig preset must have conn_max_age=0."""
+        config = EnvironmentConfig.production(domain="example.com")
+        self.assertEqual(config.conn_max_age, 0)
+
+    def test_staging_env_config_conn_max_age_zero(self):
+        """Staging EnvironmentConfig preset must have conn_max_age=0."""
+        config = EnvironmentConfig.staging(domain="staging.example.com")
+        self.assertEqual(config.conn_max_age, 0)
+
+    def test_development_env_config_conn_max_age_zero(self):
+        """Development EnvironmentConfig preset must have conn_max_age=0."""
+        config = EnvironmentConfig.development()
+        self.assertEqual(config.conn_max_age, 0)
+
+    def test_default_env_config_conn_max_age_zero(self):
+        """Default EnvironmentConfig must have conn_max_age=0."""
+        config = EnvironmentConfig(name="any")
+        self.assertEqual(config.conn_max_age, 0)
+
+    def test_production_to_django_settings_conn_max_age(self):
+        """Production env to_django_settings() must pass conn_max_age=0 to dj_database_url."""
+        import pytest
+
+        pytest.importorskip("dj_database_url")
+        config = EnvironmentConfig.production(
+            domain="example.com",
+            database_url="postgres://user:pass@host:5432/db",
+        )
+        settings = config.to_django_settings()
+        # dj_database_url.parse receives conn_max_age=0
+        self.assertEqual(
+            settings["DATABASES"]["default"].get("CONN_MAX_AGE", None),
+            0,
+        )
+
+    # ---- Docker Template ----
+
+    def test_docker_default_uses_asgi(self):
+        """DockerfileConfig must default to ASGI (use_asgi=True)."""
+        config = DockerfileConfig()
+        self.assertTrue(config.use_asgi)
+
+    def test_docker_production_uses_uvicorn(self):
+        """Production Dockerfile CMD must use uvicorn (ASGI server)."""
+        config = DockerfileConfig()  # use_asgi=True by default
+        generator = DockerfileGenerator(config)
+        dockerfile = generator.generate("production")
+        self.assertIn("uvicorn", dockerfile)
+
+    def test_docker_multistage_uses_uvicorn(self):
+        """Multi-stage Dockerfile CMD must use uvicorn (ASGI server)."""
+        config = DockerfileConfig()
+        generator = DockerfileGenerator(config)
+        dockerfile = generator.generate("multistage")
+        self.assertIn("uvicorn", dockerfile)
+
+    # ---- config/components/database.py ----
+
+    def test_get_database_config_default_conn_max_age_zero(self):
+        """get_database_config() with no env vars must return CONN_MAX_AGE=0."""
+        import os
+        # Clear relevant env vars to test defaults
+        env_backup = {}
+        for key in ["DB_CONN_MAX_AGE", "DJANGO_ENV"]:
+            env_backup[key] = os.environ.pop(key, None)
+
+        try:
+            from django_matt.config.components.database import get_connection_pool_config
+
+            pool_config = get_connection_pool_config()
+            self.assertEqual(pool_config["CONN_MAX_AGE"], 0)
+        finally:
+            for key, val in env_backup.items():
+                if val is not None:
+                    os.environ[key] = val
+
+    # ---- Provider configs (verify no non-zero CONN_MAX_AGE in generated output) ----
+
+    def test_flyio_provider_no_nonzero_conn_max_age(self):
+        """Fly.io provider config must not set CONN_MAX_AGE to a non-zero value."""
+        config = DeploymentConfig(
+            app_name="test-app",
+            django_settings_module="config.settings",
+            project_dir=Path(tempfile.mkdtemp()),
+        )
+        provider = get_provider("fly", config)
+        configs = provider.generate_config()
+        for filename, content in configs.items():
+            if "CONN_MAX_AGE" in content:
+                # If CONN_MAX_AGE appears, it must be 0
+                self.assertIn("CONN_MAX_AGE=0", content.replace(" ", "").replace('"', '').replace("'", ""),
+                              msg=f"{filename} sets CONN_MAX_AGE to non-zero")
+
+    def test_railway_provider_no_nonzero_conn_max_age(self):
+        """Railway provider config must not set CONN_MAX_AGE to a non-zero value."""
+        config = DeploymentConfig(
+            app_name="test-app",
+            django_settings_module="config.settings",
+            project_dir=Path(tempfile.mkdtemp()),
+        )
+        provider = get_provider("railway", config)
+        configs = provider.generate_config()
+        for filename, content in configs.items():
+            if "CONN_MAX_AGE" in content:
+                self.assertIn("CONN_MAX_AGE=0", content.replace(" ", "").replace('"', '').replace("'", ""),
+                              msg=f"{filename} sets CONN_MAX_AGE to non-zero")
+
+    def test_render_provider_no_nonzero_conn_max_age(self):
+        """Render provider config must not set CONN_MAX_AGE to a non-zero value."""
+        config = DeploymentConfig(
+            app_name="test-app",
+            django_settings_module="config.settings",
+            project_dir=Path(tempfile.mkdtemp()),
+        )
+        provider = get_provider("render", config)
+        configs = provider.generate_config()
+        for filename, content in configs.items():
+            if "CONN_MAX_AGE" in content:
+                self.assertIn("CONN_MAX_AGE=0", content.replace(" ", "").replace('"', '').replace("'", ""),
+                              msg=f"{filename} sets CONN_MAX_AGE to non-zero")
+
+    def test_aws_provider_no_nonzero_conn_max_age(self):
+        """AWS provider config must not set CONN_MAX_AGE to a non-zero value."""
+        config = DeploymentConfig(
+            app_name="test-app",
+            django_settings_module="config.settings",
+            project_dir=Path(tempfile.mkdtemp()),
+        )
+        provider = get_provider("aws", config)
+        configs = provider.generate_config()
+        for filename, content in configs.items():
+            if "CONN_MAX_AGE" in content:
+                self.assertIn("CONN_MAX_AGE=0", content.replace(" ", "").replace('"', '').replace("'", ""),
+                              msg=f"{filename} sets CONN_MAX_AGE to non-zero")
