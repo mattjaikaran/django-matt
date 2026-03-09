@@ -136,7 +136,7 @@ class TracingMiddleware:
                 if HAS_OPENTELEMETRY:
                     from opentelemetry.trace import Status, StatusCode
 
-                    if response.status_code >= 500 or response.status_code >= 400:
+                    if response.status_code >= 500:
                         span.set_status(Status(StatusCode.ERROR, f"HTTP {response.status_code}"))
                     else:
                         span.set_status(Status(StatusCode.OK))
