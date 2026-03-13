@@ -71,6 +71,12 @@ staticfiles/
 # Documentation
 site/
 
+# Internal tooling
+.matt/
+
+# Patch rejects
+*.rej
+
 # Package distribution
 dist/
 build/
