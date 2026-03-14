@@ -1,3 +1,4 @@
+import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import NotFoundAPIError, ValidationAPIError
@@ -46,7 +47,7 @@ class CategoryController(APIController):
     @jwt_required
     async def create_category(request) -> dict:
         """Create a new category."""
-        body = request.json
+        body = orjson.loads(request.body)
         data = CategoryCreateSchema(**body)
 
         if await Category.objects.filter(slug=data.slug).aexists():
@@ -98,7 +99,7 @@ class CategoryController(APIController):
         if not cat:
             raise NotFoundAPIError("Category not found")
 
-        body = request.json
+        body = orjson.loads(request.body)
         data = CategoryUpdateSchema(**body)
         updates = data.model_dump(exclude_unset=True)
 

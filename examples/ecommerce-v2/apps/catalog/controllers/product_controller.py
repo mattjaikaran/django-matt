@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+import orjson
 from django.db.models import Q
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
@@ -71,7 +72,7 @@ class ProductController(APIController):
     @jwt_required
     async def create_product(request) -> dict:
         """Create a product. Must own the store."""
-        body = request.json
+        body = orjson.loads(request.body)
         data = ProductCreateSchema(**body)
 
         # Verify store ownership
@@ -151,7 +152,7 @@ class ProductController(APIController):
         if store.owner_id != request.user.id:
             raise APIError(status_code=403, message="You do not own this store")
 
-        body = request.json
+        body = orjson.loads(request.body)
         data = ProductUpdateSchema(**body)
         updates = data.model_dump(exclude_unset=True)
 

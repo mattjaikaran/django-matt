@@ -61,22 +61,22 @@ class CartController(APIController):
         }
 
     @jwt_required
-    async def add_to_cart(self, request, data: AddToCartSchema):
+    async def add_to_cart(self, request, body: AddToCartSchema):
         """POST /cart/items — Add item to cart (create or increment quantity)."""
         cart, _ = await Cart.objects.aget_or_create(user=request.user)
 
         # Validate product exists
         try:
-            product = await Product.objects.aget(id=data.product_id, is_active=True)
+            product = await Product.objects.aget(id=body.product_id, is_active=True)
         except Product.DoesNotExist:
             raise NotFoundAPIError("Product not found")
 
         # Validate variant if provided
         variant = None
-        if data.variant_id:
+        if body.variant_id:
             try:
                 variant = await Variant.objects.aget(
-                    id=data.variant_id, product=product, is_active=True
+                    id=body.variant_id, product=product, is_active=True
                 )
             except Variant.DoesNotExist:
                 raise NotFoundAPIError("Variant not found")
@@ -84,7 +84,7 @@ class CartController(APIController):
         # Check stock via Inventory if variant exists
         if variant:
             available_stock = await _get_available_stock(variant)
-            if available_stock is not None and available_stock < data.quantity:
+            if available_stock is not None and available_stock < body.quantity:
                 raise APIError(
                     message=f"Insufficient stock. Available: {available_stock}",
                     status_code=400,
@@ -95,7 +95,7 @@ class CartController(APIController):
             item = await CartItem.objects.aget(
                 cart=cart, product=product, variant=variant
             )
-            item.quantity += data.quantity
+            item.quantity += body.quantity
             # Re-check stock for total quantity
             if variant:
                 available_stock = await _get_available_stock(variant)
@@ -110,7 +110,7 @@ class CartController(APIController):
                 cart=cart,
                 product=product,
                 variant=variant,
-                quantity=data.quantity,
+                quantity=body.quantity,
             )
 
         return {
@@ -122,7 +122,7 @@ class CartController(APIController):
         }
 
     @jwt_required
-    async def update_cart_item(self, request, item_id: str, data: UpdateCartItemSchema):
+    async def update_cart_item(self, request, item_id: str, body: UpdateCartItemSchema):
         """PATCH /cart/items/{item_id} — Update quantity (delete if 0)."""
         try:
             item = await CartItem.objects.select_related("cart", "product", "variant").aget(
@@ -131,20 +131,20 @@ class CartController(APIController):
         except CartItem.DoesNotExist:
             raise NotFoundAPIError("Cart item not found")
 
-        if data.quantity == 0:
+        if body.quantity == 0:
             await item.adelete()
             return {"detail": "Item removed from cart"}
 
         # Check stock via Inventory
         if item.variant_id:
             available_stock = await _get_available_stock(item.variant)
-            if available_stock is not None and available_stock < data.quantity:
+            if available_stock is not None and available_stock < body.quantity:
                 raise APIError(
                     message=f"Insufficient stock. Available: {available_stock}",
                     status_code=400,
                 )
 
-        item.quantity = data.quantity
+        item.quantity = body.quantity
         await item.asave()
 
         return {

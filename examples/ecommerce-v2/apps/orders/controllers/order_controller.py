@@ -94,14 +94,14 @@ class OrderController(APIController):
         return {"orders": orders, "page": page, "page_size": page_size}
 
     @jwt_required
-    async def create_order(self, request, data: OrderCreateSchema):
+    async def create_order(self, request, body: OrderCreateSchema):
         """POST /orders — Create order from schema, calculate prices, validate stock."""
-        if not data.items:
+        if not body.items:
             raise ValidationAPIError("Order must have at least one item")
 
         # Validate store
         try:
-            store = await Store.objects.aget(id=data.store_id, is_active=True)
+            store = await Store.objects.aget(id=body.store_id, is_active=True)
         except Store.DoesNotExist:
             raise NotFoundAPIError("Store not found")
 
@@ -109,7 +109,7 @@ class OrderController(APIController):
         subtotal = Decimal("0")
         order_items_data = []
 
-        for item_data in data.items:
+        for item_data in body.items:
             try:
                 product = await Product.objects.aget(
                     id=item_data.product_id, store=store, is_active=True
@@ -168,9 +168,9 @@ class OrderController(APIController):
             tax=Decimal("0"),
             shipping_cost=Decimal("0"),
             total=total,
-            shipping_address=data.shipping_address,
-            billing_address=data.billing_address,
-            notes=data.notes,
+            shipping_address=body.shipping_address,
+            billing_address=body.billing_address,
+            notes=body.notes,
         )
 
         # Create order items and decrement stock
@@ -261,28 +261,28 @@ class OrderController(APIController):
         }
 
     @jwt_required
-    async def update_order_status(self, request, order_id: str, data: OrderUpdateSchema):
+    async def update_order_status(self, request, order_id: str, body: OrderUpdateSchema):
         """PATCH /orders/{order_id} — Update order status with transition validation."""
         try:
             order = await Order.objects.aget(id=order_id, user=request.user)
         except Order.DoesNotExist:
             raise NotFoundAPIError("Order not found")
 
-        if data.status is not None:
-            if data.status not in OrderStatus.values:
-                raise ValidationAPIError(f"Invalid status: {data.status}")
+        if body.status is not None:
+            if body.status not in OrderStatus.values:
+                raise ValidationAPIError(f"Invalid status: {body.status}")
 
             allowed = VALID_TRANSITIONS.get(order.status, [])
-            if data.status not in allowed:
+            if body.status not in allowed:
                 raise APIError(
-                    message=f"Cannot transition from '{order.status}' to '{data.status}'. "
+                    message=f"Cannot transition from '{order.status}' to '{body.status}'. "
                     f"Allowed: {allowed}",
                     status_code=400,
                 )
-            order.status = data.status
+            order.status = body.status
 
-        if data.notes is not None:
-            order.notes = data.notes
+        if body.notes is not None:
+            order.notes = body.notes
 
         await order.asave()
 

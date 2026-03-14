@@ -1,3 +1,4 @@
+import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import NotFoundAPIError, ValidationAPIError
@@ -46,7 +47,7 @@ class ProjectController(APIController):
         """Create a new project in an organization. Requires admin role."""
         await require_admin(request.user, org_id)
 
-        body = request.json
+        body = orjson.loads(request.body)
         data = ProjectCreateSchema(**body)
 
         if await Project.objects.filter(
@@ -116,7 +117,7 @@ class ProjectController(APIController):
         if not project:
             raise NotFoundAPIError("Project not found")
 
-        body = request.json
+        body = orjson.loads(request.body)
         data = ProjectUpdateSchema(**body)
         updates = data.model_dump(exclude_unset=True)
 

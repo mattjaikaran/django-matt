@@ -51,7 +51,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--template",
             "-t",
-            choices=["starter", "b2b", "b2c"],
+            choices=["starter", "b2b", "b2c", "saas"],
             default="starter",
             help="Project template type (default: starter)",
         )
@@ -134,6 +134,12 @@ class Command(BaseCommand):
                 self.stdout.write("Creating example models, schemas, and controllers...")
                 self._create_example(api_app, template, auth)
 
+            # Generate tests and seed data
+            self.stdout.write("Generating tests and seed data...")
+            self._create_tests(api_app, template, auth)
+            self._create_seed_command(api_app, project_name)
+            self._create_pyproject(project_name, db)
+
             # Generate Docker configuration if requested
             if docker:
                 self.stdout.write("Generating Docker configuration...")
@@ -152,8 +158,8 @@ class Command(BaseCommand):
             self.stdout.write("Generating README...")
             self._create_readme(project_name, template, auth, frontend, docker)
 
-            # Generate CLAUDE.md and CI config for b2b/saas templates (DX requirement)
-            if template in ("b2b", "saas"):
+            # Generate CLAUDE.md and CI config for b2b/b2c/saas templates (DX requirement)
+            if template in ("b2b", "b2c", "saas"):
                 self.stdout.write("Generating CLAUDE.md...")
                 self._create_claude_md(project_name, template, auth, docker, frontend)
                 self.stdout.write("Generating CI configuration...")
@@ -173,7 +179,11 @@ class Command(BaseCommand):
         self, project_name: str, template: str, auth: str, docker: bool, frontend: str
     ):
         """Create CLAUDE.md with project-specific instructions for AI assistants."""
-        template_desc = {"b2b": "B2B multi-tenant SaaS", "saas": "SaaS consumer app"}.get(
+        template_desc = {
+            "b2b": "B2B multi-tenant SaaS",
+            "b2c": "B2C consumer app",
+            "saas": "SaaS platform",
+        }.get(
             template, "Django API"
         )
         docker_cmd = "docker compose exec api " if docker else ""
@@ -359,6 +369,12 @@ jobs:
                 f'INSTALLED_APPS = [\n    "django_matt",\n    "{api_app}",',
             )
 
+            # Add ErrorMiddleware after SecurityMiddleware
+            settings_content = settings_content.replace(
+                '"django.middleware.security.SecurityMiddleware",',
+                '"django.middleware.security.SecurityMiddleware",\n    "django_matt.core.errors.ErrorMiddleware",',
+            )
+
             # Add auth configuration based on template and auth type
             auth_config = self._get_auth_settings(auth)
             settings_content += f"\n\n# Django Matt Configuration\n{auth_config}"
@@ -368,6 +384,9 @@ jobs:
                 settings_content += self._get_b2b_settings()
             elif template == "b2c":
                 settings_content += self._get_b2c_settings()
+            elif template == "saas":
+                settings_content += self._get_b2b_settings()
+                settings_content += self._get_saas_settings()
 
             with open(settings_path, "w") as f:
                 f.write(settings_content)
@@ -474,6 +493,32 @@ DJANGO_MATT_B2C = {
 }
 """
 
+    def _get_saas_settings(self) -> str:
+        """Get SaaS template settings (API keys, billing, webhooks)."""
+        return """
+# SaaS Platform Configuration
+DJANGO_MATT_BILLING = {
+    "PROVIDER": "stripe",
+    "STRIPE_SECRET_KEY": "",
+    "STRIPE_WEBHOOK_SECRET": "",
+    "METERED_BILLING": True,
+}
+
+DJANGO_MATT_API_KEYS = {
+    "ENABLED": True,
+    "HEADER": "X-API-Key",
+    "HASH_ALGORITHM": "sha256",
+}
+
+# Redis cache (for rate limiting, sessions)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://localhost:6379/0",
+    }
+}
+"""
+
     def _create_example(self, api_app: str, template: str, auth: str):
         """Create example models, schemas, controllers based on template."""
         # Create directory structure
@@ -517,6 +562,220 @@ DJANGO_MATT_B2C = {
         # Create urls.py based on template and auth
         with open(Path(f"{api_app}/urls.py"), "w") as f:
             f.write(self._get_example_urls(template, auth))
+
+    def _create_tests(self, api_app: str, template: str, auth: str):
+        """Generate test conftest and basic test file."""
+        tests_dir = Path("tests")
+        tests_dir.mkdir(exist_ok=True)
+
+        # conftest.py with async fixtures
+        conftest = '''import pytest
+import pytest_asyncio
+from django.contrib.auth import get_user_model
+
+from django_matt.testing import AsyncAPITestClient
+
+User = get_user_model()
+
+
+@pytest.fixture
+def api_client():
+    """Sync test client."""
+    from django.test import AsyncClient
+    return AsyncClient()
+
+
+@pytest_asyncio.fixture
+async def test_user(db):
+    """Create a test user."""
+    user = await User.objects.acreate_user(
+        username="testuser",
+        email="test@example.com",
+        password="testpass123",
+    )
+    return user
+
+
+@pytest_asyncio.fixture
+async def auth_client(test_user):
+    """Authenticated test client with JWT token."""
+    from django_matt.auth import create_token_pair
+
+    tokens = await create_token_pair(test_user)
+    client = AsyncAPITestClient()
+    client.defaults["HTTP_AUTHORIZATION"] = f"Bearer {{tokens['access']}}"
+    return client
+'''
+        with open(tests_dir / "__init__.py", "w") as f:
+            f.write("")
+        with open(tests_dir / "conftest.py", "w") as f:
+            f.write(conftest)
+
+        # Basic test file
+        test_content = '''import pytest
+from django.test import AsyncClient
+
+
+@pytest.mark.django_db
+class TestHealth:
+    """Basic health check tests."""
+
+    async def test_api_root(self):
+        """Test that the API root returns a response."""
+        client = AsyncClient()
+        response = await client.get("/api/")
+        # Should not 500
+        assert response.status_code != 500
+
+'''
+        if auth != "none":
+            test_content += '''
+@pytest.mark.django_db
+class TestAuth:
+    """Authentication endpoint tests."""
+
+    async def test_register(self):
+        """Test user registration."""
+        client = AsyncClient()
+        response = await client.post(
+            "/api/auth/register",
+            data={
+                "username": "newuser",
+                "email": "new@example.com",
+                "password": "strongpass123",
+            },
+            content_type="application/json",
+        )
+        assert response.status_code in (200, 201)
+
+    async def test_login(self):
+        """Test user login."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        await User.objects.acreate_user(
+            username="loginuser",
+            email="login@example.com",
+            password="testpass123",
+        )
+        client = AsyncClient()
+        response = await client.post(
+            "/api/auth/login",
+            data={
+                "email": "login@example.com",
+                "password": "testpass123",
+            },
+            content_type="application/json",
+        )
+        assert response.status_code == 200
+'''
+
+        with open(tests_dir / "test_api.py", "w") as f:
+            f.write(test_content)
+
+    def _create_seed_command(self, api_app: str, project_name: str):
+        """Generate a seed_data management command."""
+        cmd_dir = Path(f"{api_app}/management/commands")
+        os.makedirs(cmd_dir, exist_ok=True)
+
+        # Create __init__.py files
+        (Path(f"{api_app}/management") / "__init__.py").write_text("")
+        (cmd_dir / "__init__.py").write_text("")
+
+        seed_content = '''"""Seed sample data for development."""
+
+from django.core.management.base import BaseCommand
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+
+class Command(BaseCommand):
+    help = "Seed the database with sample data for development"
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--clear",
+            action="store_true",
+            help="Clear existing data before seeding",
+        )
+
+    def handle(self, *args, **options):
+        if options["clear"]:
+            self.stdout.write("Clearing existing data...")
+            # Add model clears here as needed
+
+        self.stdout.write("Seeding data...")
+
+        # Create admin user
+        if not User.objects.filter(username="admin").exists():
+            User.objects.create_superuser(
+                username="admin",
+                email="admin@example.com",
+                password="admin123",
+            )
+            self.stdout.write(self.style.SUCCESS("  Created admin user (admin / admin123)"))
+
+        # Create test user
+        if not User.objects.filter(username="testuser").exists():
+            User.objects.create_user(
+                username="testuser",
+                email="test@example.com",
+                password="test123",
+            )
+            self.stdout.write(self.style.SUCCESS("  Created test user (testuser / test123)"))
+
+        # Add more seed data here for your models
+        # Example:
+        # from myapp.models import Task
+        # Task.objects.get_or_create(title="Sample Task", defaults={"completed": False})
+
+        self.stdout.write(self.style.SUCCESS("\\nSeeding complete!"))
+'''
+        with open(cmd_dir / "seed_data.py", "w") as f:
+            f.write(seed_content)
+
+    def _create_pyproject(self, project_name: str, db: str):
+        """Generate pyproject.toml with uv-compatible config."""
+        db_dep = {
+            "postgres": '"psycopg[binary]>=3.1"',
+            "mysql": '"mysqlclient>=2.2"',
+            "sqlite": "",
+        }.get(db, "")
+        db_line = f"\n    {db_dep}," if db_dep else ""
+
+        content = f'''[project]
+name = "{project_name}"
+version = "0.1.0"
+description = "Django API built with django-matt"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=5.2",
+    "django-matt>=1.0",{db_line}
+    "orjson>=3.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-django>=4.8",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "{project_name}.settings"
+asyncio_mode = "auto"
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+'''
+        with open("pyproject.toml", "w") as f:
+            f.write(content)
 
     def _create_docker_config(self, project_name: str, db: str):
         """Create Docker and docker-compose configuration."""
@@ -666,7 +925,7 @@ node_modules/
         if docker:
             makefile_content = f"""# {project_name} Makefile
 
-.PHONY: help up down build logs shell migrate makemigrations test lint format
+.PHONY: help up down build logs shell migrate makemigrations test lint format seed superuser
 
 help:
 \t@echo "Available commands:"
@@ -676,7 +935,10 @@ help:
 \t@echo "  make logs        - View logs"
 \t@echo "  make shell       - Open Django shell"
 \t@echo "  make migrate     - Run database migrations"
+\t@echo "  make seed        - Seed sample data"
 \t@echo "  make test        - Run tests"
+\t@echo "  make lint        - Run linter"
+\t@echo "  make format      - Format code"
 
 up:
 \tdocker compose up -d
@@ -699,8 +961,17 @@ migrate:
 makemigrations:
 \tdocker compose exec api python manage.py makemigrations
 
+seed:
+\tdocker compose exec api python manage.py seed_data
+
 test:
-\tdocker compose exec api python manage.py test
+\tdocker compose exec api uv run pytest tests/ -x -q
+
+lint:
+\tdocker compose exec api uv run ruff check .
+
+format:
+\tdocker compose exec api uv run ruff format .
 
 superuser:
 \tdocker compose exec api python manage.py createsuperuser
@@ -708,13 +979,16 @@ superuser:
         else:
             makefile_content = f"""# {project_name} Makefile
 
-.PHONY: help run migrate makemigrations test lint format shell
+.PHONY: help run migrate makemigrations test lint format shell seed superuser sync-types
 
 help:
 \t@echo "Available commands:"
 \t@echo "  make run         - Start development server"
 \t@echo "  make migrate     - Run database migrations"
+\t@echo "  make seed        - Seed sample data"
 \t@echo "  make test        - Run tests"
+\t@echo "  make lint        - Run linter"
+\t@echo "  make format      - Format code"
 \t@echo "  make shell       - Open Django shell"
 
 run:
@@ -726,8 +1000,17 @@ migrate:
 makemigrations:
 \tpython manage.py makemigrations
 
+seed:
+\tpython manage.py seed_data
+
 test:
-\tpython manage.py test
+\tuv run pytest tests/ -x -q
+
+lint:
+\tuv run ruff check .
+
+format:
+\tuv run ruff format .
 
 shell:
 \tpython manage.py shell
@@ -735,7 +1018,6 @@ shell:
 superuser:
 \tpython manage.py createsuperuser
 
-# Type sync
 sync-types:
 \tpython manage.py sync_types --target typescript --output frontend/src/types/api.ts
 """
@@ -1455,19 +1737,19 @@ class TaskController(CRUDController):
 
     @post("", response_model=TaskSchema)
     async def create_task(
-        self, request: HttpRequest, data: TaskCreate
+        self, request: HttpRequest, body: TaskCreate
     ) -> Dict[str, Any]:
         """Create a new task."""
-        result = await self.create(request, data)
+        result = await self.create(request, body)
         return result
 
     @put("{id}", response_model=TaskSchema)
     async def update_task(
-        self, request: HttpRequest, id: str, data: TaskUpdate
+        self, request: HttpRequest, id: str, body: TaskUpdate
     ) -> Dict[str, Any]:
         """Update an existing task."""
         task_id = uuid.UUID(id)
-        result = await self.update(request, task_id, data)
+        result = await self.update(request, task_id, body)
         return result
 
     @delete("{id}")

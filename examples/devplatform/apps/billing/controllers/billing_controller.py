@@ -1,3 +1,4 @@
+import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import APIError
@@ -72,7 +73,7 @@ class BillingController(APIController):
                 api_calls_limit=PLAN_LIMITS["free"],
             )
 
-        body = request.json
+        body = orjson.loads(request.body)
         data = SubscriptionUpdateSchema(**body)
         updates = data.model_dump(exclude_unset=True)
 

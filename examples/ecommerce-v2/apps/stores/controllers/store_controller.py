@@ -1,5 +1,6 @@
 from uuid import UUID
 
+import orjson
 from django.db.models import Q
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
@@ -59,7 +60,7 @@ class StoreController(APIController):
     @jwt_required
     async def create_store(request) -> dict:
         """Create a new store. Owner is set to the authenticated user."""
-        body = request.json
+        body = orjson.loads(request.body)
         data = StoreCreateSchema(**body)
 
         # Check slug uniqueness
@@ -124,7 +125,7 @@ class StoreController(APIController):
         if store.owner_id != request.user.id:
             raise APIError(status_code=403, message="You do not own this store")
 
-        body = request.json
+        body = orjson.loads(request.body)
         data = StoreUpdateSchema(**body)
         updates = data.model_dump(exclude_unset=True)
 

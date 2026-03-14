@@ -1,3 +1,4 @@
+import orjson
 from django.db.models import Count, Q, Value
 from django.db.models.functions import Coalesce
 from django_matt.auth import jwt_required
@@ -52,7 +53,7 @@ class TodoListController(APIController):
     @jwt_required
     async def create_todo_list(request, org_id: str) -> dict:
         await get_membership(request.user, org_id)
-        body = request.json
+        body = orjson.loads(request.body)
         data = TodoListCreateSchema(**body)
 
         tl = await TodoList.objects.acreate(
@@ -105,7 +106,7 @@ class TodoListController(APIController):
     @jwt_required
     async def update_todo_list(request, org_id: str, list_id: str) -> dict:
         await get_membership(request.user, org_id)
-        body = request.json
+        body = orjson.loads(request.body)
         data = TodoListUpdateSchema(**body)
 
         try:

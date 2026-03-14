@@ -1,3 +1,4 @@
+import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import APIError, ValidationAPIError
@@ -39,7 +40,7 @@ class OrganizationController(APIController):
     @staticmethod
     @jwt_required
     async def create_organization(request) -> dict:
-        body = request.json
+        body = orjson.loads(request.body)
         data = OrganizationCreateSchema(**body)
 
         if await Organization.objects.filter(slug=data.slug).aexists():
@@ -70,7 +71,7 @@ class OrganizationController(APIController):
     @jwt_required
     async def update_organization(request, org_id: str) -> dict:
         await require_admin(request.user, org_id)
-        body = request.json
+        body = orjson.loads(request.body)
         data = OrganizationUpdateSchema(**body)
 
         try:

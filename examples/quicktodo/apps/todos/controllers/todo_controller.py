@@ -1,3 +1,4 @@
+import orjson
 from django.utils import timezone
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
@@ -81,7 +82,7 @@ class TodoController(APIController):
     @jwt_required
     async def create_todo(request, org_id: str) -> dict:
         await get_membership(request.user, org_id)
-        body = request.json
+        body = orjson.loads(request.body)
         data = TodoCreateSchema(**body)
 
         # Validate list belongs to org
@@ -152,7 +153,7 @@ class TodoController(APIController):
     @jwt_required
     async def update_todo(request, org_id: str, todo_id: str) -> dict:
         await get_membership(request.user, org_id)
-        body = request.json
+        body = orjson.loads(request.body)
         data = TodoUpdateSchema(**body)
 
         try:

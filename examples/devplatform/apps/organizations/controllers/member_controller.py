@@ -1,3 +1,4 @@
+import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import APIError
@@ -35,7 +36,7 @@ class MemberController(APIController):
     @jwt_required
     async def update_member(request, org_id: str, member_id: str) -> dict:
         await require_admin(request.user, org_id)
-        body = request.json
+        body = orjson.loads(request.body)
         data = MembershipUpdateSchema(**body)
 
         try:

@@ -28,7 +28,7 @@ class TestAuth:
             },
             content_type="application/json",
         )
-        assert response.status_code == 400
+        assert response.status_code == 400  # duplicate email is a conflict, not validation
 
     def test_login(self, client, user):
         response = client.post(

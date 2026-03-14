@@ -1,5 +1,6 @@
 import secrets
 
+import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import NotFoundAPIError
@@ -62,7 +63,7 @@ class WebhookController(APIController):
         if not project:
             raise NotFoundAPIError("Project not found")
 
-        body = request.json
+        body = orjson.loads(request.body)
         data = WebhookCreateSchema(**body)
 
         webhook = await Webhook.objects.acreate(
@@ -129,7 +130,7 @@ class WebhookController(APIController):
         if not webhook:
             raise NotFoundAPIError("Webhook not found")
 
-        body = request.json
+        body = orjson.loads(request.body)
         data = WebhookUpdateSchema(**body)
         updates = data.model_dump(exclude_unset=True)
 

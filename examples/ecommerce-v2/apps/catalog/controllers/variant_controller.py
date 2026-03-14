@@ -1,3 +1,4 @@
+import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import APIError, NotFoundAPIError, ValidationAPIError
@@ -53,7 +54,7 @@ class VariantController(APIController):
 
         await _check_store_ownership(product, request.user)
 
-        body = request.json
+        body = orjson.loads(request.body)
         data = VariantCreateSchema(**body)
 
         if await Variant.objects.filter(sku=data.sku).aexists():
@@ -110,7 +111,7 @@ class VariantController(APIController):
         product = await Product.objects.filter(id=product_id).afirst()
         await _check_store_ownership(product, request.user)
 
-        body = request.json
+        body = orjson.loads(request.body)
         data = VariantUpdateSchema(**body)
         updates = data.model_dump(exclude_unset=True)
 

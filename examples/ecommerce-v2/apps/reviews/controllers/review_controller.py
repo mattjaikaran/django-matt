@@ -1,3 +1,4 @@
+import orjson
 from django.db.models import Avg, Count
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
@@ -85,7 +86,7 @@ class ReviewController(APIController):
     @jwt_required
     async def create_review(request, product_id: str) -> dict:
         """Create a review for a product."""
-        body = request.json
+        body = orjson.loads(request.body)
         data = ReviewCreateSchema(**body)
 
         # Verify product exists
@@ -138,7 +139,7 @@ class ReviewController(APIController):
         if not review:
             raise NotFoundAPIError("Review not found")
 
-        body = request.json
+        body = orjson.loads(request.body)
         data = ReviewUpdateSchema(**body)
         updates = data.model_dump(exclude_unset=True)
 

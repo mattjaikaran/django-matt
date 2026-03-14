@@ -1,5 +1,6 @@
 import logging
 
+import orjson
 from django.conf import settings
 from django.http import HttpRequest
 from django_matt.auth import jwt_required
@@ -20,7 +21,7 @@ class PaymentController(APIController):
     @jwt_required
     async def create_payment_intent(request) -> dict:
         """Create a Stripe PaymentIntent for an order."""
-        body = request.json
+        body = orjson.loads(request.body)
         data = CreatePaymentIntentSchema(**body)
 
         order = await Order.objects.filter(

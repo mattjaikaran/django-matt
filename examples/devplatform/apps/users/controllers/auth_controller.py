@@ -1,3 +1,4 @@
+import orjson
 from django.contrib.auth.hashers import check_password, make_password
 from django_matt.auth import create_token_pair, jwt_required, refresh_tokens
 from django_matt.core import APIController
@@ -19,7 +20,7 @@ class AuthController(APIController):
 
     @staticmethod
     async def register(request) -> dict:
-        body = request.json
+        body = orjson.loads(request.body)
         data = UserCreateSchema(**body)
 
         if await User.objects.filter(email=data.email).aexists():
@@ -38,7 +39,7 @@ class AuthController(APIController):
 
     @staticmethod
     async def login(request) -> dict:
-        body = request.json
+        body = orjson.loads(request.body)
         data = LoginSchema(**body)
 
         try:
@@ -60,7 +61,7 @@ class AuthController(APIController):
 
     @staticmethod
     async def refresh(request) -> dict:
-        body = request.json
+        body = orjson.loads(request.body)
         data = {"refresh_token": body.get("refresh_token", "")}
         tokens = refresh_tokens(data["refresh_token"])
         return TokenSchema(
@@ -76,7 +77,7 @@ class AuthController(APIController):
     @staticmethod
     @jwt_required
     async def update_me(request) -> dict:
-        body = request.json
+        body = orjson.loads(request.body)
         data = UserUpdateSchema(**body)
         user = request.user
         for field, value in data.model_dump(exclude_unset=True).items():
@@ -87,7 +88,7 @@ class AuthController(APIController):
     @staticmethod
     @jwt_required
     async def change_password(request) -> dict:
-        body = request.json
+        body = orjson.loads(request.body)
         data = ChangePasswordSchema(**body)
         user = request.user
 

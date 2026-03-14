@@ -6,7 +6,7 @@ class TestCategories:
     def test_list_categories(self, client, category):
         response = client.get("/api/categories")
         assert response.status_code == 200
-        assert len(response.json()) >= 1
+        assert len(response.json()["items"]) >= 1
 
     def test_create_category(self, client, auth_headers):
         response = client.post(

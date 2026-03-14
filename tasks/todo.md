@@ -229,6 +229,8 @@ Verify these patterns are correctly implemented — bugs found in other framewor
 - [x] **Service layer** — `django_matt/services/` with `BaseService`, `CRUDService`, `BaseThirdPartyService`; `ServiceError` hierarchy; CLI template generator updated; 29 tests
 - [x] **Service layer across examples** — todo, ecommerce, saas-starter, realtime-chat all migrated; 4 new `docs/services/` files; README/ROADMAP/architecture updated; 4234 tests passing
 - [x] **Phase 6 architectural verification** — 2 bugs found+fixed (shared `tags` list in Controller, static routes not sorted before parameterized); 5 checks passed (method cloning, decorator order, auth→permissions order, ContextVar usage, decorator propagation)
+- [x] **Dogfooding validation** — validated 3 example apps (quicktodo, ecommerce-v2, devplatform); fixed: ErrorMiddleware path (3 apps), `request.json` → `orjson.loads(request.body)` (19 controllers), `data:` → `body:` schema param (cart+order controllers), test assertion fixes
+- [x] **Starter template upgrade** — startapi command: added `saas` template, `ErrorMiddleware` in settings, `body:` param fix, pyproject.toml/conftest/seed_data generation, Makefile with `uv run pytest`/lint/format/seed targets, CLAUDE.md+CI for all non-starter templates
 - [x] **Phase 1.1 error unification** — `utils/errors.py` merged into `core/errors.py`; standardized `{status, detail, extra}` envelope; shim for backwards compat
 - [x] **Phase 1.2 PK nullability** — PKs never Optional in response schemas; `field.null` not `field.blank` for optionality
 - [x] **Phase 1.3 choices → enums** — Django `TextChoices`/`IntegerChoices` → `Literal[...]` for OpenAPI enum constraints

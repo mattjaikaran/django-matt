@@ -1,6 +1,7 @@
+import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
-from django_matt.core.errors import APIError, ValidationAPIError
+from django_matt.core.errors import APIError
 
 from apps.organizations.models import Membership, MembershipRole, Organization
 from apps.organizations.schemas import (
@@ -39,11 +40,11 @@ class OrganizationController(APIController):
     @staticmethod
     @jwt_required
     async def create_organization(request) -> dict:
-        body = request.json
+        body = orjson.loads(request.body)
         data = OrganizationCreateSchema(**body)
 
         if await Organization.objects.filter(slug=data.slug).aexists():
-            raise ValidationAPIError("Organization slug already taken")
+            raise APIError(status_code=400, detail="Organization slug already taken")
 
         org = await Organization.objects.acreate(
             name=data.name,
@@ -70,7 +71,7 @@ class OrganizationController(APIController):
     @jwt_required
     async def update_organization(request, org_id: str) -> dict:
         await require_admin(request.user, org_id)
-        body = request.json
+        body = orjson.loads(request.body)
         data = OrganizationUpdateSchema(**body)
 
         try:
