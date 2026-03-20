@@ -336,19 +336,22 @@ class APIRouter:
             if isinstance(result, HttpResponse):
                 return result
 
-            # Serialize the response
+            # Serialize the response (use aliases for camelCase when enabled)
+            from django_matt.core.schema import _get_camel_case_config
+
+            _by_alias = _get_camel_case_config()
             if isinstance(result, BaseModel):
-                result = result.model_dump()
+                result = result.model_dump(by_alias=_by_alias)
             elif response_model and isinstance(result, dict):
                 try:
-                    result = response_model(**result).model_dump()
+                    result = response_model(**result).model_dump(by_alias=_by_alias)
                 except ValidationError as e:
                     return JsonResponse(
                         {"detail": "Response validation error", "errors": e.errors()},
                         status=500,
                     )
             elif isinstance(result, list) and result and isinstance(result[0], BaseModel):
-                result = [item.model_dump() for item in result]
+                result = [item.model_dump(by_alias=_by_alias) for item in result]
 
             return JsonResponse(result, status=status_code, safe=False)
 

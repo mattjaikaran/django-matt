@@ -13,6 +13,27 @@ from typing import Any, ClassVar, Literal, Optional, Union, get_args, get_origin
 from django.db import models
 
 from pydantic import BaseModel, Field, create_model, field_validator
+from pydantic.alias_generators import to_camel
+
+# --- camelCase API config (cached at module level) ---
+_camel_case_config: bool | None = None
+
+
+def _get_camel_case_config() -> bool:
+    """Check if camelCase API responses are enabled. Cached after first call."""
+    global _camel_case_config
+    if _camel_case_config is None:
+        from django.conf import settings
+
+        matt_config = getattr(settings, "DJANGO_MATT", {})
+        _camel_case_config = matt_config.get("CAMEL_CASE_API", False)
+    return _camel_case_config
+
+
+def _reset_camel_case_config() -> None:
+    """Reset the cached camelCase config. Used in tests."""
+    global _camel_case_config
+    _camel_case_config = None
 
 # Mapping from Django model field types to Python/Pydantic types
 FIELD_TYPE_MAP: dict[type, type] = {
@@ -95,6 +116,19 @@ class ModelSchemaMetaclass(type(BaseModel)):
         django_model = getattr(config, "model", None)
         if not django_model:
             return super().__new__(mcs, name, bases, namespace, **kwargs)
+
+        # Apply camelCase alias_generator if enabled globally and not overridden per-schema
+        camel_case = getattr(config, "camel_case", None)  # per-schema override
+        if camel_case is None:
+            camel_case = _get_camel_case_config()  # global setting
+        if camel_case:
+            existing_config = namespace.get("model_config", {})
+            if isinstance(existing_config, dict):
+                if "alias_generator" not in existing_config:
+                    existing_config["alias_generator"] = to_camel
+                if "populate_by_name" not in existing_config:
+                    existing_config["populate_by_name"] = True
+                namespace["model_config"] = existing_config
 
         # Get configuration options
         include = getattr(config, "include", None)
@@ -246,6 +280,11 @@ class ModelSchema(BaseModel, metaclass=ModelSchemaMetaclass):
         "from_attributes": True,
         "arbitrary_types_allowed": True,
     }
+
+    def model_dump_response(self, **kwargs) -> dict[str, Any]:
+        """Dump for API responses — uses aliases (camelCase) when enabled."""
+        by_alias = _get_camel_case_config()
+        return self.model_dump(by_alias=by_alias, **kwargs)
 
     @classmethod
     def _extract_data(cls, obj: models.Model) -> dict:

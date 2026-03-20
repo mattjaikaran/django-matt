@@ -769,13 +769,19 @@ class CRUDController(APIController):
     def _model_to_dict(self, instance) -> dict[str, Any]:
         """Convert a model instance to a dict (with full validation)."""
         if self.schema:
-            return self.schema.from_orm(instance).model_dump()
+            schema_instance = self.schema.from_orm(instance)
+            if hasattr(schema_instance, "model_dump_response"):
+                return schema_instance.model_dump_response()
+            return schema_instance.model_dump()
         return self._model_to_dict_raw(instance)
 
     def _model_to_dict_fast(self, instance) -> dict[str, Any]:
         """Convert a model instance to a dict (no re-validation, for list serialization)."""
         if self.schema and hasattr(self.schema, "from_orm_fast"):
-            return self.schema.from_orm_fast(instance).model_dump()
+            schema_instance = self.schema.from_orm_fast(instance)
+            if hasattr(schema_instance, "model_dump_response"):
+                return schema_instance.model_dump_response()
+            return schema_instance.model_dump()
         return self._model_to_dict_raw(instance)
 
     def _model_to_dict_raw(self, instance) -> dict[str, Any]:

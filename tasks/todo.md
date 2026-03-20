@@ -118,10 +118,11 @@ New CRUD capabilities, better ViewSet DX.
 
 Developer experience, framework compat, auth improvements.
 
-- [ ] 4.1 **camelCase/snake_case mapping** — global or per-schema opt-in
-  - Config: `MATT_API = {"CASE_STYLE": "camelCase"}`
-  - Or per-schema via `ConfigDict(alias_generator=to_camel, populate_by_name=True)`
-  - Request body: camelCase → snake_case; Response: snake_case → camelCase
+- [x] 4.1 **camelCase/snake_case mapping** — global or per-schema opt-in (IN PROGRESS)
+  - Setting: `DJANGO_MATT.CAMEL_CASE_API = True/False` (default: False)
+  - ModelSchema: `alias_generator=to_camel` + `populate_by_name=True` when enabled
+  - 5 serialization funnels updated with `by_alias=True`
+  - OpenAPI: `model_json_schema(by_alias=True)` for matching docs
   - Source: django-bolt #105, django-ninja #961
 - [ ] 4.2 **Sync/async auto-detecting JWT** — single `MattJWTAuth` class
   - Auto-detect sync vs async context, use appropriate code path

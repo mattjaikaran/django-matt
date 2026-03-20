@@ -85,6 +85,8 @@ class JSONRenderer(BaseRenderer):
             return obj.value
         if isinstance(obj, bytes):
             return obj.decode("utf-8", errors="replace")
+        if hasattr(obj, "model_dump_response"):  # Django Matt schema
+            return obj.model_dump_response()
         if hasattr(obj, "model_dump"):  # Pydantic v2
             return obj.model_dump()
         if hasattr(obj, "dict"):  # Pydantic v1
@@ -150,6 +152,8 @@ class XMLRenderer(BaseRenderer):
             return str(value)
         if isinstance(value, Enum):
             return str(value.value)
+        if hasattr(value, "model_dump_response"):
+            return self._dict_to_xml(value.model_dump_response())
         if hasattr(value, "model_dump"):
             return self._dict_to_xml(value.model_dump())
         if hasattr(value, "dict"):

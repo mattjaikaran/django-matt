@@ -160,15 +160,22 @@ class APIView(Generic[ModelT, SchemaT]):
         schema = self.get_response_schema()
         if schema is not None:
             if hasattr(schema, "from_orm"):
-                return schema.from_orm(instance).model_dump()
-            return schema.model_validate(instance, from_attributes=True).model_dump()
+                schema_instance = schema.from_orm(instance)
+            else:
+                schema_instance = schema.model_validate(instance, from_attributes=True)
+            if hasattr(schema_instance, "model_dump_response"):
+                return schema_instance.model_dump_response()
+            return schema_instance.model_dump()
         return self._model_to_dict(instance)
 
     def serialize_fast(self, instance: models.Model) -> dict[str, Any]:
         """Serialize a model instance without re-validation (for lists)."""
         schema = self.get_response_schema()
         if schema is not None and hasattr(schema, "from_orm_fast"):
-            return schema.from_orm_fast(instance).model_dump()
+            schema_instance = schema.from_orm_fast(instance)
+            if hasattr(schema_instance, "model_dump_response"):
+                return schema_instance.model_dump_response()
+            return schema_instance.model_dump()
         return self._model_to_dict(instance)
 
     def serialize_list(self, queryset: models.QuerySet) -> list[dict[str, Any]]:

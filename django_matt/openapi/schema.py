@@ -293,7 +293,10 @@ class OpenAPISchema:
         if schema_name not in self.components["schemas"]:
             # Get JSON schema from Pydantic model
             try:
-                json_schema = model.model_json_schema()
+                from django_matt.core.schema import _get_camel_case_config
+
+                _by_alias = _get_camel_case_config()
+                json_schema = model.model_json_schema(by_alias=_by_alias)
                 # Remove $defs and inline them if needed
                 if "$defs" in json_schema:
                     for def_name, def_schema in json_schema["$defs"].items():

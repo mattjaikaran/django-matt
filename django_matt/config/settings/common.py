@@ -140,6 +140,8 @@ settings: dict[str, Any] = {
         # Query optimization
         "QUERY_OPTIMIZATION_ENABLED": True,
         "N1_DETECTION_ENABLED": True,
+        # API serialization
+        "CAMEL_CASE_API": False,  # When True, API responses use camelCase field names
     },
 }
 
