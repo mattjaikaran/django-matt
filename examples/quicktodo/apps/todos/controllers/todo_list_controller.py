@@ -1,4 +1,3 @@
-import orjson
 from django.db.models import Count, Q, Value
 from django.db.models.functions import Coalesce
 from django_matt.auth import jwt_required
@@ -51,15 +50,13 @@ class TodoListController(APIController):
 
     @staticmethod
     @jwt_required
-    async def create_todo_list(request, org_id: str) -> dict:
+    async def create_todo_list(request, org_id: str, body: TodoListCreateSchema) -> dict:
         await get_membership(request.user, org_id)
-        body = orjson.loads(request.body)
-        data = TodoListCreateSchema(**body)
 
         tl = await TodoList.objects.acreate(
             organization_id=org_id,
-            name=data.name,
-            description=data.description,
+            name=body.name,
+            description=body.description,
             created_by=request.user,
         )
         return TodoListSchema(
@@ -88,7 +85,7 @@ class TodoListController(APIController):
                 .aget(id=list_id)
             )
         except TodoList.DoesNotExist:
-            raise APIError(status_code=404, message="Todo list not found")
+            raise APIError(message="Todo list not found", status_code=404)
 
         return TodoListSchema(
             id=str(tl.id),
@@ -104,17 +101,15 @@ class TodoListController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_todo_list(request, org_id: str, list_id: str) -> dict:
+    async def update_todo_list(request, org_id: str, list_id: str, body: TodoListUpdateSchema) -> dict:
         await get_membership(request.user, org_id)
-        body = orjson.loads(request.body)
-        data = TodoListUpdateSchema(**body)
 
         try:
             tl = await TodoList.objects.aget(id=list_id, organization_id=org_id)
         except TodoList.DoesNotExist:
-            raise APIError(status_code=404, message="Todo list not found")
+            raise APIError(message="Todo list not found", status_code=404)
 
-        for field, value in data.model_dump(exclude_unset=True).items():
+        for field, value in body.model_dump(exclude_unset=True).items():
             setattr(tl, field, value)
         await tl.asave()
 
@@ -135,6 +130,6 @@ class TodoListController(APIController):
         try:
             tl = await TodoList.objects.aget(id=list_id, organization_id=org_id)
         except TodoList.DoesNotExist:
-            raise APIError(status_code=404, message="Todo list not found")
+            raise APIError(message="Todo list not found", status_code=404)
         await tl.adelete()
         return {"message": "Todo list deleted"}

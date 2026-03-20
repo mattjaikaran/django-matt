@@ -1,4 +1,3 @@
-import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import APIError, NotFoundAPIError, ValidationAPIError
@@ -46,7 +45,7 @@ class VariantController(APIController):
 
     @staticmethod
     @jwt_required
-    async def create_variant(request, product_id: str) -> dict:
+    async def create_variant(request, product_id: str, body: VariantCreateSchema) -> dict:
         """Create a variant for a product. Must own the store."""
         product = await Product.objects.filter(id=product_id).afirst()
         if not product:
@@ -54,17 +53,14 @@ class VariantController(APIController):
 
         await _check_store_ownership(product, request.user)
 
-        body = orjson.loads(request.body)
-        data = VariantCreateSchema(**body)
-
-        if await Variant.objects.filter(sku=data.sku).aexists():
+        if await Variant.objects.filter(sku=body.sku).aexists():
             raise ValidationAPIError("A variant with this SKU already exists")
 
         variant = await Variant.objects.acreate(
             product_id=product_id,
-            name=data.name,
-            sku=data.sku,
-            price_override=data.price_override,
+            name=body.name,
+            sku=body.sku,
+            price_override=body.price_override,
         )
 
         return VariantSchema(
@@ -100,7 +96,9 @@ class VariantController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_variant(request, product_id: str, variant_id: str) -> dict:
+    async def update_variant(
+        request, product_id: str, variant_id: str, body: VariantUpdateSchema
+    ) -> dict:
         """Update a variant. Must own the store."""
         variant = await Variant.objects.filter(
             id=variant_id, product_id=product_id
@@ -111,12 +109,14 @@ class VariantController(APIController):
         product = await Product.objects.filter(id=product_id).afirst()
         await _check_store_ownership(product, request.user)
 
-        body = orjson.loads(request.body)
-        data = VariantUpdateSchema(**body)
-        updates = data.model_dump(exclude_unset=True)
+        updates = body.model_dump(exclude_unset=True)
 
         if "sku" in updates and updates["sku"] != variant.sku:
-            if await Variant.objects.filter(sku=updates["sku"]).exclude(id=variant_id).aexists():
+            if (
+                await Variant.objects.filter(sku=updates["sku"])
+                .exclude(id=variant_id)
+                .aexists()
+            ):
                 raise ValidationAPIError("A variant with this SKU already exists")
 
         for field, value in updates.items():

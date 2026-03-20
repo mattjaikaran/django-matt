@@ -1,6 +1,5 @@
 import logging
 
-import orjson
 from django.conf import settings
 from django.http import HttpRequest
 from django_matt.auth import jwt_required
@@ -19,13 +18,10 @@ class PaymentController(APIController):
 
     @staticmethod
     @jwt_required
-    async def create_payment_intent(request) -> dict:
+    async def create_payment_intent(request, body: CreatePaymentIntentSchema) -> dict:
         """Create a Stripe PaymentIntent for an order."""
-        body = orjson.loads(request.body)
-        data = CreatePaymentIntentSchema(**body)
-
         order = await Order.objects.filter(
-            id=data.order_id, user=request.user
+            id=body.order_id, user=request.user
         ).afirst()
         if not order:
             raise NotFoundAPIError("Order not found")
@@ -81,12 +77,20 @@ class PaymentController(APIController):
                 event_data = json.loads(raw_body)
             except (json.JSONDecodeError, ValueError):
                 raise APIError(status_code=400, message="Invalid payload")
-            event = type("Event", (), {
-                "type": event_data.get("type", ""),
-                "data": type("Data", (), {
-                    "object": event_data.get("data", {}).get("object", {}),
-                })(),
-            })()
+            event = type(
+                "Event",
+                (),
+                {
+                    "type": event_data.get("type", ""),
+                    "data": type(
+                        "Data",
+                        (),
+                        {
+                            "object": event_data.get("data", {}).get("object", {}),
+                        },
+                    )(),
+                },
+            )()
         except ValueError:
             raise APIError(status_code=400, message="Invalid payload")
         except Exception as e:

@@ -1,4 +1,3 @@
-import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import NotFoundAPIError, ValidationAPIError
@@ -43,15 +42,12 @@ class ProjectController(APIController):
 
     @staticmethod
     @jwt_required
-    async def create_project(request, org_id: str) -> dict:
+    async def create_project(request, org_id: str, body: ProjectCreateSchema) -> dict:
         """Create a new project in an organization. Requires admin role."""
         await require_admin(request.user, org_id)
 
-        body = orjson.loads(request.body)
-        data = ProjectCreateSchema(**body)
-
         if await Project.objects.filter(
-            organization_id=org_id, slug=data.slug
+            organization_id=org_id, slug=body.slug
         ).aexists():
             raise ValidationAPIError(
                 "A project with this slug already exists in this organization"
@@ -59,10 +55,10 @@ class ProjectController(APIController):
 
         project = await Project.objects.acreate(
             organization_id=org_id,
-            name=data.name,
-            slug=data.slug,
-            description=data.description,
-            environment=data.environment,
+            name=body.name,
+            slug=body.slug,
+            description=body.description,
+            environment=body.environment,
         )
 
         return ProjectSchema(
@@ -105,7 +101,7 @@ class ProjectController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_project(request, org_id: str, project_id: str) -> dict:
+    async def update_project(request, org_id: str, project_id: str, body: ProjectUpdateSchema) -> dict:
         """Update a project. Requires admin role."""
         await require_admin(request.user, org_id)
 
@@ -117,9 +113,7 @@ class ProjectController(APIController):
         if not project:
             raise NotFoundAPIError("Project not found")
 
-        body = orjson.loads(request.body)
-        data = ProjectUpdateSchema(**body)
-        updates = data.model_dump(exclude_unset=True)
+        updates = body.model_dump(exclude_unset=True)
 
         for field, value in updates.items():
             setattr(project, field, value)

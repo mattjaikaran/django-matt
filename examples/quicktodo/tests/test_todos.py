@@ -48,7 +48,7 @@ class TestTodoLists:
             f"/api/organizations/{organization.id}/lists/{todo_list.id}",
             **auth_headers,
         )
-        assert response.status_code == 200
+        assert response.status_code == 204
 
 
 @pytest.mark.django_db
@@ -180,7 +180,7 @@ class TestTodos:
             f"/api/organizations/{organization.id}/todos/{todo.id}",
             **auth_headers,
         )
-        assert response.status_code == 200
+        assert response.status_code == 204
         assert not Todo.objects.filter(id=todo.id).exists()
 
     def test_org_isolation(self, client, other_user, organization, membership, todo):

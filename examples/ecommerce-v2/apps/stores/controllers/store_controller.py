@@ -1,6 +1,5 @@
 from uuid import UUID
 
-import orjson
 from django.db.models import Q
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
@@ -58,21 +57,18 @@ class StoreController(APIController):
 
     @staticmethod
     @jwt_required
-    async def create_store(request) -> dict:
+    async def create_store(request, body: StoreCreateSchema) -> dict:
         """Create a new store. Owner is set to the authenticated user."""
-        body = orjson.loads(request.body)
-        data = StoreCreateSchema(**body)
-
         # Check slug uniqueness
-        if await Store.objects.filter(slug=data.slug).aexists():
+        if await Store.objects.filter(slug=body.slug).aexists():
             raise ValidationAPIError("A store with this slug already exists")
 
         store = await Store.objects.acreate(
             owner=request.user,
-            name=data.name,
-            slug=data.slug,
-            description=data.description,
-            logo_url=data.logo_url,
+            name=body.name,
+            slug=body.slug,
+            description=body.description,
+            logo_url=body.logo_url,
         )
 
         return StoreSchema(
@@ -116,7 +112,7 @@ class StoreController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_store(request, store_id: str) -> dict:
+    async def update_store(request, store_id: str, body: StoreUpdateSchema) -> dict:
         """Update a store. Must be owner."""
         store = await Store.objects.filter(id=store_id).afirst()
         if not store:
@@ -125,9 +121,7 @@ class StoreController(APIController):
         if store.owner_id != request.user.id:
             raise APIError(status_code=403, message="You do not own this store")
 
-        body = orjson.loads(request.body)
-        data = StoreUpdateSchema(**body)
-        updates = data.model_dump(exclude_unset=True)
+        updates = body.model_dump(exclude_unset=True)
 
         # Check slug uniqueness if changing
         if "slug" in updates and updates["slug"] != store.slug:

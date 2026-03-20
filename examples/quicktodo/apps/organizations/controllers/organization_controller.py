@@ -1,4 +1,3 @@
-import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import APIError
@@ -39,24 +38,28 @@ class OrganizationController(APIController):
 
     @staticmethod
     @jwt_required
-    async def create_organization(request) -> dict:
-        body = orjson.loads(request.body)
-        data = OrganizationCreateSchema(**body)
-
-        if await Organization.objects.filter(slug=data.slug).aexists():
-            raise APIError(status_code=400, detail="Organization slug already taken")
+    async def create_organization(request, body: OrganizationCreateSchema) -> dict:
+        if await Organization.objects.filter(slug=body.slug).aexists():
+            raise APIError(message="Organization slug already taken", status_code=400)
 
         org = await Organization.objects.acreate(
-            name=data.name,
-            slug=data.slug,
-            description=data.description,
+            name=body.name,
+            slug=body.slug,
+            description=body.description,
         )
         await Membership.objects.acreate(
             user=request.user,
             organization=org,
             role=MembershipRole.OWNER.value,
         )
-        return OrganizationSchema.model_validate(org).model_dump(mode="json")
+        return OrganizationSchema(
+            id=str(org.id),
+            name=org.name,
+            slug=org.slug,
+            description=org.description,
+            created_at=org.created_at,
+            updated_at=org.updated_at,
+        ).model_dump(mode="json")
 
     @staticmethod
     @jwt_required
@@ -64,25 +67,37 @@ class OrganizationController(APIController):
         try:
             org = await Organization.objects.aget(id=org_id)
         except Organization.DoesNotExist:
-            raise APIError(status_code=404, message="Organization not found")
-        return OrganizationSchema.model_validate(org).model_dump(mode="json")
+            raise APIError(message="Organization not found", status_code=404)
+        return OrganizationSchema(
+            id=str(org.id),
+            name=org.name,
+            slug=org.slug,
+            description=org.description,
+            created_at=org.created_at,
+            updated_at=org.updated_at,
+        ).model_dump(mode="json")
 
     @staticmethod
     @jwt_required
-    async def update_organization(request, org_id: str) -> dict:
+    async def update_organization(request, org_id: str, body: OrganizationUpdateSchema) -> dict:
         await require_admin(request.user, org_id)
-        body = orjson.loads(request.body)
-        data = OrganizationUpdateSchema(**body)
 
         try:
             org = await Organization.objects.aget(id=org_id)
         except Organization.DoesNotExist:
-            raise APIError(status_code=404, message="Organization not found")
+            raise APIError(message="Organization not found", status_code=404)
 
-        for field, value in data.model_dump(exclude_unset=True).items():
+        for field, value in body.model_dump(exclude_unset=True).items():
             setattr(org, field, value)
         await org.asave()
-        return OrganizationSchema.model_validate(org).model_dump(mode="json")
+        return OrganizationSchema(
+            id=str(org.id),
+            name=org.name,
+            slug=org.slug,
+            description=org.description,
+            created_at=org.created_at,
+            updated_at=org.updated_at,
+        ).model_dump(mode="json")
 
     @staticmethod
     @jwt_required
@@ -91,6 +106,6 @@ class OrganizationController(APIController):
         try:
             org = await Organization.objects.aget(id=org_id)
         except Organization.DoesNotExist:
-            raise APIError(status_code=404, message="Organization not found")
+            raise APIError(message="Organization not found", status_code=404)
         await org.adelete()
         return {"message": "Organization deleted"}

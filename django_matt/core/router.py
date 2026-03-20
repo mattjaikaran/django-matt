@@ -367,6 +367,11 @@ class APIRouter:
     def get_urls(self, csrf_exempt: bool = False):
         """Get Django URL patterns for all registered routes.
 
+        Routes with the same URL path pattern are merged into a single Django
+        URL pattern that dispatches by HTTP method. This prevents Django from
+        matching the first registered pattern and returning 405 for other
+        methods on the same path.
+
         Static (non-parameterized) patterns are always placed before
         parameterized ones so that, e.g., ``/users/me`` is matched before
         ``/users/<str:id>``.  Within each group declaration order is preserved.
@@ -377,14 +382,10 @@ class APIRouter:
                          This is set automatically by ``MattAPI`` when
                          ``csrf=False`` (the default).
         """
-        static_patterns = []
-        param_patterns = []
-
-        def _append(pattern):
-            if self._is_parameterized_path(pattern):
-                param_patterns.append(pattern)
-            else:
-                static_patterns.append(pattern)
+        # Collect all (path_pattern, view_func, name, methods) entries first,
+        # then merge entries that share the same path_pattern.
+        # Use a list to preserve registration order.
+        path_entries: list[tuple[str, Callable, str, list[str]]] = []
 
         # Add routes from decorators
         for route in self.routes:
@@ -396,7 +397,9 @@ class APIRouter:
             )
             if csrf_exempt:
                 view_func._csrf_exempt = True
-            _append(path(route["path"], view_func, name=route["name"]))
+            path_entries.append(
+                (route["path"], view_func, route["name"], route["methods"])
+            )
 
         # Add routes from controllers
         for controller_class in self.controllers:
@@ -424,13 +427,70 @@ class APIRouter:
                 )
                 if csrf_exempt:
                     view_func._csrf_exempt = True
-                _append(
-                    path(
-                        combined_prefix + route_info["path"],
+                full_path = combined_prefix + route_info["path"]
+                path_entries.append(
+                    (
+                        full_path,
                         view_func,
-                        name=route_info.get("name", method_name),
+                        route_info.get("name", method_name),
+                        route_info.get("methods", []),
                     )
                 )
+
+        # Merge entries with the same path into a single dispatch view.
+        # Preserves first-seen order for each unique path.
+        from collections import OrderedDict
+
+        grouped: OrderedDict[str, list[tuple[Callable, str, list[str]]]] = (
+            OrderedDict()
+        )
+        for url_path, vf, name, methods in path_entries:
+            if url_path not in grouped:
+                grouped[url_path] = []
+            grouped[url_path].append((vf, name, methods))
+
+        static_patterns = []
+        param_patterns = []
+
+        def _append(pattern):
+            if self._is_parameterized_path(pattern):
+                param_patterns.append(pattern)
+            else:
+                static_patterns.append(pattern)
+
+        for url_path, entries in grouped.items():
+            if len(entries) == 1:
+                # Single method — use the view directly
+                vf, name, _methods = entries[0]
+                _append(path(url_path, vf, name=name))
+            else:
+                # Multiple methods on the same path — create a dispatch view
+                method_map: dict[str, Callable] = {}
+                first_name = entries[0][1]
+                for vf, _name, methods in entries:
+                    for m in methods:
+                        method_map[m.upper()] = vf
+
+                async def _dispatch_view(
+                    request,
+                    *args,
+                    _method_map=method_map,
+                    **kwargs,
+                ):
+                    handler = _method_map.get(request.method)
+                    if handler is None:
+                        response = JsonResponse(
+                            {"detail": "Method not allowed"}, status=405
+                        )
+                        response["Allow"] = ", ".join(
+                            sorted(_method_map.keys())
+                        )
+                        return response
+                    return await handler(request, *args, **kwargs)
+
+                if csrf_exempt:
+                    _dispatch_view._csrf_exempt = True
+                _append(path(url_path, _dispatch_view, name=first_name))
 
         # Static patterns first, then parameterized — preserves ordering within each group.
         return static_patterns + param_patterns

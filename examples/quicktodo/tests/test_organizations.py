@@ -45,7 +45,7 @@ class TestOrganizations:
             f"/api/organizations/{organization.id}",
             **auth_headers,
         )
-        assert response.status_code == 200
+        assert response.status_code == 204
 
     def test_list_members(self, client, user, auth_headers, organization, membership):
         response = client.get(

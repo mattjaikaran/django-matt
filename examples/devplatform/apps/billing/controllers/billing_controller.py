@@ -1,4 +1,3 @@
-import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import APIError
@@ -57,7 +56,7 @@ class BillingController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_subscription(request, org_id: str) -> dict:
+    async def update_subscription(request, org_id: str, body: SubscriptionUpdateSchema) -> dict:
         """Update the subscription plan. Requires owner role."""
         await require_owner(request.user, org_id)
 
@@ -73,9 +72,7 @@ class BillingController(APIController):
                 api_calls_limit=PLAN_LIMITS["free"],
             )
 
-        body = orjson.loads(request.body)
-        data = SubscriptionUpdateSchema(**body)
-        updates = data.model_dump(exclude_unset=True)
+        updates = body.model_dump(exclude_unset=True)
 
         if "plan" in updates:
             new_plan = updates["plan"]

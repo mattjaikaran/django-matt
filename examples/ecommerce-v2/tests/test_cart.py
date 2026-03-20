@@ -54,7 +54,7 @@ class TestCart:
 
         # Remove
         response = client.delete(f"/api/cart/items/{item_id}", **auth_headers)
-        assert response.status_code == 200
+        assert response.status_code == 204
 
     def test_clear_cart(self, client, auth_headers, product):
         # Add item
@@ -67,7 +67,7 @@ class TestCart:
 
         # Clear
         response = client.delete("/api/cart", **auth_headers)
-        assert response.status_code == 200
+        assert response.status_code == 204
 
         # Verify empty
         cart_resp = client.get("/api/cart", **auth_headers)

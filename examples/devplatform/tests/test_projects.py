@@ -77,4 +77,4 @@ class TestAPIKeys:
             f"/api/organizations/{organization.id}/projects/{project.id}/keys/{key_id}",
             **auth_headers,
         )
-        assert response.status_code == 200
+        assert response.status_code == 204

@@ -34,6 +34,7 @@ class Order(BaseModel):
     tax = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=3, default="usd")
     shipping_address = models.TextField()
     billing_address = models.TextField(blank=True, default="")
     notes = models.TextField(blank=True, default="")

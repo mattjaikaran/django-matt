@@ -1,4 +1,3 @@
-import orjson
 from django.db.models import Avg, Count
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
@@ -84,11 +83,8 @@ class ReviewController(APIController):
 
     @staticmethod
     @jwt_required
-    async def create_review(request, product_id: str) -> dict:
+    async def create_review(request, product_id: str, body: ReviewCreateSchema) -> dict:
         """Create a review for a product."""
-        body = orjson.loads(request.body)
-        data = ReviewCreateSchema(**body)
-
         # Verify product exists
         product = await Product.objects.filter(id=product_id).afirst()
         if not product:
@@ -111,9 +107,9 @@ class ReviewController(APIController):
         review = await Review.objects.acreate(
             user=request.user,
             product_id=product_id,
-            rating=data.rating,
-            title=data.title,
-            body=data.body,
+            rating=body.rating,
+            title=body.title,
+            body=body.body,
             is_verified_purchase=is_verified,
         )
 
@@ -131,7 +127,7 @@ class ReviewController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_review(request, review_id: str) -> dict:
+    async def update_review(request, review_id: str, body: ReviewUpdateSchema) -> dict:
         """Update a review. Must be author."""
         review = await Review.objects.filter(
             id=review_id, user=request.user
@@ -139,9 +135,7 @@ class ReviewController(APIController):
         if not review:
             raise NotFoundAPIError("Review not found")
 
-        body = orjson.loads(request.body)
-        data = ReviewUpdateSchema(**body)
-        updates = data.model_dump(exclude_unset=True)
+        updates = body.model_dump(exclude_unset=True)
 
         for field, value in updates.items():
             setattr(review, field, value)

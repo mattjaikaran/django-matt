@@ -1,6 +1,5 @@
 from decimal import Decimal
 
-import orjson
 from django.db.models import Q
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
@@ -70,37 +69,35 @@ class ProductController(APIController):
 
     @staticmethod
     @jwt_required
-    async def create_product(request) -> dict:
+    async def create_product(request, body: ProductCreateSchema) -> dict:
         """Create a product. Must own the store."""
-        body = orjson.loads(request.body)
-        data = ProductCreateSchema(**body)
-
         # Verify store ownership
-        store = await Store.objects.filter(id=data.store_id).afirst()
+        store = await Store.objects.filter(id=body.store_id).afirst()
         if not store:
             raise NotFoundAPIError("Store not found")
         if store.owner_id != request.user.id:
             raise APIError(status_code=403, message="You do not own this store")
 
         # Check slug uniqueness
-        if await Product.objects.filter(slug=data.slug).aexists():
+        if await Product.objects.filter(slug=body.slug).aexists():
             raise ValidationAPIError("A product with this slug already exists")
 
         # Validate category if provided
-        if data.category_id:
+        if body.category_id:
             from apps.catalog.models import Category
-            if not await Category.objects.filter(id=data.category_id).aexists():
+
+            if not await Category.objects.filter(id=body.category_id).aexists():
                 raise NotFoundAPIError("Category not found")
 
         product = await Product.objects.acreate(
-            store_id=data.store_id,
-            category_id=data.category_id,
-            name=data.name,
-            slug=data.slug,
-            description=data.description,
-            price=data.price,
-            compare_at_price=data.compare_at_price,
-            image_url=data.image_url,
+            store_id=body.store_id,
+            category_id=body.category_id,
+            name=body.name,
+            slug=body.slug,
+            description=body.description,
+            price=body.price,
+            compare_at_price=body.compare_at_price,
+            image_url=body.image_url,
         )
 
         return ProductSchema(
@@ -142,7 +139,7 @@ class ProductController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_product(request, product_id: str) -> dict:
+    async def update_product(request, product_id: str, body: ProductUpdateSchema) -> dict:
         """Update a product. Must own the store."""
         product = await Product.objects.select_related("store").filter(id=product_id).afirst()
         if not product:
@@ -152,9 +149,7 @@ class ProductController(APIController):
         if store.owner_id != request.user.id:
             raise APIError(status_code=403, message="You do not own this store")
 
-        body = orjson.loads(request.body)
-        data = ProductUpdateSchema(**body)
-        updates = data.model_dump(exclude_unset=True)
+        updates = body.model_dump(exclude_unset=True)
 
         if "slug" in updates and updates["slug"] != product.slug:
             if await Product.objects.filter(slug=updates["slug"]).exclude(id=product_id).aexists():
@@ -162,6 +157,7 @@ class ProductController(APIController):
 
         if "category_id" in updates and updates["category_id"]:
             from apps.catalog.models import Category
+
             if not await Category.objects.filter(id=updates["category_id"]).aexists():
                 raise NotFoundAPIError("Category not found")
 

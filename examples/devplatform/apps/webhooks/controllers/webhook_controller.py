@@ -1,6 +1,5 @@
 import secrets
 
-import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import NotFoundAPIError
@@ -53,7 +52,7 @@ class WebhookController(APIController):
 
     @staticmethod
     @jwt_required
-    async def create_webhook(request, org_id: str, project_id: str) -> dict:
+    async def create_webhook(request, org_id: str, project_id: str, body: WebhookCreateSchema) -> dict:
         """Create a new webhook. Requires admin role."""
         await require_admin(request.user, org_id)
 
@@ -63,15 +62,12 @@ class WebhookController(APIController):
         if not project:
             raise NotFoundAPIError("Project not found")
 
-        body = orjson.loads(request.body)
-        data = WebhookCreateSchema(**body)
-
         webhook = await Webhook.objects.acreate(
             project_id=project_id,
-            url=str(data.url),
+            url=str(body.url),
             secret=secrets.token_hex(32),
-            events=data.events,
-            description=data.description,
+            events=body.events,
+            description=body.description,
         )
 
         return WebhookSchema(
@@ -116,7 +112,7 @@ class WebhookController(APIController):
     @staticmethod
     @jwt_required
     async def update_webhook(
-        request, org_id: str, project_id: str, webhook_id: str
+        request, org_id: str, project_id: str, webhook_id: str, body: WebhookUpdateSchema
     ) -> dict:
         """Update a webhook. Requires admin role."""
         await require_admin(request.user, org_id)
@@ -130,9 +126,7 @@ class WebhookController(APIController):
         if not webhook:
             raise NotFoundAPIError("Webhook not found")
 
-        body = orjson.loads(request.body)
-        data = WebhookUpdateSchema(**body)
-        updates = data.model_dump(exclude_unset=True)
+        updates = body.model_dump(exclude_unset=True)
 
         # Convert HttpUrl to string if url was provided
         if "url" in updates and updates["url"] is not None:

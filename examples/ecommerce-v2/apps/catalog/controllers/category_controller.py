@@ -1,4 +1,3 @@
-import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import NotFoundAPIError, ValidationAPIError
@@ -45,23 +44,20 @@ class CategoryController(APIController):
 
     @staticmethod
     @jwt_required
-    async def create_category(request) -> dict:
+    async def create_category(request, body: CategoryCreateSchema) -> dict:
         """Create a new category."""
-        body = orjson.loads(request.body)
-        data = CategoryCreateSchema(**body)
-
-        if await Category.objects.filter(slug=data.slug).aexists():
+        if await Category.objects.filter(slug=body.slug).aexists():
             raise ValidationAPIError("A category with this slug already exists")
 
-        if data.parent_id:
-            if not await Category.objects.filter(id=data.parent_id).aexists():
+        if body.parent_id:
+            if not await Category.objects.filter(id=body.parent_id).aexists():
                 raise NotFoundAPIError("Parent category not found")
 
         cat = await Category.objects.acreate(
-            name=data.name,
-            slug=data.slug,
-            description=data.description,
-            parent_id=data.parent_id,
+            name=body.name,
+            slug=body.slug,
+            description=body.description,
+            parent_id=body.parent_id,
         )
 
         return CategorySchema(
@@ -93,18 +89,20 @@ class CategoryController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_category(request, category_id: str) -> dict:
+    async def update_category(request, category_id: str, body: CategoryUpdateSchema) -> dict:
         """Update a category."""
         cat = await Category.objects.filter(id=category_id).afirst()
         if not cat:
             raise NotFoundAPIError("Category not found")
 
-        body = orjson.loads(request.body)
-        data = CategoryUpdateSchema(**body)
-        updates = data.model_dump(exclude_unset=True)
+        updates = body.model_dump(exclude_unset=True)
 
         if "slug" in updates and updates["slug"] != cat.slug:
-            if await Category.objects.filter(slug=updates["slug"]).exclude(id=category_id).aexists():
+            if (
+                await Category.objects.filter(slug=updates["slug"])
+                .exclude(id=category_id)
+                .aexists()
+            ):
                 raise ValidationAPIError("A category with this slug already exists")
 
         if "parent_id" in updates and updates["parent_id"]:

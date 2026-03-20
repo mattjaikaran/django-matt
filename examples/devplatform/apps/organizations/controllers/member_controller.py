@@ -1,4 +1,3 @@
-import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import APIError
@@ -34,10 +33,8 @@ class MemberController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_member(request, org_id: str, member_id: str) -> dict:
+    async def update_member(request, org_id: str, member_id: str, body: MembershipUpdateSchema) -> dict:
         await require_admin(request.user, org_id)
-        body = orjson.loads(request.body)
-        data = MembershipUpdateSchema(**body)
 
         try:
             membership = await Membership.objects.select_related("user").aget(
@@ -49,7 +46,7 @@ class MemberController(APIController):
         if membership.is_owner:
             raise APIError(status_code=400, message="Cannot modify owner membership")
 
-        for field, value in data.model_dump(exclude_unset=True).items():
+        for field, value in body.model_dump(exclude_unset=True).items():
             setattr(membership, field, value)
         await membership.asave()
 

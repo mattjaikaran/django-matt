@@ -1,4 +1,3 @@
-import orjson
 from django.utils import timezone
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
@@ -80,13 +79,11 @@ class TodoController(APIController):
 
     @staticmethod
     @jwt_required
-    async def create_todo(request, org_id: str) -> dict:
+    async def create_todo(request, org_id: str, body: TodoCreateSchema) -> dict:
         await get_membership(request.user, org_id)
-        body = orjson.loads(request.body)
-        data = TodoCreateSchema(**body)
 
         # Validate list belongs to org
-        list_id = data.todo_list_id
+        list_id = body.todo_list_id
         if list_id:
             if not await TodoList.objects.filter(
                 id=list_id, organization_id=org_id
@@ -103,12 +100,12 @@ class TodoController(APIController):
 
         todo = await Todo.objects.acreate(
             todo_list_id=list_id,
-            title=data.title,
-            description=data.description,
-            status=data.status,
-            priority=data.priority,
-            assignee_id=data.assignee_id,
-            due_date=data.due_date,
+            title=body.title,
+            description=body.description,
+            status=body.status,
+            priority=body.priority,
+            assignee_id=body.assignee_id,
+            due_date=body.due_date,
         )
         return TodoSchema(
             id=str(todo.id),
@@ -151,10 +148,8 @@ class TodoController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_todo(request, org_id: str, todo_id: str) -> dict:
+    async def update_todo(request, org_id: str, todo_id: str, body: TodoUpdateSchema) -> dict:
         await get_membership(request.user, org_id)
-        body = orjson.loads(request.body)
-        data = TodoUpdateSchema(**body)
 
         try:
             todo = await Todo.objects.aget(
@@ -163,7 +158,7 @@ class TodoController(APIController):
         except Todo.DoesNotExist:
             raise APIError(status_code=404, message="Todo not found")
 
-        updates = data.model_dump(exclude_unset=True)
+        updates = body.model_dump(exclude_unset=True)
 
         # Auto-set completed_at when status changes to done
         if updates.get("status") == "done" and todo.status != "done":

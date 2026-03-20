@@ -1,4 +1,3 @@
-import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import NotFoundAPIError
@@ -61,23 +60,20 @@ class APIKeyController(APIController):
 
     @staticmethod
     @jwt_required
-    async def create_key(request, org_id: str, project_id: str) -> dict:
+    async def create_key(request, org_id: str, project_id: str, body: APIKeyCreateSchema) -> dict:
         """Create a new API key. Returns the full key only once."""
         await require_admin(request.user, org_id)
         await _get_project_or_404(org_id, project_id)
-
-        body = orjson.loads(request.body)
-        data = APIKeyCreateSchema(**body)
 
         full_key, prefix, key_hash = APIKey.generate_key()
 
         key = await APIKey.objects.acreate(
             project_id=project_id,
-            name=data.name,
+            name=body.name,
             key_prefix=prefix,
             key_hash=key_hash,
-            scopes=data.scopes,
-            expires_at=data.expires_at,
+            scopes=body.scopes,
+            expires_at=body.expires_at,
             created_by=request.user,
         )
 

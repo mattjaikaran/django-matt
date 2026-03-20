@@ -12,8 +12,10 @@ def register_order_routes(api: MattAPI) -> None:
     """Register order routes with the API."""
     controller = OrderController()
 
-    api.get("/orders", tags=["Orders"])(controller.list_orders)
-    api.post("/orders", tags=["Orders"])(controller.create_order)
-    api.get("/orders/{order_id}", tags=["Orders"])(controller.get_order)
-    api.patch("/orders/{order_id}", tags=["Orders"])(controller.update_order_status)
-    api.post("/orders/{order_id}/cancel", tags=["Orders"])(controller.cancel_order)
+    api.get("orders", tags=["Orders"])(controller.list_orders)
+    api.post("orders", tags=["Orders"])(controller.create_order)
+    api.get("orders/<str:order_id>", tags=["Orders"])(controller.get_order)
+    api.patch("orders/<str:order_id>", tags=["Orders"])(controller.update_order_status)
+    api.post("orders/<str:order_id>/cancel", status_code=200, tags=["Orders"])(
+        controller.cancel_order
+    )

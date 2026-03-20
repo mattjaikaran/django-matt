@@ -14,5 +14,6 @@ def register_payment_routes(api: MattAPI) -> None:
 
     api.post(
         "payments/webhook",
+        status_code=200,
         tags=["Payments"],
     )(PaymentController.webhook)

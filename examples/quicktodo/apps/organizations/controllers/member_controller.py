@@ -1,4 +1,3 @@
-import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import APIError
@@ -34,22 +33,20 @@ class MemberController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_member(request, org_id: str, member_id: str) -> dict:
+    async def update_member(request, org_id: str, member_id: str, body: MembershipUpdateSchema) -> dict:
         await require_admin(request.user, org_id)
-        body = orjson.loads(request.body)
-        data = MembershipUpdateSchema(**body)
 
         try:
             membership = await Membership.objects.select_related("user").aget(
                 id=member_id, organization_id=org_id
             )
         except Membership.DoesNotExist:
-            raise APIError(status_code=404, message="Member not found")
+            raise APIError(message="Member not found", status_code=404)
 
         if membership.is_owner:
-            raise APIError(status_code=400, message="Cannot modify owner membership")
+            raise APIError(message="Cannot modify owner membership", status_code=400)
 
-        for field, value in data.model_dump(exclude_unset=True).items():
+        for field, value in body.model_dump(exclude_unset=True).items():
             setattr(membership, field, value)
         await membership.asave()
 
@@ -70,10 +67,10 @@ class MemberController(APIController):
                 id=member_id, organization_id=org_id
             )
         except Membership.DoesNotExist:
-            raise APIError(status_code=404, message="Member not found")
+            raise APIError(message="Member not found", status_code=404)
 
         if membership.is_owner:
-            raise APIError(status_code=400, message="Cannot remove the owner")
+            raise APIError(message="Cannot remove the owner", status_code=400)
 
         await membership.adelete()
         return {"message": "Member removed"}

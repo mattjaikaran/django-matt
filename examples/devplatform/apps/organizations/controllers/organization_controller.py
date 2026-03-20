@@ -1,4 +1,3 @@
-import orjson
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import APIError, ValidationAPIError
@@ -39,17 +38,14 @@ class OrganizationController(APIController):
 
     @staticmethod
     @jwt_required
-    async def create_organization(request) -> dict:
-        body = orjson.loads(request.body)
-        data = OrganizationCreateSchema(**body)
-
-        if await Organization.objects.filter(slug=data.slug).aexists():
+    async def create_organization(request, body: OrganizationCreateSchema) -> dict:
+        if await Organization.objects.filter(slug=body.slug).aexists():
             raise ValidationAPIError("Organization slug already taken")
 
         org = await Organization.objects.acreate(
-            name=data.name,
-            slug=data.slug,
-            description=data.description,
+            name=body.name,
+            slug=body.slug,
+            description=body.description,
         )
         await Membership.objects.acreate(
             user=request.user,
@@ -69,17 +65,15 @@ class OrganizationController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_organization(request, org_id: str) -> dict:
+    async def update_organization(request, org_id: str, body: OrganizationUpdateSchema) -> dict:
         await require_admin(request.user, org_id)
-        body = orjson.loads(request.body)
-        data = OrganizationUpdateSchema(**body)
 
         try:
             org = await Organization.objects.aget(id=org_id)
         except Organization.DoesNotExist:
             raise APIError(status_code=404, message="Organization not found")
 
-        for field, value in data.model_dump(exclude_unset=True).items():
+        for field, value in body.model_dump(exclude_unset=True).items():
             setattr(org, field, value)
         await org.asave()
         return OrganizationSchema.model_validate(org).model_dump(mode="json")

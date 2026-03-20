@@ -91,7 +91,8 @@ class OrderController(APIController):
                 }
             )
 
-        return {"orders": orders, "page": page, "page_size": page_size}
+        total = await queryset.acount()
+        return {"items": orders, "total": total, "page": page, "page_size": page_size}
 
     @jwt_required
     async def create_order(self, request, body: OrderCreateSchema):
