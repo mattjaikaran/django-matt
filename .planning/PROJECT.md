@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A Django meta-framework that replaces Django REST Framework, django-ninja, and django-ninja-extra with a single cohesive library. Built on Django as the sole dependency — no external packages beyond Django itself (plus orjson for performance). Designed for internal team use first, open source when the DX makes people freak out.
+A Django meta-framework that replaces Django REST Framework, django-ninja, and django-ninja-extra with a single cohesive library. Built on Django as the sole dependency — no external packages beyond Django itself (plus orjson for performance). Async-first, type-driven, with 126 shipped requirements across auth, billing, real-time, AI/ML, and more.
 
 ## Core Value
 
@@ -12,25 +12,21 @@ The fastest, most developer-friendly way to build Django APIs — if you can't s
 
 ### Validated
 
-<!-- Shipped and confirmed valuable. -->
-
-(None yet — ship to validate)
+- ✓ Full codebase audit — security, performance, DX, correctness — v1.0
+- ✓ Async-first: zero sync ORM in async handlers — v1.0
+- ✓ Performance benchmarks (django-matt vs DRF vs django-ninja vs FastAPI) — v1.0
+- ✓ Zero external dependencies beyond Django + orjson — v1.0
+- ✓ CLI-guided migration from django-ninja projects — v1.0
+- ✓ AI-native: context generation for LLMs (`generate_ai_context`) — v1.0
+- ✓ 126 requirements shipped (CORE, AUTH, DX, PERF, TENANT, BILL, FLAG, ANLYT, EXP, RT, MSG, NOTIF, EMAIL, AI, ML, FILE, TASK, AUDIT, HTMX, COMP, GQL, ADMIN, DEPLOY, OBS) — v1.0
 
 ### Active
 
-- [ ] Full codebase audit — security, performance, DX, correctness
-- [ ] Fix all issues found during audit
-- [ ] Establish performance benchmarks (baseline vs DRF vs django-ninja vs FastAPI)
-- [ ] Zero external dependencies beyond Django + orjson
-- [ ] Peak async-first performance (FastAPI-level or faster)
-- [ ] Convention bridge from django-ninja (similar patterns, intentionally different where django-matt improves)
-- [ ] CLI-guided migration from django-ninja projects
-- [ ] AI-native: context generation for LLMs to understand codebase
-- [ ] AI-native: code generation — LLMs produce correct django-matt code from examples
-- [ ] AI-native: agent tooling — AI agents interact with django-matt APIs
-- [ ] Agentic coding DX — works beautifully with AI coding tools
-- [ ] Advanced manual DX — power users have full control when needed
 - [ ] matt-stack 2.0 integration — CLI scaffolds django-matt backends + React frontends
+- [ ] BillingController auth guards — framework-level controller needs APIController base or explicit auth
+- [ ] startapi middleware auto-wiring — TenantMiddlewareAsync and ObservabilityMiddleware in generated templates
+- [ ] Experiments → Analytics bridge — ExperimentManager.get_assignment() should emit analytics events
+- [ ] Pydantic v2 migration — passkeys/schemas.py uses deprecated `class Config`
 
 ### Out of Scope
 
@@ -43,15 +39,13 @@ The fastest, most developer-friendly way to build Django APIs — if you can't s
 
 **Origins:** Evolution of [matt-stack](https://github.com/mattjaikaran/matt-stack), [django-ninja-boilerplate](https://github.com/mattjaikaran/django-ninja-boilerplate), and [react-vite-boilerplate](https://github.com/mattjaikaran/react-vite-boilerplate). V1 was a CLI that wired up django-ninja + React with opinionated conventions. django-matt is the framework those conventions deserve.
 
-**Current state:** Substantial codebase exists with 4143 tests, 32 skipped. Covers auth (JWT, magic links, RBAC, OAuth, SSO, passkeys, API keys), CRUD views, permissions, OpenAPI gen, multitenancy, billing, websockets, feature flags, analytics, experiments, GraphQL, notifications, email, AI/ML, file uploads, background tasks, audit logging, HTMX, CLI, deployment, observability, and more.
+**Current state (v1.0 shipped):** 193K LOC library, 62K LOC tests, 35K LOC examples. 4770 tests passing (46 skipped). 126 v1 requirements satisfied across 7 phases, 24 plans. 5 working example apps (quicktodo, ecommerce-v2, devplatform, saas-starter, ecommerce-api) plus 2 legacy examples.
+
+**Tech stack:** Python 3.12+ / Django 5.2+ / Pydantic v2 / orjson / async-first
 
 **Dependency philosophy:** Django is the only hard dependency. Build own implementations of everything else. No waiting on third-party patches or abandoned packages. orjson is a base dependency for JSON performance.
 
-**Inspiration:** django-ninja's clean API, django-ninja-extra's controller pattern, FastAPI's speed and type-driven design. Take what's good, fix what's broken, own it all.
-
-**Performance approach:** orjson everywhere, async-first, cached introspection at init time (not per-request), `model_construct()` for list serialization, singleton patterns for hot paths.
-
-**AI compatibility vision:** Framework should be self-documenting enough that LLMs can generate correct code from examples, agents can interact with APIs, and CLI can export full project context for AI consumption. Agentic coding is a first-class use case.
+**Performance approach:** orjson everywhere, async-first, cached introspection at init time (not per-request), `model_construct()` for list serialization, singleton patterns for hot paths, API-mode middleware stripping.
 
 ## Constraints
 
@@ -61,18 +55,20 @@ The fastest, most developer-friendly way to build Django APIs — if you can't s
 - **Performance**: Must match or beat FastAPI on equivalent benchmarks
 - **Async**: Async-first design — sync fallbacks use `sync_to_async()`
 - **DX bar**: Must be simpler than DRF, as clean as django-ninja, more powerful than both
-- **Portability**: django-ninja projects should be portable with CLI migration + TODO markers
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Django-only dependency | Control upgrade cycle, no third-party blockers | — Pending |
-| orjson as base dep | 3-10x faster JSON, worth the single exception | — Pending |
-| Async-first | Modern Django supports ASGI, match FastAPI model | — Pending |
-| Convention bridge over drop-in compat | Improve on ninja patterns, not just copy them | — Pending |
-| Internal-first, OSS later | Get DX right without community pressure | — Pending |
-| Pydantic v2 for schemas | Best-in-class validation + serialization | — Pending |
+| Django-only dependency | Control upgrade cycle, no third-party blockers | ✓ Good — zero dep issues in v1.0 |
+| orjson as base dep | 3-10x faster JSON, worth the single exception | ✓ Good — used everywhere |
+| Async-first | Modern Django supports ASGI, match FastAPI model | ✓ Good — Phase 1 eliminated all sync violations |
+| Convention bridge over drop-in compat | Improve on ninja patterns, not just copy them | ✓ Good — migration CLI with TODO markers |
+| Internal-first, OSS later | Get DX right without community pressure | ✓ Good — 5 example apps validate DX |
+| Pydantic v2 for schemas | Best-in-class validation + serialization | ✓ Good — `model_construct()` for perf |
+| CONN_MAX_AGE=0 for ASGI | Persistent connections leak under ASGI (Django #33497) | ✓ Good — enforced in all deploy configs |
+| Cache-based JWT blacklist | Production-secure out of box, no migration needed | ✓ Good — per-user bulk revocation works |
+| Router body injection | Framework parses JSON once, injects typed `body` param | ✓ Good — all examples aligned |
 
 ---
-*Last updated: 2026-03-07 after initialization*
+*Last updated: 2026-03-20 after v1.0 milestone*
