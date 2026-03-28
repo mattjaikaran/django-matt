@@ -27,21 +27,9 @@
 
 Consolidate duplicated code, fix known correctness issues, quick wins.
 
-- [ ] 1.1 **Unify error handling** — consolidate `utils/errors.py` into `core/errors.py`
-  - Standardize error envelope: `{status_code, detail, extra}`
-  - Per-field validation errors in `extra`: `[{message, key, source}]`
-  - Pre-allocate static error bodies for common codes (400, 401, 403, 404, 429)
-  - `extra` is null in production for 500s (security)
-  - Update all imports across codebase
-  - Source: django-bolt PR #143, known issue in CLAUDE.md
-- [ ] 1.2 **PK nullability audit** — ensure PKs never marked `Optional` in response schemas
-  - Use `null` (not `blank`) as source of truth for nullability
-  - Audit `core/schema.py` field mapping
-  - Source: django-shinobi fix, django-ninja #1160 (10 upvotes)
-- [ ] 1.3 **CreateView explicit 201** — add configurable `status_code` per view class
-  - Router already defaults POST to 201, but make it explicit on the view
-  - `BoundView.__call__` should respect `self.view.status_code`
-  - Source: django-ninja-crud observation
+- [x] 1.1 **Unify error handling** — done (ROADMAP.md)
+- [x] 1.2 **PK nullability audit** — done (ROADMAP.md)
+- [x] 1.3 **choices → enums** — done (ROADMAP.md)
 - [ ] 1.4 **Retry-After header on 429** — auto-set when throttle triggers
   - Configurable IP resolution via callable in settings
   - Per-route throttle scopes
@@ -164,25 +152,13 @@ Better test tooling for users of django-matt.
 
 Verify these patterns are correctly implemented — bugs found in other frameworks.
 
-- [ ] 6.1 **Controller registration metadata** — verify per-API-instance, not on class
-  - Registering same controller across multiple API instances must work
-  - Source: django-ninja-extra #287
-- [ ] 6.2 **Inherited method cloning** — verify `_setup_methods()` clones per subclass
-  - Never mutate inherited function objects in place
-  - Source: django-ninja-extra #319
-- [ ] 6.3 **Decorator chain propagation** — verify decorators propagate through all router tiers
-  - Security vulnerability in django-ninja: intermediate router decorators silently skipped
-  - Source: django-ninja #1597
-- [ ] 6.4 **Decorator ordering** — verify outside-in (declaration order), not reversed
-  - Source: django-ninja #1598
-- [ ] 6.5 **Static vs dynamic route priority** — verify static paths matched before parameterized
-  - Source: django-ninja-extra #340
-- [ ] 6.6 **Auth before permissions execution order** — verify in middleware chain
-  - Was a shipped bug in ninja-extra that hit production
-  - Source: django-ninja-extra #212
-- [ ] 6.7 **`contextvars.ContextVar` for request-scoped state** — verify no thread-locals
-  - Breaks under ASGI multi-worker
-  - Source: django-ninja-extra #75
+- [x] 6.1 **Controller registration metadata** — verified: per-instance storage, no cross-contamination
+- [x] 6.2 **Inherited method cloning** — verified: `setattr(self, ...)` wraps per-instance
+- [x] 6.3 **Decorator chain propagation** — verified: explicit per-method, no silent skipping
+- [x] 6.4 **Decorator ordering** — verified: native Python order, no reversal
+- [x] 6.5 **Static vs dynamic route priority** — verified: `static_patterns + param_patterns`
+- [x] 6.6 **Auth before permissions** — verified: middleware → BoundView. Fixed controller enforcement gap.
+- [x] 6.7 **contextvars not thread-locals** — verified: zero `threading.local()`, all ContextVar
 
 ---
 
