@@ -1421,6 +1421,174 @@ class TestAPIViewSet:
 
 
 # ============================================================================
+# Configurable lookup_field on ViewSets
+# ============================================================================
+
+
+@pytest.mark.django_db
+class TestViewSetLookupField:
+    """Tests for configurable lookup_field/lookup_type on APIViewSet."""
+
+    def test_default_lookup_field(self):
+        """Default lookup_field is 'id' and lookup_type is 'int'."""
+
+        class DefaultVS(APIViewSet):
+            model = User
+            default_response_schema = UserReadSchema
+            read_user = ReadView()
+
+        vs = DefaultVS()
+        # View should keep its default
+        read = vs.__class__._views["read_user"]
+        assert read.lookup_field == "id"
+        assert vs.lookup_type == "int"
+
+    def test_viewset_propagates_lookup_field_to_views(self):
+        """ViewSet lookup_field propagates to Read/Update/Delete views."""
+
+        class SlugVS(APIViewSet):
+            model = User
+            lookup_field = "slug"
+            lookup_type = "str"
+            default_response_schema = UserReadSchema
+            read_user = ReadView()
+            update_user = UpdateView()
+            delete_user = DeleteView()
+
+        vs = SlugVS()
+        for attr_name in ("read_user", "update_user", "delete_user"):
+            view = getattr(vs.__class__, attr_name)
+            assert view.lookup_field == "slug", f"{attr_name} lookup_field not propagated"
+            assert view.path == "{slug}", f"{attr_name} path not updated"
+
+    def test_explicit_view_lookup_not_overridden(self):
+        """A view with explicit lookup_field is not overridden by ViewSet."""
+
+        class MixedVS(APIViewSet):
+            model = User
+            lookup_field = "uuid"
+            lookup_type = "uuid"
+            default_response_schema = UserReadSchema
+            read_user = ReadView(lookup_field="custom_id")  # explicit
+            delete_user = DeleteView()  # should get 'uuid' from ViewSet
+
+        vs = MixedVS()
+        read = vs.__class__.read_user
+        assert read.lookup_field == "custom_id"
+        assert read.path == "{custom_id}"
+
+        delete = vs.__class__.delete_user
+        assert delete.lookup_field == "uuid"
+        assert delete.path == "{uuid}"
+
+    def test_as_urls_uses_lookup_type_int(self):
+        """as_urls() uses <int:id> for default int lookup."""
+
+        class IntVS(APIViewSet):
+            model = User
+            prefix = "users"
+            default_response_schema = UserReadSchema
+            list_users = ListView()
+            read_user = ReadView()
+
+        patterns = IntVS.as_urls()
+        read_pattern = next(p for p in patterns if p.name == "read_user")
+        # Django URLPattern stores the route in .pattern._route
+        route = read_pattern.pattern._route
+        assert "<int:id>" in route
+
+    def test_as_urls_uses_lookup_type_uuid(self):
+        """as_urls() uses <uuid:uuid> for UUID lookup."""
+
+        class UuidVS(APIViewSet):
+            model = User
+            prefix = "items"
+            lookup_field = "uuid"
+            lookup_type = "uuid"
+            default_response_schema = UserReadSchema
+            read_item = ReadView()
+            update_item = UpdateView()
+
+        patterns = UuidVS.as_urls()
+        read_pattern = next(p for p in patterns if p.name == "read_item")
+        route = read_pattern.pattern._route
+        assert "<uuid:uuid>" in route
+
+        update_pattern = next(p for p in patterns if p.name == "update_item")
+        route = update_pattern.pattern._route
+        assert "<uuid:uuid>" in route
+
+    def test_as_urls_uses_lookup_type_str_slug(self):
+        """as_urls() uses <str:slug> for slug lookup."""
+
+        class SlugVS(APIViewSet):
+            model = User
+            prefix = "posts"
+            lookup_field = "slug"
+            lookup_type = "str"
+            default_response_schema = UserReadSchema
+            read_post = ReadView()
+
+        patterns = SlugVS.as_urls()
+        read_pattern = next(p for p in patterns if p.name == "read_post")
+        route = read_pattern.pattern._route
+        assert "<str:slug>" in route
+
+    def test_get_route_info_includes_lookup_metadata(self):
+        """get_route_info() includes lookup_field and lookup_type."""
+
+        class MetaVS(APIViewSet):
+            model = User
+            lookup_field = "uuid"
+            lookup_type = "uuid"
+            default_response_schema = UserReadSchema
+            read_item = ReadView()
+
+        vs = MetaVS()
+        routes = vs.get_routes()
+        read_route = next(r for r in routes if r["name"] == "read_item")
+        assert read_route["lookup_field"] == "uuid"
+        assert read_route["lookup_type"] == "uuid"
+
+    @pytest.mark.asyncio
+    async def test_lookup_field_used_in_query(self, rf):
+        """ReadView uses the propagated lookup_field for DB queries."""
+        user = await User.objects.acreate_user(username="slug_user", password="pass123")
+
+        class UsernameVS(APIViewSet):
+            model = User
+            lookup_field = "username"
+            lookup_type = "str"
+            default_response_schema = UserReadSchema
+            read_user = ReadView()
+
+        vs = UsernameVS()
+        view = vs.__class__.read_user
+        view._viewset = vs
+
+        request = _make_request(rf, "GET", path="/users/slug_user/")
+        result = await view.handle(request, username="slug_user")
+        assert result["username"] == "slug_user"
+        assert result["id"] == user.id
+
+    def test_list_view_not_affected(self):
+        """ListView is not affected by lookup_field propagation (no lookup_field attr)."""
+
+        class ListVS(APIViewSet):
+            model = User
+            lookup_field = "slug"
+            lookup_type = "str"
+            default_response_schema = UserReadSchema
+            list_users = ListView()
+
+        vs = ListVS()
+        list_view = vs.__class__.list_users
+        assert not hasattr(list_view, "_lookup_field_explicit")
+        # ListView should keep its default path ""
+        assert list_view.path == ""
+
+
+# ============================================================================
 # Permission overrides per operation
 # ============================================================================
 
@@ -2411,3 +2579,488 @@ class TestValidateModel:
                 response = await bound(request)
                 assert response.status_code == 200
                 mock_clean.assert_called_once()
+
+
+# ============================================================================
+# SoftDeleteMixin tests
+# ============================================================================
+
+
+from django_matt.views.soft_delete import (
+    PermanentDeleteView,
+    RestoreView,
+    SoftDeleteMixin,
+)
+
+
+class TestSoftDeleteMixinClassSetup:
+    """Tests for SoftDeleteMixin class-level behavior."""
+
+    def test_restore_view_added_automatically(self):
+        """SoftDeleteMixin adds a RestoreView to subclasses."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+
+        assert hasattr(MyViewSet, "restore")
+        assert isinstance(MyViewSet.restore, RestoreView)
+
+    def test_permanent_delete_not_added_by_default(self):
+        """PermanentDeleteView is NOT added when allow_hard_delete is False."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+
+        # permanently_delete should not exist as a PermanentDeleteView
+        attr = getattr(MyViewSet, "permanently_delete", None)
+        assert not isinstance(attr, PermanentDeleteView)
+
+    def test_permanent_delete_added_when_allowed(self):
+        """PermanentDeleteView IS added when allow_hard_delete is True."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+            allow_hard_delete = True
+
+        assert hasattr(MyViewSet, "permanently_delete")
+        assert isinstance(MyViewSet.permanently_delete, PermanentDeleteView)
+
+    def test_restore_view_path(self):
+        """RestoreView has correct path and methods."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+
+        assert MyViewSet.restore.path == "{id}/restore"
+        assert MyViewSet.restore.methods == ["POST"]
+
+    def test_permanent_delete_view_path(self):
+        """PermanentDeleteView has correct path and methods."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+            allow_hard_delete = True
+
+        assert MyViewSet.permanently_delete.path == "{id}/permanent"
+        assert MyViewSet.permanently_delete.methods == ["DELETE"]
+
+    def test_custom_restore_view_not_overridden(self):
+        """User-defined restore view is not replaced."""
+        custom_restore = RestoreView(path="{id}/undelete")
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+            restore = custom_restore
+
+        assert MyViewSet.restore.path == "{id}/undelete"
+
+
+@pytest.mark.django_db
+class TestSoftDeleteMixinPerformDelete:
+    """Tests for SoftDeleteMixin.perform_delete() behavior."""
+
+    @pytest.mark.asyncio
+    async def test_perform_delete_calls_adelete(self):
+        """perform_delete calls instance.adelete() for soft delete."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+
+        vs = MyViewSet()
+        instance = MagicMock()
+        instance.adelete = AsyncMock()
+        request = MagicMock(spec=HttpRequest)
+
+        await vs.perform_delete(instance, request)
+        instance.adelete.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_perform_restore_calls_arestore(self):
+        """perform_restore calls instance.arestore()."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+
+        vs = MyViewSet()
+        instance = MagicMock()
+        instance.arestore = AsyncMock()
+        request = MagicMock(spec=HttpRequest)
+
+        await vs.perform_restore(instance, request)
+        instance.arestore.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_perform_delete_raises_on_missing_adelete(self):
+        """perform_delete raises TypeError when model lacks adelete."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+
+        vs = MyViewSet()
+        instance = MagicMock(spec=[])  # Empty spec = no attributes
+        request = MagicMock(spec=HttpRequest)
+
+        with pytest.raises(TypeError, match="does not support soft delete"):
+            await vs.perform_delete(instance, request)
+
+    @pytest.mark.asyncio
+    async def test_perform_restore_raises_on_missing_arestore(self):
+        """perform_restore raises TypeError when model lacks arestore."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+
+        vs = MyViewSet()
+        instance = MagicMock(spec=[])  # Empty spec = no attributes
+        request = MagicMock(spec=HttpRequest)
+
+        with pytest.raises(TypeError, match="does not support restore"):
+            await vs.perform_restore(instance, request)
+
+
+@pytest.mark.django_db
+class TestRestoreView:
+    """Tests for the RestoreView."""
+
+    @pytest.mark.asyncio
+    async def test_restore_view_handle(self, rf):
+        """RestoreView restores a soft-deleted instance."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+            default_response_schema = UserReadSchema
+
+        vs = MyViewSet()
+        view = MyViewSet.restore
+        view._viewset = vs
+
+        # Create a mock "soft-deleted" user instance
+        mock_instance = MagicMock(spec=User)
+        mock_instance.id = 1
+        mock_instance.pk = 1
+        mock_instance.username = "testuser"
+        mock_instance.is_deleted = True
+        mock_instance.arestore = AsyncMock()
+        mock_instance.arefresh_from_db = AsyncMock()
+
+        # Mock the queryset chain
+        mock_qs = MagicMock()
+        mock_qs.aget = AsyncMock(return_value=mock_instance)
+
+        with patch.object(User, "all_objects", create=True) as mock_all_objects:
+            mock_all_objects.all.return_value = mock_qs
+
+            request = _make_request(rf, "POST", "/items/1/restore/")
+            result = await view.handle(request, id=1)
+
+        assert result["restored"] is True
+        mock_instance.arestore.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_restore_view_not_found(self, rf):
+        """RestoreView returns 404 for non-existent instance."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+            default_response_schema = UserReadSchema
+
+        vs = MyViewSet()
+        view = MyViewSet.restore
+        view._viewset = vs
+
+        mock_qs = MagicMock()
+        mock_qs.aget = AsyncMock(side_effect=User.DoesNotExist)
+
+        with patch.object(User, "all_objects", create=True) as mock_all_objects:
+            mock_all_objects.all.return_value = mock_qs
+
+            request = _make_request(rf, "POST", "/items/999/restore/")
+            with pytest.raises(NotFoundAPIError):
+                await view.handle(request, id=999)
+
+    @pytest.mark.asyncio
+    async def test_restore_view_not_deleted_raises(self, rf):
+        """RestoreView raises ValueError if item is not soft-deleted."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+            default_response_schema = UserReadSchema
+
+        vs = MyViewSet()
+        view = MyViewSet.restore
+        view._viewset = vs
+
+        mock_instance = MagicMock(spec=User)
+        mock_instance.is_deleted = False  # Not deleted
+
+        mock_qs = MagicMock()
+        mock_qs.aget = AsyncMock(return_value=mock_instance)
+
+        with patch.object(User, "all_objects", create=True) as mock_all_objects:
+            mock_all_objects.all.return_value = mock_qs
+
+            request = _make_request(rf, "POST", "/items/1/restore/")
+            with pytest.raises(ValueError, match="is not deleted"):
+                await view.handle(request, id=1)
+
+    @pytest.mark.asyncio
+    async def test_restore_view_missing_id(self, rf):
+        """RestoreView raises ValueError when id is missing."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+
+        vs = MyViewSet()
+        view = MyViewSet.restore
+        view._viewset = vs
+
+        request = _make_request(rf, "POST", "/items/restore/")
+        with pytest.raises(ValueError, match="Missing id"):
+            await view.handle(request)
+
+
+@pytest.mark.django_db
+class TestPermanentDeleteView:
+    """Tests for the PermanentDeleteView."""
+
+    @pytest.mark.asyncio
+    async def test_permanent_delete_handle(self, rf):
+        """PermanentDeleteView hard-deletes an instance."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+            allow_hard_delete = True
+
+        vs = MyViewSet()
+        view = MyViewSet.permanently_delete
+        view._viewset = vs
+
+        mock_instance = MagicMock(spec=User)
+        mock_instance.id = 1
+        mock_instance.pk = 1
+        mock_instance.ahard_delete = AsyncMock()
+
+        mock_qs = MagicMock()
+        mock_qs.aget = AsyncMock(return_value=mock_instance)
+
+        with patch.object(User, "all_objects", create=True) as mock_all_objects:
+            mock_all_objects.all.return_value = mock_qs
+
+            request = _make_request(rf, "DELETE", "/items/1/permanent/")
+            result = await view.handle(request, id=1)
+
+        assert result["permanently_deleted"] is True
+        mock_instance.ahard_delete.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_permanent_delete_not_found(self, rf):
+        """PermanentDeleteView returns 404 for non-existent instance."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+            allow_hard_delete = True
+
+        vs = MyViewSet()
+        view = MyViewSet.permanently_delete
+        view._viewset = vs
+
+        mock_qs = MagicMock()
+        mock_qs.aget = AsyncMock(side_effect=User.DoesNotExist)
+
+        with patch.object(User, "all_objects", create=True) as mock_all_objects:
+            mock_all_objects.all.return_value = mock_qs
+
+            request = _make_request(rf, "DELETE", "/items/999/permanent/")
+            with pytest.raises(NotFoundAPIError):
+                await view.handle(request, id=999)
+
+    @pytest.mark.asyncio
+    async def test_permanent_delete_falls_back_to_adelete(self, rf):
+        """PermanentDeleteView uses adelete() if ahard_delete() is not available."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+            allow_hard_delete = True
+
+        vs = MyViewSet()
+        view = MyViewSet.permanently_delete
+        view._viewset = vs
+
+        # Instance without ahard_delete but with adelete
+        mock_instance = MagicMock()
+        del mock_instance.ahard_delete  # Remove ahard_delete
+        mock_instance.adelete = AsyncMock()
+
+        mock_qs = MagicMock()
+        mock_qs.aget = AsyncMock(return_value=mock_instance)
+
+        with patch.object(User, "all_objects", create=True) as mock_all_objects:
+            mock_all_objects.all.return_value = mock_qs
+
+            request = _make_request(rf, "DELETE", "/items/1/permanent/")
+            result = await view.handle(request, id=1)
+
+        assert result["permanently_deleted"] is True
+        mock_instance.adelete.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_permanent_delete_missing_id(self, rf):
+        """PermanentDeleteView raises ValueError when id is missing."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+            allow_hard_delete = True
+
+        vs = MyViewSet()
+        view = MyViewSet.permanently_delete
+        view._viewset = vs
+
+        request = _make_request(rf, "DELETE", "/items/permanent/")
+        with pytest.raises(ValueError, match="Missing id"):
+            await view.handle(request)
+
+
+class TestSoftDeleteMixinRoutes:
+    """Tests for route generation with SoftDeleteMixin."""
+
+    def test_routes_include_restore(self):
+        """get_routes() includes the restore endpoint."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+            default_response_schema = UserReadSchema
+
+            list_items = ListView()
+            delete_item = DeleteView()
+
+        vs = MyViewSet()
+        routes = vs.get_routes()
+        route_names = [r["name"] for r in routes]
+
+        assert "restore" in route_names
+        assert "list_items" in route_names
+        assert "delete_item" in route_names
+
+    def test_routes_include_permanently_delete(self):
+        """get_routes() includes permanently_delete when allow_hard_delete=True."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+            allow_hard_delete = True
+
+            delete_item = DeleteView()
+
+        vs = MyViewSet()
+        routes = vs.get_routes()
+        route_names = [r["name"] for r in routes]
+
+        assert "restore" in route_names
+        assert "permanently_delete" in route_names
+
+    def test_routes_exclude_permanently_delete_by_default(self):
+        """get_routes() does NOT include permanently_delete when allow_hard_delete=False."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+
+            delete_item = DeleteView()
+
+        vs = MyViewSet()
+        routes = vs.get_routes()
+        route_names = [r["name"] for r in routes]
+
+        assert "restore" in route_names
+        assert "permanently_delete" not in route_names
+
+
+@pytest.mark.django_db
+class TestSoftDeleteMixinIntegration:
+    """Integration tests for SoftDeleteMixin with BoundView."""
+
+    @pytest.mark.asyncio
+    async def test_delete_via_bound_view_calls_soft_delete(self, rf):
+        """Deleting via BoundView with SoftDeleteMixin performs soft delete."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+            default_response_schema = UserReadSchema
+
+            delete_item = DeleteView()
+
+        vs = MyViewSet()
+        view = MyViewSet.delete_item
+        view._viewset = vs
+
+        mock_instance = MagicMock(spec=User)
+        mock_instance.id = 1
+        mock_instance.pk = 1
+        mock_instance.adelete = AsyncMock()
+        mock_instance.DoesNotExist = User.DoesNotExist
+
+        mock_qs = MagicMock()
+        mock_qs.model = User
+        mock_qs.aget = AsyncMock(return_value=mock_instance)
+
+        with patch.object(vs, "get_queryset", return_value=mock_qs):
+            bound = BoundView(view, vs)
+            request = _make_request(rf, "DELETE", "/items/1/")
+            response = await bound(request, id=1)
+
+        assert response.status_code == 200
+        # perform_delete from SoftDeleteMixin calls adelete
+        mock_instance.adelete.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_restore_via_bound_view(self, rf):
+        """Restoring via BoundView returns 200 on success."""
+
+        class MyViewSet(SoftDeleteMixin, APIViewSet):
+            model = User
+            prefix = "items"
+            default_response_schema = UserReadSchema
+
+        vs = MyViewSet()
+        view = MyViewSet.restore
+        view._viewset = vs
+
+        mock_instance = MagicMock(spec=User)
+        mock_instance.id = 1
+        mock_instance.pk = 1
+        mock_instance.username = "restored_user"
+        mock_instance.is_deleted = True
+        mock_instance.arestore = AsyncMock()
+        mock_instance.arefresh_from_db = AsyncMock()
+
+        mock_qs = MagicMock()
+        mock_qs.aget = AsyncMock(return_value=mock_instance)
+
+        with patch.object(User, "all_objects", create=True) as mock_all_objects:
+            mock_all_objects.all.return_value = mock_qs
+
+            bound = BoundView(view, vs)
+            request = _make_request(rf, "POST", "/items/1/restore/")
+            response = await bound(request, id=1)
+
+        assert response.status_code == 200

@@ -292,7 +292,7 @@ class APIView(Generic[ModelT, SchemaT]):
 
     def get_route_info(self) -> dict[str, Any]:
         """Get route information for OpenAPI schema generation."""
-        return {
+        info: dict[str, Any] = {
             "path": self.path,
             "methods": self.methods,
             "response_schema": self.get_response_schema(),
@@ -302,6 +302,12 @@ class APIView(Generic[ModelT, SchemaT]):
             "tags": self.tags or (self._viewset.tags if self._viewset else None),
             "operation_id": self.operation_id or self._generate_operation_id(),
         }
+        # Include lookup metadata for OpenAPI path parameter typing
+        if hasattr(self, "lookup_field"):
+            info["lookup_field"] = self.lookup_field
+            if self._viewset is not None:
+                info["lookup_type"] = getattr(self._viewset, "lookup_type", "int")
+        return info
 
     def _generate_summary(self) -> str:
         """Generate a summary from the class name and viewset."""

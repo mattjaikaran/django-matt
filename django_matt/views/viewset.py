@@ -69,11 +69,35 @@ class ViewSet(metaclass=ViewSetMeta):
 
     def __init__(self):
         """Initialize the ViewSet and bind all views."""
-        # Bind views to this instance
+        # Bind views to this instance and propagate lookup config
         for attr_name in self._views:
             view = getattr(self.__class__, attr_name, None)
             if view is not None:
                 view._viewset = self
+                self._propagate_lookup(view)
+
+    def _propagate_lookup(self, view: Any) -> None:
+        """Propagate lookup_field from ViewSet to detail views that didn't set it explicitly.
+
+        Only applies to views that have a ``lookup_field`` attribute (Read, Update, Delete)
+        and that did *not* receive an explicit ``lookup_field`` in their constructor.
+        When the lookup field changes, the view's default ``path`` is also updated to
+        match (e.g. ``{id}`` becomes ``{slug}``).
+        """
+        vs_lookup = getattr(self, "lookup_field", "id")
+        if vs_lookup == "id":
+            # Default — nothing to propagate
+            return
+        if not hasattr(view, "lookup_field"):
+            return
+        if getattr(view, "_lookup_field_explicit", False):
+            # View was configured explicitly — don't override
+            return
+        # Update both the lookup field and the path template
+        old_field = view.lookup_field
+        view.lookup_field = vs_lookup
+        if view.path == f"{{{old_field}}}":
+            view.path = f"{{{vs_lookup}}}"
 
     def get_queryset(self, request: HttpRequest | None = None) -> models.QuerySet:
         """
@@ -101,6 +125,7 @@ class ViewSet(metaclass=ViewSetMeta):
         routes = []
         for attr_name, view in self._views.items():
             view._viewset = self
+            self._propagate_lookup(view)
             route_info = view.get_route_info()
 
             # Build full path
@@ -126,24 +151,40 @@ class ViewSet(metaclass=ViewSetMeta):
         """
         Generate Django URL patterns for this ViewSet.
 
+        Uses ``lookup_type`` (default ``"int"``) as the Django path converter
+        for the lookup parameter.  For example, with ``lookup_field="uuid"``
+        and ``lookup_type="uuid"``, the URL pattern ``{uuid}`` becomes
+        ``<uuid:uuid>``.
+
         Returns:
             List of Django URL patterns
         """
+        import re
+
         from django.urls import path
 
         instance = cls()
+        lookup_field = getattr(instance, "lookup_field", "id")
+        lookup_type = getattr(instance, "lookup_type", "int")
         patterns = []
 
         for route in instance.get_routes():
             view = route["view"]
             view._viewset = instance
 
-            # Convert {param} to <param> for Django URLs
+            # Convert {param} to <converter:param> for Django URLs.
+            # The lookup parameter gets the configured converter type;
+            # other path params default to no converter (Django treats as str).
             url_path = route["path"]
-            # Handle {id} -> <id> conversion
-            import re
 
-            url_path = re.sub(r"\{(\w+)\}", r"<\1>", url_path)
+            def _replace_param(m: re.Match) -> str:
+                param_name = m.group(1)
+                # Use the configured lookup_type for the lookup field
+                if param_name == lookup_field:
+                    return f"<{lookup_type}:{param_name}>"
+                return f"<{param_name}>"
+
+            url_path = re.sub(r"\{(\w+)\}", _replace_param, url_path)
 
             # Create the bound view callable
             bound_view = getattr(instance, route["name"])
@@ -159,6 +200,14 @@ class APIViewSet(HooksMixin, ViewSet):
 
     Provides additional functionality for API-specific concerns
     like authentication, permissions, response formatting, and lifecycle hooks.
+
+    Lookup Configuration:
+        lookup_field: Field used for single-object lookups (default: "id").
+            Propagates to ReadView, UpdateView, DeleteView unless they set
+            their own lookup_field explicitly.
+        lookup_type: Django URL converter type (default: "int").
+            Valid values: "int", "str", "uuid", "slug", "path".
+            Used when generating URL patterns via as_urls().
 
     Lifecycle Hooks:
         Override these methods to hook into CRUD operations:
@@ -205,6 +254,20 @@ class APIViewSet(HooksMixin, ViewSet):
                 await send_notification(f"User {instance.email} created")
                 return instance
 
+        # UUID lookup example:
+        class ArticleViewSet(APIViewSet):
+            model = Article
+            lookup_field = "uuid"
+            lookup_type = "uuid"
+            # Generates URLs like: <uuid:uuid>/
+
+        # Slug lookup example:
+        class PostViewSet(APIViewSet):
+            model = Post
+            lookup_field = "slug"
+            lookup_type = "str"
+            # Generates URLs like: <str:slug>/
+
         # In urls.py:
         urlpatterns = [
             path("api/", include(UserViewSet.as_urls())),
@@ -220,6 +283,10 @@ class APIViewSet(HooksMixin, ViewSet):
 
     # Opt-in Django model full_clean() validation before save
     validate_model: ClassVar[bool] = False
+
+    # Lookup configuration — propagated to detail views (Read, Update, Delete)
+    lookup_field: ClassVar[str] = "id"
+    lookup_type: ClassVar[str] = "int"
 
     async def perform_create(self, data: dict[str, Any], request: HttpRequest) -> models.Model:
         """

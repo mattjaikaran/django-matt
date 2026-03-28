@@ -28,6 +28,7 @@ class DeleteView(APIView):
     path: str = "{id}"
     methods: list[str] = ["DELETE"]
     lookup_field: str = "id"
+    _lookup_field_explicit: bool = False
 
     # Response options
     return_deleted: bool = False  # Return the deleted object's data
@@ -40,7 +41,12 @@ class DeleteView(APIView):
     ):
         super().__init__(**kwargs)
         if lookup_field is not None:
+            old_field = self.lookup_field
             self.lookup_field = lookup_field
+            self._lookup_field_explicit = True
+            # Update path if it still uses the old default placeholder
+            if self.path == f"{{{old_field}}}":
+                self.path = f"{{{lookup_field}}}"
         if return_deleted is not None:
             self.return_deleted = return_deleted
 
