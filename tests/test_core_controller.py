@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pytest
 from django.contrib.auth.models import User, Group
+from django.http import JsonResponse
 from django.test import RequestFactory
 from django.urls import path as django_path
 
@@ -23,7 +24,7 @@ from django_matt.core.controller import (
     DJANGO_VERSION,
 )
 from django_matt.core.errors import ConfigurationError, NotFoundAPIError
-from django_matt.core.router import APIRouter
+from django_matt.core.router import APIRouter, get as route_get
 
 
 # Test Schemas using Pydantic BaseModel directly
@@ -462,6 +463,98 @@ class TestStaticBeforeParameterizedOrdering:
         me_idx = next(i for i, r in enumerate(routes) if "me" in r)
         id_idx = next(i for i, r in enumerate(routes) if "<str:id>" in r)
         assert me_idx < id_idx, f"Decorator routes not sorted: {routes}"
+
+
+class TestControllerPermissionClasses:
+    """Verify that Controller.permission_classes is enforced at dispatch time."""
+
+    def _make_request(self, rf, method="get", user=None):
+        request = getattr(rf, method)("/")
+        request.user = user
+        request.content_type = "application/json"
+        return request
+
+    @pytest.mark.asyncio
+    async def test_permission_classes_blocks_anonymous(self, rf):
+        """permission_classes=[IsAuthenticated] must reject anonymous users."""
+        from django.contrib.auth.models import AnonymousUser
+        from django_matt.permissions.common import IsAuthenticated
+
+        router = APIRouter()
+
+        class ProtectedController(Controller):
+            prefix = "/protected"
+            permission_classes = [IsAuthenticated]
+
+            @route_get("/")
+            async def index(self, request):
+                return JsonResponse({"ok": True})
+
+        router.register_controller(ProtectedController)
+        urls = router.get_urls()
+
+        request = self._make_request(rf, user=AnonymousUser())
+        response = await urls[0].callback(request)
+        assert response.status_code == 401
+
+    @pytest.mark.asyncio
+    async def test_permission_classes_allows_authenticated(self, rf):
+        """permission_classes=[IsAuthenticated] must allow authenticated users."""
+        from django_matt.permissions.common import IsAuthenticated
+
+        router = APIRouter()
+
+        class ProtectedController(Controller):
+            prefix = "/protected"
+            permission_classes = [IsAuthenticated]
+
+            @route_get("/")
+            async def index(self, request):
+                return JsonResponse({"ok": True})
+
+        router.register_controller(ProtectedController)
+        urls = router.get_urls()
+
+        user = User(pk=1, username="test", is_active=True)
+        request = self._make_request(rf, user=user)
+        response = await urls[0].callback(request)
+        assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_empty_permission_classes_allows_all(self, rf):
+        """No permission_classes means no restriction."""
+        router = APIRouter()
+
+        class PublicController(Controller):
+            prefix = "/public"
+
+            @route_get("/")
+            async def index(self, request):
+                return JsonResponse({"ok": True})
+
+        router.register_controller(PublicController)
+        urls = router.get_urls()
+
+        from django.contrib.auth.models import AnonymousUser
+        request = self._make_request(rf, user=AnonymousUser())
+        response = await urls[0].callback(request)
+        assert response.status_code == 200
+
+    def test_subclass_does_not_share_permission_classes(self):
+        """Each subclass gets its own permission_classes list."""
+        from django_matt.permissions.common import IsAuthenticated
+
+        class ParentController(Controller):
+            prefix = "/parent"
+            permission_classes = [IsAuthenticated]
+
+        class ChildController(ParentController):
+            prefix = "/child"
+
+        # Child inherits parent's permissions
+        assert len(ChildController.permission_classes) == 1
+        # But they are different list objects
+        assert ChildController.permission_classes is not ParentController.permission_classes
 
 
 @pytest.fixture

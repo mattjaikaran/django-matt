@@ -1,8 +1,8 @@
 """
 Audit context management.
 
-Provides thread-local storage for request context (user, IP, etc.)
-that can be accessed from anywhere during request processing.
+Provides request-scoped context storage (user, IP, etc.) via contextvars,
+accessible from anywhere during request processing.
 """
 
 import contextvars

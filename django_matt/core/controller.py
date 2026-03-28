@@ -79,6 +79,7 @@ class Controller:
     # that single list object is shared across ALL subclasses.
     tags: list[str] = []
     auto_error_handling: bool = True  # Enable automatic error handling by default
+    permission_classes: list = []
 
     def __init_subclass__(cls, **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
@@ -86,6 +87,8 @@ class Controller:
         # appending to one subclass never bleeds into another.
         if "tags" not in cls.__dict__:
             cls.tags = []
+        if "permission_classes" not in cls.__dict__:
+            cls.permission_classes = list(cls.permission_classes)
 
     def __init__(self):
         self._setup_methods()
@@ -111,6 +114,7 @@ class Controller:
             # Cache type hints once at init — not per-request
             hints = get_type_hints(method)
             is_coro = inspect.iscoroutinefunction(method)
+            takes_request = "request" in inspect.signature(method).parameters
 
             # Pre-compute which params need Pydantic injection
             pydantic_params = {
@@ -138,6 +142,14 @@ class Controller:
                         di_params_found[pname] = pparam.default
                 di_params = di_params_found if di_params_found else None
 
+            # Pre-resolve permission instances once at init — not per-request
+            _permission_instances = None
+            if self.permission_classes:
+                _permission_instances = [
+                    cls() if isinstance(cls, type) else cls
+                    for cls in self.permission_classes
+                ]
+
             @wraps(method)
             async def wrapper(
                 request,
@@ -148,9 +160,19 @@ class Controller:
                 _error_handler=error_handler,
                 _error_config=error_config,
                 _di_params=di_params,
+                _perms=_permission_instances,
+                _takes_request=takes_request,
                 **kwargs,
             ):
                 try:
+                    # Check controller-level permissions (auth middleware already ran)
+                    if _perms:
+                        for perm in _perms:
+                            if not perm.has_permission(request, None):
+                                status_code = getattr(perm, "status_code", 403)
+                                message = getattr(perm, "message", "Permission denied.")
+                                return JsonResponse({"detail": message}, status=status_code)
+
                     # Parse body once with orjson if needed
                     if (
                         _pydantic_params
@@ -193,10 +215,14 @@ class Controller:
                             raise
 
                     try:
-                        if _is_coro:
-                            result = await _method(*args, **kwargs)
+                        if _takes_request:
+                            call_args = (request, *args)
                         else:
-                            result = _method(*args, **kwargs)
+                            call_args = args
+                        if _is_coro:
+                            result = await _method(*call_args, **kwargs)
+                        else:
+                            result = _method(*call_args, **kwargs)
 
                         return result
                     finally:

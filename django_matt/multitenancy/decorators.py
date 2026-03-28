@@ -56,20 +56,19 @@ def requires_organization(func: Callable) -> Callable:
                 )
             return await func(self_or_request, *args, **kwargs)
         return async_wrapper
-    else:
-        @wraps(func)
-        def sync_wrapper(self_or_request, *args, **kwargs):
-            request = self_or_request if isinstance(self_or_request, HttpRequest) else (
-                args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+    @wraps(func)
+    def sync_wrapper(self_or_request, *args, **kwargs):
+        request = self_or_request if isinstance(self_or_request, HttpRequest) else (
+            args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+        )
+        organization = _get_organization(request)
+        if not organization:
+            return JsonResponse(
+                {"error": "Organization context required"},
+                status=400,
             )
-            organization = _get_organization(request)
-            if not organization:
-                return JsonResponse(
-                    {"error": "Organization context required"},
-                    status=400,
-                )
-            return func(self_or_request, *args, **kwargs)
-        return sync_wrapper
+        return func(self_or_request, *args, **kwargs)
+    return sync_wrapper
 
 
 def requires_org_membership(func: Callable) -> Callable:
@@ -118,33 +117,32 @@ def requires_org_membership(func: Callable) -> Callable:
 
             return await func(self_or_request, *args, **kwargs)
         return async_wrapper
-    else:
-        @wraps(func)
-        def sync_wrapper(self_or_request, *args, **kwargs):
-            request = self_or_request if isinstance(self_or_request, HttpRequest) else (
-                args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+    @wraps(func)
+    def sync_wrapper(self_or_request, *args, **kwargs):
+        request = self_or_request if isinstance(self_or_request, HttpRequest) else (
+            args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+        )
+        if not request.user.is_authenticated:
+            return JsonResponse(
+                {"error": "Authentication required"},
+                status=401,
             )
-            if not request.user.is_authenticated:
-                return JsonResponse(
-                    {"error": "Authentication required"},
-                    status=401,
-                )
 
-            organization = _get_organization(request)
-            if not organization:
-                return JsonResponse(
-                    {"error": "Organization context required"},
-                    status=400,
-                )
+        organization = _get_organization(request)
+        if not organization:
+            return JsonResponse(
+                {"error": "Organization context required"},
+                status=400,
+            )
 
-            if not organization.is_member(request.user):
-                return JsonResponse(
-                    {"error": "You are not a member of this organization"},
-                    status=403,
-                )
+        if not organization.is_member(request.user):
+            return JsonResponse(
+                {"error": "You are not a member of this organization"},
+                status=403,
+            )
 
-            return func(self_or_request, *args, **kwargs)
-        return sync_wrapper
+        return func(self_or_request, *args, **kwargs)
+    return sync_wrapper
 
 
 def requires_org_role(
@@ -219,52 +217,51 @@ def requires_org_role(
 
                 return await func(self_or_request, *args, **kwargs)
             return async_wrapper
-        else:
-            @wraps(func)
-            def sync_wrapper(self_or_request, *args, **kwargs):
-                request = self_or_request if isinstance(self_or_request, HttpRequest) else (
-                    args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+        @wraps(func)
+        def sync_wrapper(self_or_request, *args, **kwargs):
+            request = self_or_request if isinstance(self_or_request, HttpRequest) else (
+                args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+            )
+            if not request.user.is_authenticated:
+                return JsonResponse(
+                    {"error": "Authentication required"},
+                    status=401,
                 )
-                if not request.user.is_authenticated:
-                    return JsonResponse(
-                        {"error": "Authentication required"},
-                        status=401,
-                    )
 
-                organization = _get_organization(request)
-                if not organization:
-                    return JsonResponse(
-                        {"error": "Organization context required"},
-                        status=400,
-                    )
+            organization = _get_organization(request)
+            if not organization:
+                return JsonResponse(
+                    {"error": "Organization context required"},
+                    status=400,
+                )
 
-                from django_matt.multitenancy.models import Membership
+            from django_matt.multitenancy.models import Membership
 
-                membership = Membership.objects.filter(
-                    organization=organization,
-                    user=request.user,
-                ).first()
+            membership = Membership.objects.filter(
+                organization=organization,
+                user=request.user,
+            ).first()
 
-                if not membership:
-                    return JsonResponse(
-                        {"error": "You are not a member of this organization"},
-                        status=403,
-                    )
+            if not membership:
+                return JsonResponse(
+                    {"error": "You are not a member of this organization"},
+                    status=403,
+                )
 
-                user_role = membership.role
-                has_role = user_role in roles
+            user_role = membership.role
+            has_role = user_role in roles
 
-                if not has_role:
-                    return JsonResponse(
-                        {"error": f"Required role(s): {', '.join(roles)}"},
-                        status=403,
-                    )
+            if not has_role:
+                return JsonResponse(
+                    {"error": f"Required role(s): {', '.join(roles)}"},
+                    status=403,
+                )
 
-                # Attach membership to request for convenience
-                request.membership = membership
+            # Attach membership to request for convenience
+            request.membership = membership
 
-                return func(self_or_request, *args, **kwargs)
-            return sync_wrapper
+            return func(self_or_request, *args, **kwargs)
+        return sync_wrapper
 
     return decorator
 
@@ -361,51 +358,50 @@ def requires_min_org_role(min_role: str) -> Callable:
 
                 return await func(self_or_request, *args, **kwargs)
             return async_wrapper
-        else:
-            @wraps(func)
-            def sync_wrapper(self_or_request, *args, **kwargs):
-                request = self_or_request if isinstance(self_or_request, HttpRequest) else (
-                    args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+        @wraps(func)
+        def sync_wrapper(self_or_request, *args, **kwargs):
+            request = self_or_request if isinstance(self_or_request, HttpRequest) else (
+                args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+            )
+            if not request.user.is_authenticated:
+                return JsonResponse(
+                    {"error": "Authentication required"},
+                    status=401,
                 )
-                if not request.user.is_authenticated:
-                    return JsonResponse(
-                        {"error": "Authentication required"},
-                        status=401,
-                    )
 
-                organization = _get_organization(request)
-                if not organization:
-                    return JsonResponse(
-                        {"error": "Organization context required"},
-                        status=400,
-                    )
+            organization = _get_organization(request)
+            if not organization:
+                return JsonResponse(
+                    {"error": "Organization context required"},
+                    status=400,
+                )
 
-                from django_matt.multitenancy.models import Membership
+            from django_matt.multitenancy.models import Membership
 
-                membership = Membership.objects.filter(
-                    organization=organization,
-                    user=request.user,
-                ).first()
+            membership = Membership.objects.filter(
+                organization=organization,
+                user=request.user,
+            ).first()
 
-                if not membership:
-                    return JsonResponse(
-                        {"error": "You are not a member of this organization"},
-                        status=403,
-                    )
+            if not membership:
+                return JsonResponse(
+                    {"error": "You are not a member of this organization"},
+                    status=403,
+                )
 
-                user_priority = MembershipRole.get_priority(membership.role)
-                required_priority = MembershipRole.get_priority(min_role)
+            user_priority = MembershipRole.get_priority(membership.role)
+            required_priority = MembershipRole.get_priority(min_role)
 
-                if user_priority < required_priority:
-                    return JsonResponse(
-                        {"error": f"Minimum role required: {min_role}"},
-                        status=403,
-                    )
+            if user_priority < required_priority:
+                return JsonResponse(
+                    {"error": f"Minimum role required: {min_role}"},
+                    status=403,
+                )
 
-                request.membership = membership
+            request.membership = membership
 
-                return func(self_or_request, *args, **kwargs)
-            return sync_wrapper
+            return func(self_or_request, *args, **kwargs)
+        return sync_wrapper
 
     return decorator
 
@@ -471,49 +467,48 @@ def requires_team_membership(team_param: str = "team_id") -> Callable:
 
                 return await func(self_or_request, *args, **kwargs)
             return async_wrapper
-        else:
-            @wraps(func)
-            def sync_wrapper(self_or_request, *args, **kwargs):
-                request = self_or_request if isinstance(self_or_request, HttpRequest) else (
-                    args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+        @wraps(func)
+        def sync_wrapper(self_or_request, *args, **kwargs):
+            request = self_or_request if isinstance(self_or_request, HttpRequest) else (
+                args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+            )
+            if not request.user.is_authenticated:
+                return JsonResponse(
+                    {"error": "Authentication required"},
+                    status=401,
                 )
-                if not request.user.is_authenticated:
-                    return JsonResponse(
-                        {"error": "Authentication required"},
-                        status=401,
-                    )
 
-                team_id = kwargs.get(team_param)
-                if not team_id:
-                    return JsonResponse(
-                        {"error": "Team ID required"},
-                        status=400,
-                    )
+            team_id = kwargs.get(team_param)
+            if not team_id:
+                return JsonResponse(
+                    {"error": "Team ID required"},
+                    status=400,
+                )
 
-                from django_matt.multitenancy.models import Team, TeamMembership
+            from django_matt.multitenancy.models import Team, TeamMembership
 
-                team = Team.objects.filter(id=team_id).first()
-                if not team:
-                    return JsonResponse(
-                        {"error": "Team not found"},
-                        status=404,
-                    )
+            team = Team.objects.filter(id=team_id).first()
+            if not team:
+                return JsonResponse(
+                    {"error": "Team not found"},
+                    status=404,
+                )
 
-                team_membership = TeamMembership.objects.filter(
-                    team=team,
-                    user=request.user,
-                ).first()
+            team_membership = TeamMembership.objects.filter(
+                team=team,
+                user=request.user,
+            ).first()
 
-                if not team_membership:
-                    return JsonResponse(
-                        {"error": "You are not a member of this team"},
-                        status=403,
-                    )
+            if not team_membership:
+                return JsonResponse(
+                    {"error": "You are not a member of this team"},
+                    status=403,
+                )
 
-                request.team = team
-                request.team_membership = team_membership
+            request.team = team
+            request.team_membership = team_membership
 
-                return func(self_or_request, *args, **kwargs)
-            return sync_wrapper
+            return func(self_or_request, *args, **kwargs)
+        return sync_wrapper
 
     return decorator

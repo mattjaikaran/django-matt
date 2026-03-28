@@ -7,9 +7,10 @@ All methods are async to avoid blocking the ASGI event loop.
 
 import uuid
 
-from asgiref.sync import sync_to_async
 from django.db import IntegrityError
 from django.http import HttpRequest, JsonResponse
+
+from asgiref.sync import sync_to_async
 
 from django_matt.core.controller import APIController
 from django_matt.core.errors import APIError, NotFoundAPIError
