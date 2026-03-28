@@ -98,8 +98,11 @@ from django_matt.auth.decorators import (
     with_roles,
 )
 from django_matt.auth.jwt import (
+    AsyncJWTAuth,
+    JWTAuth,
     JWTAuthentication,
     JWTConfig,
+    MattJWTAuth,
     acreate_access_token,
     create_access_token,
     create_refresh_token,
@@ -267,7 +270,10 @@ __all__ = [
     # JWT
     "JWTConfig",
     "jwt_config",
+    "MattJWTAuth",
     "JWTAuthentication",
+    "JWTAuth",
+    "AsyncJWTAuth",
     "acreate_access_token",
     "create_access_token",
     "create_refresh_token",

@@ -19,16 +19,20 @@ import time
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser, Group
 from django.test import RequestFactory
 
+import pytest
+
 from django_matt.auth.jwt import (
+    AsyncJWTAuth,
     ExpiredSignatureError,
     InvalidTokenError,
+    JWTAuth,
     JWTAuthentication,
     JWTConfig,
+    MattJWTAuth,
     acreate_access_token,
     acreate_token_pair,
     create_access_token,
@@ -611,6 +615,115 @@ class TestJWTAuthentication:
         header = auth.authenticate_header(request)
         assert "Bearer" in header
         assert "realm" in header
+
+
+class TestMattJWTAuth:
+    """Test MattJWTAuth unified authentication class."""
+
+    def test_aliases_point_to_same_class(self):
+        """JWTAuthentication, JWTAuth, AsyncJWTAuth should all be MattJWTAuth."""
+        assert JWTAuthentication is MattJWTAuth
+        assert JWTAuth is MattJWTAuth
+        assert AsyncJWTAuth is MattJWTAuth
+
+    @pytest.mark.django_db
+    def test_sync_authenticate_success(self, rf, user):
+        """Sync authenticate() should return (user, token) with valid token."""
+        token = create_access_token(user)
+        request = rf.get("/", HTTP_AUTHORIZATION=f"Bearer {token}")
+        auth = MattJWTAuth()
+        result = auth.authenticate(request)
+        assert result is not None
+        auth_user, auth_token = result
+        assert auth_user.pk == user.pk
+        assert auth_token == token
+
+    @pytest.mark.django_db
+    def test_sync_authenticate_no_token(self, rf):
+        """Sync authenticate() should return None when no token."""
+        request = rf.get("/")
+        auth = MattJWTAuth()
+        assert auth.authenticate(request) is None
+
+    @pytest.mark.django_db
+    def test_sync_authenticate_inactive_user(self, rf, inactive_user):
+        """Sync authenticate() should return None for inactive user."""
+        token = create_access_token(inactive_user)
+        request = rf.get("/", HTTP_AUTHORIZATION=f"Bearer {token}")
+        auth = MattJWTAuth()
+        assert auth.authenticate(request) is None
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_async_authenticate_success(self, rf):
+        """Async aauthenticate() should return (user, token) with valid token."""
+        User = get_user_model()
+        user = await User.objects.acreate_user(
+            username="async_auth_user",
+            email="async_auth@example.com",
+            password="TestPass123!",
+        )
+        token = await acreate_access_token(user)
+        request = rf.get("/", HTTP_AUTHORIZATION=f"Bearer {token}")
+        auth = MattJWTAuth()
+        result = await auth.aauthenticate(request)
+        assert result is not None
+        auth_user, auth_token = result
+        assert auth_user.pk == user.pk
+        assert auth_token == token
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_async_authenticate_no_token(self, rf):
+        """Async aauthenticate() should return None when no token."""
+        request = rf.get("/")
+        auth = MattJWTAuth()
+        assert await auth.aauthenticate(request) is None
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_async_authenticate_expired_token(self, rf):
+        """Async aauthenticate() should return None for expired token."""
+        User = get_user_model()
+        user = await User.objects.acreate_user(
+            username="async_expired_user",
+            email="async_expired@example.com",
+            password="TestPass123!",
+        )
+        token = await acreate_access_token(user, lifetime=timedelta(seconds=-1))
+        request = rf.get("/", HTTP_AUTHORIZATION=f"Bearer {token}")
+        auth = MattJWTAuth()
+        assert await auth.aauthenticate(request) is None
+
+    @pytest.mark.django_db(transaction=True)
+    async def test_async_authenticate_inactive_user(self, rf):
+        """Async aauthenticate() should return None for inactive user."""
+        User = get_user_model()
+        user = await User.objects.acreate_user(
+            username="async_inactive_user",
+            email="async_inactive@example.com",
+            password="TestPass123!",
+            is_active=False,
+        )
+        token = await acreate_access_token(user)
+        request = rf.get("/", HTTP_AUTHORIZATION=f"Bearer {token}")
+        auth = MattJWTAuth()
+        assert await auth.aauthenticate(request) is None
+
+    def test_authenticate_header(self, rf):
+        """authenticate_header() should return proper WWW-Authenticate value."""
+        request = rf.get("/")
+        auth = MattJWTAuth()
+        header = auth.authenticate_header(request)
+        assert "Bearer" in header
+        assert "realm" in header
+
+    def test_importable_from_auth_init(self):
+        """MattJWTAuth, JWTAuth, AsyncJWTAuth should be importable from django_matt.auth."""
+        from django_matt.auth import AsyncJWTAuth as A
+        from django_matt.auth import JWTAuth as J
+        from django_matt.auth import MattJWTAuth as M
+
+        assert M is MattJWTAuth
+        assert J is MattJWTAuth
+        assert A is MattJWTAuth
 
 
 # =============================================================================
@@ -2895,8 +3008,9 @@ class TestChangePasswordRevokesOldTokens:
             password="OldPass123!",
         )
 
-        from django_matt.auth.controllers import AuthController
         from django.test import RequestFactory
+
+        from django_matt.auth.controllers import AuthController
 
         factory = RequestFactory()
         request = factory.post(

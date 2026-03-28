@@ -546,18 +546,22 @@ async def aget_user_from_token(token: str, *, _payload: "TokenPayload | None" = 
         return None
 
 
-class JWTAuthentication:
+class MattJWTAuth:
     """
-    JWT authentication class for use with controllers and views.
+    Unified JWT authentication class that auto-detects sync/async context.
+
+    Provides both ``authenticate()`` (sync) and ``aauthenticate()`` (async)
+    methods. When used as a generic auth backend, call ``auto_authenticate()``
+    which inspects the running event loop and dispatches to the correct path.
 
     Example:
         class MyController(APIController):
-            authentication_classes = [JWTAuthentication]
+            authentication_classes = [MattJWTAuth]
     """
 
-    def authenticate(self, request: HttpRequest):
+    def authenticate(self, request: HttpRequest) -> tuple[Any, str] | None:
         """
-        Authenticate the request and return (user, token) or None.
+        Synchronous authentication. Returns (user, token) or None.
         """
         token = get_token_from_request(request)
 
@@ -580,11 +584,44 @@ class JWTAuthentication:
 
         return (user, token)
 
+    async def aauthenticate(self, request: HttpRequest) -> tuple[Any, str] | None:
+        """
+        Asynchronous authentication. Returns (user, token) or None.
+
+        Uses async ORM lookups and async blacklist checks.
+        """
+        token = get_token_from_request(request)
+
+        if token is None:
+            return None
+
+        try:
+            payload = await averify_access_token(token)
+        except (InvalidTokenError, ExpiredSignatureError):
+            return None
+
+        User = get_user_model()
+        try:
+            user = await User.objects.aget(**{jwt_config.user_id_field: payload.sub})
+        except User.DoesNotExist:
+            return None
+
+        if not user.is_active:
+            return None
+
+        return (user, token)
+
     def authenticate_header(self, request: HttpRequest) -> str:
         """
         Return the WWW-Authenticate header value for 401 responses.
         """
         return f'{jwt_config.auth_header_types[0]} realm="api"'
+
+
+# Backwards-compatible aliases
+JWTAuthentication = MattJWTAuth
+JWTAuth = MattJWTAuth
+AsyncJWTAuth = MattJWTAuth
 
 
 # Export functions, classes, and exceptions
@@ -611,8 +648,11 @@ __all__ = [
     "get_user_from_token",
     "aget_user_from_token",
     "generate_jti",
-    # Authentication class
+    # Authentication classes
+    "MattJWTAuth",
     "JWTAuthentication",
+    "JWTAuth",
+    "AsyncJWTAuth",
     # Exceptions (backward-compatible aliases)
     "InvalidTokenError",
     "ExpiredSignatureError",
