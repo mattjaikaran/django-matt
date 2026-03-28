@@ -640,3 +640,211 @@ class TestBasePagination(TestCase):
 
         count = pagination.get_count(items)
         self.assertEqual(count, 30)
+
+    def test_max_unpaginated_default(self):
+        """Test default max_unpaginated value."""
+        pagination = ConcretePagination()
+        self.assertEqual(pagination.max_unpaginated, 10_000)
+
+    def test_max_unpaginated_custom(self):
+        """Test custom max_unpaginated value."""
+        pagination = ConcretePagination(max_unpaginated=500)
+        self.assertEqual(pagination.max_unpaginated, 500)
+
+    def test_should_skip_pagination_query_param(self):
+        """Test _should_skip_pagination with ?no_page=1."""
+        pagination = ConcretePagination()
+        request = self.factory.get("/api/items/?no_page=1")
+        self.assertTrue(pagination._should_skip_pagination(request))
+
+    def test_should_skip_pagination_header(self):
+        """Test _should_skip_pagination with X-No-Pagination header."""
+        pagination = ConcretePagination()
+        request = self.factory.get("/api/items/", HTTP_X_NO_PAGINATION="1")
+        self.assertTrue(pagination._should_skip_pagination(request))
+
+    def test_should_not_skip_pagination_default(self):
+        """Test _should_skip_pagination returns False by default."""
+        pagination = ConcretePagination()
+        request = self.factory.get("/api/items/")
+        self.assertFalse(pagination._should_skip_pagination(request))
+
+    def test_should_not_skip_pagination_wrong_value(self):
+        """Test _should_skip_pagination with no_page != '1'."""
+        pagination = ConcretePagination()
+        request = self.factory.get("/api/items/?no_page=0")
+        self.assertFalse(pagination._should_skip_pagination(request))
+
+    def test_pagination_skipped_property(self):
+        """Test pagination_skipped property reflects state."""
+        pagination = ConcretePagination()
+        self.assertFalse(pagination.pagination_skipped)
+
+
+# =============================================================================
+# Conditional Pagination Tests (no_page)
+# =============================================================================
+
+
+class TestConditionalPaginationPageNumber(TestCase):
+    """Tests for conditional pagination on PageNumberPagination."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.items = list(range(1, 51))  # 50 items
+        self.queryset = MockQuerySet(self.items)
+
+    def test_skip_pagination_query_param(self):
+        """Skip pagination with ?no_page=1 returns all items."""
+        pagination = PageNumberPagination(page_size=10)
+        request = self.factory.get("/api/items/?no_page=1")
+
+        result = pagination.paginate_queryset(self.queryset, request)
+        self.assertEqual(list(result), self.items)
+        self.assertTrue(pagination.pagination_skipped)
+
+    def test_skip_pagination_header(self):
+        """Skip pagination with X-No-Pagination header."""
+        pagination = PageNumberPagination(page_size=10)
+        request = self.factory.get("/api/items/", HTTP_X_NO_PAGINATION="true")
+
+        result = pagination.paginate_queryset(self.queryset, request)
+        self.assertEqual(list(result), self.items)
+        self.assertTrue(pagination.pagination_skipped)
+
+    def test_skip_pagination_response_is_plain_list(self):
+        """get_paginated_response returns plain list when skipped."""
+        pagination = PageNumberPagination(page_size=10)
+        request = self.factory.get("/api/items/?no_page=1")
+
+        result = pagination.paginate_queryset(self.queryset, request)
+        response = pagination.get_paginated_response(list(result))
+        self.assertIsInstance(response, list)
+        self.assertEqual(len(response), 50)
+
+    def test_skip_pagination_respects_max_unpaginated(self):
+        """Results are capped at max_unpaginated when skipping."""
+        big_items = list(range(1, 201))
+        big_qs = MockQuerySet(big_items)
+
+        pagination = PageNumberPagination(page_size=10, max_unpaginated=50)
+        request = self.factory.get("/api/items/?no_page=1")
+
+        result = pagination.paginate_queryset(big_qs, request)
+        self.assertEqual(len(list(result)), 50)
+
+    def test_normal_pagination_unaffected(self):
+        """Normal pagination still works when no_page is absent."""
+        pagination = PageNumberPagination(page_size=10)
+        request = self.factory.get("/api/items/?page=2")
+
+        result = pagination.paginate_queryset(self.queryset, request)
+        self.assertEqual(list(result), list(range(11, 21)))
+        self.assertFalse(pagination.pagination_skipped)
+
+        response = pagination.get_paginated_response(list(result))
+        self.assertIsInstance(response, dict)
+        self.assertIn("items", response)
+
+    def test_skip_pagination_sets_count(self):
+        """Count is set when pagination is skipped."""
+        pagination = PageNumberPagination(page_size=10)
+        request = self.factory.get("/api/items/?no_page=1")
+
+        pagination.paginate_queryset(self.queryset, request)
+        self.assertEqual(pagination.count, 50)
+
+
+class TestConditionalPaginationLimitOffset(TestCase):
+    """Tests for conditional pagination on LimitOffsetPagination."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.items = list(range(1, 51))
+        self.queryset = MockQuerySet(self.items)
+
+    def test_skip_pagination_query_param(self):
+        """Skip pagination with ?no_page=1."""
+        pagination = LimitOffsetPagination(default_limit=10)
+        request = self.factory.get("/api/items/?no_page=1")
+
+        result = pagination.paginate_queryset(self.queryset, request)
+        self.assertEqual(list(result), self.items)
+        self.assertTrue(pagination.pagination_skipped)
+
+    def test_skip_pagination_response_is_plain_list(self):
+        """get_paginated_response returns plain list when skipped."""
+        pagination = LimitOffsetPagination(default_limit=10)
+        request = self.factory.get("/api/items/?no_page=1")
+
+        result = pagination.paginate_queryset(self.queryset, request)
+        response = pagination.get_paginated_response(list(result))
+        self.assertIsInstance(response, list)
+        self.assertEqual(len(response), 50)
+
+    def test_skip_pagination_respects_max_unpaginated(self):
+        """Results are capped at max_unpaginated."""
+        big_items = list(range(1, 201))
+        big_qs = MockQuerySet(big_items)
+
+        pagination = LimitOffsetPagination(default_limit=10, max_unpaginated=75)
+        request = self.factory.get("/api/items/?no_page=1")
+
+        result = pagination.paginate_queryset(big_qs, request)
+        self.assertEqual(len(list(result)), 75)
+
+    def test_normal_pagination_unaffected(self):
+        """Normal pagination still works."""
+        pagination = LimitOffsetPagination(default_limit=10)
+        request = self.factory.get("/api/items/?limit=5&offset=10")
+
+        result = pagination.paginate_queryset(self.queryset, request)
+        self.assertEqual(list(result), list(range(11, 16)))
+        self.assertFalse(pagination.pagination_skipped)
+
+
+class TestConditionalPaginationCursor(TestCase):
+    """Tests for conditional pagination on CursorPagination."""
+
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.items = [MagicMock(pk=i, id=i) for i in range(1, 51)]
+        self.queryset = MockQuerySet(self.items)
+
+    def test_skip_pagination_query_param(self):
+        """Skip pagination with ?no_page=1."""
+        pagination = CursorPagination(page_size=10)
+        request = self.factory.get("/api/items/?no_page=1")
+
+        result = pagination.paginate_queryset(self.queryset, request)
+        self.assertEqual(len(result), 50)
+        self.assertTrue(pagination.pagination_skipped)
+
+    def test_skip_pagination_response_is_plain_list(self):
+        """get_paginated_response returns plain list when skipped."""
+        pagination = CursorPagination(page_size=10)
+        request = self.factory.get("/api/items/?no_page=1")
+
+        result = pagination.paginate_queryset(self.queryset, request)
+        response = pagination.get_paginated_response(result)
+        self.assertIsInstance(response, list)
+
+    def test_skip_pagination_respects_max_unpaginated(self):
+        """Results are capped at max_unpaginated."""
+        big_items = [MagicMock(pk=i, id=i) for i in range(1, 201)]
+        big_qs = MockQuerySet(big_items)
+
+        pagination = CursorPagination(page_size=10, max_unpaginated=30)
+        request = self.factory.get("/api/items/?no_page=1")
+
+        result = pagination.paginate_queryset(big_qs, request)
+        self.assertEqual(len(result), 30)
+
+    def test_normal_pagination_unaffected(self):
+        """Normal pagination still works."""
+        pagination = CursorPagination(page_size=10)
+        request = self.factory.get("/api/items/")
+
+        result = pagination.paginate_queryset(self.queryset, request)
+        self.assertEqual(len(result), 10)
+        self.assertFalse(pagination.pagination_skipped)

@@ -53,10 +53,11 @@ class PageNumberPagination(BasePagination):
         self,
         page_size: int | None = None,
         max_page_size: int | None = None,
+        max_unpaginated: int | None = None,
         page_query_param: str | None = None,
         page_size_query_param: str | None = None,
     ):
-        super().__init__(page_size, max_page_size)
+        super().__init__(page_size, max_page_size, max_unpaginated)
         if page_query_param is not None:
             self.page_query_param = page_query_param
         if page_size_query_param is not None:
@@ -83,6 +84,9 @@ class PageNumberPagination(BasePagination):
         """
         Apply page number pagination to queryset.
 
+        If ``?no_page=1`` or the ``X-No-Pagination`` header is present,
+        pagination is skipped and results are capped at ``max_unpaginated``.
+
         Args:
             queryset: Django queryset
             request: HTTP request with page/page_size params
@@ -91,6 +95,13 @@ class PageNumberPagination(BasePagination):
             Sliced queryset for the requested page
         """
         self._request = request
+
+        if self._should_skip_pagination(request):
+            self._pagination_skipped = True
+            self._count = self.get_count(queryset)
+            return self._apply_unpaginated_limit(queryset)
+        self._pagination_skipped = False
+
         self._count = self.get_count(queryset)
         self._page = self.get_page_number(request)
         self._page_size = self.get_page_size(request)
@@ -115,6 +126,13 @@ class PageNumberPagination(BasePagination):
     ) -> QuerySet:
         """Async version of paginate_queryset."""
         self._request = request
+
+        if self._should_skip_pagination(request):
+            self._pagination_skipped = True
+            self._count = await self.aget_count(queryset)
+            return self._apply_unpaginated_limit(queryset)
+        self._pagination_skipped = False
+
         self._count = await self.aget_count(queryset)
         self._page = self.get_page_number(request)
         self._page_size = self.get_page_size(request)
@@ -130,16 +148,21 @@ class PageNumberPagination(BasePagination):
         offset = (self._page - 1) * self._page_size
         return queryset[offset : offset + self._page_size]
 
-    def get_paginated_response(self, data: list[Any]) -> dict[str, Any]:
+    def get_paginated_response(self, data: list[Any]) -> dict[str, Any] | list[Any]:
         """
         Build paginated response with page metadata.
+
+        When pagination is skipped, returns a plain list.
 
         Args:
             data: List of serialized items
 
         Returns:
-            Dict with items, total, page info
+            Dict with items, total, page info — or plain list when skipped
         """
+        if self._pagination_skipped:
+            return data
+
         return {
             "items": data,
             "total": self._count or 0,

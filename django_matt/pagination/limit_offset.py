@@ -55,6 +55,7 @@ class LimitOffsetPagination(BasePagination):
         self,
         default_limit: int | None = None,
         max_limit: int | None = None,
+        max_unpaginated: int | None = None,
         limit_query_param: str | None = None,
         offset_query_param: str | None = None,
     ):
@@ -62,6 +63,7 @@ class LimitOffsetPagination(BasePagination):
         super().__init__(
             page_size=default_limit or self.default_limit,
             max_page_size=max_limit or self.max_limit,
+            max_unpaginated=max_unpaginated,
         )
         self.default_limit = self.page_size
         self.max_limit = self.max_page_size
@@ -103,6 +105,9 @@ class LimitOffsetPagination(BasePagination):
         """
         Apply limit/offset pagination to queryset.
 
+        If ``?no_page=1`` or the ``X-No-Pagination`` header is present,
+        pagination is skipped and results are capped at ``max_unpaginated``.
+
         Args:
             queryset: Django queryset
             request: HTTP request with limit/offset params
@@ -111,6 +116,13 @@ class LimitOffsetPagination(BasePagination):
             Sliced queryset
         """
         self._request = request
+
+        if self._should_skip_pagination(request):
+            self._pagination_skipped = True
+            self._count = self.get_count(queryset)
+            return self._apply_unpaginated_limit(queryset)
+        self._pagination_skipped = False
+
         self._count = self.get_count(queryset)
         self._limit = self.get_limit(request)
         self._offset = self.get_offset(request)
@@ -128,6 +140,13 @@ class LimitOffsetPagination(BasePagination):
     ) -> QuerySet:
         """Async version of paginate_queryset."""
         self._request = request
+
+        if self._should_skip_pagination(request):
+            self._pagination_skipped = True
+            self._count = await self.aget_count(queryset)
+            return self._apply_unpaginated_limit(queryset)
+        self._pagination_skipped = False
+
         self._count = await self.aget_count(queryset)
         self._limit = self.get_limit(request)
         self._offset = self.get_offset(request)
@@ -137,16 +156,21 @@ class LimitOffsetPagination(BasePagination):
 
         return queryset[self._offset : self._offset + self._limit]
 
-    def get_paginated_response(self, data: list[Any]) -> dict[str, Any]:
+    def get_paginated_response(self, data: list[Any]) -> dict[str, Any] | list[Any]:
         """
         Build paginated response with limit/offset metadata.
+
+        When pagination is skipped, returns a plain list.
 
         Args:
             data: List of serialized items
 
         Returns:
-            Dict with items, total, limit/offset info
+            Dict with items, total, limit/offset info — or plain list when skipped
         """
+        if self._pagination_skipped:
+            return data
+
         count = self._count or 0
         return {
             "items": data,

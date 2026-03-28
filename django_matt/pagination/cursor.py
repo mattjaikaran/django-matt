@@ -66,11 +66,12 @@ class CursorPagination(BasePagination):
         self,
         page_size: int | None = None,
         max_page_size: int | None = None,
+        max_unpaginated: int | None = None,
         ordering: str | list[str] | None = None,
         cursor_query_param: str | None = None,
         cursor_secret: str | None = None,
     ):
-        super().__init__(page_size, max_page_size)
+        super().__init__(page_size, max_page_size, max_unpaginated)
         if ordering is not None:
             self.ordering = ordering
         if cursor_query_param is not None:
@@ -203,6 +204,9 @@ class CursorPagination(BasePagination):
         """
         Apply cursor pagination to queryset.
 
+        If ``?no_page=1`` or the ``X-No-Pagination`` header is present,
+        pagination is skipped and results are capped at ``max_unpaginated``.
+
         Args:
             queryset: Django queryset
             request: HTTP request with cursor param
@@ -211,6 +215,15 @@ class CursorPagination(BasePagination):
             Paginated queryset
         """
         self._request = request
+
+        if self._should_skip_pagination(request):
+            self._pagination_skipped = True
+            self._count = self.get_count(queryset)
+            ordering_fields = self._get_ordering_fields()
+            queryset = queryset.order_by(*ordering_fields)
+            return list(queryset[: self.max_unpaginated])
+        self._pagination_skipped = False
+
         self._page_size_used = self.get_page_size(request)
 
         # Apply ordering
@@ -261,18 +274,31 @@ class CursorPagination(BasePagination):
         """Async version - cursors require list evaluation."""
         # Cursor pagination requires evaluating the queryset
         # so async version is similar to sync
+        if self._should_skip_pagination(request):
+            self._request = request
+            self._pagination_skipped = True
+            self._count = await self.aget_count(queryset)
+            ordering_fields = self._get_ordering_fields()
+            queryset = queryset.order_by(*ordering_fields)
+            return list(queryset[: self.max_unpaginated])
+        self._pagination_skipped = False
         return self.paginate_queryset(queryset, request)
 
-    def get_paginated_response(self, data: list[Any]) -> dict[str, Any]:
+    def get_paginated_response(self, data: list[Any]) -> dict[str, Any] | list[Any]:
         """
         Build paginated response with cursor metadata.
+
+        When pagination is skipped, returns a plain list.
 
         Args:
             data: List of serialized items
 
         Returns:
-            Dict with items and cursor info
+            Dict with items and cursor info — or plain list when skipped
         """
+        if self._pagination_skipped:
+            return data
+
         return {
             "items": data,
             "page_size": self._page_size_used,

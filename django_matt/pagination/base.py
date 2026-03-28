@@ -57,6 +57,12 @@ class BasePagination(ABC):
     - paginate_queryset(): Apply pagination to queryset
     - get_paginated_response(): Build response dict
 
+    Conditional pagination:
+        Clients can skip pagination by passing ``?no_page=1`` or the
+        ``X-No-Pagination`` header. When skipped, results are capped at
+        ``max_unpaginated`` (default 10 000) and returned as a plain list
+        without pagination metadata.
+
     Usage:
         class MyPagination(BasePagination):
             page_size = 25
@@ -70,23 +76,49 @@ class BasePagination(ABC):
     page_size: int = 20
     # Maximum allowed page size
     max_page_size: int = 100
+    # Safety cap when pagination is skipped (e.g. CSV export)
+    max_unpaginated: int = 10_000
     # Query parameter names
     page_query_param: str = "page"
     page_size_query_param: str = "page_size"
+    # Query param / header used to skip pagination
+    no_page_query_param: str = "no_page"
+    no_page_header: str = "X-No-Pagination"
 
     def __init__(
         self,
         page_size: int | None = None,
         max_page_size: int | None = None,
+        max_unpaginated: int | None = None,
     ):
         if page_size is not None:
             self.page_size = page_size
         if max_page_size is not None:
             self.max_page_size = max_page_size
+        if max_unpaginated is not None:
+            self.max_unpaginated = max_unpaginated
 
         # State set during pagination
         self._count: int | None = None
         self._request: HttpRequest | None = None
+        self._pagination_skipped: bool = False
+
+    def _should_skip_pagination(self, request: HttpRequest) -> bool:
+        """Check if the client requested to skip pagination."""
+        if request.GET.get(self.no_page_query_param) == "1":
+            return True
+        if request.headers.get(self.no_page_header):
+            return True
+        return False
+
+    def _apply_unpaginated_limit(self, queryset: QuerySet) -> QuerySet:
+        """Return the full queryset capped at max_unpaginated."""
+        return queryset[: self.max_unpaginated]
+
+    @property
+    def pagination_skipped(self) -> bool:
+        """Whether pagination was skipped for the last request."""
+        return self._pagination_skipped
 
     def get_page_size(self, request: HttpRequest) -> int:
         """
@@ -141,6 +173,12 @@ class BasePagination(ABC):
         Async version of paginate_queryset.
         Default implementation calls sync version.
         """
+        if self._should_skip_pagination(request):
+            self._request = request
+            self._pagination_skipped = True
+            self._count = await self.aget_count(queryset)
+            return self._apply_unpaginated_limit(queryset)
+        self._pagination_skipped = False
         return self.paginate_queryset(queryset, request)
 
     def get_count(self, queryset: QuerySet) -> int:
