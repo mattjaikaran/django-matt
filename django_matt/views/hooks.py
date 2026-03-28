@@ -61,6 +61,12 @@ class HookType(str, Enum):
     AFTER_UPDATE = "after_update"
     BEFORE_DELETE = "before_delete"
     AFTER_DELETE = "after_delete"
+    BEFORE_BULK_CREATE = "before_bulk_create"
+    AFTER_BULK_CREATE = "after_bulk_create"
+    BEFORE_BULK_UPDATE = "before_bulk_update"
+    AFTER_BULK_UPDATE = "after_bulk_update"
+    BEFORE_BULK_DELETE = "before_bulk_delete"
+    AFTER_BULK_DELETE = "after_bulk_delete"
     ON_ERROR = "on_error"
 
 

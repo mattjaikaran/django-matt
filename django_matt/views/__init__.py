@@ -47,6 +47,7 @@ Example:
 """
 
 from django_matt.views.base import APIView
+from django_matt.views.bulk import BulkCreateView, BulkDeleteView, BulkUpdateView
 from django_matt.views.create import CreateView
 
 # Decorators
@@ -105,6 +106,10 @@ __all__ = [
     "UpdateView",
     "DeleteView",
     "PatchView",
+    # Bulk CRUD Views
+    "BulkCreateView",
+    "BulkUpdateView",
+    "BulkDeleteView",
     # ViewSets
     "APIViewSet",
     "ViewSet",
