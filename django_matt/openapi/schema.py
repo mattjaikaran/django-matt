@@ -228,7 +228,7 @@ class OpenAPISchema:
 
             param_type = hints.get(param_name)
             if param_type and inspect.isclass(param_type) and issubclass(param_type, BaseModel):
-                schema_ref = self._register_schema(param_type)
+                schema_ref = self._register_schema(param_type, mode="validation")
                 return {
                     "required": True,
                     "content": {
@@ -249,7 +249,7 @@ class OpenAPISchema:
             and inspect.isclass(response_model)
             and issubclass(response_model, BaseModel)
         ):
-            schema_ref = self._register_schema(response_model)
+            schema_ref = self._register_schema(response_model, mode="serialization")
             responses[str(status_code)] = {
                 "description": "Successful response",
                 "content": {
@@ -286,29 +286,122 @@ class OpenAPISchema:
 
         return responses
 
-    def _register_schema(self, model: type[BaseModel]) -> dict:
-        """Register a Pydantic model as a component schema and return a reference."""
-        schema_name = model.__name__
+    def _register_schema(
+        self,
+        model: type[BaseModel],
+        mode: str = "validation",
+    ) -> dict:
+        """Register a Pydantic model as a component schema and return a reference.
 
-        if schema_name not in self.components["schemas"]:
-            # Get JSON schema from Pydantic model
-            try:
-                from django_matt.core.schema import _get_camel_case_config
+        Args:
+            model: The Pydantic model class to register.
+            mode: ``'validation'`` for request schemas, ``'serialization'``
+                  for response schemas.  Pydantic uses this to decide which
+                  fields are required and which computed fields to include.
 
-                _by_alias = _get_camel_case_config()
-                json_schema = model.model_json_schema(by_alias=_by_alias)
-                # Remove $defs and inline them if needed
-                if "$defs" in json_schema:
-                    for def_name, def_schema in json_schema["$defs"].items():
-                        if def_name not in self.components["schemas"]:
-                            self.components["schemas"][def_name] = def_schema
-                    del json_schema["$defs"]
-                self.components["schemas"][schema_name] = json_schema
-            except Exception:
-                # Fallback for models that don't support model_json_schema
-                self.components["schemas"][schema_name] = {"type": "object"}
+        Internally, schemas are always stored under a suffixed key
+        (``{Name}Request`` / ``{Name}Response``).  During :meth:`build`, if a
+        model was only registered in one mode, the suffix is stripped back to
+        the bare class name for cleaner output.  When both modes are present
+        *and* they differ, both suffixed entries are kept so OpenAPI consumers
+        (and ``typegen/``) see accurate types for each direction.
+        """
+        base_name = model.__name__
+        suffixed_name = self._component_name_for(base_name, mode)
 
-        return {"$ref": f"#/components/schemas/{schema_name}"}
+        # Track which modes have been registered per model name.
+        if not hasattr(self, "_schema_modes"):
+            self._schema_modes: dict[str, dict[str, dict]] = {}
+
+        mode_entry = self._schema_modes.setdefault(base_name, {})
+
+        # Already registered — return the ref immediately.
+        if mode in mode_entry:
+            return {"$ref": f"#/components/schemas/{suffixed_name}"}
+
+        # Generate the JSON schema with the requested mode.
+        try:
+            from django_matt.core.schema import _get_camel_case_config
+
+            _by_alias = _get_camel_case_config()
+            json_schema = model.model_json_schema(mode=mode, by_alias=_by_alias)
+            # Hoist $defs into top-level components
+            if "$defs" in json_schema:
+                for def_name, def_schema in json_schema["$defs"].items():
+                    if def_name not in self.components["schemas"]:
+                        self.components["schemas"][def_name] = def_schema
+                del json_schema["$defs"]
+        except Exception:
+            json_schema = {"type": "object"}
+
+        mode_entry[mode] = json_schema
+        self.components["schemas"][suffixed_name] = json_schema
+
+        return {"$ref": f"#/components/schemas/{suffixed_name}"}
+
+    # -- helpers for mode-aware component naming --
+
+    @staticmethod
+    def _component_name_for(base_name: str, mode: str) -> str:
+        """Return the suffixed component name for a given mode."""
+        if mode == "serialization":
+            return f"{base_name}Response"
+        return f"{base_name}Request"
+
+    def _simplify_component_names(self) -> None:
+        """Collapse suffixed component names to bare names where possible.
+
+        Called during :meth:`build`.  For each model that was only registered
+        in a single mode, or where both modes produced identical schemas,
+        the suffixed entry is replaced with the bare class name and all
+        ``$ref`` pointers in ``paths`` are rewritten to match.
+        """
+        if not hasattr(self, "_schema_modes"):
+            return
+
+        for base_name, modes in self._schema_modes.items():
+            if len(modes) == 1:
+                # Single mode — rename suffix to bare name.
+                (mode,) = modes
+                suffixed = self._component_name_for(base_name, mode)
+                if suffixed in self.components["schemas"]:
+                    self.components["schemas"][base_name] = self.components["schemas"].pop(
+                        suffixed
+                    )
+                    self._rewrite_refs(
+                        f"#/components/schemas/{suffixed}",
+                        f"#/components/schemas/{base_name}",
+                    )
+            elif len(modes) == 2:
+                val_schema = modes.get("validation")
+                ser_schema = modes.get("serialization")
+                if val_schema == ser_schema:
+                    # Identical — merge into bare name, drop both suffixed.
+                    for m in ("validation", "serialization"):
+                        suf = self._component_name_for(base_name, m)
+                        if suf in self.components["schemas"]:
+                            self.components["schemas"].pop(suf, None)
+                            self._rewrite_refs(
+                                f"#/components/schemas/{suf}",
+                                f"#/components/schemas/{base_name}",
+                            )
+                    # Store once under bare name.
+                    self.components["schemas"][base_name] = val_schema
+                # else: schemas differ — keep both suffixed names.
+
+    def _rewrite_refs(self, old_ref: str, new_ref: str) -> None:
+        """Rewrite all ``$ref`` values in paths from *old_ref* to *new_ref*."""
+        def _walk(obj: Any) -> None:
+            if isinstance(obj, dict):
+                if obj.get("$ref") == old_ref:
+                    obj["$ref"] = new_ref
+                for v in obj.values():
+                    _walk(v)
+            elif isinstance(obj, list):
+                for item in obj:
+                    _walk(item)
+
+        _walk(self.paths)
 
     def _type_to_schema(self, python_type: type) -> dict:
         """Convert a Python type to an OpenAPI schema."""
@@ -350,15 +443,19 @@ class OpenAPISchema:
                 "enum": [e.value for e in python_type],
             }
 
-        # Handle Pydantic models
+        # Handle Pydantic models (in parameter context, treat as request/validation)
         if inspect.isclass(python_type) and issubclass(python_type, BaseModel):
-            return self._register_schema(python_type)
+            return self._register_schema(python_type, mode="validation")
 
         # Default to string
         return {"type": "string"}
 
     def build(self) -> dict:
         """Build the complete OpenAPI schema."""
+        # Simplify component names: collapse suffixed entries to bare names
+        # when a model was only used in one mode or both modes are identical.
+        self._simplify_component_names()
+
         schema: dict[str, Any] = {
             "openapi": "3.1.0",
             "info": {

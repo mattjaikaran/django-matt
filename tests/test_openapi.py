@@ -772,3 +772,126 @@ class TestGetOpenAPIJson:
     def test_status_code_200(self):
         response = get_openapi_json({})
         assert response.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Schema mode separation (request=validation vs response=serialization)
+# ---------------------------------------------------------------------------
+
+from pydantic import computed_field
+
+
+class ItemSchema(BaseModel):
+    """Schema with a computed field — differs between validation and serialization."""
+    name: str
+    price: float
+
+    @computed_field
+    @property
+    def display(self) -> str:
+        return f"{self.name}: ${self.price:.2f}"
+
+
+class ItemCreateSchema(BaseModel):
+    name: str
+    price: float
+
+
+def list_items() -> list[ItemSchema]:
+    """List items."""
+
+
+def create_item(data: ItemCreateSchema) -> ItemSchema:
+    """Create an item."""
+
+
+def update_item(data: ItemSchema) -> ItemSchema:
+    """Update using the same schema for request and response."""
+
+
+class TestSchemaModeSeparation:
+    """Verify request schemas use validation mode and response schemas use serialization mode."""
+
+    def test_response_schema_includes_computed_field(self):
+        """Serialization mode includes computed fields in the response schema."""
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route("/items", list_items, ["GET"], response_model=ItemSchema),
+        ])
+        result = schema.build()
+        # The component schema should include the computed 'display' field
+        # (serialization mode exposes computed fields)
+        item_schema = result["components"]["schemas"]["ItemSchema"]
+        assert "display" in item_schema["properties"]
+
+    def test_request_schema_excludes_computed_field(self):
+        """Validation mode excludes computed fields from request body schemas."""
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route("/items", create_item, ["POST"]),
+        ])
+        result = schema.build()
+        # ItemCreateSchema has no computed fields so it's straightforward,
+        # but let's also check that a model with computed fields used as
+        # request body does NOT include the computed field.
+        def post_item(data: ItemSchema):
+            """Post with ItemSchema as body."""
+        schema2 = OpenAPISchema()
+        schema2.add_routes([_route("/items", post_item, ["POST"])])
+        result2 = schema2.build()
+        req_schema = result2["components"]["schemas"]["ItemSchema"]
+        assert "display" not in req_schema["properties"]
+
+    def test_same_model_both_modes_produces_separate_components(self):
+        """When the same model is used for request and response and schemas differ,
+        two separate component entries are created."""
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route("/items", update_item, ["PUT"], response_model=ItemSchema),
+        ])
+        result = schema.build()
+        component_names = set(result["components"]["schemas"].keys())
+        # ItemSchema has a computed field so validation != serialization
+        assert "ItemSchemaRequest" in component_names
+        assert "ItemSchemaResponse" in component_names
+
+    def test_same_model_both_modes_refs_are_correct(self):
+        """$ref values point to the correct suffixed component names."""
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route("/items", update_item, ["PUT"], response_model=ItemSchema),
+        ])
+        result = schema.build()
+        op = result["paths"]["/items"]["put"]
+        # Request body ref
+        req_ref = op["requestBody"]["content"]["application/json"]["schema"]["$ref"]
+        assert req_ref == "#/components/schemas/ItemSchemaRequest"
+        # Response ref
+        resp_ref = op["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+        assert resp_ref == "#/components/schemas/ItemSchemaResponse"
+
+    def test_identical_modes_share_component(self):
+        """When validation and serialization produce the same schema, share one component."""
+        # UserCreateSchema has no computed fields — modes are identical
+        def create_and_return(data: UserCreateSchema) -> UserCreateSchema:
+            ...
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route("/echo", create_and_return, ["POST"], response_model=UserCreateSchema),
+        ])
+        result = schema.build()
+        component_names = set(result["components"]["schemas"].keys())
+        # Should NOT have suffixed variants
+        assert "UserCreateSchema" in component_names
+        assert "UserCreateSchemaRequest" not in component_names
+        assert "UserCreateSchemaResponse" not in component_names
+
+    def test_response_computed_field_is_required(self):
+        """In serialization mode, computed fields are marked as required."""
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route("/items", list_items, ["GET"], response_model=ItemSchema),
+        ])
+        result = schema.build()
+        item_schema = result["components"]["schemas"]["ItemSchema"]
+        assert "display" in item_schema.get("required", [])
