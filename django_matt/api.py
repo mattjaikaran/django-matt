@@ -4,16 +4,25 @@ Django Matt API class.
 The main entry point for creating APIs with Django Matt.
 """
 
-from collections.abc import Callable
-from typing import Any
+import inspect
+import logging
+from collections.abc import Callable, Coroutine
+from typing import Any, Union
 
 from django.http import HttpRequest, HttpResponse
 from django.urls import path
+
+from asgiref.sync import sync_to_async
 
 from django_matt.core.router import APIRouter, _login_not_required
 from django_matt.openapi.docs import get_openapi_json, get_redoc, get_swagger_ui
 from django_matt.openapi.schema import OpenAPISchema
 from django_matt.slim import Mode, ModuleRegistry
+
+logger = logging.getLogger("django_matt.api")
+
+# Type for lifecycle handler: sync or async callable taking no args
+LifecycleHandler = Union[Callable[[], None], Callable[[], Coroutine[Any, Any, None]]]
 
 
 class MattAPI(APIRouter):
@@ -94,6 +103,12 @@ class MattAPI(APIRouter):
 
         self._openapi_schema: dict | None = None
 
+        # Lifecycle hooks
+        self._startup_handlers: list[LifecycleHandler] = []
+        self._shutdown_handlers: list[LifecycleHandler] = []
+        self._startup_complete: bool = False
+        self._shutdown_complete: bool = False
+
         # Module registry for slim mode
         self._registry = ModuleRegistry(mode=mode)
 
@@ -134,6 +149,84 @@ class MattAPI(APIRouter):
         """Deactivate one or more non-core modules."""
         self._registry.deactivate(*modules)
         return self
+
+    # ------------------------------------------------------------------
+    # Lifecycle hooks
+    # ------------------------------------------------------------------
+
+    def on_startup(self, func: LifecycleHandler) -> LifecycleHandler:
+        """
+        Register a startup handler. Can be used as a decorator.
+
+        Supports both sync and async callables. Sync handlers are
+        automatically wrapped with ``sync_to_async`` when executed.
+
+        Usage::
+
+            @api.on_startup
+            async def init_pool():
+                await setup_connection_pool()
+
+            @api.on_startup
+            def warmup_cache():
+                cache.warmup()
+        """
+        self._startup_handlers.append(func)
+        return func
+
+    def on_shutdown(self, func: LifecycleHandler) -> LifecycleHandler:
+        """
+        Register a shutdown handler. Can be used as a decorator.
+
+        Supports both sync and async callables. Sync handlers are
+        automatically wrapped with ``sync_to_async`` when executed.
+
+        Usage::
+
+            @api.on_shutdown
+            async def cleanup():
+                await close_connections()
+        """
+        self._shutdown_handlers.append(func)
+        return func
+
+    async def startup(self) -> None:
+        """
+        Execute all registered startup handlers in order.
+
+        Idempotent: calling multiple times only runs handlers once.
+        """
+        if self._startup_complete:
+            return
+        for handler in self._startup_handlers:
+            try:
+                if inspect.iscoroutinefunction(handler):
+                    await handler()
+                else:
+                    await sync_to_async(handler, thread_sensitive=True)()
+            except Exception:
+                logger.exception("Startup handler %r failed", handler.__name__)
+                raise
+        self._startup_complete = True
+
+    async def shutdown(self) -> None:
+        """
+        Execute all registered shutdown handlers in order.
+
+        Idempotent: calling multiple times only runs handlers once.
+        """
+        if self._shutdown_complete:
+            return
+        for handler in self._shutdown_handlers:
+            try:
+                if inspect.iscoroutinefunction(handler):
+                    await handler()
+                else:
+                    await sync_to_async(handler, thread_sensitive=True)()
+            except Exception:
+                logger.exception("Shutdown handler %r failed", handler.__name__)
+                raise
+        self._shutdown_complete = True
 
     # ------------------------------------------------------------------
     # OpenAPI
