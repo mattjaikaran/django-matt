@@ -30,15 +30,8 @@ Consolidate duplicated code, fix known correctness issues, quick wins.
 - [x] 1.1 **Unify error handling** — done (ROADMAP.md)
 - [x] 1.2 **PK nullability audit** — done (ROADMAP.md)
 - [x] 1.3 **choices → enums** — done (ROADMAP.md)
-- [ ] 1.4 **Retry-After header on 429** — auto-set when throttle triggers
-  - Configurable IP resolution via callable in settings
-  - Per-route throttle scopes
-  - Source: django-ninja #1666, #1674, #1673
-- [ ] 1.5 **Skip re-validation audit** — ensure `model_construct()` on ALL response paths
-  - Currently only covers list serialization via `from_orm_fast()`
-  - Audit single-object responses in create, read, update views
-  - Detect pre-validated Schema instances and skip re-validation
-  - Source: django-ninja #1239 (12 upvotes), django-shinobi #52
+- [x] 1.4 **Retry-After header on 429** — all 429 paths include Retry-After (RFC 6585)
+- [x] 1.5 **Skip re-validation** — `serialize_single()` uses `model_construct()` on all CRUD views
 
 ### Phase 2: Schema & OpenAPI Improvements
 
@@ -53,12 +46,7 @@ Better schema generation, better generated client code.
   - Extract from `permission_classes` and decorators like `@requires_role("admin")`
   - Include in operation schema generation
   - Source: django-ninja-extra #324 (actively worked)
-- [ ] 2.3 **Request/response schema mode separation**
-  - Generate separate request vs response JSON schemas via Pydantic `JsonSchemaMode`
-  - Response schemas: defaulted fields marked as required (not optional)
-  - `JSONField`: `dict[str, Any]` for read, `Any` for write
-  - Critical for accurate `typegen/` output
-  - Source: django-ninja PR #1139 (13 upvotes), django-ninja-extra #267
+- [x] 2.3 **Request/response schema mode separation** — validation vs serialization modes in OpenAPI
 - [ ] 2.4 **Ordering enhancements**
   - Support relation traversal (`field__related_field`)
   - Preserve model `Meta.ordering` as default (only override on explicit `?ordering=`)
@@ -67,9 +55,7 @@ Better schema generation, better generated client code.
 - [ ] 2.5 **Custom field registration** — `register_field_type(DjangoField, PydanticType, openapi_schema)`
   - No Django API framework handles custom fields well
   - Source: django-bolt #122
-- [ ] 2.6 **FK `_id` field support** — `model_fk_use_pks=True` config on ModelSchema
-  - Maps FK fields to their `_id` integer counterparts automatically
-  - Source: django-ninja #517 (5+ upvotes, 3 years open)
+- [x] 2.6 **FK `_id` field support** — `model_fk_use_pks=True` maps FK to `_id` columns
 - [ ] 2.7 **Qualified OpenAPI schema naming** — module+class to prevent collisions
   - Avoid `UserSchema` / `UserSchema2` in multi-app projects
   - Source: django-shinobi #51
@@ -95,9 +81,7 @@ New CRUD capabilities, better ViewSet DX.
   - Calls `full_clean()` before save, wraps in `sync_to_async` for async context
   - Bridges Pydantic validation and Django model validation
   - Source: django-shinobi #35, django-ninja #443 (14 upvotes)
-- [ ] 3.4 **Method-level permission overrides** — `@guard(IsAdmin)` on individual methods
-  - Currently only controller-level `permission_classes`
-  - Source: NestJS guards pattern, django-ninja-extra #212
+- [x] 3.4 **Method-level permission overrides** — `@guard()` decorator overrides controller perms
 - [ ] 3.5 **SoftDeleteMixin for ViewSets** — reusable soft_delete/restore endpoints
   - Already in boilerplate pattern, standardize in django-matt
   - Source: django-ninja-boilerplate `SoftDeleteMixin`
@@ -116,10 +100,7 @@ Developer experience, framework compat, auth improvements.
   - Auto-detect sync vs async context, use appropriate code path
   - No separate `JWTAuth` / `AsyncJWTAuth`
   - Source: django-ninja-extra #252
-- [ ] 4.3 **Django 5.2 LoginRequiredMiddleware compat**
-  - Auto-apply `login_not_required` to API views
-  - Or provide middleware adapter
-  - Source: django-ninja #1461
+- [x] 4.3 **Django 5.1+ LoginRequiredMiddleware compat** — auto `login_not_required` on all API views
 - [ ] 4.4 **Lifecycle hooks on MattAPI** — `@api.on_startup`, `@api.on_shutdown`
   - Connection pool init, cache warming, scheduler startup, metrics setup
   - Source: django-bolt #96, django-ninja #1601
