@@ -7,10 +7,12 @@ Includes lifecycle hook support for before/after operations.
 
 from typing import Any, Generic, TypeVar
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
 from django.http import HttpRequest, JsonResponse
 
 import orjson
+from asgiref.sync import sync_to_async
 from pydantic import BaseModel, ValidationError
 
 from django_matt.core.errors import APIError, NotFoundAPIError
@@ -58,6 +60,7 @@ class APIView(Generic[ModelT, SchemaT]):
     tags: list[str] | None = None
     operation_id: str | None = None
     enable_hooks: bool = True
+    validate_model: bool | None = None
 
     # Set by the ViewSet when attached
     _viewset: "ViewSet | None" = None
@@ -73,6 +76,7 @@ class APIView(Generic[ModelT, SchemaT]):
         tags: list[str] | None = None,
         operation_id: str | None = None,
         enable_hooks: bool | None = None,
+        validate_model: bool | None = None,
         **kwargs,
     ):
         """
@@ -104,6 +108,8 @@ class APIView(Generic[ModelT, SchemaT]):
             self.operation_id = operation_id
         if enable_hooks is not None:
             self.enable_hooks = enable_hooks
+        if validate_model is not None:
+            self.validate_model = validate_model
 
         # Store any additional kwargs for subclass customization
         for key, value in kwargs.items():
@@ -254,6 +260,22 @@ class APIView(Generic[ModelT, SchemaT]):
             raise ValueError("Invalid JSON in request body")
 
         return schema.model_validate(body)
+
+    def _should_validate_model(self) -> bool:
+        """Check if model validation is enabled (per-view overrides ViewSet)."""
+        if self.validate_model is not None:
+            return self.validate_model
+        if self._viewset is not None:
+            return getattr(self._viewset, "validate_model", False)
+        return False
+
+    async def _validate_model_instance(self, instance: models.Model) -> None:
+        """Run Django model full_clean() validation if enabled.
+
+        Raises DjangoValidationError if validation fails.
+        """
+        if self._should_validate_model():
+            await sync_to_async(instance.full_clean)()
 
     async def handle(self, request: HttpRequest, **kwargs) -> Any:
         """
@@ -476,6 +498,17 @@ class BoundView:
                 return JsonResponse(e.value, safe=False)
             return JsonResponse({"detail": "Operation cancelled"}, status=200)
 
+        except DjangoValidationError as e:
+            await self.view._handle_error(request, e)
+            errors = []
+            message_dict = e.message_dict if hasattr(e, "message_dict") else {"__all__": e.messages}
+            for field, messages in message_dict.items():
+                for msg in messages:
+                    errors.append({"field": field, "message": msg})
+            return JsonResponse(
+                {"detail": "Model validation failed", "errors": errors},
+                status=422,
+            )
         except ValidationError as e:
             await self.view._handle_error(request, e)
             return JsonResponse(

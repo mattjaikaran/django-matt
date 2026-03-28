@@ -54,6 +54,10 @@ class CreateView(APIView):
 
         # Allow ViewSet to customize creation
         if self._viewset and hasattr(self._viewset, "perform_create"):
+            if self._should_validate_model():
+                # Validate before perform_create saves
+                instance = model(**data_dict)
+                await self._validate_model_instance(instance)
             instance = await self._viewset.perform_create(data_dict, request)
         else:
             instance = model(**data_dict)
@@ -73,4 +77,5 @@ class CreateView(APIView):
 
     async def _save_instance(self, instance: models.Model):
         """Save the model instance asynchronously."""
+        await self._validate_model_instance(instance)
         await instance.asave()

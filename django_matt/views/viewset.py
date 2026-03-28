@@ -218,6 +218,9 @@ class APIViewSet(HooksMixin, ViewSet):
     # Enable/disable hooks for all views in this viewset
     enable_hooks: ClassVar[bool] = True
 
+    # Opt-in Django model full_clean() validation before save
+    validate_model: ClassVar[bool] = False
+
     async def perform_create(self, data: dict[str, Any], request: HttpRequest) -> models.Model:
         """
         Create a new model instance.

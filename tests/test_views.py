@@ -2140,3 +2140,274 @@ class TestOptimizeQuerysetPreventsNPlus1:
         assert not result._prefetch_related_lookups, (
             "prefetch_related must not be applied when schema has no M2M fields"
         )
+
+
+# ============================================================================
+# validate_model (opt-in full_clean) tests
+# ============================================================================
+
+
+class UserCreateForValidation(BaseModel):
+    """Schema for creating users in validate_model tests."""
+    username: str
+
+
+class TestValidateModel:
+    """Tests for opt-in Django model full_clean() validation."""
+
+    def test_validate_model_default_false_on_view(self):
+        """validate_model defaults to None on APIView (inherits from ViewSet)."""
+        view = CreateView()
+        assert view.validate_model is None
+
+    def test_validate_model_per_view_init(self):
+        """validate_model can be set per-view via __init__."""
+        view = CreateView(validate_model=True)
+        assert view.validate_model is True
+
+    def test_validate_model_default_false_on_viewset(self):
+        """validate_model defaults to False on APIViewSet."""
+
+        class VS(APIViewSet):
+            model = User
+
+        assert VS.validate_model is False
+
+    def test_should_validate_model_inherits_from_viewset(self):
+        """Per-view None falls back to ViewSet setting."""
+
+        class VS(APIViewSet):
+            model = User
+            validate_model = True
+
+        view = CreateView()
+        view._viewset = VS()
+        assert view._should_validate_model() is True
+
+    def test_should_validate_model_per_view_overrides_viewset(self):
+        """Per-view explicit False overrides ViewSet True."""
+
+        class VS(APIViewSet):
+            model = User
+            validate_model = True
+
+        view = CreateView(validate_model=False)
+        view._viewset = VS()
+        assert view._should_validate_model() is False
+
+    @pytest.mark.django_db
+    @pytest.mark.asyncio
+    async def test_create_with_validate_model_passes(self, rf):
+        """Create succeeds when model validation passes."""
+
+        class ValidatingViewSet(APIViewSet):
+            model = User
+            validate_model = True
+            default_response_schema = UserReadSchema
+
+            create = CreateView(request_schema=UserCreateForValidation, response_schema=UserReadSchema)
+
+        vs = ValidatingViewSet()
+        view = ValidatingViewSet.create
+        view._viewset = vs
+
+        request = _make_request(rf, "POST", "/", data={"username": "testuser"})
+        bound = BoundView(view, vs)
+
+        with patch.object(User, "full_clean", return_value=None):
+            with patch.object(User, "asave", new_callable=AsyncMock):
+                response = await bound(request)
+                assert response.status_code == 200
+
+    @pytest.mark.django_db
+    @pytest.mark.asyncio
+    async def test_create_with_validate_model_fails(self, rf):
+        """Create returns 422 when model validation fails."""
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        class ValidatingViewSet(APIViewSet):
+            model = User
+            validate_model = True
+            default_response_schema = UserReadSchema
+
+            create = CreateView(request_schema=UserCreateForValidation, response_schema=UserReadSchema)
+
+        vs = ValidatingViewSet()
+        view = ValidatingViewSet.create
+        view._viewset = vs
+
+        request = _make_request(rf, "POST", "/", data={"username": "bad"})
+        bound = BoundView(view, vs)
+
+        error = DjangoValidationError({"email": ["Enter a valid email address."]})
+        with patch.object(User, "full_clean", side_effect=error):
+            response = await bound(request)
+            assert response.status_code == 422
+            body = orjson.loads(response.content)
+            assert body["detail"] == "Model validation failed"
+            assert body["errors"] == [{"field": "email", "message": "Enter a valid email address."}]
+
+    @pytest.mark.django_db
+    @pytest.mark.asyncio
+    async def test_create_without_validate_model_skips_full_clean(self, rf):
+        """full_clean is NOT called when validate_model is False (default)."""
+
+        class DefaultViewSet(APIViewSet):
+            model = User
+            default_response_schema = UserReadSchema
+
+            create = CreateView(request_schema=UserCreateForValidation, response_schema=UserReadSchema)
+
+        vs = DefaultViewSet()
+        view = DefaultViewSet.create
+        view._viewset = vs
+
+        request = _make_request(rf, "POST", "/", data={"username": "user"})
+        bound = BoundView(view, vs)
+
+        with patch.object(User, "full_clean") as mock_clean:
+            with patch.object(User, "asave", new_callable=AsyncMock):
+                response = await bound(request)
+                assert response.status_code == 200
+                mock_clean.assert_not_called()
+
+    @pytest.mark.django_db
+    @pytest.mark.asyncio
+    async def test_update_with_validate_model_fails(self, rf):
+        """Update returns 422 when model validation fails."""
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        class ValidatingViewSet(APIViewSet):
+            model = User
+            validate_model = True
+            default_response_schema = UserReadSchema
+
+            update = UpdateView(request_schema=ItemUpdateSchema, response_schema=UserReadSchema)
+
+        vs = ValidatingViewSet()
+        view = ValidatingViewSet.update
+        view._viewset = vs
+
+        request = _make_request(rf, "PUT", "/1", data={"name": "bad"})
+        bound = BoundView(view, vs)
+
+        mock_instance = MagicMock(spec=User)
+        mock_instance._meta = User._meta
+        mock_instance.pk = 1
+        mock_instance.id = 1
+        mock_instance.username = "old"
+
+        error = DjangoValidationError({"__all__": ["Start date must be before end date."]})
+        mock_instance.full_clean = MagicMock(side_effect=error)
+
+        mock_qs = MagicMock()
+        mock_qs.model = User
+        mock_qs.aget = AsyncMock(return_value=mock_instance)
+
+        with patch.object(vs, "get_queryset", return_value=mock_qs):
+            response = await bound(request, id=1)
+            assert response.status_code == 422
+            body = orjson.loads(response.content)
+            assert body["detail"] == "Model validation failed"
+            assert {"field": "__all__", "message": "Start date must be before end date."} in body["errors"]
+
+    @pytest.mark.django_db
+    @pytest.mark.asyncio
+    async def test_patch_with_validate_model_fails(self, rf):
+        """Patch returns 422 when model validation fails."""
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        class ValidatingViewSet(APIViewSet):
+            model = User
+            validate_model = True
+            default_response_schema = UserReadSchema
+
+            patch = PatchView(request_schema=ItemUpdateSchema, response_schema=UserReadSchema)
+
+        vs = ValidatingViewSet()
+        view = ValidatingViewSet.patch
+        view._viewset = vs
+
+        request = _make_request(rf, "PATCH", "/1", data={"name": "bad"})
+        bound = BoundView(view, vs)
+
+        mock_instance = MagicMock(spec=User)
+        mock_instance._meta = User._meta
+        mock_instance.pk = 1
+        mock_instance.id = 1
+        mock_instance.username = "old"
+
+        error = DjangoValidationError({"name": ["Name is not allowed."]})
+        mock_instance.full_clean = MagicMock(side_effect=error)
+
+        mock_qs = MagicMock()
+        mock_qs.model = User
+        mock_qs.aget = AsyncMock(return_value=mock_instance)
+
+        with patch.object(vs, "get_queryset", return_value=mock_qs):
+            response = await bound(request, id=1)
+            assert response.status_code == 422
+            body = orjson.loads(response.content)
+            assert body["detail"] == "Model validation failed"
+            assert {"field": "name", "message": "Name is not allowed."} in body["errors"]
+
+    @pytest.mark.django_db
+    @pytest.mark.asyncio
+    async def test_validate_model_multiple_errors(self, rf):
+        """Multiple field errors are all returned."""
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        class ValidatingViewSet(APIViewSet):
+            model = User
+            validate_model = True
+            default_response_schema = UserReadSchema
+
+            create = CreateView(request_schema=UserCreateForValidation, response_schema=UserReadSchema)
+
+        vs = ValidatingViewSet()
+        view = ValidatingViewSet.create
+        view._viewset = vs
+
+        request = _make_request(rf, "POST", "/", data={"username": "x"})
+        bound = BoundView(view, vs)
+
+        error = DjangoValidationError({
+            "email": ["Enter a valid email address."],
+            "username": ["This field cannot be blank."],
+        })
+        with patch.object(User, "full_clean", side_effect=error):
+            response = await bound(request)
+            assert response.status_code == 422
+            body = orjson.loads(response.content)
+            assert len(body["errors"]) == 2
+            fields = {e["field"] for e in body["errors"]}
+            assert fields == {"email", "username"}
+
+    @pytest.mark.django_db
+    @pytest.mark.asyncio
+    async def test_per_view_validate_model_true_on_viewset_false(self, rf):
+        """Per-view validate_model=True works even when ViewSet has False."""
+
+        class DefaultViewSet(APIViewSet):
+            model = User
+            validate_model = False
+            default_response_schema = UserReadSchema
+
+            create = CreateView(
+                request_schema=UserCreateForValidation,
+                response_schema=UserReadSchema,
+                validate_model=True,
+            )
+
+        vs = DefaultViewSet()
+        view = DefaultViewSet.create
+        view._viewset = vs
+
+        request = _make_request(rf, "POST", "/", data={"username": "user"})
+        bound = BoundView(view, vs)
+
+        with patch.object(User, "full_clean", return_value=None) as mock_clean:
+            with patch.object(User, "asave", new_callable=AsyncMock):
+                response = await bound(request)
+                assert response.status_code == 200
+                mock_clean.assert_called_once()

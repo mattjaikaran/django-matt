@@ -65,6 +65,11 @@ class UpdateView(APIView):
             instance, data_dict = hook_result
 
         if self._viewset and hasattr(self._viewset, "perform_update"):
+            if self._should_validate_model():
+                # Validate with new data before perform_update saves
+                for key, value in data_dict.items():
+                    setattr(instance, key, value)
+                await self._validate_model_instance(instance)
             instance = await self._viewset.perform_update(instance, data_dict, request)
         else:
             for key, value in data_dict.items():
@@ -98,6 +103,7 @@ class UpdateView(APIView):
 
     async def _save_instance(self, instance: models.Model):
         """Save the model instance asynchronously."""
+        await self._validate_model_instance(instance)
         await instance.asave()
 
 
@@ -149,6 +155,10 @@ class PatchView(UpdateView):
             instance, data_dict = hook_result
 
         if self._viewset and hasattr(self._viewset, "perform_update"):
+            if self._should_validate_model():
+                for key, value in data_dict.items():
+                    setattr(instance, key, value)
+                await self._validate_model_instance(instance)
             instance = await self._viewset.perform_update(instance, data_dict, request)
         else:
             field_names = {f.name for f in instance._meta.get_fields()}
