@@ -11,6 +11,8 @@ from enum import Enum
 from typing import Any, Union, get_args, get_origin, get_type_hints
 from uuid import UUID
 
+from django.conf import settings
+
 from pydantic import BaseModel
 
 # Permission class names that indicate auth is required
@@ -75,6 +77,10 @@ class OpenAPISchema:
         self.components: dict[str, dict] = {"schemas": {}}
         self.tags: list[dict[str, str]] = []
         self._tag_names: set[str] = set()
+        # Track model classes per base name for collision detection
+        self._schema_classes: dict[str, set[type]] = {}
+        # Cache of model class -> qualified base name (after collision resolution)
+        self._qualified_names: dict[type, str] = {}
 
     def add_routes(self, routes: list[dict]) -> None:
         """Add routes from a router to the schema."""
@@ -109,6 +115,7 @@ class OpenAPISchema:
                 "status_code": route_info.get("status_code", 200),
                 "tags": route_info.get("tags", []) or tags,
                 "permission_classes": permission_classes,
+                "responses": route_info.get("responses", {}),
             }
             self._add_route(route)
 
@@ -175,7 +182,10 @@ class OpenAPISchema:
         # Add response
         response_model = route.get("response_model")
         status_code = route.get("status_code", 200)
-        operation["responses"] = self._build_responses(response_model, status_code)
+        extra_responses: dict[int, type] = route.get("responses", {})
+        operation["responses"] = self._build_responses(
+            response_model, status_code, extra_responses
+        )
 
         # Add permission extension fields (x-auth-required, x-permissions, x-roles)
         extensions = self._extract_permission_extensions(endpoint, route)
@@ -327,8 +337,20 @@ class OpenAPISchema:
 
         return None
 
-    def _build_responses(self, response_model: type | None, status_code: int) -> dict:
-        """Build OpenAPI responses object."""
+    def _build_responses(
+        self,
+        response_model: type | None,
+        status_code: int,
+        extra_responses: dict[int, type] | None = None,
+    ) -> dict:
+        """Build OpenAPI responses object.
+
+        Args:
+            response_model: The primary success response Pydantic model.
+            status_code: The HTTP status code for the success response.
+            extra_responses: Optional mapping of status codes to Pydantic
+                models for additional response types (e.g. error schemas).
+        """
         responses: dict[str, Any] = {}
 
         if (
@@ -355,6 +377,27 @@ class OpenAPISchema:
                 },
             }
 
+        # Merge extra response schemas (do not overwrite the primary success entry)
+        if extra_responses:
+            for code, model in extra_responses.items():
+                code_str = str(code)
+                if code_str in responses:
+                    # Don't overwrite the primary success response
+                    continue
+                if (
+                    inspect.isclass(model)
+                    and issubclass(model, BaseModel)
+                ):
+                    schema_ref = self._register_schema(model, mode="serialization")
+                    responses[code_str] = {
+                        "description": model.__doc__ or f"{code} response",
+                        "content": {
+                            "application/json": {
+                                "schema": schema_ref,
+                            }
+                        },
+                    }
+
         # Add common error responses
         responses["422"] = {
             "description": "Validation Error",
@@ -372,6 +415,92 @@ class OpenAPISchema:
         }
 
         return responses
+
+    @staticmethod
+    def _qualified_schema_names_enabled() -> bool:
+        """Return True if the QUALIFIED_SCHEMA_NAMES setting is enabled."""
+        matt_config = getattr(settings, "DJANGO_MATT", {})
+        return bool(matt_config.get("QUALIFIED_SCHEMA_NAMES", False))
+
+    @staticmethod
+    def _compute_qualified_name(model: type) -> str:
+        """Compute a qualified schema name from the model's module.
+
+        Uses the app label (last meaningful module segment before the file
+        containing the class) to prefix the class name, e.g.
+        ``accounts.UserSchema``.
+        """
+        module = model.__module__ or ""
+        parts = module.split(".")
+        # Strip common trailing module names that aren't meaningful qualifiers
+        _strip = {"schemas", "models", "serializers", "types"}
+        # Walk backwards to find the first meaningful segment
+        for part in reversed(parts):
+            if part not in _strip:
+                return f"{part}.{model.__name__}"
+        # Fallback: use last segment
+        if parts:
+            return f"{parts[-1]}.{model.__name__}"
+        return model.__name__
+
+    def _resolve_base_name(self, model: type[BaseModel]) -> str:
+        """Resolve the base component name for a model.
+
+        When ``QUALIFIED_SCHEMA_NAMES`` is enabled, always uses qualified
+        names.  Otherwise, uses the bare class name but automatically
+        qualifies when a collision is detected (two different model classes
+        sharing the same ``__name__``).
+        """
+        # Already resolved — return cached value
+        if model in self._qualified_names:
+            return self._qualified_names[model]
+
+        class_name = model.__name__
+        use_qualified = self._qualified_schema_names_enabled()
+
+        if use_qualified:
+            name = self._compute_qualified_name(model)
+            self._qualified_names[model] = name
+            self._schema_classes.setdefault(class_name, set()).add(model)
+            return name
+
+        # Default mode: detect collisions
+        existing = self._schema_classes.setdefault(class_name, set())
+        existing.add(model)
+
+        if len(existing) > 1:
+            # Collision detected — retroactively qualify ALL models with this name
+            self._retroactive_qualify(class_name)
+            return self._qualified_names[model]
+
+        # No collision — use bare name
+        self._qualified_names[model] = class_name
+        return class_name
+
+    def _retroactive_qualify(self, class_name: str) -> None:
+        """Qualify all models that share *class_name*, rewriting existing refs."""
+        models = self._schema_classes[class_name]
+        for m in models:
+            old_name = self._qualified_names.get(m)
+            new_name = self._compute_qualified_name(m)
+            self._qualified_names[m] = new_name
+
+            if old_name is not None and old_name != new_name:
+                # Rename existing component entries and rewrite $refs
+                for mode_suffix in ("Request", "Response"):
+                    old_key = f"{old_name}{mode_suffix}"
+                    new_key = f"{new_name}{mode_suffix}"
+                    if old_key in self.components["schemas"]:
+                        self.components["schemas"][new_key] = (
+                            self.components["schemas"].pop(old_key)
+                        )
+                        self._rewrite_refs(
+                            f"#/components/schemas/{old_key}",
+                            f"#/components/schemas/{new_key}",
+                        )
+                # Also update _schema_modes keys
+                if hasattr(self, "_schema_modes") and old_name in self._schema_modes:
+                    self._schema_modes[new_name] = self._schema_modes.pop(old_name)
 
     def _register_schema(
         self,
@@ -393,7 +522,7 @@ class OpenAPISchema:
         *and* they differ, both suffixed entries are kept so OpenAPI consumers
         (and ``typegen/``) see accurate types for each direction.
         """
-        base_name = model.__name__
+        base_name = self._resolve_base_name(model)
         suffixed_name = self._component_name_for(base_name, mode)
 
         # Track which modes have been registered per model name.

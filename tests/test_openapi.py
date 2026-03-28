@@ -7,7 +7,7 @@ from __future__ import annotations
 import enum
 from datetime import date, datetime, time
 from decimal import Decimal
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID
 
 import orjson
@@ -73,6 +73,7 @@ def _route(
     response_model=None,
     status_code: int = 200,
     tags: list[str] | None = None,
+    responses: dict[int, type] | None = None,
 ) -> dict:
     return {
         "path": path,
@@ -82,6 +83,7 @@ def _route(
         "response_model": response_model,
         "status_code": status_code,
         "tags": tags or [],
+        "responses": responses or {},
     }
 
 
@@ -1188,3 +1190,373 @@ class TestPermissionExtensions:
         schema.add_controller(OwnerController)
         op = schema.build()["paths"]["/owned"]["get"]
         assert op["x-auth-required"] is True
+
+
+# ---------------------------------------------------------------------------
+# Qualified schema names (Enhancement 2.7)
+# ---------------------------------------------------------------------------
+
+def _make_schema_in_module(module_name: str, class_name: str, fields: dict[str, type]) -> type:
+    """Create a Pydantic BaseModel subclass that lives in the given module."""
+    ns: dict[str, Any] = {"__annotations__": fields}
+    cls = type(class_name, (BaseModel,), ns)
+    cls.__module__ = module_name
+    cls.__qualname__ = class_name
+    return cls
+
+
+class TestQualifiedSchemaNames:
+    """Test DJANGO_MATT.QUALIFIED_SCHEMA_NAMES setting and auto-collision detection."""
+
+    def test_default_uses_bare_names(self):
+        """With default settings (off), bare class names are used."""
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route("/users", list_users, ["GET"], response_model=UserSchema),
+        ])
+        result = schema.build()
+        assert "UserSchema" in result["components"]["schemas"]
+
+    def test_qualified_names_enabled(self, settings):
+        """When QUALIFIED_SCHEMA_NAMES is True, module prefix is added."""
+        settings.DJANGO_MATT = {"QUALIFIED_SCHEMA_NAMES": True}
+        AccountUser = _make_schema_in_module("myapp.accounts.schemas", "UserSchema", {"id": int, "name": str})
+
+        def list_account_users() -> list[AccountUser]:
+            """List users."""
+
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route("/users", list_account_users, ["GET"], response_model=AccountUser),
+        ])
+        result = schema.build()
+        # Should use the "accounts" prefix (last meaningful segment)
+        assert "accounts.UserSchema" in result["components"]["schemas"]
+        assert "UserSchema" not in result["components"]["schemas"]
+
+    def test_qualified_name_strips_schemas_module(self, settings):
+        """The qualifier skips 'schemas' module name, using the parent."""
+        settings.DJANGO_MATT = {"QUALIFIED_SCHEMA_NAMES": True}
+        MyModel = _make_schema_in_module("myapp.billing.schemas", "InvoiceSchema", {"total": float})
+
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route("/invoices", list_users, ["GET"], response_model=MyModel),
+        ])
+        result = schema.build()
+        assert "billing.InvoiceSchema" in result["components"]["schemas"]
+
+    def test_qualified_name_strips_models_module(self, settings):
+        """The qualifier skips 'models' module name, using the parent."""
+        settings.DJANGO_MATT = {"QUALIFIED_SCHEMA_NAMES": True}
+        MyModel = _make_schema_in_module("myapp.products.models", "ProductSchema", {"name": str})
+
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route("/products", list_users, ["GET"], response_model=MyModel),
+        ])
+        result = schema.build()
+        assert "products.ProductSchema" in result["components"]["schemas"]
+
+    def test_collision_auto_qualifies(self):
+        """Without the setting, colliding names are auto-qualified."""
+        AccountUser = _make_schema_in_module("myapp.accounts.schemas", "UserSchema", {"id": int, "email": str})
+        AdminUser = _make_schema_in_module("myapp.admin.schemas", "UserSchema", {"id": int, "role": str})
+
+        def list_account_users() -> list[AccountUser]:
+            """List account users."""
+
+        def list_admin_users() -> list[AdminUser]:
+            """List admin users."""
+
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route("/accounts/users", list_account_users, ["GET"], response_model=AccountUser),
+            _route("/admin/users", list_admin_users, ["GET"], response_model=AdminUser),
+        ])
+        result = schema.build()
+        component_names = set(result["components"]["schemas"].keys())
+        # Both should be qualified now, bare "UserSchema" should not exist
+        assert "accounts.UserSchema" in component_names
+        assert "admin.UserSchema" in component_names
+        assert "UserSchema" not in component_names
+
+    def test_collision_refs_rewritten(self):
+        """When a collision triggers qualification, $ref values are updated."""
+        AccountUser = _make_schema_in_module("myapp.accounts.schemas", "UserSchema", {"id": int, "email": str})
+        AdminUser = _make_schema_in_module("myapp.admin.schemas", "UserSchema", {"id": int, "role": str})
+
+        def list_account_users() -> list[AccountUser]:
+            """List account users."""
+
+        def list_admin_users() -> list[AdminUser]:
+            """List admin users."""
+
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route("/accounts/users", list_account_users, ["GET"], response_model=AccountUser),
+            _route("/admin/users", list_admin_users, ["GET"], response_model=AdminUser),
+        ])
+        result = schema.build()
+
+        # Check that refs point to the qualified names
+        acc_ref = result["paths"]["/accounts/users"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+        adm_ref = result["paths"]["/admin/users"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+        assert "accounts.UserSchema" in acc_ref
+        assert "admin.UserSchema" in adm_ref
+
+    def test_no_collision_keeps_bare_name(self):
+        """When there's no collision, bare names are kept (backwards compat)."""
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route("/users", list_users, ["GET"], response_model=UserSchema),
+            _route("/products", search_products, ["GET"], response_model=ProductSchema),
+        ])
+        result = schema.build()
+        component_names = set(result["components"]["schemas"].keys())
+        assert "UserSchema" in component_names
+        assert "ProductSchema" in component_names
+
+    def test_qualified_with_mode_separation(self, settings):
+        """Qualified names work correctly with request/response mode separation."""
+        settings.DJANGO_MATT = {"QUALIFIED_SCHEMA_NAMES": True}
+
+        def update_item_qualified(data: ItemSchema) -> ItemSchema:
+            """Update item."""
+
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route("/items", update_item_qualified, ["PUT"], response_model=ItemSchema),
+        ])
+        result = schema.build()
+        component_names = set(result["components"]["schemas"].keys())
+        # ItemSchema has computed fields so request != response
+        # With qualified names, they should still get Request/Response suffixes
+        qualified_names = [n for n in component_names if "ItemSchema" in n]
+        assert len(qualified_names) >= 2  # Request and Response variants
+
+
+# ---------------------------------------------------------------------------
+# Multi-response schemas (Enhancement 2.8)
+# ---------------------------------------------------------------------------
+
+
+class ErrorSchema(BaseModel):
+    """Error occurred."""
+
+    detail: str
+    code: str
+
+
+class NotFoundSchema(BaseModel):
+    """Resource not found."""
+
+    detail: str
+
+
+class ConflictSchema(BaseModel):
+    """Conflict with existing resource."""
+
+    detail: str
+    existing_id: int
+
+
+class TestMultiResponseSchemas:
+    """Test responses={status: Schema} on routes and controllers."""
+
+    def test_extra_responses_appear_in_operation(self):
+        """Extra response schemas are added to the operation responses."""
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route(
+                "/users/{user_id}",
+                get_user,
+                ["GET"],
+                response_model=UserSchema,
+                responses={404: NotFoundSchema, 403: ErrorSchema},
+            ),
+        ])
+        result = schema.build()
+        op = result["paths"]["/users/{user_id}"]["get"]
+        assert "200" in op["responses"]
+        assert "404" in op["responses"]
+        assert "403" in op["responses"]
+
+    def test_extra_response_schema_ref(self):
+        """Extra response entries contain $ref to registered component schemas."""
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route(
+                "/users/{user_id}",
+                get_user,
+                ["GET"],
+                response_model=UserSchema,
+                responses={404: NotFoundSchema},
+            ),
+        ])
+        result = schema.build()
+        resp_404 = result["paths"]["/users/{user_id}"]["get"]["responses"]["404"]
+        body = resp_404["content"]["application/json"]["schema"]
+        assert "$ref" in body
+        assert "NotFoundSchema" in body["$ref"]
+
+    def test_extra_response_schema_registered_as_component(self):
+        """Extra response Pydantic models are registered in components/schemas."""
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route(
+                "/users/{user_id}",
+                get_user,
+                ["GET"],
+                response_model=UserSchema,
+                responses={404: NotFoundSchema, 409: ConflictSchema},
+            ),
+        ])
+        result = schema.build()
+        component_names = set(result["components"]["schemas"].keys())
+        assert "NotFoundSchema" in component_names
+        assert "ConflictSchema" in component_names
+
+    def test_extra_response_description_from_docstring(self):
+        """Extra response description is taken from model docstring."""
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route(
+                "/users/{user_id}",
+                get_user,
+                ["GET"],
+                response_model=UserSchema,
+                responses={404: NotFoundSchema},
+            ),
+        ])
+        result = schema.build()
+        resp_404 = result["paths"]["/users/{user_id}"]["get"]["responses"]["404"]
+        assert resp_404["description"] == "Resource not found."
+
+    def test_extra_response_does_not_overwrite_success(self):
+        """If the same status code as the success response is in responses,
+        the primary success response takes precedence."""
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route(
+                "/users",
+                list_users,
+                ["GET"],
+                response_model=UserSchema,
+                status_code=200,
+                responses={200: ErrorSchema},  # should be ignored
+            ),
+        ])
+        result = schema.build()
+        resp_200 = result["paths"]["/users"]["get"]["responses"]["200"]
+        body = resp_200["content"]["application/json"]["schema"]
+        assert "UserSchema" in body["$ref"]
+
+    def test_validation_error_422_still_present(self):
+        """The default 422 validation error response is still generated."""
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route(
+                "/users/{user_id}",
+                get_user,
+                ["GET"],
+                response_model=UserSchema,
+                responses={404: NotFoundSchema},
+            ),
+        ])
+        result = schema.build()
+        assert "422" in result["paths"]["/users/{user_id}"]["get"]["responses"]
+
+    def test_empty_responses_dict_no_change(self):
+        """An empty responses dict produces the same output as no responses."""
+        schema_with = OpenAPISchema()
+        schema_with.add_routes([
+            _route(
+                "/users", list_users, ["GET"], response_model=UserSchema, responses={}
+            ),
+        ])
+        schema_without = OpenAPISchema()
+        schema_without.add_routes([
+            _route("/users", list_users, ["GET"], response_model=UserSchema),
+        ])
+        assert (
+            schema_with.build()["paths"]["/users"]["get"]["responses"]
+            == schema_without.build()["paths"]["/users"]["get"]["responses"]
+        )
+
+    def test_controller_with_responses(self):
+        """Controller methods with responses in _route_info work correctly."""
+
+        class UserController:
+            prefix = "/users"
+            tags = ["Users"]
+            permission_classes = []
+
+            def get_user(self, user_id: int):
+                """Get a user."""
+
+            get_user._route_info = {
+                "path": "/{user_id}",
+                "methods": ["GET"],
+                "name": "get_user",
+                "response_model": UserSchema,
+                "status_code": 200,
+                "tags": None,
+                "responses": {404: NotFoundSchema, 403: ErrorSchema},
+            }
+
+        schema = OpenAPISchema()
+        schema.add_controller(UserController)
+        result = schema.build()
+        op = result["paths"]["/users/{user_id}"]["get"]
+        assert "200" in op["responses"]
+        assert "404" in op["responses"]
+        assert "403" in op["responses"]
+
+    def test_route_decorator_stores_responses(self):
+        """The standalone route decorators store responses in _route_info."""
+        from django_matt.core.router import get as route_get
+
+        @route_get(
+            "/items/{id}", responses={404: NotFoundSchema, 409: ConflictSchema}
+        )
+        def get_item(self, request, id: int): ...
+
+        info = get_item._route_info
+        assert info["responses"] == {404: NotFoundSchema, 409: ConflictSchema}
+
+    def test_router_method_decorator_stores_responses(self):
+        """APIRouter.get/post/etc decorators store responses in route dict."""
+        from django_matt.core.router import APIRouter
+
+        router = APIRouter()
+
+        @router.get("/items/{id}", responses={404: NotFoundSchema})
+        def get_item(request, id: int): ...
+
+        assert len(router.routes) == 1
+        assert router.routes[0]["responses"] == {404: NotFoundSchema}
+
+    def test_multiple_extra_responses_all_registered(self):
+        """Multiple extra response schemas are all registered and referenced."""
+        schema = OpenAPISchema()
+        schema.add_routes([
+            _route(
+                "/users",
+                create_user,
+                ["POST"],
+                response_model=UserSchema,
+                status_code=201,
+                responses={400: ErrorSchema, 409: ConflictSchema},
+            ),
+        ])
+        result = schema.build()
+        op = result["paths"]["/users"]["post"]
+        assert "201" in op["responses"]
+        assert "400" in op["responses"]
+        assert "409" in op["responses"]
+        assert "422" in op["responses"]
+        # Verify component schemas exist
+        components = set(result["components"]["schemas"].keys())
+        assert "ErrorSchema" in components
+        assert "ConflictSchema" in components
