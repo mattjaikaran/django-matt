@@ -30,7 +30,10 @@ from django_matt.core.schema import (
     Schema,
     create_model_from_schema,
     create_schema_from_model,
+    get_custom_openapi_schemas,
     model_validator,
+    register_field_type,
+    unregister_field_type,
 )
 
 __all__ = [
@@ -44,6 +47,9 @@ __all__ = [
     "create_schema_from_model",
     "create_model_from_schema",
     "model_validator",
+    "register_field_type",
+    "unregister_field_type",
+    "get_custom_openapi_schemas",
     # Errors
     "APIError",
     "NotFoundAPIError",

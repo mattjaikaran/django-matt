@@ -65,6 +65,56 @@ FIELD_TYPE_MAP: dict[type, type] = {
     models.ImageField: str,
 }
 
+# Custom field type registry — populated by register_field_type()
+_CUSTOM_FIELD_TYPE_MAP: dict[type, type] = {}
+_CUSTOM_OPENAPI_SCHEMAS: dict[type, dict[str, str]] = {}
+
+
+def register_field_type(
+    django_field_class: type,
+    pydantic_type: type,
+    openapi_schema: dict[str, str] | None = None,
+) -> None:
+    """
+    Register a custom Django field → Pydantic type mapping.
+
+    Once registered, ModelSchema and create_schema_from_model() will use
+    ``pydantic_type`` for any model field that is an instance of
+    ``django_field_class``.
+
+    Args:
+        django_field_class: The Django model field class (e.g. MoneyField).
+        pydantic_type: The Python/Pydantic type to map to (e.g. Decimal).
+        openapi_schema: Optional OpenAPI schema override, e.g.
+            ``{"type": "string", "format": "phone"}``.
+
+    Example::
+
+        from django_matt.core.schema import register_field_type
+        register_field_type(MoneyField, Decimal, {"type": "string", "format": "decimal"})
+    """
+    _CUSTOM_FIELD_TYPE_MAP[django_field_class] = pydantic_type
+    if openapi_schema is not None:
+        _CUSTOM_OPENAPI_SCHEMAS[django_field_class] = openapi_schema
+    elif django_field_class in _CUSTOM_OPENAPI_SCHEMAS:
+        # Clear stale openapi_schema if re-registering without one
+        del _CUSTOM_OPENAPI_SCHEMAS[django_field_class]
+
+
+def unregister_field_type(django_field_class: type) -> None:
+    """
+    Remove a previously registered custom field type mapping.
+
+    Useful for test cleanup.
+    """
+    _CUSTOM_FIELD_TYPE_MAP.pop(django_field_class, None)
+    _CUSTOM_OPENAPI_SCHEMAS.pop(django_field_class, None)
+
+
+def get_custom_openapi_schemas() -> dict[type, dict[str, str]]:
+    """Return a copy of the custom OpenAPI schema overrides."""
+    return dict(_CUSTOM_OPENAPI_SCHEMAS)
+
 
 def model_validator(*fields: str, mode: str = "after"):
     """
@@ -617,6 +667,12 @@ def _get_python_type_for_field(field: models.Field, depth: int = 0) -> type:
     # Handle many-to-many relationships
     if isinstance(field, models.ManyToManyField):
         return list[int]  # Use a list of IDs for M2M
+
+    # Custom field type registry takes highest priority so users can
+    # override even built-in Django field types if needed.
+    for field_class, python_type in _CUSTOM_FIELD_TYPE_MAP.items():
+        if isinstance(field, field_class):
+            return python_type
 
     # Choices → Literal enum (Task 1.3): check before general mapping so that
     # e.g. a CharField with choices gets a union type rather than plain str.
