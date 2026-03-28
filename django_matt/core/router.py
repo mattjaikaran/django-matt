@@ -2,11 +2,24 @@ import inspect
 from collections.abc import Callable
 from typing import get_type_hints
 
+import django
 from django.http import HttpResponse, JsonResponse
 from django.urls import path
 
 import orjson
 from pydantic import BaseModel, ValidationError
+
+# Django version detection for LoginRequiredMiddleware compatibility
+_DJANGO_VERSION = tuple(int(x) for x in django.__version__.split(".")[:2])
+
+_login_not_required: Callable | None = None
+if _DJANGO_VERSION >= (5, 1):
+    try:
+        from django.contrib.auth.decorators import (
+            login_not_required as _login_not_required,  # type: ignore[assignment]
+        )
+    except ImportError:
+        pass
 
 # Cache type hints per function to avoid repeated introspection
 _hints_cache: dict[int, dict] = {}
@@ -400,6 +413,8 @@ class APIRouter:
             )
             if csrf_exempt:
                 view_func._csrf_exempt = True
+            if _login_not_required is not None:
+                view_func = _login_not_required(view_func)
             path_entries.append(
                 (route["path"], view_func, route["name"], route["methods"])
             )
@@ -430,6 +445,8 @@ class APIRouter:
                 )
                 if csrf_exempt:
                     view_func._csrf_exempt = True
+                if _login_not_required is not None:
+                    view_func = _login_not_required(view_func)
                 full_path = combined_prefix + route_info["path"]
                 path_entries.append(
                     (
@@ -493,6 +510,8 @@ class APIRouter:
 
                 if csrf_exempt:
                     _dispatch_view._csrf_exempt = True
+                if _login_not_required is not None:
+                    _dispatch_view = _login_not_required(_dispatch_view)
                 _append(path(url_path, _dispatch_view, name=first_name))
 
         # Static patterns first, then parameterized — preserves ordering within each group.

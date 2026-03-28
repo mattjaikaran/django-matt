@@ -10,7 +10,7 @@ from typing import Any
 from django.http import HttpRequest, HttpResponse
 from django.urls import path
 
-from django_matt.core.router import APIRouter
+from django_matt.core.router import APIRouter, _login_not_required
 from django_matt.openapi.docs import get_openapi_json, get_redoc, get_swagger_ui
 from django_matt.openapi.schema import OpenAPISchema
 from django_matt.slim import Mode, ModuleRegistry
@@ -222,6 +222,12 @@ class MattAPI(APIRouter):
         csrf_exempt = not self.csrf
         url_patterns = super().get_urls(csrf_exempt=csrf_exempt)
 
+        def _exempt(view_func: Callable) -> Callable:
+            """Apply login_not_required if available (Django 5.1+)."""
+            if _login_not_required is not None:
+                return _login_not_required(view_func)
+            return view_func
+
         # Add resource ViewSet URLs
         for viewset_cls in self._resource_viewsets:
             url_patterns.extend(viewset_cls.as_urls())
@@ -231,7 +237,7 @@ class MattAPI(APIRouter):
             from django_matt.observability.views import health_view
 
             url_patterns.append(
-                path(self.health_url.lstrip("/"), health_view, name="health-check")
+                path(self.health_url.lstrip("/"), _exempt(health_view), name="health-check")
             )
 
         # Add OpenAPI JSON endpoint (always active — part of core)
@@ -241,7 +247,7 @@ class MattAPI(APIRouter):
                 return get_openapi_json(self.openapi_schema)
 
             url_patterns.append(
-                path(self.openapi_url.lstrip("/"), openapi_view, name="openapi-schema")
+                path(self.openapi_url.lstrip("/"), _exempt(openapi_view), name="openapi-schema")
             )
 
         # Add Swagger UI endpoint
@@ -254,7 +260,7 @@ class MattAPI(APIRouter):
                     title=f"{self.title} - Docs",
                 )
 
-            url_patterns.append(path(self.docs_url.lstrip("/"), docs_view, name="swagger-ui"))
+            url_patterns.append(path(self.docs_url.lstrip("/"), _exempt(docs_view), name="swagger-ui"))
 
         # Add ReDoc endpoint
         if self.redoc_url and self._registry.is_active("redoc"):
@@ -266,7 +272,7 @@ class MattAPI(APIRouter):
                     title=f"{self.title} - ReDoc",
                 )
 
-            url_patterns.append(path(self.redoc_url.lstrip("/"), redoc_view, name="redoc"))
+            url_patterns.append(path(self.redoc_url.lstrip("/"), _exempt(redoc_view), name="redoc"))
 
         return url_patterns
 
