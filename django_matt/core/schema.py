@@ -35,6 +35,7 @@ def _reset_camel_case_config() -> None:
     global _camel_case_config
     _camel_case_config = None
 
+
 # Mapping from Django model field types to Python/Pydantic types
 FIELD_TYPE_MAP: dict[type, type] = {
     models.AutoField: int,
@@ -135,6 +136,7 @@ class ModelSchemaMetaclass(type(BaseModel)):
         exclude = getattr(config, "exclude", set())
         optional_fields = getattr(config, "optional", set())
         depth = getattr(config, "depth", 0)
+        fk_use_pks = getattr(config, "model_fk_use_pks", False)
 
         # Handle special values
         if include == "__all__":
@@ -158,19 +160,31 @@ class ModelSchemaMetaclass(type(BaseModel)):
 
         for field in django_model._meta.fields:
             field_name = field.name
+            is_fk_field = isinstance(field, (models.ForeignKey, models.OneToOneField))
+
+            # When model_fk_use_pks is enabled, rename FK fields to their _id column
+            if fk_use_pks and is_fk_field:
+                # Use the attname (e.g. "author_id") instead of name ("author")
+                schema_field_name = field.attname
+            else:
+                schema_field_name = field_name
 
             # Skip if already defined in the class
-            if field_name in annotations:
+            if schema_field_name in annotations:
                 continue
 
-            # Handle include/exclude
-            if include is not None and field_name not in include:
-                continue
-            if field_name in exclude:
+            # Handle include/exclude — check both the original name and _id name
+            if include is not None:
+                if field_name not in include and schema_field_name not in include:
+                    continue
+            if field_name in exclude or schema_field_name in exclude:
                 continue
 
-            # Get Python type
-            python_type = _get_python_type_for_field(field, depth)
+            # Get Python type for FK _id fields: use the PK type of the related model
+            if fk_use_pks and is_fk_field:
+                python_type = _get_fk_pk_type(field)
+            else:
+                python_type = _get_python_type_for_field(field, depth)
 
             # Handle nullable/optional fields.
             # Rules:
@@ -184,6 +198,7 @@ class ModelSchemaMetaclass(type(BaseModel)):
                 (field.null and not field.primary_key)
                 or all_optional
                 or field_name in optional_fields
+                or schema_field_name in optional_fields
                 or (field.has_default() and not field.primary_key)
             )
 
@@ -191,16 +206,16 @@ class ModelSchemaMetaclass(type(BaseModel)):
                 python_type = Optional[python_type]
 
             # Add to annotations
-            annotations[field_name] = python_type
+            annotations[schema_field_name] = python_type
 
             # Set default value
             if field.has_default() and not field.primary_key:
                 if callable(field.default):
-                    namespace[field_name] = Field(default_factory=field.default)
+                    namespace[schema_field_name] = Field(default_factory=field.default)
                 elif field.default is not models.NOT_PROVIDED:
-                    namespace[field_name] = Field(default=field.default)
+                    namespace[schema_field_name] = Field(default=field.default)
             elif is_optional:
-                namespace[field_name] = Field(default=None)
+                namespace[schema_field_name] = Field(default=None)
 
         # Also iterate many-to-many fields (not included in _meta.fields)
         for field in django_model._meta.many_to_many:
@@ -230,6 +245,7 @@ class ModelSchemaMetaclass(type(BaseModel)):
             "exclude": exclude,
             "optional": optional_fields,
             "depth": depth,
+            "model_fk_use_pks": fk_use_pks,
         }
 
         # Collect validators marked with @model_validator
@@ -578,6 +594,14 @@ def _get_choices_literal(field: models.Field) -> type | None:
 
     # Build Literal[val1, val2, ...]  — requires at least one value
     return Literal[tuple(values)]  # type: ignore[return-value]
+
+
+def _get_fk_pk_type(field: models.ForeignKey | models.OneToOneField) -> type:
+    """Return the Python type of the related model's primary key field."""
+    related_pk = field.related_model._meta.pk
+    if related_pk is None:
+        return int
+    return FIELD_TYPE_MAP.get(type(related_pk), int)
 
 
 def _get_python_type_for_field(field: models.Field, depth: int = 0) -> type:
