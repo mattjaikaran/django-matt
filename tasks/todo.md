@@ -73,29 +73,18 @@ Developer experience, framework compat, auth improvements.
 - [x] 4.2 **Unified MattJWTAuth** — single class with authenticate() + aauthenticate()
 - [x] 4.3 **Django 5.1+ LoginRequiredMiddleware compat** — auto `login_not_required` on all API views
 - [x] 4.4 **Lifecycle hooks** — @api.on_startup, @api.on_shutdown with sync/async support
-- [ ] 4.5 **Dynamic field selection** — `?fields=id,name,email` query param
-  - Integrate with `.values()` for DB optimization
-  - Source: django-ninja #333, django-ninja-crud #462
+- [x] 4.5 **Dynamic field selection** — ?fields=id,name,email with .only() optimization
 - [x] 4.6 **Conditional pagination** — ?no_page=1 or X-No-Pagination header, max_unpaginated safety cap
 
 ### Phase 5: Testing Enhancements
 
 Better test tooling for users of django-matt.
 
-- [ ] 5.1 **Scenario-based CRUD testing** — `CRUDTestCase` with declarative scenarios
-  - Each scenario: request params, expected status, expected body
-  - Auto-generate happy/error path scenarios per ViewSet
-  - Transaction savepoint isolation per scenario
-  - Source: django-rest-testing (companion to django-ninja-crud)
-- [ ] 5.2 **TestClient cookie forwarding** — verify cookies pass through in test requests
-  - Source: django-shinobi #27
-- [ ] 5.3 **TestClient `auser()` mock support** — for async endpoints using Django's async user access
-  - Source: django-ninja PR #1339 (12 upvotes)
+- [x] 5.1 **Scenario-based CRUD testing** — CRUDTestCase + generate_crud_scenarios()
+- [x] 5.2 **TestClient cookie forwarding** — cookie convenience methods + async client parity
+- [x] 5.3 **TestClient auser() mock** — request.auser() in JWT middleware + test clients
 - [ ] 5.4 **Python 3.14 CI** — add to matrix for PEP 649/749 annotation changes
-  - Source: django-shinobi #65, django-ninja-crud #532
-- [ ] 5.5 **Pydantic version pinning** — upper bound `pydantic>=2.0,<2.13`
-  - Prevent untested version breakage
-  - Source: django-shinobi practice
+- [x] 5.5 **Pydantic version pinning** — pydantic>=2.0.0,<3.0.0
 
 ### Phase 6: Architectural Verification
 
