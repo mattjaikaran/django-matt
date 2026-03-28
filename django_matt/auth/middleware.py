@@ -5,7 +5,10 @@ Provides middleware for JWT authentication that automatically
 attaches authenticated users to requests.
 """
 
+from __future__ import annotations
+
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -19,8 +22,27 @@ from django_matt.auth.jwt import (
     verify_access_token,
 )
 
-# Singleton — avoids per-request allocation for unauthenticated traffic
+if TYPE_CHECKING:
+    from django.contrib.auth.models import AbstractBaseUser
+
+# Singleton -- avoids per-request allocation for unauthenticated traffic
 _ANONYMOUS_USER = AnonymousUser()
+
+
+def _set_request_auser(
+    request: HttpRequest, user: AbstractBaseUser | AnonymousUser
+) -> None:
+    """Set ``request.auser`` as an async callable returning *user*.
+
+    Mirrors Django's ``AuthenticationMiddleware`` contract so that
+    ``await request.auser()`` works in async views regardless of
+    whether Django's own auth middleware is installed.
+    """
+
+    async def _auser() -> AbstractBaseUser | AnonymousUser:
+        return user
+
+    request.auser = _auser  # type: ignore[attr-defined]
 
 
 class JWTAuthenticationMiddleware:
@@ -57,6 +79,7 @@ class JWTAuthenticationMiddleware:
         if token is None:
             if not hasattr(request, "user") or request.user is None:
                 request.user = _ANONYMOUS_USER
+            _set_request_auser(request, request.user)
             return
 
         try:
@@ -72,6 +95,8 @@ class JWTAuthenticationMiddleware:
 
         except (InvalidTokenError, ExpiredSignatureError):
             request.user = _ANONYMOUS_USER
+
+        _set_request_auser(request, request.user)
 
 
 class JWTAuthenticationMiddlewareAsync:
@@ -103,6 +128,7 @@ class JWTAuthenticationMiddlewareAsync:
         if token is None:
             if not hasattr(request, "user") or request.user is None:
                 request.user = _ANONYMOUS_USER
+            _set_request_auser(request, request.user)
             return
 
         try:
@@ -118,6 +144,8 @@ class JWTAuthenticationMiddlewareAsync:
 
         except (InvalidTokenError, ExpiredSignatureError):
             request.user = _ANONYMOUS_USER
+
+        _set_request_auser(request, request.user)
 
 
 class JWTStrictAuthenticationMiddleware:
@@ -155,6 +183,7 @@ class JWTStrictAuthenticationMiddleware:
         if token is None:
             if not hasattr(request, "user") or request.user is None:
                 request.user = _ANONYMOUS_USER
+            _set_request_auser(request, request.user)
             return None
 
         # Token present - must be valid
@@ -177,6 +206,7 @@ class JWTStrictAuthenticationMiddleware:
 
             request.user = user
             request.token_payload = payload
+            _set_request_auser(request, request.user)
             return None
 
         except ExpiredSignatureError:
@@ -195,4 +225,5 @@ __all__ = [
     "JWTAuthenticationMiddleware",
     "JWTAuthenticationMiddlewareAsync",
     "JWTStrictAuthenticationMiddleware",
+    "_set_request_auser",
 ]

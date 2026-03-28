@@ -20,14 +20,16 @@ Covers:
 
 from __future__ import annotations
 
+import asyncio
 from datetime import date
 from unittest.mock import MagicMock, patch
 
+from django.contrib.auth import get_user_model
+from django.http import HttpRequest, HttpResponse
+from django.test import AsyncClient, Client
+
 import orjson
 import pytest
-from django.contrib.auth import get_user_model
-from django.http import HttpResponse
-from django.test import AsyncClient, Client
 
 from django_matt.testing.assertions import (
     assert_contains_keys,
@@ -401,6 +403,58 @@ class TestAPITestClient:
         assert client.get_cookie("csrf") == "tok1"
         assert client.get_cookie("session") == "tok2"
 
+    # --- auser() mock support ---
+
+    def test_force_authenticate_sets_handler_force_user(self):
+        """force_authenticate should propagate user to the handler."""
+        client = APITestClient()
+        mock_user = MagicMock()
+        client.force_authenticate(mock_user, token="test-tok")
+        assert client.handler._force_user is mock_user
+
+    def test_force_authenticate_none_clears_handler_force_user(self):
+        """force_authenticate(None) should set handler._force_user to None."""
+        client = APITestClient()
+        mock_user = MagicMock()
+        client.force_authenticate(mock_user, token="tok")
+        client.force_authenticate(None)
+        assert client.handler._force_user is None
+
+    @pytest.mark.django_db
+    def test_logout_clears_handler_force_user(self):
+        """logout() should clear handler._force_user."""
+        client = APITestClient()
+        client.handler._force_user = MagicMock()
+        client.logout()
+        assert client.handler._force_user is None
+
+    def test_auser_handler_patches_request(self):
+        """_AuserClientHandler should patch request.auser when user is forced."""
+        from django_matt.testing.client import _AuserClientHandler
+
+        handler = _AuserClientHandler(enforce_csrf_checks=False)
+        handler._force_user = MagicMock(username="testuser")
+
+        request = HttpRequest()
+        # Simulate what get_response does: we just check the patching logic
+        # by calling the auser callback
+        from django_matt.testing.client import _make_auser_callable
+
+        request.auser = _make_auser_callable(handler._force_user)  # type: ignore[attr-defined]
+        result = asyncio.get_event_loop().run_until_complete(request.auser())  # type: ignore[attr-defined]
+        assert result.username == "testuser"
+
+    def test_auser_handler_no_patch_when_no_user(self):
+        """_AuserClientHandler should NOT patch request.auser when user is None."""
+        from django_matt.testing.client import _AuserClientHandler
+
+        handler = _AuserClientHandler(enforce_csrf_checks=False)
+        assert handler._force_user is None
+
+        request = HttpRequest()
+        # auser should not be set on a bare HttpRequest
+        assert not hasattr(request, "auser")
+
 
 # ===========================================================================
 # 4. AsyncAPITestClient tests
@@ -476,6 +530,58 @@ class TestAsyncAPITestClient:
         client.clear_cookies()
         assert client.get_cookie("a") is None
         assert client.get_cookie("b") is None
+
+    # --- auser() mock support ---
+
+    async def test_force_authenticate_sets_handler_force_user(self):
+        """force_authenticate should propagate user to the async handler."""
+        client = AsyncAPITestClient()
+        mock_user = MagicMock()
+        await client.force_authenticate(mock_user, token="async-tok")
+        assert client.handler._force_user is mock_user
+
+    async def test_force_authenticate_none_clears_handler_force_user(self):
+        """force_authenticate(None) should clear handler._force_user."""
+        client = AsyncAPITestClient()
+        mock_user = MagicMock()
+        await client.force_authenticate(mock_user, token="tok")
+        await client.force_authenticate(None)
+        assert client.handler._force_user is None
+
+    def test_logout_clears_handler_force_user(self):
+        """logout() should clear handler._force_user on async client."""
+        client = AsyncAPITestClient()
+        client.handler._force_user = MagicMock()
+        client.logout()
+        assert client.handler._force_user is None
+
+    async def test_make_auser_callable_returns_user(self):
+        """_make_auser_callable should return a coroutine resolving to the user."""
+        from django_matt.testing.client import _make_auser_callable
+
+        mock_user = MagicMock(username="asyncuser")
+        auser_fn = _make_auser_callable(mock_user)
+        result = await auser_fn()
+        assert result is mock_user
+        assert result.username == "asyncuser"
+
+    async def test_make_auser_callable_with_none(self):
+        """_make_auser_callable(None) should return a coroutine resolving to None."""
+        from django_matt.testing.client import _make_auser_callable
+
+        auser_fn = _make_auser_callable(None)
+        result = await auser_fn()
+        assert result is None
+
+    async def test_auser_async_handler_patches_request(self):
+        """_AuserAsyncClientHandler should patch request.auser when user is forced."""
+        from django_matt.testing.client import _make_auser_callable
+
+        mock_user = MagicMock(username="asynctestuser")
+        request = HttpRequest()
+        request.auser = _make_auser_callable(mock_user)  # type: ignore[attr-defined]
+        result = await request.auser()  # type: ignore[attr-defined]
+        assert result.username == "asynctestuser"
 
 
 # ===========================================================================

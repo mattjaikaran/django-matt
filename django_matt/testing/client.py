@@ -1,15 +1,64 @@
 """
 Test client with authentication helpers.
+
+Both :class:`APITestClient` (sync) and :class:`AsyncAPITestClient` (async)
+transparently patch ``request.auser`` so that ``await request.auser()``
+returns the forced user in async Django 5.0+ endpoints.
 """
+
+from __future__ import annotations
 
 from http.cookies import SimpleCookie
 from typing import Any
 
 from django.http import HttpResponse
 from django.test import AsyncClient, Client
+from django.test.client import AsyncClientHandler, ClientHandler
 
 import orjson
 
+# ---------------------------------------------------------------------------
+# auser() helpers
+# ---------------------------------------------------------------------------
+
+def _make_auser_callable(user: Any) -> Any:
+    """Return an async callable that resolves to *user*.
+
+    Mirrors Django ``AuthenticationMiddleware``'s contract where
+    ``request.auser`` is set to ``partial(auser, request)``.
+    """
+
+    async def _auser() -> Any:
+        return user
+
+    return _auser
+
+
+class _AuserClientHandler(ClientHandler):
+    """WSGI test handler that patches ``request.auser`` when a user is forced."""
+
+    _force_user: Any = None
+
+    def get_response(self, request: Any) -> HttpResponse:
+        if self._force_user is not None:
+            request.auser = _make_auser_callable(self._force_user)  # type: ignore[attr-defined]
+        return super().get_response(request)
+
+
+class _AuserAsyncClientHandler(AsyncClientHandler):
+    """ASGI test handler that patches ``request.auser`` when a user is forced."""
+
+    _force_user: Any = None
+
+    async def get_response_async(self, request: Any) -> HttpResponse:
+        if self._force_user is not None:
+            request.auser = _make_auser_callable(self._force_user)  # type: ignore[attr-defined]
+        return await super().get_response_async(request)
+
+
+# ---------------------------------------------------------------------------
+# Sync test client
+# ---------------------------------------------------------------------------
 
 class APITestClient(Client):
     """
@@ -20,6 +69,7 @@ class APITestClient(Client):
     - JSON request/response handling
     - Organization/tenant context
     - Cookie management helpers
+    - ``request.auser()`` mock support (Django 5.0+)
 
     Example:
         client = APITestClient()
@@ -32,21 +82,29 @@ class APITestClient(Client):
         assert len(data["items"]) > 0
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._auth_token: str | None = None
         self._organization_id: str | None = None
-        self._user = None
+        self._user: Any = None
+        # Replace the default handler with our auser-aware variant
+        self.handler = _AuserClientHandler(
+            enforce_csrf_checks=self.handler.enforce_csrf_checks,
+        )
 
-    def force_authenticate(self, user=None, token: str | None = None):
+    def force_authenticate(self, user: Any = None, token: str | None = None) -> None:
         """
         Force authentication for subsequent requests.
+
+        Sets both ``request.user`` (via JWT header / session) and
+        ``request.auser()`` (async callable) on every request.
 
         Args:
             user: User to authenticate as
             token: Optional JWT token (will be generated if not provided)
         """
         self._user = user
+        self.handler._force_user = user
 
         if token:
             self._auth_token = token
@@ -64,13 +122,14 @@ class APITestClient(Client):
                 self.force_login(user)
                 self._auth_token = None
 
-    def logout(self):
+    def logout(self) -> None:
         """Clear authentication."""
         self._auth_token = None
         self._user = None
+        self.handler._force_user = None
         super().logout()
 
-    def set_organization(self, organization):
+    def set_organization(self, organization: Any) -> None:
         """
         Set organization context for multi-tenant requests.
 
@@ -82,7 +141,7 @@ class APITestClient(Client):
         else:
             self._organization_id = str(organization)
 
-    def clear_organization(self):
+    def clear_organization(self) -> None:
         """Clear organization context."""
         self._organization_id = None
 
@@ -142,7 +201,7 @@ class APITestClient(Client):
 
     def _get_headers(self, extra_headers: dict[str, str] | None = None) -> dict[str, str]:
         """Build headers including auth and organization."""
-        headers = {}
+        headers: dict[str, str] = {}
 
         if self._auth_token:
             headers["HTTP_AUTHORIZATION"] = f"Bearer {self._auth_token}"
@@ -164,7 +223,7 @@ class APITestClient(Client):
         path: str,
         data: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> HttpResponse:
         """Make a GET request."""
         all_headers = self._get_headers(headers)
@@ -176,7 +235,7 @@ class APITestClient(Client):
         data: Any | None = None,
         content_type: str = "application/json",
         headers: dict[str, str] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> HttpResponse:
         """Make a POST request with JSON body."""
         all_headers = self._get_headers(headers)
@@ -198,7 +257,7 @@ class APITestClient(Client):
         data: Any | None = None,
         content_type: str = "application/json",
         headers: dict[str, str] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> HttpResponse:
         """Make a PUT request with JSON body."""
         all_headers = self._get_headers(headers)
@@ -220,7 +279,7 @@ class APITestClient(Client):
         data: Any | None = None,
         content_type: str = "application/json",
         headers: dict[str, str] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> HttpResponse:
         """Make a PATCH request with JSON body."""
         all_headers = self._get_headers(headers)
@@ -240,7 +299,7 @@ class APITestClient(Client):
         self,
         path: str,
         headers: dict[str, str] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> HttpResponse:
         """Make a DELETE request."""
         all_headers = self._get_headers(headers)
@@ -259,7 +318,7 @@ class APITestClient(Client):
         """
         return orjson.loads(response.content)
 
-    def get_json(self, path: str, **kwargs) -> tuple:
+    def get_json(self, path: str, **kwargs: Any) -> tuple[HttpResponse, Any]:
         """
         Make a GET request and return (response, json_data) tuple.
         """
@@ -267,7 +326,7 @@ class APITestClient(Client):
         data = self.json(response) if response.content else None
         return response, data
 
-    def post_json(self, path: str, data: Any = None, **kwargs) -> tuple:
+    def post_json(self, path: str, data: Any = None, **kwargs: Any) -> tuple[HttpResponse, Any]:
         """
         Make a POST request and return (response, json_data) tuple.
         """
@@ -275,7 +334,7 @@ class APITestClient(Client):
         resp_data = self.json(response) if response.content else None
         return response, resp_data
 
-    def put_json(self, path: str, data: Any = None, **kwargs) -> tuple:
+    def put_json(self, path: str, data: Any = None, **kwargs: Any) -> tuple[HttpResponse, Any]:
         """
         Make a PUT request and return (response, json_data) tuple.
         """
@@ -283,7 +342,7 @@ class APITestClient(Client):
         resp_data = self.json(response) if response.content else None
         return response, resp_data
 
-    def patch_json(self, path: str, data: Any = None, **kwargs) -> tuple:
+    def patch_json(self, path: str, data: Any = None, **kwargs: Any) -> tuple[HttpResponse, Any]:
         """
         Make a PATCH request and return (response, json_data) tuple.
         """
@@ -292,9 +351,16 @@ class APITestClient(Client):
         return response, resp_data
 
 
+# ---------------------------------------------------------------------------
+# Async test client
+# ---------------------------------------------------------------------------
+
 class AsyncAPITestClient(AsyncClient):
     """
     Async version of APITestClient.
+
+    Supports ``await request.auser()`` in async endpoints when
+    ``force_authenticate()`` has been called.
 
     Example:
         async def test_list_users():
@@ -305,15 +371,20 @@ class AsyncAPITestClient(AsyncClient):
             assert response.status_code == 200
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._auth_token: str | None = None
         self._organization_id: str | None = None
-        self._user = None
+        self._user: Any = None
+        # Replace the default handler with our auser-aware variant
+        self.handler = _AuserAsyncClientHandler(
+            enforce_csrf_checks=self.handler.enforce_csrf_checks,
+        )
 
-    async def force_authenticate(self, user=None, token: str | None = None):
+    async def force_authenticate(self, user: Any = None, token: str | None = None) -> None:
         """Force authentication for subsequent requests."""
         self._user = user
+        self.handler._force_user = user
 
         if token:
             self._auth_token = token
@@ -329,8 +400,9 @@ class AsyncAPITestClient(AsyncClient):
         """Clear authentication state."""
         self._auth_token = None
         self._user = None
+        self.handler._force_user = None
 
-    def set_organization(self, organization) -> None:
+    def set_organization(self, organization: Any) -> None:
         """Set organization context."""
         if hasattr(organization, "id"):
             self._organization_id = str(organization.id)
@@ -395,7 +467,7 @@ class AsyncAPITestClient(AsyncClient):
 
     def _get_headers(self, extra_headers: dict[str, str] | None = None) -> dict[str, str]:
         """Build headers including auth and organization."""
-        headers = {}
+        headers: dict[str, str] = {}
 
         if self._auth_token:
             headers["HTTP_AUTHORIZATION"] = f"Bearer {self._auth_token}"
@@ -420,7 +492,7 @@ class AsyncAPITestClient(AsyncClient):
         path: str,
         data: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> HttpResponse:
         """Make an async GET request."""
         all_headers = self._get_headers(headers)
@@ -432,7 +504,7 @@ class AsyncAPITestClient(AsyncClient):
         data: Any | None = None,
         content_type: str = "application/json",
         headers: dict[str, str] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> HttpResponse:
         """Make an async POST request."""
         all_headers = self._get_headers(headers)
@@ -454,7 +526,7 @@ class AsyncAPITestClient(AsyncClient):
         data: Any | None = None,
         content_type: str = "application/json",
         headers: dict[str, str] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> HttpResponse:
         """Make an async PUT request with JSON body."""
         all_headers = self._get_headers(headers)
@@ -476,7 +548,7 @@ class AsyncAPITestClient(AsyncClient):
         data: Any | None = None,
         content_type: str = "application/json",
         headers: dict[str, str] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> HttpResponse:
         """Make an async PATCH request with JSON body."""
         all_headers = self._get_headers(headers)
@@ -496,7 +568,7 @@ class AsyncAPITestClient(AsyncClient):
         self,
         path: str,
         headers: dict[str, str] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> HttpResponse:
         """Make an async DELETE request."""
         all_headers = self._get_headers(headers)
@@ -511,25 +583,25 @@ class AsyncAPITestClient(AsyncClient):
         """Parse JSON response body."""
         return orjson.loads(response.content)
 
-    async def get_json(self, path: str, **kwargs) -> tuple:
+    async def get_json(self, path: str, **kwargs: Any) -> tuple[HttpResponse, Any]:
         """Make an async GET request and return (response, json_data) tuple."""
         response = await self.get(path, **kwargs)
         data = self.json(response) if response.content else None
         return response, data
 
-    async def post_json(self, path: str, data: Any = None, **kwargs) -> tuple:
+    async def post_json(self, path: str, data: Any = None, **kwargs: Any) -> tuple[HttpResponse, Any]:
         """Make an async POST request and return (response, json_data) tuple."""
         response = await self.post(path, data=data, **kwargs)
         resp_data = self.json(response) if response.content else None
         return response, resp_data
 
-    async def put_json(self, path: str, data: Any = None, **kwargs) -> tuple:
+    async def put_json(self, path: str, data: Any = None, **kwargs: Any) -> tuple[HttpResponse, Any]:
         """Make an async PUT request and return (response, json_data) tuple."""
         response = await self.put(path, data=data, **kwargs)
         resp_data = self.json(response) if response.content else None
         return response, resp_data
 
-    async def patch_json(self, path: str, data: Any = None, **kwargs) -> tuple:
+    async def patch_json(self, path: str, data: Any = None, **kwargs: Any) -> tuple[HttpResponse, Any]:
         """Make an async PATCH request and return (response, json_data) tuple."""
         response = await self.patch(path, data=data, **kwargs)
         resp_data = self.json(response) if response.content else None
