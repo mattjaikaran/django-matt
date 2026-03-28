@@ -349,6 +349,58 @@ class TestAPITestClient:
         result = APITestClient.json(resp)
         assert result == {"key": "value"}
 
+    # --- Cookie helpers ---
+
+    def test_set_cookie(self):
+        """set_cookie should store a cookie in the cookie jar."""
+        client = APITestClient()
+        client.set_cookie("session_id", "abc123")
+        assert client.get_cookie("session_id") == "abc123"
+
+    def test_set_cookie_with_attributes(self):
+        """set_cookie should accept extra cookie attributes."""
+        client = APITestClient()
+        client.set_cookie("token", "xyz", max_age=3600, path="/api")
+        assert client.get_cookie("token") == "xyz"
+        morsel = client.cookies["token"]
+        assert morsel["max-age"] == 3600
+        assert morsel["path"] == "/api"
+
+    def test_get_cookie_returns_none_for_missing(self):
+        """get_cookie should return None for a cookie that doesn't exist."""
+        client = APITestClient()
+        assert client.get_cookie("nonexistent") is None
+
+    def test_delete_cookie(self):
+        """delete_cookie should remove a cookie from the jar."""
+        client = APITestClient()
+        client.set_cookie("temp", "val")
+        assert client.get_cookie("temp") == "val"
+        client.delete_cookie("temp")
+        assert client.get_cookie("temp") is None
+
+    def test_delete_cookie_noop_for_missing(self):
+        """delete_cookie should not raise for a missing cookie."""
+        client = APITestClient()
+        client.delete_cookie("nope")  # should not raise
+
+    def test_clear_cookies(self):
+        """clear_cookies should remove all cookies."""
+        client = APITestClient()
+        client.set_cookie("a", "1")
+        client.set_cookie("b", "2")
+        client.clear_cookies()
+        assert client.get_cookie("a") is None
+        assert client.get_cookie("b") is None
+
+    def test_cookies_persist_across_manual_sets(self):
+        """Multiple set_cookie calls should all persist."""
+        client = APITestClient()
+        client.set_cookie("csrf", "tok1")
+        client.set_cookie("session", "tok2")
+        assert client.get_cookie("csrf") == "tok1"
+        assert client.get_cookie("session") == "tok2"
+
 
 # ===========================================================================
 # 4. AsyncAPITestClient tests
@@ -379,6 +431,51 @@ class TestAsyncAPITestClient:
         client = AsyncAPITestClient()
         client.set_organization("async-org-1")
         assert client._organization_id == "async-org-1"
+
+    def test_clear_organization(self):
+        """clear_organization should reset organization_id to None."""
+        client = AsyncAPITestClient()
+        client.set_organization("org-async")
+        client.clear_organization()
+        assert client._organization_id is None
+
+    def test_logout_clears_state(self):
+        """logout() should clear auth token and user."""
+        client = AsyncAPITestClient()
+        client._auth_token = "tok"
+        client._user = "some-user"
+        client.logout()
+        assert client._auth_token is None
+        assert client._user is None
+
+    # --- Cookie helpers ---
+
+    def test_set_cookie(self):
+        """set_cookie should store a cookie in the async client cookie jar."""
+        client = AsyncAPITestClient()
+        client.set_cookie("session_id", "abc123")
+        assert client.get_cookie("session_id") == "abc123"
+
+    def test_get_cookie_returns_none_for_missing(self):
+        """get_cookie should return None for a cookie that doesn't exist."""
+        client = AsyncAPITestClient()
+        assert client.get_cookie("nonexistent") is None
+
+    def test_delete_cookie(self):
+        """delete_cookie should remove a cookie from the jar."""
+        client = AsyncAPITestClient()
+        client.set_cookie("temp", "val")
+        client.delete_cookie("temp")
+        assert client.get_cookie("temp") is None
+
+    def test_clear_cookies(self):
+        """clear_cookies should remove all cookies."""
+        client = AsyncAPITestClient()
+        client.set_cookie("a", "1")
+        client.set_cookie("b", "2")
+        client.clear_cookies()
+        assert client.get_cookie("a") is None
+        assert client.get_cookie("b") is None
 
 
 # ===========================================================================

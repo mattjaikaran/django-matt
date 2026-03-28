@@ -2,6 +2,7 @@
 Test client with authentication helpers.
 """
 
+from http.cookies import SimpleCookie
 from typing import Any
 
 from django.http import HttpResponse
@@ -18,6 +19,7 @@ class APITestClient(Client):
     - JWT authentication helpers
     - JSON request/response handling
     - Organization/tenant context
+    - Cookie management helpers
 
     Example:
         client = APITestClient()
@@ -83,6 +85,60 @@ class APITestClient(Client):
     def clear_organization(self):
         """Clear organization context."""
         self._organization_id = None
+
+    # ------------------------------------------------------------------
+    # Cookie helpers
+    # ------------------------------------------------------------------
+
+    def set_cookie(self, name: str, value: str, **kwargs: Any) -> None:
+        """
+        Set a cookie that will be sent with subsequent requests.
+
+        Args:
+            name: Cookie name.
+            value: Cookie value.
+            **kwargs: Additional cookie attributes (max_age, path, domain,
+                      secure, httponly, samesite).
+        """
+        self.cookies[name] = value
+        if kwargs:
+            for attr, attr_val in kwargs.items():
+                self.cookies[name][attr.replace("_", "-")] = attr_val
+
+    def get_cookie(self, name: str) -> str | None:
+        """
+        Get a cookie value by name from the cookie jar.
+
+        Args:
+            name: Cookie name.
+
+        Returns:
+            The cookie value, or ``None`` if the cookie does not exist.
+        """
+        morsel = self.cookies.get(name)
+        if morsel is None:
+            return None
+        # SimpleCookie stores values as Morsel objects; .value gives the
+        # unquoted value, while .coded_value gives the possibly-quoted one.
+        return morsel.value if hasattr(morsel, "value") else str(morsel)
+
+    def delete_cookie(self, name: str) -> None:
+        """
+        Remove a cookie from the cookie jar.
+
+        Args:
+            name: Cookie name.
+        """
+        if name in self.cookies:
+            del self.cookies[name]
+
+    def clear_cookies(self) -> None:
+        """Remove all cookies from the cookie jar."""
+        self.cookies = SimpleCookie()
+
+    # ------------------------------------------------------------------
+    # Header helpers
+    # ------------------------------------------------------------------
 
     def _get_headers(self, extra_headers: dict[str, str] | None = None) -> dict[str, str]:
         """Build headers including auth and organization."""
@@ -269,12 +325,73 @@ class AsyncAPITestClient(AsyncClient):
             except ImportError:
                 self._auth_token = None
 
-    def set_organization(self, organization):
+    def logout(self) -> None:
+        """Clear authentication state."""
+        self._auth_token = None
+        self._user = None
+
+    def set_organization(self, organization) -> None:
         """Set organization context."""
         if hasattr(organization, "id"):
             self._organization_id = str(organization.id)
         else:
             self._organization_id = str(organization)
+
+    def clear_organization(self) -> None:
+        """Clear organization context."""
+        self._organization_id = None
+
+    # ------------------------------------------------------------------
+    # Cookie helpers
+    # ------------------------------------------------------------------
+
+    def set_cookie(self, name: str, value: str, **kwargs: Any) -> None:
+        """
+        Set a cookie that will be sent with subsequent requests.
+
+        Args:
+            name: Cookie name.
+            value: Cookie value.
+            **kwargs: Additional cookie attributes (max_age, path, domain,
+                      secure, httponly, samesite).
+        """
+        self.cookies[name] = value
+        if kwargs:
+            for attr, attr_val in kwargs.items():
+                self.cookies[name][attr.replace("_", "-")] = attr_val
+
+    def get_cookie(self, name: str) -> str | None:
+        """
+        Get a cookie value by name from the cookie jar.
+
+        Args:
+            name: Cookie name.
+
+        Returns:
+            The cookie value, or ``None`` if the cookie does not exist.
+        """
+        morsel = self.cookies.get(name)
+        if morsel is None:
+            return None
+        return morsel.value if hasattr(morsel, "value") else str(morsel)
+
+    def delete_cookie(self, name: str) -> None:
+        """
+        Remove a cookie from the cookie jar.
+
+        Args:
+            name: Cookie name.
+        """
+        if name in self.cookies:
+            del self.cookies[name]
+
+    def clear_cookies(self) -> None:
+        """Remove all cookies from the cookie jar."""
+        self.cookies = SimpleCookie()
+
+    # ------------------------------------------------------------------
+    # Header helpers
+    # ------------------------------------------------------------------
 
     def _get_headers(self, extra_headers: dict[str, str] | None = None) -> dict[str, str]:
         """Build headers including auth and organization."""
@@ -293,6 +410,10 @@ class AsyncAPITestClient(AsyncClient):
                 headers[key] = value
 
         return headers
+
+    # ------------------------------------------------------------------
+    # HTTP methods
+    # ------------------------------------------------------------------
 
     async def get(
         self,
@@ -327,7 +448,89 @@ class AsyncAPITestClient(AsyncClient):
             **kwargs,
         )
 
+    async def put(
+        self,
+        path: str,
+        data: Any | None = None,
+        content_type: str = "application/json",
+        headers: dict[str, str] | None = None,
+        **kwargs,
+    ) -> HttpResponse:
+        """Make an async PUT request with JSON body."""
+        all_headers = self._get_headers(headers)
+
+        if data is not None and content_type == "application/json":
+            data = orjson.dumps(data).decode()
+
+        return await super().put(
+            path,
+            data=data,
+            content_type=content_type,
+            **all_headers,
+            **kwargs,
+        )
+
+    async def patch(
+        self,
+        path: str,
+        data: Any | None = None,
+        content_type: str = "application/json",
+        headers: dict[str, str] | None = None,
+        **kwargs,
+    ) -> HttpResponse:
+        """Make an async PATCH request with JSON body."""
+        all_headers = self._get_headers(headers)
+
+        if data is not None and content_type == "application/json":
+            data = orjson.dumps(data).decode()
+
+        return await super().patch(
+            path,
+            data=data,
+            content_type=content_type,
+            **all_headers,
+            **kwargs,
+        )
+
+    async def delete(
+        self,
+        path: str,
+        headers: dict[str, str] | None = None,
+        **kwargs,
+    ) -> HttpResponse:
+        """Make an async DELETE request."""
+        all_headers = self._get_headers(headers)
+        return await super().delete(path, **all_headers, **kwargs)
+
+    # ------------------------------------------------------------------
+    # JSON helpers
+    # ------------------------------------------------------------------
+
     @staticmethod
     def json(response: HttpResponse) -> Any:
         """Parse JSON response body."""
         return orjson.loads(response.content)
+
+    async def get_json(self, path: str, **kwargs) -> tuple:
+        """Make an async GET request and return (response, json_data) tuple."""
+        response = await self.get(path, **kwargs)
+        data = self.json(response) if response.content else None
+        return response, data
+
+    async def post_json(self, path: str, data: Any = None, **kwargs) -> tuple:
+        """Make an async POST request and return (response, json_data) tuple."""
+        response = await self.post(path, data=data, **kwargs)
+        resp_data = self.json(response) if response.content else None
+        return response, resp_data
+
+    async def put_json(self, path: str, data: Any = None, **kwargs) -> tuple:
+        """Make an async PUT request and return (response, json_data) tuple."""
+        response = await self.put(path, data=data, **kwargs)
+        resp_data = self.json(response) if response.content else None
+        return response, resp_data
+
+    async def patch_json(self, path: str, data: Any = None, **kwargs) -> tuple:
+        """Make an async PATCH request and return (response, json_data) tuple."""
+        response = await self.patch(path, data=data, **kwargs)
+        resp_data = self.json(response) if response.content else None
+        return response, resp_data
