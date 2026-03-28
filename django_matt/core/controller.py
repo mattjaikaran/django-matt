@@ -143,11 +143,14 @@ class Controller:
                 di_params = di_params_found if di_params_found else None
 
             # Pre-resolve permission instances once at init — not per-request
+            # Method-level @guard() overrides controller-level permission_classes
+            _guard = getattr(method, "_guard_permissions", None)
+            _perm_sources = _guard if _guard is not None else self.permission_classes
             _permission_instances = None
-            if self.permission_classes:
+            if _perm_sources:
                 _permission_instances = [
                     cls() if isinstance(cls, type) else cls
-                    for cls in self.permission_classes
+                    for cls in _perm_sources
                 ]
 
             @wraps(method)

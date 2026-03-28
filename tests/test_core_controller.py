@@ -6,25 +6,26 @@ Tests the CRUDController with async ORM support and query optimization.
 
 from __future__ import annotations
 
-import pytest
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import Group, User
 from django.http import JsonResponse
 from django.test import RequestFactory
 from django.urls import path as django_path
 
+import pytest
 from pydantic import BaseModel
 
 # Import directly from modules to avoid full package import
 from django_matt.core.controller import (
-    APIController,
-    Controller,
-    CRUDController,
     DJANGO_5_2_PLUS,
     DJANGO_6_0_PLUS,
     DJANGO_VERSION,
+    APIController,
+    Controller,
+    CRUDController,
 )
 from django_matt.core.errors import ConfigurationError, NotFoundAPIError
-from django_matt.core.router import APIRouter, get as route_get
+from django_matt.core.router import APIRouter
+from django_matt.core.router import get as route_get
 
 
 # Test Schemas using Pydantic BaseModel directly
@@ -478,6 +479,7 @@ class TestControllerPermissionClasses:
     async def test_permission_classes_blocks_anonymous(self, rf):
         """permission_classes=[IsAuthenticated] must reject anonymous users."""
         from django.contrib.auth.models import AnonymousUser
+
         from django_matt.permissions.common import IsAuthenticated
 
         router = APIRouter()
@@ -555,6 +557,212 @@ class TestControllerPermissionClasses:
         assert len(ChildController.permission_classes) == 1
         # But they are different list objects
         assert ChildController.permission_classes is not ParentController.permission_classes
+
+    @pytest.mark.asyncio
+    async def test_guard_overrides_controller_permissions(self, rf):
+        """@guard(AllowAny) on a method overrides controller-level IsAuthenticated."""
+        from django.contrib.auth.models import AnonymousUser
+
+        from django_matt.permissions.common import AllowAny, IsAuthenticated
+        from django_matt.permissions.decorators.guard import guard
+
+        router = APIRouter()
+
+        class MixedController(Controller):
+            prefix = "/mixed"
+            permission_classes = [IsAuthenticated]
+
+            @route_get("/protected")
+            async def protected(self, request):
+                return JsonResponse({"ok": True})
+
+            @guard(AllowAny)
+            @route_get("/public")
+            async def public(self, request):
+                return JsonResponse({"public": True})
+
+        router.register_controller(MixedController)
+        urls = router.get_urls()
+
+        anon_request = self._make_request(rf, user=AnonymousUser())
+
+        # Find the URLs by name/path
+        url_map = {url.pattern._route.strip("/"): url for url in urls}
+
+        # Protected endpoint should block anonymous
+        resp = await url_map["mixed/protected"].callback(anon_request)
+        assert resp.status_code == 401
+
+        # Public endpoint should allow anonymous via @guard(AllowAny)
+        resp = await url_map["mixed/public"].callback(anon_request)
+        assert resp.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_guard_restricts_to_admin(self, rf):
+        """@guard(IsAdmin) on a method restricts beyond controller-level IsAuthenticated."""
+        from django_matt.permissions.common import IsAdmin, IsAuthenticated
+        from django_matt.permissions.decorators.guard import guard
+
+        router = APIRouter()
+
+        class AdminController(Controller):
+            prefix = "/admin-test"
+            permission_classes = [IsAuthenticated]
+
+            @guard(IsAdmin)
+            @route_get("/admin-only")
+            async def admin_only(self, request):
+                return JsonResponse({"admin": True})
+
+        router.register_controller(AdminController)
+        urls = router.get_urls()
+
+        # Regular authenticated user should be blocked by IsAdmin
+        user = User(pk=1, username="regular", is_active=True, is_staff=False)
+        request = self._make_request(rf, user=user)
+        resp = await urls[0].callback(request)
+        assert resp.status_code == 403
+
+        # Admin user should pass
+        admin_user = User(pk=2, username="admin", is_active=True, is_staff=True)
+        request = self._make_request(rf, user=admin_user)
+        resp = await urls[0].callback(request)
+        assert resp.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_guard_does_not_affect_other_methods(self, rf):
+        """@guard on one method does not leak to sibling methods."""
+        from django.contrib.auth.models import AnonymousUser
+
+        from django_matt.permissions.common import AllowAny, IsAuthenticated
+        from django_matt.permissions.decorators.guard import guard
+
+        router = APIRouter()
+
+        class LeakController(Controller):
+            prefix = "/leak"
+            permission_classes = [IsAuthenticated]
+
+            @guard(AllowAny)
+            @route_get("/open")
+            async def open_endpoint(self, request):
+                return JsonResponse({"open": True})
+
+            @route_get("/closed")
+            async def closed_endpoint(self, request):
+                return JsonResponse({"closed": True})
+
+        router.register_controller(LeakController)
+        urls = router.get_urls()
+        url_map = {url.pattern._route.strip("/"): url for url in urls}
+
+        anon_request = self._make_request(rf, user=AnonymousUser())
+
+        # open should allow anon
+        resp = await url_map["leak/open"].callback(anon_request)
+        assert resp.status_code == 200
+
+        # closed should still require auth (controller default)
+        resp = await url_map["leak/closed"].callback(anon_request)
+        assert resp.status_code == 401
+
+    def test_guard_sets_attribute(self):
+        """@guard sets _guard_permissions on the decorated function."""
+        from django_matt.permissions.common import IsAdmin, IsAuthenticated
+        from django_matt.permissions.decorators.guard import guard
+
+        @guard(IsAuthenticated, IsAdmin)
+        async def my_method(self, request):
+            pass
+
+        assert hasattr(my_method, "_guard_permissions")
+        assert my_method._guard_permissions == [IsAuthenticated, IsAdmin]
+
+
+class TestLoginNotRequired:
+    """Tests for Django 5.1+ LoginRequiredMiddleware compatibility."""
+
+    def test_router_view_funcs_have_login_not_required(self):
+        """All view functions created by APIRouter should have login_not_required applied."""
+        from django_matt.core.router import _login_not_required
+
+        router = APIRouter()
+
+        @router.get("/items")
+        async def list_items(request):
+            return []
+
+        urls = router.get_urls()
+        assert len(urls) >= 1
+
+        view_func = urls[0].callback
+        # On Django 5.1+, login_not_required sets login_required=False on the view
+        if _login_not_required is not None:
+            assert getattr(view_func, "login_required", None) is False
+        else:
+            # On older Django, attribute may not be present — that's fine
+            pass
+
+    def test_controller_view_funcs_have_login_not_required(self):
+        """Controller-based view functions should also be exempt."""
+        from django_matt.core.router import _login_not_required
+
+        router = APIRouter()
+
+        class ItemController(Controller):
+            prefix = "/items"
+
+            @route_get("/")
+            async def list_items(self, request):
+                return []
+
+        router.register_controller(ItemController)
+        urls = router.get_urls()
+        assert len(urls) >= 1
+
+        view_func = urls[0].callback
+        if _login_not_required is not None:
+            assert getattr(view_func, "login_required", None) is False
+
+    def test_dispatch_view_has_login_not_required(self):
+        """Merged dispatch views (multiple methods, same path) should be exempt."""
+        from django_matt.core.router import _login_not_required
+
+        router = APIRouter()
+
+        @router.get("/things")
+        async def list_things(request):
+            return []
+
+        @router.post("/things")
+        async def create_thing(request, body=None):
+            return {"id": 1}
+
+        urls = router.get_urls()
+        # Same path merged into one dispatch view
+        thing_urls = [u for u in urls if "things" in str(u.pattern)]
+        assert len(thing_urls) == 1
+
+        view_func = thing_urls[0].callback
+        if _login_not_required is not None:
+            assert getattr(view_func, "login_required", None) is False
+
+    def test_matt_api_urls_have_login_not_required(self):
+        """MattAPI utility views (docs, openapi) should also be exempt."""
+        from django_matt.core.router import _login_not_required
+
+        if _login_not_required is None:
+            pytest.skip("Django < 5.1, login_not_required not available")
+
+        from django_matt.api import MattAPI
+
+        api = MattAPI(title="Test API")
+        urls = api.urls
+
+        # Find the openapi-schema view
+        openapi_urls = [u for u in urls if getattr(u, "name", None) == "openapi-schema"]
+        assert len(openapi_urls) == 1
+        assert getattr(openapi_urls[0].callback, "login_required", None) is False
 
 
 @pytest.fixture

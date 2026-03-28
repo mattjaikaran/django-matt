@@ -45,6 +45,7 @@ from django_matt.permissions.decorators import (
     allow_any,
     authenticated,
     check_permissions,
+    guard,
     requires_permission,
     requires_permissions,
     requires_role,
@@ -80,4 +81,5 @@ __all__ = [
     "allow_any",
     "with_permissions",
     "check_permissions",
+    "guard",
 ]

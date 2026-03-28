@@ -10,6 +10,7 @@ from django_matt.permissions.decorators.base import (
     create_permission_decorator,
     get_request,
 )
+from django_matt.permissions.decorators.guard import guard
 from django_matt.permissions.decorators.permission import (
     requires_permission,
     requires_permissions,
@@ -31,4 +32,6 @@ __all__ = [
     # Auth decorators
     "authenticated",
     "allow_any",
+    # Method-level override
+    "guard",
 ]
