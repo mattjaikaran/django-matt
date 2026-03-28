@@ -129,6 +129,7 @@ class APIRouter:
         response_model: type[BaseModel] | None = None,
         status_code: int = 200,
         tags: list[str] = None,
+        responses: dict[int, type[BaseModel]] | None = None,
     ):
         """Add a route to the router."""
         route = {
@@ -139,6 +140,7 @@ class APIRouter:
             "response_model": response_model,
             "status_code": status_code,
             "tags": tags or [],
+            "responses": responses or {},
         }
         self.routes.append(route)
         return endpoint
@@ -151,6 +153,7 @@ class APIRouter:
         status_code: int = 200,
         name: str | None = None,
         tags: list[str] = None,
+        responses: dict[int, type[BaseModel]] | None = None,
     ):
         """Register a GET endpoint."""
 
@@ -163,6 +166,7 @@ class APIRouter:
                 response_model=response_model,
                 status_code=status_code,
                 tags=tags,
+                responses=responses,
             )
 
         return decorator
@@ -175,6 +179,7 @@ class APIRouter:
         status_code: int = 201,
         name: str | None = None,
         tags: list[str] = None,
+        responses: dict[int, type[BaseModel]] | None = None,
     ):
         """Register a POST endpoint."""
 
@@ -187,6 +192,7 @@ class APIRouter:
                 response_model=response_model,
                 status_code=status_code,
                 tags=tags,
+                responses=responses,
             )
 
         return decorator
@@ -199,6 +205,7 @@ class APIRouter:
         status_code: int = 200,
         name: str | None = None,
         tags: list[str] = None,
+        responses: dict[int, type[BaseModel]] | None = None,
     ):
         """Register a PUT endpoint."""
 
@@ -211,6 +218,7 @@ class APIRouter:
                 response_model=response_model,
                 status_code=status_code,
                 tags=tags,
+                responses=responses,
             )
 
         return decorator
@@ -223,6 +231,7 @@ class APIRouter:
         status_code: int = 200,
         name: str | None = None,
         tags: list[str] = None,
+        responses: dict[int, type[BaseModel]] | None = None,
     ):
         """Register a PATCH endpoint."""
 
@@ -235,6 +244,7 @@ class APIRouter:
                 response_model=response_model,
                 status_code=status_code,
                 tags=tags,
+                responses=responses,
             )
 
         return decorator
@@ -247,6 +257,7 @@ class APIRouter:
         status_code: int = 204,
         name: str | None = None,
         tags: list[str] = None,
+        responses: dict[int, type[BaseModel]] | None = None,
     ):
         """Register a DELETE endpoint."""
 
@@ -259,6 +270,7 @@ class APIRouter:
                 response_model=response_model,
                 status_code=status_code,
                 tags=tags,
+                responses=responses,
             )
 
         return decorator
@@ -519,7 +531,15 @@ class APIRouter:
 
 
 # Route decorators for controller methods
-def get(path: str, *, response_model=None, status_code=200, name=None, tags=None):
+def get(
+    path: str,
+    *,
+    response_model: type[BaseModel] | None = None,
+    status_code: int = 200,
+    name: str | None = None,
+    tags: list[str] | None = None,
+    responses: dict[int, type[BaseModel]] | None = None,
+):
     """Decorator to mark a controller method as a GET endpoint."""
 
     def decorator(func):
@@ -530,13 +550,22 @@ def get(path: str, *, response_model=None, status_code=200, name=None, tags=None
             "status_code": status_code,
             "name": name,
             "tags": tags or [],
+            "responses": responses or {},
         }
         return func
 
     return decorator
 
 
-def post(path: str, *, response_model=None, status_code=201, name=None, tags=None):
+def post(
+    path: str,
+    *,
+    response_model: type[BaseModel] | None = None,
+    status_code: int = 201,
+    name: str | None = None,
+    tags: list[str] | None = None,
+    responses: dict[int, type[BaseModel]] | None = None,
+):
     """Decorator to mark a controller method as a POST endpoint."""
 
     def decorator(func):
@@ -547,13 +576,22 @@ def post(path: str, *, response_model=None, status_code=201, name=None, tags=Non
             "status_code": status_code,
             "name": name,
             "tags": tags or [],
+            "responses": responses or {},
         }
         return func
 
     return decorator
 
 
-def put(path: str, *, response_model=None, status_code=200, name=None, tags=None):
+def put(
+    path: str,
+    *,
+    response_model: type[BaseModel] | None = None,
+    status_code: int = 200,
+    name: str | None = None,
+    tags: list[str] | None = None,
+    responses: dict[int, type[BaseModel]] | None = None,
+):
     """Decorator to mark a controller method as a PUT endpoint."""
 
     def decorator(func):
@@ -564,13 +602,22 @@ def put(path: str, *, response_model=None, status_code=200, name=None, tags=None
             "status_code": status_code,
             "name": name,
             "tags": tags or [],
+            "responses": responses or {},
         }
         return func
 
     return decorator
 
 
-def patch(path: str, *, response_model=None, status_code=200, name=None, tags=None):
+def patch(
+    path: str,
+    *,
+    response_model: type[BaseModel] | None = None,
+    status_code: int = 200,
+    name: str | None = None,
+    tags: list[str] | None = None,
+    responses: dict[int, type[BaseModel]] | None = None,
+):
     """Decorator to mark a controller method as a PATCH endpoint."""
 
     def decorator(func):
@@ -581,13 +628,22 @@ def patch(path: str, *, response_model=None, status_code=200, name=None, tags=No
             "status_code": status_code,
             "name": name,
             "tags": tags or [],
+            "responses": responses or {},
         }
         return func
 
     return decorator
 
 
-def delete(path: str, *, response_model=None, status_code=204, name=None, tags=None):
+def delete(
+    path: str,
+    *,
+    response_model: type[BaseModel] | None = None,
+    status_code: int = 204,
+    name: str | None = None,
+    tags: list[str] | None = None,
+    responses: dict[int, type[BaseModel]] | None = None,
+):
     """Decorator to mark a controller method as a DELETE endpoint."""
 
     def decorator(func):
@@ -598,6 +654,7 @@ def delete(path: str, *, response_model=None, status_code=204, name=None, tags=N
             "status_code": status_code,
             "name": name,
             "tags": tags or [],
+            "responses": responses or {},
         }
         return func
 
