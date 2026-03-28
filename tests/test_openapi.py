@@ -895,3 +895,296 @@ class TestSchemaModeSeparation:
         result = schema.build()
         item_schema = result["components"]["schemas"]["ItemSchema"]
         assert "display" in item_schema.get("required", [])
+
+
+# ---------------------------------------------------------------------------
+# Permission extensions (x-auth-required, x-permissions, x-roles)
+# ---------------------------------------------------------------------------
+
+from django_matt.permissions.common import (
+    AllowAny,
+    HasPermission,
+    HasRole,
+    IsAdmin,
+    IsAuthenticated,
+    IsOwner,
+)
+
+
+class TestPermissionExtensions:
+    """Test x-auth-required, x-permissions, x-roles OpenAPI extension fields."""
+
+    def test_no_extensions_when_no_permissions(self):
+        """Endpoints without permissions have no extension fields."""
+        schema = OpenAPISchema()
+        schema.add_routes([_route("/ping", list_users, ["GET"])])
+        op = schema.build()["paths"]["/ping"]["get"]
+        assert "x-auth-required" not in op
+        assert "x-permissions" not in op
+        assert "x-roles" not in op
+
+    def test_controller_level_is_authenticated(self):
+        """Controller with IsAuthenticated sets x-auth-required: true."""
+
+        class AuthController:
+            prefix = "/protected"
+            tags = []
+            permission_classes = [IsAuthenticated]
+
+            def get_data(self):
+                """Get data."""
+            get_data._route_info = {
+                "path": "/",
+                "methods": ["GET"],
+                "name": "get_data",
+                "tags": None,
+            }
+
+        schema = OpenAPISchema()
+        schema.add_controller(AuthController)
+        op = schema.build()["paths"]["/protected"]["get"]
+        assert op["x-auth-required"] is True
+
+    def test_controller_level_is_admin(self):
+        """Controller with IsAdmin sets x-auth-required: true."""
+
+        class AdminController:
+            prefix = "/admin"
+            tags = []
+            permission_classes = [IsAdmin]
+
+            def get_admin(self):
+                """Admin endpoint."""
+            get_admin._route_info = {
+                "path": "/",
+                "methods": ["GET"],
+                "name": "get_admin",
+                "tags": None,
+            }
+
+        schema = OpenAPISchema()
+        schema.add_controller(AdminController)
+        op = schema.build()["paths"]["/admin"]["get"]
+        assert op["x-auth-required"] is True
+
+    def test_controller_level_has_role(self):
+        """Controller with HasRole instance sets x-roles and x-auth-required."""
+
+        class RoleController:
+            prefix = "/manager"
+            tags = []
+            permission_classes = [HasRole(roles=["manager", "admin"])]
+
+            def get_report(self):
+                """Manager report."""
+            get_report._route_info = {
+                "path": "/",
+                "methods": ["GET"],
+                "name": "get_report",
+                "tags": None,
+            }
+
+        schema = OpenAPISchema()
+        schema.add_controller(RoleController)
+        op = schema.build()["paths"]["/manager"]["get"]
+        assert op["x-auth-required"] is True
+        assert op["x-roles"] == ["admin", "manager"]
+
+    def test_controller_level_has_permission(self):
+        """Controller with HasPermission instance sets x-permissions."""
+
+        class PermController:
+            prefix = "/edit"
+            tags = []
+            permission_classes = [HasPermission(permissions=["myapp.change_model"])]
+
+            def edit(self):
+                """Edit endpoint."""
+            edit._route_info = {
+                "path": "/",
+                "methods": ["PUT"],
+                "name": "edit",
+                "tags": None,
+            }
+
+        schema = OpenAPISchema()
+        schema.add_controller(PermController)
+        op = schema.build()["paths"]["/edit"]["put"]
+        assert op["x-auth-required"] is True
+        assert op["x-permissions"] == ["myapp.change_model"]
+
+    def test_guard_override(self):
+        """Method-level @guard overrides controller-level permissions."""
+
+        class MixedController:
+            prefix = "/mix"
+            tags = []
+            permission_classes = [IsAuthenticated]
+
+            def public_endpoint(self):
+                """Public endpoint."""
+            public_endpoint._route_info = {
+                "path": "/public",
+                "methods": ["GET"],
+                "name": "public_endpoint",
+                "tags": None,
+            }
+            public_endpoint._guard_permissions = [AllowAny]
+
+        schema = OpenAPISchema()
+        schema.add_controller(MixedController)
+        op = schema.build()["paths"]["/mix/public"]["get"]
+        # AllowAny is not in _AUTH_PERMISSION_NAMES so auth_required stays False
+        assert "x-auth-required" not in op
+
+    def test_allow_any_flag(self):
+        """Methods with _allow_any=True have no auth extensions."""
+
+        class AllowAnyController:
+            prefix = "/open"
+            tags = []
+            permission_classes = [IsAuthenticated]
+
+            def open_endpoint(self):
+                """Open endpoint."""
+            open_endpoint._route_info = {
+                "path": "/",
+                "methods": ["GET"],
+                "name": "open_endpoint",
+                "tags": None,
+            }
+            open_endpoint._allow_any = True
+
+        schema = OpenAPISchema()
+        schema.add_controller(AllowAnyController)
+        op = schema.build()["paths"]["/open"]["get"]
+        assert "x-auth-required" not in op
+
+    def test_required_roles_from_decorator(self):
+        """Endpoint with _required_roles attribute sets x-roles."""
+        def admin_only():
+            """Admin only endpoint."""
+        admin_only._required_roles = ["admin"]
+
+        schema = OpenAPISchema()
+        schema.add_routes([_route("/admin", admin_only, ["GET"])])
+        op = schema.build()["paths"]["/admin"]["get"]
+        assert op["x-auth-required"] is True
+        assert op["x-roles"] == ["admin"]
+
+    def test_required_permissions_from_decorator(self):
+        """Endpoint with _required_permissions attribute sets x-permissions."""
+        def edit_stuff():
+            """Edit stuff."""
+        edit_stuff._required_permissions = ["app.edit", "app.delete"]
+
+        schema = OpenAPISchema()
+        schema.add_routes([_route("/edit", edit_stuff, ["PUT"])])
+        op = schema.build()["paths"]["/edit"]["put"]
+        assert op["x-auth-required"] is True
+        assert op["x-permissions"] == ["app.delete", "app.edit"]
+
+    def test_combined_roles_and_permissions(self):
+        """Both roles and permissions appear when both are present."""
+
+        class ComboController:
+            prefix = "/combo"
+            tags = []
+            permission_classes = [
+                HasRole(roles=["editor"]),
+                HasPermission(permissions=["content.publish"]),
+            ]
+
+            def publish(self):
+                """Publish content."""
+            publish._route_info = {
+                "path": "/",
+                "methods": ["POST"],
+                "name": "publish",
+                "tags": None,
+            }
+
+        schema = OpenAPISchema()
+        schema.add_controller(ComboController)
+        op = schema.build()["paths"]["/combo"]["post"]
+        assert op["x-auth-required"] is True
+        assert op["x-roles"] == ["editor"]
+        assert op["x-permissions"] == ["content.publish"]
+
+    def test_no_empty_arrays(self):
+        """Extension fields are omitted when empty, not set to []."""
+        class AuthOnly:
+            prefix = "/auth"
+            tags = []
+            permission_classes = [IsAuthenticated]
+
+            def me(self):
+                """Get self."""
+            me._route_info = {
+                "path": "/me",
+                "methods": ["GET"],
+                "name": "me",
+                "tags": None,
+            }
+
+        schema = OpenAPISchema()
+        schema.add_controller(AuthOnly)
+        op = schema.build()["paths"]["/auth/me"]["get"]
+        assert op["x-auth-required"] is True
+        assert "x-roles" not in op
+        assert "x-permissions" not in op
+
+    def test_multiple_permission_classes(self):
+        """Multiple permission classes are all processed."""
+
+        class MultiController:
+            prefix = "/multi"
+            tags = []
+            permission_classes = [IsAuthenticated, IsOwner]
+
+            def my_resource(self):
+                """My resource."""
+            my_resource._route_info = {
+                "path": "/",
+                "methods": ["GET"],
+                "name": "my_resource",
+                "tags": None,
+            }
+
+        schema = OpenAPISchema()
+        schema.add_controller(MultiController)
+        op = schema.build()["paths"]["/multi"]["get"]
+        assert op["x-auth-required"] is True
+
+    def test_roles_deduplicated_and_sorted(self):
+        """Duplicate roles from multiple sources are deduplicated and sorted."""
+        def endpoint():
+            """Test."""
+        endpoint._required_roles = ["admin", "editor", "admin"]
+
+        schema = OpenAPISchema()
+        schema.add_routes([_route("/dedup", endpoint, ["GET"])])
+        op = schema.build()["paths"]["/dedup"]["get"]
+        assert op["x-roles"] == ["admin", "editor"]
+
+    def test_is_owner_sets_auth_required(self):
+        """IsOwner permission class triggers x-auth-required."""
+
+        class OwnerController:
+            prefix = "/owned"
+            tags = []
+            permission_classes = [IsOwner]
+
+            def get_owned(self):
+                """Get owned."""
+            get_owned._route_info = {
+                "path": "/",
+                "methods": ["GET"],
+                "name": "get_owned",
+                "tags": None,
+            }
+
+        schema = OpenAPISchema()
+        schema.add_controller(OwnerController)
+        op = schema.build()["paths"]["/owned"]["get"]
+        assert op["x-auth-required"] is True

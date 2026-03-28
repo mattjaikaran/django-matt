@@ -35,7 +35,14 @@ def requires_permission(*permissions: str) -> Callable[[F], F]:
         *permissions: Permission strings (user must have at least one)
     """
     perm_instance = HasPermission(permissions=list(permissions))
-    return create_permission_decorator([perm_instance], "permission_denied")
+    base_decorator = create_permission_decorator([perm_instance], "permission_denied")
+
+    def decorator(func: F) -> F:
+        wrapped = base_decorator(func)
+        wrapped._required_permissions = list(permissions)  # type: ignore[attr-defined]
+        return wrapped
+
+    return decorator
 
 
 def requires_permissions(*permissions: str, require_all: bool = True) -> Callable[[F], F]:
@@ -56,7 +63,14 @@ def requires_permissions(*permissions: str, require_all: bool = True) -> Callabl
                     If False, user needs any one.
     """
     perm_instance = HasPermission(permissions=list(permissions), require_all=require_all)
-    return create_permission_decorator([perm_instance], "permission_denied")
+    base_decorator = create_permission_decorator([perm_instance], "permission_denied")
+
+    def decorator(func: F) -> F:
+        wrapped = base_decorator(func)
+        wrapped._required_permissions = list(permissions)  # type: ignore[attr-defined]
+        return wrapped
+
+    return decorator
 
 
 def with_permissions(*permission_classes: type[BasePermission]) -> Callable[[F], F]:

@@ -26,4 +26,11 @@ def requires_role(*roles: str) -> Callable[[F], F]:
         *roles: Role/group names (user needs any one)
     """
     role_instance = HasRole(roles=list(roles))
-    return create_permission_decorator([role_instance], "role_required")
+    base_decorator = create_permission_decorator([role_instance], "role_required")
+
+    def decorator(func: F) -> F:
+        wrapped = base_decorator(func)
+        wrapped._required_roles = list(roles)  # type: ignore[attr-defined]
+        return wrapped
+
+    return decorator

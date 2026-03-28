@@ -13,6 +13,17 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+# Permission class names that indicate auth is required
+_AUTH_PERMISSION_NAMES: frozenset[str] = frozenset({
+    "IsAuthenticated",
+    "IsAdmin",
+    "IsStaff",
+    "IsSuperUser",
+    "IsOwner",
+    "HasRole",
+    "HasPermission",
+})
+
 # Python type to OpenAPI type mapping
 TYPE_MAP: dict[type, dict[str, str]] = {
     str: {"type": "string"},
@@ -75,6 +86,7 @@ class OpenAPISchema:
         controller = controller_class()
         prefix = getattr(controller, "prefix", "")
         tags = getattr(controller, "tags", [])
+        permission_classes = getattr(controller, "permission_classes", [])
 
         for method_name in dir(controller):
             if method_name.startswith("_"):
@@ -96,6 +108,7 @@ class OpenAPISchema:
                 "response_model": route_info.get("response_model"),
                 "status_code": route_info.get("status_code", 200),
                 "tags": route_info.get("tags", []) or tags,
+                "permission_classes": permission_classes,
             }
             self._add_route(route)
 
@@ -164,7 +177,81 @@ class OpenAPISchema:
         status_code = route.get("status_code", 200)
         operation["responses"] = self._build_responses(response_model, status_code)
 
+        # Add permission extension fields (x-auth-required, x-permissions, x-roles)
+        extensions = self._extract_permission_extensions(endpoint, route)
+        operation.update(extensions)
+
         return operation
+
+    def _extract_permission_extensions(
+        self, endpoint: Any, route: dict
+    ) -> dict[str, Any]:
+        """Extract permission metadata from endpoint and route into OpenAPI extensions.
+
+        Returns a dict with any applicable ``x-auth-required``, ``x-permissions``,
+        and ``x-roles`` fields. Empty collections are omitted.
+        """
+        extensions: dict[str, Any] = {}
+        roles: list[str] = []
+        permissions: list[str] = []
+        auth_required = False
+
+        # --- Gather permission classes (controller-level or @guard override) ---
+        # Method-level @guard() overrides controller-level permission_classes
+        guard_perms = getattr(endpoint, "_guard_permissions", None)
+        perm_classes = (
+            guard_perms
+            if guard_perms is not None
+            else route.get("permission_classes", [])
+        )
+
+        # Check if _allow_any is set (explicitly public)
+        if getattr(endpoint, "_allow_any", False):
+            perm_classes = []
+
+        for perm_cls in perm_classes:
+            cls = perm_cls if isinstance(perm_cls, type) else type(perm_cls)
+            cls_name = cls.__name__
+
+            if cls_name in _AUTH_PERMISSION_NAMES:
+                auth_required = True
+
+            # Extract roles from HasRole instances
+            if cls_name == "HasRole":
+                instance = perm_cls if not isinstance(perm_cls, type) else None
+                if instance is not None:
+                    instance_roles = getattr(instance, "roles", [])
+                    roles.extend(instance_roles)
+
+            # Extract permissions from HasPermission instances
+            if cls_name == "HasPermission":
+                instance = perm_cls if not isinstance(perm_cls, type) else None
+                if instance is not None:
+                    instance_perms = getattr(instance, "permissions", [])
+                    permissions.extend(instance_perms)
+
+        # --- Check decorator-set attributes ---
+        required_roles = getattr(endpoint, "_required_roles", None)
+        if required_roles:
+            roles.extend(required_roles)
+            auth_required = True
+
+        required_permissions = getattr(endpoint, "_required_permissions", None)
+        if required_permissions:
+            permissions.extend(required_permissions)
+            auth_required = True
+
+        # --- Build extension fields (only include when non-empty) ---
+        if auth_required:
+            extensions["x-auth-required"] = True
+
+        if roles:
+            extensions["x-roles"] = sorted(set(roles))
+
+        if permissions:
+            extensions["x-permissions"] = sorted(set(permissions))
+
+        return extensions
 
     def _extract_parameters(self, endpoint: callable, path: str) -> list[dict]:
         """Extract query and path parameters from endpoint signature."""
