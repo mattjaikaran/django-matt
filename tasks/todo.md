@@ -44,36 +44,21 @@ Better schema generation, better generated client code.
   - Source: django-shinobi (implemented)
 - [x] 2.2 **Permissions in OpenAPI** — x-auth-required, x-roles, x-permissions extension fields
 - [x] 2.3 **Request/response schema mode separation** — validation vs serialization modes in OpenAPI
-- [ ] 2.4 **Ordering enhancements**
-  - Support relation traversal (`field__related_field`)
-  - Preserve model `Meta.ordering` as default (only override on explicit `?ordering=`)
-  - Emit ordering fields as OpenAPI enums for TypeScript codegen
-  - Source: django-ninja-extra #101, #223, #284
-- [ ] 2.5 **Custom field registration** — `register_field_type(DjangoField, PydanticType, openapi_schema)`
-  - No Django API framework handles custom fields well
-  - Source: django-bolt #122
+- [x] 2.4 **Ordering enhancements** — relation traversal, Meta.ordering fallback, OpenAPI enums
+- [x] 2.5 **Custom field registration** — register_field_type() for custom Django→Pydantic mappings
 - [x] 2.6 **FK `_id` field support** — `model_fk_use_pks=True` maps FK to `_id` columns
-- [ ] 2.7 **Qualified OpenAPI schema naming** — module+class to prevent collisions
-  - Avoid `UserSchema` / `UserSchema2` in multi-app projects
-  - Source: django-shinobi #51
-- [ ] 2.8 **Multi-response schemas** — `responses={201: Schema, 400: Error, 409: Conflict}` on views
-  - Enriches OpenAPI docs with accurate per-status response types
-  - Source: django-ninja-crud #490
+- [x] 2.7 **Qualified OpenAPI schema naming** — auto-detect collisions, QUALIFIED_SCHEMA_NAMES setting
+- [x] 2.8 **Multi-response schemas** — responses={404: ErrorSchema} on route decorators
 
 ### Phase 3: Controller & View Enhancements
 
 New CRUD capabilities, better ViewSet DX.
 
 - [x] 3.1 **Bulk CRUD views** — BulkCreateView, BulkUpdateView, BulkDeleteView with max_items + hooks
-- [ ] 3.2 **Configurable lookup_field on ViewSets** — UUID, slug, composite
-  - Controller already supports this (`controller.py:309`) — verify views do too
-  - Ensure type annotations propagate to OpenAPI (UUID vs int vs str)
-  - Source: django-ninja-extra #178/PR #336
+- [x] 3.2 **Configurable lookup_field** — ViewSet lookup_field/lookup_type propagate to detail views
 - [x] 3.3 **Opt-in full_clean()** — validate_model=True on ViewSet or per-view, 422 on failure
 - [x] 3.4 **Method-level permission overrides** — `@guard()` decorator overrides controller perms
-- [ ] 3.5 **SoftDeleteMixin for ViewSets** — reusable soft_delete/restore endpoints
-  - Already in boilerplate pattern, standardize in django-matt
-  - Source: django-ninja-boilerplate `SoftDeleteMixin`
+- [x] 3.5 **SoftDeleteMixin** — restore + permanent delete endpoints, lifecycle hooks
 
 ### Phase 4: DX & Compatibility
 
