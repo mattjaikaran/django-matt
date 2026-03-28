@@ -92,6 +92,7 @@ from django_matt.views.hooks import (
 )
 from django_matt.views.list import ListView
 from django_matt.views.read import ReadView, RetrieveView
+from django_matt.views.soft_delete import PermanentDeleteView, RestoreView, SoftDeleteMixin
 from django_matt.views.update import PatchView, UpdateView
 from django_matt.views.viewset import APIViewSet, ViewSet
 
@@ -152,4 +153,8 @@ __all__ = [
     # Decorators - Debugging
     "log_hook",
     "timed_hook",
+    # Soft Delete
+    "SoftDeleteMixin",
+    "RestoreView",
+    "PermanentDeleteView",
 ]
