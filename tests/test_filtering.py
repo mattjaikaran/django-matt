@@ -715,6 +715,148 @@ class TestOrderingBackend(TestCase):
         ordering = self.backend.get_ordering(request, MockView())
         self.assertEqual(ordering, ["email"])
 
+    # --- Relation traversal tests ---
+
+    def test_ordering_relation_traversal_explicit(self):
+        """Test ordering allows relation traversal when full path is in ordering_fields."""
+
+        class MockView:
+            ordering_fields = ["name", "author__last_name"]
+
+        request = self.factory.get("/?ordering=-author__last_name")
+        queryset = MockQuerySet()
+
+        result = self.backend.filter_queryset(request, queryset, MockView())
+        self.assertEqual(result._ordering, ["-author__last_name"])
+
+    def test_ordering_relation_traversal_root_field(self):
+        """Test ordering allows relation traversal when root field is in ordering_fields."""
+
+        class MockView:
+            ordering_fields = ["name", "author"]
+
+        request = self.factory.get("/?ordering=author__email")
+        queryset = MockQuerySet()
+
+        result = self.backend.filter_queryset(request, queryset, MockView())
+        self.assertEqual(result._ordering, ["author__email"])
+
+    def test_ordering_relation_traversal_rejected(self):
+        """Test ordering rejects traversal when root field is not allowed."""
+
+        class MockView:
+            ordering_fields = ["name"]
+
+        request = self.factory.get("/?ordering=author__email")
+        queryset = MockQuerySet()
+
+        result = self.backend.filter_queryset(request, queryset, MockView())
+        self.assertEqual(result._ordering, [])
+
+    def test_ordering_all_allows_any_traversal(self):
+        """Test __all__ allows any ordering field including traversals."""
+
+        class MockView:
+            ordering_fields = ["__all__"]
+
+        request = self.factory.get("/?ordering=category__parent__name,-created_at")
+        queryset = MockQuerySet()
+
+        result = self.backend.filter_queryset(request, queryset, MockView())
+        self.assertEqual(result._ordering, ["category__parent__name", "-created_at"])
+
+    # --- Model Meta.ordering fallback tests ---
+
+    def _make_queryset_with_meta_ordering(self, meta_ordering: list[str]) -> MockQuerySet:
+        """Create a MockQuerySet whose model has Meta.ordering set."""
+
+        class MockMeta:
+            ordering = meta_ordering
+
+        class MockModel:
+            _meta = MockMeta()
+
+        class ModelQuerySet(MockQuerySet):
+            @property
+            def model(self):
+                return MockModel
+
+        return ModelQuerySet()
+
+    def test_model_meta_ordering_fallback(self):
+        """Test falls back to model Meta.ordering when no view default."""
+
+        class MockView:
+            ordering_fields = None  # no restriction
+
+        queryset = self._make_queryset_with_meta_ordering(["-created_at"])
+
+        request = self.factory.get("/")
+        result = self.backend.filter_queryset(request, queryset, MockView())
+        self.assertEqual(result._ordering, ["-created_at"])
+
+    def test_view_default_takes_precedence_over_meta(self):
+        """Test view ordering takes precedence over model Meta.ordering."""
+
+        class MockView:
+            ordering_fields = ["email", "created_at"]
+            ordering = "email"
+
+        queryset = self._make_queryset_with_meta_ordering(["-created_at"])
+
+        request = self.factory.get("/")
+        result = self.backend.filter_queryset(request, queryset, MockView())
+        self.assertEqual(result._ordering, ["email"])
+
+    def test_request_param_takes_precedence_over_meta(self):
+        """Test explicit ?ordering= takes precedence over model Meta.ordering."""
+
+        class MockView:
+            ordering_fields = ["email", "created_at"]
+
+        queryset = self._make_queryset_with_meta_ordering(["-created_at"])
+
+        request = self.factory.get("/?ordering=email")
+        result = self.backend.filter_queryset(request, queryset, MockView())
+        self.assertEqual(result._ordering, ["email"])
+
+    # --- OpenAPI enum tests ---
+
+    def test_schema_fields_include_enum(self):
+        """Test get_schema_fields emits enum for allowed ordering fields."""
+
+        class MockView:
+            ordering_fields = ["email", "created_at"]
+
+        schema = self.backend.get_schema_fields(MockView())
+        self.assertEqual(len(schema), 1)
+        param = schema[0]
+        self.assertEqual(param["name"], "ordering")
+        self.assertEqual(
+            param["schema"]["enum"],
+            ["email", "-email", "created_at", "-created_at"],
+        )
+
+    def test_schema_fields_no_enum_for_all(self):
+        """Test get_schema_fields does not emit enum for __all__."""
+
+        class MockView:
+            ordering_fields = ["__all__"]
+
+        schema = self.backend.get_schema_fields(MockView())
+        param = schema[0]
+        self.assertNotIn("enum", param["schema"])
+
+    def test_schema_fields_no_enum_without_fields(self):
+        """Test get_schema_fields has no enum when no ordering_fields set."""
+
+        class MockView:
+            pass
+
+        schema = self.backend.get_schema_fields(MockView())
+        param = schema[0]
+        self.assertNotIn("enum", param["schema"])
+
 
 # =============================================================================
 # BaseFilterBackend Tests

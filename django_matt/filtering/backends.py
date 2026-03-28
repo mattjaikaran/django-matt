@@ -324,9 +324,49 @@ class OrderingBackend(BaseFilterBackend):
         """Get default ordering from view."""
         return getattr(view, self.default_ordering_attr, None)
 
-    def get_ordering(self, request: HttpRequest, view: Any) -> list[str]:
+    def _get_model_ordering(self, queryset: QuerySet) -> list[str]:
+        """Extract default ordering from model Meta.ordering."""
+        try:
+            model = queryset.model
+            meta_ordering = getattr(model._meta, "ordering", None)
+            if meta_ordering:
+                return list(meta_ordering)
+        except Exception:
+            pass
+        return []
+
+    def _is_valid_ordering_field(
+        self, field_name: str, allowed_fields: list[str]
+    ) -> bool:
+        """Check if a field is valid for ordering.
+
+        Supports relation traversal (e.g. ``author__name``) when the
+        base field or the full dotted path is listed in *allowed_fields*,
+        or when ``allowed_fields`` contains ``"__all__"``.
+        """
+        if "__all__" in allowed_fields:
+            return True
+        # Exact match (covers both simple fields and explicit traversals)
+        if field_name in allowed_fields:
+            return True
+        # Allow traversal when the root field is listed
+        if "__" in field_name:
+            root = field_name.split("__")[0]
+            if root in allowed_fields:
+                return True
+        return False
+
+    def get_ordering(
+        self,
+        request: HttpRequest,
+        view: Any,
+        queryset: QuerySet | None = None,
+    ) -> list[str]:
         """
         Get ordering from request or default.
+
+        Falls back to the view's ``ordering`` attribute, then to the model's
+        ``Meta.ordering`` when no explicit ``?ordering=`` parameter is provided.
 
         Returns list of ordering fields (with optional - prefix for descending).
         """
@@ -335,7 +375,7 @@ class OrderingBackend(BaseFilterBackend):
         if ordering_str:
             ordering = [f.strip() for f in ordering_str.split(",") if f.strip()]
         else:
-            # Use default
+            # Use view default
             default = self.get_default_ordering(view)
             if isinstance(default, str):
                 ordering = [default]
@@ -344,6 +384,10 @@ class OrderingBackend(BaseFilterBackend):
             else:
                 ordering = []
 
+            # Fall back to model Meta.ordering
+            if not ordering and queryset is not None:
+                ordering = self._get_model_ordering(queryset)
+
         # Validate against allowed fields
         allowed_fields = self.get_ordering_fields(view)
         if allowed_fields is not None:
@@ -351,7 +395,7 @@ class OrderingBackend(BaseFilterBackend):
             for field in ordering:
                 # Remove - prefix for validation
                 field_name = field.lstrip("-")
-                if field_name in allowed_fields:
+                if self._is_valid_ordering_field(field_name, allowed_fields):
                     validated.append(field)
             ordering = validated
 
@@ -366,7 +410,7 @@ class OrderingBackend(BaseFilterBackend):
         """
         Apply ordering to queryset.
         """
-        ordering = self.get_ordering(request, view)
+        ordering = self.get_ordering(request, view, queryset)
 
         if ordering:
             queryset = queryset.order_by(*ordering)
@@ -374,18 +418,35 @@ class OrderingBackend(BaseFilterBackend):
         return queryset
 
     def get_schema_fields(self, view: Any = None) -> list[dict[str, Any]]:
-        """Get OpenAPI schema for ordering parameter."""
+        """Get OpenAPI schema for ordering parameter.
+
+        When ``ordering_fields`` is set (and is not ``["__all__"]``),
+        emits an ``enum`` on the schema so TypeScript codegen can
+        produce a union type for allowed values.
+        """
         ordering_fields = self.get_ordering_fields(view) if view else []
         description = "Order by field (prefix with - for descending)"
-        if ordering_fields:
-            description = f"Order by: {', '.join(ordering_fields)} (prefix with - for descending)"
+
+        schema: dict[str, Any] = {"type": "string"}
+
+        if ordering_fields and ordering_fields != ["__all__"]:
+            description = (
+                f"Order by: {', '.join(ordering_fields)} "
+                "(prefix with - for descending)"
+            )
+            # Build enum: each field + its descending variant
+            enum_values: list[str] = []
+            for field in ordering_fields:
+                enum_values.append(field)
+                enum_values.append(f"-{field}")
+            schema["enum"] = enum_values
 
         return [
             {
                 "name": self.ordering_param,
                 "in": "query",
                 "required": False,
-                "schema": {"type": "string"},
+                "schema": schema,
                 "description": description,
             }
         ]
