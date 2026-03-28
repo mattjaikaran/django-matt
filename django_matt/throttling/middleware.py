@@ -130,17 +130,23 @@ class ThrottleMiddleware:
         wait = throttle.wait()
         headers = throttle.get_throttle_headers()
 
+        retry_after = int(wait) + 1 if wait is not None and wait > 0 else None
+
         response = JsonResponse(
             {
                 "error": "too_many_requests",
                 "message": f"Request was throttled. Expected available in {int(wait or 0)} seconds.",
-                "retry_after": int(wait or 0) + 1 if wait else None,
+                "retry_after": retry_after,
             },
             status=429,
         )
 
         for key, value in headers.items():
             response[key] = value
+
+        # Ensure Retry-After header is set on 429 responses (RFC 6585)
+        if retry_after is not None and "Retry-After" not in response:
+            response["Retry-After"] = str(retry_after)
 
         return response
 
@@ -237,18 +243,23 @@ class PathSpecificThrottleMiddleware:
         """Create a 429 response."""
         wait = throttle.wait()
         headers = throttle.get_throttle_headers()
+        retry_after = int(wait) + 1 if wait is not None and wait > 0 else None
 
         response = JsonResponse(
             {
                 "error": "too_many_requests",
                 "message": f"Request was throttled. Expected available in {int(wait or 0)} seconds.",
-                "retry_after": int(wait or 0) + 1 if wait else None,
+                "retry_after": retry_after,
             },
             status=429,
         )
 
         for key, value in headers.items():
             response[key] = value
+
+        # Ensure Retry-After header is set on 429 responses (RFC 6585)
+        if retry_after is not None and "Retry-After" not in response:
+            response["Retry-After"] = str(retry_after)
 
         return response
 
@@ -276,16 +287,22 @@ def throttle_exception_handler(exc: Exception, context: Any = None) -> JsonRespo
     if not isinstance(exc, ThrottleError):
         return None
 
+    retry_after = int(exc.wait) + 1 if exc.wait is not None and exc.wait > 0 else None
+
     response = JsonResponse(
         {
             "error": "too_many_requests",
             "message": exc.message,
-            "retry_after": int(exc.wait or 0) + 1 if exc.wait else None,
+            "retry_after": retry_after,
         },
         status=429,
     )
 
     for key, value in exc.headers.items():
         response[key] = value
+
+    # Ensure Retry-After header is set on 429 responses (RFC 6585)
+    if retry_after is not None and "Retry-After" not in response:
+        response["Retry-After"] = str(retry_after)
 
     return response

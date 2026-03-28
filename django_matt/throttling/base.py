@@ -232,8 +232,11 @@ class BaseThrottle(ABC):
             reset_time = int(self.history[0] + self.duration)
             headers["X-RateLimit-Reset"] = str(reset_time)
 
-        wait = self.wait()
-        if wait is not None and wait > 0:
-            headers["Retry-After"] = str(int(wait) + 1)
+        # Only include Retry-After when the rate limit is exhausted (RFC 6585)
+        remaining = max(0, (self.num_requests or 0) - len(self.history))
+        if remaining == 0:
+            wait = self.wait()
+            if wait is not None and wait > 0:
+                headers["Retry-After"] = str(int(wait) + 1)
 
         return headers

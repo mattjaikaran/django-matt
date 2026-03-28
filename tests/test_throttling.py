@@ -3,6 +3,7 @@ Tests for the throttling module in Django Matt.
 """
 
 import time
+from typing import Any
 from unittest.mock import MagicMock
 
 from django.http import HttpResponse
@@ -26,6 +27,11 @@ from django_matt.throttling.decorators import (
     ThrottlesMixin,
     throttle_anon,
     throttle_user,
+)
+from django_matt.throttling.middleware import (
+    PathSpecificThrottleMiddleware,
+    ThrottleMiddleware,
+    throttle_exception_handler,
 )
 from django_matt.throttling.throttles import BurstRateThrottle
 
@@ -800,3 +806,169 @@ class TestGetDefaultBackend(TestCase):
         backend = get_default_backend()
         self.assertIsInstance(backend, DjangoCacheBackend)
         self.assertEqual(backend.prefix, "custom:")
+
+
+# =============================================================================
+# Retry-After Header Tests (RFC 6585)
+# =============================================================================
+
+
+class TestRetryAfterHeader(TestCase):
+    """Tests for Retry-After header on 429 responses."""
+
+    def setUp(self) -> None:
+        self.factory = RequestFactory()
+        self.backend = InMemoryBackend()
+        set_default_backend(self.backend)
+
+    def _make_anon_request(self, ip: str = "10.0.0.1") -> Any:
+        request = self.factory.get("/")
+        request.META["REMOTE_ADDR"] = ip
+        request.user = MagicMock()
+        request.user.is_authenticated = False
+        return request
+
+    # -- ThrottleMiddleware ---------------------------------------------------
+
+    def test_throttle_middleware_429_includes_retry_after(self) -> None:
+        """429 response from ThrottleMiddleware includes Retry-After header."""
+
+        def dummy_view(request: Any) -> HttpResponse:
+            return HttpResponse("OK")
+
+        middleware = ThrottleMiddleware(dummy_view)
+        middleware.backend = self.backend
+        middleware._config = {"anon_rate": "1/minute"}
+
+        request = self._make_anon_request()
+
+        # First request allowed
+        resp = middleware(request)
+        self.assertEqual(resp.status_code, 200)
+
+        # Second request throttled
+        resp = middleware(request)
+        self.assertEqual(resp.status_code, 429)
+        self.assertIn("Retry-After", resp)
+        retry_after = int(resp["Retry-After"])
+        self.assertGreater(retry_after, 0)
+
+    def test_throttle_middleware_allowed_no_retry_after(self) -> None:
+        """Allowed response from ThrottleMiddleware has no Retry-After header."""
+
+        def dummy_view(request: Any) -> HttpResponse:
+            return HttpResponse("OK")
+
+        middleware = ThrottleMiddleware(dummy_view)
+        middleware.backend = self.backend
+        middleware._config = {"anon_rate": "100/minute"}
+
+        request = self._make_anon_request()
+        resp = middleware(request)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertNotIn("Retry-After", resp)
+
+    # -- PathSpecificThrottleMiddleware ---------------------------------------
+
+    @override_settings(THROTTLE_PATH_RATES={"/api/": "1/minute"})
+    def test_path_middleware_429_includes_retry_after(self) -> None:
+        """429 response from PathSpecificThrottleMiddleware includes Retry-After."""
+
+        def dummy_view(request: Any) -> HttpResponse:
+            return HttpResponse("OK")
+
+        middleware = PathSpecificThrottleMiddleware(dummy_view)
+        middleware.backend = self.backend
+        middleware._path_rates = {"/api/": "1/minute"}
+
+        request = self._make_anon_request()
+        request.path = "/api/test/"
+
+        # First request allowed
+        resp = middleware(request)
+        self.assertEqual(resp.status_code, 200)
+
+        # Second request throttled
+        resp = middleware(request)
+        self.assertEqual(resp.status_code, 429)
+        self.assertIn("Retry-After", resp)
+        retry_after = int(resp["Retry-After"])
+        self.assertGreater(retry_after, 0)
+
+    # -- throttle_exception_handler -------------------------------------------
+
+    def test_exception_handler_429_includes_retry_after(self) -> None:
+        """throttle_exception_handler sets Retry-After from ThrottleError."""
+        exc = ThrottleError(
+            message="Throttled",
+            wait=45.0,
+            headers={"X-RateLimit-Limit": "10"},
+        )
+        resp = throttle_exception_handler(exc)
+        self.assertIsNotNone(resp)
+        self.assertEqual(resp.status_code, 429)
+        self.assertIn("Retry-After", resp)
+        self.assertEqual(resp["Retry-After"], "46")  # int(45) + 1
+
+    def test_exception_handler_no_wait_no_retry_after(self) -> None:
+        """throttle_exception_handler omits Retry-After when wait is None."""
+        exc = ThrottleError(message="Throttled", wait=None, headers={})
+        resp = throttle_exception_handler(exc)
+        self.assertIsNotNone(resp)
+        self.assertEqual(resp.status_code, 429)
+        self.assertNotIn("Retry-After", resp)
+
+    # -- @throttle decorator --------------------------------------------------
+
+    def test_decorator_throttle_error_has_retry_after_in_headers(self) -> None:
+        """ThrottleError raised by @throttle decorator includes Retry-After."""
+
+        @throttle(rate="1/minute")
+        def my_view(request: Any) -> HttpResponse:
+            return HttpResponse("OK")
+
+        request = self._make_anon_request(ip="10.0.0.50")
+
+        # First request OK
+        my_view(request)
+
+        # Second request raises
+        with self.assertRaises(ThrottleError) as ctx:
+            my_view(request)
+
+        exc = ctx.exception
+        self.assertIn("Retry-After", exc.headers)
+        retry_after = int(exc.headers["Retry-After"])
+        self.assertGreater(retry_after, 0)
+
+    # -- BaseThrottle.get_throttle_headers() ----------------------------------
+
+    def test_get_throttle_headers_retry_after_positive_int_string(self) -> None:
+        """Retry-After in get_throttle_headers() is a positive int as string."""
+        request = self._make_anon_request(ip="10.0.0.60")
+
+        t = ConcreteThrottle(rate="1/minute")
+        t.backend = self.backend
+
+        t.allow_request(request)  # allowed
+        t.allow_request(request)  # denied
+
+        headers = t.get_throttle_headers()
+        self.assertIn("Retry-After", headers)
+
+        # Must be parseable as a positive integer
+        val = int(headers["Retry-After"])
+        self.assertGreater(val, 0)
+
+    def test_get_throttle_headers_no_retry_after_when_allowed(self) -> None:
+        """No Retry-After in headers when request is allowed."""
+        request = self._make_anon_request(ip="10.0.0.70")
+
+        t = ConcreteThrottle(rate="100/minute")
+        t.backend = self.backend
+
+        t.allow_request(request)
+
+        headers = t.get_throttle_headers()
+        self.assertNotIn("Retry-After", headers)
