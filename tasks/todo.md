@@ -42,10 +42,7 @@ Better schema generation, better generated client code.
   - OpenAPI output includes enum constraints
   - Directly improves `typegen/` TypeScript/Swift output
   - Source: django-shinobi (implemented)
-- [ ] 2.2 **Permissions in OpenAPI** — `x-permissions`, `x-roles`, `x-auth-required` extension fields
-  - Extract from `permission_classes` and decorators like `@requires_role("admin")`
-  - Include in operation schema generation
-  - Source: django-ninja-extra #324 (actively worked)
+- [x] 2.2 **Permissions in OpenAPI** — x-auth-required, x-roles, x-permissions extension fields
 - [x] 2.3 **Request/response schema mode separation** — validation vs serialization modes in OpenAPI
 - [ ] 2.4 **Ordering enhancements**
   - Support relation traversal (`field__related_field`)
@@ -67,20 +64,12 @@ Better schema generation, better generated client code.
 
 New CRUD capabilities, better ViewSet DX.
 
-- [ ] 3.1 **Bulk CRUD views** — `BulkCreateView`, `BulkUpdateView`, `BulkDeleteView`
-  - `max_items` config to prevent abuse
-  - Hook support (before_bulk_create, after_bulk_create, etc.)
-  - Transaction wrapping
-  - Controller already has bulk_create/bulk_update — views don't expose them
-  - Source: gap in all frameworks (django-ninja-crud, django-bolt, DRF feature request)
+- [x] 3.1 **Bulk CRUD views** — BulkCreateView, BulkUpdateView, BulkDeleteView with max_items + hooks
 - [ ] 3.2 **Configurable lookup_field on ViewSets** — UUID, slug, composite
   - Controller already supports this (`controller.py:309`) — verify views do too
   - Ensure type annotations propagate to OpenAPI (UUID vs int vs str)
   - Source: django-ninja-extra #178/PR #336
-- [ ] 3.3 **Opt-in full_clean()** — `validate_model=True` on ViewSet or per-view
-  - Calls `full_clean()` before save, wraps in `sync_to_async` for async context
-  - Bridges Pydantic validation and Django model validation
-  - Source: django-shinobi #35, django-ninja #443 (14 upvotes)
+- [x] 3.3 **Opt-in full_clean()** — validate_model=True on ViewSet or per-view, 422 on failure
 - [x] 3.4 **Method-level permission overrides** — `@guard()` decorator overrides controller perms
 - [ ] 3.5 **SoftDeleteMixin for ViewSets** — reusable soft_delete/restore endpoints
   - Already in boilerplate pattern, standardize in django-matt
@@ -96,19 +85,13 @@ Developer experience, framework compat, auth improvements.
   - 5 serialization funnels updated with `by_alias=True`
   - OpenAPI: `model_json_schema(by_alias=True)` for matching docs
   - Source: django-bolt #105, django-ninja #961
-- [ ] 4.2 **Sync/async auto-detecting JWT** — single `MattJWTAuth` class
-  - Auto-detect sync vs async context, use appropriate code path
-  - No separate `JWTAuth` / `AsyncJWTAuth`
-  - Source: django-ninja-extra #252
+- [x] 4.2 **Unified MattJWTAuth** — single class with authenticate() + aauthenticate()
 - [x] 4.3 **Django 5.1+ LoginRequiredMiddleware compat** — auto `login_not_required` on all API views
-- [ ] 4.4 **Lifecycle hooks on MattAPI** — `@api.on_startup`, `@api.on_shutdown`
-  - Connection pool init, cache warming, scheduler startup, metrics setup
-  - Source: django-bolt #96, django-ninja #1601
+- [x] 4.4 **Lifecycle hooks** — @api.on_startup, @api.on_shutdown with sync/async support
 - [ ] 4.5 **Dynamic field selection** — `?fields=id,name,email` query param
   - Integrate with `.values()` for DB optimization
   - Source: django-ninja #333, django-ninja-crud #462
-- [ ] 4.6 **Conditional pagination** — `?no_page=1` or header to skip pagination for exports
-  - Source: django-ninja-extra #195
+- [x] 4.6 **Conditional pagination** — ?no_page=1 or X-No-Pagination header, max_unpaginated safety cap
 
 ### Phase 5: Testing Enhancements
 
