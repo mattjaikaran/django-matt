@@ -55,6 +55,7 @@ class DjangoFilterBackend(BaseFilterBackend):
         "search",
         "q",
         "format",
+        "fields",
     }
 
     def get_filterset_class(self, view: Any) -> type[FilterSet] | None:

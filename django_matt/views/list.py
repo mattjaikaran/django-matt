@@ -159,8 +159,14 @@ class ListView(APIView):
         """Handle GET request to list resources."""
         queryset = self.get_queryset(request)
 
+        # Parse dynamic field selection (?fields=id,name,email)
+        selected_fields = self._parse_field_selection(request)
+
         # Auto-optimize: add select_related/prefetch_related based on schema
         queryset = self.optimize_queryset(queryset)
+
+        # Apply .only() for DB-level optimization when fields are selected
+        queryset = self._apply_field_selection_to_queryset(queryset, selected_fields)
 
         # Run before_list hooks - allows modifying queryset
         queryset = await self._run_hooks(
@@ -219,6 +225,13 @@ class ListView(APIView):
                 "count": len(items),
                 "total": total,
             }
+
+        # Apply dynamic field selection to serialized items
+        if selected_fields is not None and "items" in response:
+            response["items"] = [
+                self._filter_dict_fields(item, selected_fields)
+                for item in response["items"]
+            ]
 
         # Run after_list hooks - allows modifying response
         response = await self._run_hooks(
@@ -296,6 +309,7 @@ class ListView(APIView):
                 "limit",
                 "offset",
                 "no_page",
+                "fields",
             ):
                 continue
 

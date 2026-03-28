@@ -61,6 +61,7 @@ class APIView(Generic[ModelT, SchemaT]):
     operation_id: str | None = None
     enable_hooks: bool = True
     validate_model: bool | None = None
+    allowed_fields: list[str] | None = None
 
     # Set by the ViewSet when attached
     _viewset: "ViewSet | None" = None
@@ -235,6 +236,74 @@ class APIView(Generic[ModelT, SchemaT]):
             queryset = queryset.prefetch_related(*prefetch_fields)
 
         return queryset
+
+    def _parse_field_selection(self, request: HttpRequest) -> list[str] | None:
+        """Parse ``?fields=id,name,email`` query param into a validated field list.
+
+        Returns ``None`` when no field selection is requested (return all fields).
+        Invalid field names are silently dropped.  When *allowed_fields* is set,
+        only those fields may be requested.
+        """
+        raw = request.GET.get("fields")
+        if not raw:
+            return None
+
+        requested = [f.strip() for f in raw.split(",") if f.strip()]
+        if not requested:
+            return None
+
+        # Determine the universe of valid field names from the response schema
+        schema = self.get_response_schema()
+        if schema is not None:
+            valid_names = set(schema.model_fields.keys())
+        else:
+            # Fallback: model field names
+            try:
+                valid_names = {f.name for f in self.get_model()._meta.fields}
+            except (ValueError, AttributeError):
+                return None
+
+        # If allowed_fields is set, further restrict
+        allowed: list[str] | None = self.allowed_fields
+        if allowed is None and self._viewset is not None:
+            allowed = getattr(self._viewset, "allowed_fields", None)
+        if allowed is not None:
+            valid_names &= set(allowed)
+
+        selected = [f for f in requested if f in valid_names]
+        return selected if selected else None
+
+    def _apply_field_selection_to_queryset(
+        self,
+        queryset: models.QuerySet,
+        fields: list[str] | None,
+    ) -> models.QuerySet:
+        """Apply ``.only()`` to queryset for DB-level column pruning.
+
+        Only applies when all requested fields are concrete model columns.
+        """
+        if fields is None:
+            return queryset
+
+        model = queryset.model
+        concrete = {f.name for f in model._meta.concrete_fields}
+        only_fields = [f for f in fields if f in concrete]
+        # Always include pk so Django internals work correctly
+        if only_fields:
+            pk_name = model._meta.pk.name if model._meta.pk else "id"
+            if pk_name not in only_fields:
+                only_fields.insert(0, pk_name)
+            return queryset.only(*only_fields)
+        return queryset
+
+    @staticmethod
+    def _filter_dict_fields(
+        data: dict[str, Any], fields: list[str] | None
+    ) -> dict[str, Any]:
+        """Filter a serialised dict to only include the requested fields."""
+        if fields is None:
+            return data
+        return {k: v for k, v in data.items() if k in fields}
 
     def _model_to_dict(self, instance: models.Model) -> dict[str, Any]:
         """Simple model to dict conversion."""

@@ -3064,3 +3064,292 @@ class TestSoftDeleteMixinIntegration:
             response = await bound(request, id=1)
 
         assert response.status_code == 200
+
+
+# ============================================================================
+# Dynamic field selection (?fields=id,name,email)
+# ============================================================================
+
+
+class TestFieldSelection:
+    """Tests for dynamic field selection via ?fields= query parameter."""
+
+    @pytest.mark.asyncio
+    async def test_list_field_selection_filters_response(self, rf):
+        """ListView should return only requested fields in items."""
+        view = ListView(page_size=10)
+        vs = SimpleViewSet()
+        view._viewset = vs
+
+        mock_user = MagicMock()
+        mock_user.pk = 1
+        mock_user.id = 1
+        mock_user.username = "alice"
+        mock_user._meta = User._meta
+
+        mock_qs = MagicMock()
+        mock_qs.model = User
+        mock_qs._meta = User._meta
+        mock_qs.select_related.return_value = mock_qs
+        mock_qs.prefetch_related.return_value = mock_qs
+        mock_qs.only.return_value = mock_qs
+        mock_qs.order_by.return_value = mock_qs
+        mock_qs.filter.return_value = mock_qs
+        mock_qs.acount = AsyncMock(return_value=1)
+        mock_qs.__getitem__ = MagicMock(return_value=mock_qs)
+
+        async def async_iter(self):
+            yield mock_user
+
+        mock_qs.__aiter__ = async_iter
+
+        with patch.object(vs, "get_queryset", return_value=mock_qs):
+            request = _make_request(rf, "GET", "/items/", query={"fields": "id"})
+            result = await view.handle(request)
+
+        # Only "id" should be present in each item
+        assert len(result["items"]) == 1
+        assert list(result["items"][0].keys()) == ["id"]
+
+    @pytest.mark.asyncio
+    async def test_list_no_fields_param_returns_all(self, rf):
+        """When ?fields is absent, all schema fields should be returned."""
+        view = ListView(page_size=10)
+        vs = SimpleViewSet()
+        view._viewset = vs
+
+        mock_user = MagicMock()
+        mock_user.pk = 1
+        mock_user.id = 1
+        mock_user.username = "bob"
+        mock_user._meta = User._meta
+
+        mock_qs = MagicMock()
+        mock_qs.model = User
+        mock_qs._meta = User._meta
+        mock_qs.select_related.return_value = mock_qs
+        mock_qs.prefetch_related.return_value = mock_qs
+        mock_qs.order_by.return_value = mock_qs
+        mock_qs.filter.return_value = mock_qs
+        mock_qs.acount = AsyncMock(return_value=1)
+        mock_qs.__getitem__ = MagicMock(return_value=mock_qs)
+
+        async def async_iter(self):
+            yield mock_user
+
+        mock_qs.__aiter__ = async_iter
+
+        with patch.object(vs, "get_queryset", return_value=mock_qs):
+            request = _make_request(rf, "GET", "/items/")
+            result = await view.handle(request)
+
+        # All UserReadSchema fields present
+        assert "id" in result["items"][0]
+        assert "username" in result["items"][0]
+
+    @pytest.mark.asyncio
+    async def test_list_invalid_fields_ignored(self, rf):
+        """Invalid field names in ?fields should be silently ignored."""
+        view = ListView(page_size=10)
+        vs = SimpleViewSet()
+        view._viewset = vs
+
+        mock_user = MagicMock()
+        mock_user.pk = 1
+        mock_user.id = 1
+        mock_user.username = "carol"
+        mock_user._meta = User._meta
+
+        mock_qs = MagicMock()
+        mock_qs.model = User
+        mock_qs._meta = User._meta
+        mock_qs.select_related.return_value = mock_qs
+        mock_qs.prefetch_related.return_value = mock_qs
+        mock_qs.only.return_value = mock_qs
+        mock_qs.order_by.return_value = mock_qs
+        mock_qs.filter.return_value = mock_qs
+        mock_qs.acount = AsyncMock(return_value=1)
+        mock_qs.__getitem__ = MagicMock(return_value=mock_qs)
+
+        async def async_iter(self):
+            yield mock_user
+
+        mock_qs.__aiter__ = async_iter
+
+        with patch.object(vs, "get_queryset", return_value=mock_qs):
+            # "nonexistent" is not a valid field, only "username" survives
+            request = _make_request(rf, "GET", "/items/", query={"fields": "username,nonexistent"})
+            result = await view.handle(request)
+
+        assert list(result["items"][0].keys()) == ["username"]
+
+    @pytest.mark.asyncio
+    async def test_list_all_fields_invalid_returns_all(self, rf):
+        """If all requested fields are invalid, return all fields (no filtering)."""
+        view = ListView(page_size=10)
+        vs = SimpleViewSet()
+        view._viewset = vs
+
+        mock_user = MagicMock()
+        mock_user.pk = 1
+        mock_user.id = 1
+        mock_user.username = "dave"
+        mock_user._meta = User._meta
+
+        mock_qs = MagicMock()
+        mock_qs.model = User
+        mock_qs._meta = User._meta
+        mock_qs.select_related.return_value = mock_qs
+        mock_qs.prefetch_related.return_value = mock_qs
+        mock_qs.order_by.return_value = mock_qs
+        mock_qs.filter.return_value = mock_qs
+        mock_qs.acount = AsyncMock(return_value=1)
+        mock_qs.__getitem__ = MagicMock(return_value=mock_qs)
+
+        async def async_iter(self):
+            yield mock_user
+
+        mock_qs.__aiter__ = async_iter
+
+        with patch.object(vs, "get_queryset", return_value=mock_qs):
+            request = _make_request(rf, "GET", "/items/", query={"fields": "bogus,fake"})
+            result = await view.handle(request)
+
+        # All fields returned since none were valid
+        assert "id" in result["items"][0]
+        assert "username" in result["items"][0]
+
+    @pytest.mark.asyncio
+    async def test_read_field_selection(self, rf):
+        """ReadView should return only requested fields."""
+        view = ReadView(response_schema=UserReadSchema)
+        vs = SimpleViewSet()
+        view._viewset = vs
+
+        mock_user = MagicMock()
+        mock_user.pk = 1
+        mock_user.id = 1
+        mock_user.username = "eve"
+        mock_user._meta = User._meta
+        mock_user.DoesNotExist = User.DoesNotExist
+
+        mock_qs = MagicMock()
+        mock_qs.model = User
+        mock_qs._meta = User._meta
+        mock_qs.select_related.return_value = mock_qs
+        mock_qs.prefetch_related.return_value = mock_qs
+        mock_qs.only.return_value = mock_qs
+        mock_qs.aget = AsyncMock(return_value=mock_user)
+
+        with patch.object(vs, "get_queryset", return_value=mock_qs):
+            request = _make_request(rf, "GET", "/items/1/", query={"fields": "username"})
+            result = await view.handle(request, id=1)
+
+        assert list(result.keys()) == ["username"]
+
+    @pytest.mark.asyncio
+    async def test_read_no_fields_returns_all(self, rf):
+        """ReadView without ?fields returns all fields."""
+        view = ReadView(response_schema=UserReadSchema)
+        vs = SimpleViewSet()
+        view._viewset = vs
+
+        mock_user = MagicMock()
+        mock_user.pk = 1
+        mock_user.id = 1
+        mock_user.username = "frank"
+        mock_user._meta = User._meta
+        mock_user.DoesNotExist = User.DoesNotExist
+
+        mock_qs = MagicMock()
+        mock_qs.model = User
+        mock_qs._meta = User._meta
+        mock_qs.select_related.return_value = mock_qs
+        mock_qs.prefetch_related.return_value = mock_qs
+        mock_qs.aget = AsyncMock(return_value=mock_user)
+
+        with patch.object(vs, "get_queryset", return_value=mock_qs):
+            request = _make_request(rf, "GET", "/items/1/")
+            result = await view.handle(request, id=1)
+
+        assert "id" in result
+        assert "username" in result
+
+    @pytest.mark.asyncio
+    async def test_allowed_fields_restricts_selection(self, rf):
+        """When allowed_fields is set, only those fields can be requested."""
+        view = ListView(page_size=10, allowed_fields=["id"])
+        vs = SimpleViewSet()
+        view._viewset = vs
+
+        mock_user = MagicMock()
+        mock_user.pk = 1
+        mock_user.id = 1
+        mock_user.username = "grace"
+        mock_user._meta = User._meta
+
+        mock_qs = MagicMock()
+        mock_qs.model = User
+        mock_qs._meta = User._meta
+        mock_qs.select_related.return_value = mock_qs
+        mock_qs.prefetch_related.return_value = mock_qs
+        mock_qs.only.return_value = mock_qs
+        mock_qs.order_by.return_value = mock_qs
+        mock_qs.filter.return_value = mock_qs
+        mock_qs.acount = AsyncMock(return_value=1)
+        mock_qs.__getitem__ = MagicMock(return_value=mock_qs)
+
+        async def async_iter(self):
+            yield mock_user
+
+        mock_qs.__aiter__ = async_iter
+
+        with patch.object(vs, "get_queryset", return_value=mock_qs):
+            # Request "username" but it's not in allowed_fields, so only "id" should work
+            request = _make_request(rf, "GET", "/items/", query={"fields": "id,username"})
+            result = await view.handle(request)
+
+        assert list(result["items"][0].keys()) == ["id"]
+
+    def test_fields_excluded_from_simple_filters(self, rf):
+        """The 'fields' query param should not be treated as a filter."""
+        view = ListView()
+        vs = SimpleViewSet()
+        view._viewset = vs
+
+        mock_qs = MagicMock()
+        mock_qs.model = User
+        mock_qs._meta = User._meta
+
+        request = _make_request(rf, "GET", "/items/", query={"fields": "id,name"})
+        result_qs = view._apply_filters(mock_qs, request)
+
+        # filter() should NOT have been called with fields=...
+        mock_qs.filter.assert_not_called()
+
+    def test_fields_in_django_filter_backend_reserved(self):
+        """'fields' should be in DjangoFilterBackend.RESERVED_PARAMS."""
+        from django_matt.filtering.backends import DjangoFilterBackend
+
+        assert "fields" in DjangoFilterBackend.RESERVED_PARAMS
+
+    def test_parse_field_selection_empty_string(self, rf):
+        """Empty ?fields= should return None (all fields)."""
+        view = APIView()
+        vs = SimpleViewSet()
+        view._viewset = vs
+
+        request = _make_request(rf, "GET", "/items/", query={"fields": ""})
+        assert view._parse_field_selection(request) is None
+
+    def test_filter_dict_fields_static_method(self):
+        """_filter_dict_fields should keep only requested keys."""
+        data = {"id": 1, "name": "test", "email": "t@t.com"}
+        result = APIView._filter_dict_fields(data, ["id", "name"])
+        assert result == {"id": 1, "name": "test"}
+
+    def test_filter_dict_fields_none_returns_all(self):
+        """_filter_dict_fields with None fields returns the full dict."""
+        data = {"id": 1, "name": "test"}
+        result = APIView._filter_dict_fields(data, None)
+        assert result == data

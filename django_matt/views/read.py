@@ -57,7 +57,10 @@ class ReadView(APIView):
             value=lookup_value,
         )
 
-        instance = await self._get_instance(lookup_value)
+        # Parse dynamic field selection (?fields=id,name,email)
+        selected_fields = self._parse_field_selection(request)
+
+        instance = await self._get_instance(lookup_value, selected_fields)
 
         # Run after_read hooks - allows modifying instance or response
         instance = await self._run_hooks(
@@ -67,14 +70,20 @@ class ReadView(APIView):
             instance=instance,
         )
 
-        return self.serialize_single(instance)
+        result = self.serialize_single(instance)
+        return self._filter_dict_fields(result, selected_fields)
 
-    async def _get_instance(self, lookup_value: Any) -> models.Model:
+    async def _get_instance(
+        self, lookup_value: Any, selected_fields: list[str] | None = None
+    ) -> models.Model:
         """Get the model instance by lookup value."""
         queryset = self.get_queryset(None)
 
         # Auto-optimize for single object retrieval too
         queryset = self.optimize_queryset(queryset)
+
+        # Apply .only() for DB-level optimization when fields are selected
+        queryset = self._apply_field_selection_to_queryset(queryset, selected_fields)
 
         try:
             return await queryset.aget(**{self.lookup_field: lookup_value})
