@@ -42,6 +42,14 @@ from django_matt.testing.client import (
     AsyncAPITestClient,
 )
 
+# Scenario-based CRUD testing
+from django_matt.testing.crud import (
+    CRUDScenario,
+    CRUDTestCase,
+    CRUDTestResult,
+    generate_crud_scenarios,
+)
+
 # Pre-built Factories
 from django_matt.testing.factories import (
     BaseModelFactory,
@@ -115,6 +123,11 @@ __all__ = [
     "assert_created",
     "assert_no_content",
     "assert_query_count",
+    # CRUD Testing
+    "CRUDScenario",
+    "CRUDTestCase",
+    "CRUDTestResult",
+    "generate_crud_scenarios",
     # Fixtures
     "get_api_client",
     "get_authenticated_client",
