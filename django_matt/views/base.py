@@ -168,6 +168,22 @@ class APIView(Generic[ModelT, SchemaT]):
             return schema_instance.model_dump()
         return self._model_to_dict(instance)
 
+    def serialize_single(self, instance: models.Model) -> dict[str, Any]:
+        """Serialize a single ORM instance without re-validation (model_construct).
+
+        Use for single-object responses (create, read, update) where
+        the data comes directly from the database and doesn't need
+        Pydantic re-validation. Same fast path as serialize_fast() for lists.
+        """
+        schema = self.get_response_schema()
+        if schema is not None and hasattr(schema, "from_orm_fast"):
+            schema_instance = schema.from_orm_fast(instance)
+            if hasattr(schema_instance, "model_dump_response"):
+                return schema_instance.model_dump_response()
+            return schema_instance.model_dump()
+        # Fall back to full validation if from_orm_fast not available
+        return self.serialize(instance)
+
     def serialize_fast(self, instance: models.Model) -> dict[str, Any]:
         """Serialize a model instance without re-validation (for lists)."""
         schema = self.get_response_schema()

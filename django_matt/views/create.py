@@ -69,7 +69,7 @@ class CreateView(APIView):
         )
 
         # Serialize and return
-        return self.serialize(instance)
+        return self.serialize_single(instance)
 
     async def _save_instance(self, instance: models.Model):
         """Save the model instance asynchronously."""

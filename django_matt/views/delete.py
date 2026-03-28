@@ -64,7 +64,7 @@ class DeleteView(APIView):
         # Optionally serialize before deletion
         deleted_data = None
         if self.return_deleted:
-            deleted_data = self.serialize(instance)
+            deleted_data = self.serialize_single(instance)
 
         # Store reference for after_delete hook
         deleted_instance = instance

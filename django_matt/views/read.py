@@ -61,7 +61,7 @@ class ReadView(APIView):
             instance=instance,
         )
 
-        return self.serialize(instance)
+        return self.serialize_single(instance)
 
     async def _get_instance(self, lookup_value: Any) -> models.Model:
         """Get the model instance by lookup value."""
