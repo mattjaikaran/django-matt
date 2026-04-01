@@ -21,6 +21,7 @@ import django_matt.auth.api_keys.models  # noqa: F401, E402
 import django_matt.auth.blacklist.models  # noqa: F401, E402
 import django_matt.messaging.models  # noqa: F401, E402
 import django_matt.auth.sso.models  # noqa: F401, E402
+import django_matt.ai.models  # noqa: F401, E402
 
 # Now we can safely import pytest and other fixtures
 from django.test import RequestFactory

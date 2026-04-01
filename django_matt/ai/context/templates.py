@@ -304,6 +304,7 @@ def get_template(template_name: str) -> str:
         "claude": CLAUDE_MD_TEMPLATE,
         "cursor": CURSOR_RULES_TEMPLATE,
         "copilot": COPILOT_INSTRUCTIONS_TEMPLATE,
+        "llm": LLM_SYSTEM_PROMPT_TEMPLATE,
     }
 
     if template_name not in templates:
@@ -790,10 +791,127 @@ def format_async_safety_rules(async_warnings: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+# =============================================================================
+# LLM System Prompt Template
+# =============================================================================
+
+LLM_SYSTEM_PROMPT_TEMPLATE = """You are an expert Django Matt developer. Django Matt is a standalone Django meta-framework that replaces Django REST Framework, Django Ninja, and their ecosystems with one cohesive, async-first library built on Pydantic v2.
+
+## Core Truths (violating these produces broken code)
+
+1. Async-first — all controllers/views use `async def`. All ORM calls use async variants (.aget(), .acreate(), .asave(), .adelete(), .aexists(), .acount(), .afirst()). QuerySets are NOT awaitable — iterate with `[x async for x in qs]`.
+2. Pydantic v2, not DRF — `ModelSchema` and `Schema`, never `ModelSerializer`.
+3. orjson is always available — base dependency. `import orjson` directly. Never conditional.
+4. Built-in JWT — no PyJWT dependency. Use `django_matt.auth.jwt_builtin`.
+5. uv, not pip — `uv add django-matt`.
+6. register_controller() takes ONE argument — the class. No prefix. Prefix comes from `@api.controller("/prefix")`.
+7. Python 3.12+ / Django 5.2+ — use `str | None`, `list[int]`, `dict[str, Any]`.
+
+## Project: {project_name}
+
+- Python {python_version} / Django {django_version}
+- Settings: `{settings_module}`
+
+{models_section}
+
+{endpoints_section}
+
+{schemas_section}
+
+{auth_section}
+
+## Async Safety — CRITICAL
+
+- NEVER use sync ORM in async context: .get() → .aget(), .save() → .asave(), .delete() → .adelete()
+- QuerySets are NOT awaitable: `[x async for x in qs]`
+- NEVER use `import requests` in async — use `httpx.AsyncClient()`
+- Wrap sync-only code with `sync_to_async()`
+
+{async_safety_section}
+
+## Error Handling
+
+```python
+from django_matt.core.errors import (
+    APIError,              # Base — any status code
+    ValidationAPIError,    # 400
+    NotFoundAPIError,      # 404
+    PermissionAPIError,    # 403
+)
+raise NotFoundAPIError(message="Resource not found")
+raise ValidationAPIError(message="Invalid data", field="email")
+```
+
+## Key Imports
+
+```python
+from django_matt import MattAPI, APIController, get, post, put, patch, delete
+from django_matt import ModelSchema, Schema
+from django_matt.views import APIViewSet, ListView, CreateView, ReadView, UpdateView, DeleteView
+from django_matt.auth import jwt_required, jwt_optional, create_token_pair, with_roles
+from django_matt.permissions import IsAuthenticated, IsAdmin, IsOwner, HasRole
+from django_matt.core.errors import APIError, NotFoundAPIError, ValidationAPIError
+from django_matt.di import Depends
+import orjson
+```
+
+## Anti-Patterns — NEVER Do These
+
+- `api.register_controller(Ctrl, prefix="/x")` → `api.register_controller(Ctrl)` (prefix from decorator)
+- `await User.objects.all()` → `[u async for u in User.objects.all()]`
+- `user.save()` → `await user.asave()`
+- `import json` → `import orjson`
+- `import jwt` → `from django_matt.auth.jwt_builtin import encode_jwt`
+- `from rest_framework import serializers` → `from django_matt import ModelSchema`
+- Caching get_type_hints() per-request → cache at init time
+- Loop closure capture without default arg binding
+
+{service_layer_section}
+
+{environment_section}
+
+{test_patterns_section}
+"""
+
+
+def format_llm_prompt(
+    project_info: dict[str, Any],
+    models: list[dict[str, Any]],
+    endpoints: list[dict[str, Any]],
+    schemas: list[dict[str, Any]],
+    async_warnings: list[dict[str, Any]],
+    services: list[dict[str, Any]],
+    environment: list[dict[str, Any]],
+    test_patterns: dict[str, Any] | None = None,
+) -> str:
+    """
+    Render the LLM system prompt template with project-specific data.
+
+    This produces a self-contained system prompt that any LLM can consume
+    to generate correct django-matt code for a specific project.
+    """
+    context = {
+        "project_name": project_info.get("name", "Django Project"),
+        "python_version": project_info.get("python_version", "3.12"),
+        "django_version": project_info.get("django_version", "5.2"),
+        "settings_module": project_info.get("settings_module", ""),
+        "models_section": format_models_section(models),
+        "endpoints_section": format_endpoints_section(endpoints),
+        "schemas_section": format_schemas_section(schemas),
+        "auth_section": format_auth_section(endpoints),
+        "async_safety_section": format_async_safety_rules(async_warnings),
+        "service_layer_section": format_service_layer_section(services),
+        "environment_section": format_environment_section(environment),
+        "test_patterns_section": format_test_patterns_section(test_patterns),
+    }
+    return render_template(LLM_SYSTEM_PROMPT_TEMPLATE, context)
+
+
 __all__ = [
     "CLAUDE_MD_TEMPLATE",
     "COPILOT_INSTRUCTIONS_TEMPLATE",
     "CURSOR_RULES_TEMPLATE",
+    "LLM_SYSTEM_PROMPT_TEMPLATE",
     "format_async_safety_rules",
     "format_async_safety_section",
     "format_auth_section",
@@ -802,6 +920,7 @@ __all__ = [
     "format_endpoints_section",
     "format_environment_section",
     "format_error_handling_section",
+    "format_llm_prompt",
     "format_models_rules",
     "format_models_section",
     "format_schema_rules",

@@ -114,6 +114,8 @@ Streaming with SSE:
 """
 
 # Base classes and types
+# Agents
+from django_matt.ai.agents import Agent, AgentConfig, AgentResponse
 from django_matt.ai.base import (
     CompletionResponse,
     EmbeddingProvider,
@@ -145,6 +147,16 @@ from django_matt.ai.embeddings import (
     euclidean_distance,
     find_most_similar,
     normalize_vector,
+)
+
+# Observability
+from django_matt.ai.observability import (
+    AgentEvent,
+    CallbackHook,
+    CompositeHook,
+    EventType,
+    LoggingHook,
+    ObservabilityHook,
 )
 
 # Providers
@@ -199,6 +211,9 @@ from django_matt.ai.streaming import (
     TokenCounter,
     create_sse_response,
 )
+
+# Tools
+from django_matt.ai.tools import ToolRegistry, is_tool, tool
 
 # Vector stores
 from django_matt.ai.vectorstore import (
@@ -365,6 +380,21 @@ __all__ = [
     "StreamStats",
     "TokenCounter",
     "create_sse_response",
+    # Agents
+    "Agent",
+    "AgentConfig",
+    "AgentResponse",
+    # Tools
+    "tool",
+    "ToolRegistry",
+    "is_tool",
+    # Observability
+    "ObservabilityHook",
+    "CallbackHook",
+    "CompositeHook",
+    "LoggingHook",
+    "AgentEvent",
+    "EventType",
     # Utilities
     "messages_to_prompt",
     "get_provider",

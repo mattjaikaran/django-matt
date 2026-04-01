@@ -24,6 +24,7 @@ from django_matt.ai.context.templates import (
     format_endpoints_section,
     format_environment_section,
     format_error_handling_section,
+    format_llm_prompt,
     format_models_rules,
     format_models_section,
     format_schema_rules,
@@ -430,6 +431,58 @@ class JsonIntrospectionGenerator:
         return file_path
 
 
+class LlmPromptGenerator:
+    """
+    Generates a self-contained LLM system prompt for code generation.
+
+    Creates a project-specific system prompt that any LLM can consume
+    to generate correct django-matt code. Includes models, endpoints,
+    schemas, auth patterns, async safety rules, and anti-patterns.
+
+    Usage:
+        generator = LlmPromptGenerator()
+        prompt = generator.generate()
+        generator.write("LLM-PROMPT.md")
+    """
+
+    def __init__(
+        self,
+        introspector: EnhancedIntrospector | None = None,
+    ):
+        self.introspector = introspector or EnhancedIntrospector()
+
+    def generate(self, project_info: EnhancedProjectInfo | None = None) -> str:
+        """Generate LLM system prompt content."""
+        if project_info is None:
+            project_info = self.introspector.introspect()
+
+        info_dict = project_info.to_dict()
+        endpoint_dicts = [e.to_dict() for e in project_info.endpoints]
+        async_warning_dicts = [w.to_dict() for w in project_info.async_warnings]
+        service_dicts = [s.to_dict() for s in project_info.services]
+        env_dicts = [e.to_dict() for e in project_info.environment]
+
+        return format_llm_prompt(
+            project_info=info_dict,
+            models=info_dict["models"],
+            endpoints=endpoint_dicts,
+            schemas=[s.to_dict() for s in project_info.schemas],
+            async_warnings=async_warning_dicts,
+            services=service_dicts,
+            environment=env_dicts,
+            test_patterns=(
+                project_info.test_patterns.to_dict() if project_info.test_patterns else None
+            ),
+        )
+
+    def write(self, path: str = "LLM-PROMPT.md") -> Path:
+        """Generate and write to file."""
+        content = self.generate()
+        file_path = Path(path)
+        file_path.write_text(content)
+        return file_path
+
+
 class ContextGenerator:
     """
     Unified generator for all AI context files.
@@ -515,19 +568,29 @@ class ContextGenerator:
         path.write_text(content)
         return path
 
+    def generate_llm_prompt(self, filename: str = "LLM-PROMPT.md") -> Path:
+        """Generate LLM system prompt file."""
+        generator = LlmPromptGenerator(introspector=self.introspector)
+        content = generator.generate(self.project_info)
+
+        path = self.output_dir / filename
+        path.write_text(content)
+        return path
+
     def generate_all(self, formats: list[str] | None = None) -> dict[str, Path]:
         """
         Generate all or selected context files.
 
         Args:
-            formats: List of formats to generate. Options: claude, cursor, copilot, json
+            formats: List of formats to generate.
+                    Options: claude, cursor, copilot, json, llm
                     If None, generates all formats.
 
         Returns:
             Dictionary mapping format names to file paths
         """
         if formats is None:
-            formats = ["claude", "cursor", "copilot", "json"]
+            formats = ["claude", "cursor", "copilot", "json", "llm"]
 
         generated = {}
 
@@ -543,6 +606,9 @@ class ContextGenerator:
         if "json" in formats:
             generated["json"] = self.generate_json()
 
+        if "llm" in formats:
+            generated["llm"] = self.generate_llm_prompt()
+
         return generated
 
 
@@ -552,4 +618,5 @@ __all__ = [
     "CopilotInstructionsGenerator",
     "CursorRulesGenerator",
     "JsonIntrospectionGenerator",
+    "LlmPromptGenerator",
 ]

@@ -43,6 +43,7 @@ from django_matt.ai.context.generators import (
     CopilotInstructionsGenerator,
     CursorRulesGenerator,
     JsonIntrospectionGenerator,
+    LlmPromptGenerator,
 )
 from django_matt.ai.context.introspection import (
     AuthRequirement,
@@ -57,6 +58,8 @@ from django_matt.ai.context.templates import (
     CLAUDE_MD_TEMPLATE,
     COPILOT_INSTRUCTIONS_TEMPLATE,
     CURSOR_RULES_TEMPLATE,
+    LLM_SYSTEM_PROMPT_TEMPLATE,
+    format_llm_prompt,
     get_template,
     render_template,
 )
@@ -78,6 +81,7 @@ __all__ = [
     "CursorRulesGenerator",
     "CopilotInstructionsGenerator",
     "JsonIntrospectionGenerator",
+    "LlmPromptGenerator",
     "ContextGenerator",
     # Introspection
     "EnhancedIntrospector",
@@ -91,6 +95,8 @@ __all__ = [
     "CLAUDE_MD_TEMPLATE",
     "CURSOR_RULES_TEMPLATE",
     "COPILOT_INSTRUCTIONS_TEMPLATE",
+    "LLM_SYSTEM_PROMPT_TEMPLATE",
+    "format_llm_prompt",
     "get_template",
     "render_template",
     # Watcher
