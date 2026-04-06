@@ -6,13 +6,16 @@ which features the application actually uses.
 
 Modes:
     "full"    — everything loaded (default, backwards-compatible)
-    "minimal" — only core + explicitly activated modules
+    "slim"    — only explicitly enabled modules load
+    "minimal" — only core + auth + error handling
     "auto"    — detect which modules are imported/configured and load those
 """
 
 from __future__ import annotations
 
 from typing import Literal
+
+from pydantic import BaseModel
 
 # Mapping from module name to the middleware class dotted paths it requires.
 # These are lazy strings so we don't import anything at module level.
@@ -76,7 +79,53 @@ _SETTINGS_MODULE_MAP: dict[str, str] = {
     "GRAPHQL": "graphql",
 }
 
-Mode = Literal["full", "minimal", "auto"]
+Mode = Literal["full", "slim", "minimal", "auto"]
+
+
+class SlimConfig(BaseModel):
+    mode: Mode = "full"
+    enabled_modules: list[str] | None = None  # None = all, list = only these
+    disabled_modules: list[str] = []
+    lazy_imports: bool = True  # defer heavy module imports
+
+
+# Module-level cache for SlimConfig
+_slim_config: SlimConfig | None = None
+
+
+def get_slim_config() -> SlimConfig:
+    global _slim_config
+    if _slim_config is not None:
+        return _slim_config
+    try:
+        from django.conf import settings
+        matt_config = getattr(settings, "DJANGO_MATT", {})
+        slim_data = matt_config.get("SLIM_MODE", {})
+        _slim_config = SlimConfig(**slim_data) if slim_data else SlimConfig()
+    except Exception:
+        _slim_config = SlimConfig()
+    return _slim_config
+
+
+def reset_slim_config() -> None:
+    global _slim_config
+    _slim_config = None
+
+
+def is_module_enabled(module_name: str) -> bool:
+    config = get_slim_config()
+    if module_name in CORE_MODULES:
+        return True
+    if config.mode == "full":
+        return module_name not in config.disabled_modules
+    if config.mode == "minimal":
+        return module_name in {"auth"} and module_name not in config.disabled_modules
+    if config.mode == "slim":
+        if config.enabled_modules is not None:
+            return module_name in config.enabled_modules and module_name not in config.disabled_modules
+        return module_name not in config.disabled_modules
+    # auto mode — defer to registry
+    return module_name not in config.disabled_modules
 
 
 class ModuleRegistry:
@@ -98,6 +147,14 @@ class ModuleRegistry:
             self._all_active = True
         else:
             self._all_active = False
+
+        if mode == "slim":
+            # Slim mode: start with core + auth only, user adds what they need
+            self._active_modules.add("auth")
+
+        if mode == "minimal":
+            # Minimal mode: core + auth + error handling only
+            self._active_modules.add("auth")
 
         if mode == "auto":
             self._detect_from_settings()
