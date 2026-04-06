@@ -455,6 +455,17 @@ myproject/
         schemas.py      # Pydantic schemas
 ```
 
+## What's New
+
+Recent additions to the framework:
+
+- **Auto-Instrumentation** - Zero-config observability via `setup_observability()`. Automatically traces controllers, DB queries, cache operations, and outbound HTTP. See [Observability > Auto-Instrumentation](../observability/auto-instrumentation.md).
+- **Lightweight Spans** - Dependency-free span system (`span()`, `aspan()`, `@traced`) with nested parent-child tracking. See [Observability > Spans](../observability/spans.md).
+- **Metrics Collectors** - Built-in request, database, and cache collectors with percentile tracking and slow query detection. See [Observability > Collectors](../observability/collectors.md).
+- **Span Exporters** - Console, JSON, Prometheus, and OpenTelemetry exporters for span data. See [Observability > Exporters](../observability/exporters.md).
+- **Config Validation** - Pydantic-based `ConfigNamespace` with typed namespaces (Auth, Cache, Database, etc.) and startup validation. See [Config > Validation](../config/validation.md).
+- **Route-Scoped Middleware** - Per-route middleware with `@use_middleware` / `@skip_middleware` and built-ins for CORS, rate limiting, caching, and auth. See [Middleware > Scoped](../middleware/scoped.md).
+
 ## Next Steps
 
 Now that you have a working API, explore these features:

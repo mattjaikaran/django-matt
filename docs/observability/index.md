@@ -227,6 +227,11 @@ django_matt/observability/
     middleware.py       # Request middleware
     decorators.py       # @trace, @metric, @timed, @counted
     views.py            # Health check and metrics endpoints
+    auto.py             # AutoInstrumentor (zero-config setup)
+    spans.py            # Span, span(), aspan(), @traced
+    collectors.py       # RequestMetrics, DatabaseMetrics, CacheMetrics
+    exporters.py        # Console, JSON, Prometheus, OpenTelemetry exporters
+    setup.py            # setup_observability() entry point
 ```
 
 ## Feature Comparison
@@ -243,6 +248,10 @@ django_matt/observability/
 ## Next Steps
 
 - [Quickstart Guide](quickstart.md) - Get up and running in 5 minutes
+- [Auto-Instrumentation](auto-instrumentation.md) - Zero-config setup with `AutoInstrumentor`
+- [Spans](spans.md) - `Span`, `span()`, `aspan()`, `@traced` decorator
+- [Collectors](collectors.md) - Request, database, and cache metrics collectors
+- [Exporters](exporters.md) - Console, JSON, Prometheus, OpenTelemetry exporters
 - [Tracing](tracing.md) - Deep dive into distributed tracing
 - [Metrics](metrics.md) - Custom metrics and Prometheus integration
 - [Logging](logging.md) - Structured logging best practices
