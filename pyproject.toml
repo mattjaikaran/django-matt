@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-matt"
-version = "1.0.0"
+version = "0.8.0"
 description = "A modern Django API framework with class-based views, async support, and developer experience tools"
 readme = "README.md"
 requires-python = ">=3.12"

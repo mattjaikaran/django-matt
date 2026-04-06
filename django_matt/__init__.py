@@ -23,7 +23,7 @@ For auth, billing, and other features with model dependencies, import from submo
     from django_matt.billing import BillingController
 """
 
-__version__ = "0.1.0"
+__version__ = "0.8.0"
 
 # =============================================================================
 # Lazy imports to avoid circular dependencies with Django models
