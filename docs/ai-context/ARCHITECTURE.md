@@ -46,7 +46,19 @@ django_matt/
 ├── permissions/        # IsAuthenticated, IsAdmin, IsOwner, HasRole, decorators
 ├── openapi/            # Swagger UI + ReDoc generation
 ├── di/                 # Dependency injection container (Depends() pattern)
-└── ... (30+ more modules)
+├── interceptors/       # Route-scoped middleware (before/after hooks, not global)
+├── streaming/          # SSE responses, NDJSON streaming, heartbeat helpers
+├── events/             # Async event bus (pub/sub with InMemory/Redis backends)
+├── exceptions/         # Exception filters (structured error handling per-route or global)
+├── serialization/      # Group-based field visibility (role-based API responses)
+├── secrets/            # Multi-backend secrets (env, Vault, AWS SM, GCP SM, dotenv)
+├── introspection/      # Health checks, infra reporting, readiness/liveness probes
+├── rpc/                # Typed HTTP client gen (Python + TypeScript from OpenAPI)
+├── modules/            # Plugin system with dependency resolution and lifecycle hooks
+├── cqrs/               # Command/Query buses, domain events, bus middleware
+├── slim.py             # Slim mode config (full/slim/minimal/auto module loading)
+├── loader.py           # Lazy module loading (LazyModuleProxy, DeferredLoader)
+└── ... (20+ more modules)
 ```
 
 ## How It Works

@@ -590,6 +590,208 @@ python manage.py generate_ai_context --watch
 
 ---
 
+---
+
+## Recipe 11: SSE Streaming Endpoint
+
+```python
+# myapp/controllers.py
+from django_matt import APIController, post
+from django_matt.auth import jwt_required
+from django_matt.streaming import sse_response, SSEEvent
+from config.api import api
+
+@api.controller("/stream", tags=["Streaming"])
+class StreamController(APIController):
+
+    @post("/events")
+    @jwt_required
+    async def stream_events(self, request, body: dict):
+        async def generate():
+            # Example: stream progress updates
+            for i in range(10):
+                import asyncio
+                await asyncio.sleep(0.5)
+                yield SSEEvent(
+                    data={"progress": (i + 1) * 10},
+                    event="progress",
+                    id=str(i),
+                )
+            yield SSEEvent(data={"status": "complete"}, event="done")
+
+        return sse_response(generate())
+```
+
+---
+
+## Recipe 12: CQRS Setup (Commands + Queries)
+
+```python
+# myapp/commands.py
+from django_matt.cqrs import Command, command_handler
+
+class PlaceOrder(Command):
+    user_id: int
+    items: list[dict]
+    shipping_address: str
+
+@command_handler(PlaceOrder)
+class PlaceOrderHandler:
+    async def execute(self, command: PlaceOrder) -> dict:
+        from myapp.models import Order, OrderItem
+        order = await Order.objects.acreate(
+            user_id=command.user_id,
+            shipping_address=command.shipping_address,
+        )
+        for item in command.items:
+            await OrderItem.objects.acreate(order=order, **item)
+        return {"order_id": order.id, "status": "placed"}
+
+# myapp/queries.py
+from django_matt.cqrs import Query, query_handler
+
+class GetOrderHistory(Query):
+    user_id: int
+    limit: int = 20
+
+@query_handler(GetOrderHistory)
+class GetOrderHistoryHandler:
+    async def execute(self, query: GetOrderHistory) -> list:
+        from myapp.models import Order
+        return [
+            o async for o in
+            Order.objects.filter(user_id=query.user_id)
+            .order_by("-created_at")[:query.limit]
+        ]
+
+# myapp/controllers.py
+from django_matt import APIController, get, post
+from django_matt.auth import jwt_required
+from django_matt.cqrs import get_command_bus, get_query_bus
+from config.api import api
+
+@api.controller("/orders", tags=["Orders"])
+class OrderController(APIController):
+
+    @post("/")
+    @jwt_required
+    async def place_order(self, request, body: PlaceOrderSchema):
+        result = await get_command_bus().dispatch(
+            PlaceOrder(user_id=request.user.id, **body.model_dump())
+        )
+        return result
+
+    @get("/history")
+    @jwt_required
+    async def order_history(self, request):
+        orders = await get_query_bus().dispatch(
+            GetOrderHistory(user_id=request.user.id)
+        )
+        return [OrderSchema.from_orm(o) for o in orders]
+```
+
+---
+
+## Recipe 13: Event-Driven Side Effects
+
+```python
+# myapp/events.py — define events and handlers
+from django_matt.events import Event, on
+
+class UserRegistered(Event):
+    user_id: int
+    email: str
+
+@on("UserRegistered")
+async def send_welcome_email(event: UserRegistered):
+    from django_matt.email import send_template_email
+    await send_template_email(to=event.email, template="welcome")
+
+@on("UserRegistered")
+async def create_default_workspace(event: UserRegistered):
+    from myapp.models import Workspace
+    await Workspace.objects.acreate(
+        name="My Workspace", owner_id=event.user_id
+    )
+
+# myapp/controllers.py — emit after registration
+from django_matt.events import get_event_bus
+from myapp.events import UserRegistered
+
+@post("/register")
+async def register(self, request, body: RegisterSchema):
+    user = await User.objects.acreate(**body.model_dump())
+    await get_event_bus().emit(
+        UserRegistered(user_id=user.id, email=user.email)
+    )
+    return UserSchema.from_orm(user)
+```
+
+---
+
+## Recipe 14: Interceptors for Cross-Cutting Concerns
+
+```python
+# myapp/interceptors.py
+import time
+from django_matt.interceptors import Interceptor
+
+class RequestIdInterceptor(Interceptor):
+    order = 0
+
+    async def before_request(self, request, **kwargs):
+        import uuid
+        request.request_id = str(uuid.uuid4())
+        return None
+
+    async def after_response(self, request, response, **kwargs):
+        response["X-Request-ID"] = request.request_id
+        return response
+
+# myapp/controllers.py
+from django_matt.interceptors import intercept_controller, intercept, TimingInterceptor
+from myapp.interceptors import RequestIdInterceptor
+
+@intercept_controller(RequestIdInterceptor(), TimingInterceptor())
+@api.controller("/items", tags=["Items"])
+class ItemController(APIController):
+    ...
+```
+
+---
+
+## Recipe 15: Serialization Groups for Multi-Role API
+
+```python
+# myapp/schemas.py
+from django_matt import Schema
+from django_matt.serialization import Grouped, Secret
+
+class EmployeeSchema(Schema):
+    id: int
+    name: str
+    department: str
+    email: str = Grouped("hr", "admin", "self")
+    salary: float = Grouped("hr", "admin")
+    ssn: str = Secret()  # admin + internal only
+    performance_score: float = Grouped("hr", "manager")
+
+# myapp/controllers.py
+from django_matt.serialization import serialize_for
+
+@api.controller("/employees", tags=["Employees"])
+class EmployeeController(APIController):
+
+    @get("/")
+    @jwt_required
+    @serialize_for(groups_from="user.role")  # auto-resolves from request.user.role
+    async def list_employees(self, request):
+        employees = [e async for e in Employee.objects.all()]
+        return [EmployeeSchema.from_orm(e) for e in employees]
+```
+
+---
+
 ## Decision Guide: Controller vs ViewSet
 
 | Use Case | Choice |
@@ -601,3 +803,14 @@ python manage.py generate_ai_context --watch
 | Rapid prototyping | **ViewSet** |
 | Non-CRUD endpoints (search, aggregate, AI) | **Controller** |
 | Both CRUD and custom endpoints | **ViewSet** for CRUD + **Controller** for custom |
+
+## Decision Guide: Events vs CQRS vs Direct Calls
+
+| Use Case | Choice |
+|---|---|
+| Fire-and-forget side effects (email, logging) | **Events** (`EventBus.emit()`) |
+| Need the result back from an operation | **CQRS Commands** (`CommandBus.dispatch()`) |
+| Read-only queries with caching potential | **CQRS Queries** (`QueryBus.dispatch()`) |
+| Simple controller logic, no decoupling needed | **Direct calls** (just call the service) |
+| Multiple subscribers for same action | **Events** (multiple `@on()` handlers) |
+| Exactly one handler per operation | **CQRS** (command/query handlers) |

@@ -366,7 +366,237 @@ class OrgController(APIController):
 
 ---
 
-## Example 4: Testing
+## Example 4: SSE Streaming with Interceptors
+
+```python
+from django_matt import APIController, post
+from django_matt.auth import jwt_required
+from django_matt.interceptors import intercept, TimingInterceptor, LoggingInterceptor
+from django_matt.streaming import sse_response, SSEEvent
+from django_matt.ai import get_provider, Message
+from config.api import api
+
+
+@api.controller("/ai", tags=["AI"])
+class AIStreamController(APIController):
+
+    @post("/chat")
+    @jwt_required
+    @intercept(TimingInterceptor(), LoggingInterceptor())
+    async def stream_chat(self, request, body: dict):
+        llm = get_provider("openai")
+
+        async def generate():
+            async for chunk in llm.stream([Message.user(body.get("message", ""))]):
+                yield SSEEvent(data={"token": chunk.content}, event="token")
+            yield SSEEvent(data={"done": True}, event="done")
+
+        return sse_response(generate())
+```
+
+---
+
+## Example 5: Event-Driven Order Processing
+
+```python
+# orders/events.py
+from django_matt.events import Event, on, get_event_bus
+
+class OrderPlaced(Event):
+    order_id: int
+    user_id: int
+    total: float
+
+class OrderShipped(Event):
+    order_id: int
+    tracking_number: str
+
+@on("OrderPlaced")
+async def send_order_confirmation(event: OrderPlaced):
+    from django_matt.email import send_template_email
+    await send_template_email(
+        user_id=event.user_id,
+        template="order_confirmation",
+        context={"order_id": event.order_id, "total": event.total},
+    )
+
+@on("OrderPlaced")
+async def reserve_inventory(event: OrderPlaced):
+    from orders.services import reserve_stock
+    await reserve_stock(order_id=event.order_id)
+
+
+# orders/controllers.py
+from django_matt import APIController, post
+from django_matt.auth import jwt_required
+from django_matt.events import get_event_bus
+from config.api import api
+from orders.events import OrderPlaced
+
+@api.controller("/orders", tags=["Orders"])
+class OrderController(APIController):
+
+    @post("/")
+    @jwt_required
+    async def create_order(self, request, body: OrderCreateSchema):
+        order = await Order.objects.acreate(
+            user=request.user, **body.model_dump()
+        )
+        bus = get_event_bus()
+        await bus.emit(OrderPlaced(
+            order_id=order.id,
+            user_id=request.user.id,
+            total=float(order.total),
+        ))
+        return OrderSchema.from_orm(order)
+```
+
+---
+
+## Example 6: CQRS with Command/Query Buses
+
+```python
+# products/commands.py
+from django_matt.cqrs import Command, command_handler
+
+class CreateProduct(Command):
+    name: str
+    price: float
+    category_id: int
+
+@command_handler(CreateProduct)
+class CreateProductHandler:
+    async def execute(self, command: CreateProduct) -> int:
+        from products.models import Product
+        product = await Product.objects.acreate(
+            name=command.name,
+            price=command.price,
+            category_id=command.category_id,
+        )
+        return product.id
+
+
+# products/queries.py
+from django_matt.cqrs import Query, query_handler
+
+class ListProducts(Query):
+    category_id: int | None = None
+    is_active: bool = True
+
+@query_handler(ListProducts)
+class ListProductsHandler:
+    async def execute(self, query: ListProducts) -> list:
+        from products.models import Product
+        qs = Product.objects.filter(is_active=query.is_active)
+        if query.category_id:
+            qs = qs.filter(category_id=query.category_id)
+        return [p async for p in qs]
+
+
+# products/controllers.py
+from django_matt import APIController, get, post
+from django_matt.auth import jwt_required
+from django_matt.cqrs import get_command_bus, get_query_bus
+from config.api import api
+from products.commands import CreateProduct
+from products.queries import ListProducts
+
+@api.controller("/products", tags=["Products"])
+class ProductController(APIController):
+
+    @post("/")
+    @jwt_required
+    async def create_product(self, request, body: ProductCreateSchema):
+        bus = get_command_bus()
+        product_id = await bus.dispatch(CreateProduct(**body.model_dump()))
+        return {"id": product_id}
+
+    @get("/")
+    async def list_products(self, request, category_id: int | None = None):
+        bus = get_query_bus()
+        products = await bus.dispatch(ListProducts(category_id=category_id))
+        return [ProductSchema.from_orm(p) for p in products]
+```
+
+---
+
+## Example 7: Serialization Groups for Role-Based APIs
+
+```python
+from django_matt import Schema
+from django_matt.serialization import Grouped, Secret, serialize_for
+
+class UserDetailSchema(Schema):
+    id: int
+    username: str                              # always visible
+    email: str = Grouped("admin", "self")      # visible to admin or self
+    phone: str = Grouped("admin", "self")
+    ssn: str = Secret()                        # only admin + internal
+    role: str = Grouped("admin")
+    created_at: str
+
+# Admin sees all fields
+@get("/admin/users")
+@jwt_required
+@with_roles("admin")
+@serialize_for(groups=["admin"])
+async def admin_list_users(self, request):
+    users = [u async for u in User.objects.all()]
+    return [UserDetailSchema.from_orm(u) for u in users]
+
+# Public sees only ungrouped fields (id, username, created_at)
+@get("/users")
+@serialize_for(groups=["public"])
+async def public_list_users(self, request):
+    users = [u async for u in User.objects.all()]
+    return [UserDetailSchema.from_orm(u) for u in users]
+```
+
+---
+
+## Example 8: Exception Filters
+
+```python
+from django_matt.exceptions import ExceptionFilter, register_global_filter
+from django.http import JsonResponse
+import orjson
+
+class PaymentExceptionFilter(ExceptionFilter):
+    exception_types = (StripeError, PayPalError)
+    order = 10
+
+    async def catch(self, exc, request):
+        if isinstance(exc, CardDeclinedError):
+            return JsonResponse(
+                {"error": "card_declined", "message": str(exc)},
+                status=402,
+            )
+        return JsonResponse(
+            {"error": "payment_error", "message": "Payment processing failed"},
+            status=500,
+        )
+
+# Register once at app startup (e.g., in AppConfig.ready())
+register_global_filter(PaymentExceptionFilter())
+
+# Controller stays clean — no try/except needed
+@api.controller("/billing", tags=["Billing"])
+class BillingController(APIController):
+
+    @post("/charge")
+    @jwt_required
+    async def charge(self, request, body: ChargeSchema):
+        result = await stripe.charges.acreate(
+            amount=body.amount,
+            currency="usd",
+            source=body.token,
+        )
+        return {"charge_id": result.id}
+```
+
+---
+
+## Example 9: Testing
 
 ```python
 import pytest

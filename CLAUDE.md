@@ -50,6 +50,18 @@ django_matt/
 ├── pagination/         # PageNumber, LimitOffset, Cursor
 ├── filtering/          # Django filter backend, search, ordering
 ├── di/                 # Dependency injection container
+├── interceptors/       # Route-scoped middleware (before/after hooks, @intercept)
+├── streaming/          # SSE responses, NDJSON streaming, heartbeat helpers
+├── events/             # Async event bus (pub/sub, @on decorator, InMemory/Redis)
+├── exceptions/         # Exception filters (ExceptionFilter, @catch, global registry)
+├── serialization/      # Group-based field visibility (Grouped, Secret, @serialize_for)
+├── secrets/            # Multi-backend secrets (env, Vault, AWS SM, GCP SM, dotenv)
+├── introspection/      # Health checks, infra reporting, readiness/liveness probes
+├── rpc/                # Typed HTTP client generation (Python + TypeScript)
+├── modules/            # Plugin system with dependency resolution and lifecycle hooks
+├── cqrs/               # Command/Query buses, domain events, bus middleware
+├── slim.py             # Slim mode config (full/slim/minimal/auto module loading)
+├── loader.py           # Lazy/deferred module loading (LazyModuleProxy, DeferredLoader)
 └── management/commands/ # startapi, config, sync_types, generate_crud, deploy
 ```
 
@@ -114,6 +126,17 @@ pytest tests/test_auth.py -v           # specific file
 | Feature flags | `flags/models.py`, `flags/backends.py`, `flags/decorators.py` |
 | Analytics | `analytics/tracker.py`, `analytics/backends.py`, `analytics/aggregations.py` |
 | Experiments | `experiments/models.py`, `experiments/assignment.py`, `experiments/analysis.py` |
+| Interceptors | `interceptors/base.py`, `interceptors/builtins.py`, `interceptors/decorators.py`, `interceptors/chain.py` |
+| Streaming/SSE | `streaming/sse.py`, `streaming/response.py`, `streaming/decorators.py`, `streaming/helpers.py` |
+| Events | `events/bus.py`, `events/decorators.py`, `events/middleware.py`, `events/backends.py` |
+| Exceptions | `exceptions/filters.py`, `exceptions/decorators.py`, `exceptions/builtins.py`, `exceptions/registry.py` |
+| Serialization | `serialization/groups.py`, `serialization/fields.py`, `serialization/decorators.py` |
+| Secrets | `secrets/manager.py`, `secrets/backends.py`, `secrets/fields.py`, `secrets/rotation.py` |
+| Introspection | `introspection/checks.py`, `introspection/endpoints.py`, `introspection/registry.py` |
+| RPC | `rpc/client.py`, `rpc/proxy.py`, `rpc/auth.py`, `rpc/generator.py` |
+| CQRS | `cqrs/commands.py`, `cqrs/queries.py`, `cqrs/events.py`, `cqrs/middleware.py` |
+| Modules | `modules/base.py`, `modules/registry.py`, `modules/loader.py`, `modules/hooks.py` |
+| Slim mode | `slim.py`, `loader.py` |
 
 ## Known Issues
 

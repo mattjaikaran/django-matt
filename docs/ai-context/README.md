@@ -91,3 +91,10 @@ files = ctx.generate_all()  # CLAUDE.md, .cursorrules, .copilot-instructions, in
 5. **Built-in JWT** — no PyJWT dependency needed
 6. **Use uv, not pip** — `uv add django-matt`
 7. **Pydantic v2, not DRF** — ModelSchema, not ModelSerializer
+8. **Interceptors, not middleware** — for route-scoped concerns, use `@intercept()` instead of global middleware
+9. **SSE streaming** — use `sse_response()` from `django_matt.streaming` for Server-Sent Events
+10. **Event bus** — `get_event_bus().emit()` for fire-and-forget; `@on()` to subscribe
+11. **CQRS** — `Command`/`Query` are frozen Pydantic models; dispatch via `get_command_bus()`/`get_query_bus()`
+12. **Serialization groups** — use `Grouped()`, `Secret()` field markers + `@serialize_for()` for role-based APIs
+13. **Exception filters** — use `ExceptionFilter` + `register_global_filter()` instead of try/except in controllers
+14. **Slim mode** — configure `DJANGO_MATT["SLIM_MODE"]` to control which modules load

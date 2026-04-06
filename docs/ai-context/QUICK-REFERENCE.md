@@ -228,6 +228,61 @@ uv run pytest tests/ --cov=django_matt
 uv run ruff check django_matt/
 ```
 
+## New Module Imports
+
+```python
+# Interceptors — route-scoped middleware (before/after request hooks)
+from django_matt.interceptors import Interceptor, InterceptorChain, intercept, intercept_controller
+from django_matt.interceptors import LoggingInterceptor, TimingInterceptor, CachingInterceptor, RateLimitInterceptor, RetryInterceptor, TransformInterceptor
+
+# Streaming — SSE and streaming responses
+from django_matt.streaming import sse_response, SSEEvent, event, heartbeat, with_heartbeat
+from django_matt.streaming import stream_response, stream_json, stream_text
+from django_matt.streaming import sse_endpoint, streaming  # decorators
+
+# Events — async event bus for decoupled communication
+from django_matt.events import Event, EventBus, get_event_bus, on, autodiscover
+from django_matt.events import InMemoryBackend, RedisBackend, EventMiddleware, collect_event
+
+# Exceptions — exception filters (structured error handling)
+from django_matt.exceptions import ExceptionFilter, ExceptionFilterChain, catch, catch_all, exception_filter, register_global_filter
+from django_matt.exceptions import ValidationExceptionFilter, NotFoundExceptionFilter, DatabaseExceptionFilter
+
+# Serialization — group-based field visibility
+from django_matt.serialization import Grouped, Public, Secret, SerializationContext, filter_schema, schema_for_groups, serialize_for
+from django_matt.serialization import SerializationContextMiddleware
+
+# Secrets — multi-backend secret management
+from django_matt.secrets import SecretsManager, get_secrets_manager, SecretField, secret
+from django_matt.secrets import EnvBackend, DotenvBackend, VaultBackend, AWSSecretsManagerBackend, GCPSecretManagerBackend, EncryptedFileBackend
+from django_matt.secrets import RotationPolicy, on_rotation
+
+# Introspection — health checks and infrastructure reporting
+from django_matt.introspection import registry, generate_report, get_health_urls, HealthCheckMiddleware
+from django_matt.introspection import check_database, check_redis, check_cache, check_celery, check_email, check_storage
+
+# RPC — typed HTTP client generation
+from django_matt.rpc import RPCClient, TypedRPCClient, RPCProxy
+from django_matt.rpc import BearerAuth, APIKeyAuth, BasicAuth, CompositeAuth
+from django_matt.rpc import generate_python_client, generate_typescript_client
+
+# Modules — modular plugin system with dependency resolution
+from django_matt.modules import MattModule, ModuleRegistry, get_registry, load_modules, shutdown_modules
+from django_matt.modules import module, requires_module, optional_module, on_module_loaded, on_all_loaded
+
+# CQRS — command/query separation
+from django_matt.cqrs import Command, CommandBus, CommandHandler, command_handler, get_command_bus
+from django_matt.cqrs import Query, QueryBus, QueryHandler, query_handler, get_query_bus
+from django_matt.cqrs import DomainEvent, EventCollector, emits
+from django_matt.cqrs import LoggingMiddleware, ValidationMiddleware, TransactionMiddleware, CachingMiddleware
+
+# Slim mode — control which modules load
+from django_matt.slim import SlimConfig, get_slim_config, is_module_enabled, ModuleRegistry as SlimModuleRegistry
+
+# Loader — lazy/deferred module loading
+from django_matt.loader import lazy_import, LazyModuleProxy, DeferredLoader
+```
+
 ## CLI Commands
 
 ```bash

@@ -215,3 +215,130 @@ Only add external deps when needed:
 - `authlib` — for OAuth provider flows
 - `webauthn` — for passkey support
 - `python3-saml` — for SAML SSO
+
+## 16. Don't Use Global Middleware When Interceptors Suffice
+
+```python
+# WRONG — adding logging middleware that runs on EVERY request
+MIDDLEWARE = [
+    ...
+    "myapp.middleware.AuditLogMiddleware",  # runs for health checks, static files, everything
+]
+
+# CORRECT — use interceptors for route-scoped concerns
+from django_matt.interceptors import intercept, LoggingInterceptor
+
+@get("/sensitive")
+@intercept(LoggingInterceptor())
+async def sensitive_endpoint(self, request):
+    ...
+
+# Or apply to an entire controller
+@intercept_controller(LoggingInterceptor())
+@api.controller("/admin", tags=["Admin"])
+class AdminController(APIController):
+    ...
+```
+
+## 17. Don't Put Business Logic in Interceptors
+
+```python
+# WRONG — interceptor doing domain work
+class OrderValidationInterceptor(Interceptor):
+    async def before_request(self, request, **kwargs):
+        # Business logic doesn't belong here!
+        order = await Order.objects.aget(id=request.data["order_id"])
+        if order.total > 10000:
+            await notify_compliance_team(order)
+        return None
+
+# CORRECT — interceptors handle cross-cutting concerns only
+class TimingInterceptor(Interceptor):
+    async def before_request(self, request, **kwargs):
+        request._start_time = time.monotonic()
+        return None
+
+    async def after_response(self, request, response, **kwargs):
+        elapsed = time.monotonic() - request._start_time
+        response["X-Response-Time"] = f"{elapsed:.3f}s"
+        return response
+
+# Business logic goes in the controller or a service
+```
+
+## 18. Don't Use the Event Bus for Synchronous Workflows
+
+```python
+# WRONG — using events when you need the result immediately
+bus = get_event_bus()
+await bus.emit(ValidatePayment(order_id=order.id))
+# Can't get the validation result back! Events are fire-and-forget.
+
+# CORRECT — use CQRS commands for request/response workflows
+from django_matt.cqrs import Command, get_command_bus
+
+class ValidatePayment(Command):
+    order_id: int
+
+bus = get_command_bus()
+result = await bus.dispatch(ValidatePayment(order_id=order.id))
+# result is returned from the command handler
+```
+
+## 19. Don't Catch Exceptions in Controllers When Exception Filters Handle It
+
+```python
+# WRONG — redundant try/except that exception filters already cover
+@post("/charge")
+async def charge(self, request, body: ChargeSchema):
+    try:
+        result = await stripe.charge(body.amount)
+        return {"ok": True}
+    except stripe.CardError as e:
+        return JsonResponse({"error": str(e)}, status=402)
+    except stripe.RateLimitError as e:
+        return JsonResponse({"error": "rate limited"}, status=429)
+
+# CORRECT — register exception filters, keep controller clean
+from django_matt.exceptions import register_global_filter
+
+register_global_filter(StripeExceptionFilter())
+
+@post("/charge")
+async def charge(self, request, body: ChargeSchema):
+    result = await stripe.charge(body.amount)
+    return {"ok": True}
+    # StripeExceptionFilter handles CardError, RateLimitError, etc.
+```
+
+## 20. Don't Mix CQRS Commands and Queries
+
+```python
+# WRONG — command that reads data
+class GetAndUpdateUser(Command):
+    user_id: int
+
+# CORRECT — separate read and write
+class GetUser(Query):        # read path
+    user_id: int
+
+class UpdateUser(Command):   # write path
+    user_id: int
+    name: str
+```
+
+## 21. Don't Import Heavy Modules Eagerly in Slim Mode
+
+```python
+# WRONG — importing billing at module level when using slim mode
+from django_matt.billing import StripeProvider  # loads entire billing module
+
+# CORRECT — use lazy_import or check if module is enabled
+from django_matt.loader import lazy_import
+billing = lazy_import("django_matt.billing")
+
+# Or check first
+from django_matt.slim import is_module_enabled
+if is_module_enabled("billing"):
+    from django_matt.billing import StripeProvider
+```
