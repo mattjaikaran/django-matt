@@ -1581,7 +1581,7 @@ function LoginPage() {
   - `DashboardView` with Tailwind CSS dark theme
   - JSON API endpoints for metrics data
   - Tracks: request timing, DB queries, cache stats, error rates, percentiles
-- [ ] Rust-based components for critical performance paths
+- [x] Rust-based components for critical performance paths ✅ (Phase 7 — PyO3+maturin, 1.9x E2E speedup)
 - [ ] Framework comparison benchmarks (vs DRF, Django Ninja)
 
 ### Frontend & Admin
@@ -1640,10 +1640,28 @@ function LoginPage() {
 - [ ] **Zero-cost abstractions** — ensure disabled modules add zero overhead to request/response cycle
 - [ ] **Minimal mode** — `MattAPI(mode="minimal")` loads only core routing + auth, nothing else
 
+### Node.js-Inspired Features ✅ (2026-04-06)
+
+> 13 modules implemented from NestJS, Encore, and Hono research. 555 tests.
+
+- [x] Interceptors — `django_matt/interceptors/` composable request/response wrappers (32 tests)
+- [x] Event bus / Pub/Sub — `django_matt/events/` async typed events with wildcard matching (41 tests)
+- [x] Config validation namespaces — `django_matt/config/namespaces.py` Pydantic-validated settings (45 tests)
+- [x] Layered exception filters — `django_matt/exceptions/` typed handlers at route/controller/global scope (28 tests)
+- [x] Serialization groups — `django_matt/serialization/` role-based field visibility (34 tests)
+- [x] Secrets-as-code — `django_matt/secrets/` pluggable backends (env, vault, AWS, GCP, encrypted file) (80 tests)
+- [x] SSE/Streaming helpers — `django_matt/streaming/` SSE, NDJSON, text streaming (30 tests)
+- [x] Infrastructure introspection — `django_matt/introspection/` health checks, K8s probes, infra report (33 tests)
+- [x] Auto-instrumentation — `django_matt/observability/auto.py` zero-config tracing + metrics (51 tests)
+- [x] Route-scoped middleware — `django_matt/middleware/scoped.py` per-controller/per-route (34 tests)
+- [x] RPC typed client — `django_matt/rpc/` Python/TS client generation from controllers (60 tests)
+- [x] Module system — `django_matt/modules/` plugin architecture with dependency resolution (51 tests)
+- [x] CQRS — `django_matt/cqrs/` command/query buses with middleware (36 tests)
+
 ### Distribution
 - [ ] PyPI package distribution helpers
 - [ ] Automated versioning and changelog generation
-- [ ] Plugin/extension system for community contributions
+- [x] Plugin/extension system for community contributions ✅ (module system above)
 
 ---
 

@@ -214,24 +214,23 @@ E2E lifecycle benchmark: `benchmarks/bench_e2e_lifecycle.py`
 
 ---
 
-## Tentative — Node.js-Inspired Ideas (Discuss Before Implementing)
+## Node.js-Inspired Features ✅ (2026-04-06)
 
-> These came from NestJS, Encore, and Hono research. Good patterns but need
-> architecture discussion before committing. See `tasks/enhancement-plan.md` for details.
+> Implemented from NestJS, Encore, and Hono research. 13 modules, 555 tests.
 
-- [ ] Interceptors — composable request/response wrappers (NestJS pattern)
-- [ ] Event bus / Pub/Sub — async Topic/Subscription system (NestJS + Encore)
-- [ ] Config validation namespaces — Pydantic-validated config at startup (NestJS)
-- [ ] Layered exception filters — typed handlers at method/controller/global scope (NestJS)
-- [ ] Serialization groups — role-based field visibility (NestJS)
-- [ ] Secrets-as-code — declarative `secret()` references with backend abstraction (Encore)
-- [ ] SSE/Streaming helpers — `sse_response()`, `stream_response()` (Hono)
-- [ ] Infrastructure introspection — `matt infra` CLI generates Docker/Terraform from code (Encore)
-- [ ] Auto-instrumentation — zero-config tracing for controllers/DB/cache (Encore)
-- [ ] Route-scoped middleware — per-controller and per-route middleware (Hono)
-- [ ] RPC-style typed client — Hono-style path autocomplete in typegen
-- [ ] Module system — formalized dependency graph between subpackages (NestJS)
-- [ ] CQRS — Command/Query separation with buses (NestJS)
+- [x] Interceptors — `django_matt/interceptors/` composable request/response wrappers (32 tests)
+- [x] Event bus / Pub/Sub — `django_matt/events/` async typed events with wildcard matching (41 tests)
+- [x] Config validation namespaces — `django_matt/config/namespaces.py` Pydantic-validated settings (45 tests)
+- [x] Layered exception filters — `django_matt/exceptions/` typed handlers at route/controller/global scope (28 tests)
+- [x] Serialization groups — `django_matt/serialization/` role-based field visibility (34 tests)
+- [x] Secrets-as-code — `django_matt/secrets/` pluggable backends (env, vault, AWS, GCP, encrypted file) (80 tests)
+- [x] SSE/Streaming helpers — `django_matt/streaming/` SSE, NDJSON, text streaming (30 tests)
+- [x] Infrastructure introspection — `django_matt/introspection/` health checks, K8s probes, infra report (33 tests)
+- [x] Auto-instrumentation — `django_matt/observability/auto.py` zero-config tracing + metrics (51 tests)
+- [x] Route-scoped middleware — `django_matt/middleware/scoped.py` per-controller/per-route (34 tests)
+- [x] RPC typed client — `django_matt/rpc/` Python/TS client generation from controllers (60 tests)
+- [x] Module system — `django_matt/modules/` plugin architecture with dependency resolution (51 tests)
+- [x] CQRS — `django_matt/cqrs/` command/query buses with middleware (36 tests)
 
 ---
 
