@@ -10,6 +10,7 @@ import uuid
 from enum import Enum
 from typing import (
     Any,
+    Literal,
     Union,
     get_args,
     get_origin,
@@ -144,6 +145,20 @@ def python_type_to_typescript(
     if origin is not None:
         args = get_args(python_type)
 
+        # Literal types → TypeScript union of literal values
+        if origin is Literal:
+            parts = []
+            for v in args:
+                if isinstance(v, str):
+                    parts.append(f'"{v}"')
+                elif isinstance(v, bool):
+                    parts.append("true" if v else "false")
+                elif isinstance(v, (int, float)):
+                    parts.append(str(v))
+                else:
+                    parts.append(f'"{v}"')
+            return " | ".join(parts)
+
         # Union types (including Optional)
         if origin is Union:
             # Check for Optional (Union with None)
@@ -230,6 +245,23 @@ def python_type_to_zod(
     origin = get_origin(python_type)
     if origin is not None:
         args = get_args(python_type)
+
+        # Literal types → z.enum([...]) for strings, z.union([z.literal(...)]) for mixed
+        if origin is Literal:
+            if all(isinstance(v, str) for v in args):
+                values = ", ".join(f'"{v}"' for v in args)
+                return f"z.enum([{values}])"
+            parts = []
+            for v in args:
+                if isinstance(v, str):
+                    parts.append(f'z.literal("{v}")')
+                elif isinstance(v, bool):
+                    parts.append(f"z.literal({'true' if v else 'false'})")
+                elif isinstance(v, (int, float)):
+                    parts.append(f"z.literal({v})")
+                else:
+                    parts.append(f'z.literal("{v}")')
+            return f"z.union([{', '.join(parts)}])"
 
         # Union types (including Optional)
         if origin is Union:

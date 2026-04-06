@@ -8,7 +8,7 @@ import inspect
 from datetime import date, datetime, time
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Union, get_args, get_origin, get_type_hints
+from typing import Any, Literal, Union, get_args, get_origin, get_type_hints
 from uuid import UUID
 
 from django.conf import settings
@@ -638,6 +638,15 @@ class OpenAPISchema:
                 schema = self._type_to_schema(non_none_args[0])
                 schema["nullable"] = True
                 return schema
+
+        # Handle Literal types → enum constraint
+        if origin is Literal:
+            args = get_args(python_type)
+            if all(isinstance(v, str) for v in args):
+                return {"type": "string", "enum": list(args)}
+            if all(isinstance(v, int) and not isinstance(v, bool) for v in args):
+                return {"type": "integer", "enum": list(args)}
+            return {"enum": list(args)}
 
         # Handle List types
         if origin is list:

@@ -7,7 +7,7 @@ import decimal
 import inspect
 import uuid
 from pathlib import Path
-from typing import Any, Union, get_args, get_origin
+from typing import Any, Literal, Union, get_args, get_origin
 
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
@@ -72,6 +72,14 @@ def python_type_to_swift(
     origin = get_origin(python_type)
     if origin is not None:
         args = get_args(python_type)
+
+        # Literal types → String for string literals, Int for int literals
+        if origin is Literal:
+            if all(isinstance(v, str) for v in args):
+                return "String"
+            if all(isinstance(v, int) and not isinstance(v, bool) for v in args):
+                return "Int"
+            return "String"
 
         # Union types (including Optional)
         if origin is Union:

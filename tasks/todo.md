@@ -37,11 +37,7 @@ Consolidate duplicated code, fix known correctness issues, quick wins.
 
 Better schema generation, better generated client code.
 
-- [ ] 2.1 **Django choices → OpenAPI enums** — auto-detect TextChoices/IntegerChoices
-  - Schema generation emits Pydantic enums for choice fields
-  - OpenAPI output includes enum constraints
-  - Directly improves `typegen/` TypeScript/Swift output
-  - Source: django-shinobi (implemented)
+- [x] 2.1 **Django choices → OpenAPI enums** — Literal types from choices now propagate to OpenAPI (enum constraints), TypeScript (`"a" | "b"`), Zod (`z.enum([...])`), and Swift (`String`/`Int`)
 - [x] 2.2 **Permissions in OpenAPI** — x-auth-required, x-roles, x-permissions extension fields
 - [x] 2.3 **Request/response schema mode separation** — validation vs serialization modes in OpenAPI
 - [x] 2.4 **Ordering enhancements** — relation traversal, Meta.ordering fallback, OpenAPI enums
