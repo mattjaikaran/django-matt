@@ -17,7 +17,7 @@ from asgiref.sync import sync_to_async
 from django_matt.core.router import APIRouter, _login_not_required
 from django_matt.openapi.docs import get_openapi_json, get_redoc, get_swagger_ui
 from django_matt.openapi.schema import OpenAPISchema
-from django_matt.slim import Mode, ModuleRegistry
+from django_matt.slim import Mode, ModuleRegistry, get_slim_config
 
 logger = logging.getLogger("django_matt.api")
 
@@ -115,6 +115,12 @@ class MattAPI(APIRouter):
         # Auto-activate auth module if auth is configured on the API
         if auth is not None:
             self._registry.activate("auth")
+
+        # In slim mode, apply SlimConfig enabled_modules if set
+        if mode == "slim":
+            config = get_slim_config()
+            if config.enabled_modules:
+                self._registry.activate(*config.enabled_modules)
 
     # ------------------------------------------------------------------
     # Module registry API

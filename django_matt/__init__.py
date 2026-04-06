@@ -238,6 +238,16 @@ _LAZY_IMPORTS = {
     "get_request_id": "django_matt.middleware.request_id",
     # Slim mode
     "ModuleRegistry": "django_matt.slim",
+    "SlimConfig": "django_matt.slim",
+    "get_slim_config": "django_matt.slim",
+    "is_module_enabled": "django_matt.slim",
+    # Lazy loading
+    "LazyModuleProxy": "django_matt.loader",
+    "DeferredLoader": "django_matt.loader",
+    "lazy_import": "django_matt.loader",
+    # Startup profiling
+    "StartupProfiler": "django_matt.startup",
+    "profile_imports": "django_matt.startup",
 }
 
 # Cache for imported modules
@@ -490,4 +500,14 @@ __all__ = [
     "get_request_id",
     # Slim mode
     "ModuleRegistry",
+    "SlimConfig",
+    "get_slim_config",
+    "is_module_enabled",
+    # Lazy loading
+    "LazyModuleProxy",
+    "DeferredLoader",
+    "lazy_import",
+    # Startup profiling
+    "StartupProfiler",
+    "profile_imports",
 ]

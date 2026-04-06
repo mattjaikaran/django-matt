@@ -1,16 +1,146 @@
-"""Tests for Slim Mode — ModuleRegistry and MattAPI mode parameter."""
+"""Tests for Slim Mode — ModuleRegistry, SlimConfig, LazyModuleProxy, StartupProfiler."""
 
 import pytest
 
-from django_matt.slim import CORE_MODULES, ModuleRegistry
+from django_matt.slim import (
+    CORE_MODULES,
+    ModuleRegistry,
+    SlimConfig,
+    get_slim_config,
+    is_module_enabled,
+    reset_slim_config,
+)
+
+# ---------------------------------------------------------------------------
+# SlimConfig unit tests
+# ---------------------------------------------------------------------------
+
+class TestSlimConfig:
+    def test_defaults(self):
+        cfg = SlimConfig()
+        assert cfg.mode == "full"
+        assert cfg.enabled_modules is None
+        assert cfg.disabled_modules == []
+        assert cfg.lazy_imports is True
+
+    def test_slim_mode_with_modules(self):
+        cfg = SlimConfig(mode="slim", enabled_modules=["auth", "billing"])
+        assert cfg.mode == "slim"
+        assert cfg.enabled_modules == ["auth", "billing"]
+
+    def test_minimal_mode(self):
+        cfg = SlimConfig(mode="minimal")
+        assert cfg.mode == "minimal"
+
+    def test_disabled_modules(self):
+        cfg = SlimConfig(disabled_modules=["graphql", "websockets"])
+        assert "graphql" in cfg.disabled_modules
+
+    def test_lazy_imports_false(self):
+        cfg = SlimConfig(lazy_imports=False)
+        assert cfg.lazy_imports is False
+
+
+class TestGetSlimConfig:
+    def setup_method(self):
+        reset_slim_config()
+
+    def teardown_method(self):
+        reset_slim_config()
+
+    def test_default_config(self):
+        cfg = get_slim_config()
+        assert cfg.mode == "full"
+
+    def test_from_settings(self, settings):
+        settings.DJANGO_MATT = {
+            "SLIM_MODE": {
+                "mode": "slim",
+                "enabled_modules": ["auth", "cors"],
+                "lazy_imports": False,
+            }
+        }
+        reset_slim_config()
+        cfg = get_slim_config()
+        assert cfg.mode == "slim"
+        assert cfg.enabled_modules == ["auth", "cors"]
+        assert cfg.lazy_imports is False
+
+    def test_caches_result(self):
+        cfg1 = get_slim_config()
+        cfg2 = get_slim_config()
+        assert cfg1 is cfg2
+
+    def test_reset_clears_cache(self):
+        cfg1 = get_slim_config()
+        reset_slim_config()
+        cfg2 = get_slim_config()
+        assert cfg1 is not cfg2
+
+
+class TestIsModuleEnabled:
+    def setup_method(self):
+        reset_slim_config()
+
+    def teardown_method(self):
+        reset_slim_config()
+
+    def test_core_always_enabled(self, settings):
+        settings.DJANGO_MATT = {"SLIM_MODE": {"mode": "minimal"}}
+        reset_slim_config()
+        for mod in CORE_MODULES:
+            assert is_module_enabled(mod), f"Core module {mod!r} should always be enabled"
+
+    def test_full_mode_all_enabled(self):
+        assert is_module_enabled("billing")
+        assert is_module_enabled("graphql")
+        assert is_module_enabled("websockets")
+
+    def test_full_mode_respects_disabled(self, settings):
+        settings.DJANGO_MATT = {
+            "SLIM_MODE": {"mode": "full", "disabled_modules": ["graphql"]}
+        }
+        reset_slim_config()
+        assert not is_module_enabled("graphql")
+        assert is_module_enabled("billing")
+
+    def test_minimal_mode_auth_only(self, settings):
+        settings.DJANGO_MATT = {"SLIM_MODE": {"mode": "minimal"}}
+        reset_slim_config()
+        assert is_module_enabled("auth")
+        assert not is_module_enabled("billing")
+        assert not is_module_enabled("graphql")
+
+    def test_slim_mode_with_enabled_list(self, settings):
+        settings.DJANGO_MATT = {
+            "SLIM_MODE": {
+                "mode": "slim",
+                "enabled_modules": ["auth", "billing"],
+            }
+        }
+        reset_slim_config()
+        assert is_module_enabled("auth")
+        assert is_module_enabled("billing")
+        assert not is_module_enabled("graphql")
+
+    def test_slim_mode_disabled_overrides_enabled(self, settings):
+        settings.DJANGO_MATT = {
+            "SLIM_MODE": {
+                "mode": "slim",
+                "enabled_modules": ["auth", "billing"],
+                "disabled_modules": ["billing"],
+            }
+        }
+        reset_slim_config()
+        assert is_module_enabled("auth")
+        assert not is_module_enabled("billing")
+
 
 # ---------------------------------------------------------------------------
 # ModuleRegistry unit tests
 # ---------------------------------------------------------------------------
 
 class TestModuleRegistry:
-    """Tests for the ModuleRegistry class."""
-
     def test_default_mode_is_full(self):
         reg = ModuleRegistry()
         assert reg.mode == "full"
@@ -24,35 +154,47 @@ class TestModuleRegistry:
 
     def test_minimal_mode_core_only(self):
         reg = ModuleRegistry(mode="minimal")
-        # Core modules are always active
         for mod in CORE_MODULES:
             assert reg.is_active(mod), f"Core module {mod!r} should be active"
-        # Non-core modules are inactive
-        assert not reg.is_active("auth")
+        # auth is auto-activated in minimal mode
+        assert reg.is_active("auth")
         assert not reg.is_active("cors")
         assert not reg.is_active("observability")
         assert not reg.is_active("billing")
 
+    def test_slim_mode_core_plus_auth(self):
+        reg = ModuleRegistry(mode="slim")
+        assert reg.is_active("auth")
+        for mod in CORE_MODULES:
+            assert reg.is_active(mod)
+        assert not reg.is_active("billing")
+        assert not reg.is_active("graphql")
+
+    def test_slim_mode_activate_modules(self):
+        reg = ModuleRegistry(mode="slim")
+        reg.activate("billing", "cors")
+        assert reg.is_active("billing")
+        assert reg.is_active("cors")
+        assert not reg.is_active("graphql")
+
     def test_activate_single(self):
         reg = ModuleRegistry(mode="minimal")
-        assert not reg.is_active("auth")
-        reg.activate("auth")
-        assert reg.is_active("auth")
+        reg.activate("cors")
+        assert reg.is_active("cors")
 
     def test_activate_multiple(self):
         reg = ModuleRegistry(mode="minimal")
-        reg.activate("auth", "cors", "timing")
-        assert reg.is_active("auth")
+        reg.activate("cors", "timing")
         assert reg.is_active("cors")
         assert reg.is_active("timing")
         assert not reg.is_active("billing")
 
     def test_deactivate(self):
         reg = ModuleRegistry(mode="minimal")
-        reg.activate("auth")
-        assert reg.is_active("auth")
-        reg.deactivate("auth")
-        assert not reg.is_active("auth")
+        reg.activate("cors")
+        assert reg.is_active("cors")
+        reg.deactivate("cors")
+        assert not reg.is_active("cors")
 
     def test_deactivate_core_raises(self):
         reg = ModuleRegistry(mode="minimal")
@@ -61,26 +203,25 @@ class TestModuleRegistry:
 
     def test_active_modules_property_minimal(self):
         reg = ModuleRegistry(mode="minimal")
-        reg.activate("auth", "cors")
+        reg.activate("cors")
         mods = reg.active_modules
         assert isinstance(mods, frozenset)
-        assert "auth" in mods
         assert "cors" in mods
-        assert "core" in mods  # core always present
+        assert "core" in mods
+        assert "auth" in mods  # auto-activated in minimal
         assert "billing" not in mods
 
     def test_active_modules_property_full(self):
         reg = ModuleRegistry(mode="full")
         mods = reg.active_modules
-        # Full mode includes at least all MODULE_MIDDLEWARE keys
         assert "auth" in mods
         assert "cors" in mods
 
     def test_get_active_middleware_minimal(self):
         reg = ModuleRegistry(mode="minimal")
-        # No middleware modules active
         middleware = reg.get_active_middleware()
-        assert middleware == []
+        # auth is auto-activated, so JWT middleware should be present
+        assert any("JWTAuthentication" in m for m in middleware)
 
     def test_get_active_middleware_with_cors(self):
         reg = ModuleRegistry(mode="minimal")
@@ -91,19 +232,18 @@ class TestModuleRegistry:
     def test_get_active_middleware_full(self):
         reg = ModuleRegistry(mode="full")
         middleware = reg.get_active_middleware()
-        # Full mode includes everything
         assert len(middleware) > 0
         assert any("CORSMiddleware" in m for m in middleware)
         assert any("SecurityHeadersMiddleware" in m for m in middleware)
 
     def test_freeze(self):
         reg = ModuleRegistry(mode="minimal")
-        reg.activate("auth")
+        reg.activate("cors")
         reg.freeze()
         with pytest.raises(RuntimeError, match="frozen"):
-            reg.activate("cors")
+            reg.activate("billing")
         with pytest.raises(RuntimeError, match="frozen"):
-            reg.deactivate("auth")
+            reg.deactivate("cors")
 
     def test_repr(self):
         reg = ModuleRegistry(mode="minimal")
@@ -112,17 +252,12 @@ class TestModuleRegistry:
         assert "ModuleRegistry" in r
 
     def test_auto_mode_no_settings(self):
-        """Auto mode without DJANGO_MATT settings should have only core modules."""
-        # settings.DJANGO_MATT is likely {} or not set in test env
         reg = ModuleRegistry(mode="auto")
         assert reg.mode == "auto"
-        # Core modules still active
         assert reg.is_active("core")
 
 
 class TestModuleRegistryAutoDetection:
-    """Test auto-detection from Django settings."""
-
     def test_auto_detects_middleware_stack_production(self, settings):
         settings.DJANGO_MATT = {"MIDDLEWARE_STACK": "production"}
         reg = ModuleRegistry(mode="auto")
@@ -161,12 +296,135 @@ class TestModuleRegistryAutoDetection:
 
 
 # ---------------------------------------------------------------------------
+# LazyModuleProxy tests
+# ---------------------------------------------------------------------------
+
+class TestLazyModuleProxy:
+    def test_deferred_import(self):
+        from django_matt.loader import LazyModuleProxy
+        proxy = LazyModuleProxy("json")
+        assert not proxy._is_loaded
+        # Access triggers import
+        result = proxy.dumps({"a": 1})
+        assert proxy._is_loaded
+        assert '"a"' in result
+
+    def test_repr_deferred(self):
+        from django_matt.loader import LazyModuleProxy
+        proxy = LazyModuleProxy("json")
+        assert "deferred" in repr(proxy)
+
+    def test_repr_loaded(self):
+        from django_matt.loader import LazyModuleProxy
+        proxy = LazyModuleProxy("json")
+        proxy._load()
+        assert "loaded" in repr(proxy)
+
+    def test_thread_safety(self):
+        import threading
+        from django_matt.loader import LazyModuleProxy
+
+        proxy = LazyModuleProxy("json")
+        results = []
+        errors = []
+
+        def access():
+            try:
+                result = proxy.dumps([1, 2, 3])
+                results.append(result)
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=access) for _ in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert len(errors) == 0
+        assert len(results) == 10
+        assert all(r == "[1, 2, 3]" for r in results)
+
+    def test_invalid_module_raises(self):
+        from django_matt.loader import LazyModuleProxy
+        proxy = LazyModuleProxy("nonexistent_module_xyz")
+        with pytest.raises(ModuleNotFoundError):
+            proxy.some_attr
+
+
+class TestLazyImport:
+    def test_returns_proxy(self):
+        from django_matt.loader import lazy_import
+        proxy = lazy_import("json")
+        assert not proxy._is_loaded
+        assert proxy.dumps({"x": 1}) == '{"x": 1}'
+        assert proxy._is_loaded
+
+
+# ---------------------------------------------------------------------------
+# DeferredLoader tests
+# ---------------------------------------------------------------------------
+
+class TestDeferredLoader:
+    def setup_method(self):
+        reset_slim_config()
+
+    def teardown_method(self):
+        reset_slim_config()
+
+    def test_get_light_module(self):
+        from django_matt.loader import DeferredLoader
+        loader = DeferredLoader()
+        mod = loader.get("core")
+        # Light modules are eagerly loaded (real module, not proxy)
+        assert mod is not None
+        assert not hasattr(mod, "_is_loaded")  # it's a real module
+
+    def test_get_heavy_module_returns_proxy(self):
+        from django_matt.loader import DeferredLoader, LazyModuleProxy
+        loader = DeferredLoader()
+        proxy = loader.get("billing")
+        assert isinstance(proxy, LazyModuleProxy)
+        assert not proxy._is_loaded
+
+    def test_get_disabled_module_returns_none(self, settings):
+        from django_matt.loader import DeferredLoader
+        settings.DJANGO_MATT = {
+            "SLIM_MODE": {"mode": "full", "disabled_modules": ["billing"]}
+        }
+        reset_slim_config()
+        loader = DeferredLoader()
+        result = loader.get("billing")
+        assert result is None
+
+    def test_preload(self):
+        from django_matt.loader import DeferredLoader
+        loader = DeferredLoader()
+        loader.get("billing")  # create proxy
+        assert not loader.is_loaded("billing")
+        loader.preload("billing")
+        assert loader.is_loaded("billing")
+
+    def test_deferred_modules_list(self):
+        from django_matt.loader import DeferredLoader
+        loader = DeferredLoader()
+        loader.get("billing")
+        loader.get("analytics")
+        assert "billing" in loader.deferred_modules
+        assert "analytics" in loader.deferred_modules
+
+    def test_repr(self):
+        from django_matt.loader import DeferredLoader
+        loader = DeferredLoader()
+        r = repr(loader)
+        assert "DeferredLoader" in r
+
+
+# ---------------------------------------------------------------------------
 # MattAPI integration tests
 # ---------------------------------------------------------------------------
 
 class TestMattAPISlimMode:
-    """Test MattAPI integration with slim mode."""
-
     def test_default_mode_is_full(self):
         from django_matt.api import MattAPI
         api = MattAPI()
@@ -176,6 +434,12 @@ class TestMattAPISlimMode:
         from django_matt.api import MattAPI
         api = MattAPI(mode="minimal")
         assert api.mode == "minimal"
+
+    def test_slim_mode(self):
+        from django_matt.api import MattAPI
+        api = MattAPI(mode="slim")
+        assert api.mode == "slim"
+        assert "auth" in api.modules
 
     def test_auto_mode(self):
         from django_matt.api import MattAPI
@@ -191,21 +455,21 @@ class TestMattAPISlimMode:
     def test_activate_returns_self(self):
         from django_matt.api import MattAPI
         api = MattAPI(mode="minimal")
-        result = api.activate("auth", "cors")
+        result = api.activate("cors")
         assert result is api
 
     def test_activate_modules(self):
         from django_matt.api import MattAPI
         api = MattAPI(mode="minimal")
-        api.activate("auth")
-        assert "auth" in api.modules
+        api.activate("cors")
+        assert "cors" in api.modules
 
     def test_deactivate_modules(self):
         from django_matt.api import MattAPI
         api = MattAPI(mode="minimal")
-        api.activate("auth")
-        api.deactivate("auth")
-        assert "auth" not in api.modules
+        api.activate("cors")
+        api.deactivate("cors")
+        assert "cors" not in api.modules
 
     def test_auth_param_activates_auth_module(self):
         from django_matt.api import MattAPI
@@ -217,10 +481,24 @@ class TestMattAPISlimMode:
         api = MattAPI(mode="minimal")
         assert isinstance(api.registry, ModuleRegistry)
 
+    def test_slim_mode_activate_specific_modules(self):
+        from django_matt.api import MattAPI
+        api = MattAPI(mode="slim")
+        api.activate("billing", "cors")
+        assert "billing" in api.modules
+        assert "cors" in api.modules
+        assert "graphql" not in api.modules
+
+    def test_full_mode_backwards_compatible(self):
+        from django_matt.api import MattAPI
+        api = MattAPI()
+        assert api.mode == "full"
+        assert api.registry.is_active("billing")
+        assert api.registry.is_active("graphql")
+        assert api.registry.is_active("websockets")
+
 
 class TestMattAPIURLsSlimMode:
-    """Test that slim mode controls which URL patterns are registered."""
-
     def test_full_mode_includes_health(self):
         from django_matt.api import MattAPI
         api = MattAPI(mode="full", health_url="/health")
@@ -234,6 +512,21 @@ class TestMattAPIURLsSlimMode:
         urls = api.get_urls()
         names = [u.name for u in urls if hasattr(u, "name")]
         assert "health-check" not in names
+
+    def test_slim_mode_excludes_health(self):
+        from django_matt.api import MattAPI
+        api = MattAPI(mode="slim", health_url="/health")
+        urls = api.get_urls()
+        names = [u.name for u in urls if hasattr(u, "name")]
+        assert "health-check" not in names
+
+    def test_slim_mode_with_observability_includes_health(self):
+        from django_matt.api import MattAPI
+        api = MattAPI(mode="slim", health_url="/health")
+        api.activate("observability")
+        urls = api.get_urls()
+        names = [u.name for u in urls if hasattr(u, "name")]
+        assert "health-check" in names
 
     def test_minimal_mode_with_observability_includes_health(self):
         from django_matt.api import MattAPI
@@ -253,18 +546,15 @@ class TestMattAPIURLsSlimMode:
         assert "openapi-schema" in names
 
     def test_minimal_mode_includes_docs(self):
-        """Core modules (openapi, docs, redoc) are always active in minimal mode."""
         from django_matt.api import MattAPI
         api = MattAPI(mode="minimal")
         urls = api.get_urls()
         names = [u.name for u in urls if hasattr(u, "name")]
-        # openapi/docs/redoc are core modules, should still be present
         assert "swagger-ui" in names
         assert "redoc" in names
         assert "openapi-schema" in names
 
     def test_health_url_none_no_health(self):
-        """health_url=None means no health check regardless of mode."""
         from django_matt.api import MattAPI
         api = MattAPI(mode="full", health_url=None)
         urls = api.get_urls()
@@ -272,15 +562,57 @@ class TestMattAPIURLsSlimMode:
         assert "health-check" not in names
 
 
-class TestDjangoMattMiddlewareSlimMode:
-    """Test that DjangoMattMiddleware respects SLIM_REGISTRY."""
+# ---------------------------------------------------------------------------
+# StartupProfiler tests
+# ---------------------------------------------------------------------------
 
+class TestStartupProfiler:
+    def test_profile_imports_returns_dict(self):
+        from django_matt.startup import profile_imports
+        results = profile_imports()
+        assert isinstance(results, dict)
+        assert len(results) > 0
+        # core should be importable
+        assert "core" in results
+        assert results["core"] >= 0
+
+    def test_context_manager(self):
+        from django_matt.startup import StartupProfiler
+        with StartupProfiler() as profiler:
+            pass
+        assert profiler.total_ms >= 0
+        assert len(profiler.results) > 0
+
+    def test_summary(self):
+        from django_matt.startup import StartupProfiler
+        with StartupProfiler() as profiler:
+            pass
+        summary = profiler.summary()
+        assert "total_ms" in summary
+        assert "module_count" in summary
+        assert "failed_count" in summary
+        assert "slowest_5" in summary
+        assert summary["module_count"] > 0
+
+    def test_get_profile_results(self):
+        from django_matt.startup import StartupProfiler, get_profile_results
+        with StartupProfiler():
+            pass
+        results = get_profile_results()
+        assert results is not None
+        assert isinstance(results, dict)
+
+
+# ---------------------------------------------------------------------------
+# DjangoMattMiddleware integration
+# ---------------------------------------------------------------------------
+
+class TestDjangoMattMiddlewareSlimMode:
     def test_middleware_chain_filters_by_registry(self, settings):
-        """When SLIM_REGISTRY is set, only active modules get middleware."""
         from django_matt.middleware.chaining import DjangoMattMiddleware
 
         reg = ModuleRegistry(mode="minimal")
-        reg.activate("cors", "timing")  # activate only cors and timing
+        reg.activate("cors", "timing")
 
         settings.DJANGO_MATT = {
             "MIDDLEWARE_STACK": "production",
@@ -292,15 +624,14 @@ class TestDjangoMattMiddlewareSlimMode:
             return HttpResponse("ok")
 
         mw = DjangoMattMiddleware(dummy_response)
-        # The inner chain should exist (cors + timing are active)
         assert mw._inner_chain is not None
 
     def test_middleware_chain_none_when_no_active_modules(self, settings):
-        """When no middleware modules are active, inner chain should be None."""
         from django_matt.middleware.chaining import DjangoMattMiddleware
 
         reg = ModuleRegistry(mode="minimal")
-        # Don't activate any middleware modules
+        # deactivate auth so no middleware modules are active
+        reg.deactivate("auth")
 
         settings.DJANGO_MATT = {
             "MIDDLEWARE_STACK": "production",
@@ -315,7 +646,6 @@ class TestDjangoMattMiddlewareSlimMode:
         assert mw._inner_chain is None
 
     def test_middleware_chain_no_registry_loads_all(self, settings):
-        """Without SLIM_REGISTRY, all middleware loads (backward-compat)."""
         from django_matt.middleware.chaining import DjangoMattMiddleware
 
         settings.DJANGO_MATT = {
