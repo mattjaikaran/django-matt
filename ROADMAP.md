@@ -1582,7 +1582,7 @@ function LoginPage() {
   - JSON API endpoints for metrics data
   - Tracks: request timing, DB queries, cache stats, error rates, percentiles
 - [x] Rust-based components for critical performance paths ✅ (Phase 7 — PyO3+maturin, 1.9x E2E speedup)
-- [ ] Framework comparison benchmarks (vs DRF, Django Ninja)
+- [x] Framework comparison benchmarks (vs DRF, Django Ninja) ✅ — `benchmarks/framework_comparison.py`, `make bench-compare`
 
 ### Frontend & Admin
 - [x] Tailwind CSS integration helpers and component utilities ✅
@@ -1630,15 +1630,16 @@ function LoginPage() {
 - [ ] Astro framework support
 - [ ] Remix framework support
 
-### Slim Mode / Selective Module Loading
-- [ ] **Slim mode** — only register middleware, apps, and URL patterns for modules actually configured
-  - Skip billing middleware if `DJANGO_MATT_BILLING.ENABLED = False`
-  - Skip multitenancy middleware if no org model configured
-  - Skip analytics, experiments, flags, websockets unless explicitly enabled
-- [ ] **Deferred app loading** — lazy-import heavy modules (billing, ai, ml, graphql) so import time stays < 50ms
-- [ ] **Startup profiler** — `matt doctor --perf` shows import time breakdown per module
-- [ ] **Zero-cost abstractions** — ensure disabled modules add zero overhead to request/response cycle
-- [ ] **Minimal mode** — `MattAPI(mode="minimal")` loads only core routing + auth, nothing else
+### Slim Mode / Selective Module Loading ✅ (2026-04-06)
+- [x] **Slim mode** — `MattAPI(mode="slim")` only loads explicitly enabled modules
+  - `SlimConfig` with `enabled_modules`/`disabled_modules` lists
+  - `is_module_enabled()` checks throughout framework
+- [x] **Deferred app loading** — `LazyModuleProxy` lazy-imports heavy modules (billing, ai, ml, graphql) on first access
+  - `DeferredLoader` manages heavy vs light module classification
+  - Thread-safe with lock
+- [x] **Startup profiler** — `profile_imports()` + `StartupProfiler` context manager measures import time per module
+- [x] **Zero-cost abstractions** — disabled modules not imported, zero overhead
+- [x] **Minimal mode** — `MattAPI(mode="minimal")` loads only core routing + auth, nothing else
 
 ### Node.js-Inspired Features ✅ (2026-04-06)
 

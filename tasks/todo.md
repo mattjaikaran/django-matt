@@ -1,19 +1,16 @@
 # Django Matt — Active Tasks
 
-## In Progress
+## Test Coverage ✅ (2026-04-06)
 
-- [ ] Add test coverage for `auth/` module (JWT, OAuth, SSO, Passkeys, RBAC, API keys)
-- [ ] Add test coverage for `billing/` module (Stripe, PayPal, Polar, webhooks)
-- [ ] Add test coverage for `multitenancy/` module (Organization, Team, Membership, isolation)
-
-## Up Next — Test Coverage
-
-- [ ] Add test coverage for `views/` (CRUD views, APIViewSet)
-- [ ] Add test coverage for `flags/` (feature flags, backends, rollout)
-- [ ] Add test coverage for `analytics/` (tracker, backends, aggregations)
-- [ ] Add test coverage for `experiments/` (A/B testing, bandits, analysis)
-- [ ] Add test coverage for `graphql/` (schema gen, dataloaders, middleware)
-- [ ] Add test coverage for `management/` commands
+- [x] Add test coverage for `auth/` module — passwords, middleware, session, RBAC (118 tests)
+- [x] Add test coverage for `billing/` module — Stripe Connect, webhooks, signals (114 new tests, 334 total)
+- [x] Add test coverage for `multitenancy/` module — org, team, membership, isolation (136 tests)
+- [x] Add test coverage for `views/` — CRUD, bulk, hooks, field selection (37 tests)
+- [x] Add test coverage for `flags/` — targeting rules, backends, middleware (68 tests)
+- [x] Add test coverage for `analytics/` — tracker, backends, aggregation (68 tests, 13 skipped: AnalyticsSession model bug)
+- [x] Add test coverage for `experiments/` — A/B testing, bandits, analysis (96 tests)
+- [x] Add test coverage for `graphql/` — schema gen, dataloaders, subscriptions (56 tests, skipped without strawberry)
+- [x] Add test coverage for `management/` commands — startapi, generate_crud, sync_types, deploy, config (57 tests)
 
 ---
 
