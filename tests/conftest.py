@@ -44,6 +44,12 @@ def _create_matt_tables(django_db_setup, django_db_blocker):
         app_config = apps.get_app_config("django_matt")
         models = list(app_config.get_models())
 
+        # Also create tables for test models that have FKs to auth.User,
+        # since Django's cascade operations will fail if the tables don't exist.
+        from tests.test_db import SoftArticle, SoftComment, SoftDocument
+
+        models.extend([SoftArticle, SoftComment, SoftDocument])
+
         if models:
             with connection.schema_editor() as schema_editor:
                 # Multiple passes to handle FK dependency ordering

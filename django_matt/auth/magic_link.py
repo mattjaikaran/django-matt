@@ -282,7 +282,9 @@ def verify_magic_link_token(
         user_created = False
 
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.filter(email=email).first()
+            if user is None:
+                raise User.DoesNotExist
         except User.DoesNotExist:
             if create_user and magic_link_config.allow_registration:
                 # Create new user

@@ -95,10 +95,12 @@ class TestMattCommand:
         assert info["django_version"] == django.get_version()
 
     def test_info_matt_version(self):
-        """_gather_project_info matt_version is 0.1.0."""
+        """_gather_project_info matt_version matches package version."""
+        from importlib.metadata import version
+
         cmd = self._get_command_instance()
         info = cmd._gather_project_info()
-        assert info["matt_version"] == "0.1.0"
+        assert info["matt_version"] == version("django-matt")
 
     def test_info_database_info(self):
         """_gather_project_info includes database engine and name."""
