@@ -44,20 +44,6 @@ from django_matt.analytics.tracker import BatchContext, EventTracker, get_tracke
 
 pytestmark = pytest.mark.django_db
 
-# AnalyticsSession has a field name collision: page_views (PositiveIntegerField)
-# clashes with PageView.session FK related_name="page_views". This makes
-# AnalyticsSession uninstantiable in Django 6.0+. Tests that require it are skipped.
-_SESSION_CONFLICT = True
-try:
-    AnalyticsSession(session_id="probe")
-    _SESSION_CONFLICT = False
-except TypeError:
-    pass
-
-skip_session_conflict = pytest.mark.skipif(
-    _SESSION_CONFLICT,
-    reason="AnalyticsSession.page_views field conflicts with PageView reverse FK",
-)
 
 
 # ============================================================================
@@ -275,7 +261,7 @@ class TestAnalyticsDatabaseBackend:
 
         assert len(ids) == 2
 
-    @skip_session_conflict
+
     def test_identify_links_anonymous(self):
         user = _create_user(username="id_user")
         backend = AnalyticsDatabaseBackend()
@@ -305,7 +291,7 @@ class TestAnalyticsDatabaseBackend:
         identity = UserIdentity.objects.get(anonymous_id="anon-123")
         assert identity.user == user
 
-    @skip_session_conflict
+
     def test_group_updates_sessions(self):
         user = _create_user(username="group_user")
         backend = AnalyticsDatabaseBackend()
@@ -330,7 +316,6 @@ class TestAnalyticsDatabaseBackend:
 # ============================================================================
 
 
-@skip_session_conflict
 class TestAnalyticsSessionModel:
     def test_create_and_str(self):
         session = AnalyticsSession.objects.create(
@@ -493,7 +478,7 @@ class TestPageViewModel:
         )
         assert "pricing" in str(pv)
 
-    @skip_session_conflict
+
     def test_page_view_with_session(self):
         session = AnalyticsSession.objects.create(session_id="pv-sess")
         pv = PageView.objects.create(
@@ -695,7 +680,7 @@ class TestAggregator:
         )
         assert metrics["total_sessions"] == 0
 
-    @skip_session_conflict
+
     @pytest.mark.asyncio
     async def test_get_session_metrics_with_data(self):
         now = timezone.now()
@@ -769,7 +754,7 @@ class TestAggregator:
         assert result["overall_conversion_rate"] == 100.0
         assert len(result["steps"]) == 2
 
-    @skip_session_conflict
+
     @pytest.mark.asyncio
     async def test_get_realtime_metrics(self):
         now = timezone.now()
@@ -843,7 +828,7 @@ class TestAnalyticsMiddleware:
 
         assert not hasattr(request, "analytics_session")
 
-    @skip_session_conflict
+
     def test_timing_header_added(self):
         def get_response(request):
             return JsonResponse({"ok": True})

@@ -509,14 +509,14 @@ class PageView(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="page_views",
+        related_name="page_view_set",
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="page_views",
+        related_name="user_page_views",
     )
     anonymous_id = models.CharField(max_length=255, blank=True, default="")
 
