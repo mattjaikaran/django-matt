@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-04-06
+
+### Added
+
+**13 New Modules — Node.js-Inspired Features (555 tests)**
+
+- **Interceptors** (`django_matt.interceptors`) — composable request/response wrappers with before_request, after_response, on_error hooks. Built-ins: Logging, Timing, Caching, Transform, Retry, RateLimit. 32 tests.
+- **SSE/Streaming** (`django_matt.streaming`) — `sse_response()`, `stream_json()`, `stream_text()`, `@sse_endpoint` decorator, heartbeat helpers. 30 tests.
+- **Config Validation** (`django_matt.config.namespaces`) — Pydantic-validated settings namespaces (AuthConfig, CacheConfig, DatabaseConfig, SecurityConfig, APIConfig, BillingConfig, ObservabilityConfig). Catches typos via `extra="forbid"`. 45 tests.
+- **Route-Scoped Middleware** (`django_matt.middleware.scoped`) — per-controller and per-route middleware via `middleware_classes` and `@use_middleware`/`@skip_middleware`. Built-ins: ScopedCors, ScopedRateLimit, ScopedCache, ScopedAuth. 34 tests.
+- **Exception Filters** (`django_matt.exceptions`) — layered typed exception handlers at route/controller/global scope. Built-ins: Validation→422, NotFound→404, Permission→403, Database→409, Throttle→429. 28 tests.
+- **Event Bus** (`django_matt.events`) — async pub/sub with typed Pydantic events, wildcard matching, concurrent handlers, error isolation. InMemory and Redis backends. 41 tests.
+- **Serialization Groups** (`django_matt.serialization`) — role-based field visibility via `Grouped()` field annotations and `@serialize_for()` decorator. 34 tests.
+- **Auto-Instrumentation** (`django_matt.observability.auto`) — zero-config tracing for controllers, services, DB, cache, HTTP. Span management with contextvars. Console/JSON/Prometheus/OTel exporters. 51 tests.
+- **Secrets** (`django_matt.secrets`) — pluggable secret management with Env, Dotenv, EncryptedFile, AWS, Vault, GCP backends. Rotation policies, SecretField for Pydantic, CLI commands. 80 tests.
+- **Introspection** (`django_matt.introspection`) — `/health`, `/health/detailed`, `/health/ready`, `/health/live`, `/_info` endpoints. Auto-registers DB, cache, Redis, Celery, storage checks. K8s probe compatible. 33 tests.
+- **RPC Client** (`django_matt.rpc`) — typed client generation from controllers. Python and TypeScript output. Dynamic proxy (`proxy.users.list()`). Auth strategies. 60 tests.
+- **Module System** (`django_matt.modules`) — plugin architecture with dependency resolution, entry point discovery, lifecycle hooks. `@module`, `@requires_module`, `@optional_module`. 51 tests.
+- **CQRS** (`django_matt.cqrs`) — command/query buses with middleware (logging, validation, transaction, caching). Domain events. Test utilities. 36 tests.
+
+**Slim Mode (77 tests)**
+
+- `MattAPI(mode="minimal")` — core routing + auth only
+- `MattAPI(mode="slim")` — user-specified module list
+- `LazyModuleProxy` for deferred heavy module imports
+- `StartupProfiler` for import time measurement
+
+**Framework Benchmarks**
+
+- `benchmarks/framework_comparison.py` with Rich tables
+- Route resolution, schema serialization, request parsing, full lifecycle comparisons
+- `make bench-compare` target
+
+**Python 3.14 CI**
+
+- Added Python 3.14 to CI matrix for Django 6.0 with `continue-on-error`
+
+**640+ New Tests Across Existing Modules**
+
+- Auth: passwords, middleware, session, RBAC
+- Billing: Stripe Connect, webhooks, signals
+- Multitenancy: org, team, membership, isolation
+- Views, flags, analytics, experiments, GraphQL, management commands
+
 ## [0.1.0] - 2026-03-09
 
 ### v1.0 Milestone Complete

@@ -14,6 +14,9 @@ graph LR
     A --> D[Real-time]
     A --> E[Billing]
     A --> F[Deployment]
+    A --> G[Request Pipeline]
+    A --> H[Architecture]
+    A --> I[Operations]
 
     B --> B1[Controllers]
     B --> B2[Schemas]
@@ -26,6 +29,7 @@ graph LR
     D --> D1[Messaging]
     D --> D2[Notifications]
     D --> D3[WebSockets]
+    D --> D4[SSE/Streaming]
 
     E --> E1[Stripe]
     E --> E2[Subscriptions]
@@ -33,6 +37,19 @@ graph LR
     F --> F1[Docker]
     F --> F2[Fly.io]
     F --> F3[AWS]
+
+    G --> G1[Interceptors]
+    G --> G2[Exception Filters]
+    G --> G3[Scoped Middleware]
+    G --> G4[Event Bus]
+
+    H --> H1[CQRS]
+    H --> H2[Module System]
+    H --> H3[RPC Client]
+
+    I --> I1[Secrets]
+    I --> I2[Introspection]
+    I --> I3[Auto-Instrumentation]
 ```
 
 ## Why Django Matt?
@@ -58,14 +75,17 @@ Django Matt consolidates the Django API ecosystem into a single, cohesive framew
 
 | Category | Features |
 |----------|----------|
-| **Core** | Async controllers, Pydantic schemas, OpenAPI 3.1, auto CRUD, **service layer** (CRUDService, BaseThirdPartyService) |
+| **Core** | Async controllers, Pydantic schemas, OpenAPI 3.1, auto CRUD, **service layer** (CRUDService, BaseThirdPartyService), serialization groups |
 | **Auth** | JWT, Sessions, API Keys, OAuth (Google/GitHub/Apple/Microsoft), Passkeys, SAML/OIDC SSO |
-| **Data** | PostgreSQL, pgvector, query optimization, distributed caching, N+1 detection |
-| **Real-time** | WebSockets, messaging, notifications, presence, typing indicators |
+| **Data** | PostgreSQL, pgvector, query optimization, distributed caching, N+1 detection, config validation |
+| **Request Pipeline** | Interceptors (before/after/error hooks), exception filters, route-scoped middleware, event bus (async pub/sub) |
+| **Real-time** | WebSockets, messaging, notifications, presence, typing indicators, SSE/streaming |
+| **Architecture** | CQRS (command/query buses), module system (plugins, dependency resolution), RPC client generation |
 | **Billing** | Stripe, PayPal, Polar - subscriptions, metered billing, webhooks |
-| **Frontend** | TypeScript/Zod codegen, React Query hooks, Swift Codable |
-| **Observability** | OpenTelemetry tracing, structured logging, Prometheus metrics |
-| **DevOps** | Docker, Fly.io, Railway, Render, AWS, Kubernetes |
+| **Frontend** | TypeScript/Zod codegen, React Query hooks, Swift Codable, RPC client (Python + TS) |
+| **Operations** | Secrets management (AWS/Vault/GCP), health checks (K8s probes), auto-instrumentation |
+| **Observability** | OpenTelemetry tracing, structured logging, Prometheus metrics, zero-config auto-instrumentation |
+| **DevOps** | Docker, Fly.io, Railway, Render, AWS, Kubernetes, slim mode for minimal deployments |
 
 ## Quick Start
 
@@ -340,11 +360,23 @@ python manage.py sync_types --target typescript --output frontend/src/types
 
 ```
 django_matt/
-├── api.py              # MattAPI entry point
+├── api.py              # MattAPI entry point (supports minimal/slim/full modes)
 ├── core/               # Router, Controller, Schema, Errors
 ├── auth/               # JWT, OAuth, Passkeys, SSO, RBAC
 ├── views/              # Composable CRUD views
 ├── permissions/        # Permission classes & decorators
+├── interceptors/       # Request/response wrappers (logging, timing, caching, retry)
+├── streaming/          # SSE, streaming JSON/text, heartbeat
+├── exceptions/         # Layered exception filters (route/controller/global)
+├── events/             # Async event bus (InMemory, Redis backends)
+├── serialization/      # Serialization groups (role-based field visibility)
+├── secrets/            # Secret management (Env, AWS, Vault, GCP, encrypted file)
+├── introspection/      # Health checks, readiness/liveness probes, /_info
+├── rpc/                # Typed RPC client generation (Python, TypeScript)
+├── modules/            # Plugin system with dependency resolution & lifecycle
+├── cqrs/               # Command/query buses, domain events
+├── middleware/          # Route-scoped middleware (CORS, rate limit, cache, auth)
+├── config/             # Modular configuration with Pydantic validation
 ├── multitenancy/       # Organizations, Teams, Memberships
 ├── billing/            # Stripe, PayPal, Polar
 ├── messaging/          # Real-time messaging
@@ -353,7 +385,7 @@ django_matt/
 ├── flags/              # Feature flags & experiments
 ├── graphql/            # Strawberry GraphQL integration
 ├── websockets/         # WebSocket consumers & routing
-├── observability/      # Tracing, logging, metrics
+├── observability/      # Tracing, logging, metrics, auto-instrumentation
 ├── typegen/            # TypeScript/Swift code generation
 ├── components/         # UI component renderers
 ├── admin/              # Django Unfold admin integration
