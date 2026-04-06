@@ -259,6 +259,27 @@ class ListView(APIView):
 
     def _apply_ordering(self, queryset: models.QuerySet, request: HttpRequest) -> models.QuerySet:
         """Apply ordering to the queryset."""
+        parsed_qs = getattr(request, "_parsed_qs", None)
+        if parsed_qs is not None:
+            sort_tuples = parsed_qs.get("sort", [])
+            if sort_tuples:
+                fields = [
+                    f"-{field}" if not ascending else field
+                    for field, ascending in sort_tuples
+                ]
+                valid_fields = []
+                for field in fields:
+                    field_name = field.lstrip("-")
+                    if self._is_valid_order_field(field_name):
+                        valid_fields.append(field)
+                if valid_fields:
+                    return queryset.order_by(*valid_fields)
+                if self.ordering:
+                    if isinstance(self.ordering, str):
+                        return queryset.order_by(self.ordering)
+                    return queryset.order_by(*self.ordering)
+                return queryset
+
         order_param = request.GET.get("ordering") or request.GET.get("order_by")
 
         if order_param:

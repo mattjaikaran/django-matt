@@ -15,6 +15,7 @@ import orjson
 from asgiref.sync import sync_to_async
 from pydantic import BaseModel, ValidationError
 
+from django_matt._accel import HAS_RUST, parse_query_string_rust
 from django_matt.core.errors import APIError, NotFoundAPIError
 
 ModelT = TypeVar("ModelT", bound=models.Model)
@@ -237,6 +238,19 @@ class APIView(Generic[ModelT, SchemaT]):
 
         return queryset
 
+    def _get_parsed_qs(self, request: HttpRequest) -> dict | None:
+        cached = getattr(request, "_parsed_qs", None)
+        if cached is not None:
+            return cached
+        if not HAS_RUST or parse_query_string_rust is None:
+            return None
+        qs = request.META.get("QUERY_STRING", "")
+        if not qs:
+            return None
+        parsed = parse_query_string_rust(qs)
+        request._parsed_qs = parsed  # type: ignore[attr-defined]
+        return parsed
+
     def _parse_field_selection(self, request: HttpRequest) -> list[str] | None:
         """Parse ``?fields=id,name,email`` query param into a validated field list.
 
@@ -244,11 +258,15 @@ class APIView(Generic[ModelT, SchemaT]):
         Invalid field names are silently dropped.  When *allowed_fields* is set,
         only those fields may be requested.
         """
-        raw = request.GET.get("fields")
-        if not raw:
-            return None
+        parsed_qs = self._get_parsed_qs(request)
+        if parsed_qs is not None:
+            requested = list(parsed_qs.get("fields", []))
+        else:
+            raw = request.GET.get("fields")
+            if not raw:
+                return None
+            requested = [f.strip() for f in raw.split(",") if f.strip()]
 
-        requested = [f.strip() for f in raw.split(",") if f.strip()]
         if not requested:
             return None
 
