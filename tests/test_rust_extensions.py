@@ -169,3 +169,75 @@ class TestRadixRouterEdgeCases:
         # Empty segment "" matches {id} param, then "posts" doesn't match further
         # Behavior depends on implementation — just verify no crash
         assert result is not None or result is None  # no crash
+
+
+class TestAPIRouterRadixIntegration:
+    """Test that APIRouter builds and uses the Rust radix tree."""
+
+    def test_radix_router_built_on_get_urls(self):
+        from django_matt.core.router import APIRouter
+
+        router = APIRouter()
+        router.add_route("users", lambda r: None, methods=["GET"], name="list_users")
+        router.add_route("users/<str:id>", lambda r: None, methods=["GET"], name="user_detail")
+        router.get_urls()
+
+        assert router._radix_router is not None
+        assert router._radix_router.route_count == 2
+
+    def test_django_to_radix_pattern(self):
+        from django_matt.core.router import APIRouter
+
+        convert = APIRouter._django_to_radix_pattern
+        assert convert("users/<str:id>/posts") == "/users/{id}/posts"
+        assert convert("users/<int:pk>") == "/users/{pk}"
+        assert convert("<slug:slug>") == "/{slug}"
+        assert convert("") == "/"
+        assert convert("health") == "/health"
+        assert convert("users/me") == "/users/me"
+
+    def test_radix_dispatch_hit(self):
+        from django_matt.core.router import APIRouter
+
+        sentinel = object()
+
+        def my_view(request):
+            return sentinel
+
+        router = APIRouter()
+        router.add_route("users/<str:id>", my_view, methods=["GET"], name="user_detail")
+        router.get_urls()
+
+        result = router.radix_dispatch("GET", "/users/42")
+        assert result is not None
+        view_func, kwargs = result
+        assert kwargs == {"id": "42"}
+
+    def test_radix_dispatch_miss(self):
+        from django_matt.core.router import APIRouter
+
+        router = APIRouter()
+        router.add_route("users", lambda r: None, methods=["GET"], name="list_users")
+        router.get_urls()
+
+        result = router.radix_dispatch("GET", "/nonexistent")
+        assert result is None
+
+    def test_radix_dispatch_method_isolation(self):
+        from django_matt.core.router import APIRouter
+
+        router = APIRouter()
+        router.add_route("users", lambda r: None, methods=["GET"], name="list_users")
+        router.add_route("users", lambda r: None, methods=["POST"], name="create_user")
+        router.get_urls()
+
+        assert router.radix_dispatch("GET", "/users") is not None
+        assert router.radix_dispatch("POST", "/users") is not None
+        assert router.radix_dispatch("DELETE", "/users") is None
+
+    def test_radix_dispatch_none_without_rust(self):
+        from django_matt.core.router import APIRouter
+
+        router = APIRouter()
+        # Don't call get_urls, so _radix_router stays None
+        assert router.radix_dispatch("GET", "/anything") is None

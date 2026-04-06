@@ -1,13 +1,18 @@
 import inspect
+import logging
 from collections.abc import Callable
 from typing import get_type_hints
 
 import django
 from django.http import HttpResponse, JsonResponse
-from django.urls import path
+from django.urls import path, re_path
 
 import orjson
 from pydantic import BaseModel, ValidationError
+
+from django_matt._accel import HAS_RUST, RadixRouter
+
+logger = logging.getLogger("django_matt.router")
 
 # Django version detection for LoginRequiredMiddleware compatibility
 _DJANGO_VERSION = tuple(int(x) for x in django.__version__.split(".")[:2])
@@ -119,6 +124,9 @@ class APIRouter:
         self.tags = tags or []
         self.routes = []
         self.controllers = []
+        # Rust-accelerated radix tree router (built lazily in get_urls)
+        self._radix_router: RadixRouter | None = None
+        self._radix_endpoints: dict[str, Callable] = {}
 
     def add_route(
         self,
@@ -527,7 +535,77 @@ class APIRouter:
                 _append(path(url_path, _dispatch_view, name=first_name))
 
         # Static patterns first, then parameterized — preserves ordering within each group.
-        return static_patterns + param_patterns
+        django_patterns = static_patterns + param_patterns
+
+        # Build Rust radix tree alongside Django patterns for fast dispatch
+        if HAS_RUST and RadixRouter is not None:
+            self._build_radix_router(path_entries, csrf_exempt)
+
+        return django_patterns
+
+    def _build_radix_router(
+        self,
+        path_entries: list[tuple[str, Callable, str, list[str]]],
+        csrf_exempt: bool,
+    ) -> None:
+        """Build the Rust radix tree from collected path entries.
+
+        Populates ``self._radix_router`` and ``self._radix_endpoints`` so that
+        ``radix_dispatch`` can look up the correct view function in O(path) time.
+        """
+        self._radix_router = RadixRouter()
+        self._radix_endpoints = {}
+
+        for url_path, view_func, name, methods in path_entries:
+            # Convert Django path syntax (<str:id>) to radix syntax ({id})
+            radix_path = self._django_to_radix_pattern(url_path)
+            for method in methods:
+                endpoint_key = f"{method.upper()}:{radix_path}"
+                self._radix_endpoints[endpoint_key] = view_func
+                self._radix_router.add_route(method.upper(), radix_path, endpoint_key)
+
+        logger.debug(
+            "Rust radix router built: %d routes", self._radix_router.route_count
+        )
+
+    @staticmethod
+    def _django_to_radix_pattern(django_path: str) -> str:
+        """Convert Django URL pattern to radix tree pattern.
+
+        ``users/<str:id>/posts`` → ``/users/{id}/posts``
+        ``users/<int:pk>``       → ``/users/{pk}``
+        """
+        import re as _re
+
+        # Ensure leading slash
+        p = "/" + django_path.lstrip("/")
+        # <type:name> → {name}
+        p = _re.sub(r"<\w+:(\w+)>", r"{\1}", p)
+        # <name> (no type) → {name}
+        p = _re.sub(r"<(\w+)>", r"{\1}", p)
+        # Strip trailing slash for consistent matching
+        return p.rstrip("/") or "/"
+
+    def radix_dispatch(self, request_method: str, request_path: str):
+        """Fast route lookup using the Rust radix tree.
+
+        Returns ``(view_func, kwargs)`` or ``None`` if no match.
+        Used by ``MattAPI`` middleware or ASGI handler to bypass Django's
+        URL resolver for registered API routes.
+        """
+        if self._radix_router is None:
+            return None
+
+        result = self._radix_router.match_route(request_method, request_path)
+        if result is None:
+            return None
+
+        endpoint_key, params = result
+        view_func = self._radix_endpoints.get(endpoint_key)
+        if view_func is None:
+            return None
+
+        return view_func, dict(params)
 
 
 # Route decorators for controller methods
