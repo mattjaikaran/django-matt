@@ -199,6 +199,112 @@ def main():
             )
 
     print()
+
+    # ================================================================
+    # JWT Benchmarks
+    # ================================================================
+    print("=" * 70)
+    print("  JWT Encode/Decode — Rust vs Python")
+    print("=" * 70)
+    print()
+
+    import orjson as _orjson
+
+    jwt_secret = b"benchmark-secret-key-at-least-32-bytes-long!"
+    jwt_payload = {"sub": "user123", "role": "admin", "org_id": "acme"}
+    jwt_iterations = 200_000
+
+    # Python JWT — import internals directly to avoid Django settings
+    import base64
+    import hashlib
+    import hmac
+
+    def _base64url_encode(data: bytes) -> str:
+        return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+    def _base64url_decode(data: str) -> bytes:
+        pad = 4 - len(data) % 4
+        if pad != 4:
+            data += "=" * pad
+        return base64.urlsafe_b64decode(data)
+
+    def _json_encode(obj):
+        return _orjson.dumps(obj, option=_orjson.OPT_SORT_KEYS)
+
+    def _json_decode(data: bytes):
+        return _orjson.loads(data)
+
+    def _create_signature(signing_input, secret, algorithm):
+        data = signing_input.encode("utf-8")
+        hash_funcs = {"HS256": hashlib.sha256, "HS384": hashlib.sha384, "HS512": hashlib.sha512}
+        return hmac.new(secret, data, hash_funcs[algorithm]).digest()
+
+    def _verify_signature(signing_input, signature, secret, algorithm):
+        expected = _create_signature(signing_input, secret, algorithm)
+        return hmac.compare_digest(signature, expected)
+
+    def py_jwt_encode():
+        import time as _time
+        claims = dict(jwt_payload)
+        now = int(_time.time())
+        claims["iat"] = now
+        claims["exp"] = now + 3600
+        header = {"alg": "HS256", "typ": "JWT"}
+        h = _base64url_encode(_json_encode(header))
+        p = _base64url_encode(_json_encode(claims))
+        si = f"{h}.{p}"
+        sig = _create_signature(si, jwt_secret, "HS256")
+        return f"{si}.{_base64url_encode(sig)}"
+
+    # Generate a token for decode benchmarks
+    test_token = py_jwt_encode()
+
+    def py_jwt_decode():
+        parts = test_token.split(".")
+        si = f"{parts[0]}.{parts[1]}"
+        sig = _base64url_decode(parts[2])
+        _verify_signature(si, sig, jwt_secret, "HS256")
+        return _json_decode(_base64url_decode(parts[1]))
+
+    py_enc = benchmark("Python encode", py_jwt_encode, jwt_iterations)
+    py_dec = benchmark("Python decode", py_jwt_decode, jwt_iterations)
+
+    if has_rust:
+        from django_matt._rust import jwt_encode as _jwt_encode_rs
+        from django_matt._rust import jwt_decode as _jwt_decode_rs
+
+        def rust_jwt_encode():
+            import time as _time
+            claims = dict(jwt_payload)
+            now = int(_time.time())
+            claims["iat"] = now
+            claims["exp"] = now + 3600
+            return _jwt_encode_rs(
+                _orjson.dumps(claims, option=_orjson.OPT_SORT_KEYS),
+                jwt_secret,
+                "HS256",
+            )
+
+        rust_test_token = rust_jwt_encode()
+
+        def rust_jwt_decode():
+            return _jwt_decode_rs(rust_test_token, jwt_secret, "HS256", False, 0)
+
+        rs_enc = benchmark("Rust encode", rust_jwt_encode, jwt_iterations)
+        rs_dec = benchmark("Rust decode", rust_jwt_decode, jwt_iterations)
+
+    print(f"  {'Operation':<20} {'Python (ns)':<15} {'Rust (ns)':<15} {'Speedup':<10}")
+    print(f"  {'-' * 60}")
+    if has_rust:
+        enc_speedup = py_enc["mean_ns"] / rs_enc["mean_ns"]
+        dec_speedup = py_dec["mean_ns"] / rs_dec["mean_ns"]
+        print(f"  {'JWT encode':<20} {py_enc['mean_ns']:<15.0f} {rs_enc['mean_ns']:<15.0f} {enc_speedup:<10.1f}x")
+        print(f"  {'JWT decode+verify':<20} {py_dec['mean_ns']:<15.0f} {rs_dec['mean_ns']:<15.0f} {dec_speedup:<10.1f}x")
+    else:
+        print(f"  {'JWT encode':<20} {py_enc['mean_ns']:<15.0f} {'N/A':<15} {'N/A':<10}")
+        print(f"  {'JWT decode+verify':<20} {py_dec['mean_ns']:<15.0f} {'N/A':<15} {'N/A':<10}")
+
+    print()
     print("=" * 70)
 
 

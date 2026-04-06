@@ -39,6 +39,8 @@ from typing import Any
 
 import orjson
 
+from django_matt._accel import HAS_RUST, jwt_decode_rust, jwt_encode_rust
+
 
 class JWTError(Exception):
     """Base exception for JWT errors."""
@@ -351,6 +353,12 @@ def encode_jwt(
     if jwt_id is not None:
         claims["jti"] = jwt_id
 
+    # Fast path: use Rust for HMAC algorithms (no custom headers)
+    if HAS_RUST and algorithm in HMAC_ALGORITHMS and not headers:
+        secret_bytes = secret.encode("utf-8") if isinstance(secret, str) else secret
+        claims_json = orjson.dumps(claims, option=orjson.OPT_SORT_KEYS)
+        return jwt_encode_rust(claims_json, secret_bytes, algorithm)
+
     # Encode segments
     header_segment = _base64url_encode(_json_encode(header))
     payload_segment = _base64url_encode(_json_encode(claims))
@@ -411,6 +419,28 @@ def decode_jwt(
     for alg in algorithms:
         if alg not in SUPPORTED_ALGORITHMS:
             raise JWTAlgorithmError(f"Unsupported algorithm: {alg}")
+
+    # Fast path: use Rust for simple HMAC decode (no nbf/iat/iss/aud verification)
+    if (
+        HAS_RUST
+        and len(algorithms) == 1
+        and algorithms[0] in HMAC_ALGORITHMS
+        and not verify_nbf
+        and not verify_iat
+        and verify_iss is None
+        and verify_aud is None
+        and options is None
+    ):
+        secret_bytes = secret.encode("utf-8") if isinstance(secret, str) else secret
+        try:
+            return dict(jwt_decode_rust(token, secret_bytes, algorithms[0], verify_exp, leeway))
+        except ValueError as e:
+            msg = str(e)
+            if "expired" in msg.lower():
+                raise JWTExpiredError(msg)
+            if "signature" in msg.lower():
+                raise JWTInvalidSignatureError(msg)
+            raise JWTDecodeError(msg)
 
     # Split token
     try:

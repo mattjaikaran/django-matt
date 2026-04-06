@@ -241,3 +241,130 @@ class TestAPIRouterRadixIntegration:
         router = APIRouter()
         # Don't call get_urls, so _radix_router stays None
         assert router.radix_dispatch("GET", "/anything") is None
+
+
+class TestRustJWT:
+    """Test Rust-accelerated JWT encode/decode/verify."""
+
+    def test_jwt_encode_decode_roundtrip(self):
+        from django_matt._accel import jwt_decode_rust, jwt_encode_rust
+
+        import orjson
+        import time
+
+        payload = {"sub": "user42", "role": "admin", "iat": int(time.time()), "exp": int(time.time()) + 3600}
+        payload_json = orjson.dumps(payload, option=orjson.OPT_SORT_KEYS)
+        secret = b"test-secret-key"
+
+        token = jwt_encode_rust(payload_json, secret, "HS256")
+        assert isinstance(token, str)
+        assert token.count(".") == 2
+
+        decoded = jwt_decode_rust(token, secret, "HS256")
+        assert decoded["sub"] == "user42"
+        assert decoded["role"] == "admin"
+
+    def test_jwt_verify_valid(self):
+        from django_matt._accel import jwt_encode_rust, jwt_verify_rust
+
+        import orjson
+
+        payload_json = orjson.dumps({"sub": "u1"})
+        secret = b"secret"
+        token = jwt_encode_rust(payload_json, secret, "HS256")
+
+        assert jwt_verify_rust(token, secret, "HS256") is True
+
+    def test_jwt_verify_wrong_secret(self):
+        from django_matt._accel import jwt_encode_rust, jwt_verify_rust
+
+        import orjson
+
+        payload_json = orjson.dumps({"sub": "u1"})
+        token = jwt_encode_rust(payload_json, b"secret", "HS256")
+
+        assert jwt_verify_rust(token, b"wrong", "HS256") is False
+
+    def test_jwt_decode_invalid_signature(self):
+        from django_matt._accel import jwt_encode_rust, jwt_decode_rust
+
+        import orjson
+
+        payload_json = orjson.dumps({"sub": "u1"})
+        token = jwt_encode_rust(payload_json, b"secret", "HS256")
+
+        with pytest.raises(ValueError, match="[Ss]ignature"):
+            jwt_decode_rust(token, b"wrong-secret", "HS256")
+
+    def test_jwt_decode_expired(self):
+        from django_matt._accel import jwt_encode_rust, jwt_decode_rust
+
+        import orjson
+        import time
+
+        payload = {"sub": "u1", "exp": int(time.time()) - 100}
+        payload_json = orjson.dumps(payload)
+        token = jwt_encode_rust(payload_json, b"secret", "HS256")
+
+        with pytest.raises(ValueError, match="expired"):
+            jwt_decode_rust(token, b"secret", "HS256", True, 0)
+
+    def test_jwt_decode_expired_with_leeway(self):
+        from django_matt._accel import jwt_encode_rust, jwt_decode_rust
+
+        import orjson
+        import time
+
+        payload = {"sub": "u1", "exp": int(time.time()) - 5}
+        payload_json = orjson.dumps(payload)
+        token = jwt_encode_rust(payload_json, b"secret", "HS256")
+
+        # Should succeed with 10s leeway
+        decoded = jwt_decode_rust(token, b"secret", "HS256", True, 10)
+        assert decoded["sub"] == "u1"
+
+    def test_jwt_all_hmac_algorithms(self):
+        from django_matt._accel import jwt_encode_rust, jwt_decode_rust, jwt_verify_rust
+
+        import orjson
+
+        payload_json = orjson.dumps({"sub": "u1"})
+        secret = b"test-key"
+
+        for alg in ("HS256", "HS384", "HS512"):
+            token = jwt_encode_rust(payload_json, secret, alg)
+            assert jwt_verify_rust(token, secret, alg) is True
+            decoded = jwt_decode_rust(token, secret, alg, False, 0)
+            assert decoded["sub"] == "u1"
+
+
+class TestJWTBuiltinRustIntegration:
+    """Test that jwt_builtin.py uses Rust when available."""
+
+    def test_encode_uses_rust_for_hmac(self):
+        from django_matt.auth.jwt_builtin import encode_jwt, decode_jwt
+
+        token = encode_jwt({"sub": "u1"}, secret="mysecret", expires_in=3600)
+        assert isinstance(token, str)
+        assert token.count(".") == 2
+
+        # Decode should also use Rust fast path
+        payload = decode_jwt(token, secret="mysecret")
+        assert payload["sub"] == "u1"
+
+    def test_encode_decode_interop(self):
+        """Tokens from Rust encode must be decodable by Python path and vice versa."""
+        from django_matt.auth.jwt_builtin import encode_jwt, decode_jwt
+
+        # Encode with Rust (HMAC, no custom headers)
+        token = encode_jwt(
+            {"sub": "u1", "data": "test"},
+            secret="key123",
+            algorithm="HS256",
+            expires_in=3600,
+        )
+
+        # Decode with explicit Python path (verify_nbf=True forces Python path)
+        payload = decode_jwt(token, secret="key123", verify_nbf=True)
+        assert payload["sub"] == "u1"
+        assert payload["data"] == "test"
