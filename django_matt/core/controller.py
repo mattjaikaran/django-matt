@@ -80,6 +80,7 @@ class Controller:
     tags: list[str] = []
     auto_error_handling: bool = True  # Enable automatic error handling by default
     permission_classes: list = []
+    middleware_classes: list = []
 
     def __init_subclass__(cls, **kwargs: object) -> None:
         super().__init_subclass__(**kwargs)
@@ -89,6 +90,8 @@ class Controller:
             cls.tags = []
         if "permission_classes" not in cls.__dict__:
             cls.permission_classes = list(cls.permission_classes)
+        if "middleware_classes" not in cls.__dict__:
+            cls.middleware_classes = list(cls.middleware_classes)
 
     def __init__(self):
         self._setup_methods()
@@ -153,6 +156,17 @@ class Controller:
                     for cls in _perm_sources
                 ]
 
+            # Pre-resolve route-scoped middleware stack once at init
+            _mw_stack = None
+            if self.middleware_classes or getattr(method, "_use_middleware", None):
+                from django_matt.middleware.scoped import _resolve_middleware_stack
+
+                _mw_stack = _resolve_middleware_stack(
+                    self.middleware_classes,
+                    getattr(method, "_use_middleware", None),
+                    getattr(method, "_skip_middleware", None),
+                )
+
             @wraps(method)
             async def wrapper(
                 request,
@@ -165,6 +179,7 @@ class Controller:
                 _di_params=di_params,
                 _perms=_permission_instances,
                 _takes_request=takes_request,
+                _middleware_stack=_mw_stack,
                 **kwargs,
             ):
                 try:
@@ -196,41 +211,57 @@ class Controller:
                                     status=422,
                                 )
 
-                    # Resolve DI dependencies if present
-                    scope_token = None
-                    if _di_params is not None:
-                        from django_matt.di.container import _scoped_instances
-                        from django_matt.di.depends import aresolve_dependencies
+                    # Inner handler: DI resolution + method call
+                    async def _inner_handler(
+                        _request,
+                        *_args,
+                        _method=_method,
+                        _is_coro=_is_coro,
+                        _di_params=_di_params,
+                        _takes_request=_takes_request,
+                        **_kwargs,
+                    ):
+                        scope_token = None
+                        if _di_params is not None:
+                            from django_matt.di.container import _scoped_instances
+                            from django_matt.di.depends import aresolve_dependencies
 
-                        if _scoped_instances.get() is None:
-                            scope_token = _scoped_instances.set({})
+                            if _scoped_instances.get() is None:
+                                scope_token = _scoped_instances.set({})
+
+                            try:
+                                deps = await aresolve_dependencies(
+                                    _method,
+                                    request=_request,
+                                    **_kwargs,
+                                )
+                                _kwargs.update(deps)
+                            except Exception:
+                                if scope_token is not None:
+                                    _scoped_instances.reset(scope_token)
+                                raise
 
                         try:
-                            deps = await aresolve_dependencies(
-                                _method,
-                                request=request,
-                                **kwargs,
-                            )
-                            kwargs.update(deps)
-                        except Exception:
+                            if _takes_request:
+                                call_args = (_request, *_args)
+                            else:
+                                call_args = _args
+                            if _is_coro:
+                                result = await _method(*call_args, **_kwargs)
+                            else:
+                                result = _method(*call_args, **_kwargs)
+
+                            return result
+                        finally:
                             if scope_token is not None:
                                 _scoped_instances.reset(scope_token)
-                            raise
 
-                    try:
-                        if _takes_request:
-                            call_args = (request, *args)
-                        else:
-                            call_args = args
-                        if _is_coro:
-                            result = await _method(*call_args, **kwargs)
-                        else:
-                            result = _method(*call_args, **kwargs)
-
-                        return result
-                    finally:
-                        if scope_token is not None:
-                            _scoped_instances.reset(scope_token)
+                    # Execute through middleware stack or call directly
+                    if _middleware_stack is not None:
+                        return await _middleware_stack.execute(
+                            request, _inner_handler, *args, **kwargs
+                        )
+                    return await _inner_handler(request, *args, **kwargs)
 
                 except Exception as e:
                     if _error_config is None:
