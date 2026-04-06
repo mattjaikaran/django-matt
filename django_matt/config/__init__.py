@@ -311,4 +311,31 @@ def get_settings() -> dict[str, Any]:
     return config.get_settings()
 
 
-__all__ = ["config", "configure", "get_settings"]
+__all__ = [
+    "config",
+    "configure",
+    "get_settings",
+    "ConfigNamespace",
+    "AuthConfig",
+    "CacheConfig",
+    "DatabaseConfig",
+    "SecurityConfig",
+    "APIConfig",
+    "BillingConfig",
+    "ObservabilityConfig",
+    "register_namespace",
+    "skip_validation",
+    "validate_config",
+]
+
+from django_matt.config.namespaces import (
+    APIConfig,
+    AuthConfig,
+    BillingConfig,
+    CacheConfig,
+    ConfigNamespace,
+    DatabaseConfig,
+    ObservabilityConfig,
+    SecurityConfig,
+)
+from django_matt.config.startup import register_namespace, skip_validation, validate_config
