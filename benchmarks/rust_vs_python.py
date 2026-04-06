@@ -340,6 +340,81 @@ def main():
             print(f"  {label:<15} {py_qs['mean_ns']:<15.0f} {'N/A':<15} {'N/A':<10}")
 
     print()
+
+    # ================================================================
+    # JSON Serialization Benchmarks
+    # ================================================================
+    print("=" * 70)
+    print("  JSON Serialization — Rust vs orjson vs json")
+    print("=" * 70)
+    print()
+
+    import json
+
+    # Generate test data
+    def make_dicts(n: int) -> list[dict]:
+        return [
+            {
+                "id": i,
+                "first_name": f"User{i}",
+                "last_name": f"Smith{i}",
+                "email": f"user{i}@example.com",
+                "is_active": i % 3 != 0,
+                "score": i * 1.5,
+                "bio": None if i % 5 == 0 else f"Bio for user {i}",
+                "tags": ["admin", "user"] if i % 2 == 0 else ["user"],
+            }
+            for i in range(n)
+        ]
+
+    ser_iterations = 100_000
+
+    for count in (10, 100):
+        test_data = make_dicts(count)
+
+        py_json = benchmark(
+            f"json.dumps({count})",
+            lambda d=test_data: json.dumps(d),
+            ser_iterations,
+        )
+        py_orjson = benchmark(
+            f"orjson.dumps({count})",
+            lambda d=test_data: _orjson.dumps(d),
+            ser_iterations,
+        )
+
+        print(f"  {count} objects:")
+        print(f"    {'Method':<25} {'Mean (ns)':<15} {'Speedup vs json':<20}")
+        print(f"    {'-' * 55}")
+        print(f"    {'stdlib json':<25} {py_json['mean_ns']:<15.0f} {'baseline':<20}")
+        json_ns = py_json["mean_ns"]
+        orjson_speedup = json_ns / py_orjson["mean_ns"]
+        print(f"    {'orjson':<25} {py_orjson['mean_ns']:<15.0f} {orjson_speedup:<20.1f}x")
+
+        if has_rust:
+            from django_matt._rust import serialize_dicts_to_json as _ser_rs
+            from django_matt._rust import build_camel_case_map as _build_cm
+
+            rs_ser = benchmark(
+                f"rust_serialize({count})",
+                lambda d=test_data: _ser_rs(d),
+                ser_iterations,
+            )
+            rs_speedup = json_ns / rs_ser["mean_ns"]
+            print(f"    {'rust serialize':<25} {rs_ser['mean_ns']:<15.0f} {rs_speedup:<20.1f}x")
+
+            # With camelCase alias map
+            alias_map = _build_cm(list(test_data[0].keys()))
+            rs_camel = benchmark(
+                f"rust_camel({count})",
+                lambda d=test_data, a=alias_map: _ser_rs(d, a),
+                ser_iterations,
+            )
+            rs_camel_speedup = json_ns / rs_camel["mean_ns"]
+            print(f"    {'rust + camelCase':<25} {rs_camel['mean_ns']:<15.0f} {rs_camel_speedup:<20.1f}x")
+
+        print()
+
     print("=" * 70)
 
 
