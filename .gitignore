@@ -77,6 +77,11 @@ site/
 # Patch rejects
 *.rej
 
+# Rust
+rust/target/
+rust/python/django_matt/_rust*.so
+rust/python/django_matt/__pycache__/
+
 # Package distribution
 dist/
 build/

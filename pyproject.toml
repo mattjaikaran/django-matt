@@ -159,6 +159,11 @@ testing = [
     "httpx>=0.27.0",
 ]
 
+# Rust-accelerated hot paths (router, JWT, serialization)
+# Not on PyPI yet — build locally: make rust-dev
+# Will become: django-matt[rust] once published
+# rust = ["django-matt-rust>=0.1.0"]
+
 # Full install with common features
 full = [
     "django-matt[auth,performance,typegen,files,postgres]",

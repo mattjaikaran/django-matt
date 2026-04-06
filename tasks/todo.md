@@ -100,6 +100,125 @@ Verify these patterns are correctly implemented — bugs found in other framewor
 
 ---
 
+## Phase 7: Rust Native Extensions (Performance)
+
+> **Goal:** Compile hot paths to Rust via PyO3 + maturin, achieving 10-50x speedups on
+> per-request framework overhead while maintaining pure-Python fallbacks for all platforms.
+>
+> **Why Rust:** pydantic-core, orjson, ruff, uv, polars, cryptography, tiktoken, jiter all
+> chose Rust+PyO3. Same perf ceiling as C, compile-time memory safety, maturin handles
+> cross-platform wheel builds. The precedent is overwhelming — no other option comes close
+> for new Python extension work in 2026.
+>
+> **Architecture:** Ship as optional `django-matt[rust]` extra. Pure Python fallback for every
+> Rust-accelerated path. Pattern: `try: from django_matt._rust import X; except ImportError: ...`
+>
+> **Multi-session plan** — each sub-phase is independently shippable.
+
+### Phase 7.0: Scaffold & Build Pipeline
+
+Set up the Rust extension module, maturin build system, CI wheel building, and the
+Python fallback pattern. No performance code yet — just infrastructure.
+
+- [ ] 7.0.1 **Rust crate scaffold** — `django_matt/_rust/` with `Cargo.toml`, `src/lib.rs` (PyO3 module entry), `.cargo/config.toml`
+- [ ] 7.0.2 **maturin integration** — `pyproject.toml` build backend config, `[tool.maturin]` settings, `module-name = "django_matt._rust"`
+- [ ] 7.0.3 **Fallback pattern** — `django_matt/_accel.py` module that tries Rust import, exposes `HAS_RUST_EXTENSIONS` flag, provides Python fallback for each accelerated function
+- [ ] 7.0.4 **CI wheel building** — GitHub Actions workflow using `PyO3/maturin-action` for manylinux, macOS (arm64+x86_64), Windows wheels. abi3 stable ABI for single wheel per platform
+- [ ] 7.0.5 **Dev workflow** — `make rust-dev` (maturin develop), `make rust-build` (maturin build), `make rust-test` (cargo test + pytest integration tests)
+- [ ] 7.0.6 **Benchmark harness** — extend existing `benchmarks/` to compare Python vs Rust implementations side-by-side with `--rust` / `--python` flags
+
+### Phase 7.1: Radix Tree URL Router
+
+Replace Django's regex-based URL resolver with a Rust radix tree for route matching.
+This is the single hottest path — called on every request.
+
+- [ ] 7.1.1 **Rust radix tree** — port or wrap `matchit` crate (used by Axum). Support: static segments, named params (`{id}`), wildcard (`{path:*}`), optional trailing slash
+- [ ] 7.1.2 **Route registration API** — `router.add_route(method, pattern, endpoint_id)` called at startup, returns opaque route table
+- [ ] 7.1.3 **Route matching API** — `router.match_route(method, path) -> (endpoint_id, params)` called per-request, returns matched endpoint + extracted params
+- [ ] 7.1.4 **Python fallback** — keep current `_python_resolve()` as fallback in `_accel.py`
+- [ ] 7.1.5 **Integration** — wire into `core/router.py` dispatch, transparent to user code
+- [ ] 7.1.6 **Benchmarks** — compare Rust router vs Python resolver: 10/100/1000 routes, static/parameterized/mixed
+
+**Expected gains:** ~50-100ns per match (Rust) vs ~2-5μs (Python regex) = **20-50x speedup**
+
+### Phase 7.2: JWT Encode/Decode/Verify
+
+Move the entire JWT pipeline to Rust. Every authenticated request hits this path.
+
+- [ ] 7.2.1 **HMAC signing** — HS256/HS384/HS512 via `ring` crate, constant-time comparison
+- [ ] 7.2.2 **RSA/EC signing** — RS256/RS384/RS512, ES256/ES384/ES512 via `ring`
+- [ ] 7.2.3 **JWT encode** — `jwt_encode(payload_bytes, secret, algorithm) -> token_bytes`. Takes orjson-serialized payload, returns complete JWT as bytes
+- [ ] 7.2.4 **JWT decode + verify** — `jwt_decode(token, secret, algorithm, verify_exp=True) -> payload_bytes`. Signature verification + expiry check in one Rust call. Returns raw payload bytes for orjson deserialization on Python side
+- [ ] 7.2.5 **Python fallback** — current `jwt_builtin.py` as fallback
+- [ ] 7.2.6 **Integration** — wire into `auth/jwt_builtin.py`, transparent to auth middleware
+- [ ] 7.2.7 **Benchmarks** — encode/decode/verify for HS256, RS256, ES256. Measure single-op and concurrent (GIL release)
+
+**Expected gains:** ~1-3μs (Rust) vs ~15-30μs (Python) = **10-15x speedup**
+**Bonus:** GIL release during crypto ops = better concurrency under load
+
+### Phase 7.3: Fast Schema Serialization
+
+Bypass Pydantic's Python-level serialization for the common case: Django model → JSON bytes.
+
+- [ ] 7.3.1 **Field descriptor format** — define a Rust-side struct describing model fields (name, type, nullable, related). Built once at schema registration
+- [ ] 7.3.2 **Model-to-bytes serializer** — `serialize_model(model_attrs, field_descriptors) -> bytes`. Takes dict of model attribute values, returns orjson-compatible JSON bytes. Handles: str, int, float, bool, None, datetime, UUID, Decimal, list, nested
+- [ ] 7.3.3 **List serialization** — `serialize_model_list(models, field_descriptors) -> bytes`. Batch serialize querysets without per-item Python overhead
+- [ ] 7.3.4 **Integration** — wire into `views/base.py` `serialize_single()` / `serialize_list()`, replacing `model_construct()` + `model_dump_json()`
+- [ ] 7.3.5 **Python fallback** — current `from_orm_fast()` / `model_construct()` path
+- [ ] 7.3.6 **Benchmarks** — serialize 1/10/100/1000 objects with 5/15/30 fields. Compare vs Pydantic model_dump_json, DRF serializer, raw orjson
+
+**Expected gains:** ~0.5-1μs per object (Rust) vs ~5-10μs (Python model_construct + dump) = **10x speedup**
+
+### Phase 7.4: Query String Parser
+
+Parse filter/sort/fields/pagination params in Rust. Called on every list endpoint.
+
+- [ ] 7.4.1 **Parser implementation** — `parse_query_string(qs: str) -> ParsedQuery`. Handles: `?fields=a,b&filter[status]=active&sort=-created&page=2&limit=20`
+- [ ] 7.4.2 **ParsedQuery struct** — typed result: `fields: list[str]`, `filters: dict[str, str]`, `sort: list[tuple[str, bool]]`, `pagination: dict[str, int]`
+- [ ] 7.4.3 **Integration** — wire into filtering/ordering/pagination middleware
+- [ ] 7.4.4 **Python fallback** — current Django QueryDict parsing
+- [ ] 7.4.5 **Benchmarks** — parse simple/complex/adversarial query strings
+
+**Expected gains:** ~100-200ns (Rust) vs ~3-8μs (Python) = **20-40x speedup**
+
+### Phase 7.5: Middleware Dispatch Chain
+
+Optimize the middleware call chain to minimize Python function call overhead.
+
+- [ ] 7.5.1 **Chain compiler** — at startup, compile middleware list into a Rust dispatch function. Rust calls each Python middleware but manages the iteration loop, error handling, and short-circuiting natively
+- [ ] 7.5.2 **Fast-path detection** — if a middleware is a no-op for the current request (e.g., CORS for same-origin), skip the Python call entirely based on pre-computed conditions
+- [ ] 7.5.3 **Header parsing** — parse common headers (Accept, Content-Type, Authorization, Cookie) in Rust, pass parsed struct to Python
+- [ ] 7.5.4 **Integration** — replace `MattAPI.process_request()` chain
+- [ ] 7.5.5 **Python fallback** — current sequential middleware calls
+- [ ] 7.5.6 **Benchmarks** — 5/10/15 middleware chain, measure per-request overhead
+
+**Expected gains:** varies by middleware count. ~30-50% reduction in middleware overhead
+
+### Phase 7.6: Production Hardening
+
+- [ ] 7.6.1 **Fuzz testing** — `cargo fuzz` for router, JWT, query parser (malformed inputs, unicode edge cases)
+- [ ] 7.6.2 **Memory profiling** — verify no leaks across 1M+ requests with `valgrind` / `heaptrack`
+- [ ] 7.6.3 **Thread safety audit** — verify all Rust code is `Send + Sync`, GIL release is correct
+- [ ] 7.6.4 **Error propagation** — Rust errors map to proper Python exceptions (ValueError, jwt.DecodeError, etc.)
+- [ ] 7.6.5 **Documentation** — `docs/performance/rust-extensions.md` covering: architecture, building from source, benchmarks, fallback behavior
+- [ ] 7.6.6 **End-to-end benchmark** — full request lifecycle (middleware → route → auth → serialize → respond) comparing all-Python vs all-Rust. Target: **10-15x reduction in framework overhead per request**
+
+### Phase 7 — Cumulative Expected Impact
+
+| Component | Python (current) | Rust (target) | Speedup |
+|-----------|-----------------|---------------|---------|
+| Route matching | ~2-5μs | ~50-100ns | 20-50x |
+| JWT decode+verify | ~15-30μs | ~1-3μs | 10-15x |
+| Schema serialize (10 fields) | ~5-10μs | ~0.5-1μs | 10x |
+| Query string parse | ~3-8μs | ~100-200ns | 20-40x |
+| Middleware chain (10 deep) | ~10-20μs | ~5-10μs | 2x |
+| **Total per-request overhead** | **~35-73μs** | **~7-15μs** | **5-10x** |
+
+At 10k req/s: saves ~280-580ms of CPU per second. At 50k req/s: saves 1.4-2.9s of CPU per second.
+The framework becomes nearly invisible in the request lifecycle — your actual business logic dominates.
+
+---
+
 ## Tentative — Node.js-Inspired Ideas (Discuss Before Implementing)
 
 > These came from NestJS, Encore, and Hono research. Good patterns but need

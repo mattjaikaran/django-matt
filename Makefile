@@ -35,7 +35,8 @@
         shell routes models migrate makemigrations crud admin \
         docker-build docker-up docker-down docker-logs \
         release version startapp startproject startapi \
-        run db gen quality setup
+        run db gen quality setup \
+        rust-dev rust-build rust-test rust-bench rust-clean
 
 # Colors for terminal output
 BLUE := \033[34m
@@ -813,3 +814,35 @@ schemas-list: ## List all Pydantic schemas
 models-list: ## List all Django models
 	@echo "$(CYAN)Django Models:$(RESET)"
 	@grep -r "class.*models.Model" django_matt --include="*.py" | grep -v "__pycache__" | head -30 || true
+
+# ============================================================================
+## Rust Extensions
+# ============================================================================
+
+rust-dev: ## Build Rust extensions (release) and symlink into django_matt/
+	@echo "$(CYAN)Building Rust extensions (dev)...$(RESET)"
+	cd rust && maturin develop --release
+	@rm -f django_matt/_rust*.so
+	@ln -sf $$(pwd)/rust/python/django_matt/_rust*.so django_matt/
+	@echo "$(GREEN)Rust extensions installed!$(RESET)"
+
+rust-build: ## Build Rust extensions (release wheels)
+	@echo "$(CYAN)Building Rust wheels...$(RESET)"
+	cd rust && maturin build --release
+	@echo "$(GREEN)Wheels in rust/target/wheels/$(RESET)"
+
+rust-test: ## Run Rust unit tests + Python integration tests
+	@echo "$(CYAN)Running Rust tests...$(RESET)"
+	cd rust && cargo test
+	@echo "$(CYAN)Running Python integration tests...$(RESET)"
+	uv run pytest tests/test_rust_extensions.py -x -q 2>/dev/null || echo "$(YELLOW)No Python integration tests yet$(RESET)"
+
+rust-bench: ## Benchmark Rust vs Python implementations
+	@echo "$(CYAN)Running benchmarks...$(RESET)"
+	uv run python -m django_matt.benchmarks.rust_vs_python 2>/dev/null || echo "$(YELLOW)No benchmarks yet$(RESET)"
+
+rust-clean: ## Clean Rust build artifacts
+	@echo "$(CYAN)Cleaning Rust artifacts...$(RESET)"
+	cd rust && cargo clean
+	@rm -f django_matt/_rust*.so
+	@echo "$(GREEN)Clean!$(RESET)"

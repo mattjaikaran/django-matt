@@ -1,0 +1,19 @@
+[package]
+name = "django_matt_rust"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Rust-accelerated hot paths for django-matt"
+
+[lib]
+name = "_rust"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.25", features = ["extension-module"] }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
+opt-level = 3
