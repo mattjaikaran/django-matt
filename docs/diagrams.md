@@ -10,12 +10,16 @@ graph TB
         WEB[Web App]
         MOBILE[Mobile App]
         CLI[CLI]
+        SSE_CLIENT[SSE Client]
     end
 
     subgraph "API Layer"
         API[MattAPI]
         AUTH[Auth]
         MW[Middleware]
+        INTERCEPT[Interceptors]
+        EXCFILTER[Exception Filters]
+        STREAM[Streaming/SSE]
     end
 
     subgraph "Service Layer"
@@ -23,6 +27,16 @@ graph TB
         NOTIF[Notifications]
         EMAIL[Email]
         BILLING[Billing]
+        EVENTS[Event Bus]
+        CQRS[CQRS]
+        RPC[RPC Client]
+    end
+
+    subgraph "Infrastructure Layer"
+        SECRETS[Secrets]
+        MODULES[Module System]
+        INTRO[Introspection]
+        OBSERVE[Auto-Instrumentation]
     end
 
     subgraph "Data Layer"
@@ -34,21 +48,36 @@ graph TB
     WEB --> API
     MOBILE --> API
     CLI --> API
+    SSE_CLIENT --> STREAM
 
     API --> AUTH
     AUTH --> MW
-    MW --> MSG
-    MW --> NOTIF
-    MW --> EMAIL
-    MW --> BILLING
+    MW --> INTERCEPT
+    INTERCEPT --> EXCFILTER
+    EXCFILTER --> MSG
+    EXCFILTER --> NOTIF
+    EXCFILTER --> EMAIL
+    EXCFILTER --> BILLING
+
+    MSG --> EVENTS
+    BILLING --> EVENTS
+    EVENTS --> CQRS
 
     MSG --> DB
     NOTIF --> DB
     EMAIL --> DB
     BILLING --> DB
+    CQRS --> DB
 
     MSG --> CACHE
     NOTIF --> CACHE
+    EVENTS --> CACHE
+
+    SECRETS --> AUTH
+    MODULES --> API
+    OBSERVE --> API
+    INTRO --> MODULES
+    RPC --> API
 ```
 
 ## Request Flow
@@ -442,6 +471,161 @@ sequenceDiagram
     V->>U: Response
 ```
 
+## Request Pipeline
+
+```mermaid
+flowchart LR
+    REQ[Request] --> GMW[Global Middleware]
+    GMW --> RSM[Route-Scoped Middleware]
+    RSM --> INT_PRE[Interceptors: Before]
+    INT_PRE --> CTRL[Controller]
+    CTRL --> SVC[Service]
+    SVC --> CTRL
+    CTRL --> INT_POST[Interceptors: After]
+    INT_POST --> EF[Exception Filters]
+    EF --> RESP[Response]
+
+    SVC -.->|error| EF
+    CTRL -.->|error| EF
+```
+
+## Event-Driven Architecture
+
+```mermaid
+flowchart TB
+    subgraph "Write Path"
+        CMD[Command] --> CMDBUS[Command Bus]
+        CMDBUS --> HANDLER[Command Handler]
+        HANDLER --> DB[(Database)]
+        HANDLER --> DE[Domain Events]
+    end
+
+    subgraph "Event Distribution"
+        DE --> EBUS[Event Bus]
+        EBUS --> SUB1[Subscriber: Notifications]
+        EBUS --> SUB2[Subscriber: Analytics]
+        EBUS --> SUB3[Subscriber: Projections]
+        EBUS --> SUB4[Subscriber: Webhooks]
+    end
+
+    subgraph "Read Path"
+        QUERY[Query] --> QBUS[Query Bus]
+        QBUS --> QHANDLER[Query Handler]
+        QHANDLER --> READDB[(Read Model)]
+        SUB3 --> READDB
+    end
+```
+
+## Module System
+
+```mermaid
+flowchart TB
+    subgraph "Discovery"
+        APPS[INSTALLED_APPS] --> REG[Module Registry]
+        EXPLICIT[Explicit Registration] --> REG
+    end
+
+    subgraph "Resolution"
+        REG --> DEP[Dependency Resolution]
+        DEP --> TOPO[Topological Sort]
+    end
+
+    subgraph "Loading"
+        TOPO --> INIT[on_init hooks]
+        INIT --> READY[on_ready hooks]
+        READY --> RUNNING[Running]
+        RUNNING -.-> SHUTDOWN[on_shutdown hooks]
+    end
+
+    subgraph "Exports"
+        RUNNING --> ROUTES[Routes]
+        RUNNING --> MIDDLEWARE[Middleware]
+        RUNNING --> EVENTS[Event Handlers]
+        RUNNING --> CONFIG[Configuration]
+    end
+```
+
+## Slim Mode
+
+```mermaid
+flowchart TB
+    STARTUP[Application Startup] --> MODE{MATT_MODE}
+
+    MODE -->|full| FULL[Full Mode]
+    MODE -->|slim| SLIM[Slim Mode]
+    MODE -->|minimal| MIN[Minimal Mode]
+
+    subgraph "Full Mode — All Modules"
+        FULL --> F_CORE[Core + Router + Auth]
+        FULL --> F_SVC[Messaging + Notifications + Email + Billing]
+        FULL --> F_INFRA[Events + CQRS + Modules + Observability]
+        FULL --> F_EXT[AI + GraphQL + WebSockets + Analytics]
+    end
+
+    subgraph "Slim Mode — Referenced Only"
+        SLIM --> S_CORE[Core + Router + Auth]
+        SLIM --> S_USED[Only imported modules loaded]
+        SLIM --> S_SKIP[Unreferenced modules skipped]
+    end
+
+    subgraph "Minimal Mode — Bare Minimum"
+        MIN --> M_CORE[Core + Router + Auth]
+        MIN --> M_NOTE[All other modules opt-in]
+    end
+```
+
+## Streaming / SSE
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as SSE Endpoint
+    participant E as Event Bus
+    participant SVC as Service
+
+    C->>S: GET /events (Accept: text/event-stream)
+    S->>C: HTTP 200 (chunked)
+
+    loop While connected
+        SVC->>E: emit(OrderCreated)
+        E->>S: notify subscriber
+        S->>C: event: order.created\ndata: {...}\n\n
+    end
+
+    S->>C: keepalive (: ping)
+    C--xS: disconnect
+    S->>S: cleanup
+```
+
+## Secrets Management
+
+```mermaid
+flowchart LR
+    subgraph "Backends"
+        ENV[Environment Vars]
+        VAULT[HashiCorp Vault]
+        AWS[AWS Secrets Manager]
+        GCP[GCP Secret Manager]
+    end
+
+    subgraph "Secrets Manager"
+        SM[SecretStore]
+        CACHE_S[Local Cache]
+        ROTATE[Rotation Monitor]
+    end
+
+    subgraph "Consumers"
+        AUTH[Auth / JWT Keys]
+        DB_CONF[DB Credentials]
+        API_KEYS[External API Keys]
+    end
+
+    ENV & VAULT & AWS & GCP --> SM
+    SM --> CACHE_S
+    ROTATE --> SM
+    CACHE_S --> AUTH & DB_CONF & API_KEYS
+```
+
 ## Related Documentation
 
 - [Architecture Overview](./architecture/overview.md)
@@ -461,3 +645,12 @@ sequenceDiagram
 - [Livewire](./livewire/overview.md)
 - [Code Generation](./codegen/overview.md)
 - [OpenAPI](./openapi/overview.md)
+- [Interceptors](./interceptors/overview.md)
+- [Streaming/SSE](./streaming/overview.md)
+- [Event Bus](./events/overview.md)
+- [CQRS](./cqrs/overview.md)
+- [Module System](./modules/overview.md)
+- [Secrets Management](./secrets/overview.md)
+- [Introspection](./introspection/overview.md)
+- [RPC Client](./rpc/overview.md)
+- [Observability](./observability/overview.md)
