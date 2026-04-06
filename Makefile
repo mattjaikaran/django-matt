@@ -37,7 +37,8 @@
         release version startapp startproject startapi \
         run db gen quality setup \
         rust-dev rust-build rust-test rust-bench rust-clean \
-        bench-compare
+        bench-compare \
+        release-patch release-minor release-major changelog
 
 # Colors for terminal output
 BLUE := \033[34m
@@ -389,6 +390,54 @@ publish: build ## Publish to PyPI
 	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
 	uv publish
 	@echo "$(GREEN)Done!$(RESET)"
+
+changelog: ## Preview changelog for next release (no commit)
+	@uv run python -c "from django_matt.changelog_gen import generate, format_entries; from django_matt.versioning_tool import current; e = generate(); print(format_entries(current(), e))"
+
+release-patch: ## Bump patch version, generate changelog, commit, tag
+	@echo "$(CYAN)Releasing patch version...$(RESET)"
+	@uv run python -c "\
+from django_matt.versioning_tool import bump; \
+from django_matt.changelog_gen import generate, update_changelog; \
+entries = generate(); \
+new = bump('patch'); \
+update_changelog(new, entries); \
+print(f'Bumped to {new}')"
+	@NEW_VERSION=$$(uv run python -c "from django_matt.versioning_tool import current; print(current())") && \
+		git add pyproject.toml django_matt/__init__.py CHANGELOG.md && \
+		git commit -m "release: v$$NEW_VERSION" && \
+		git tag "v$$NEW_VERSION" && \
+		echo "$(GREEN)Released v$$NEW_VERSION$(RESET)"
+
+release-minor: ## Bump minor version, generate changelog, commit, tag
+	@echo "$(CYAN)Releasing minor version...$(RESET)"
+	@uv run python -c "\
+from django_matt.versioning_tool import bump; \
+from django_matt.changelog_gen import generate, update_changelog; \
+entries = generate(); \
+new = bump('minor'); \
+update_changelog(new, entries); \
+print(f'Bumped to {new}')"
+	@NEW_VERSION=$$(uv run python -c "from django_matt.versioning_tool import current; print(current())") && \
+		git add pyproject.toml django_matt/__init__.py CHANGELOG.md && \
+		git commit -m "release: v$$NEW_VERSION" && \
+		git tag "v$$NEW_VERSION" && \
+		echo "$(GREEN)Released v$$NEW_VERSION$(RESET)"
+
+release-major: ## Bump major version, generate changelog, commit, tag
+	@echo "$(CYAN)Releasing major version...$(RESET)"
+	@uv run python -c "\
+from django_matt.versioning_tool import bump; \
+from django_matt.changelog_gen import generate, update_changelog; \
+entries = generate(); \
+new = bump('major'); \
+update_changelog(new, entries); \
+print(f'Bumped to {new}')"
+	@NEW_VERSION=$$(uv run python -c "from django_matt.versioning_tool import current; print(current())") && \
+		git add pyproject.toml django_matt/__init__.py CHANGELOG.md && \
+		git commit -m "release: v$$NEW_VERSION" && \
+		git tag "v$$NEW_VERSION" && \
+		echo "$(GREEN)Released v$$NEW_VERSION$(RESET)"
 
 # ============================================================================
 ## Cleanup
