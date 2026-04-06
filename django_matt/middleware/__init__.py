@@ -5,6 +5,12 @@ Provides security headers, CORS, request IDs, structured logging, and timing.
 Configure via settings.DJANGO_MATT["MIDDLEWARE_STACK"] or use the preset stacks.
 """
 
+from django_matt.middleware.builtins import (
+    ScopedAuthMiddleware,
+    ScopedCacheMiddleware,
+    ScopedCorsMiddleware,
+    ScopedRateLimitMiddleware,
+)
 from django_matt.middleware.chaining import (
     APIExceptionMiddleware,
     DjangoMattMiddleware,
@@ -13,6 +19,12 @@ from django_matt.middleware.chaining import (
 from django_matt.middleware.cors import CORSMiddleware
 from django_matt.middleware.logging import RequestLoggingMiddleware
 from django_matt.middleware.request_id import RequestIDMiddleware
+from django_matt.middleware.scoped import (
+    MiddlewareStack,
+    RouteMiddleware,
+    skip_middleware,
+    use_middleware,
+)
 from django_matt.middleware.security import SecurityHeadersMiddleware
 from django_matt.middleware.timing import TimingMiddleware
 
@@ -42,4 +54,12 @@ __all__ = [
     "TimingMiddleware",
     "PRODUCTION_STACK",
     "DEVELOPMENT_STACK",
+    "RouteMiddleware",
+    "MiddlewareStack",
+    "use_middleware",
+    "skip_middleware",
+    "ScopedCorsMiddleware",
+    "ScopedRateLimitMiddleware",
+    "ScopedCacheMiddleware",
+    "ScopedAuthMiddleware",
 ]
