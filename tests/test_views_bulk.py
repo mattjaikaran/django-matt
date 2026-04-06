@@ -131,8 +131,8 @@ class TestBulkCreateView:
     async def test_bulk_create_basic(self, rf, viewset):
         """Create multiple users in one request."""
         request = _make_request(rf, "POST", [
-            {"username": "alice", "email": "alice@example.com"},
-            {"username": "bob", "email": "bob@example.com"},
+            {"username": "bulk_alice", "email": "bulk_alice@example.com"},
+            {"username": "bulk_bob", "email": "bulk_bob@example.com"},
         ])
 
         view = BulkCreateView(
@@ -144,11 +144,11 @@ class TestBulkCreateView:
         result = await view.handle(request)
 
         assert len(result) == 2
-        assert result[0]["username"] == "alice"
-        assert result[1]["username"] == "bob"
+        assert result[0]["username"] == "bulk_alice"
+        assert result[1]["username"] == "bulk_bob"
         # Verify DB state
-        assert await User.objects.filter(username="alice").aexists()
-        assert await User.objects.filter(username="bob").aexists()
+        assert await User.objects.filter(username="bulk_alice").aexists()
+        assert await User.objects.filter(username="bulk_bob").aexists()
 
     @pytest.mark.asyncio
     async def test_bulk_create_empty_body(self, rf, viewset):

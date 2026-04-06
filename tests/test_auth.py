@@ -1076,14 +1076,20 @@ class TestMagicLinkTokenVerification:
     """Test magic link token verification."""
 
     @pytest.mark.django_db
-    def test_verify_valid_token(self, user):
+    def test_verify_valid_token(self, db):
         """Should verify a valid token and return the user."""
-        token = create_magic_link_token(user.email)
+        magic_user = User.objects.create_user(
+            username="magic_link_user",
+            email="magic_link_unique@example.com",
+            password="TestPass123!",
+            is_active=True,
+        )
+        token = create_magic_link_token(magic_user.email)
         result = verify_magic_link_token(token)
         assert result.valid is True
-        assert result.email == user.email
+        assert result.email == magic_user.email
         assert result.user is not None
-        assert result.user.pk == user.pk
+        assert result.user.pk == magic_user.pk
         assert result.user_created is False
 
     def test_verify_expired_token(self):

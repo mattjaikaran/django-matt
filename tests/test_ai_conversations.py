@@ -56,7 +56,7 @@ class TestConversationModel:
 
         User = get_user_model()
         user = await User.objects.acreate_user(
-            username="testuser", password="pass"
+            username="ai_conv_testuser", password="pass"
         )
         conv = await Conversation.objects.acreate(title="Test", user=user)
         assert conv.user_id == user.id
