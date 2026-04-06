@@ -163,6 +163,49 @@ from django_matt.observability.views import (
 )
 from django_matt.observability.views import urlpatterns as observability_urlpatterns
 
+# Auto-instrumentation
+from django_matt.observability.auto import AutoInstrumentor, reset_instrumentation
+
+# Collectors
+from django_matt.observability.collectors import (
+    CacheMetricsCollector,
+    DatabaseMetricsCollector,
+    MetricsRegistry,
+    RequestMetricsCollector,
+    metrics_registry,
+)
+
+# Exporters
+from django_matt.observability.exporters import (
+    ConsoleExporter,
+    ExporterProtocol,
+    JSONExporter,
+    MultiExporter,
+    OpenTelemetryExporter,
+    PrometheusExporter,
+)
+
+# Setup
+from django_matt.observability.setup import (
+    get_exporter,
+    get_instrumentor,
+    get_metrics_snapshot,
+    setup_observability,
+    shutdown_observability,
+)
+
+# Spans
+from django_matt.observability.spans import (
+    Span,
+    SpanStatus,
+    add_span_listener,
+    aspan,
+    get_current_span as get_current_local_span,
+    remove_span_listener,
+    span,
+    traced,
+)
+
 __all__ = [
     # Tracing
     "TracingConfig",
@@ -236,4 +279,35 @@ __all__ = [
     "readiness_checker",
     "ReadinessChecker",
     "observability_urlpatterns",
+    # Spans
+    "Span",
+    "SpanStatus",
+    "span",
+    "aspan",
+    "traced",
+    "get_current_local_span",
+    "add_span_listener",
+    "remove_span_listener",
+    # Auto-instrumentation
+    "AutoInstrumentor",
+    "reset_instrumentation",
+    # Collectors
+    "RequestMetricsCollector",
+    "DatabaseMetricsCollector",
+    "CacheMetricsCollector",
+    "MetricsRegistry",
+    "metrics_registry",
+    # Exporters
+    "ConsoleExporter",
+    "JSONExporter",
+    "PrometheusExporter",
+    "OpenTelemetryExporter",
+    "MultiExporter",
+    "ExporterProtocol",
+    # Setup
+    "setup_observability",
+    "shutdown_observability",
+    "get_instrumentor",
+    "get_exporter",
+    "get_metrics_snapshot",
 ]
