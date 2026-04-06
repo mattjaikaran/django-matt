@@ -370,3 +370,296 @@ urlpatterns = [
     path("redoc/", get_redoc(api)),
 ]
 ```
+
+## Interceptor Patterns
+
+### Route-Scoped Interceptors (Instead of Global Middleware)
+```python
+from django_matt.interceptors import Interceptor, intercept, intercept_controller
+from django_matt.interceptors import LoggingInterceptor, TimingInterceptor
+
+# Apply to a single endpoint
+@get("/slow")
+@intercept(TimingInterceptor(), LoggingInterceptor())
+async def slow_endpoint(self, request):
+    ...
+
+# Apply to an entire controller
+@intercept_controller(LoggingInterceptor(), TimingInterceptor())
+@api.controller("/admin", tags=["Admin"])
+class AdminController(APIController):
+    ...
+```
+
+### Custom Interceptor
+```python
+from django_matt.interceptors import Interceptor
+
+class AuditInterceptor(Interceptor):
+    order = 10  # lower = runs first
+
+    async def before_request(self, request, **kwargs):
+        request._audit_start = time.monotonic()
+        return None  # return None to continue, return HttpResponse to short-circuit
+
+    async def after_response(self, request, response, **kwargs):
+        elapsed = time.monotonic() - request._audit_start
+        logger.info(f"Request took {elapsed:.3f}s")
+        return response
+
+    async def on_error(self, request, exc, **kwargs):
+        logger.error(f"Request failed: {exc}")
+        return None  # return None to re-raise, return HttpResponse to handle
+```
+
+## Streaming Patterns
+
+### SSE for AI/LLM Responses
+```python
+from django_matt.streaming import sse_response, SSEEvent, event, sse_endpoint
+
+@api.controller("/ai", tags=["AI"])
+class AIStreamController(APIController):
+
+    @post("/chat")
+    @jwt_required
+    async def stream_chat(self, request, body: dict):
+        async def generate():
+            llm = get_provider("openai")
+            async for chunk in llm.stream([Message.user(body["message"])]):
+                yield SSEEvent(data={"token": chunk.content}, event="token")
+            yield SSEEvent(data={"done": True}, event="done")
+
+        return sse_response(generate())
+
+    # Or use the decorator shorthand
+    @post("/stream")
+    @jwt_required
+    @sse_endpoint
+    async def stream(self, request, body: dict):
+        llm = get_provider("openai")
+        async for chunk in llm.stream([Message.user(body["message"])]):
+            yield SSEEvent(data={"token": chunk.content})
+```
+
+### NDJSON Streaming
+```python
+from django_matt.streaming import stream_json
+
+@get("/export")
+@jwt_required
+async def export_data(self, request):
+    async def generate():
+        async for item in Item.objects.all():
+            yield ItemSchema.from_orm(item).model_dump()
+
+    return stream_json(generate())
+```
+
+## Event Bus Patterns
+
+### Event-Driven Decoupling
+```python
+from django_matt.events import Event, get_event_bus, on
+
+# Define events as Pydantic models
+class OrderPlaced(Event):
+    order_id: int
+    user_id: int
+    total: float
+
+# Subscribe with decorator
+@on("OrderPlaced")
+async def send_confirmation_email(event: OrderPlaced):
+    await send_email(user_id=event.user_id, template="order_confirmation")
+
+@on("OrderPlaced")
+async def update_inventory(event: OrderPlaced):
+    await reduce_stock(order_id=event.order_id)
+
+# Emit from a controller
+@post("/orders")
+@jwt_required
+async def create_order(self, request, body: OrderCreateSchema):
+    order = await Order.objects.acreate(**body.model_dump())
+    bus = get_event_bus()
+    await bus.emit(OrderPlaced(order_id=order.id, user_id=request.user.id, total=order.total))
+    return OrderSchema.from_orm(order)
+```
+
+### Wildcard Subscriptions
+```python
+# Subscribe to all order events
+@on("Order*")
+async def log_order_activity(event: Event):
+    logger.info(f"Order event: {event.event_type}")
+```
+
+## CQRS Patterns
+
+### Command/Query Separation
+```python
+from django_matt.cqrs import Command, Query, command_handler, query_handler, get_command_bus, get_query_bus
+
+# Commands (write operations) — frozen Pydantic models
+class CreateOrder(Command):
+    user_id: int
+    items: list[dict]
+
+class CancelOrder(Command):
+    order_id: int
+    reason: str
+
+# Command handlers — exactly one per command
+@command_handler(CreateOrder)
+class CreateOrderHandler:
+    async def execute(self, command: CreateOrder) -> int:
+        order = await Order.objects.acreate(user_id=command.user_id)
+        return order.id
+
+# Queries (read operations)
+class GetUserOrders(Query):
+    user_id: int
+    status: str | None = None
+
+@query_handler(GetUserOrders)
+class GetUserOrdersHandler:
+    async def execute(self, query: GetUserOrders) -> list:
+        qs = Order.objects.filter(user_id=query.user_id)
+        if query.status:
+            qs = qs.filter(status=query.status)
+        return [o async for o in qs]
+
+# Dispatch from controller
+@post("/orders")
+@jwt_required
+async def create_order(self, request, body: OrderCreateSchema):
+    bus = get_command_bus()
+    order_id = await bus.dispatch(CreateOrder(user_id=request.user.id, items=body.items))
+    return {"order_id": order_id}
+
+@get("/orders")
+@jwt_required
+async def list_orders(self, request):
+    bus = get_query_bus()
+    orders = await bus.dispatch(GetUserOrders(user_id=request.user.id))
+    return [OrderSchema.from_orm(o) for o in orders]
+```
+
+## Serialization Group Patterns
+
+### Role-Based Field Visibility
+```python
+from django_matt.serialization import Grouped, Public, Secret, serialize_for, schema_for_groups
+
+class UserSchema(Schema):
+    id: int
+    email: str = Grouped("admin", "self")     # only visible to admin or self
+    username: str                               # always visible (no group = public)
+    ssn: str = Secret()                        # only "admin" and "internal" groups
+    role: str = Grouped("admin")
+
+# Filter at endpoint level
+@get("/users")
+@serialize_for(groups=["public"])
+async def list_users(self, request):
+    users = [u async for u in User.objects.all()]
+    return [UserSchema.from_orm(u) for u in users]
+
+# Dynamic groups based on request (e.g., user role)
+@get("/users/{id}")
+@serialize_for(groups_from="user.role")  # reads request.user.role
+async def get_user(self, request, id: int):
+    user = await User.objects.aget(id=id)
+    return UserSchema.from_orm(user)
+
+# Generate a schema class with only visible fields
+AdminUserSchema = schema_for_groups(UserSchema, "admin")
+```
+
+## Exception Filter Patterns
+
+### Structured Exception Handling
+```python
+from django_matt.exceptions import ExceptionFilter, catch, register_global_filter
+from django.http import JsonResponse
+
+# Class-based filter
+class StripeExceptionFilter(ExceptionFilter):
+    exception_types = (StripeError,)
+    order = 10
+
+    async def catch(self, exc, request):
+        return JsonResponse(
+            {"error": "payment_failed", "message": str(exc)},
+            status=402,
+        )
+
+register_global_filter(StripeExceptionFilter())
+
+# Decorator-based filter on a single endpoint
+@post("/charge")
+@catch(StripeError, handler=lambda exc, req: JsonResponse({"error": str(exc)}, status=402))
+async def charge(self, request, body: ChargeSchema):
+    ...
+```
+
+## Slim Mode Patterns
+
+### Control Module Loading
+```python
+# settings.py — only load what you need
+DJANGO_MATT = {
+    "SLIM_MODE": {
+        "mode": "slim",                          # "full", "slim", "minimal", "auto"
+        "enabled_modules": ["auth", "billing"],   # only these + core
+        "disabled_modules": [],
+        "lazy_imports": True,                     # defer heavy modules
+    }
+}
+
+# Or use "auto" mode to detect from settings
+DJANGO_MATT = {
+    "SLIM_MODE": {"mode": "auto"},
+    "JWT_AUTH": {"SECRET_KEY": "..."},  # auto-detects auth module needed
+    "BILLING": {"PROVIDER": "stripe"},  # auto-detects billing module needed
+}
+```
+
+## Secrets Management Patterns
+
+### Multi-Backend Secret Loading
+```python
+from django_matt.secrets import get_secrets_manager, EnvBackend, VaultBackend
+
+# Configure in settings
+DJANGO_MATT_SECRETS = {
+    "backends": [
+        {"backend": "env"},                          # check env vars first
+        {"backend": "vault", "url": "https://..."},  # fall back to Vault
+    ]
+}
+
+# Or programmatically
+manager = get_secrets_manager()
+db_password = await manager.get("DB_PASSWORD")
+```
+
+## Introspection / Health Check Patterns
+
+### Add Health Endpoints
+```python
+# urls.py
+from django_matt.introspection import get_health_urls
+
+urlpatterns = [
+    path("api/", api.urls),
+    *get_health_urls(),  # adds /health/, /health/ready/, /health/live/
+]
+
+# Or use middleware for /health short-circuit
+MIDDLEWARE = [
+    "django_matt.introspection.HealthCheckMiddleware",
+    ...
+]
+```

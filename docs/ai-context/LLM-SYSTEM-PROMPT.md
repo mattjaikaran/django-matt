@@ -72,6 +72,18 @@ django_matt/
   openapi/            → Swagger UI + ReDoc
   typegen/            → TypeScript/Swift codegen
   testing/            → Test client, factories, assertions
+  interceptors/       → Route-scoped middleware (before/after hooks, @intercept)
+  streaming/          → SSE responses, NDJSON streaming, heartbeat helpers
+  events/             → Async event bus (pub/sub, @on decorator, InMemory/Redis backends)
+  exceptions/         → Exception filters (ExceptionFilter, @catch, global registry)
+  serialization/      → Group-based field visibility (@serialize_for, Grouped/Secret fields)
+  secrets/            → Multi-backend secrets (env, Vault, AWS SM, GCP SM)
+  introspection/      → Health checks, infra reporting, readiness/liveness probes
+  rpc/                → Typed HTTP client generation (Python + TypeScript)
+  modules/            → Plugin system with dependency resolution and lifecycle hooks
+  cqrs/               → Command/Query buses, domain events, bus middleware
+  slim.py             → Slim mode (full/slim/minimal/auto module loading)
+  loader.py           → Lazy module loading (LazyModuleProxy, DeferredLoader)
 ```
 
 ## Pattern 1: API Entry Point
@@ -292,7 +304,144 @@ async def get_user(self, request, id: int, service: UserService = Depends()):
     return await service.get_user(id)
 ```
 
-## Pattern 10: AI / LLM Integration
+## Pattern 10: Interceptors (Route-Scoped Middleware)
+
+```python
+from django_matt.interceptors import Interceptor, intercept, intercept_controller
+from django_matt.interceptors import LoggingInterceptor, TimingInterceptor
+
+# Apply to a single endpoint
+@get("/slow")
+@intercept(TimingInterceptor(), LoggingInterceptor())
+async def slow_endpoint(self, request):
+    ...
+
+# Apply to an entire controller
+@intercept_controller(LoggingInterceptor())
+@api.controller("/admin", tags=["Admin"])
+class AdminController(APIController):
+    ...
+
+# Custom interceptor
+class AuditInterceptor(Interceptor):
+    order = 10  # lower = runs first
+
+    async def before_request(self, request, **kwargs):
+        return None  # None = continue, HttpResponse = short-circuit
+
+    async def after_response(self, request, response, **kwargs):
+        return response
+
+    async def on_error(self, request, exc, **kwargs):
+        return None  # None = re-raise, HttpResponse = handle
+```
+
+## Pattern 11: SSE Streaming
+
+```python
+from django_matt.streaming import sse_response, SSEEvent, sse_endpoint, event
+
+@post("/stream")
+@jwt_required
+async def stream(self, request, body: dict):
+    async def generate():
+        yield SSEEvent(data={"token": "hello"}, event="token")
+        yield SSEEvent(data={"done": True}, event="done")
+    return sse_response(generate())
+
+# Or with decorator
+@post("/stream")
+@jwt_required
+@sse_endpoint
+async def stream(self, request, body: dict):
+    yield SSEEvent(data={"token": "hello"})
+```
+
+## Pattern 12: Event Bus
+
+```python
+from django_matt.events import Event, get_event_bus, on
+
+class OrderPlaced(Event):
+    order_id: int
+    user_id: int
+
+@on("OrderPlaced")
+async def handle_order(event: OrderPlaced):
+    await send_confirmation(event.user_id)
+
+# Emit
+bus = get_event_bus()
+await bus.emit(OrderPlaced(order_id=1, user_id=42))
+```
+
+## Pattern 13: CQRS
+
+```python
+from django_matt.cqrs import Command, Query, command_handler, query_handler, get_command_bus, get_query_bus
+
+class CreateOrder(Command):
+    user_id: int
+    items: list[dict]
+
+@command_handler(CreateOrder)
+class CreateOrderHandler:
+    async def execute(self, command: CreateOrder) -> int:
+        order = await Order.objects.acreate(user_id=command.user_id)
+        return order.id
+
+class GetOrders(Query):
+    user_id: int
+
+@query_handler(GetOrders)
+class GetOrdersHandler:
+    async def execute(self, query: GetOrders) -> list:
+        return [o async for o in Order.objects.filter(user_id=query.user_id)]
+
+# Dispatch
+order_id = await get_command_bus().dispatch(CreateOrder(user_id=1, items=[]))
+orders = await get_query_bus().dispatch(GetOrders(user_id=1))
+```
+
+## Pattern 14: Serialization Groups
+
+```python
+from django_matt.serialization import Grouped, Secret, serialize_for
+
+class UserSchema(Schema):
+    id: int
+    username: str                           # always visible
+    email: str = Grouped("admin", "self")   # only for admin or self
+    ssn: str = Secret()                     # only admin + internal
+
+@get("/users")
+@serialize_for(groups=["public"])           # static groups
+async def list_users(self, request): ...
+
+@get("/users/{id}")
+@serialize_for(groups_from="user.role")     # dynamic from request.user.role
+async def get_user(self, request, id: int): ...
+```
+
+## Pattern 15: Exception Filters
+
+```python
+from django_matt.exceptions import ExceptionFilter, register_global_filter, catch
+
+class PaymentFilter(ExceptionFilter):
+    exception_types = (StripeError,)
+    async def catch(self, exc, request):
+        return JsonResponse({"error": str(exc)}, status=402)
+
+register_global_filter(PaymentFilter())
+
+# Or per-endpoint
+@post("/charge")
+@catch(StripeError, handler=lambda exc, req: JsonResponse({"error": str(exc)}, status=402))
+async def charge(self, request, body: ChargeSchema): ...
+```
+
+## Pattern 16: AI / LLM Integration
 
 ```python
 from django_matt.ai import get_provider, Message, LLMRouter
@@ -411,6 +560,11 @@ MIDDLEWARE = [
 | `try: import orjson except: ...` | `import orjson` — it's a base dep, always available |
 | Caching `get_type_hints()` per-request | Cache at init/registration time |
 | Loop closure: `async def wrapper(): return await method(req)` | `async def wrapper(req, _method=method): return await _method(req)` |
+| Global middleware for route-specific concerns | Use `@intercept()` or `@intercept_controller()` instead |
+| Business logic in interceptors | Interceptors for cross-cutting only; logic in controllers/services |
+| Event bus for sync request/response flows | Use CQRS `CommandBus.dispatch()` when you need the result back |
+| Manual try/except when exception filters cover it | Register `ExceptionFilter` globally or use `@catch()` per-route |
+| Mixing commands and queries in CQRS | Commands = writes, Queries = reads — never combine |
 
 ## Imports Cheat Sheet
 
@@ -442,6 +596,44 @@ from django_matt.ai import InMemoryVectorStore, PgVectorStore, OpenAIEmbeddings
 # Performance
 import orjson
 from django_matt import FastJsonResponse, StreamingJsonResponse
+
+# Interceptors
+from django_matt.interceptors import Interceptor, intercept, intercept_controller
+from django_matt.interceptors import LoggingInterceptor, TimingInterceptor, CachingInterceptor
+
+# Streaming
+from django_matt.streaming import sse_response, SSEEvent, event, sse_endpoint, stream_json
+
+# Events
+from django_matt.events import Event, EventBus, get_event_bus, on, autodiscover
+
+# CQRS
+from django_matt.cqrs import Command, CommandBus, command_handler, get_command_bus
+from django_matt.cqrs import Query, QueryBus, query_handler, get_query_bus
+
+# Exception Filters
+from django_matt.exceptions import ExceptionFilter, catch, register_global_filter
+
+# Serialization Groups
+from django_matt.serialization import Grouped, Secret, serialize_for, schema_for_groups
+
+# Secrets
+from django_matt.secrets import get_secrets_manager, SecretField
+
+# Introspection / Health
+from django_matt.introspection import get_health_urls, generate_report
+
+# RPC Client
+from django_matt.rpc import RPCClient, TypedRPCClient, BearerAuth
+
+# Modules
+from django_matt.modules import MattModule, load_modules, module, requires_module
+
+# Slim Mode
+from django_matt.slim import is_module_enabled, get_slim_config
+
+# Lazy Loading
+from django_matt.loader import lazy_import, DeferredLoader
 
 # Testing
 import pytest
