@@ -173,6 +173,10 @@ app.add_typer(analyze_app, name="analyze", help="Project analysis")
 app.add_typer(deploy_app, name="deploy", help="Deployment and Docker")
 app.add_typer(status_app, name="status", help="Project health")
 
+from django_matt.secrets.cli import app as secrets_app
+
+app.add_typer(secrets_app, name="secrets", help="Secrets management")
+
 
 # Add aliases for common commands
 @app.command()
