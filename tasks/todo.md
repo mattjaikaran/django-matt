@@ -157,16 +157,16 @@ Move the entire JWT pipeline to Rust. Every authenticated request hits this path
 
 ### Phase 7.3: Fast Schema Serialization
 
-Bypass Pydantic's Python-level serialization for the common case: Django model → JSON bytes.
+JSON serialization with camelCase aliasing in a single pass.
 
-- [ ] 7.3.1 **Field descriptor format** — define a Rust-side struct describing model fields (name, type, nullable, related). Built once at schema registration
-- [ ] 7.3.2 **Model-to-bytes serializer** — `serialize_model(model_attrs, field_descriptors) -> bytes`. Takes dict of model attribute values, returns orjson-compatible JSON bytes. Handles: str, int, float, bool, None, datetime, UUID, Decimal, list, nested
-- [ ] 7.3.3 **List serialization** — `serialize_model_list(models, field_descriptors) -> bytes`. Batch serialize querysets without per-item Python overhead
-- [ ] 7.3.4 **Integration** — wire into `views/base.py` `serialize_single()` / `serialize_list()`, replacing `model_construct()` + `model_dump_json()`
-- [ ] 7.3.5 **Python fallback** — current `from_orm_fast()` / `model_construct()` path
-- [ ] 7.3.6 **Benchmarks** — serialize 1/10/100/1000 objects with 5/15/30 fields. Compare vs Pydantic model_dump_json, DRF serializer, raw orjson
+- [x] 7.3.1 **Dict-to-JSON serializer** — `serialize_dicts_to_json(dicts, alias_map?)` handles str, int, float, bool, None, list, nested dict. Returns bytes.
+- [x] 7.3.2 **CamelCase alias builder** — `build_camel_case_map(field_names)` generates snake→camel map at startup
+- [x] 7.3.3 **Single dict serializer** — `serialize_dict_to_json(dict, alias_map?)`
+- [ ] 7.3.4 **Integration** — wire into `views/base.py` (orjson remains primary; Rust serializer used for camelCase path)
+- [x] 7.3.5 **Python fallback** — via `_accel.py` import guard
+- [x] 7.3.6 **Benchmarks** — 1.7-1.9x vs json.dumps, orjson still faster for plain serialization. Rust value: camelCase rename in one pass.
 
-**Expected gains:** ~0.5-1μs per object (Rust) vs ~5-10μs (Python model_construct + dump) = **10x speedup**
+**Measured gains:** 1.7-1.9x vs json.dumps. orjson faster for plain JSON (deeper CPython integration). Rust serializer wins for combined serialize+rename.
 
 ### Phase 7.4: Query String Parser
 
@@ -180,41 +180,39 @@ Parse filter/sort/fields/pagination params in Rust. Called on every list endpoin
 
 **Measured gains:** 2.7x simple, 3.8x filters, 4.0x full, 4.6x complex
 
-### Phase 7.5: Middleware Dispatch Chain
+### Phase 7.5: Middleware & Header Parsing
 
-Optimize the middleware call chain to minimize Python function call overhead.
+Header parsing in Rust. Middleware chain compiler descoped (Django middleware is already lightweight).
 
-- [ ] 7.5.1 **Chain compiler** — at startup, compile middleware list into a Rust dispatch function. Rust calls each Python middleware but manages the iteration loop, error handling, and short-circuiting natively
-- [ ] 7.5.2 **Fast-path detection** — if a middleware is a no-op for the current request (e.g., CORS for same-origin), skip the Python call entirely based on pre-computed conditions
-- [ ] 7.5.3 **Header parsing** — parse common headers (Accept, Content-Type, Authorization, Cookie) in Rust, pass parsed struct to Python
-- [ ] 7.5.4 **Integration** — replace `MattAPI.process_request()` chain
-- [ ] 7.5.5 **Python fallback** — current sequential middleware calls
-- [ ] 7.5.6 **Benchmarks** — 5/10/15 middleware chain, measure per-request overhead
-
-**Expected gains:** varies by middleware count. ~30-50% reduction in middleware overhead
+- [x] 7.5.3 **Header parsing** — `parse_headers(meta)` extracts Authorization, Accept (q values), Content-Type, X-Request-ID, X-API-Key
+- [x] 7.5.5 **Python fallback** — via `_accel.py` import guard
+- [ ] 7.5.1 **Chain compiler** — descoped: Django middleware overhead is minimal, not worth Rust FFI boundary cost
+- [ ] 7.5.4 **Integration** — wire header parser into auth middleware (future)
 
 ### Phase 7.6: Production Hardening
 
 - [ ] 7.6.1 **Fuzz testing** — `cargo fuzz` for router, JWT, query parser (malformed inputs, unicode edge cases)
-- [ ] 7.6.2 **Memory profiling** — verify no leaks across 1M+ requests with `valgrind` / `heaptrack`
-- [ ] 7.6.3 **Thread safety audit** — verify all Rust code is `Send + Sync`, GIL release is correct
-- [ ] 7.6.4 **Error propagation** — Rust errors map to proper Python exceptions (ValueError, jwt.DecodeError, etc.)
-- [ ] 7.6.5 **Documentation** — `docs/performance/rust-extensions.md` covering: architecture, building from source, benchmarks, fallback behavior
-- [ ] 7.6.6 **End-to-end benchmark** — full request lifecycle (middleware → route → auth → serialize → respond) comparing all-Python vs all-Rust. Target: **10-15x reduction in framework overhead per request**
+- [ ] 7.6.2 **Memory profiling** — verify no leaks across 1M+ requests
+- [x] 7.6.3 **Thread safety audit** — all Rust types are Send + Sync by construction (no interior mutability)
+- [x] 7.6.4 **Error propagation** — JWT errors map to ValueError with descriptive messages (expired, signature, format)
+- [ ] 7.6.5 **Documentation** — `docs/performance/rust-extensions.md`
+- [ ] 7.6.6 **End-to-end benchmark** — full request lifecycle comparison
 
-### Phase 7 — Cumulative Expected Impact
+### Phase 7 — Measured Results
 
-| Component | Python (current) | Rust (target) | Speedup |
-|-----------|-----------------|---------------|---------|
-| Route matching | ~2-5μs | ~50-100ns | 20-50x |
-| JWT decode+verify | ~15-30μs | ~1-3μs | 10-15x |
-| Schema serialize (10 fields) | ~5-10μs | ~0.5-1μs | 10x |
-| Query string parse | ~3-8μs | ~100-200ns | 20-40x |
-| Middleware chain (10 deep) | ~10-20μs | ~5-10μs | 2x |
-| **Total per-request overhead** | **~35-73μs** | **~7-15μs** | **5-10x** |
+| Component | Python | Rust | Speedup |
+|-----------|--------|------|---------|
+| Route matching (20 routes) | ~6.6μs | ~1.7μs | **4.0x** (up to 13.1x) |
+| JWT encode | ~2.9μs | ~1.9μs | **1.5x** |
+| JWT decode+verify | ~2.9μs | ~2.0μs | **1.5x** + GIL release |
+| Query string (full) | ~3.4μs | ~0.8μs | **4.1x** |
+| JSON serialize (10 dicts) | ~9.6μs | ~4.9μs | **1.9x** (camelCase: 1.7x) |
+| Header parsing | N/A | built | new capability |
+| **Total per-request** | **~25μs** | **~11μs** | **~2.3x** |
 
-At 10k req/s: saves ~280-580ms of CPU per second. At 50k req/s: saves 1.4-2.9s of CPU per second.
-The framework becomes nearly invisible in the request lifecycle — your actual business logic dominates.
+The biggest wins are on route matching (especially misses/late matches) and query string parsing.
+JWT speedup is modest because Python's `hmac` is already C-accelerated.
+For camelCase APIs, the Rust serializer avoids a separate rename pass.
 
 ---
 
