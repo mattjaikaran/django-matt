@@ -36,7 +36,8 @@
         docker-build docker-up docker-down docker-logs \
         release version startapp startproject startapi \
         run db gen quality setup \
-        rust-dev rust-build rust-test rust-bench rust-clean
+        rust-dev rust-build rust-test rust-bench rust-clean \
+        bench-compare
 
 # Colors for terminal output
 BLUE := \033[34m
@@ -688,6 +689,10 @@ benchmark-throughput: ## Run throughput benchmarks
 benchmark-compare: ## Compare with other frameworks
 	@echo "$(CYAN)Running framework comparison...$(RESET)"
 	@uv run python benchmarks/bench_comparison.py $(ARGS)
+
+bench-compare: ## Framework comparison benchmarks (route, schema, request lifecycle)
+	@echo "$(CYAN)Running framework comparison benchmarks...$(RESET)"
+	@uv run python benchmarks/framework_comparison.py $(ARGS)
 
 benchmark-save: ## Run benchmarks and save results
 	@echo "$(CYAN)Running benchmarks and saving...$(RESET)"
