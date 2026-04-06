@@ -2,10 +2,12 @@
 
 [![CI](https://github.com/mattjaikaran/django-matt/actions/workflows/ci.yml/badge.svg)](https://github.com/mattjaikaran/django-matt/actions/workflows/ci.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![Django 6.0+](https://img.shields.io/badge/django-6.0+-green.svg)](https://www.djangoproject.com/)
+[![Django 5.2+](https://img.shields.io/badge/django-5.2+-green.svg)](https://www.djangoproject.com/)
+[![Pydantic v2](https://img.shields.io/badge/pydantic-v2-e92063.svg)](https://docs.pydantic.dev/)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A modern Django meta-framework for building production-ready APIs with minimal boilerplate. Async-first, type-safe, and batteries-included.
+A modern Django meta-framework for building production-ready APIs with minimal boilerplate. Async-first, type-safe, batteries-included.
 
 ```mermaid
 graph LR
@@ -20,16 +22,15 @@ graph LR
 
     B --> B1[Controllers]
     B --> B2[Schemas]
-    B --> B3[Views]
+    B --> B3[CRUD Views]
 
     C --> C1[JWT]
     C --> C2[OAuth]
     C --> C3[Passkeys]
 
-    D --> D1[Messaging]
-    D --> D2[Notifications]
-    D --> D3[WebSockets]
-    D --> D4[SSE/Streaming]
+    D --> D1[WebSockets]
+    D --> D2[SSE/Streaming]
+    D --> D3[Notifications]
 
     E --> E1[Stripe]
     E --> E2[Subscriptions]
@@ -49,8 +50,10 @@ graph LR
 
     I --> I1[Secrets]
     I --> I2[Introspection]
-    I --> I3[Auto-Instrumentation]
+    I --> I3[Observability]
 ```
+
+---
 
 ## Why Django Matt?
 
@@ -64,70 +67,51 @@ Django Matt consolidates the Django API ecosystem into a single, cohesive framew
 | ninja-schema | |
 | django-ninja-crud | |
 
-**Key Benefits:**
-- **Unified API** - One consistent interface for routing, auth, schemas, and more
-- **Async-First** - Built for async from the ground up
-- **Type-Safe** - Full Pydantic 2.0 integration with IDE support
-- **Zero Config** - Sensible defaults that work out of the box
-- **Production Ready** - Battle-tested patterns for real applications
+**One import. One API. Everything works together.**
 
-## Features
+- **Unified** -- routing, auth, schemas, billing, real-time, observability in one package
+- **Async-first** -- built for async from the ground up, sync fallbacks where needed
+- **Type-safe** -- Pydantic v2 schemas with full IDE support and OpenAPI 3.1 generation
+- **Zero config** -- sensible defaults that work out of the box
+- **60+ modules** -- from JWT auth to CQRS to SSE streaming, all integrated
 
-| Category | Features |
-|----------|----------|
-| **Core** | Async controllers, Pydantic schemas, OpenAPI 3.1, auto CRUD, **service layer** (CRUDService, BaseThirdPartyService), serialization groups |
-| **Auth** | JWT, Sessions, API Keys, OAuth (Google/GitHub/Apple/Microsoft), Passkeys, SAML/OIDC SSO |
-| **Data** | PostgreSQL, pgvector, query optimization, distributed caching, N+1 detection, config validation |
-| **Request Pipeline** | Interceptors (before/after/error hooks), exception filters, route-scoped middleware, event bus (async pub/sub) |
-| **Real-time** | WebSockets, messaging, notifications, presence, typing indicators, SSE/streaming |
-| **Architecture** | CQRS (command/query buses), module system (plugins, dependency resolution), RPC client generation |
-| **Billing** | Stripe, PayPal, Polar - subscriptions, metered billing, webhooks |
-| **Frontend** | TypeScript/Zod codegen, React Query hooks, Swift Codable, RPC client (Python + TS) |
-| **Operations** | Secrets management (AWS/Vault/GCP), health checks (K8s probes), auto-instrumentation |
-| **Observability** | OpenTelemetry tracing, structured logging, Prometheus metrics, zero-config auto-instrumentation |
-| **DevOps** | Docker, Fly.io, Railway, Render, AWS, Kubernetes, slim mode for minimal deployments |
+---
 
 ## Quick Start
 
-### Installation
+### 1. Install
 
 ```bash
-# Using uv (recommended)
 uv add django-matt
-
-# With all features
-uv add "django-matt[all]"
-
-# Specific features
-uv add "django-matt[auth,billing,performance]"
 ```
 
-### Create Your First API
+### 2. Add to settings
+
+```python
+INSTALLED_APPS = [
+    "django_matt",
+    # ...
+]
+```
+
+### 3. Create your API
 
 ```python
 # api.py
 from django_matt import MattAPI
-from django_matt.auth import jwt_required
 from pydantic import BaseModel
 
-api = MattAPI(
-    title="My API",
-    version="1.0.0",
-)
+api = MattAPI(title="My API", version="1.0.0")
 
 class HelloResponse(BaseModel):
     message: str
-    user: str | None = None
 
 @api.get("/hello", response=HelloResponse)
 async def hello(request):
     return {"message": "Hello, World!"}
-
-@api.get("/protected", response=HelloResponse)
-@jwt_required
-async def protected(request):
-    return {"message": "Hello!", "user": request.user.email}
 ```
+
+### 4. Wire up URLs
 
 ```python
 # urls.py
@@ -139,27 +123,105 @@ urlpatterns = [
 ]
 ```
 
-### CRUD in Seconds
+### 5. Run it
+
+```bash
+python manage.py runserver
+```
+
+Open `http://localhost:8000/api/docs` for interactive Swagger UI.
+
+---
+
+## Examples
+
+### CRUD ViewSet (5 lines)
 
 ```python
-from django_matt.core import CRUDController
-from django_matt.permissions import IsAuthenticated
+from django_matt.views import APIViewSet, ListView, CreateView, ReadView, UpdateView, DeleteView
 
-@api.controller("/products", tags=["Products"])
-class ProductController(CRUDController):
+class ProductViewSet(APIViewSet):
+    api = api
     model = Product
-    permission_classes = [IsAuthenticated]
+    list = ListView()
+    create = CreateView()
+    read = ReadView()
+    update = UpdateView()
+    delete = DeleteView()
     # Auto-generates: GET /, POST /, GET /{id}, PATCH /{id}, DELETE /{id}
+```
+
+### JWT Authentication
+
+```python
+from django_matt.auth import jwt_required, AuthController
+
+# Register auth endpoints: /auth/login, /auth/register, /auth/refresh
+api.register_controller(AuthController)
+
+@api.get("/me")
+@jwt_required
+async def get_current_user(request):
+    return {"email": request.user.email}
+```
+
+### SSE Streaming
+
+```python
+from django_matt.streaming import sse_response, event
+
+@api.get("/feed")
+async def live_feed(request):
+    async def generate():
+        yield event("connected", event_type="status")
+        async for update in get_updates():
+            yield event(update, event_type="update")
+
+    return sse_response(generate())
+```
+
+### Event Bus
+
+```python
+from django_matt.events import EventBus, Event, on, get_event_bus
+
+class UserSignedUp(Event):
+    email: str
+
+@on("UserSignedUp")
+async def send_welcome_email(event: UserSignedUp):
+    await send_email(event.email, "Welcome!")
+
+# Emit from anywhere
+bus = get_event_bus()
+await bus.emit(UserSignedUp(email="user@example.com"))
+```
+
+### CQRS Command
+
+```python
+from django_matt.cqrs import Command, CommandHandler, command_handler, get_command_bus
+
+class CreateOrder(Command):
+    product_id: str
+    quantity: int
+
+@command_handler(CreateOrder)
+class CreateOrderHandler(CommandHandler):
+    async def handle(self, command: CreateOrder):
+        return await Order.objects.acreate(
+            product_id=command.product_id,
+            quantity=command.quantity,
+        )
+
+bus = get_command_bus()
+order = await bus.dispatch(CreateOrder(product_id="abc", quantity=2))
 ```
 
 ### Service Layer
 
-Keep controllers thin. Services own the business logic.
-
 ```python
-# todo/services.py
 from django_matt.services import CRUDService
-from .models import Todo
 
 class TodoService(CRUDService["Todo"]):
     model = Todo
@@ -167,301 +229,276 @@ class TodoService(CRUDService["Todo"]):
     def get_queryset(self):
         return super().get_queryset().select_related("created_by")
 
-    async def for_user(self, user) -> list[Todo]:
-        return [t async for t in self.get_queryset().filter(created_by=user)]
-
-# todo/controllers.py
-@api.controller("/todos", tags=["Todos"])
-class TodoController(APIController):
-    def __init__(self):
-        self.service = TodoService()
-        super().__init__()
-
-    @api.get("/")
-    async def list_todos(self, request):
-        items, total = await self.service.list(created_by=request.user)
-        return {"items": items, "total": total}
-
-    @api.post("/")
-    async def create_todo(self, request, data: TodoCreateSchema):
-        return await self.service.create(data.model_dump(), user=request.user)
+# In controller
+items, total = await TodoService().list(created_by=request.user)
 ```
 
-For external APIs (Stripe, Resend, Twilio), subclass `BaseThirdPartyService`:
+### Interceptors
 
 ```python
-from django_matt.services import BaseThirdPartyService
+from django_matt.interceptors import intercept, TimingInterceptor, LoggingInterceptor
 
-class ResendService(BaseThirdPartyService):
-    base_url = "https://api.resend.com"
-
-    def _auth_headers(self) -> dict:
-        from django.conf import settings
-        return {"Authorization": f"Bearer {settings.RESEND_API_KEY}"}
-
-    async def send_email(self, to: str, subject: str, html: str) -> dict:
-        return await self._post("/emails", {"from": "no-reply@example.com",
-                                             "to": to, "subject": subject, "html": html})
+@api.get("/users")
+@intercept(TimingInterceptor(), LoggingInterceptor())
+async def list_users(request):
+    return await User.objects.all().avalues()
 ```
 
-See the [Service Layer documentation](docs/services/index.md) for the full API reference.
+---
 
-### CLI Commands
+## What's New in 0.8
+
+- **Interceptors** -- before/after/error hooks on any route or controller
+- **SSE Streaming** -- server-sent events with heartbeat and backpressure
+- **Event Bus** -- async pub/sub with in-memory and Redis backends
+- **CQRS** -- command/query buses with middleware pipeline
+- **Exception Filters** -- layered error handling (route, controller, global)
+- **Module System** -- plugins with dependency resolution and lifecycle hooks
+- **Scoped Middleware** -- attach middleware to specific routes, not globally
+- **Serialization Groups** -- role-based field visibility on schemas
+- **RPC Client Generation** -- typed Python and TypeScript clients from OpenAPI
+- **Secrets Management** -- unified API for env, AWS Secrets Manager, Vault, GCP
+- **Introspection** -- health checks, K8s liveness/readiness probes, `/_info`
+- **Auto-Instrumentation** -- zero-config OpenTelemetry tracing and Prometheus metrics
+- **Rust Extensions** -- optional PyO3 native extensions for hot paths
+
+---
+
+## Module Overview
+
+### Core
+
+| Module | Description |
+|--------|-------------|
+| `core` | Controllers, schemas (Pydantic v2), error handling, OpenAPI 3.1 |
+| `views` | Composable CRUD views with lifecycle hooks (before/after create, update, delete) |
+| `services` | CRUDService for domain logic, BaseThirdPartyService for external APIs |
+| `permissions` | IsAuthenticated, IsAdmin, IsOwner, HasRole, decorator-based access control |
+| `openapi` | Swagger UI and ReDoc generation with Literal-to-enum propagation |
+| `config` | Modular Pydantic-validated configuration |
+| `di` | Dependency injection container |
+
+### Authentication and Authorization
+
+| Module | Description |
+|--------|-------------|
+| `auth` | JWT (symmetric + asymmetric), sessions, API keys, magic links |
+| `auth.oauth` | OAuth providers (Google, GitHub, Apple, Microsoft) |
+| `auth.passkeys` | WebAuthn/FIDO2 passwordless authentication |
+| `auth.sso` | SAML and OIDC single sign-on |
+| `auth.rbac` | Role-based access control with hierarchical permissions |
+| `multitenancy` | Organizations, teams, memberships, invitations (B2B) |
+
+### Request Pipeline
+
+| Module | Description |
+|--------|-------------|
+| `interceptors` | Before/after/error hooks: timing, logging, caching, rate limiting, retry |
+| `exceptions` | Layered exception filters (route, controller, global) |
+| `middleware` | Route-scoped middleware: CORS, rate limit, cache, auth per route |
+| `serialization` | Groups-based field visibility (public, secret, role-scoped) |
+| `filtering` | Django filter backend, search, ordering |
+| `pagination` | PageNumber, LimitOffset, Cursor pagination |
+| `throttling` | Rate limiting with multiple backends |
+| `versioning` | URL, header, query parameter API versioning |
+| `negotiation` | Content negotiation (JSON, XML, CSV, YAML, MsgPack) |
+
+### Architecture
+
+| Module | Description |
+|--------|-------------|
+| `cqrs` | Command/query buses with domain events and middleware pipeline |
+| `events` | Async event bus with in-memory and Redis backends |
+| `modules` | Plugin system with dependency resolution and lifecycle hooks |
+| `rpc` | Typed RPC client generation (Python + TypeScript) from OpenAPI |
+| `streaming` | SSE responses, streaming JSON/text, heartbeat helpers |
+
+### Real-time and Communication
+
+| Module | Description |
+|--------|-------------|
+| `websockets` | WebSocket consumers, auth middleware, presence, routing |
+| `messaging` | Conversations, attachments, WebSocket transport |
+| `notifications` | In-app, email, push (FCM/APNs), SMS, webhooks |
+| `email` | SendGrid, Mailgun, SES, SMTP with template rendering |
+
+### Data and Storage
+
+| Module | Description |
+|--------|-------------|
+| `db` | PostgreSQL connection pooling (psycopg3), pgvector |
+| `files` | Upload handling, S3/R2/MinIO storage backends |
+| `audit` | Audit logging, soft delete with restore |
+| `ml` | Vector storage, structured LLM output |
+
+### Business Logic
+
+| Module | Description |
+|--------|-------------|
+| `billing` | Stripe, PayPal, Polar -- subscriptions, metered billing, webhooks |
+| `flags` | Feature flags (DB, Redis, LaunchDarkly, Unleash backends) |
+| `analytics` | Event tracking, sessions, funnels, multiple backends |
+| `experiments` | A/B testing, multi-armed bandits, statistical analysis |
+
+### Operations
+
+| Module | Description |
+|--------|-------------|
+| `observability` | OpenTelemetry tracing, Prometheus metrics, structured logging, auto-instrumentation |
+| `secrets` | Secrets management (env, AWS, Vault, GCP, encrypted file) with rotation |
+| `introspection` | Health checks, K8s liveness/readiness probes, `/_info` endpoint |
+| `tasks` | Background tasks (Celery, Dramatiq, Django-Q2) |
+| `deployment` | Docker, Fly.io, Railway, Render, AWS, Kubernetes configs |
+
+### Frontend and Code Generation
+
+| Module | Description |
+|--------|-------------|
+| `typegen` | TypeScript interfaces, Zod schemas, Swift Codable from Pydantic models |
+| `graphql` | Strawberry-based schema generation with dataloaders |
+| `htmx` | HTMX helpers and Livewire-style reactivity |
+| `components` | Backend-served component system |
+| `ai` | LLM integration, embeddings, RAG, IDE context generation |
+
+### Developer Experience
+
+| Module | Description |
+|--------|-------------|
+| `cli` | Rich CLI: `matt info`, `matt doctor`, `matt routes`, `matt models` |
+| `testing` | Async test client, factories, assertions |
+| `inspector` | Request/response capture for development |
+| `benchmarks` | Performance benchmarking with comparison reports |
+
+---
+
+## Performance
+
+Django Matt includes optional Rust extensions (via PyO3) for CPU-bound hot paths:
+
+| Component | Speedup | Description |
+|-----------|---------|-------------|
+| Router | ~3x | Radix tree route matching |
+| JWT | ~2-4x | Token encode/decode/verify |
+| Serialization | ~2x | JSON serialization with camelCase mapping |
+| Query parsing | ~2x | Query string parameter parsing |
+| Header parsing | ~2x | HTTP header parsing |
+
+Extensions are **optional** -- the framework auto-detects and falls back to pure Python:
+
+```python
+from django_matt._accel import HAS_RUST  # True if extensions are installed
+```
+
+Install with Rust support:
 
 ```bash
-# Create a new project
-python manage.py startapi myproject --template b2b --auth jwt
+uv add "django-matt[rust]"
+```
 
-# Generate CRUD from models
+---
+
+## CLI
+
+```bash
+# Project scaffolding
+python manage.py startapi myproject --template b2b --auth jwt --docker
+
+# Generate CRUD from models (controller, schema, service, admin, tests)
 python manage.py generate_crud myapp.Product --full
 
-# Generate TypeScript types
+# Generate TypeScript types from Pydantic schemas
 python manage.py sync_types --target typescript --output frontend/types
 
 # Generate AI IDE context (CLAUDE.md, .cursorrules)
 python manage.py generate_ai_context --format all
 
-# Run with hot reload
-python manage.py runserver
+# Deploy
+python manage.py deploy --platform fly
 ```
 
-## Core Modules
+---
 
-### Authentication (`django_matt.auth`)
-
-```python
-from django_matt.auth import jwt_required, jwt_optional, AuthController
-from django_matt.auth.oauth import OAuthController
-from django_matt.auth.passkeys import PasskeyController
-
-# JWT Authentication
-@api.get("/me")
-@jwt_required
-async def get_current_user(request):
-    return {"email": request.user.email}
-
-# Register auth endpoints: /auth/login, /auth/register, /auth/refresh
-api.register_controller(AuthController)
-
-# OAuth: /auth/oauth/{provider}/login, /auth/oauth/{provider}/callback
-api.register_controller(OAuthController)
-
-# Passkeys: /auth/passkeys/register, /auth/passkeys/authenticate
-api.register_controller(PasskeyController)
-```
-
-### Multi-tenancy (`django_matt.multitenancy`)
-
-```python
-from django_matt.multitenancy import Organization, Team, Membership
-
-# Built-in models for B2B applications
-# - Organization: company/workspace
-# - Team: groups within an org
-# - Membership: user roles (owner, admin, member, viewer)
-# - Invitation: email invites with tokens
-```
-
-### Billing (`django_matt.billing`)
-
-```python
-from django_matt.billing import BillingController, get_provider
-
-# Register billing endpoints
-api.register_controller(BillingController, prefix="/billing")
-
-# Direct provider access
-provider = get_provider("stripe")  # or "paypal", "polar"
-
-checkout = await provider.create_checkout_session(
-    price_id="price_xxx",
-    success_url="https://example.com/success",
-    cancel_url="https://example.com/cancel",
-)
-```
-
-### Feature Flags (`django_matt.flags`)
-
-```python
-from django_matt.flags import feature_enabled, feature_flag, get_variant
-
-# Check flag status
-if feature_enabled("new_checkout", user=request.user):
-    return new_checkout_flow()
-
-# Decorator
-@feature_flag("beta_feature", default=False)
-async def beta_endpoint(request):
-    ...
-
-# A/B testing variants
-variant = get_variant("checkout_experiment", user=request.user)
-```
-
-### Performance (`django_matt.utils.performance`)
-
-```python
-from django_matt.utils import (
-    optimize_queryset,
-    cache_response,
-    distributed_cache,
-    FastJSONRenderer,
-)
-
-# Auto-optimize querysets (adds select_related/prefetch_related)
-users = optimize_queryset(User.objects.all())
-
-# Response caching
-@api.get("/expensive")
-@cache_response(timeout=300)
-async def expensive_query(request):
-    ...
-
-# Distributed caching with stampede prevention
-value = distributed_cache.get_or_set("key", compute_fn, timeout=300)
-```
-
-### GraphQL (`django_matt.graphql`)
-
-```python
-from django_matt.graphql import GraphQLAPI, generate_schema
-
-# Auto-generate schema from Django models
-schema = generate_schema(
-    models=[User, Post, Comment],
-    auto_mutations=True,
-)
-
-graphql = GraphQLAPI(schema=schema, graphiql=True)
-```
-
-### Type Generation (`django_matt.typegen`)
-
-```python
-# Generate TypeScript types from Pydantic schemas
-python manage.py sync_types --target typescript --output frontend/src/types
-
-# Generated output:
-# export interface User {
-#   id: string;
-#   email: string;
-#   name: string;
-#   created_at: string;
-# }
-#
-# export const UserSchema = z.object({
-#   id: z.string().uuid(),
-#   email: z.string().email(),
-#   ...
-# });
-```
-
-## Project Structure
-
-```
-django_matt/
-├── api.py              # MattAPI entry point (supports minimal/slim/full modes)
-├── core/               # Router, Controller, Schema, Errors
-├── auth/               # JWT, OAuth, Passkeys, SSO, RBAC
-├── views/              # Composable CRUD views
-├── permissions/        # Permission classes & decorators
-├── interceptors/       # Request/response wrappers (logging, timing, caching, retry)
-├── streaming/          # SSE, streaming JSON/text, heartbeat
-├── exceptions/         # Layered exception filters (route/controller/global)
-├── events/             # Async event bus (InMemory, Redis backends)
-├── serialization/      # Serialization groups (role-based field visibility)
-├── secrets/            # Secret management (Env, AWS, Vault, GCP, encrypted file)
-├── introspection/      # Health checks, readiness/liveness probes, /_info
-├── rpc/                # Typed RPC client generation (Python, TypeScript)
-├── modules/            # Plugin system with dependency resolution & lifecycle
-├── cqrs/               # Command/query buses, domain events
-├── middleware/          # Route-scoped middleware (CORS, rate limit, cache, auth)
-├── config/             # Modular configuration with Pydantic validation
-├── multitenancy/       # Organizations, Teams, Memberships
-├── billing/            # Stripe, PayPal, Polar
-├── messaging/          # Real-time messaging
-├── notifications/      # Multi-channel notifications
-├── email/              # Email providers & templates
-├── flags/              # Feature flags & experiments
-├── graphql/            # Strawberry GraphQL integration
-├── websockets/         # WebSocket consumers & routing
-├── observability/      # Tracing, logging, metrics, auto-instrumentation
-├── typegen/            # TypeScript/Swift code generation
-├── components/         # UI component renderers
-├── admin/              # Django Unfold admin integration
-├── deployment/         # Platform deployment configs
-├── cli/                # CLI commands & infrastructure
-└── testing/            # Test client, factories, fixtures
-```
-
-## Requirements
-
-- **Python**: 3.12+ (3.13 recommended)
-- **Django**: 6.0+
-- **Database**: PostgreSQL (recommended), SQLite for development
-
-## Optional Dependencies
+## Installation Options
 
 ```bash
-# Authentication extras
-uv add "django-matt[auth]"           # Basic auth (no extra deps)
-uv add "django-matt[jwt-asymmetric]" # RSA/EC JWT algorithms
-uv add "django-matt[oauth]"          # OAuth providers
-uv add "django-matt[passkeys]"       # WebAuthn/Passkeys
+# Core only
+uv add django-matt
 
-# Performance
-uv add "django-matt[performance]"    # orjson, ujson, msgpack, redis
-
-# Billing
-uv add "django-matt[billing]"        # Stripe integration
-
-# Background tasks
-uv add "django-matt[tasks]"          # Celery, Dramatiq, Django-Q2
+# With specific features
+uv add "django-matt[auth]"              # JWT, sessions, API keys
+uv add "django-matt[jwt-asymmetric]"    # RSA/EC JWT algorithms
+uv add "django-matt[oauth]"             # OAuth providers
+uv add "django-matt[passkeys]"          # WebAuthn/Passkeys
+uv add "django-matt[billing]"           # Stripe integration
+uv add "django-matt[performance]"       # orjson, ujson, msgpack, redis
+uv add "django-matt[tasks]"             # Celery, Dramatiq, Django-Q2
+uv add "django-matt[rust]"              # Rust native extensions
 
 # Everything
 uv add "django-matt[all]"
 ```
+
+---
 
 ## Documentation
 
 - [Getting Started](docs/getting-started/quickstart.md)
 - [Authentication Guide](docs/auth/overview.md)
 - [Multi-tenancy (B2B)](docs/multitenancy/overview.md)
-- [Billing & Subscriptions](docs/billing/overview.md)
+- [Billing and Subscriptions](docs/billing/overview.md)
 - [Real-time Features](docs/messaging/overview.md)
 - [Deployment Guide](docs/deployment/overview.md)
+- [Service Layer](docs/services/index.md)
 - [API Reference](docs/api/)
+
+---
 
 ## Example Projects
 
-- [`examples/saas-starter`](examples/saas-starter) - SaaS application template
-- [`examples/ecommerce-api`](examples/ecommerce-api) - E-commerce backend
-- [`examples/realtime-chat`](examples/realtime-chat) - Real-time chat application
+| Project | Description |
+|---------|-------------|
+| [`examples/saas-starter`](examples/saas-starter) | SaaS template with auth, billing, multi-tenancy |
+| [`examples/ecommerce-api`](examples/ecommerce-api) | E-commerce backend with products, orders, payments |
+| [`examples/realtime-chat`](examples/realtime-chat) | Real-time chat with WebSockets and presence |
+
+---
+
+## Requirements
+
+- **Python** 3.12+ (3.13 recommended)
+- **Django** 5.2+ (6.0 supported)
+- **Database** PostgreSQL recommended, SQLite for development
+
+---
 
 ## Development
 
 ```bash
-# Clone and install
 git clone https://github.com/mattjaikaran/django-matt.git
 cd django-matt
 uv sync --dev
 
 # Run tests
-uv run pytest
+uv run pytest tests/ -x -q
 
-# Run linting
+# Lint and format
 uv run ruff check django_matt/
 uv run ruff format django_matt/
-
-# Build docs
-uv sync --group docs
-uv run mkdocs serve
 ```
 
-## Status
+---
 
-This is a private framework for internal development. Not published to PyPI.
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Write tests for your changes
+4. Ensure all tests pass (`uv run pytest tests/ -x -q`)
+5. Ensure linting passes (`uv run ruff check django_matt/`)
+6. Submit a pull request
+
+---
 
 ## License
 
-Internal use only. Will be MIT licensed when publicly released.
+MIT License. See [LICENSE](LICENSE) for details.
