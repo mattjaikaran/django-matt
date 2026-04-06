@@ -469,3 +469,158 @@ class TestRustQueryStringParser:
         filters = dict(result["filters"])
         assert filters["name"] == "hello world"
         assert filters["q"] == "a&b"
+
+
+class TestRustSerializer:
+    """Test Rust JSON serializer."""
+
+    def test_serialize_empty_list(self):
+        from django_matt._accel import serialize_dicts_to_json
+
+        result = serialize_dicts_to_json([])
+        assert result == b"[]"
+
+    def test_serialize_single_dict(self):
+        from django_matt._accel import serialize_dict_to_json
+
+        import json
+
+        result = serialize_dict_to_json({"id": 1, "name": "test"})
+        parsed = json.loads(result)
+        assert parsed["id"] == 1
+        assert parsed["name"] == "test"
+
+    def test_serialize_list_of_dicts(self):
+        from django_matt._accel import serialize_dicts_to_json
+
+        import json
+
+        dicts = [
+            {"id": 1, "name": "Alice", "active": True},
+            {"id": 2, "name": "Bob", "active": False},
+        ]
+        result = serialize_dicts_to_json(dicts)
+        parsed = json.loads(result)
+        assert len(parsed) == 2
+        assert parsed[0]["name"] == "Alice"
+        assert parsed[1]["active"] is False
+
+    def test_serialize_null_values(self):
+        from django_matt._accel import serialize_dicts_to_json
+
+        import json
+
+        result = serialize_dicts_to_json([{"id": 1, "email": None}])
+        parsed = json.loads(result)
+        assert parsed[0]["email"] is None
+
+    def test_serialize_nested_dict(self):
+        from django_matt._accel import serialize_dict_to_json
+
+        import json
+
+        result = serialize_dict_to_json({"user": {"id": 1, "name": "test"}})
+        parsed = json.loads(result)
+        assert parsed["user"]["id"] == 1
+
+    def test_serialize_with_list_values(self):
+        from django_matt._accel import serialize_dict_to_json
+
+        import json
+
+        result = serialize_dict_to_json({"tags": ["a", "b", "c"]})
+        parsed = json.loads(result)
+        assert parsed["tags"] == ["a", "b", "c"]
+
+    def test_serialize_with_camel_case(self):
+        from django_matt._accel import serialize_dicts_to_json, build_camel_case_map
+
+        import json
+
+        fields = ["id", "first_name", "last_name", "is_active"]
+        alias_map = build_camel_case_map(fields)
+
+        dicts = [{"id": 1, "first_name": "John", "last_name": "Doe", "is_active": True}]
+        result = serialize_dicts_to_json(dicts, alias_map)
+        parsed = json.loads(result)
+        assert "firstName" in parsed[0]
+        assert "lastName" in parsed[0]
+        assert "isActive" in parsed[0]
+        assert parsed[0]["firstName"] == "John"
+
+    def test_build_camel_case_map(self):
+        from django_matt._accel import build_camel_case_map
+
+        m = build_camel_case_map(["id", "first_name", "created_at", "name"])
+        d = dict(m)
+        assert d == {"first_name": "firstName", "created_at": "createdAt"}
+        assert "id" not in d  # no underscore, no mapping needed
+        assert "name" not in d
+
+    def test_serialize_floats(self):
+        from django_matt._accel import serialize_dict_to_json
+
+        import json
+
+        result = serialize_dict_to_json({"price": 19.99, "tax": 0.08})
+        parsed = json.loads(result)
+        assert abs(parsed["price"] - 19.99) < 0.001
+        assert abs(parsed["tax"] - 0.08) < 0.001
+
+    def test_serialize_special_chars(self):
+        from django_matt._accel import serialize_dict_to_json
+
+        import json
+
+        result = serialize_dict_to_json({"text": 'he said "hello"\nand left'})
+        parsed = json.loads(result)
+        assert parsed["text"] == 'he said "hello"\nand left'
+
+
+class TestRustHeaderParser:
+    """Test Rust header parser."""
+
+    def test_authorization_bearer(self):
+        from django_matt._accel import parse_headers_rust
+
+        meta = {"HTTP_AUTHORIZATION": "Bearer abc123"}
+        result = parse_headers_rust(meta)
+        assert result["authorization"]["type"] == "Bearer"
+        assert result["authorization"]["credential"] == "abc123"
+
+    def test_api_key_header(self):
+        from django_matt._accel import parse_headers_rust
+
+        meta = {"HTTP_X_API_KEY": "sk-test-12345"}
+        result = parse_headers_rust(meta)
+        assert result["api_key"] == "sk-test-12345"
+
+    def test_request_id(self):
+        from django_matt._accel import parse_headers_rust
+
+        meta = {"HTTP_X_REQUEST_ID": "uuid-here"}
+        result = parse_headers_rust(meta)
+        assert result["request_id"] == "uuid-here"
+
+    def test_content_type_with_params(self):
+        from django_matt._accel import parse_headers_rust
+
+        meta = {"CONTENT_TYPE": "application/json; charset=utf-8"}
+        result = parse_headers_rust(meta)
+        assert result["content_type"]["media_type"] == "application/json"
+        assert result["content_type"]["params"] == "charset=utf-8"
+
+    def test_accept_with_quality(self):
+        from django_matt._accel import parse_headers_rust
+
+        meta = {"HTTP_ACCEPT": "application/json;q=0.9, text/html;q=0.5, */*;q=0.1"}
+        result = parse_headers_rust(meta)
+        accept = dict(result["accept"])
+        assert accept["application/json"] == 0.9
+        assert accept["text/html"] == 0.5
+
+    def test_empty_meta(self):
+        from django_matt._accel import parse_headers_rust
+
+        result = parse_headers_rust({})
+        assert dict(result) == {}
