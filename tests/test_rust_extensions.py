@@ -368,3 +368,104 @@ class TestJWTBuiltinRustIntegration:
         payload = decode_jwt(token, secret="key123", verify_nbf=True)
         assert payload["sub"] == "u1"
         assert payload["data"] == "test"
+
+
+class TestRustQueryStringParser:
+    """Test Rust-accelerated query string parsing."""
+
+    def test_empty_string(self):
+        from django_matt._accel import parse_query_string_rust
+
+        result = parse_query_string_rust("")
+        assert list(result["fields"]) == []
+        assert dict(result["filters"]) == {}
+        assert list(result["sort"]) == []
+        assert dict(result["pagination"]) == {}
+        assert dict(result["extras"]) == {}
+
+    def test_fields(self):
+        from django_matt._accel import parse_query_string_rust
+
+        result = parse_query_string_rust("fields=id,name,email")
+        assert list(result["fields"]) == ["id", "name", "email"]
+
+    def test_single_field(self):
+        from django_matt._accel import parse_query_string_rust
+
+        result = parse_query_string_rust("fields=id")
+        assert list(result["fields"]) == ["id"]
+
+    def test_filters(self):
+        from django_matt._accel import parse_query_string_rust
+
+        result = parse_query_string_rust("filter[status]=active&filter[role]=admin")
+        filters = dict(result["filters"])
+        assert filters == {"status": "active", "role": "admin"}
+
+    def test_sort_ascending(self):
+        from django_matt._accel import parse_query_string_rust
+
+        result = parse_query_string_rust("sort=name,created")
+        sort_list = list(result["sort"])
+        assert sort_list == [("name", True), ("created", True)]
+
+    def test_sort_descending(self):
+        from django_matt._accel import parse_query_string_rust
+
+        result = parse_query_string_rust("sort=-created,-updated")
+        sort_list = list(result["sort"])
+        assert sort_list == [("created", False), ("updated", False)]
+
+    def test_sort_mixed(self):
+        from django_matt._accel import parse_query_string_rust
+
+        result = parse_query_string_rust("sort=-created,name")
+        sort_list = list(result["sort"])
+        assert sort_list == [("created", False), ("name", True)]
+
+    def test_ordering_alias(self):
+        from django_matt._accel import parse_query_string_rust
+
+        result = parse_query_string_rust("ordering=-updated")
+        sort_list = list(result["sort"])
+        assert sort_list == [("updated", False)]
+
+    def test_pagination(self):
+        from django_matt._accel import parse_query_string_rust
+
+        result = parse_query_string_rust("page=2&limit=20&offset=40")
+        pagination = dict(result["pagination"])
+        assert pagination == {"page": "2", "limit": "20", "offset": "40"}
+
+    def test_extras(self):
+        from django_matt._accel import parse_query_string_rust
+
+        result = parse_query_string_rust("status=active&role__in=admin,user")
+        extras = dict(result["extras"])
+        assert extras == {"status": "active", "role__in": "admin,user"}
+
+    def test_full_query(self):
+        from django_matt._accel import parse_query_string_rust
+
+        qs = "fields=id,name&filter[status]=active&sort=-created&page=1&limit=10&search=hello"
+        result = parse_query_string_rust(qs)
+        assert list(result["fields"]) == ["id", "name"]
+        assert dict(result["filters"]) == {"status": "active"}
+        assert list(result["sort"]) == [("created", False)]
+        assert dict(result["pagination"]) == {"page": "1", "limit": "10"}
+        assert dict(result["extras"]) == {"search": "hello"}
+
+    def test_leading_question_mark(self):
+        from django_matt._accel import parse_query_string_rust
+
+        result = parse_query_string_rust("?fields=id&page=1")
+        assert list(result["fields"]) == ["id"]
+        assert dict(result["pagination"]) == {"page": "1"}
+
+    def test_url_encoded_values(self):
+        from django_matt._accel import parse_query_string_rust
+
+        result = parse_query_string_rust("filter[name]=hello%20world&filter[q]=a%26b")
+        filters = dict(result["filters"])
+        assert filters["name"] == "hello world"
+        assert filters["q"] == "a&b"

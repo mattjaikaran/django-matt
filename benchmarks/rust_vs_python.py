@@ -305,6 +305,41 @@ def main():
         print(f"  {'JWT decode+verify':<20} {py_dec['mean_ns']:<15.0f} {'N/A':<15} {'N/A':<10}")
 
     print()
+
+    # ================================================================
+    # Query String Parsing Benchmarks
+    # ================================================================
+    print("=" * 70)
+    print("  Query String Parsing — Rust vs Python")
+    print("=" * 70)
+    print()
+
+    from urllib.parse import parse_qs
+
+    qs_test_cases = [
+        ("simple", "fields=id,name,email"),
+        ("filters", "filter[status]=active&filter[role]=admin&filter[org]=acme"),
+        ("full", "fields=id,name&filter[status]=active&sort=-created,name&page=2&limit=20&search=hello"),
+        ("complex", "fields=id,name,email,created,updated&filter[status]=active&filter[role__in]=admin,user&sort=-created,name,email&page=3&limit=50&offset=100&search=test%20query"),
+    ]
+
+    qs_iterations = 500_000
+
+    print(f"  {'Query':<15} {'Python (ns)':<15} {'Rust (ns)':<15} {'Speedup':<10}")
+    print(f"  {'-' * 55}")
+
+    for label, qs in qs_test_cases:
+        py_qs = benchmark(f"py:{label}", lambda q=qs: parse_qs(q), qs_iterations)
+
+        if has_rust:
+            from django_matt._rust import parse_query_string as _parse_qs_rs
+            rs_qs = benchmark(f"rs:{label}", lambda q=qs: _parse_qs_rs(q), qs_iterations)
+            speedup = py_qs["mean_ns"] / rs_qs["mean_ns"]
+            print(f"  {label:<15} {py_qs['mean_ns']:<15.0f} {rs_qs['mean_ns']:<15.0f} {speedup:<10.1f}x")
+        else:
+            print(f"  {label:<15} {py_qs['mean_ns']:<15.0f} {'N/A':<15} {'N/A':<10}")
+
+    print()
     print("=" * 70)
 
 
