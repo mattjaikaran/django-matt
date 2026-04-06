@@ -115,7 +115,30 @@
       "Skill(gsd:plan-phase)",
       "Skill(gsd:execute-phase)",
       "Bash(wait:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "mcp__brave-search__brave_web_search",
+      "WebFetch(domain:docs.djangosdk.com)",
+      "Bash(find /Users/mattjaikaran/dev/django-matt -type f \\\\\\(-name *.pyx -o -name *.rs -o -name *.c -o -name *.so \\\\\\))",
+      "Bash(rustc --version)",
+      "Bash(cargo --version)",
+      "Bash(uv tool:*)",
+      "Bash(cargo install:*)",
+      "Bash(cargo test:*)",
+      "Bash(maturin develop:*)",
+      "Bash(cp:*)",
+      "Bash(.venv/bin/python benchmarks/rust_vs_python.py 2>&1)",
+      "Bash(.venv/bin/python -m pytest tests/test_rust_extensions.py -x -q)",
+      "Bash(.venv/bin/python -m pytest tests/test_views.py tests/test_rust_extensions.py -x -q 2>&1)",
+      "Bash(.venv/bin/python -m pytest tests/test_rust_extensions.py tests/test_views.py tests/test_auth.py tests/test_core_controller.py -x -q 2>&1)",
+      "Bash(make rust-dev:*)",
+      "Bash(cargo fuzz:*)",
+      "Bash(cargo +nightly fuzz run fuzz_router -- -max_total_time=10)",
+      "Bash(cargo +nightly fuzz run fuzz_jwt -- -max_total_time=10)",
+      "Bash(cargo +nightly fuzz run fuzz_headers -- -max_total_time=10)",
+      "Bash(xxd)",
+      "Bash(git merge:*)",
+      "Bash(while read:*)",
+      "Bash(do git:*)"
     ]
   }
 }
