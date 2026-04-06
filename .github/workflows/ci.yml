@@ -74,6 +74,10 @@ jobs:
             django-version: "6.0"
           - python-version: "3.13"
             django-version: "6.0"
+          - python-version: "3.14"
+            django-version: "6.0"
+
+    continue-on-error: ${{ matrix.python-version == '3.14' }}
 
     services:
       redis:
