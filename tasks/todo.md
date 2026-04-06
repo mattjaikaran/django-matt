@@ -162,7 +162,7 @@ JSON serialization with camelCase aliasing in a single pass.
 - [x] 7.3.1 **Dict-to-JSON serializer** — `serialize_dicts_to_json(dicts, alias_map?)` handles str, int, float, bool, None, list, nested dict. Returns bytes.
 - [x] 7.3.2 **CamelCase alias builder** — `build_camel_case_map(field_names)` generates snake→camel map at startup
 - [x] 7.3.3 **Single dict serializer** — `serialize_dict_to_json(dict, alias_map?)`
-- [ ] 7.3.4 **Integration** — wire into `views/base.py` (orjson remains primary; Rust serializer used for camelCase path)
+- [x] 7.3.4 **Integration** — wired into `views/base.py` (Rust serializer used for camelCase list responses, orjson remains primary for non-camelCase)
 - [x] 7.3.5 **Python fallback** — via `_accel.py` import guard
 - [x] 7.3.6 **Benchmarks** — 1.7-1.9x vs json.dumps, orjson still faster for plain serialization. Rust value: camelCase rename in one pass.
 
@@ -187,16 +187,16 @@ Header parsing in Rust. Middleware chain compiler descoped (Django middleware is
 - [x] 7.5.3 **Header parsing** — `parse_headers(meta)` extracts Authorization, Accept (q values), Content-Type, X-Request-ID, X-API-Key
 - [x] 7.5.5 **Python fallback** — via `_accel.py` import guard
 - [ ] 7.5.1 **Chain compiler** — descoped: Django middleware overhead is minimal, not worth Rust FFI boundary cost
-- [ ] 7.5.4 **Integration** — wire header parser into auth middleware (future)
+- [x] 7.5.4 **Integration** — wired into `auth/jwt.py` and `auth/api_keys/utils.py` for fast header extraction
 
 ### Phase 7.6: Production Hardening
 
-- [ ] 7.6.1 **Fuzz testing** — `cargo fuzz` for router, JWT, query parser (malformed inputs, unicode edge cases)
-- [ ] 7.6.2 **Memory profiling** — verify no leaks across 1M+ requests
+- [x] 7.6.1 **Fuzz testing** — 5 `cargo fuzz` targets (router, JWT, query parser, serializer, headers), `make rust-fuzz`
+- [x] 7.6.2 **Memory profiling** — `benchmarks/bench_memory.py`, 11 tests, all PASS (0-0.5MB growth over 1M calls), `make rust-mem`
 - [x] 7.6.3 **Thread safety audit** — all Rust types are Send + Sync by construction (no interior mutability)
 - [x] 7.6.4 **Error propagation** — JWT errors map to ValueError with descriptive messages (expired, signature, format)
-- [ ] 7.6.5 **Documentation** — `docs/performance/rust-extensions.md`
-- [ ] 7.6.6 **End-to-end benchmark** — full request lifecycle comparison
+- [x] 7.6.5 **Documentation** — `docs/performance/rust-extensions.md` (architecture, benchmarks, dev workflow, fuzz testing)
+- [x] 7.6.6 **End-to-end benchmark** — `benchmarks/bench_e2e_lifecycle.py` — **1.9x total speedup** (58K → 113K req/s framework overhead)
 
 ### Phase 7 — Measured Results
 
@@ -207,12 +207,14 @@ Header parsing in Rust. Middleware chain compiler descoped (Django middleware is
 | JWT decode+verify | ~2.9μs | ~2.0μs | **1.5x** + GIL release |
 | Query string (full) | ~3.4μs | ~0.8μs | **4.1x** |
 | JSON serialize (10 dicts) | ~9.6μs | ~4.9μs | **1.9x** (camelCase: 1.7x) |
-| Header parsing | N/A | built | new capability |
-| **Total per-request** | **~25μs** | **~11μs** | **~2.3x** |
+| Header parsing | ~1.0μs | ~0.8μs | **1.2x** |
+| **Total per-request (E2E)** | **~17μs** | **~9μs** | **~1.9x** |
+| **Throughput (overhead only)** | **58K req/s** | **113K req/s** | **+54K req/s** |
 
 The biggest wins are on route matching (especially misses/late matches) and query string parsing.
 JWT speedup is modest because Python's `hmac` is already C-accelerated.
 For camelCase APIs, the Rust serializer avoids a separate rename pass.
+E2E lifecycle benchmark: `benchmarks/bench_e2e_lifecycle.py`
 
 ---
 

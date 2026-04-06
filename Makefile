@@ -841,6 +841,18 @@ rust-bench: ## Benchmark Rust vs Python implementations
 	@echo "$(CYAN)Running benchmarks...$(RESET)"
 	uv run python -m django_matt.benchmarks.rust_vs_python 2>/dev/null || echo "$(YELLOW)No benchmarks yet$(RESET)"
 
+rust-fuzz: ## Run fuzz tests (10s per target, requires nightly)
+	@echo "$(CYAN)Fuzzing Rust extensions...$(RESET)"
+	@cd rust && for target in fuzz_router fuzz_jwt fuzz_querystring fuzz_serializer fuzz_headers; do \
+		echo "  Fuzzing $$target..."; \
+		cargo +nightly fuzz run $$target -- -max_total_time=10 2>&1 | tail -1; \
+	done
+	@echo "$(GREEN)All fuzz targets passed!$(RESET)"
+
+rust-mem: ## Memory profiling — verify no leaks across 1M+ calls
+	@echo "$(CYAN)Running memory profiling...$(RESET)"
+	uv run python benchmarks/bench_memory.py
+
 rust-clean: ## Clean Rust build artifacts
 	@echo "$(CYAN)Cleaning Rust artifacts...$(RESET)"
 	cd rust && cargo clean

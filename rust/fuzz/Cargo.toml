@@ -1,0 +1,51 @@
+[package]
+name = "django_matt_rust-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+hmac = "0.12"
+sha2 = "0.10"
+subtle = "2.6"
+base64 = "0.22"
+ryu = "1.0"
+
+[[bin]]
+name = "fuzz_router"
+path = "fuzz_targets/fuzz_router.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_jwt"
+path = "fuzz_targets/fuzz_jwt.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_querystring"
+path = "fuzz_targets/fuzz_querystring.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_serializer"
+path = "fuzz_targets/fuzz_serializer.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_headers"
+path = "fuzz_targets/fuzz_headers.rs"
+test = false
+doc = false
+bench = false

@@ -9,14 +9,20 @@ from typing import Any, Generic, TypeVar
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 
 import orjson
 from asgiref.sync import sync_to_async
 from pydantic import BaseModel, ValidationError
 
-from django_matt._accel import HAS_RUST, parse_query_string_rust
+from django_matt._accel import (
+    HAS_RUST,
+    build_camel_case_map,
+    parse_query_string_rust,
+    serialize_dicts_to_json,
+)
 from django_matt.core.errors import APIError, NotFoundAPIError
+from django_matt.core.schema import _get_camel_case_config
 
 ModelT = TypeVar("ModelT", bound=models.Model)
 SchemaT = TypeVar("SchemaT", bound=BaseModel)
@@ -209,6 +215,37 @@ class APIView(Generic[ModelT, SchemaT]):
     async def aserialize_list(self, queryset: models.QuerySet) -> list[dict[str, Any]]:
         """Async serialize a queryset to a list of dicts (uses async iteration)."""
         return [self.serialize_fast(obj) async for obj in queryset]
+
+    def _get_camel_alias_map(self) -> dict[str, str] | None:
+        """Build a snake→camelCase alias map when camelCase API is enabled.
+
+        Returns None when camelCase is disabled or Rust is unavailable.
+        The map is built from response schema field names at call time
+        (schemas are cheap to introspect).
+        """
+        if not HAS_RUST or build_camel_case_map is None:
+            return None
+        if not _get_camel_case_config():
+            return None
+        schema = self.get_response_schema()
+        if schema is None:
+            return None
+        return build_camel_case_map(list(schema.model_fields.keys()))
+
+    def serialize_list_to_json_bytes(
+        self, items: list[dict[str, Any]]
+    ) -> bytes | None:
+        """Serialize a list of dicts to JSON bytes using Rust (with camelCase).
+
+        Returns None if Rust is unavailable or camelCase is disabled,
+        signalling the caller to fall back to the standard path.
+        """
+        if not HAS_RUST or serialize_dicts_to_json is None:
+            return None
+        alias_map = self._get_camel_alias_map()
+        if alias_map is None:
+            return None
+        return bytes(serialize_dicts_to_json(items, alias_map))
 
     def optimize_queryset(self, queryset: models.QuerySet) -> models.QuerySet:
         """Auto-apply select_related/prefetch_related based on response schema."""
@@ -580,6 +617,30 @@ class BoundView:
 
             if isinstance(result, JsonResponse):
                 return result
+
+            # Fast path: when camelCase is enabled and Rust is available,
+            # serialize list items with Rust (rename + JSON in one pass).
+            if (
+                isinstance(result, dict)
+                and "items" in result
+                and isinstance(result["items"], list)
+            ):
+                json_bytes = self.view.serialize_list_to_json_bytes(
+                    result["items"]
+                )
+                if json_bytes is not None:
+                    # Build envelope around Rust-serialized items
+                    envelope = {
+                        k: v for k, v in result.items() if k != "items"
+                    }
+                    envelope_json = orjson.dumps(envelope)
+                    # Splice: {"count":...,"items":[rust bytes],...}
+                    # Insert items into the envelope
+                    body = envelope_json[:-1] + b',"items":' + json_bytes + b"}"
+                    return HttpResponse(
+                        body,
+                        content_type="application/json",
+                    )
 
             return JsonResponse(result, safe=False)
 

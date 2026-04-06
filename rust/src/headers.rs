@@ -13,18 +13,16 @@ use pyo3::types::PyDict;
 fn parse_headers<'py>(py: Python<'py>, meta: &Bound<'py, PyDict>) -> PyResult<Bound<'py, PyDict>> {
     let result = PyDict::new(py);
 
-    // Authorization: Bearer <token> or <token>
+    // Authorization: <type> <credential> (e.g. "Bearer <token>")
+    // Malformed headers without a space separator are ignored.
     if let Ok(Some(auth)) = meta.get_item("HTTP_AUTHORIZATION") {
         let auth_str: &str = auth.extract()?;
-        let auth_dict = PyDict::new(py);
         if let Some((auth_type, credential)) = auth_str.split_once(' ') {
-            auth_dict.set_item("type", auth_type)?;
-            auth_dict.set_item("credential", credential)?;
-        } else {
-            auth_dict.set_item("type", "Bearer")?;
-            auth_dict.set_item("credential", auth_str)?;
+            let auth_dict = PyDict::new(py);
+            auth_dict.set_item("type", auth_type.trim())?;
+            auth_dict.set_item("credential", credential.trim())?;
+            result.set_item("authorization", auth_dict)?;
         }
-        result.set_item("authorization", auth_dict)?;
     }
 
     // X-API-Key

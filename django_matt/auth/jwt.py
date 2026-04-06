@@ -13,6 +13,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.http import HttpRequest
 
+from django_matt._accel import HAS_RUST, parse_headers_rust
 from django_matt.auth.jwt_builtin import (
     JWTAlgorithmError,
     JWTDecodeError,
@@ -468,11 +469,24 @@ async def async_refresh_tokens(refresh_token: str) -> TokenPair:
     return await acreate_token_pair(user)
 
 
+def _get_parsed_headers(request: HttpRequest) -> dict | None:
+    """Parse request headers via Rust and cache on the request object."""
+    cached = getattr(request, "_parsed_headers", None)
+    if cached is not None:
+        return cached
+    if not HAS_RUST or parse_headers_rust is None:
+        return None
+    parsed = parse_headers_rust(request.META)
+    request._parsed_headers = parsed  # type: ignore[attr-defined]
+    return parsed
+
+
 def get_token_from_request(request: HttpRequest) -> str | None:
     """
     Extract JWT token from request headers.
 
     Looks for Authorization header with Bearer token.
+    Uses Rust header parser when available for faster extraction.
 
     Args:
         request: Django HttpRequest
@@ -480,6 +494,18 @@ def get_token_from_request(request: HttpRequest) -> str | None:
     Returns:
         Token string or None if not found
     """
+    # Fast path: Rust header parser
+    parsed = _get_parsed_headers(request)
+    if parsed is not None:
+        auth = parsed.get("authorization")
+        if auth is None:
+            return None
+        auth_type = auth.get("type", "")
+        if auth_type not in jwt_config.auth_header_types:
+            return None
+        return auth.get("credential")
+
+    # Fallback: pure Python
     auth_header = request.headers.get(jwt_config.auth_header_name, "")
 
     if not auth_header:

@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 from django.conf import settings
 from django.http import HttpRequest
 
+from django_matt._accel import HAS_RUST, parse_headers_rust
+
 if TYPE_CHECKING:
     from .models import APIKey
 
@@ -140,6 +142,18 @@ def mask_api_key(key: str) -> str:
     return key[:12] + "..." + key[-4:]
 
 
+def _get_parsed_headers(request: HttpRequest) -> dict | None:
+    """Parse request headers via Rust and cache on the request object."""
+    cached = getattr(request, "_parsed_headers", None)
+    if cached is not None:
+        return cached
+    if not HAS_RUST or parse_headers_rust is None:
+        return None
+    parsed = parse_headers_rust(request.META)
+    request._parsed_headers = parsed  # type: ignore[attr-defined]
+    return parsed
+
+
 def get_api_key_from_request(request: HttpRequest) -> str | None:
     """
     Extract API key from request.
@@ -149,12 +163,39 @@ def get_api_key_from_request(request: HttpRequest) -> str | None:
     2. Authorization header with "Bearer" or "ApiKey" scheme
     3. Query parameter (if enabled in config)
 
+    Uses Rust header parser when available for faster extraction.
+
     Args:
         request: Django HTTP request
 
     Returns:
         API key string or None if not found
     """
+    # Fast path: Rust header parser
+    parsed = _get_parsed_headers(request)
+    if parsed is not None:
+        # 1. Check X-API-Key (parsed by Rust as "api_key")
+        api_key = parsed.get("api_key")
+        if api_key:
+            return api_key
+
+        # 2. Check Authorization header
+        auth = parsed.get("authorization")
+        if auth:
+            auth_type = auth.get("type", "").strip()
+            if auth_type in ("Bearer", "ApiKey"):
+                credential = auth.get("credential", "")
+                return credential.strip() if credential else None
+
+        # 3. Check query parameter (if allowed)
+        if api_key_config.allow_query_param:
+            key = request.GET.get(api_key_config.query_param)
+            if key:
+                return key
+
+        return None
+
+    # Fallback: pure Python
     # 1. Check custom header (X-API-Key)
     header_name = api_key_config.header_name
     key = request.headers.get(header_name)

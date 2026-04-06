@@ -56,10 +56,25 @@ async def list_users(request):
 
 | Feature | Purpose | Speed Improvement |
 |---------|---------|-------------------|
+| [Rust Extensions](rust-extensions.md) | Native hot paths (routing, JWT, parsing) | 1.9x total |
 | [Fast Serialization](serialization.md) | JSON/MessagePack encoding | 3-10x |
 | [Response Caching](caching.md) | Cache API responses | 10-100x |
 | [Query Optimization](database.md) | Eliminate N+1 queries | 2-50x |
 | [Async Views](async.md) | Handle more concurrency | 2-5x throughput |
+
+## Rust Extensions (Optional)
+
+Install `django-matt[rust]` for compiled hot paths. See [Rust Extensions](rust-extensions.md) for the full guide.
+
+| Component | Doc | Speedup |
+|-----------|-----|---------|
+| [Radix Tree Router](rust-radix-router.md) | URL matching | 4.0x (up to 13x) |
+| [JWT Acceleration](rust-jwt.md) | Token encode/decode | 1.5x + GIL release |
+| [Query String Parser](rust-query-parser.md) | Filter/sort/fields parsing | 2.7-4.6x |
+| [Header Parser](rust-header-parser.md) | Auth header extraction | 1.2x |
+| [JSON Serializer](rust-serializer.md) | camelCase serialization | 1.7x |
+| [Memory Profiling](memory-profiling.md) | Leak detection | Safety net |
+| [Fuzz Testing](rust-fuzz-testing.md) | Crash prevention | Safety net |
 
 ## Performance Utilities
 
@@ -319,6 +334,7 @@ Before deploying to production:
 
 ## Next Steps
 
+- [Rust Extensions](rust-extensions.md) - Native hot paths for routing, JWT, parsing, serialization
 - [Fast Serialization](serialization.md) - orjson, ujson, MessagePack
 - [Response Caching](caching.md) - CacheManager, distributed caching
 - [Database Optimization](database.md) - Query analysis, N+1 detection
