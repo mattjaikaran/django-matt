@@ -2,6 +2,26 @@
 
 Get observability set up in your Django Matt application in 5 minutes.
 
+## Zero-Config Setup
+
+The fastest way to get observability is the auto-instrumentation path. Call `setup_observability()` in your `AppConfig.ready()` and every controller, database query, and cache operation is automatically traced and metered:
+
+```python
+# myapp/apps.py
+from django.apps import AppConfig
+
+class MyAppConfig(AppConfig):
+    name = "myapp"
+
+    def ready(self):
+        from django_matt.observability.setup import setup_observability
+        setup_observability()
+```
+
+No settings required. In `DEBUG` mode, spans print to stderr with color. In production, spans emit as JSON lines. See [Auto-Instrumentation](auto-instrumentation.md) for full details.
+
+If you need more control, follow the manual setup below.
+
 ## Step 1: Install Dependencies
 
 ```bash
@@ -352,8 +372,12 @@ docker-compose -f docker-compose.observability.yml up -d
 
 Now that you have observability set up:
 
-1. **[Configure Tracing](tracing.md)** - Learn about distributed tracing and exporters
-2. **[Set Up Metrics](metrics.md)** - Create custom metrics and dashboards
-3. **[Structured Logging](logging.md)** - Best practices for production logging
-4. **[Use Decorators](decorators.md)** - Add observability to specific functions
-5. **[Integrate with Datadog/New Relic](integrations.md)** - Connect to observability platforms
+1. **[Auto-Instrumentation](auto-instrumentation.md)** - Zero-config setup for controllers, DB, cache, HTTP
+2. **[Spans](spans.md)** - Lightweight span system with `@traced`, `span()`, and listeners
+3. **[Collectors](collectors.md)** - Built-in request, database, and cache metrics
+4. **[Exporters](exporters.md)** - Console, JSON, Prometheus, and OpenTelemetry exporters
+5. **[Configure Tracing](tracing.md)** - Learn about distributed tracing and exporters
+6. **[Set Up Metrics](metrics.md)** - Create custom metrics and dashboards
+7. **[Structured Logging](logging.md)** - Best practices for production logging
+8. **[Use Decorators](decorators.md)** - Add observability to specific functions
+9. **[Integrate with Datadog/New Relic](integrations.md)** - Connect to observability platforms

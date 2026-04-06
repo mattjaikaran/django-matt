@@ -169,6 +169,7 @@ if DJANGO_5_2_PLUS:
 ## Related Documentation
 
 - [All Settings Reference](settings.md) - Complete list of all `DJANGO_MATT_*` settings
+- [Validation & Namespaces](validation.md) - `ConfigNamespace`, built-in validators, startup validation
 - [Environment Configuration](environments.md) - Dev, staging, and production setups
 - [Database Configuration](database.md) - PostgreSQL, MySQL, SQLite, pgvector
 - [Cache Configuration](cache.md) - Redis, Memcached, distributed caching
