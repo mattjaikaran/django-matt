@@ -120,41 +120,40 @@ Verify these patterns are correctly implemented — bugs found in other framewor
 Set up the Rust extension module, maturin build system, CI wheel building, and the
 Python fallback pattern. No performance code yet — just infrastructure.
 
-- [ ] 7.0.1 **Rust crate scaffold** — `django_matt/_rust/` with `Cargo.toml`, `src/lib.rs` (PyO3 module entry), `.cargo/config.toml`
-- [ ] 7.0.2 **maturin integration** — `pyproject.toml` build backend config, `[tool.maturin]` settings, `module-name = "django_matt._rust"`
-- [ ] 7.0.3 **Fallback pattern** — `django_matt/_accel.py` module that tries Rust import, exposes `HAS_RUST_EXTENSIONS` flag, provides Python fallback for each accelerated function
-- [ ] 7.0.4 **CI wheel building** — GitHub Actions workflow using `PyO3/maturin-action` for manylinux, macOS (arm64+x86_64), Windows wheels. abi3 stable ABI for single wheel per platform
-- [ ] 7.0.5 **Dev workflow** — `make rust-dev` (maturin develop), `make rust-build` (maturin build), `make rust-test` (cargo test + pytest integration tests)
-- [ ] 7.0.6 **Benchmark harness** — extend existing `benchmarks/` to compare Python vs Rust implementations side-by-side with `--rust` / `--python` flags
+- [x] 7.0.1 **Rust crate scaffold** — `rust/` with `Cargo.toml`, `src/lib.rs`, `.cargo/config.toml`
+- [x] 7.0.2 **maturin integration** — `rust/pyproject.toml`, `maturin develop --release` builds into venv
+- [x] 7.0.3 **Fallback pattern** — `django_matt/_accel.py` with `HAS_RUST` flag, graceful ImportError
+- [ ] 7.0.4 **CI wheel building** — GitHub Actions workflow (deferred until publish)
+- [x] 7.0.5 **Dev workflow** — `make rust-dev/build/test/bench/clean` in Makefile
+- [x] 7.0.6 **Benchmark harness** — `benchmarks/rust_vs_python.py` with router, JWT, query string
 
 ### Phase 7.1: Radix Tree URL Router
 
 Replace Django's regex-based URL resolver with a Rust radix tree for route matching.
 This is the single hottest path — called on every request.
 
-- [ ] 7.1.1 **Rust radix tree** — port or wrap `matchit` crate (used by Axum). Support: static segments, named params (`{id}`), wildcard (`{path:*}`), optional trailing slash
-- [ ] 7.1.2 **Route registration API** — `router.add_route(method, pattern, endpoint_id)` called at startup, returns opaque route table
-- [ ] 7.1.3 **Route matching API** — `router.match_route(method, path) -> (endpoint_id, params)` called per-request, returns matched endpoint + extracted params
-- [ ] 7.1.4 **Python fallback** — keep current `_python_resolve()` as fallback in `_accel.py`
-- [ ] 7.1.5 **Integration** — wire into `core/router.py` dispatch, transparent to user code
-- [ ] 7.1.6 **Benchmarks** — compare Rust router vs Python resolver: 10/100/1000 routes, static/parameterized/mixed
+- [x] 7.1.1 **Rust radix tree** — custom impl with static/param/wildcard, 12 Rust unit tests
+- [x] 7.1.2 **Route registration API** — `router.add_route(method, pattern, endpoint_id)`
+- [x] 7.1.3 **Route matching API** — `router.match_route(method, path) -> (endpoint_id, params)`
+- [x] 7.1.4 **Python fallback** — via `_accel.py` import guard
+- [x] 7.1.5 **Integration** — wired into `core/router.py` with `radix_dispatch()`, auto-builds on `get_urls()`
+- [x] 7.1.6 **Benchmarks** — **4.0x overall, 12.7x on misses** (20 routes, 8 test cases)
 
-**Expected gains:** ~50-100ns per match (Rust) vs ~2-5μs (Python regex) = **20-50x speedup**
+**Measured gains:** 4.0x overall (1.7-12.7x per case)
 
 ### Phase 7.2: JWT Encode/Decode/Verify
 
 Move the entire JWT pipeline to Rust. Every authenticated request hits this path.
 
-- [ ] 7.2.1 **HMAC signing** — HS256/HS384/HS512 via `ring` crate, constant-time comparison
-- [ ] 7.2.2 **RSA/EC signing** — RS256/RS384/RS512, ES256/ES384/ES512 via `ring`
-- [ ] 7.2.3 **JWT encode** — `jwt_encode(payload_bytes, secret, algorithm) -> token_bytes`. Takes orjson-serialized payload, returns complete JWT as bytes
-- [ ] 7.2.4 **JWT decode + verify** — `jwt_decode(token, secret, algorithm, verify_exp=True) -> payload_bytes`. Signature verification + expiry check in one Rust call. Returns raw payload bytes for orjson deserialization on Python side
-- [ ] 7.2.5 **Python fallback** — current `jwt_builtin.py` as fallback
-- [ ] 7.2.6 **Integration** — wire into `auth/jwt_builtin.py`, transparent to auth middleware
-- [ ] 7.2.7 **Benchmarks** — encode/decode/verify for HS256, RS256, ES256. Measure single-op and concurrent (GIL release)
+- [x] 7.2.1 **HMAC signing** — HS256/HS384/HS512 via `hmac`+`sha2` crates, `subtle` for constant-time compare
+- [ ] 7.2.2 **RSA/EC signing** — RS256/RS384/RS512, ES256/ES384/ES512 (deferred — `cryptography` pkg already Rust-based)
+- [x] 7.2.3 **JWT encode** — `jwt_encode(payload_bytes, secret, algorithm) -> str`
+- [x] 7.2.4 **JWT decode + verify** — `jwt_decode(token, secret, algorithm, verify_exp, leeway) -> dict`
+- [x] 7.2.5 **Python fallback** — `jwt_builtin.py` auto-delegates to Rust for HMAC, falls back for RSA/EC
+- [x] 7.2.6 **Integration** — wired into `auth/jwt_builtin.py`, transparent to 229 auth tests
+- [x] 7.2.7 **Benchmarks** — **1.5x faster** (Python hmac is already C-accelerated). Main win: GIL release
 
-**Expected gains:** ~1-3μs (Rust) vs ~15-30μs (Python) = **10-15x speedup**
-**Bonus:** GIL release during crypto ops = better concurrency under load
+**Measured gains:** 1.5x encode, 1.5x decode+verify. GIL release enables better concurrency.
 
 ### Phase 7.3: Fast Schema Serialization
 
@@ -173,13 +172,13 @@ Bypass Pydantic's Python-level serialization for the common case: Django model �
 
 Parse filter/sort/fields/pagination params in Rust. Called on every list endpoint.
 
-- [ ] 7.4.1 **Parser implementation** — `parse_query_string(qs: str) -> ParsedQuery`. Handles: `?fields=a,b&filter[status]=active&sort=-created&page=2&limit=20`
-- [ ] 7.4.2 **ParsedQuery struct** — typed result: `fields: list[str]`, `filters: dict[str, str]`, `sort: list[tuple[str, bool]]`, `pagination: dict[str, int]`
+- [x] 7.4.1 **Parser implementation** — `parse_query_string(qs)` returns fields, filters, sort, pagination, extras
+- [x] 7.4.2 **ParsedQuery struct** — dict with typed sub-dicts, url percent-decoding included
 - [ ] 7.4.3 **Integration** — wire into filtering/ordering/pagination middleware
-- [ ] 7.4.4 **Python fallback** — current Django QueryDict parsing
-- [ ] 7.4.5 **Benchmarks** — parse simple/complex/adversarial query strings
+- [x] 7.4.4 **Python fallback** — via `_accel.py` import guard
+- [x] 7.4.5 **Benchmarks** — **2.7-4.6x faster** (scales with query complexity)
 
-**Expected gains:** ~100-200ns (Rust) vs ~3-8μs (Python) = **20-40x speedup**
+**Measured gains:** 2.7x simple, 3.8x filters, 4.0x full, 4.6x complex
 
 ### Phase 7.5: Middleware Dispatch Chain
 
