@@ -79,7 +79,7 @@ Better test tooling for users of django-matt.
 - [x] 5.1 **Scenario-based CRUD testing** — CRUDTestCase + generate_crud_scenarios()
 - [x] 5.2 **TestClient cookie forwarding** — cookie convenience methods + async client parity
 - [x] 5.3 **TestClient auser() mock** — request.auser() in JWT middleware + test clients
-- [ ] 5.4 **Python 3.14 CI** — add to matrix for PEP 649/749 annotation changes
+- [x] 5.4 **Python 3.14 CI** — add to matrix for PEP 649/749 annotation changes
 - [x] 5.5 **Pydantic version pinning** — pydantic>=2.0.0,<3.0.0
 
 ### Phase 6: Architectural Verification
