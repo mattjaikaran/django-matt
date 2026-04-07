@@ -65,3 +65,7 @@ Follow conventional commits:
 - `test:` Test changes
 - `refactor:` Code refactoring
 - `chore:` Maintenance tasks
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the [Apache License 2.0](https://github.com/mattjaikaran/django-matt/blob/main/LICENSE).
