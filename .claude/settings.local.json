@@ -138,7 +138,9 @@
       "Bash(xxd)",
       "Bash(git merge:*)",
       "Bash(while read:*)",
-      "Bash(do git:*)"
+      "Bash(do git:*)",
+      "Bash(do echo:*)",
+      "Read(//Users/mattjaikaran/dev/django-matt/.claude/worktrees/agent-a481bec9/**)"
     ]
   }
 }

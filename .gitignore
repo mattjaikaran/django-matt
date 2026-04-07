@@ -59,6 +59,7 @@ pytestdebug.log
 .env.production
 .env.test
 .env.test.local
+.env.staging
 
 # Django
 *.log
