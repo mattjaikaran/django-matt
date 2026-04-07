@@ -47,25 +47,174 @@ fn hmac_sign(data: &[u8], key: &[u8], algorithm: &str) -> Result<Vec<u8>, String
     }
 }
 
+/// RSA PKCS#1 v1.5 signing.
+fn rsa_sign(data: &[u8], private_key_pem: &str, algorithm: &str) -> Result<Vec<u8>, String> {
+    use pkcs8::DecodePrivateKey;
+    use rsa::pkcs1v15::SigningKey;
+    use rsa::RsaPrivateKey;
+    use sha2::{Sha256, Sha384, Sha512};
+    use signature::{SignatureEncoding, Signer};
+
+    let private_key = RsaPrivateKey::from_pkcs8_pem(private_key_pem)
+        .map_err(|e| format!("Failed to parse RSA private key: {e}"))?;
+
+    let sig_bytes = match algorithm {
+        "RS256" => {
+            let signing_key = SigningKey::<Sha256>::new(private_key);
+            let sig = signing_key.sign(data);
+            sig.to_vec()
+        }
+        "RS384" => {
+            let signing_key = SigningKey::<Sha384>::new(private_key);
+            let sig = signing_key.sign(data);
+            sig.to_vec()
+        }
+        "RS512" => {
+            let signing_key = SigningKey::<Sha512>::new(private_key);
+            let sig = signing_key.sign(data);
+            sig.to_vec()
+        }
+        _ => return Err(format!("Unsupported RSA algorithm: {algorithm}")),
+    };
+
+    Ok(sig_bytes)
+}
+
+/// RSA PKCS#1 v1.5 verification.
+fn rsa_verify(
+    data: &[u8],
+    sig_bytes: &[u8],
+    public_key_pem: &str,
+    algorithm: &str,
+) -> Result<bool, String> {
+    use pkcs8::DecodePublicKey;
+    use rsa::pkcs1v15::{Signature, VerifyingKey};
+    use rsa::RsaPublicKey;
+    use sha2::{Sha256, Sha384, Sha512};
+    use signature::Verifier;
+
+    let public_key = RsaPublicKey::from_public_key_pem(public_key_pem)
+        .map_err(|e| format!("Failed to parse RSA public key: {e}"))?;
+
+    let signature =
+        Signature::try_from(sig_bytes).map_err(|e| format!("Invalid RSA signature: {e}"))?;
+
+    let valid = match algorithm {
+        "RS256" => {
+            let verifying_key = VerifyingKey::<Sha256>::new(public_key);
+            verifying_key.verify(data, &signature).is_ok()
+        }
+        "RS384" => {
+            let verifying_key = VerifyingKey::<Sha384>::new(public_key);
+            verifying_key.verify(data, &signature).is_ok()
+        }
+        "RS512" => {
+            let verifying_key = VerifyingKey::<Sha512>::new(public_key);
+            verifying_key.verify(data, &signature).is_ok()
+        }
+        _ => return Err(format!("Unsupported RSA algorithm: {algorithm}")),
+    };
+
+    Ok(valid)
+}
+
+/// EC (ECDSA) signing — returns raw (r || s) format as required by JWT spec.
+fn ec_sign(data: &[u8], private_key_pem: &str, algorithm: &str) -> Result<Vec<u8>, String> {
+    match algorithm {
+        "ES256" => {
+            use ecdsa::SigningKey;
+            use p256::NistP256;
+            use pkcs8::DecodePrivateKey;
+            use signature::Signer;
+
+            let signing_key = SigningKey::<NistP256>::from_pkcs8_pem(private_key_pem)
+                .map_err(|e| format!("Failed to parse EC P-256 private key: {e}"))?;
+
+            let sig: ecdsa::Signature<NistP256> = signing_key.sign(data);
+            Ok(sig.to_bytes().to_vec())
+        }
+        "ES384" => {
+            use ecdsa::SigningKey;
+            use p384::NistP384;
+            use pkcs8::DecodePrivateKey;
+            use signature::Signer;
+
+            let signing_key = SigningKey::<NistP384>::from_pkcs8_pem(private_key_pem)
+                .map_err(|e| format!("Failed to parse EC P-384 private key: {e}"))?;
+
+            let sig: ecdsa::Signature<NistP384> = signing_key.sign(data);
+            Ok(sig.to_bytes().to_vec())
+        }
+        _ => Err(format!("Unsupported EC algorithm: {algorithm}")),
+    }
+}
+
+/// EC (ECDSA) verification — expects raw (r || s) format.
+fn ec_verify(
+    data: &[u8],
+    sig_bytes: &[u8],
+    public_key_pem: &str,
+    algorithm: &str,
+) -> Result<bool, String> {
+    match algorithm {
+        "ES256" => {
+            use ecdsa::{Signature, VerifyingKey};
+            use p256::NistP256;
+            use pkcs8::DecodePublicKey;
+            use signature::Verifier;
+
+            let verifying_key = VerifyingKey::<NistP256>::from_public_key_pem(public_key_pem)
+                .map_err(|e| format!("Failed to parse EC P-256 public key: {e}"))?;
+
+            let signature = Signature::<NistP256>::from_slice(sig_bytes)
+                .map_err(|e| format!("Invalid EC signature: {e}"))?;
+
+            Ok(verifying_key.verify(data, &signature).is_ok())
+        }
+        "ES384" => {
+            use ecdsa::{Signature, VerifyingKey};
+            use p384::NistP384;
+            use pkcs8::DecodePublicKey;
+            use signature::Verifier;
+
+            let verifying_key = VerifyingKey::<NistP384>::from_public_key_pem(public_key_pem)
+                .map_err(|e| format!("Failed to parse EC P-384 public key: {e}"))?;
+
+            let signature = Signature::<NistP384>::from_slice(sig_bytes)
+                .map_err(|e| format!("Invalid EC signature: {e}"))?;
+
+            Ok(verifying_key.verify(data, &signature).is_ok())
+        }
+        _ => Err(format!("Unsupported EC algorithm: {algorithm}")),
+    }
+}
+
 /// Constant-time comparison of two byte slices.
 fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     use subtle::ConstantTimeEq;
     a.ct_eq(b).into()
 }
 
-/// Encode a JWT token using HMAC algorithms (HS256/HS384/HS512).
+/// Determine signing category from algorithm name.
+fn algorithm_category(algorithm: &str) -> Result<&'static str, String> {
+    match algorithm {
+        "HS256" | "HS384" | "HS512" => Ok("hmac"),
+        "RS256" | "RS384" | "RS512" => Ok("rsa"),
+        "ES256" | "ES384" => Ok("ec"),
+        _ => Err(format!("Unsupported algorithm: {algorithm}")),
+    }
+}
+
+/// Encode a JWT token.
 ///
-/// Takes a JSON payload as bytes (pre-serialized with orjson on Python side),
-/// signs it, and returns the complete JWT string.
+/// Supports HMAC (HS256/HS384/HS512), RSA (RS256/RS384/RS512), and EC (ES256/ES384).
+///
+/// For HMAC, `secret` is the shared key bytes.
+/// For RSA/EC, `secret` is the PEM-encoded private key bytes.
 #[pyfunction]
 #[pyo3(signature = (payload_json, secret, algorithm = "HS256"))]
 fn jwt_encode(payload_json: &[u8], secret: &[u8], algorithm: &str) -> PyResult<String> {
-    // Validate algorithm
-    if !matches!(algorithm, "HS256" | "HS384" | "HS512") {
-        return Err(PyValueError::new_err(format!(
-            "Rust JWT only supports HMAC algorithms (HS256/HS384/HS512), got: {algorithm}"
-        )));
-    }
+    let category = algorithm_category(algorithm).map_err(PyValueError::new_err)?;
 
     // Build header
     let header_json = format!(r#"{{"alg":"{algorithm}","typ":"JWT"}}"#);
@@ -74,17 +223,32 @@ fn jwt_encode(payload_json: &[u8], secret: &[u8], algorithm: &str) -> PyResult<S
 
     // Sign
     let signing_input = format!("{header_b64}.{payload_b64}");
-    let signature = hmac_sign(signing_input.as_bytes(), secret, algorithm)
-        .map_err(PyRuntimeError::new_err)?;
-    let signature_b64 = base64url_encode(&signature);
+    let signing_data = signing_input.as_bytes();
 
+    let signature = match category {
+        "hmac" => hmac_sign(signing_data, secret, algorithm),
+        "rsa" => {
+            let pem = std::str::from_utf8(secret)
+                .map_err(|_| PyValueError::new_err("RSA private key must be valid UTF-8 PEM"))?;
+            rsa_sign(signing_data, pem, algorithm)
+        }
+        "ec" => {
+            let pem = std::str::from_utf8(secret)
+                .map_err(|_| PyValueError::new_err("EC private key must be valid UTF-8 PEM"))?;
+            ec_sign(signing_data, pem, algorithm)
+        }
+        _ => unreachable!(),
+    }
+    .map_err(PyRuntimeError::new_err)?;
+
+    let signature_b64 = base64url_encode(&signature);
     Ok(format!("{signing_input}.{signature_b64}"))
 }
 
-/// Decode and verify a JWT token using HMAC algorithms.
+/// Decode and verify a JWT token.
 ///
-/// Returns the raw payload as bytes (to be deserialized with orjson on Python side).
-/// Performs signature verification and optionally checks expiration.
+/// For HMAC, `secret` is the shared key bytes.
+/// For RSA/EC, `secret` is the PEM-encoded public key bytes.
 #[pyfunction]
 #[pyo3(signature = (token, secret, algorithm = "HS256", verify_exp = true, leeway = 0))]
 fn jwt_decode<'py>(
@@ -95,12 +259,7 @@ fn jwt_decode<'py>(
     verify_exp: bool,
     leeway: i64,
 ) -> PyResult<Bound<'py, PyDict>> {
-    // Validate algorithm
-    if !matches!(algorithm, "HS256" | "HS384" | "HS512") {
-        return Err(PyValueError::new_err(format!(
-            "Rust JWT only supports HMAC algorithms, got: {algorithm}"
-        )));
-    }
+    let category = algorithm_category(algorithm).map_err(PyValueError::new_err)?;
 
     // Split token
     let parts: Vec<&str> = token.split('.').collect();
@@ -113,12 +272,11 @@ fn jwt_decode<'py>(
     let signature_b64 = parts[2];
 
     // Verify header algorithm matches
-    let header_bytes =
-        base64url_decode(header_b64).map_err(|e| PyValueError::new_err(format!("Invalid header: {e}")))?;
-    let header_str =
-        std::str::from_utf8(&header_bytes).map_err(|_| PyValueError::new_err("Invalid header UTF-8"))?;
+    let header_bytes = base64url_decode(header_b64)
+        .map_err(|e| PyValueError::new_err(format!("Invalid header: {e}")))?;
+    let header_str = std::str::from_utf8(&header_bytes)
+        .map_err(|_| PyValueError::new_err("Invalid header UTF-8"))?;
 
-    // Quick check: does the header contain the expected algorithm?
     if !header_str.contains(algorithm) {
         return Err(PyValueError::new_err(format!(
             "Token algorithm does not match expected: {algorithm}"
@@ -127,12 +285,31 @@ fn jwt_decode<'py>(
 
     // Verify signature
     let signing_input = format!("{header_b64}.{payload_b64}");
-    let expected_signature = hmac_sign(signing_input.as_bytes(), secret, algorithm)
-        .map_err(PyRuntimeError::new_err)?;
     let actual_signature = base64url_decode(signature_b64)
         .map_err(|e| PyValueError::new_err(format!("Invalid signature: {e}")))?;
 
-    if !constant_time_eq(&expected_signature, &actual_signature) {
+    let valid = match category {
+        "hmac" => {
+            let expected_signature = hmac_sign(signing_input.as_bytes(), secret, algorithm)
+                .map_err(PyRuntimeError::new_err)?;
+            constant_time_eq(&expected_signature, &actual_signature)
+        }
+        "rsa" => {
+            let pem = std::str::from_utf8(secret)
+                .map_err(|_| PyValueError::new_err("RSA public key must be valid UTF-8 PEM"))?;
+            rsa_verify(signing_input.as_bytes(), &actual_signature, pem, algorithm)
+                .map_err(PyRuntimeError::new_err)?
+        }
+        "ec" => {
+            let pem = std::str::from_utf8(secret)
+                .map_err(|_| PyValueError::new_err("EC public key must be valid UTF-8 PEM"))?;
+            ec_verify(signing_input.as_bytes(), &actual_signature, pem, algorithm)
+                .map_err(PyRuntimeError::new_err)?
+        }
+        _ => unreachable!(),
+    };
+
+    if !valid {
         return Err(PyValueError::new_err("Signature verification failed"));
     }
 
@@ -141,10 +318,6 @@ fn jwt_decode<'py>(
         .map_err(|e| PyValueError::new_err(format!("Invalid payload: {e}")))?;
 
     // Parse JSON payload into Python dict
-    let payload_str =
-        std::str::from_utf8(&payload_bytes).map_err(|_| PyValueError::new_err("Invalid payload UTF-8"))?;
-
-    // Use Python's json/orjson to parse (since we need a Python dict)
     let orjson = py.import("orjson")?;
     let payload_dict = orjson
         .call_method1("loads", (payload_bytes.as_slice(),))?
@@ -153,9 +326,9 @@ fn jwt_decode<'py>(
     // Verify expiration if requested
     if verify_exp {
         if let Ok(Some(exp_obj)) = payload_dict.get_item("exp") {
-            let exp: i64 = exp_obj.extract().map_err(|_| {
-                PyValueError::new_err("Invalid 'exp' claim: not a number")
-            })?;
+            let exp: i64 = exp_obj
+                .extract()
+                .map_err(|_| PyValueError::new_err("Invalid 'exp' claim: not a number"))?;
             let now = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
@@ -166,9 +339,6 @@ fn jwt_decode<'py>(
         }
     }
 
-    // Suppress unused variable warning
-    let _ = payload_str;
-
     Ok(payload_dict)
 }
 
@@ -178,9 +348,10 @@ fn jwt_decode<'py>(
 #[pyfunction]
 #[pyo3(signature = (token, secret, algorithm = "HS256"))]
 fn jwt_verify(token: &str, secret: &[u8], algorithm: &str) -> PyResult<bool> {
-    if !matches!(algorithm, "HS256" | "HS384" | "HS512") {
-        return Ok(false);
-    }
+    let category = match algorithm_category(algorithm) {
+        Ok(c) => c,
+        Err(_) => return Ok(false),
+    };
 
     let parts: Vec<&str> = token.split('.').collect();
     if parts.len() != 3 {
@@ -188,16 +359,43 @@ fn jwt_verify(token: &str, secret: &[u8], algorithm: &str) -> PyResult<bool> {
     }
 
     let signing_input = format!("{}.{}", parts[0], parts[1]);
-    let expected = match hmac_sign(signing_input.as_bytes(), secret, algorithm) {
-        Ok(sig) => sig,
-        Err(_) => return Ok(false),
-    };
     let actual = match base64url_decode(parts[2]) {
         Ok(sig) => sig,
         Err(_) => return Ok(false),
     };
 
-    Ok(constant_time_eq(&expected, &actual))
+    let valid = match category {
+        "hmac" => {
+            let expected = match hmac_sign(signing_input.as_bytes(), secret, algorithm) {
+                Ok(sig) => sig,
+                Err(_) => return Ok(false),
+            };
+            constant_time_eq(&expected, &actual)
+        }
+        "rsa" => {
+            let pem = match std::str::from_utf8(secret) {
+                Ok(p) => p,
+                Err(_) => return Ok(false),
+            };
+            match rsa_verify(signing_input.as_bytes(), &actual, pem, algorithm) {
+                Ok(v) => v,
+                Err(_) => false,
+            }
+        }
+        "ec" => {
+            let pem = match std::str::from_utf8(secret) {
+                Ok(p) => p,
+                Err(_) => return Ok(false),
+            };
+            match ec_verify(signing_input.as_bytes(), &actual, pem, algorithm) {
+                Ok(v) => v,
+                Err(_) => false,
+            }
+        }
+        _ => false,
+    };
+
+    Ok(valid)
 }
 
 /// Register JWT functions in the module.
@@ -248,5 +446,13 @@ mod tests {
         assert!(constant_time_eq(b"hello", b"hello"));
         assert!(!constant_time_eq(b"hello", b"world"));
         assert!(!constant_time_eq(b"hello", b"hell"));
+    }
+
+    #[test]
+    fn test_algorithm_category() {
+        assert_eq!(algorithm_category("HS256").unwrap(), "hmac");
+        assert_eq!(algorithm_category("RS256").unwrap(), "rsa");
+        assert_eq!(algorithm_category("ES256").unwrap(), "ec");
+        assert!(algorithm_category("XX256").is_err());
     }
 }

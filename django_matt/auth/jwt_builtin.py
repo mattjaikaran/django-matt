@@ -353,8 +353,9 @@ def encode_jwt(
     if jwt_id is not None:
         claims["jti"] = jwt_id
 
-    # Fast path: use Rust for HMAC algorithms (no custom headers)
-    if HAS_RUST and algorithm in HMAC_ALGORITHMS and not headers:
+    # Fast path: use Rust for supported algorithms (no custom headers)
+    rust_supported = {"HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256", "ES384"}
+    if HAS_RUST and algorithm in rust_supported and not headers:
         secret_bytes = secret.encode("utf-8") if isinstance(secret, str) else secret
         claims_json = orjson.dumps(claims, option=orjson.OPT_SORT_KEYS)
         return jwt_encode_rust(claims_json, secret_bytes, algorithm)
@@ -420,11 +421,12 @@ def decode_jwt(
         if alg not in SUPPORTED_ALGORITHMS:
             raise JWTAlgorithmError(f"Unsupported algorithm: {alg}")
 
-    # Fast path: use Rust for simple HMAC decode (no nbf/iat/iss/aud verification)
+    # Fast path: use Rust for decode (no nbf/iat/iss/aud verification)
+    _rust_decode_supported = {"HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256", "ES384"}
     if (
         HAS_RUST
         and len(algorithms) == 1
-        and algorithms[0] in HMAC_ALGORITHMS
+        and algorithms[0] in _rust_decode_supported
         and not verify_nbf
         and not verify_iat
         and verify_iss is None

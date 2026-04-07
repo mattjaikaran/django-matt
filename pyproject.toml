@@ -196,6 +196,7 @@ dev = [
     "pyright>=1.1.390",
     "twine>=6.0.0",
     "pre-commit>=4.0.0",
+    "cryptography>=46.0.3",
 ]
 
 docs = [
