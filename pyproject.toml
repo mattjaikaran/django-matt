@@ -8,12 +8,13 @@ version = "0.8.0"
 description = "A modern Django API framework with class-based views, async support, and developer experience tools"
 readme = "README.md"
 requires-python = ">=3.12"
-license = { text = "MIT" }
+license = { text = "Apache-2.0" }
 authors = [
     { name = "Matt Jaikaran", email = "info@mattjaikaran.com" },
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: Apache Software License",
     "Framework :: Django",
     "Framework :: Django :: 5.2",
     "Framework :: Django :: 6.0",
@@ -426,6 +427,24 @@ ignore = [
 ]
 "django_matt/negotiation/renderers.py" = [
     "F401",    # imports for availability check
+]
+"django_matt/modules/cli.py" = [
+    "T201",    # print OK in CLI output
+]
+"django_matt/modules/registry.py" = [
+    "UP036",   # version block needed for runtime compat check
+]
+"django_matt/versioning_tool.py" = [
+    "T201",    # print OK in CLI tool
+]
+"django_matt/observability/auto.py" = [
+    "UP047",   # TypeVar needed for wrapper signatures
+]
+"django_matt/observability/exporters.py" = [
+    "SIM115",  # file handle managed by class lifecycle
+]
+"django_matt/startup.py" = [
+    "PLR0206", # property with params is intentional
 ]
 
 [tool.ruff.lint.isort]
