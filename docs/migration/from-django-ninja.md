@@ -22,6 +22,8 @@ uv remove django-ninja django-ninja-extra django-ninja-jwt ninja-schema django-n
 uv add django-matt
 ```
 
+---
+
 ## API Class
 
 ### Django Ninja
@@ -48,9 +50,9 @@ api = MattAPI(
 )
 ```
 
-The API classes are nearly identical. Main differences:
-- `MattAPI` has built-in auth support
-- Additional configuration options for billing, tenancy, etc.
+The API classes are nearly identical. `MattAPI` adds built-in auth controller registration, billing, OpenAPI, and more.
+
+---
 
 ## Route Decorators
 
@@ -94,7 +96,9 @@ async def get_user(request, user_id: int):
     return {"id": user_id}
 ```
 
-**Key difference**: django-matt encourages `async def` but supports both.
+**Key difference**: django-matt encourages `async def` but supports sync too. The router supports `get`, `post`, `put`, `patch`, `delete` decorators.
+
+---
 
 ## Schemas
 
@@ -132,7 +136,13 @@ class UserModelSchema(ModelSchema):
         fields = ['id', 'email', 'username']
 ```
 
-**Key difference**: django-matt uses `Meta` class (like Django) instead of `Config` class. Both Pydantic v2 compatible.
+**Key differences:**
+- `Meta` class (like Django convention) instead of `Config` class
+- `fields` instead of `model_fields`
+- Both are Pydantic v2 models under the hood
+- `ModelSchema` provides `from_orm()` and `from_orm_fast()` (skips re-validation for list serialization)
+
+---
 
 ## Controllers (from django-ninja-extra)
 
@@ -188,11 +198,15 @@ class UserController(APIController):
         return data
 ```
 
-**Key differences**:
-- Use `@api.controller` decorator
-- Inherit from `APIController`
-- Use `@api.get`/`@api.post` instead of `@http_get`/`@http_post`
-- Use `permission_classes` instead of `permissions`
+**Key differences:**
+- `@api.controller` decorator (no separate `register_controllers` call needed)
+- Inherit from `APIController` (provides error handling, query optimization)
+- `@api.get` / `@api.post` instead of `@http_get` / `@http_post`
+- `permission_classes` instead of `permissions`
+- Async by default
+- Auto error handling: `DoesNotExist` -> 404, `ValidationError` -> 422
+
+---
 
 ## JWT Authentication (from django-ninja-jwt)
 
@@ -219,9 +233,14 @@ api.register_controllers(NinjaJWTDefaultController)
 # settings.py
 DJANGO_MATT_JWT = {
     'SECRET_KEY': SECRET_KEY,
-    'ACCESS_TOKEN_LIFETIME': 3600,  # 60 minutes in seconds
-    'REFRESH_TOKEN_LIFETIME': 604800,  # 7 days in seconds
+    'ACCESS_TOKEN_LIFETIME': 3600,     # seconds
+    'REFRESH_TOKEN_LIFETIME': 604800,
 }
+
+MIDDLEWARE = [
+    ...
+    "django_matt.auth.JWTAuthenticationMiddleware",
+]
 
 # api.py
 from django_matt import MattAPI
@@ -237,6 +256,10 @@ The built-in `AuthController` provides:
 - `POST /auth/refresh`
 - `POST /auth/logout`
 - `GET /auth/me`
+
+Plus token blacklisting, password reset, and magic links out of the box.
+
+---
 
 ## CRUD Views (from django-ninja-crud)
 
@@ -272,10 +295,15 @@ class ProductViewSet(APIViewSet):
     delete = DeleteView()
 ```
 
-**Key differences**:
+**Key differences:**
 - Pass `api` instance to ViewSet
 - Specify `default_response_schema`
-- Simpler attribute names
+- Simpler attribute names (`list` instead of `list_products`)
+- Built-in lifecycle hooks: `before_create`, `after_create`, `before_delete`, etc.
+- Built-in soft delete support via `SoftDeleteMixin`
+- Bulk operations: `BulkCreateView`, `BulkUpdateView`, `BulkDeleteView`
+
+---
 
 ## Dependency Injection
 
@@ -283,7 +311,6 @@ class ProductViewSet(APIViewSet):
 
 ```python
 from ninja_extra import api_controller
-from ninja_extra.permissions import IsAuthenticated
 from injector import inject
 
 @api_controller("/products")
@@ -296,18 +323,7 @@ class ProductController:
 
 ```python
 from django_matt import APIController, Depends
-from django_matt.di import inject
 
-@api.controller("/products")
-class ProductController(APIController):
-    @inject
-    def __init__(self, product_service: ProductService = Depends(ProductService)):
-        self.product_service = product_service
-```
-
-Or use dependency injection in methods:
-
-```python
 @api.controller("/products")
 class ProductController(APIController):
     @api.get("/")
@@ -318,16 +334,25 @@ class ProductController(APIController):
         return await service.list_all()
 ```
 
+Or register in the DI container for auto-resolution:
+
+```python
+from django_matt.di import container, Singleton
+
+container.register(ProductService, lifetime=Singleton)
+
+# Now auto-injected in any controller method with the right type hint
+```
+
+Built-in dependencies: `CurrentUser`, `CurrentRequest`, `CurrentOrg` (multi-tenant).
+
+---
+
 ## Response Types
 
 ### Django Ninja
 
 ```python
-from ninja import Schema
-
-class ErrorSchema(Schema):
-    message: str
-
 @api.get("/users/{user_id}", response={200: UserSchema, 404: ErrorSchema})
 def get_user(request, user_id: int):
     try:
@@ -342,7 +367,7 @@ def get_user(request, user_id: int):
 ```python
 from django_matt.core.errors import NotFoundError
 
-@api.get("/users/{user_id}", response=UserSchema)
+@api.get("/users/{user_id}", response_model=UserSchema)
 async def get_user(request, user_id: int):
     try:
         user = await User.objects.aget(id=user_id)
@@ -351,7 +376,9 @@ async def get_user(request, user_id: int):
         raise NotFoundError("User not found")
 ```
 
-django-matt uses exceptions for error responses, which are automatically converted to proper HTTP responses.
+django-matt uses exceptions for error responses. They are automatically converted to JSON with the correct status code. No need to define error response schemas per endpoint.
+
+---
 
 ## Query Parameters
 
@@ -382,6 +409,8 @@ async def search(
 
 Both work similarly. django-matt uses standard Python/Pydantic patterns.
 
+---
+
 ## File Uploads
 
 ### Django Ninja
@@ -404,7 +433,9 @@ async def upload(request, file: UploadedFile = File(...)):
     return {"name": file.name, "size": file.size}
 ```
 
-Nearly identical API.
+Nearly identical API. django-matt adds S3/R2/MinIO storage backends.
+
+---
 
 ## Pagination
 
@@ -424,18 +455,22 @@ def list_users(request):
 ```python
 from django_matt.pagination import PageNumberPagination
 
+class UserViewSet(APIViewSet):
+    list = ListView(pagination_class=PageNumberPagination)
+```
+
+Or in a standalone endpoint:
+
+```python
 @api.get("/users")
 async def list_users(request, pagination: PageNumberPagination = Depends()):
     queryset = User.objects.all()
     return await pagination.paginate(queryset)
 ```
 
-Or with ViewSet:
+Available: `PageNumberPagination`, `LimitOffsetPagination`, `CursorPagination`.
 
-```python
-class UserViewSet(APIViewSet):
-    list = ListView(pagination_class=PageNumberPagination)
-```
+---
 
 ## Authentication Decorators
 
@@ -446,7 +481,6 @@ from ninja.security import HttpBearer
 
 class AuthBearer(HttpBearer):
     def authenticate(self, request, token):
-        # Verify token
         return user
 
 @api.get("/protected", auth=AuthBearer())
@@ -472,17 +506,134 @@ async def maybe_protected(request):
     return {"user": "anonymous"}
 ```
 
+Additional decorators: `@admin_required`, `@superuser_required`, `@with_roles("admin")`, `@with_permission("can_edit")`, `@api_key_required`.
+
+---
+
+## Complete Before/After Example
+
+### Before: Django Ninja + Ecosystem
+
+```python
+# api.py
+from ninja_extra import NinjaExtraAPI, api_controller, http_get, http_post, http_put, http_delete
+from ninja_jwt.controller import NinjaJWTDefaultController
+from ninja_jwt.authentication import JWTAuth
+from ninja import Schema, ModelSchema
+
+api = NinjaExtraAPI(auth=JWTAuth())
+api.register_controllers(NinjaJWTDefaultController)
+
+class NoteSchema(ModelSchema):
+    class Config:
+        model = Note
+        model_fields = ['id', 'title', 'content', 'created_at']
+
+class NoteCreateSchema(Schema):
+    title: str
+    content: str
+
+@api_controller("/notes", tags=["Notes"])
+class NoteController:
+    permissions = [IsAuthenticated]
+
+    @http_get("/")
+    def list_notes(self, request):
+        notes = Note.objects.filter(owner=request.user)
+        return [NoteSchema.from_orm(n) for n in notes]
+
+    @http_post("/")
+    def create_note(self, request, data: NoteCreateSchema):
+        note = Note.objects.create(**data.dict(), owner=request.user)
+        return NoteSchema.from_orm(note)
+
+    @http_get("/{note_id}")
+    def get_note(self, request, note_id: int):
+        try:
+            return Note.objects.get(id=note_id, owner=request.user)
+        except Note.DoesNotExist:
+            return 404, {"message": "Not found"}
+
+    @http_delete("/{note_id}")
+    def delete_note(self, request, note_id: int):
+        Note.objects.filter(id=note_id, owner=request.user).delete()
+        return {"deleted": True}
+
+api.register_controllers(NoteController)
+```
+
+### After: django-matt
+
+```python
+# schemas.py
+from django_matt import ModelSchema, Schema
+
+class NoteSchema(ModelSchema):
+    class Meta:
+        model = Note
+        fields = ['id', 'title', 'content', 'created_at']
+
+class NoteCreateSchema(Schema):
+    title: str
+    content: str
+
+# api.py
+from django_matt import MattAPI, APIController, IsAuthenticated
+from django_matt.auth import AuthController
+from django_matt.core.errors import NotFoundError
+
+api = MattAPI()
+api.register_controller(AuthController)
+
+@api.controller("/notes", tags=["Notes"])
+class NoteController(APIController):
+    permission_classes = [IsAuthenticated]
+
+    @api.get("/", response_model=list[NoteSchema])
+    async def list_notes(self):
+        notes = []
+        async for note in Note.objects.filter(owner=self.request.user):
+            notes.append(NoteSchema.from_orm(note))
+        return notes
+
+    @api.post("/", response_model=NoteSchema)
+    async def create_note(self, data: NoteCreateSchema):
+        note = await Note.objects.acreate(
+            **data.model_dump(), owner=self.request.user
+        )
+        return NoteSchema.from_orm(note)
+
+    @api.get("/{note_id}", response_model=NoteSchema)
+    async def get_note(self, note_id: int):
+        try:
+            note = await Note.objects.aget(id=note_id, owner=self.request.user)
+        except Note.DoesNotExist:
+            raise NotFoundError("Note not found")
+        return NoteSchema.from_orm(note)
+
+    @api.delete("/{note_id}")
+    async def delete_note(self, note_id: int):
+        await Note.objects.filter(
+            id=note_id, owner=self.request.user
+        ).adelete()
+        return {"deleted": True}
+```
+
+---
+
 ## Migration Checklist
 
-- [ ] Replace imports from `ninja` with `django_matt`
-- [ ] Replace `NinjaAPI` with `MattAPI`
-- [ ] Replace `ninja_extra` controllers with `APIController`
+- [ ] Replace `NinjaAPI` / `NinjaExtraAPI` with `MattAPI`
+- [ ] Replace `ninja` imports with `django_matt` imports
+- [ ] Replace `@api_controller` with `@api.controller` + `APIController` base class
 - [ ] Replace `@http_get`/`@http_post` with `@api.get`/`@api.post`
 - [ ] Update schema `Config` classes to `Meta` classes
+- [ ] Replace `model_fields` with `fields`
 - [ ] Replace `ninja_jwt` with built-in `AuthController`
-- [ ] Update dependency injection syntax
-- [ ] Convert sync views to async (recommended)
-- [ ] Update error handling to use exceptions
+- [ ] Update `permissions` to `permission_classes`
+- [ ] Convert sync views to async (use `aget`, `asave`, `adelete`)
+- [ ] Replace `return status_code, error_dict` with `raise` error exceptions
+- [ ] Update dependency injection syntax to use `Depends()`
 - [ ] Test all endpoints
 
 ## Import Mapping Reference
@@ -508,10 +659,15 @@ from django_matt import (
 )
 from django_matt.auth import jwt_required, AuthController
 from django_matt.pagination import PageNumberPagination
+from django_matt.di import Depends
 ```
+
+---
 
 ## Next Steps
 
-- [Core Concepts](../core/routing.md) - Learn the routing system
-- [Controllers](../core/controllers.md) - Deep dive into controllers
-- [Authentication](../auth/overview.md) - Configure authentication
+- [Core Concepts](../core/routing.md) -- Routing system
+- [Controllers](../core/controllers.md) -- Deep dive into controllers
+- [Authentication](../auth/overview.md) -- JWT, OAuth, SSO, Passkeys
+- [Migration from DRF](from-drf.md) -- If also using DRF
+- [Framework Comparison](../comparison.md) -- See how django-matt compares
