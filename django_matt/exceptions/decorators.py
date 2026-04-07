@@ -4,7 +4,7 @@ import functools
 import inspect
 from typing import Any, Callable
 
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
 
 from django_matt.exceptions.filters import ExceptionFilter, FunctionExceptionFilter
 from django_matt.exceptions.registry import default_registry

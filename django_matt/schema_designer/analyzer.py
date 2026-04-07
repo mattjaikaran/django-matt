@@ -5,6 +5,7 @@ from typing import Any
 
 from django.apps import apps
 from django.db import models
+
 from pydantic import BaseModel
 
 

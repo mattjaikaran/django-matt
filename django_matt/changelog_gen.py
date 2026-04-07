@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import subprocess
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 CHANGELOG_PATH = Path(__file__).resolve().parent.parent / "CHANGELOG.md"
@@ -153,7 +153,7 @@ def generate(from_tag: str | None = None, to: str = "HEAD") -> ChangelogEntries:
 
 def format_entries(version: str, entries: ChangelogEntries, date: str | None = None) -> str:
     if date is None:
-        date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        date = datetime.now(UTC).strftime("%Y-%m-%d")
 
     lines: list[str] = []
     lines.append(f"## [{version}] - {date}")
@@ -234,7 +234,7 @@ def update_changelog(version: str, entries: ChangelogEntries, path: Path | None 
             header_end += 2
         new_content = (
             existing[:header_end]
-            + f"## [Unreleased]\n\n"
+            + "## [Unreleased]\n\n"
             + formatted
             + existing[header_end:]
         )

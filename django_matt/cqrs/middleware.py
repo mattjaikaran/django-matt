@@ -69,7 +69,7 @@ class CachingMiddleware:
     def _make_key(self, message: Any) -> str:
         name = type(message).__name__
         data = orjson.dumps(message.model_dump(), option=orjson.OPT_SORT_KEYS)
-        digest = hashlib.md5(data).hexdigest()  # noqa: S324
+        digest = hashlib.md5(data).hexdigest()
         return f"{name}:{digest}"
 
     async def before(self, message: Any) -> None:

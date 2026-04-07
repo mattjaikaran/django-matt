@@ -51,7 +51,7 @@ class SecretReference:
 
 
 class _CacheEntry:
-    __slots__ = ("value", "expires_at")
+    __slots__ = ("expires_at", "value")
 
     def __init__(self, value: str, ttl: float) -> None:
         self.value = value

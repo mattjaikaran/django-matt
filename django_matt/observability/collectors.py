@@ -27,10 +27,8 @@ class _HistogramBucket:
     def observe(self, value: float) -> None:
         self.count += 1
         self.total += value
-        if value < self.min_val:
-            self.min_val = value
-        if value > self.max_val:
-            self.max_val = value
+        self.min_val = min(self.min_val, value)
+        self.max_val = max(self.max_val, value)
         self.values.append(value)
 
     @property

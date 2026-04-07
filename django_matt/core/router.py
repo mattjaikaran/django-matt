@@ -5,7 +5,7 @@ from typing import get_type_hints
 
 import django
 from django.http import HttpResponse, JsonResponse
-from django.urls import path, re_path
+from django.urls import path
 
 import orjson
 from pydantic import BaseModel, ValidationError

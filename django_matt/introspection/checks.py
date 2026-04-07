@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import time
 
 from django_matt.introspection.registry import ComponentInfo, ComponentStatus
 
@@ -155,8 +154,9 @@ async def check_email() -> ComponentInfo:
             info.status = ComponentStatus.HEALTHY
             info.details["note"] = "non-production backend"
         else:
-            from asgiref.sync import sync_to_async
             from django.core.mail import get_connection
+
+            from asgiref.sync import sync_to_async
 
             def _test_connection() -> None:
                 conn = get_connection(fail_silently=False)

@@ -16,7 +16,7 @@ class ConfigNamespace(BaseModel):
     _settings_key: ClassVar[str] = ""
 
     @classmethod
-    def from_settings(cls, key: str | None = None) -> "ConfigNamespace":
+    def from_settings(cls, key: str | None = None) -> ConfigNamespace:
         settings_key = key or cls._settings_key
         if not settings_key:
             raise ValueError(

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import functools
-import operator
 from typing import Any, Callable
 
 from pydantic import BaseModel

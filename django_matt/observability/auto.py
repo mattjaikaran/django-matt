@@ -14,7 +14,7 @@ from django_matt.observability.collectors import (
     RequestMetricsCollector,
     metrics_registry,
 )
-from django_matt.observability.spans import Span, aspan, span
+from django_matt.observability.spans import aspan, span
 
 logger = logging.getLogger("django_matt.observability.auto")
 F = TypeVar("F", bound=Callable[..., Any])

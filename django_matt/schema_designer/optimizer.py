@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from typing import Any
-
 from django.apps import apps
 from django.db import models
+
 from pydantic import BaseModel
 
 
@@ -187,7 +186,7 @@ class SchemaOptimizer:
             parts = s.model_name.split(".")
             model_lower = parts[-1].lower() if parts else "model"
             lines.append(
-                f"        migrations.AddIndex("
+                "        migrations.AddIndex("
             )
             lines.append(
                 f"            model_name='{model_lower}',"

@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-import orjson
 from django.http import HttpRequest, HttpResponse
+
+import orjson
 
 from django_matt.exceptions.filters import ExceptionFilter
 

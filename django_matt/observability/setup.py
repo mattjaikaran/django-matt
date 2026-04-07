@@ -31,7 +31,7 @@ def _is_debug() -> bool:
 
 def _build_exporters(config: dict[str, Any]) -> list[ExporterProtocol]:
     exporters: list[ExporterProtocol] = []
-    exporter_configs = config.get("EXPORTERS", None)
+    exporter_configs = config.get("EXPORTERS")
 
     if exporter_configs is None:
         if _is_debug():

@@ -76,6 +76,17 @@ Example usage:
 
 # Tracing
 # Decorators
+# Auto-instrumentation
+from django_matt.observability.auto import AutoInstrumentor, reset_instrumentation
+
+# Collectors
+from django_matt.observability.collectors import (
+    CacheMetricsCollector,
+    DatabaseMetricsCollector,
+    MetricsRegistry,
+    RequestMetricsCollector,
+    metrics_registry,
+)
 from django_matt.observability.decorators import (
     counted,
     metric,
@@ -83,6 +94,16 @@ from django_matt.observability.decorators import (
     timed,
     trace,
     with_span_attribute,
+)
+
+# Exporters
+from django_matt.observability.exporters import (
+    ConsoleExporter,
+    ExporterProtocol,
+    JSONExporter,
+    MultiExporter,
+    OpenTelemetryExporter,
+    PrometheusExporter,
 )
 
 # Logging
@@ -126,6 +147,29 @@ from django_matt.observability.middleware import (
     ObservabilityMiddleware,
     TracingMiddleware,
 )
+
+# Setup
+from django_matt.observability.setup import (
+    get_exporter,
+    get_instrumentor,
+    get_metrics_snapshot,
+    setup_observability,
+    shutdown_observability,
+)
+
+# Spans
+from django_matt.observability.spans import (
+    Span,
+    SpanStatus,
+    add_span_listener,
+    aspan,
+    remove_span_listener,
+    span,
+    traced,
+)
+from django_matt.observability.spans import (
+    get_current_span as get_current_local_span,
+)
 from django_matt.observability.tracing import (
     HAS_DATADOG,
     HAS_JAEGER,
@@ -162,49 +206,6 @@ from django_matt.observability.views import (
     ready_view,
 )
 from django_matt.observability.views import urlpatterns as observability_urlpatterns
-
-# Auto-instrumentation
-from django_matt.observability.auto import AutoInstrumentor, reset_instrumentation
-
-# Collectors
-from django_matt.observability.collectors import (
-    CacheMetricsCollector,
-    DatabaseMetricsCollector,
-    MetricsRegistry,
-    RequestMetricsCollector,
-    metrics_registry,
-)
-
-# Exporters
-from django_matt.observability.exporters import (
-    ConsoleExporter,
-    ExporterProtocol,
-    JSONExporter,
-    MultiExporter,
-    OpenTelemetryExporter,
-    PrometheusExporter,
-)
-
-# Setup
-from django_matt.observability.setup import (
-    get_exporter,
-    get_instrumentor,
-    get_metrics_snapshot,
-    setup_observability,
-    shutdown_observability,
-)
-
-# Spans
-from django_matt.observability.spans import (
-    Span,
-    SpanStatus,
-    add_span_listener,
-    aspan,
-    get_current_span as get_current_local_span,
-    remove_span_listener,
-    span,
-    traced,
-)
 
 __all__ = [
     # Tracing

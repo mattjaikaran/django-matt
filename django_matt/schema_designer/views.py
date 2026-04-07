@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-import orjson
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.urls import path
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+
+import orjson
 
 from django_matt.schema_designer.analyzer import SchemaAnalyzer
 from django_matt.schema_designer.optimizer import SchemaOptimizer

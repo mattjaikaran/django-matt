@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-import sys
 import time
 
-import django
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import HttpRequest, HttpResponse
 from django.urls import path
 
 import orjson
 
-import django_matt
 from django_matt.introspection.registry import ComponentStatus, registry
 from django_matt.introspection.report import generate_report
 

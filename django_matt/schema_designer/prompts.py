@@ -1,7 +1,11 @@
 from __future__ import annotations
 
-from django_matt.schema_designer.analyzer import SchemaAnalyzer, Severity
-from django_matt.schema_designer.visualizer import _get_models, _field_type_str, _get_concrete_fields
+from django_matt.schema_designer.analyzer import SchemaAnalyzer
+from django_matt.schema_designer.visualizer import (
+    _field_type_str,
+    _get_concrete_fields,
+    _get_models,
+)
 
 
 def _compact_schema(app_labels: list[str] | None = None) -> str:

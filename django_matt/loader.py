@@ -37,7 +37,7 @@ LIGHT_MODULES: frozenset[str] = frozenset({
 
 
 class LazyModuleProxy:
-    __slots__ = ("_module_path", "_module", "_lock")
+    __slots__ = ("_lock", "_module", "_module_path")
 
     def __init__(self, module_path: str) -> None:
         object.__setattr__(self, "_module_path", module_path)

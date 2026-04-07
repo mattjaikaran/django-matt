@@ -106,6 +106,7 @@ def optimize(
 ) -> None:
     _ensure_django()
     from django.apps import apps
+
     from django_matt.schema_designer.optimizer import SchemaOptimizer
 
     optimizer = SchemaOptimizer()
@@ -131,7 +132,7 @@ def optimize(
         table.add_row(s.model_name, s.field_name, s.reason)
 
     console.print(table)
-    console.print(f"\n[bold]Migration code:[/bold]\n")
+    console.print("\n[bold]Migration code:[/bold]\n")
     console.print(optimizer.generate_migration(all_suggestions))
 
 

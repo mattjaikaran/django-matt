@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Callable
 
 from django.http import HttpRequest, HttpResponse
 
