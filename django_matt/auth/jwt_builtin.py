@@ -354,7 +354,7 @@ def encode_jwt(
         claims["jti"] = jwt_id
 
     # Fast path: use Rust for supported algorithms (no custom headers)
-    rust_supported = {"HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256", "ES384"}
+    rust_supported = {"HS256", "HS384", "HS512"}
     if HAS_RUST and algorithm in rust_supported and not headers:
         secret_bytes = secret.encode("utf-8") if isinstance(secret, str) else secret
         claims_json = orjson.dumps(claims, option=orjson.OPT_SORT_KEYS)

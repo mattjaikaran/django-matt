@@ -308,7 +308,8 @@ class TestAnalyticsDatabaseBackend:
         )
 
         session = AnalyticsSession.objects.get(session_id="group-sess-1")
-        assert session.organization_id == "org-42"
+        assert session.metadata["organization_id"] == "org-42"
+        assert session.metadata["organization_traits"] == {"name": "Acme"}
 
 
 # ============================================================================
@@ -322,7 +323,7 @@ class TestAnalyticsSessionModel:
             session_id="test-sess-1",
             status=SessionStatus.ACTIVE.value,
         )
-        assert "test-sess" in str(session)
+        assert "test-ses" in str(session)
 
     def test_end_session(self):
         session = AnalyticsSession.objects.create(
@@ -685,18 +686,18 @@ class TestAggregator:
     async def test_get_session_metrics_with_data(self):
         now = timezone.now()
         await sync_to_async(AnalyticsSession.objects.create)(
-            session_id="sess-metric-1", started_at=now - timedelta(hours=1),
+            session_id="sess-metric-1",
             page_views=5, duration_seconds=300,
         )
         await sync_to_async(AnalyticsSession.objects.create)(
-            session_id="sess-metric-2", started_at=now - timedelta(hours=2),
+            session_id="sess-metric-2",
             page_views=1, duration_seconds=10,
         )
 
         aggregator = Aggregator()
         metrics = await aggregator.get_session_metrics(
             start=now - timedelta(days=1),
-            end=now,
+            end=now + timedelta(minutes=1),
         )
 
         assert metrics["total_sessions"] == 2

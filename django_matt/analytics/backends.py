@@ -308,11 +308,14 @@ class DatabaseBackend(AnalyticsBackend):
         """Associate user with a group (organization)."""
         from .models import AnalyticsSession
 
-        # Update organization_id on user's sessions
-        AnalyticsSession.objects.filter(
-            user_id=user_id,
-            organization_id="",
-        ).update(organization_id=group_id)
+        # Store group association in session metadata
+        for session in AnalyticsSession.objects.filter(user_id=user_id):
+            meta = session.metadata or {}
+            meta["organization_id"] = group_id
+            if traits:
+                meta["organization_traits"] = traits
+            session.metadata = meta
+            session.save(update_fields=["metadata"])
 
         # Track group event
         self.track_event(
