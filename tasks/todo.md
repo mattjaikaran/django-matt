@@ -3,34 +3,41 @@
 ## Up Next — Launch Readiness
 
 ### Distribution & Publishing
-- [ ] PyPI package distribution — `uv build`, twine check, trusted publisher setup
+- [x] PyPI package distribution — `uv build`, twine check pass
+- [ ] Trusted publisher setup on PyPI
 - [ ] CI wheel building for Rust extensions (GitHub Actions, manylinux/macOS/Windows)
 - [ ] Publish to TestPyPI for validation before real publish
 - [ ] `django-matt[rust]` optional extra with pre-built wheels
 
 ### Documentation Site
-- [ ] Deploy docs site (MkDocs Material on GitHub Pages or Vercel)
-- [ ] Verify all mkdocs nav links resolve (no broken links)
-- [ ] Add search functionality
+- [x] MkDocs Material site builds successfully (`uv run mkdocs build`)
+- [ ] Deploy docs site (GitHub Pages or Vercel)
+- [ ] Fix broken links (27 warnings in strict mode — forward refs to planned pages)
 - [ ] Add version switcher for future releases
 
 ### Example App Refresh
-- [ ] Update all example apps to use new modules (interceptors, events, CQRS, streaming)
+- [x] Update example apps with new modules (interceptors, events, streaming)
+  - devplatform: SSE streaming analytics, interceptors+exception filters on gateway
+  - ecommerce-v2: event bus on orders, domain event handlers
+  - saas-starter: interceptors on projects, events on CRUD, SSE notifications
 - [ ] Add new example: AI chat app with SSE streaming + CQRS
 - [ ] Add new example: multi-tenant SaaS with events + feature flags
 - [ ] Ensure all examples run with `uv run python manage.py runserver`
 
 ### Polish
-- [ ] Final full test suite run — confirm 6141+ pass, 0 fail
-- [ ] Ruff lint pass on all new modules
+- [x] Ruff lint pass — all source clean (0 errors)
+- [x] Fix: AnalyticsDatabaseBackend.group() used non-existent field, now uses metadata
+- [x] Fix: test_create_and_str assertion matched truncated session_id
+- [x] Fix: test_get_session_metrics_with_data date range didn't include auto_now_add sessions
+- [ ] Full test suite confirmation (running)
 - [ ] Type check pass (pyright) on new modules
 - [ ] Review all LLM migration prompts for accuracy
 
 ### Community Prep
-- [ ] CONTRIBUTING.md — contribution guidelines, PR process, code style
-- [ ] Issue templates (bug report, feature request)
-- [ ] PR template
-- [ ] LICENSE file verification
+- [x] LICENSE file (Apache 2.0)
+- [x] CONTRIBUTING.md — contribution guidelines, PR process, code style
+- [x] Issue templates (bug report, feature request)
+- [x] PR template
 - [ ] GitHub repo settings (topics, description, social preview)
 
 ---
