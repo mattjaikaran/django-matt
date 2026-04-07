@@ -18,3 +18,8 @@ def register_analytics_routes(api: MattAPI) -> None:
         "organizations/<str:org_id>/projects/<str:project_id>/analytics/timeseries",
         tags=["Analytics"],
     )(AnalyticsController.get_time_series)
+
+    api.get(
+        "organizations/<str:org_id>/projects/<str:project_id>/analytics/stream",
+        tags=["Analytics"],
+    )(AnalyticsController.stream_metrics)

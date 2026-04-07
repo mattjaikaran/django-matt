@@ -6,6 +6,7 @@ from django.utils.dateparse import parse_date
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import APIError, NotFoundAPIError
+from django_matt.streaming import event, sse_response
 
 from apps.analytics.models import DailyMetric
 from apps.analytics.schemas import DailyMetricSchema
@@ -148,3 +149,38 @@ class AnalyticsController(APIController):
             "metric": metric,
             "data": data,
         }
+
+    @staticmethod
+    @jwt_required
+    async def stream_metrics(request, org_id: str, project_id: str):
+        """Stream live metrics updates via SSE."""
+        import asyncio
+        await get_membership(request.user, org_id)
+
+        try:
+            await Project.objects.aget(id=project_id, organization_id=org_id)
+        except Project.DoesNotExist:
+            raise NotFoundAPIError("Project not found")
+
+        async def generate():
+            while True:
+                now = timezone.now()
+                qs = DailyMetric.objects.filter(
+                    project_id=project_id,
+                    date=now.date(),
+                )
+                aggregates = await qs.aaggregate(
+                    total_requests=Sum("total_requests"),
+                    avg_response_time=Avg("avg_response_time_ms"),
+                )
+                yield event(
+                    {
+                        "total_requests": aggregates["total_requests"] or 0,
+                        "avg_response_time": round(aggregates["avg_response_time"] or 0, 2),
+                        "timestamp": now.isoformat(),
+                    },
+                    event_type="metrics",
+                )
+                await asyncio.sleep(5)
+
+        return sse_response(generate())

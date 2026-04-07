@@ -12,6 +12,8 @@ from uuid import UUID
 from django.db import models
 from django_matt.auth import jwt_required
 from django_matt.core import APIController, api_controller
+from django_matt.events import Event, get_event_bus
+from django_matt.interceptors import LoggingInterceptor, TimingInterceptor, intercept
 from django_matt.permissions import IsAuthenticated
 
 from core.models import AuditLog, Membership, Organization, User
@@ -32,6 +34,7 @@ from projects.schemas import (
 
 
 @api_controller("/organizations/{org_slug}/projects", tags=["Projects"])
+@intercept(TimingInterceptor(), LoggingInterceptor())
 class ProjectController(APIController):
     """Project management endpoints."""
 
@@ -199,6 +202,13 @@ class ProjectController(APIController):
             data={"name": project.name},
         )
 
+        # Emit domain event
+        bus = get_event_bus()
+        await bus.emit(Event(
+            name="project.created",
+            data={"project_id": str(project.id), "org_slug": org_slug, "name": project.name},
+        ))
+
         return ProjectDetailResponse.model_validate(project)
 
     @APIController.get("/{project_slug}", response=ProjectDetailResponse, permissions=[IsAuthenticated])
@@ -317,6 +327,13 @@ class ProjectController(APIController):
                 resource_id=str(project.id),
                 data={"name": project.name},
             )
+
+            # Emit domain event
+            bus = get_event_bus()
+            await bus.emit(Event(
+                name="project.archived",
+                data={"project_id": str(project.id), "org_slug": org_slug},
+            ))
 
             return {"message": "Project archived"}
 

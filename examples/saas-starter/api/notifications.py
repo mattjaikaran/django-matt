@@ -10,9 +10,12 @@ Includes:
 from uuid import UUID
 
 from django.db import models
+from django.utils import timezone
 from django_matt.auth import jwt_required
 from django_matt.core import APIController, api_controller
 from django_matt.permissions import IsAuthenticated
+from django_matt.streaming import event as sse_event
+from django_matt.streaming import sse_response
 
 from core.models import Membership, Organization
 from notifications.models import Notification, NotificationPreference
@@ -180,6 +183,40 @@ class NotificationController(APIController):
             return {"message": "Notification deleted"}
         except Notification.DoesNotExist:
             return {"error": "Notification not found"}, 404
+
+    # =========================================================================
+    # SSE Streaming
+    # =========================================================================
+
+    @APIController.get("/stream", permissions=[IsAuthenticated])
+    @jwt_required
+    @staticmethod
+    async def stream_notifications(request):
+        """Stream new notifications via SSE."""
+        import asyncio
+
+        async def generate():
+            last_check = timezone.now()
+            while True:
+                new_notifs = []
+                async for n in Notification.objects.filter(
+                    user=request.user,
+                    created_at__gt=last_check,
+                    is_read=False,
+                ).order_by("-created_at")[:10]:
+                    new_notifs.append({
+                        "id": str(n.id),
+                        "title": n.title,
+                        "message": n.message,
+                        "type": n.type,
+                        "created_at": n.created_at.isoformat(),
+                    })
+                if new_notifs:
+                    yield sse_event(new_notifs, event_type="notifications")
+                last_check = timezone.now()
+                await asyncio.sleep(3)
+
+        return sse_response(generate())
 
     # =========================================================================
     # Preferences

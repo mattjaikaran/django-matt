@@ -5,6 +5,8 @@ from decimal import Decimal
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import APIError, NotFoundAPIError, ValidationAPIError
+from django_matt.events import Event, get_event_bus
+from django_matt.exceptions import ValidationExceptionFilter, catch
 
 from apps.catalog.models import Inventory, Product, Variant
 from apps.orders.models import Order, OrderItem, OrderStatus
@@ -35,6 +37,7 @@ async def _get_inventory(variant: Variant) -> Inventory | None:
         return None
 
 
+@catch(ValidationExceptionFilter())
 class OrderController(APIController):
     prefix = "orders"
     tags = ["Orders"]
@@ -202,6 +205,13 @@ class OrderController(APIController):
                 ).model_dump()
             )
 
+        # Emit order created event
+        bus = get_event_bus()
+        await bus.emit(Event(
+            name="order.created",
+            data={"order_id": str(order.id), "user_id": str(request.user.id), "total": str(total)},
+        ))
+
         return {
             "id": str(order.id),
             "user_id": str(order.user_id),
@@ -311,6 +321,13 @@ class OrderController(APIController):
 
         order.status = OrderStatus.CANCELLED
         await order.asave()
+
+        # Emit order cancelled event
+        bus = get_event_bus()
+        await bus.emit(Event(
+            name="order.cancelled",
+            data={"order_id": str(order.id), "user_id": str(request.user.id)},
+        ))
 
         # Restore inventory stock
         async for item in order.items.select_related("variant").all():

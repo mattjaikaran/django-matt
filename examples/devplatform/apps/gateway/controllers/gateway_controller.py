@@ -3,6 +3,8 @@ from django.utils.dateparse import parse_datetime
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import NotFoundAPIError
+from django_matt.exceptions import NotFoundExceptionFilter, catch
+from django_matt.interceptors import LoggingInterceptor, TimingInterceptor, intercept
 
 from apps.gateway.models import RequestLog
 from apps.gateway.schemas import RequestLogSchema
@@ -10,6 +12,8 @@ from apps.organizations.controllers.utils import get_membership
 from apps.projects.models import Project
 
 
+@intercept(TimingInterceptor(), LoggingInterceptor())
+@catch(NotFoundExceptionFilter())
 class GatewayController(APIController):
     tags = ["Gateway"]
 
