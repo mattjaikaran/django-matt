@@ -2,6 +2,58 @@
 
 The service layer sits between controllers and models. Controllers handle HTTP concerns (parsing requests, returning responses, checking permissions). Services own the business logic.
 
+## Architecture Philosophy
+
+django-matt enforces a **thin controller, fat service** architecture. Every layer has exactly one job:
+
+```
+Request
+  │
+  ▼
+Controller          ← HTTP only: parse input, check permissions, format output
+  │
+  ▼
+Service             ← Business logic: validation, DB ops, side effects, events
+  │
+  ▼
+Model / DB          ← Data persistence, constraints, migrations
+  │
+  ▼
+Response
+```
+
+### What belongs in the controller
+
+- Parse path/query/body parameters (Pydantic schemas do this automatically)
+- Check permissions (`permission_classes`, `@jwt_required`)
+- Call one or more service methods
+- Format the return value (pagination envelope, status code selection)
+- Map service exceptions to HTTP errors
+
+### What belongs in the service
+
+- All ORM queries (reads and writes)
+- Business rule validation (`raise ValidationError(...)`)
+- State machine transitions (`order.cancel()`, `task.change_status()`)
+- Audit field population (`created_by`, `updated_by`)
+- Cross-model orchestration (checkout flow touching orders + inventory + payments)
+- Side effects (emit events, send notifications, update caches)
+
+### When you can skip the service layer
+
+- Truly trivial CRUD with no business logic — use `CRUDController` (declarative pattern)
+- One-off admin scripts or management commands that are not called from multiple places
+- Read-only endpoints that return a single queryset with no transformation
+
+### How services integrate with other django-matt modules
+
+| Module | Integration |
+|--------|-------------|
+| [Events](../events/) | Service methods call `await bus.emit(event)` after mutations |
+| [CQRS](../cqrs/) | Service methods become the body of `CommandHandler.execute()` |
+| [Interceptors](../interceptors/) | Cross-cutting concerns (logging, timing) wrap controller dispatch, not service calls |
+| [Transactions](https://docs.djangoproject.com/en/5.2/topics/db/transactions/) | `create()` and `update()` already run inside `transaction.atomic()`; compose with `async with transaction.atomic()` for multi-service operations |
+
 ## Why Services?
 
 A controller without a service quickly accumulates ORM calls, conditional logic, and audit boilerplate that has nothing to do with HTTP. The service layer prevents that:
@@ -313,5 +365,7 @@ from django_matt.services import (
 - [CRUDService API Reference](./crud-service.md) — all method signatures
 - [BaseThirdPartyService Guide](./third-party.md) — external HTTP clients
 - [Service Patterns](./patterns.md) — naming, structure, testing, anti-patterns
+- [Migration Guide](./migration.md) — extracting logic from fat controllers into services
+- [Service Layer Tutorial](../tutorials/service-layer.md) — end-to-end walkthrough
 - [Controllers](../controllers.md) — controller overview
 - [Dependency Injection](../di/overview.md) — alternative injection strategies
