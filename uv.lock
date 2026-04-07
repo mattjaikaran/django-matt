@@ -539,7 +539,7 @@ wheels = [
 
 [[package]]
 name = "django-matt"
-version = "1.0.0"
+version = "0.8.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
@@ -660,6 +660,7 @@ testing = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "cryptography" },
     { name = "django-stubs" },
     { name = "httpx" },
     { name = "mypy" },
@@ -739,6 +740,7 @@ provides-extras = ["dev", "docs", "performance", "benchmark", "auth", "jwt-asymm
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "cryptography", specifier = ">=46.0.3" },
     { name = "django-stubs", specifier = ">=5.0.0" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "mypy", specifier = ">=1.11.0" },

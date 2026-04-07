@@ -10,7 +10,7 @@ mod serializer;
 ///
 /// Compiled hot paths:
 /// - URL routing (radix tree)
-/// - JWT encode/decode/verify (HMAC: HS256/HS384/HS512)
+/// - JWT encode/decode/verify (HMAC: HS256/HS384/HS512, RSA: RS256/RS384/RS512, EC: ES256/ES384)
 /// - Query string parsing
 /// - Header parsing
 /// - JSON serialization (dict list → bytes)
