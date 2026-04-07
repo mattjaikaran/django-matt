@@ -78,9 +78,19 @@ class LimitOffsetPagination(BasePagination):
         self._offset: int = 0
 
     def get_limit(self, request: HttpRequest) -> int:
-        """Get the limit from request or use default."""
+        """Get the limit from request or use default.
+
+        Uses Rust-parsed ``pagination`` dict when available on
+        ``request._parsed_qs``.
+        """
+        parsed_qs = getattr(request, "_parsed_qs", None)
+        raw = None
+        if parsed_qs is not None:
+            raw = parsed_qs.get("pagination", {}).get(self.limit_query_param)
         try:
-            limit = int(request.GET.get(self.limit_query_param, self.default_limit))
+            limit = int(raw) if raw is not None else int(
+                request.GET.get(self.limit_query_param, self.default_limit)
+            )
         except (ValueError, TypeError):
             limit = self.default_limit
 
@@ -90,9 +100,19 @@ class LimitOffsetPagination(BasePagination):
         return min(limit, self.max_limit)
 
     def get_offset(self, request: HttpRequest) -> int:
-        """Get the offset from request, defaulting to 0."""
+        """Get the offset from request, defaulting to 0.
+
+        Uses Rust-parsed ``pagination`` dict when available on
+        ``request._parsed_qs``.
+        """
+        parsed_qs = getattr(request, "_parsed_qs", None)
+        raw = None
+        if parsed_qs is not None:
+            raw = parsed_qs.get("pagination", {}).get(self.offset_query_param)
         try:
-            offset = int(request.GET.get(self.offset_query_param, 0))
+            offset = int(raw) if raw is not None else int(
+                request.GET.get(self.offset_query_param, 0)
+            )
         except (ValueError, TypeError):
             offset = 0
         return max(0, offset)

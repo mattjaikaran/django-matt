@@ -157,6 +157,9 @@ class ListView(APIView):
 
     async def handle(self, request: HttpRequest, **kwargs) -> dict[str, Any]:
         """Handle GET request to list resources."""
+        # Parse query string once with Rust (if available) and cache on request
+        self._get_parsed_qs(request)
+
         queryset = self.get_queryset(request)
 
         # Parse dynamic field selection (?fields=id,name,email)
@@ -300,7 +303,13 @@ class ListView(APIView):
         return queryset
 
     def _apply_filters(self, queryset: models.QuerySet, request: HttpRequest) -> models.QuerySet:
-        """Apply filters from query parameters."""
+        """Apply filters from query parameters.
+
+        When a Rust-parsed query is available on ``request._parsed_qs``, uses
+        pre-parsed ``filters`` (from ``filter[field]=value`` syntax) and
+        ``extras`` (Django-style ``field=value`` / ``field__lookup=value``)
+        instead of re-iterating ``request.GET``.
+        """
         # Check for FilterSet first
         filterset_class = self._get_filterset_class()
         if filterset_class:
@@ -318,28 +327,47 @@ class ListView(APIView):
             model = self._viewset.model
             filter_fields = [f.name for f in model._meta.fields]
 
-        filters = {}
-        for key, value in request.GET.items():
-            if key in (
-                "page",
-                "page_size",
-                "ordering",
-                "order_by",
-                "search",
-                "cursor",
-                "limit",
-                "offset",
-                "no_page",
-                "fields",
-            ):
-                continue
+        filters: dict[str, Any] = {}
 
-            base_field = key.split("__")[0]
-            if base_field in filter_fields:
-                # Handle comma-separated values for __in lookups
-                if key.endswith("__in"):
-                    value = [v.strip() for v in value.split(",")]
-                filters[key] = value
+        parsed_qs = getattr(request, "_parsed_qs", None)
+        if parsed_qs is not None:
+            # Use Rust-parsed filter params: filter[status]=active → filters dict
+            for key, value in parsed_qs.get("filters", {}).items():
+                base_field = key.split("__")[0]
+                if base_field in filter_fields:
+                    if key.endswith("__in"):
+                        value = [v.strip() for v in value.split(",")]
+                    filters[key] = value
+
+            # Also check extras for Django-style ?status=active params
+            for key, value in parsed_qs.get("extras", {}).items():
+                base_field = key.split("__")[0]
+                if base_field in filter_fields:
+                    if key.endswith("__in"):
+                        value = [v.strip() for v in value.split(",")]
+                    filters[key] = value
+        else:
+            for key, value in request.GET.items():
+                if key in (
+                    "page",
+                    "page_size",
+                    "ordering",
+                    "order_by",
+                    "search",
+                    "cursor",
+                    "limit",
+                    "offset",
+                    "no_page",
+                    "fields",
+                ):
+                    continue
+
+                base_field = key.split("__")[0]
+                if base_field in filter_fields:
+                    # Handle comma-separated values for __in lookups
+                    if key.endswith("__in"):
+                        value = [v.strip() for v in value.split(",")]
+                    filters[key] = value
 
         if filters:
             queryset = queryset.filter(**filters)
@@ -347,8 +375,17 @@ class ListView(APIView):
         return queryset
 
     def _apply_search(self, queryset: models.QuerySet, request: HttpRequest) -> models.QuerySet:
-        """Apply search filter."""
-        search = request.GET.get("search")
+        """Apply search filter.
+
+        Uses Rust-parsed ``extras.search`` when available, falling back to
+        ``request.GET.get("search")``.
+        """
+        parsed_qs = getattr(request, "_parsed_qs", None)
+        if parsed_qs is not None:
+            search = parsed_qs.get("extras", {}).get("search") or parsed_qs.get("extras", {}).get("q")
+        else:
+            search = request.GET.get("search")
+
         if not search or not self.search_fields:
             return queryset
 
@@ -363,14 +400,23 @@ class ListView(APIView):
     def _apply_pagination(
         self, queryset: models.QuerySet, request: HttpRequest
     ) -> tuple[models.QuerySet, dict[str, Any]]:
-        """Apply pagination to the queryset."""
+        """Apply pagination to the queryset.
+
+        Uses Rust-parsed ``pagination`` dict when available on
+        ``request._parsed_qs``, falling back to ``request.GET``.
+        """
+        parsed_qs = getattr(request, "_parsed_qs", None)
+        pagination_params = parsed_qs.get("pagination", {}) if parsed_qs is not None else {}
+
         try:
-            page = int(request.GET.get("page", 1))
+            raw_page = pagination_params.get("page") if pagination_params else None
+            page = int(raw_page) if raw_page is not None else int(request.GET.get("page", 1))
         except (TypeError, ValueError):
             page = 1
 
         try:
-            page_size = int(request.GET.get("page_size", self.page_size))
+            raw_size = pagination_params.get("page_size") if pagination_params else None
+            page_size = int(raw_size) if raw_size is not None else int(request.GET.get("page_size", self.page_size))
         except (TypeError, ValueError):
             page_size = self.page_size
 

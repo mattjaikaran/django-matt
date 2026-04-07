@@ -98,6 +98,10 @@ class DjangoFilterBackend(BaseFilterBackend):
         """
         Automatically filter based on query parameters.
 
+        When a Rust-parsed query is available on ``request._parsed_qs``, uses
+        the pre-parsed ``filters`` and ``extras`` dicts instead of
+        re-iterating ``request.GET``.
+
         Supports Django ORM lookup syntax:
             ?field=value (exact match)
             ?field__icontains=value (case-insensitive contains)
@@ -112,10 +116,23 @@ class DjangoFilterBackend(BaseFilterBackend):
             except Exception:
                 allowed_fields = []
 
+        parsed_qs = getattr(request, "_parsed_qs", None)
+        if parsed_qs is not None:
+            # Use Rust-parsed params: filter[field]=value → filters dict,
+            # field=value → extras dict
+            items: list[tuple[str, str]] = []
+            for key, value in parsed_qs.get("filters", {}).items():
+                items.append((key, value))
+            for key, value in parsed_qs.get("extras", {}).items():
+                if key not in self.RESERVED_PARAMS:
+                    items.append((key, value))
+        else:
+            items = [(k, v) for k, v in request.GET.items()]
+
         # Process query parameters
-        for param, value in request.GET.items():
-            # Skip reserved params
-            if param in self.RESERVED_PARAMS:
+        for param, value in items:
+            # Skip reserved params (only needed for non-Rust path)
+            if parsed_qs is None and param in self.RESERVED_PARAMS:
                 continue
 
             # Skip empty values
@@ -211,9 +228,17 @@ class SearchBackend(BaseFilterBackend):
         """
         Get search terms from request.
 
+        Uses Rust-parsed ``extras`` when available on ``request._parsed_qs``,
+        falling back to ``request.GET``.
+
         Splits on whitespace for multi-term search.
         """
-        search = request.GET.get(self.search_param, "")
+        parsed_qs = getattr(request, "_parsed_qs", None)
+        if parsed_qs is not None:
+            extras = parsed_qs.get("extras", {})
+            search = extras.get(self.search_param, "")
+        else:
+            search = request.GET.get(self.search_param, "")
         search = search.strip()
         if not search:
             return []
@@ -371,11 +396,22 @@ class OrderingBackend(BaseFilterBackend):
 
         Returns list of ordering fields (with optional - prefix for descending).
         """
-        # Get from request
-        ordering_str = request.GET.get(self.ordering_param, "")
-        if ordering_str:
-            ordering = [f.strip() for f in ordering_str.split(",") if f.strip()]
+        # Try Rust-parsed sort tuples first, then fall back to request.GET
+        ordering: list[str] = []
+        parsed_qs = getattr(request, "_parsed_qs", None)
+        if parsed_qs is not None:
+            sort_tuples = parsed_qs.get("sort", [])
+            if sort_tuples:
+                ordering = [
+                    f"-{field}" if not ascending else field
+                    for field, ascending in sort_tuples
+                ]
         else:
+            ordering_str = request.GET.get(self.ordering_param, "")
+            if ordering_str:
+                ordering = [f.strip() for f in ordering_str.split(",") if f.strip()]
+
+        if not ordering:
             # Use view default
             default = self.get_default_ordering(view)
             if isinstance(default, str):
