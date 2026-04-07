@@ -13,8 +13,8 @@ env:
   FORCE_COLOR: "1"
 
 jobs:
-  build:
-    name: Build Package
+  build-python:
+    name: Build Python Package
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,21 +33,121 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist
+          name: dist-python
           path: dist/
 
-  github-release:
-    name: Create GitHub Release
-    needs: build
+  build-rust-linux:
+    name: Rust Wheels (Linux ${{ matrix.target }}, Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64, aarch64]
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build manylinux wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: rust
+          target: ${{ matrix.target }}
+          args: --release --out dist --interpreter python${{ matrix.python-version }}
+          manylinux: auto
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-rust-linux-${{ matrix.target }}-py${{ matrix.python-version }}
+          path: rust/dist/*.whl
+
+  build-rust-macos:
+    name: Rust Wheels (macOS ${{ matrix.target }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.target == 'aarch64-apple-darwin' && 'macos-14' || 'macos-13' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64-apple-darwin, aarch64-apple-darwin]
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Build wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: rust
+          target: ${{ matrix.target }}
+          args: --release --out dist
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-rust-macos-${{ matrix.target }}-py${{ matrix.python-version }}
+          path: rust/dist/*.whl
+
+  build-rust-windows:
+    name: Rust Wheels (Windows, Python ${{ matrix.python-version }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Build wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: rust
+          target: x86_64-pc-windows-msvc
+          args: --release --out dist
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-rust-windows-py${{ matrix.python-version }}
+          path: rust/dist/*.whl
+
+  build-rust-sdist:
+    name: Rust Source Distribution
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download artifacts
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: rust
+          command: sdist
+          args: --out dist
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-rust-sdist
+          path: rust/dist/*.tar.gz
+
+  github-release:
+    name: Create GitHub Release
+    needs: [build-python, build-rust-linux, build-rust-macos, build-rust-windows, build-rust-sdist]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: dist
+          pattern: dist-*
           path: dist/
+          merge-multiple: true
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
@@ -87,7 +187,7 @@ jobs:
   # Uncomment when ready to publish to PyPI
   # pypi-publish:
   #   name: Publish to PyPI
-  #   needs: build
+  #   needs: [build-python, build-rust-linux, build-rust-macos, build-rust-windows, build-rust-sdist]
   #   runs-on: ubuntu-latest
   #   environment:
   #     name: pypi
@@ -95,11 +195,12 @@ jobs:
   #   permissions:
   #     id-token: write  # OIDC publishing
   #   steps:
-  #     - name: Download artifacts
+  #     - name: Download all artifacts
   #       uses: actions/download-artifact@v4
   #       with:
-  #         name: dist
+  #         pattern: dist-*
   #         path: dist/
+  #         merge-multiple: true
   #
   #     - name: Publish to PyPI
   #       uses: pypa/gh-action-pypi-publish@release/v1
