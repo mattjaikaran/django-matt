@@ -69,9 +69,17 @@ class PageNumberPagination(BasePagination):
         self._total_pages: int = 1
 
     def get_page_number(self, request: HttpRequest) -> int:
-        """Get the page number from request, defaulting to 1."""
+        """Get the page number from request, defaulting to 1.
+
+        Uses Rust-parsed ``pagination`` dict when available on
+        ``request._parsed_qs``.
+        """
+        parsed_qs = getattr(request, "_parsed_qs", None)
+        raw = None
+        if parsed_qs is not None:
+            raw = parsed_qs.get("pagination", {}).get(self.page_query_param)
         try:
-            page = int(request.GET.get(self.page_query_param, 1))
+            page = int(raw) if raw is not None else int(request.GET.get(self.page_query_param, 1))
         except (ValueError, TypeError):
             page = 1
         return max(1, page)

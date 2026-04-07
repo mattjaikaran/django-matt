@@ -124,9 +124,18 @@ class BasePagination(ABC):
         """
         Get the page size from request or use default.
         Respects max_page_size limit.
+
+        Uses Rust-parsed ``pagination`` dict when available on
+        ``request._parsed_qs``.
         """
+        parsed_qs = getattr(request, "_parsed_qs", None)
+        raw = None
+        if parsed_qs is not None:
+            raw = parsed_qs.get("pagination", {}).get(self.page_size_query_param)
         try:
-            page_size = int(request.GET.get(self.page_size_query_param, self.page_size))
+            page_size = int(raw) if raw is not None else int(
+                request.GET.get(self.page_size_query_param, self.page_size)
+            )
         except (ValueError, TypeError):
             page_size = self.page_size
 
