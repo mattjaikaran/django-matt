@@ -291,18 +291,100 @@ nav:
       - Views: api/views.md
       - Permissions: api/permissions.md
 
-  - Advanced:
-      - Dependency Injection: di/overview.md
-      - Content Negotiation: negotiation/overview.md
-      - Admin Integration: admin/overview.md
-      - Audit Logging: audit/overview.md
-      - OpenAPI: openapi/overview.md
+  - Features:
+      - Views: features/views.md
+      - Permissions: features/permissions.md
+      - Pagination: features/pagination.md
+      - Throttling: features/throttling.md
+      - Versioning: features/versioning.md
+      - Files: features/files.md
+      - Tasks: features/tasks.md
+      - WebSockets: features/websockets.md
+
+  - Request Pipeline:
+      - Interceptors: interceptors/overview.md
+      - Route-Scoped Middleware: middleware/scoped.md
+      - Exception Filters: exceptions/overview.md
+
+  - Services:
+      - services/index.md
+      - Patterns: services/patterns.md
+      - CRUD Service: services/crud-service.md
+      - Third-Party: services/third-party.md
+
+  - Email:
+      - email/overview.md
+      - Providers: email/providers.md
+      - Templates: email/templates.md
+      - Tracking: email/tracking.md
+
+  - Messaging:
+      - messaging/overview.md
+      - Conversations: messaging/conversations.md
+      - Messages: messaging/messages.md
+      - Realtime: messaging/realtime.md
+
+  - Notifications:
+      - notifications/overview.md
+      - Channels: notifications/channels.md
+      - Preferences: notifications/preferences.md
+
+  - Streaming:
+      - SSE & Streaming: streaming/overview.md
 
   - Architecture:
       - architecture/overview.md
       - Core Architecture: architecture/core.md
       - Authentication Flow: architecture/authentication.md
       - Data Flow: architecture/data-flow.md
+      - CQRS: cqrs/overview.md
+      - Event Bus: events/overview.md
+      - Module System: modules/overview.md
+      - Slim Mode: slim-mode.md
+
+  - Frontend:
+      - Components: components/overview.md
+      - Forms: components/forms.md
+      - Theming: components/theming.md
+      - HTMX: htmx/overview.md
+      - Livewire: livewire/overview.md
+
+  - Data:
+      - Serialization Groups: serialization/overview.md
+
+  - Security:
+      - Secrets Management: secrets/overview.md
+
+  - Operations:
+      - Health & Introspection: introspection/overview.md
+
+  - Client Generation:
+      - RPC Client: rpc/overview.md
+
+  - AI:
+      - AI Toolkit: ai/overview.md
+      - AI Context:
+          - ai-context/README.md
+          - Architecture: ai-context/ARCHITECTURE.md
+          - Patterns: ai-context/PATTERNS.md
+          - Anti-Patterns: ai-context/ANTI-PATTERNS.md
+          - Quick Reference: ai-context/QUICK-REFERENCE.md
+          - Codegen Recipes: ai-context/CODEGEN-RECIPES.md
+          - Examples: ai-context/EXAMPLES.md
+          - LLM System Prompt: ai-context/LLM-SYSTEM-PROMPT.md
+
+  - Examples:
+      - examples/index.md
+
+  - Design:
+      - Pages System: design/pages-system.md
+
+  - Advanced:
+      - Dependency Injection: di/overview.md
+      - Content Negotiation: negotiation/overview.md
+      - Admin Integration: admin/overview.md
+      - Audit Logging: audit/overview.md
+      - OpenAPI: openapi/overview.md
 
   - Contributing: contributing.md
   - Changelog: changelog.md
