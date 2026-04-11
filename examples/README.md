@@ -114,6 +114,41 @@ Then visit http://localhost:8000/chat/ to access the demo.
 - Presence tracking with Redis
 - REST API with controllers
 
+### 6. AI Chat Application
+
+An AI-powered chat app demonstrating SSE streaming, CQRS, and event bus:
+- Server-Sent Events for real-time token streaming
+- CQRS command/query bus pattern
+- Domain events (auto-titling, analytics)
+- OpenAI API integration
+
+**Location:** `examples/ai-chat/`
+
+**To run:**
+```bash
+cd examples/ai-chat
+export OPENAI_API_KEY=sk-...
+uv run python manage.py migrate
+uv run uvicorn ai_chat_project.asgi:application --reload
+```
+
+### 7. Multi-tenant SaaS Application
+
+A multi-tenant SaaS app demonstrating tenancy, interceptors, events, and feature flags:
+- Organization-scoped resources with slug-based tenant resolution
+- Interceptor chains (tenant resolution, plan-based feature gating)
+- Domain events for tenant lifecycle
+- Feature flag gating by plan tier
+
+**Location:** `examples/multitenant-saas/`
+
+**To run:**
+```bash
+cd examples/multitenant-saas
+uv run python manage.py migrate
+uv run uvicorn mt_project.asgi:application --reload
+```
+
 ## Prerequisites
 
 Before running the examples, make sure you have installed Django Matt and its dependencies:

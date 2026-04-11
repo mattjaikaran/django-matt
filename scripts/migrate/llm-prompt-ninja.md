@@ -207,8 +207,10 @@ class UserController(ControllerBase):
 from django_matt.core.controller import APIController
 from django_matt.core.router import get, post
 
-@api.controller("/users", tags=["Users"])
 class UserController(APIController):
+    prefix = "/users"
+    tags = ["Users"]
+
     def __init__(self):
         self.service = UserService()
         super().__init__()
@@ -225,12 +227,15 @@ class UserController(APIController):
     async def create_user(self, request, data: UserCreateSchema):
         instance = await self.service.create(data.model_dump(), user=request.user)
         return UserSchema.from_orm(instance).model_dump()
+
+# Register with the API:
+api.register_controller(UserController)
 ```
 
 **Controller mapping:**
 | ninja-extra | django-matt |
 |-------------|-------------|
-| `@api_controller(...)` | `@api.controller(...)` or class with `prefix` attribute |
+| `@api_controller(...)` | class with `prefix`/`tags` attributes + `api.register_controller()` |
 | `ControllerBase` | `APIController` |
 | `@route.get(...)` | `@get(...)` |
 | `@route.post(...)` | `@post(...)` |
@@ -285,8 +290,10 @@ api = NinjaAPI(auth=AuthBearer())
 # django-matt: use built-in JWT decorators
 from django_matt.auth.decorators.jwt import jwt_required, jwt_optional
 
-@api.controller("/tasks", tags=["Tasks"])
 class TaskController(APIController):
+    prefix = "/tasks"
+    tags = ["Tasks"]
+
     @get("/")
     @jwt_required
     async def list_tasks(self, request):
@@ -298,17 +305,24 @@ class TaskController(APIController):
     async def public_tasks(self, request):
         # request.user may or may not be set
         ...
+
+# Register with the API:
+api.register_controller(TaskController)
 ```
 
 Or use controller-level permissions:
 ```python
-@api.controller("/admin", tags=["Admin"])
 class AdminController(APIController):
+    prefix = "/admin"
+    tags = ["Admin"]
     permission_classes = [IsAuthenticated, IsAdmin]
 
     @get("/stats")
     async def stats(self, request):
         ...
+
+# Register with the API:
+api.register_controller(AdminController)
 ```
 
 ### Pagination
@@ -387,8 +401,10 @@ class EventService(CRUDService["Event"]):
         return True
 
 # controllers.py
-@api.controller("/events", tags=["Events"])
 class EventController(APIController):
+    prefix = "/events"
+    tags = ["Events"]
+
     def __init__(self):
         self.service = EventService()
         super().__init__()
@@ -403,6 +419,9 @@ class EventController(APIController):
     async def register(self, request, id: int):
         await self.service.register_attendee(id, request.user)
         return {"registered": True}
+
+# Register with the API:
+api.register_controller(EventController)
 ```
 
 ## Common Gotchas

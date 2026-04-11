@@ -306,8 +306,9 @@ def generate_controller_from_viewset(vs: ViewSetInfo) -> str:
     prefix = "/" + model.lower() + "s"
 
     lines = [
-        f'@api.controller("{prefix}", tags=["{model}s"])',
         f"class {controller_name}(APIController):",
+        f'    prefix = "{prefix}"',
+        f'    tags = ["{model}s"]',
     ]
 
     # Permission classes
@@ -387,6 +388,9 @@ def generate_controller_from_viewset(vs: ViewSetInfo) -> str:
         lines.append(f"        instance = await self.service.{action}(id, user=request.user)")
         lines.append(f"        return {schema_name}.from_orm(instance).model_dump()")
 
+    lines.append("")
+    lines.append(f"# Register with the API:")
+    lines.append(f"# api.register_controller({controller_name})")
     lines.append("")
     return "\n".join(lines)
 

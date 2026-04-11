@@ -69,8 +69,9 @@ django_matt/
 
 ```python
 # Controller
-@api.controller("/users", tags=["Users"])
 class UserController(APIController):
+    prefix = "/users"
+    tags = ["Users"]
     permission_classes = [IsAuthenticated]
 
     @api.get("/")
@@ -78,6 +79,9 @@ class UserController(APIController):
 
     @api.post("/")
     async def create_user(self, data: UserCreateSchema) -> UserSchema: ...
+
+# Register controller
+api.register_controller(UserController)
 
 # CRUD ViewSet
 class ProductViewSet(APIViewSet):

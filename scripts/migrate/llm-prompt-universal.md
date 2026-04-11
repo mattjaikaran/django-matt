@@ -36,11 +36,10 @@ urlpatterns = [path("api/", include(api.urls))]
 from django_matt.core.controller import APIController, CRUDController
 from django_matt.core.router import get, post, put, patch, delete
 
-@api.controller("/resource", tags=["Resource"])
 class ResourceController(APIController):
     prefix = "/resource"
-    permission_classes = [IsAuthenticated]
     tags = ["Resource"]
+    permission_classes = [IsAuthenticated]
 
     def __init__(self):
         self.service = ResourceService()
@@ -73,6 +72,9 @@ class ResourceController(APIController):
     async def delete_resource(self, request, id: int):
         await self.service.delete(id)
         return {"deleted": True}
+
+# Register with the API:
+api.register_controller(ResourceController)
 ```
 
 ### Function-Based Routes

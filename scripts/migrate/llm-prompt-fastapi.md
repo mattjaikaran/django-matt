@@ -216,8 +216,10 @@ class UserService(CRUDService["User"]):
         return await self.create(data)
 
 # controllers.py
-@api.controller("/users", tags=["Users"])
 class UserController(APIController):
+    prefix = "/users"
+    tags = ["Users"]
+
     def __init__(self):
         self.service = UserService()
         super().__init__()
@@ -243,6 +245,9 @@ class UserController(APIController):
     async def get_user(self, request, id: int):
         instance = await self.service.get(id)
         return UserSchema.from_orm(instance).model_dump()
+
+# Register with the API:
+api.register_controller(UserController)
 ```
 
 ### Depends() -> django-matt DI or services
@@ -271,12 +276,17 @@ async def read_me(current_user: User = Depends(get_current_user)):
 # django-matt: no session management needed (Django ORM handles it)
 # For auth, use decorators:
 
-@api.controller("/users", tags=["Users"])
 class UserController(APIController):
+    prefix = "/users"
+    tags = ["Users"]
+
     @get("/me")
     @jwt_required  # sets request.user automatically
     async def read_me(self, request):
         return UserSchema.from_orm(request.user).model_dump()
+
+# Register with the API:
+api.register_controller(UserController)
 
 # For custom dependencies, use django-matt DI:
 from django_matt.di import Depends, container, Singleton
@@ -287,8 +297,10 @@ class EmailService:
 
 container.register(EmailService, lifetime=Singleton)
 
-@api.controller("/notifications", tags=["Notifications"])
 class NotificationController(APIController):
+    prefix = "/notifications"
+    tags = ["Notifications"]
+
     @post("/send")
     @jwt_required
     async def send_notification(
@@ -299,6 +311,9 @@ class NotificationController(APIController):
     ):
         await email_service.send(data.to, data.subject, data.body)
         return {"sent": True}
+
+# Register with the API:
+api.register_controller(NotificationController)
 ```
 
 ### Background tasks
@@ -354,11 +369,16 @@ async def list_items(request):
 api.add_router(router, prefix="/items")
 
 # Or use a controller (preferred):
-@api.controller("/items", tags=["Items"])
 class ItemController(APIController):
+    prefix = "/items"
+    tags = ["Items"]
+
     @get("/")
     async def list_items(self, request):
         ...
+
+# Register with the API:
+api.register_controller(ItemController)
 ```
 
 ### Middleware
@@ -539,8 +559,10 @@ from django_matt.core.controller import APIController
 from django_matt.core.router import get, post
 from django_matt.auth.decorators.jwt import jwt_required
 
-@api.controller("/todos", tags=["Todos"])
 class TodoController(APIController):
+    prefix = "/todos"
+    tags = ["Todos"]
+
     def __init__(self):
         self.service = TodoService()
         super().__init__()
@@ -559,6 +581,9 @@ class TodoController(APIController):
     async def create_todo(self, request, data: TodoCreateSchema):
         instance = await self.service.create(data.model_dump(), user=request.user)
         return TodoSchema.from_orm(instance).model_dump()
+
+# Register with the API:
+api.register_controller(TodoController)
 ```
 
 ## Common Gotchas

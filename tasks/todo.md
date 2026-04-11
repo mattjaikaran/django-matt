@@ -20,8 +20,8 @@
   - devplatform: SSE streaming analytics, interceptors+exception filters on gateway
   - ecommerce-v2: event bus on orders, domain event handlers
   - saas-starter: interceptors on projects, events on CRUD, SSE notifications
-- [ ] Add new example: AI chat app with SSE streaming + CQRS
-- [ ] Add new example: multi-tenant SaaS with events + feature flags
+- [x] Add new example: AI chat app with SSE streaming + CQRS — `examples/ai-chat/`
+- [x] Add new example: multi-tenant SaaS with events + feature flags — `examples/multitenant-saas/`
 - [ ] Ensure all examples run with `uv run python manage.py runserver`
 
 ### Polish
@@ -31,7 +31,7 @@
 - [x] Fix: test_get_session_metrics_with_data date range didn't include auto_now_add sessions
 - [x] Full test suite confirmation — 6342 passed, 52 skipped, 0 failed
 - [x] Type check pass (pyright) — 0 errors (pyrightconfig.json + code fixes)
-- [ ] Review all LLM migration prompts for accuracy
+- [x] Review all LLM migration prompts for accuracy — fixed @api.controller() → class attrs + register_controller()
 
 ### Community Prep
 - [x] LICENSE file (Apache 2.0)

@@ -195,8 +195,9 @@ class UserService(CRUDService["User"]):
         return instance
 
 # controllers.py
-@api.controller("/users", tags=["Users"])
 class UserController(APIController):
+    prefix = "/users"
+    tags = ["Users"]
     permission_classes = [IsAuthenticated]
 
     def __init__(self):
@@ -220,6 +221,9 @@ class UserController(APIController):
     async def deactivate_user(self, request, id: int):
         instance = await self.service.deactivate(id, user=request.user)
         return UserSchema.from_orm(instance).model_dump()
+
+# Register with the API:
+api.register_controller(UserController)
 ```
 
 ### ViewSet -> APIViewSet (declarative CRUD)
@@ -309,8 +313,10 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django_matt.auth.decorators.jwt import jwt_required, jwt_optional
 from django_matt.auth.decorators.roles import with_roles, with_permission
 
-@api.controller("/tasks", tags=["Tasks"])
 class TaskController(APIController):
+    prefix = "/tasks"
+    tags = ["Tasks"]
+
     @get("/")
     @jwt_required
     async def list_tasks(self, request):
@@ -328,6 +334,9 @@ class TaskController(APIController):
     @with_roles("admin", "manager")
     async def delete_task(self, request, id: int):
         ...
+
+# Register with the API:
+api.register_controller(TaskController)
 ```
 
 ### Router registration
@@ -403,8 +412,10 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(UserSerializer(request.user).data)
 
 # django-matt
-@api.controller("/users", tags=["Users"])
 class UserController(APIController):
+    prefix = "/users"
+    tags = ["Users"]
+
     @post("/{id}/change-password")
     @jwt_required
     async def change_password(self, request, id: int, data: ChangePasswordSchema):
@@ -414,6 +425,9 @@ class UserController(APIController):
     @jwt_required
     async def me(self, request):
         return UserSchema.from_orm(request.user).model_dump()
+
+# Register with the API:
+api.register_controller(UserController)
 ```
 
 ### Throttling
@@ -426,10 +440,8 @@ class BurstRateThrottle(UserRateThrottle):
     rate = '60/min'
 
 # django-matt
-from django_matt.throttling import RateLimit
-
-# Applied at controller level or per-endpoint
-# (check django_matt.throttling for current API)
+# django_matt.throttling provides rate limiting utilities.
+# Check the throttling module API for current class names and usage.
 ```
 
 ## Common Gotchas
