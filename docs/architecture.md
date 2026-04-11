@@ -2,6 +2,62 @@
 
 Django Matt is a Django meta-framework for building production-ready, large-scale APIs. It prioritizes **performance**, **modularity**, and **developer experience** using the fastest tools available.
 
+## Philosophy: Why This Exists
+
+Django is the most productive web framework in any language. Its ORM, migrations, admin, auth system, and middleware ecosystem represent 20 years of battle-tested solutions to real problems. No other framework comes close to the breadth of what Django ships out of the box.
+
+But Django was designed before async Python, before Pydantic, before type hints were universal, and before Rust-powered tooling made Python 10-100x faster at the edges. Django Matt doesn't replace Django — it builds on top of it, adding the modern patterns and performance characteristics that production APIs demand in 2026.
+
+### The Approach: Rust at the Edges, Python Where It Matters
+
+The fastest Python framework is still slower than the slowest Rust HTTP server. But the bottleneck in real applications is never the framework — it's database queries, network I/O, and business logic. Rewriting Django in Rust would trade the framework's greatest strength (ecosystem, ORM, admin, 20 years of packages) for speed gains on code that doesn't move the needle.
+
+Instead, django-matt uses Rust where it actually helps:
+
+- **Server layer** — Robyn and Granian handle HTTP parsing, connection management, and worker orchestration in compiled Rust, removing Python from the TCP-to-handler hot path
+- **Serialization** — orjson (Rust) replaces stdlib json for 3-10x faster response encoding
+- **Validation** — Pydantic v2's Rust core handles schema validation at compiled speed
+- **Hot paths** — PyO3 native extensions accelerate router dispatch, JWT decoding, and query parsing (1.9x measured E2E speedup)
+- **Tooling** — uv (package management), ruff (linting) are Rust-native, making the development loop faster
+
+The result: the full request pipeline from TCP accept to response write is predominantly Rust, while business logic, ORM queries, and the Django ecosystem remain in Python where they're most productive.
+
+### Why Not a Full Rust Rewrite
+
+This was considered and rejected. The analysis:
+
+- **Django's value IS the ecosystem.** ORM, admin, migrations, auth, middleware — all pure Python. Rewriting these in Rust gives speed on things that aren't the bottleneck.
+- **Massive scope.** Django is ~250k lines of battle-tested code. Even 20% is person-years of work.
+- **Adoption problem.** A "faster Django-like thing" without Django compatibility has to rebuild the entire plugin/package ecosystem from scratch.
+- **Diminishing returns.** With Rust extensions on hot paths + Rust-native server, you capture 90%+ of possible performance gains. The remaining wins are in code that runs once per request where Python is fast enough.
+- **Prior art.** Robyn (Rust-core Python framework) exists and has traction but hasn't displaced anything — speed isn't what holds Python frameworks back.
+
+The right model is Pydantic v2: keep the Python API that developers love, rewrite the internals in Rust where it measurably matters.
+
+### What Makes This Different
+
+| Framework | Approach | Tradeoff |
+|-----------|----------|----------|
+| Django | Pure Python, batteries included | Slower on hot paths |
+| FastAPI | Modern Python, Pydantic | No ORM, no admin, no migrations, assembly required |
+| Django Ninja | Django + Pydantic | Thinner than django-matt, no service layer, no codegen |
+| Robyn | Rust server + Python handlers | No Django ecosystem, build everything yourself |
+| Axum/Actix | Pure Rust | Different language, different audience |
+| **Django Matt** | Django + Pydantic + Rust hot paths + Rust server | Full Django ecosystem with compiled-speed critical paths |
+
+Django Matt's position: **you shouldn't have to choose between Django's productivity and modern performance.** Use Django's ORM, admin, and ecosystem. Get Rust-level speed on the parts that actually matter for latency.
+
+### AI-Native Development
+
+Django Matt is designed to be consumed by AI agents and IDE copilots as much as by human developers:
+
+- **Auto-generated context files** — `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md` are generated from the live project structure, not hand-written
+- **Machine-readable introspection** — every route, schema, permission, and model relationship is queryable at runtime
+- **Structured error messages** — errors include enough context for an LLM to diagnose and fix without additional exploration
+- **Convention over configuration** — strong defaults mean AI tools can predict project structure without scanning every file
+
+A framework that generates its own perfect documentation is a framework that works with AI, not against it.
+
 ## Core Principles
 
 ### 1. Small Files, Modular by Default
@@ -361,6 +417,18 @@ Django Matt is optimized for high-throughput production workloads:
 
 ## ASGI Production Stack
 
+Django Matt supports multiple production server backends, from the traditional gunicorn+uvicorn stack to Rust-native servers:
+
+### Server Backends
+
+| Backend | Language | Protocol | Best For |
+|---------|----------|----------|----------|
+| **gunicorn + uvicorn** | Python | ASGI | Mature, well-understood, widest hosting support |
+| **Granian** | Rust | ASGI/RSGI | HTTP/2, low latency, drop-in replacement |
+| **Robyn** | Rust | ASGI | Lowest overhead, zero-copy responses |
+
+### Default: gunicorn + uvicorn
+
 ```
 nginx → gunicorn → uvicorn workers → Django (ASGI)
 ```
@@ -371,6 +439,25 @@ gunicorn config.asgi:application \
     --workers 4 \
     --bind 0.0.0.0:8000
 ```
+
+### Granian (Rust-native)
+
+```bash
+granian config.asgi:application \
+    --interface asgi \
+    --workers 4 \
+    --host 0.0.0.0 \
+    --port 8000
+```
+
+### Robyn (Rust-native)
+
+```bash
+# Via django-matt CLI (planned)
+python manage.py serve --server robyn --workers 4
+```
+
+The `matt serve` command (planned) auto-detects the best available server and provides a unified interface regardless of backend.
 
 ## See Also
 
