@@ -4,15 +4,15 @@
 
 ### Distribution & Publishing
 - [x] PyPI package distribution — `uv build`, twine check pass
-- [ ] Trusted publisher setup on PyPI
-- [ ] Publish to TestPyPI for validation before real publish
+- [x] Trusted publisher setup on PyPI — OIDC publishing in release.yml
+- [x] Publish to TestPyPI for validation before real publish — TestPyPI → PyPI pipeline
 - [ ] `django-matt[rust]` optional extra with pre-built wheels
 - [ ] CI wheel building for Rust extensions (see Rust Extensions below)
 
 ### Documentation Site
 - [x] MkDocs Material site builds successfully (`uv run mkdocs build`)
-- [ ] Deploy docs site (GitHub Pages or Vercel)
-- [ ] Fix broken links (27 warnings in strict mode — forward refs to planned pages)
+- [x] Deploy docs site (GitHub Pages) — `.github/workflows/docs.yml`
+- [x] Fix broken links — 0 warnings in strict mode
 - [ ] Add version switcher for future releases
 
 ### Example App Refresh
@@ -29,8 +29,8 @@
 - [x] Fix: AnalyticsDatabaseBackend.group() used non-existent field, now uses metadata
 - [x] Fix: test_create_and_str assertion matched truncated session_id
 - [x] Fix: test_get_session_metrics_with_data date range didn't include auto_now_add sessions
-- [ ] Full test suite confirmation (running)
-- [ ] Type check pass (pyright) on new modules
+- [x] Full test suite confirmation — 6342 passed, 52 skipped, 0 failed
+- [x] Type check pass (pyright) — 0 errors (pyrightconfig.json + code fixes)
 - [ ] Review all LLM migration prompts for accuracy
 
 ### Community Prep

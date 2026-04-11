@@ -1782,7 +1782,7 @@ def get_optimal_threads() -> int:
         pass
 
     # Fallback to logical cores / 2
-    return max(1, os.cpu_count() // 2)
+    return max(1, (os.cpu_count() or 2) // 2)
 
 
 def detect_gpu_backend() -> GPUBackend:

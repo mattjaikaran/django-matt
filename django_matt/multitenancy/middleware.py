@@ -5,12 +5,17 @@ Provides middleware to automatically resolve and set the current tenant
 (organization) context for each request.
 """
 
+from __future__ import annotations
+
 import contextvars
 from collections.abc import Callable
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse
+
+if TYPE_CHECKING:
+    from django_matt.multitenancy.models import Organization
 
 # Thread-local storage for current tenant
 _current_tenant: contextvars.ContextVar[Optional["Organization"]] = contextvars.ContextVar(

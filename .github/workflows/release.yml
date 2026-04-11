@@ -184,23 +184,44 @@ jobs:
           draft: false
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
 
-  # Uncomment when ready to publish to PyPI
-  # pypi-publish:
-  #   name: Publish to PyPI
-  #   needs: [build-python, build-rust-linux, build-rust-macos, build-rust-windows, build-rust-sdist]
-  #   runs-on: ubuntu-latest
-  #   environment:
-  #     name: pypi
-  #     url: https://pypi.org/p/django-matt
-  #   permissions:
-  #     id-token: write  # OIDC publishing
-  #   steps:
-  #     - name: Download all artifacts
-  #       uses: actions/download-artifact@v4
-  #       with:
-  #         pattern: dist-*
-  #         path: dist/
-  #         merge-multiple: true
-  #
-  #     - name: Publish to PyPI
-  #       uses: pypa/gh-action-pypi-publish@release/v1
+  testpypi-publish:
+    name: Publish to TestPyPI
+    needs: [build-python, build-rust-linux, build-rust-macos, build-rust-windows, build-rust-sdist]
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/django-matt
+    permissions:
+      id-token: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          path: dist/
+          merge-multiple: true
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  pypi-publish:
+    name: Publish to PyPI
+    needs: [testpypi-publish]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/django-matt
+    permissions:
+      id-token: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          path: dist/
+          merge-multiple: true
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

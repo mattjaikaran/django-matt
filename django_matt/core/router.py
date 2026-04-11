@@ -324,13 +324,13 @@ class APIRouter:
                 try:
                     body_data = orjson.loads(request.body)
                     kwargs["body"] = parse_body(body_data, body_schema)
-                except (ValueError, orjson.JSONDecodeError):
-                    return JsonResponse({"detail": "Invalid JSON"}, status=400)
                 except ValidationError as e:
                     return JsonResponse(
                         {"detail": "Validation error", "errors": e.errors()},
                         status=422,
                     )
+                except ValueError:
+                    return JsonResponse({"detail": "Invalid JSON"}, status=400)
 
             # Call the endpoint (with DI resolution if needed)
             if _di_params is not None:

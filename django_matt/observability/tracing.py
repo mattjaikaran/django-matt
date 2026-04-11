@@ -324,6 +324,7 @@ class TracingManager:
                 kwargs["endpoint"] = endpoint
             if tracing_config.headers:
                 kwargs["headers"] = tracing_config.headers
+            assert OTLPSpanExporter is not None
             return OTLPSpanExporter(**kwargs)
 
         if exporter_type == "zipkin":

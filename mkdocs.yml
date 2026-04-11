@@ -4,7 +4,7 @@
 site_name: django-matt
 site_description: A modern Django API framework with async support and developer experience tools
 site_author: Matt Jaikaran
-site_url: https://github.com/mattjaikaran/django-matt
+site_url: https://mattjaikaran.github.io/django-matt/
 
 repo_name: mattjaikaran/django-matt
 repo_url: https://github.com/mattjaikaran/django-matt

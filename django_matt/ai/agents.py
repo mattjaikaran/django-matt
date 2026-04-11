@@ -329,6 +329,7 @@ class Agent:
                 return resp
 
             # Append assistant message with tool calls
+            tool_calls = response.tool_calls or []
             tool_call_dicts = [
                 {
                     "id": tc.id,
@@ -338,14 +339,14 @@ class Agent:
                         "arguments": orjson.dumps(tc.arguments).decode(),
                     },
                 }
-                for tc in response.tool_calls
+                for tc in tool_calls
             ]
             messages.append(
                 Message.assistant(response.content or "", tool_calls=tool_call_dicts)
             )
 
             # Execute each tool call
-            for tc in response.tool_calls:
+            for tc in tool_calls:
                 all_tool_calls.append(tc)
                 await self._emit(
                     EventType.TOOL_CALL_START,
