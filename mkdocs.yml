@@ -56,6 +56,9 @@ theme:
 
 plugins:
   - search
+  - mike:
+      alias_type: symlink
+      canonical_version: latest
   - mkdocstrings:
       handlers:
         python:
@@ -107,6 +110,9 @@ markdown_extensions:
   - pymdownx.tilde
 
 extra:
+  version:
+    provider: mike
+    default: latest
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/mattjaikaran/django-matt
