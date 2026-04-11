@@ -141,19 +141,46 @@ def _make_error_envelope(
     status: int,
     detail: str,
     extra: list[dict[str, Any]] | None = None,
+    *,
+    code: str | None = None,
+    hint: str | None = None,
+    docs_url: str | None = None,
 ) -> dict[str, Any]:
     """
     Build the standard API error envelope.
 
-    Response body:
-        {"status": 400, "detail": "message", "extra": null}
+    Response body::
 
-    For field validation errors, ``extra`` should be:
-        [{"message": "...", "key": "field_name", "source": "body"}]
+        {
+            "status": 400,
+            "detail": "message",
+            "code": "validation_error",
+            "hint": "Check the request body matches the schema.",
+            "docs_url": "https://...",
+            "extra": null
+        }
 
-    For 500s in production, ``extra`` should be ``None`` (security).
+    ``code`` is a stable, machine-readable error identifier (e.g.
+    ``"not_found"``, ``"validation_error"``).  LLM agents and client
+    code-generators can switch on this field instead of parsing
+    ``detail`` strings.
+
+    ``hint`` is a one-line, actionable suggestion aimed at developers
+    and LLM agents — it tells the caller *what to do next* rather than
+    just what went wrong.
+
+    ``docs_url`` points to the relevant documentation page when
+    available.
     """
-    return {"status": status, "detail": detail, "extra": extra}
+    envelope: dict[str, Any] = {"status": status, "detail": detail}
+    if code is not None:
+        envelope["code"] = code
+    if hint is not None:
+        envelope["hint"] = hint
+    if docs_url is not None:
+        envelope["docs_url"] = docs_url
+    envelope["extra"] = extra
+    return envelope
 
 
 class ErrorHandler:
@@ -492,7 +519,13 @@ class APIError(Exception):
         """Render the standard error envelope as a JSON response."""
         is_debug = os.environ.get("DJANGO_DEBUG", "False").lower() == "true"
         extra = self.context if (is_debug and self.context) else None
-        envelope = _make_error_envelope(self.status_code, self.message, extra)
+        envelope = _make_error_envelope(
+            self.status_code,
+            self.message,
+            extra,
+            code=self.code,
+            hint=self.suggestion,
+        )
         return JsonResponse(envelope, status=self.status_code)
 
 
@@ -531,7 +564,13 @@ class ValidationAPIError(APIError):
                 }
                 for e in self.errors
             ]
-        envelope = _make_error_envelope(self.status_code, self.message, extra)
+        envelope = _make_error_envelope(
+            self.status_code,
+            self.message,
+            extra,
+            code=self.code,
+            hint=self.suggestion,
+        )
         return JsonResponse(envelope, status=self.status_code)
 
 

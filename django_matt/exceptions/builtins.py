@@ -46,7 +46,14 @@ class ValidationExceptionFilter(ExceptionFilter):
             for e in errors
         ]
         return _json_response(
-            {"status": 422, "detail": "Validation error", "extra": extra},
+            {
+                "status": 422,
+                "detail": "Validation error",
+                "code": "validation_error",
+                "hint": "Check the request body against the expected schema. "
+                "Run GET on this endpoint to see the required fields.",
+                "extra": extra,
+            },
             status=422,
         )
 
@@ -61,8 +68,15 @@ class NotFoundExceptionFilter(ExceptionFilter):
         return isinstance(exc, ObjectDoesNotExist)
 
     async def catch(self, exc: Exception, request: HttpRequest) -> HttpResponse:
+        detail = str(exc) or "Not found"
         return _json_response(
-            {"status": 404, "detail": str(exc) or "Not found", "extra": None},
+            {
+                "status": 404,
+                "detail": detail,
+                "code": "not_found",
+                "hint": "Check that the resource ID is correct and that the resource has not been deleted.",
+                "extra": None,
+            },
             status=404,
         )
 
@@ -77,8 +91,15 @@ class PermissionExceptionFilter(ExceptionFilter):
         return isinstance(exc, (PermissionDenied, PermissionError))
 
     async def catch(self, exc: Exception, request: HttpRequest) -> HttpResponse:
+        detail = str(exc) or "Permission denied"
         return _json_response(
-            {"status": 403, "detail": str(exc) or "Permission denied", "extra": None},
+            {
+                "status": 403,
+                "detail": detail,
+                "code": "permission_denied",
+                "hint": "Ensure the authenticated user has the required role or permission for this action.",
+                "extra": None,
+            },
             status=403,
         )
 
@@ -94,7 +115,14 @@ class DatabaseExceptionFilter(ExceptionFilter):
 
     async def catch(self, exc: Exception, request: HttpRequest) -> HttpResponse:
         return _json_response(
-            {"status": 409, "detail": "Database conflict", "extra": None},
+            {
+                "status": 409,
+                "detail": "Database conflict",
+                "code": "integrity_error",
+                "hint": "A uniqueness or foreign-key constraint was violated. "
+                "Check for duplicate values or ensure referenced resources exist.",
+                "extra": None,
+            },
             status=409,
         )
 
@@ -114,10 +142,18 @@ class ThrottleExceptionFilter(ExceptionFilter):
         assert isinstance(exc, RateLimitAPIError)
         retry_after = exc.context.get("retry_after")
         headers: dict[str, str] = {}
+        hint = "Too many requests."
         if retry_after is not None:
             headers["Retry-After"] = str(retry_after)
+            hint = f"Rate limited. Retry after {retry_after} seconds."
         return _json_response(
-            {"status": 429, "detail": str(exc), "extra": None},
+            {
+                "status": 429,
+                "detail": str(exc),
+                "code": "rate_limited",
+                "hint": hint,
+                "extra": None,
+            },
             status=429,
             headers=headers,
         )
