@@ -260,6 +260,8 @@ async def list_users(request):
 - **Secrets Management** -- unified API for env, AWS Secrets Manager, Vault, GCP
 - **Introspection** -- health checks, K8s liveness/readiness probes, `/_info`
 - **Auto-Instrumentation** -- zero-config OpenTelemetry tracing and Prometheus metrics
+- **LLM-Optimized Errors** -- structured `code`, `hint`, `docs_url` fields in error responses
+- **Starter Templates** -- `--template ai-saas` and `--template marketplace` for project scaffolding
 - **Rust Extensions** -- optional PyO3 native extensions for hot paths
 
 ---
@@ -402,6 +404,7 @@ uv add "django-matt[rust]"
 ```bash
 # Project scaffolding
 python manage.py startapi myproject --template b2b --auth jwt --docker
+# Templates: starter, b2b, b2c, saas, ai-saas, marketplace
 
 # Generate CRUD from models (controller, schema, service, admin, tests)
 python manage.py generate_crud myapp.Product --full
@@ -457,9 +460,14 @@ uv add "django-matt[all]"
 
 | Project | Description |
 |---------|-------------|
+| [`examples/quicktodo`](examples/quicktodo) | Multi-tenant todo API -- the "10-minute demo" |
 | [`examples/saas-starter`](examples/saas-starter) | SaaS template with auth, billing, multi-tenancy |
 | [`examples/ecommerce-api`](examples/ecommerce-api) | E-commerce backend with products, orders, payments |
+| [`examples/ecommerce-v2`](examples/ecommerce-v2) | Multi-vendor marketplace with Stripe payments |
 | [`examples/realtime-chat`](examples/realtime-chat) | Real-time chat with WebSockets and presence |
+| [`examples/ai-chat`](examples/ai-chat) | AI-powered chat with SSE streaming and CQRS |
+| [`examples/devplatform`](examples/devplatform) | API management SaaS with keys, analytics, webhooks |
+| [`examples/multitenant-saas`](examples/multitenant-saas) | Multi-tenant SaaS with interceptors and feature flags |
 
 ---
 
