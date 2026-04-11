@@ -77,13 +77,13 @@ Benchmarks exist but aren't enforced — a regression should block merge.
 ### AI/LLM Context & Agent Support
 Make django-matt projects first-class citizens for AI-assisted development and autonomous agents.
 
-- [ ] Enhanced `generate_ai_context` — emit full route map, schema definitions, auth requirements, and example payloads in a single structured JSON/YAML
-- [ ] Agent-friendly API introspection endpoint — `/api/__introspect/` returns machine-readable project graph (models, routes, permissions, schemas) for LLM tool use
-- [ ] MCP (Model Context Protocol) server generator — `python manage.py generate_mcp_server` creates an MCP server that exposes the project's API as MCP tools
-- [ ] Cursor rules / Claude instructions auto-generation from project structure (already exists, extend with new modules)
-- [ ] IDE context file watcher — auto-regenerate `.cursorrules`, `CLAUDE.md`, `.github/copilot-instructions.md` on model/route changes
+- [x] Enhanced `generate_ai_context` — full route map, schemas, auth, examples in JSON (`--format all`)
+- [x] Agent-friendly API introspection endpoint — `/_matt/introspection` with section filtering
+- [x] MCP server generator — `python manage.py generate_mcp_server` creates MCP server from introspection
+- [x] Cursor rules / Claude instructions auto-generation — `generate_ai_context --format claude/cursor/copilot`
+- [x] IDE context file watcher — `generate_ai_context --watch` with debounced auto-updates
 - [ ] LLM-optimized error messages — structured error responses with fix suggestions that agents can parse and act on
-- [ ] `matt ai context` CLI — one command to dump everything an LLM needs to work with the project
+- [x] `matt ai context` CLI — `python manage.py matt ai --format all`
 
 **Why:** AI agents and IDE copilots are the primary consumers of framework documentation now. A framework that generates its own perfect context files gives developers (and their AI tools) an immediate productivity advantage. This is a differentiator — no other Django framework does this well.
 

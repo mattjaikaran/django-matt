@@ -14,6 +14,7 @@ Features:
 - Machine-readable JSON introspection endpoint
 - File watching with debounced auto-updates
 - Pre-commit hook support
+- MCP server generation from introspection
 
 Usage:
     from django_matt.ai.context import (
@@ -30,11 +31,13 @@ Usage:
     watcher = ContextWatcher()
     watcher.start()
 
-Management Command:
+Management Commands:
     python manage.py generate_ai_context --format all
     python manage.py generate_ai_context --watch
     python manage.py generate_ai_context --include-examples
     python manage.py generate_ai_context --output-json
+    python manage.py generate_mcp_server
+    python manage.py generate_mcp_server --base-url https://api.example.com
 """
 
 from django_matt.ai.context.generators import (
@@ -62,6 +65,10 @@ from django_matt.ai.context.templates import (
     format_llm_prompt,
     get_template,
     render_template,
+)
+from django_matt.ai.context.mcp import (
+    generate_mcp_server,
+    write_mcp_server,
 )
 from django_matt.ai.context.watcher import (
     ContextWatcher,
@@ -106,4 +113,7 @@ __all__ = [
     "generate_precommit_hook",
     "generate_precommit_config",
     "install_precommit_hook",
+    # MCP
+    "generate_mcp_server",
+    "write_mcp_server",
 ]
