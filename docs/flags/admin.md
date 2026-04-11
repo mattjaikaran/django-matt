@@ -29,8 +29,6 @@ register_flag_admin(site=my_custom_admin_site)
 
 Full-featured admin for managing feature flags.
 
-![Feature Flag Admin List](../assets/placeholder-flag-list.png)
-
 **List View Features:**
 
 - **Columns**: Key, Name, Type (badge), Status (badge), Default, Rollout %, Overrides, Updated

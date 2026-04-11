@@ -32,7 +32,7 @@
 5. [API Design](#api-design)
 6. [Hybrid Mode](#hybrid-mode)
 7. [Type Safety Pipeline](#type-safety-pipeline)
-8. [SSR & Streaming](#ssr--streaming)
+8. [SSR & Streaming](#ssr-streaming)
 9. [Form Handling](#form-handling)
 10. [Real-time Integration](#real-time-integration)
 11. [Error Handling](#error-handling)

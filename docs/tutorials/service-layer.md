@@ -408,5 +408,5 @@ The service is the only place where business rules live. Controllers stay thin. 
 - [CRUDService API Reference](../services/crud-service.md)
 - [Service Patterns](../services/patterns.md)
 - [Migration Guide](../services/migration.md)
-- [Events](../events/)
-- [CQRS](../cqrs/)
+- [Events](../events/overview.md)
+- [CQRS](../cqrs/overview.md)

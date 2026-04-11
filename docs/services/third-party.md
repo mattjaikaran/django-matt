@@ -366,5 +366,5 @@ class BillingController(APIController):
 - [Service Layer Overview](./index.md)
 - [CRUDService API Reference](./crud-service.md)
 - [Service Patterns](./patterns.md)
-- [Billing module](../../django_matt/billing/) — production Stripe/PayPal/Polar integrations
-- [Email module](../../django_matt/email/) — production email provider integrations
+- [Billing module](../billing/overview.md) — production Stripe/PayPal/Polar integrations
+- [Email module](../email/overview.md) — production email provider integrations

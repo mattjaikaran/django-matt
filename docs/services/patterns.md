@@ -575,4 +575,4 @@ async def test_place_order_emits_event(user):
 - [Third-Party Services](./third-party.md)
 - [Migration Guide](./migration.md)
 - [Service Layer Tutorial](../tutorials/service-layer.md)
-- [Testing Guide](../testing/)
+- [Testing Guide](../testing/client.md)

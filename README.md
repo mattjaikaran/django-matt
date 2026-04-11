@@ -450,7 +450,7 @@ uv add "django-matt[all]"
 - [Multi-tenancy (B2B)](docs/multitenancy/overview.md)
 - [Billing and Subscriptions](docs/billing/overview.md)
 - [Real-time Features](docs/messaging/overview.md)
-- [Deployment Guide](docs/deployment/overview.md)
+- [Deployment Guide](docs/deployment/index.md)
 - [Service Layer](docs/services/index.md)
 - [API Reference](docs/api/)
 

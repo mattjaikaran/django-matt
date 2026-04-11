@@ -49,9 +49,9 @@ Response
 
 | Module | Integration |
 |--------|-------------|
-| [Events](../events/) | Service methods call `await bus.emit(event)` after mutations |
-| [CQRS](../cqrs/) | Service methods become the body of `CommandHandler.execute()` |
-| [Interceptors](../interceptors/) | Cross-cutting concerns (logging, timing) wrap controller dispatch, not service calls |
+| [Events](../events/overview.md) | Service methods call `await bus.emit(event)` after mutations |
+| [CQRS](../cqrs/overview.md) | Service methods become the body of `CommandHandler.execute()` |
+| [Interceptors](../interceptors/overview.md) | Cross-cutting concerns (logging, timing) wrap controller dispatch, not service calls |
 | [Transactions](https://docs.djangoproject.com/en/5.2/topics/db/transactions/) | `create()` and `update()` already run inside `transaction.atomic()`; compose with `async with transaction.atomic()` for multi-service operations |
 
 ## Why Services?

@@ -678,6 +678,6 @@ matt deploy railway
 
 ## See Also
 
-- [Deployment Overview](../deployment/overview.md)
+- [Deployment Overview](../deployment/index.md)
 - [Docker Configuration](../deployment/docker.md)
-- [Fly.io Guide](../deployment/fly.md)
+- [Fly.io Guide](../deployment/fly-io.md)
