@@ -51,7 +51,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--template",
             "-t",
-            choices=["starter", "b2b", "b2c", "saas"],
+            choices=["starter", "b2b", "b2c", "saas", "ai-saas", "marketplace"],
             default="starter",
             help="Project template type (default: starter)",
         )
@@ -159,7 +159,7 @@ class Command(BaseCommand):
             self._create_readme(project_name, template, auth, frontend, docker)
 
             # Generate CLAUDE.md and CI config for b2b/b2c/saas templates (DX requirement)
-            if template in ("b2b", "b2c", "saas"):
+            if template in ("b2b", "b2c", "saas", "ai-saas", "marketplace"):
                 self.stdout.write("Generating CLAUDE.md...")
                 self._create_claude_md(project_name, template, auth, docker, frontend)
                 self.stdout.write("Generating CI configuration...")
@@ -183,6 +183,8 @@ class Command(BaseCommand):
             "b2b": "B2B multi-tenant SaaS",
             "b2c": "B2C consumer app",
             "saas": "SaaS platform",
+            "ai-saas": "AI-powered SaaS with LLM integration",
+            "marketplace": "Multi-vendor marketplace",
         }.get(
             template, "Django API"
         )
@@ -387,6 +389,12 @@ jobs:
             elif template == "saas":
                 settings_content += self._get_b2b_settings()
                 settings_content += self._get_saas_settings()
+            elif template == "ai-saas":
+                settings_content += self._get_b2b_settings()
+                settings_content += self._get_saas_settings()
+                settings_content += self._get_ai_saas_settings()
+            elif template == "marketplace":
+                settings_content += self._get_marketplace_settings()
 
             with open(settings_path, "w") as f:
                 f.write(settings_content)
@@ -511,6 +519,62 @@ DJANGO_MATT_API_KEYS = {
 }
 
 # Redis cache (for rate limiting, sessions)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://localhost:6379/0",
+    }
+}
+"""
+
+    def _get_ai_saas_settings(self) -> str:
+        """Get AI SaaS template settings (LLM, embeddings, streaming)."""
+        return """
+# AI / LLM Configuration
+DJANGO_MATT_AI = {
+    "DEFAULT_PROVIDER": "anthropic",
+    "ANTHROPIC_API_KEY": "",
+    "OPENAI_API_KEY": "",
+    "EMBEDDING_MODEL": "text-embedding-3-small",
+    "EMBEDDING_DIMENSIONS": 1536,
+    "MAX_TOKENS": 4096,
+    "STREAMING": True,
+}
+
+# Vector storage for RAG
+DJANGO_MATT_VECTOR = {
+    "BACKEND": "pgvector",
+    "DISTANCE_METRIC": "cosine",
+}
+
+# SSE streaming
+DJANGO_MATT_STREAMING = {
+    "SSE_ENABLED": True,
+    "HEARTBEAT_INTERVAL": 15,
+}
+"""
+
+    def _get_marketplace_settings(self) -> str:
+        """Get marketplace template settings (multi-vendor, payments, search)."""
+        return """
+# Marketplace Configuration
+DJANGO_MATT_BILLING = {
+    "PROVIDER": "stripe",
+    "STRIPE_SECRET_KEY": "",
+    "STRIPE_WEBHOOK_SECRET": "",
+    "CONNECT_ENABLED": True,
+    "PLATFORM_FEE_PERCENT": 10,
+}
+
+DJANGO_MATT_MULTITENANCY = {
+    "ENABLED": True,
+    "TENANT_HEADER": "X-Store-ID",
+    "TENANT_URL_KWARG": "store_slug",
+    "REQUIRE_TENANT": False,
+    "EXEMPT_PATHS": ["/auth/", "/health/", "/docs/", "/search/"],
+}
+
+# Redis cache (for search, sessions, rate limiting)
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
