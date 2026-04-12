@@ -7,7 +7,7 @@ Useful for development and testing.
 
 import uuid
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from .base import BaseBackend
@@ -69,7 +69,7 @@ class SyncBackend(BaseBackend):
         from ..base import TaskResult, TaskStatus
 
         task_id = task_id or str(uuid.uuid4())
-        started_at = datetime.utcnow()
+        started_at = datetime.now(UTC)
 
         try:
             # Execute immediately
@@ -83,7 +83,7 @@ class SyncBackend(BaseBackend):
                 status=TaskStatus.SUCCESS,
                 result=result,
                 started_at=started_at,
-                completed_at=datetime.utcnow(),
+                completed_at=datetime.now(UTC),
             )
         except Exception as e:
             import traceback
@@ -94,7 +94,7 @@ class SyncBackend(BaseBackend):
                 error=str(e),
                 traceback=traceback.format_exc(),
                 started_at=started_at,
-                completed_at=datetime.utcnow(),
+                completed_at=datetime.now(UTC),
             )
 
         # Store result

@@ -5,7 +5,7 @@ Provides crontab and interval-based scheduling for periodic tasks.
 """
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -82,7 +82,7 @@ class CrontabSchedule(ScheduleEntry):
     def get_next_run(self, now: datetime = None) -> datetime:
         """Calculate the next run time."""
         if now is None:
-            now = datetime.utcnow()
+            now = datetime.now(UTC)
 
         # Parse all fields
         minutes = self._parse_field(self.minute, 0, 59)
@@ -159,7 +159,7 @@ class IntervalSchedule(ScheduleEntry):
     def get_next_run(self, now: datetime = None) -> datetime:
         """Calculate the next run time."""
         if now is None:
-            now = datetime.utcnow()
+            now = datetime.now(UTC)
         return now + timedelta(seconds=self.total_seconds)
 
     def __repr__(self):
@@ -260,7 +260,7 @@ class ScheduledTask:
 
     def update_next_run(self):
         """Update the next run time based on current time."""
-        self.next_run = self.schedule.get_next_run(datetime.utcnow())
+        self.next_run = self.schedule.get_next_run(datetime.now(UTC))
 
 
 class Scheduler:
@@ -295,7 +295,7 @@ class Scheduler:
     def get_due_tasks(self, now: datetime = None) -> list[ScheduledTask]:
         """Get all tasks that are due to run."""
         if now is None:
-            now = datetime.utcnow()
+            now = datetime.now(UTC)
 
         due = []
         for scheduled in self._tasks.values():
@@ -308,7 +308,7 @@ class Scheduler:
         """Mark a task as having run and update next run time."""
         scheduled = self._tasks.get(task_name)
         if scheduled:
-            scheduled.last_run = datetime.utcnow()
+            scheduled.last_run = datetime.now(UTC)
             scheduled.update_next_run()
 
     def enable(self, task_name: str) -> None:

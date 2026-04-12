@@ -7,7 +7,7 @@ Provides state serialization, snapshots, and persistence.
 import base64
 import hashlib
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 import orjson
@@ -34,7 +34,7 @@ class Snapshot:
     component_id: str
     state: dict[str, Any]
     checksum: str
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     version: int = 1
 
     def to_dict(self) -> dict[str, Any]:

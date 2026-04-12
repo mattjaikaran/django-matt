@@ -8,7 +8,7 @@ import mimetypes
 import os
 import re
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 
 def get_file_extension(filename: str) -> str:
@@ -73,7 +73,7 @@ def generate_unique_filename(
         parts.append(prefix)
 
     if include_timestamp:
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         parts.append(timestamp)
 
     parts.append(unique_id)

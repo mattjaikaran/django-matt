@@ -364,20 +364,18 @@ class BaseStorage(ABC):
         overwrite: bool = True,
     ) -> str:
         """Synchronous version of save()."""
-        import asyncio
+        from asgiref.sync import async_to_sync
 
-        return asyncio.get_event_loop().run_until_complete(
-            self.save(file, key, folder, content_type, metadata, overwrite)
-        )
+        return async_to_sync(self.save)(file, key, folder, content_type, metadata, overwrite)
 
     def get_sync(self, key: str) -> bytes:
         """Synchronous version of get()."""
-        import asyncio
+        from asgiref.sync import async_to_sync
 
-        return asyncio.get_event_loop().run_until_complete(self.get(key))
+        return async_to_sync(self.get)(key)
 
     def delete_sync(self, key: str) -> None:
         """Synchronous version of delete()."""
-        import asyncio
+        from asgiref.sync import async_to_sync
 
-        return asyncio.get_event_loop().run_until_complete(self.delete(key))
+        return async_to_sync(self.delete)(key)

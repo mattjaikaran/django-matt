@@ -1214,7 +1214,7 @@ class LlamaCppProvider(LLMProvider, StructuredOutputProvider):
         gen_kwargs.update(kwargs)
 
         # Run in executor to avoid blocking
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         output = await loop.run_in_executor(
             None,
             lambda: llm_model.llama.create_chat_completion(
@@ -1288,7 +1288,7 @@ class LlamaCppProvider(LLMProvider, StructuredOutputProvider):
         gen_kwargs.update(kwargs)
 
         # Run generation in executor
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         def generate():
             return list(
@@ -1357,7 +1357,7 @@ class LlamaCppProvider(LLMProvider, StructuredOutputProvider):
 
         gen_kwargs.update(kwargs)
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         output = await loop.run_in_executor(
             None,
             lambda: llm_model.llama(prompt, **gen_kwargs),
@@ -1395,7 +1395,7 @@ class LlamaCppProvider(LLMProvider, StructuredOutputProvider):
                 add_generation_prompt=True,
             )
 
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             output = await loop.run_in_executor(
                 None,
                 lambda: llm_model.llama(
@@ -1619,7 +1619,7 @@ class LlamaCppEmbeddings(EmbeddingProvider):
 
         llama = self._ensure_model()
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         def generate_embeddings():
             embeddings = []
