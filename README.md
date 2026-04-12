@@ -246,7 +246,7 @@ async def list_users(request):
 
 ---
 
-## What's New in 0.8
+## What's New in 0.9
 
 - **Interceptors** -- before/after/error hooks on any route or controller
 - **SSE Streaming** -- server-sent events with heartbeat and backpressure

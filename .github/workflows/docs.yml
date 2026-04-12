@@ -35,5 +35,5 @@ jobs:
 
       - name: Deploy docs with mike
         run: |
-          uv run mike deploy --push --update-aliases 0.8 latest
+          uv run mike deploy --push --update-aliases 0.9 latest
           uv run mike set-default --push latest

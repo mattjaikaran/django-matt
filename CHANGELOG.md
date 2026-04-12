@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- LLM-optimized error responses: `code`, `hint`, `docs_url` fields in error envelope
+- Starter templates: `--template ai-saas` and `--template marketplace`
+- Benchmark CI job with PR commenting
+- Docs version switcher (mike plugin)
+
+### Fixed
+- Deprecated `datetime.utcnow()` → `datetime.now(UTC)` across tasks, livewire, files
+- Deprecated `asyncio.get_event_loop()` → `asyncio.get_running_loop()` / `async_to_sync()` in ml, files
+- Public API docstring example corrected (`api.register_controller()` pattern)
+- `matt_analyze` command handles missing `BASE_DIR` setting gracefully
+- All broken documentation links resolved
+- Ruff lint warnings fixed (quoted annotations, unused imports)
+
+## [0.9.0] - 2026-04-11
+
+### Added
 
 **13 New Modules — Node.js-Inspired Features (555 tests)**
 
@@ -48,6 +64,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Billing: Stripe Connect, webhooks, signals
 - Multitenancy: org, team, membership, isolation
 - Views, flags, analytics, experiments, GraphQL, management commands
+
+### Fixed
+- Example app READMEs added (ecommerce-v2, devplatform, quicktodo)
 
 ## [0.1.0] - 2026-03-09
 
