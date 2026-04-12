@@ -17,7 +17,6 @@ The generated server requires:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 from django_matt.ai.context.introspection import (
     EndpointInfo,

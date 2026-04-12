@@ -45,7 +45,7 @@ class Command(BaseCommand):
         output = options["output"]
         dry_run = options["dry_run"]
 
-        self.stdout.write(f"Introspecting project...")
+        self.stdout.write("Introspecting project...")
 
         if dry_run:
             content = generate_mcp_server(
@@ -60,8 +60,8 @@ class Command(BaseCommand):
                 server_name=server_name,
             )
             self.stdout.write(self.style.SUCCESS(f"MCP server written to {path}"))
-            self.stdout.write(f"\nTo run:")
-            self.stdout.write(f"  uv add mcp httpx")
+            self.stdout.write("\nTo run:")
+            self.stdout.write("  uv add mcp httpx")
             self.stdout.write(f"  python {path}")
-            self.stdout.write(f"\nTo configure in Claude Desktop / Cursor:")
+            self.stdout.write("\nTo configure in Claude Desktop / Cursor:")
             self.stdout.write(f'  "command": "python", "args": ["{path}"]')

@@ -57,6 +57,10 @@ from django_matt.ai.context.introspection import (
     SchemaFieldInfo,
     TestPatternInfo,
 )
+from django_matt.ai.context.mcp import (
+    generate_mcp_server,
+    write_mcp_server,
+)
 from django_matt.ai.context.templates import (
     CLAUDE_MD_TEMPLATE,
     COPILOT_INSTRUCTIONS_TEMPLATE,
@@ -65,10 +69,6 @@ from django_matt.ai.context.templates import (
     format_llm_prompt,
     get_template,
     render_template,
-)
-from django_matt.ai.context.mcp import (
-    generate_mcp_server,
-    write_mcp_server,
 )
 from django_matt.ai.context.watcher import (
     ContextWatcher,

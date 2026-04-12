@@ -18,15 +18,15 @@ if TYPE_CHECKING:
     from django_matt.multitenancy.models import Organization
 
 # Thread-local storage for current tenant
-_current_tenant: contextvars.ContextVar[Optional["Organization"]] = contextvars.ContextVar(
+_current_tenant: contextvars.ContextVar[Optional[Organization]] = contextvars.ContextVar(
     "current_tenant", default=None
 )
-_current_organization: contextvars.ContextVar[Optional["Organization"]] = contextvars.ContextVar(
+_current_organization: contextvars.ContextVar[Optional[Organization]] = contextvars.ContextVar(
     "current_organization", default=None
 )
 
 
-def get_current_tenant() -> Optional["Organization"]:
+def get_current_tenant() -> Optional[Organization]:
     """
     Get the current tenant (organization) from context.
 
@@ -36,7 +36,7 @@ def get_current_tenant() -> Optional["Organization"]:
     return _current_tenant.get()
 
 
-def get_current_organization() -> Optional["Organization"]:
+def get_current_organization() -> Optional[Organization]:
     """
     Alias for get_current_tenant().
 
@@ -46,7 +46,7 @@ def get_current_organization() -> Optional["Organization"]:
     return _current_organization.get()
 
 
-def set_current_tenant(organization: Optional["Organization"]) -> None:
+def set_current_tenant(organization: Optional[Organization]) -> None:
     """
     Set the current tenant (organization) in context.
 
@@ -137,7 +137,7 @@ class TenantMiddleware:
 
         return response
 
-    def _resolve_from_header(self, request: HttpRequest, Organization) -> Optional["Organization"]:
+    def _resolve_from_header(self, request: HttpRequest, Organization) -> Optional[Organization]:
         """Resolve tenant from request headers."""
         from django.core.exceptions import ValidationError
 
@@ -156,7 +156,7 @@ class TenantMiddleware:
 
         return None
 
-    def _resolve_from_url(self, request: HttpRequest, Organization) -> Optional["Organization"]:
+    def _resolve_from_url(self, request: HttpRequest, Organization) -> Optional[Organization]:
         """Resolve tenant from URL parameters."""
         if hasattr(request, "resolver_match") and request.resolver_match:
             org_slug = request.resolver_match.kwargs.get(self.url_kwarg)
@@ -164,7 +164,7 @@ class TenantMiddleware:
                 return Organization.objects.filter(slug=org_slug, is_active=True).first()
         return None
 
-    def _resolve_from_session(self, request: HttpRequest, Organization) -> Optional["Organization"]:
+    def _resolve_from_session(self, request: HttpRequest, Organization) -> Optional[Organization]:
         """Resolve tenant from session."""
         if hasattr(request, "session"):
             org_id = request.session.get(self.session_key)
@@ -177,7 +177,7 @@ class TenantMiddleware:
 
     def _resolve_from_user(
         self, request: HttpRequest, Organization, Membership
-    ) -> Optional["Organization"]:
+    ) -> Optional[Organization]:
         """Resolve tenant from user's memberships."""
         membership = (
             Membership.objects.filter(user=request.user, organization__is_active=True)
@@ -262,7 +262,7 @@ class TenantMiddlewareAsync:
 
     async def _resolve_from_header(
         self, request: HttpRequest, Organization
-    ) -> Optional["Organization"]:
+    ) -> Optional[Organization]:
         """Resolve tenant from request headers."""
         from django.core.exceptions import ValidationError
 
@@ -281,7 +281,7 @@ class TenantMiddlewareAsync:
 
     async def _resolve_from_url(
         self, request: HttpRequest, Organization
-    ) -> Optional["Organization"]:
+    ) -> Optional[Organization]:
         """Resolve tenant from URL parameters."""
         if hasattr(request, "resolver_match") and request.resolver_match:
             org_slug = request.resolver_match.kwargs.get(self.url_kwarg)
@@ -291,7 +291,7 @@ class TenantMiddlewareAsync:
 
     async def _resolve_from_session(
         self, request: HttpRequest, Organization
-    ) -> Optional["Organization"]:
+    ) -> Optional[Organization]:
         """Resolve tenant from session."""
         if hasattr(request, "session"):
             org_id = request.session.get(self.session_key)
@@ -304,7 +304,7 @@ class TenantMiddlewareAsync:
 
     async def _resolve_from_user(
         self, request: HttpRequest, Organization, Membership
-    ) -> Optional["Organization"]:
+    ) -> Optional[Organization]:
         """Resolve tenant from user's memberships."""
         membership = await (
             Membership.objects.filter(user=request.user, organization__is_active=True)
@@ -336,13 +336,13 @@ class TenantRequiredMixin:
                 return MyModel.objects.filter(organization=self.request.organization)
     """
 
-    def get_organization(self) -> "Organization":
+    def get_organization(self) -> Organization:
         """Get the current organization from request."""
         org = getattr(self.request, "organization", None)
         if not org:
             raise ValueError("No organization context available")
         return org
 
-    def get_tenant(self) -> "Organization":
+    def get_tenant(self) -> Organization:
         """Alias for get_organization()."""
         return self.get_organization()
