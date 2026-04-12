@@ -198,7 +198,7 @@ class Command(MattCommand):
             "by_app": {},
         }
 
-        base_dir = Path(settings.BASE_DIR)
+        base_dir = Path(getattr(settings, "BASE_DIR", Path.cwd()))
 
         for app_config in apps.get_app_configs():
             if app_config.name.startswith("django."):
@@ -299,7 +299,7 @@ class Command(MattCommand):
             "by_app": {},
         }
 
-        base_dir = Path(settings.BASE_DIR)
+        base_dir = Path(getattr(settings, "BASE_DIR", Path.cwd()))
 
         for app_config in apps.get_app_configs():
             if app_config.name.startswith("django."):
@@ -393,7 +393,7 @@ class Command(MattCommand):
             "unprotected_views": [],
         }
 
-        base_dir = Path(settings.BASE_DIR)
+        base_dir = Path(getattr(settings, "BASE_DIR", Path.cwd()))
         known_permissions = {
             "IsAuthenticated",
             "AllowAny",
@@ -555,7 +555,7 @@ class Command(MattCommand):
             "loop_queries": [],
         }
 
-        base_dir = Path(settings.BASE_DIR)
+        base_dir = Path(getattr(settings, "BASE_DIR", Path.cwd()))
 
         for app_config in apps.get_app_configs():
             if app_config.name.startswith("django."):

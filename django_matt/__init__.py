@@ -12,11 +12,14 @@ Usage:
 
     api = MattAPI()
 
-    @api.controller("/users")
     class UserController(APIController):
+        prefix = "/users"
+
         @get("/")
-        def list_users(self):
+        async def list_users(self):
             return []
+
+    api.register_controller(UserController)
 
 For auth, billing, and other features with model dependencies, import from submodules:
     from django_matt.auth import jwt_required, AuthController
