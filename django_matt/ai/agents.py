@@ -414,11 +414,7 @@ class Agent:
 
     def handle(self, message: str) -> AgentResponse:
         """Synchronous wrapper around ahandle()."""
-        loop = asyncio.new_event_loop()
-        try:
-            return loop.run_until_complete(self.ahandle(message))
-        finally:
-            loop.close()
+        return asyncio.run(self.ahandle(message))
 
 
 __all__ = [

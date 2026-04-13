@@ -72,23 +72,20 @@ class EventMiddleware:
                     )
                 )
             else:
-                new_loop = asyncio.new_event_loop()
-                try:
+                async def _emit_all():
                     for event in events:
-                        new_loop.run_until_complete(bus.emit(event))
-                    new_loop.run_until_complete(
-                        bus.emit(
-                            RequestEvent(
-                                method=request.method or "",
-                                path=request.path,
-                                status_code=response.status_code,
-                                duration_ms=duration,
-                                user_id=user_id,
-                            )
+                        await bus.emit(event)
+                    await bus.emit(
+                        RequestEvent(
+                            method=request.method or "",
+                            path=request.path,
+                            status_code=response.status_code,
+                            duration_ms=duration,
+                            user_id=user_id,
                         )
                     )
-                finally:
-                    new_loop.close()
+
+                asyncio.run(_emit_all())
 
         return response
 

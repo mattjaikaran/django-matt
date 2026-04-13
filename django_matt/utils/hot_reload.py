@@ -288,9 +288,7 @@ class WebSocketReloadServer:
 
             # Start the server in a separate thread
             def run_server():
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(server_loop())
+                asyncio.run(server_loop())
 
             thread = threading.Thread(target=run_server, daemon=True)
             thread.start()
@@ -316,10 +314,7 @@ class WebSocketReloadServer:
                 message = '{"type": "reload"}'
                 await asyncio.gather(*[client.send(message) for client in self.clients])
 
-            # Run the coroutine in the event loop
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(send_reload())
+            asyncio.run(send_reload())
 
         except Exception as e:
             logger.error(f"Error notifying WebSocket clients: {e!s}")
