@@ -59,6 +59,13 @@ class Command(BaseCommand):
             default=5173,
             help="Vite dev server port (default: 5173)",
         )
+        parser.add_argument(
+            "--server",
+            type=str,
+            default=None,
+            choices=["uvicorn", "robyn", "granian"],
+            help="Server backend for dev (default: Django runserver)",
+        )
 
     def handle(self, **options: Any) -> str | None:
         host: str = options["host"]
@@ -66,6 +73,7 @@ class Command(BaseCommand):
         skip_vite: bool = options["no_vite"]
         skip_hot_reload: bool = options["no_hot_reload"]
         vite_port: int = options["vite_port"]
+        server_backend: str | None = options.get("server")
 
         # Auto-detect available port
         port = self._find_open_port(host, port)
@@ -104,14 +112,22 @@ class Command(BaseCommand):
             self.stdout.write("")
 
             # Build runserver command
-            cmd = [sys.executable, "manage.py"]
-
-            if not skip_hot_reload and self._has_hot_reload():
-                cmd.append("runserver_hot")
+            if server_backend:
+                # Use matt_serve with the chosen backend in dev mode
+                cmd = [
+                    sys.executable, "manage.py", "matt_serve",
+                    "--backend", server_backend,
+                    "--host", host,
+                    "--port", str(port),
+                    "--workers", "1",
+                ]
             else:
-                cmd.append("runserver")
-
-            cmd.append(f"{host}:{port}")
+                cmd = [sys.executable, "manage.py"]
+                if not skip_hot_reload and self._has_hot_reload():
+                    cmd.append("runserver_hot")
+                else:
+                    cmd.append("runserver")
+                cmd.append(f"{host}:{port}")
 
             # Run Django as the main process (blocks until exit)
             django_proc = subprocess.Popen(cmd, env=self._build_env(vite_port))
