@@ -1,14 +1,18 @@
 """
 Django Matt migration wizard command.
 
-Helps migrate from Django REST Framework or Django Ninja to django-matt.
+Helps migrate from Django REST Framework, Django Ninja, or FastAPI to django-matt.
+Uses the codemod engine for AST-based automated source transformations.
 
 Usage:
     python manage.py matt_migrate_from --source drf               # Detect DRF code
     python manage.py matt_migrate_from --source ninja             # Detect Django Ninja code
+    python manage.py matt_migrate_from --source fastapi           # Detect FastAPI code
     python manage.py matt_migrate_from --source drf --app myapp   # Migrate specific app
     python manage.py matt_migrate_from --source drf --dry-run     # Preview changes
     python manage.py matt_migrate_from --source drf --generate    # Generate migration files
+    python manage.py matt_migrate_from --directory ./myproject --diff  # Show diffs
+    python manage.py matt_migrate_from --framework auto --directory .  # Auto-detect & transform
 """
 
 import ast
@@ -22,12 +26,13 @@ from django.conf import settings
 import orjson
 
 from django_matt.cli import GeneratorCommand
+from django_matt.codemods.engine import CodemodEngine
 
 
 class Command(GeneratorCommand):
-    """Migration wizard for DRF or Django Ninja to django-matt."""
+    """Migration wizard for DRF, Django Ninja, or FastAPI to django-matt."""
 
-    help = "Migrate from Django REST Framework or Django Ninja to django-matt"
+    help = "Migrate from Django REST Framework, Django Ninja, or FastAPI to django-matt"
 
     def add_arguments(self, parser):
         super().add_arguments(parser)
@@ -37,6 +42,12 @@ class Command(GeneratorCommand):
             choices=["drf", "ninja", "auto"],
             default="auto",
             help="Source framework to migrate from (default: auto-detect)",
+        )
+        parser.add_argument(
+            "--framework",
+            choices=["drf", "ninja", "fastapi", "auto"],
+            default=None,
+            help="Framework for codemod engine (drf, ninja, fastapi, auto)",
         )
         parser.add_argument(
             "--app",
@@ -59,8 +70,27 @@ class Command(GeneratorCommand):
             default=None,
             help="Output directory for generated files",
         )
+        parser.add_argument(
+            "--directory",
+            default=None,
+            help="Process entire directory tree with codemod engine",
+        )
+        parser.add_argument(
+            "--diff",
+            action="store_true",
+            default=False,
+            help="Show unified diff of proposed changes",
+        )
 
     def handle(self, *args, **options):
+        # New codemod engine path
+        directory = options.get("directory")
+        framework = options.get("framework")
+        show_diff = options.get("diff", False)
+
+        if directory or framework:
+            return self._handle_codemod_engine(directory, framework, show_diff, options)
+
         source = options.get("source", "auto")
         app_filter = options.get("app")
         output_json = options.get("json", False)
@@ -998,3 +1028,69 @@ class UserController(CRUDController):
 
 """
         return md
+
+    def _handle_codemod_engine(
+        self,
+        directory: str | None,
+        framework: str | None,
+        show_diff: bool,
+        options: dict[str, Any],
+    ) -> None:
+        """Run the codemod engine on a directory or the project root."""
+        engine = CodemodEngine()
+        dry_run = options.get("dry_run", True)
+        output_json = options.get("json", False)
+
+        target_dir = Path(directory) if directory else Path(getattr(settings, "BASE_DIR", Path.cwd()))
+
+        if framework == "auto":
+            framework = engine.detect_framework_directory(target_dir)
+            if framework:
+                self.info(f"Auto-detected framework: {framework}")
+            else:
+                self.error("Could not auto-detect framework")
+                return
+
+        if show_diff:
+            # Show diffs for all files
+            for py_file in sorted(target_dir.rglob("*.py")):
+                if engine._should_skip(py_file):
+                    continue
+                try:
+                    source = py_file.read_text()
+                    diff_text = engine.diff(source, str(py_file), framework)
+                    if diff_text:
+                        self.stdout.write(diff_text)
+                except Exception:
+                    continue
+            return
+
+        def on_progress(file_path: str, result: Any) -> None:
+            confidence_pct = f"{result.confidence:.0%}"
+            self.stdout.write(f"  [{confidence_pct}] {file_path} ({len(result.changes)} changes)")
+
+        results = engine.run_directory(
+            target_dir,
+            framework=framework,
+            dry_run=dry_run,
+            progress_callback=on_progress,
+        )
+
+        if output_json:
+            data = {
+                path: {
+                    "changes": r.changes,
+                    "warnings": r.warnings,
+                    "confidence": r.confidence,
+                }
+                for path, r in results.items()
+            }
+            self.stdout.write(
+                orjson.dumps(data, default=str, option=orjson.OPT_INDENT_2).decode()
+            )
+        else:
+            report = engine.generate_report(results)
+            self.stdout.write(report)
+
+            if dry_run:
+                self.info("Dry run -- no files were modified. Remove --dry-run to apply changes.")
