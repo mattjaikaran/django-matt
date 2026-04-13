@@ -32,6 +32,10 @@ class Category(str, enum.Enum):
     AI_FRIENDLY = "ai_friendly"
     STYLE = "style"
     TESTING = "testing"
+    ASYNC_SAFETY = "async_safety"
+    N_PLUS_ONE = "n_plus_one"
+    MIGRATION = "migration"
+    API_DESIGN = "api_design"
 
 
 @dataclass(frozen=True, slots=True)

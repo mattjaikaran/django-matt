@@ -74,6 +74,10 @@ class ReviewConfig:
         "security",
         "modularity",
         "performance",
+        "async_safety",
+        "n_plus_one",
+        "migration_safety",
+        "api_design",
     })
 
     # Minimum severity to report

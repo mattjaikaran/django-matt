@@ -35,6 +35,10 @@ _ANALYZER_CHOICES = [
     "security",
     "modularity",
     "performance",
+    "async_safety",
+    "n_plus_one",
+    "migration_safety",
+    "api_design",
 ]
 
 
@@ -119,6 +123,12 @@ class Command(MattCommand):
             action="store_true",
             help="Shorthand for --format json",
         )
+        parser.add_argument(
+            "--fail-on",
+            choices=_SEVERITY_CHOICES,
+            default=None,
+            help="Fail (exit non-zero) if any finding meets or exceeds this severity",
+        )
 
     def handle(self, *args, **options) -> None:
         # Build config from CLI args
@@ -171,6 +181,15 @@ class Command(MattCommand):
         # Exit code
         if options.get("no_fail"):
             return
+
+        # --fail-on threshold takes precedence
+        fail_on = options.get("fail_on")
+        if fail_on:
+            threshold = Severity[fail_on.upper()]
+            if any(f.severity >= threshold for f in summary.findings):
+                sys.exit(1)
+            return
+
         if config.fail_on_error and summary.exit_code:
             sys.exit(summary.exit_code)
 

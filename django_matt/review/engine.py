@@ -21,6 +21,10 @@ _BUILTIN_ANALYZERS: dict[str, str] = {
     "security": "django_matt.review.analyzers.security.SecurityAnalyzer",
     "modularity": "django_matt.review.analyzers.modularity.ModularityAnalyzer",
     "performance": "django_matt.review.analyzers.performance.PerformanceAnalyzer",
+    "async_safety": "django_matt.review.analyzers.async_safety.AsyncSafetyAnalyzer",
+    "n_plus_one": "django_matt.review.analyzers.n_plus_one.NPlusOneAnalyzer",
+    "migration_safety": "django_matt.review.analyzers.migration_safety.MigrationSafetyAnalyzer",
+    "api_design": "django_matt.review.analyzers.api_design.APIDesignAnalyzer",
 }
 
 
