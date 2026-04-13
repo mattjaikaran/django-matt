@@ -1,88 +1,117 @@
-"""
-Management command to clear Django caches.
-
-Usage:
-    python manage.py cache_clear                    # clear all backends
-    python manage.py cache_clear --backend default  # clear specific backend
-    python manage.py cache_clear --dry-run           # show what would be cleared
-"""
+"""Management command to clear Django cache backends."""
 
 from __future__ import annotations
 
-from typing import Any
-
+from django.conf import settings
 from django.core.cache import caches
 from django.core.management.base import BaseCommand, CommandError
 
+from django_matt.cli.console import console
+
 
 class Command(BaseCommand):
-    help = "Clear Django cache backends"
+    help = "Clear Django cache backends (all or specific)."
 
-    def add_arguments(self, parser: Any) -> None:
+    def add_arguments(self, parser) -> None:
         parser.add_argument(
             "--backend",
             type=str,
             default=None,
-            help="Specific cache backend to clear (default: all backends)",
+            help="Cache backend alias to clear (default: all configured backends).",
+        )
+        parser.add_argument(
+            "--prefix",
+            type=str,
+            default=None,
+            help="Only delete keys matching this prefix (requires backend support).",
         )
         parser.add_argument(
             "--dry-run",
             action="store_true",
-            default=False,
-            help="Show what would be cleared without actually clearing",
+            help="Show what would be cleared without actually clearing.",
         )
 
-    def handle(self, **options: Any) -> str | None:
-        backend_name: str | None = options["backend"]
+    def handle(self, *args: object, **options: object) -> None:
+        backend_alias: str | None = options["backend"]
+        prefix: str | None = options["prefix"]
         dry_run: bool = options["dry_run"]
 
-        try:
-            from django.conf import settings
+        cache_backends: dict[str, dict] = getattr(settings, "CACHES", {})
+        if not cache_backends:
+            raise CommandError("No CACHES configured in settings.")
 
-            all_backends = list(getattr(settings, "CACHES", {"default": {}}).keys())
-        except Exception:
-            all_backends = ["default"]
+        aliases: list[str] = (
+            [backend_alias] if backend_alias else list(cache_backends.keys())
+        )
 
-        if backend_name:
-            if backend_name not in all_backends:
-                raise CommandError(
-                    f"Unknown cache backend '{backend_name}'. "
-                    f"Available: {', '.join(all_backends)}"
-                )
-            targets = [backend_name]
-        else:
-            targets = all_backends
+        # validate requested alias exists
+        if backend_alias and backend_alias not in cache_backends:
+            available = ", ".join(cache_backends.keys())
+            raise CommandError(
+                f"Cache backend '{backend_alias}' not found. "
+                f"Available: {available}"
+            )
+
+        if dry_run:
+            console.warning("[dry-run] No caches will be modified.")
 
         cleared: list[str] = []
-        errors: list[str] = []
+        skipped: list[tuple[str, str]] = []
 
-        for name in targets:
+        for alias in aliases:
+            backend_config = cache_backends[alias]
+            engine = backend_config.get("BACKEND", "unknown")
+
             if dry_run:
-                self.stdout.write(f"  Would clear: {name}")
-                cleared.append(name)
+                action = (
+                    f"clear keys with prefix '{prefix}'"
+                    if prefix
+                    else "clear all keys"
+                )
+                console.info(f"  [{alias}] ({engine}) — would {action}")
+                cleared.append(alias)
                 continue
 
             try:
-                cache = caches[name]
-                cache.clear()
-                cleared.append(name)
-                self.stdout.write(self.style.SUCCESS(f"  Cleared: {name}"))
-            except Exception as e:
-                errors.append(f"{name}: {e}")
-                self.stderr.write(self.style.ERROR(f"  Failed: {name} — {e}"))
+                cache = caches[alias]
 
-        if dry_run:
-            self.stdout.write(
-                self.style.WARNING(f"\nDry run: {len(cleared)} backend(s) would be cleared")
-            )
-        elif cleared:
-            self.stdout.write(
-                self.style.SUCCESS(f"\nCleared {len(cleared)} cache backend(s)")
-            )
+                if prefix:
+                    # prefix-based deletion: use delete_many if the backend
+                    # exposes key enumeration, otherwise fall back to
+                    # has_key / delete for known keys.  Most backends don't
+                    # support key iteration so we note the limitation.
+                    if hasattr(cache, "delete_pattern"):
+                        # django-redis provides delete_pattern
+                        cache.delete_pattern(f"{prefix}*")
+                        console.success(
+                            f"  [{alias}] cleared keys matching '{prefix}*'"
+                        )
+                        cleared.append(alias)
+                    elif hasattr(cache, "keys"):
+                        matching = cache.keys(f"{prefix}*")
+                        cache.delete_many(matching)
+                        console.success(
+                            f"  [{alias}] cleared {len(matching)} key(s) "
+                            f"matching '{prefix}*'"
+                        )
+                        cleared.append(alias)
+                    else:
+                        skipped.append(
+                            (alias, "backend does not support prefix-based deletion")
+                        )
+                else:
+                    cache.clear()
+                    console.success(f"  [{alias}] ({engine}) — cleared")
+                    cleared.append(alias)
 
-        if errors:
-            self.stderr.write(
-                self.style.ERROR(f"\n{len(errors)} backend(s) failed")
-            )
+            except Exception as exc:
+                skipped.append((alias, str(exc)))
 
-        return None
+        # summary
+        if cleared:
+            verb = "would clear" if dry_run else "cleared"
+            console.success(f"\n{len(cleared)} backend(s) {verb}.")
+        if skipped:
+            console.warning(f"\n{len(skipped)} backend(s) skipped:")
+            for alias, reason in skipped:
+                console.warning(f"  [{alias}] {reason}")

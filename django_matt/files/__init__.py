@@ -79,12 +79,51 @@ Configuration (settings.py):
     }
 """
 
+# Chunked/resumable uploads
+from .chunked import (
+    S3MultipartHandler,
+    TusUploadHandler,
+    TusUploadView,
+    UploadSession,
+)
 from .config import (
     FileConfig,
     get_file_config,
     get_storage,
 )
+
+# Storage events
+from .events import (
+    FileEvent,
+    emit_file_event,
+    file_accessed,
+    file_copied,
+    file_deleted,
+    file_moved,
+    file_processed,
+    file_uploaded,
+)
 from .local import LocalStorage
+
+# File metadata extraction
+from .metadata import (
+    FileMetadata,
+    extract_metadata,
+)
+
+# Presigned URLs
+from .presigned import (
+    PresignedUpload,
+    generate_presigned_download,
+    generate_presigned_upload,
+)
+
+# Image processing
+from .processing import (
+    ImageProcessor,
+    ProcessedImage,
+    process_image,
+)
 from .s3 import (
     DOSpacesStorage,
     MinIOStorage,
@@ -151,4 +190,29 @@ __all__ = [
     "generate_unique_filename",
     "sanitize_filename",
     "human_readable_size",
+    # Chunked/resumable uploads
+    "TusUploadHandler",
+    "TusUploadView",
+    "S3MultipartHandler",
+    "UploadSession",
+    # Presigned URLs
+    "PresignedUpload",
+    "generate_presigned_upload",
+    "generate_presigned_download",
+    # Image processing
+    "ImageProcessor",
+    "ProcessedImage",
+    "process_image",
+    # File metadata
+    "FileMetadata",
+    "extract_metadata",
+    # Storage events
+    "FileEvent",
+    "emit_file_event",
+    "file_uploaded",
+    "file_deleted",
+    "file_accessed",
+    "file_moved",
+    "file_copied",
+    "file_processed",
 ]

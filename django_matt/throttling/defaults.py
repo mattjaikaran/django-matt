@@ -19,7 +19,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 PRESETS: dict[str, dict[str, Any]] = {
     "standard": {
         "anon_rate": "100/minute",
