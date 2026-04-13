@@ -18,12 +18,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-# Django version detection
-import django
-
-DJANGO_VERSION = tuple(map(int, django.__version__.split(".")[:2]))
-DJANGO_5_2_PLUS = DJANGO_VERSION >= (5, 2)
-DJANGO_6_0_PLUS = DJANGO_VERSION >= (6, 0)
+from django_matt.compat import DJANGO_5_2_PLUS, DJANGO_6_0_PLUS, DJANGO_VERSION
 
 # Build paths inside the project
 # This will be overridden by the user's project

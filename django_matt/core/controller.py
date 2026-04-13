@@ -4,9 +4,6 @@ import inspect
 from functools import wraps
 from typing import TYPE_CHECKING, Any, get_type_hints
 
-import django
-from django.conf import settings
-
 import orjson
 
 if TYPE_CHECKING:
@@ -16,6 +13,9 @@ from django.http import HttpRequest, JsonResponse
 
 from pydantic import BaseModel, ValidationError
 
+from django_matt.conf import get_error_config as _get_error_config
+from django_matt.conf import get_matt_setting
+from django_matt.conf import reset_cache as _reset_di_config  # noqa: F401 — backward compat
 from django_matt.core.errors import (
     APIError,
     ConfigurationError,
@@ -24,45 +24,12 @@ from django_matt.core.errors import (
     ValidationAPIError,
 )
 
-# Module-level cache: avoids re-reading settings on every error
-_error_config: dict[str, Any] | None = None
-
-# --- DI auto-wire config (cached at module level) ---
-_di_config: bool | None = None
-
 
 def _get_di_config() -> bool:
-    """Check if DI auto-wire is enabled. Cached after first call."""
-    global _di_config
-    if _di_config is None:
-        matt_config = getattr(settings, "DJANGO_MATT", {})
-        _di_config = matt_config.get("DI_AUTO_WIRE", False)
-    return _di_config
+    """Check if DI auto-wire is enabled."""
+    return get_matt_setting("DI_AUTO_WIRE", False)
 
 
-def _reset_di_config() -> None:
-    """Reset the cached DI config. Used in tests."""
-    global _di_config
-    _di_config = None
-
-
-def _get_error_config() -> dict[str, Any]:
-    """Get error handling configuration from settings (cached after first call)."""
-    global _error_config
-    if _error_config is None:
-        config = getattr(settings, "DJANGO_MATT_ERRORS", {})
-        _error_config = {
-            "debug": config.get("DEBUG", getattr(settings, "DEBUG", False)),
-            "include_traceback": config.get("INCLUDE_TRACEBACK", getattr(settings, "DEBUG", False)),
-            "include_snippet": config.get("INCLUDE_SNIPPET", getattr(settings, "DEBUG", False)),
-        }
-    return _error_config
-
-
-# Django version detection for compatibility
-DJANGO_VERSION = tuple(map(int, django.__version__.split(".")[:2]))
-DJANGO_5_2_PLUS = DJANGO_VERSION >= (5, 2)
-DJANGO_6_0_PLUS = DJANGO_VERSION >= (6, 0)
 
 
 class Controller:

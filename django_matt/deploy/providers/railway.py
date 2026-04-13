@@ -11,6 +11,7 @@ from django_matt.deploy.base import (
     DeploymentProvider,
     DeploymentResult,
     DeploymentStatus,
+    build_start_command,
     register_provider,
 )
 
@@ -80,7 +81,7 @@ class RailwayProvider(DeploymentProvider):
                 "buildCommand": "uv pip install -r requirements.txt && python manage.py collectstatic --noinput",
             },
             "deploy": {
-                "startCommand": f"gunicorn {self.config.django_settings_module.rsplit('.', 1)[0]}.wsgi:application --bind 0.0.0.0:$PORT --workers {self.config.workers}",
+                "startCommand": build_start_command(self.config),
                 "healthcheckPath": self.config.health_check_path,
                 "healthcheckTimeout": 30,
                 "restartPolicyType": "ON_FAILURE",
@@ -94,7 +95,7 @@ class RailwayProvider(DeploymentProvider):
         """Generate Procfile for Railway."""
         wsgi_module = f"{self.config.django_settings_module.rsplit('.', 1)[0]}.wsgi:application"
 
-        return f"""web: gunicorn {wsgi_module} --bind 0.0.0.0:$PORT --workers {self.config.workers} --worker-class {self.config.worker_class}
+        return f"""web: {build_start_command(self.config)}
 release: python manage.py migrate --noinput
 """
 
@@ -110,7 +111,7 @@ cmds = ["uv pip install -r requirements.txt"]
 cmds = ["python manage.py collectstatic --noinput"]
 
 [start]
-cmd = "gunicorn {self.config.django_settings_module.rsplit(".", 1)[0]}.wsgi:application --bind 0.0.0.0:$PORT --workers {self.config.workers}"
+cmd = "{build_start_command(self.config)}"
 """
 
     async def deploy(self) -> DeploymentResult:
@@ -128,12 +129,7 @@ cmd = "gunicorn {self.config.django_settings_module.rsplit(".", 1)[0]}.wsgi:appl
             result.status = DeploymentStatus.BUILDING
 
             # Write configuration files
-            configs = self.generate_config()
-            for filename, content in configs.items():
-                file_path = self.config.project_dir / filename
-                with open(file_path, "w") as f:
-                    f.write(content)
-                result.add_log(f"Generated {filename}")
+            self.write_config_files(result)
 
             # Check if logged in
             login_check = self.run_command(["railway", "whoami"])

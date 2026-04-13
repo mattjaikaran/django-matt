@@ -149,12 +149,7 @@ class WebSocketRouter:
         Returns:
             List of path() patterns for use with URLRouter
         """
-        try:
-            from django.urls import path, re_path
-        except ImportError:
-            from django.conf.urls import url as re_path
-
-            path = re_path
+        from django.urls import path
 
         patterns = []
 

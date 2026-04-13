@@ -10,6 +10,8 @@ from typing import Any
 
 import yaml
 
+from django_matt.deploy.base import ServerBackend
+
 
 @dataclass
 class DockerfileConfig:
@@ -20,6 +22,7 @@ class DockerfileConfig:
     working_dir: str = "/app"
     port: int = 8000
     workers: int = 4
+    server_backend: ServerBackend = ServerBackend.GRANIAN
     worker_class: str = "uvicorn.workers.UvicornWorker"
     wsgi_module: str = "config.wsgi:application"
     asgi_module: str = "config.asgi:application"
@@ -208,10 +211,15 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:{self.config.port}"]
         return dockerfile
 
     def _get_server_command(self) -> str:
-        """Get the appropriate server command."""
-        if self.config.use_asgi:
-            return f'["sh", "-c", "python manage.py migrate --noinput && uvicorn {self.config.asgi_module} --host 0.0.0.0 --port $PORT --workers {self.config.workers}"]'
-        return f'["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.wsgi_module} --bind 0.0.0.0:$PORT --workers {self.config.workers} --worker-class {self.config.worker_class}"]'
+        """Get the appropriate server command based on configured backend."""
+        module = self.config.asgi_module if self.config.use_asgi else self.config.wsgi_module
+        serve_cmd = self.config.server_backend.get_serve_command(
+            module,
+            host="0.0.0.0",
+            port="$PORT",
+            workers=self.config.workers,
+        )
+        return f'["sh", "-c", "python manage.py migrate --noinput && {serve_cmd}"]'
 
     def write(self, path: Path, mode: str = "production"):
         """Write Dockerfile to path."""
@@ -630,10 +638,62 @@ node_modules/
             f.write(content)
 
 
+def generate_dockerignore() -> str:
+    """Generate a standard .dockerignore for Django projects."""
+    return """# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+ENV/
+env/
+*.egg-info/
+.eggs/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+media/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*
+.docker/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Misc
+*.env
+.env.*
+!.env.example
+.DS_Store
+node_modules/
+"""
+
+
 __all__ = [
     "ComposeConfig",
     "ComposeGenerator",
     "ComposeService",
     "DockerfileConfig",
     "DockerfileGenerator",
+    "generate_dockerignore",
 ]

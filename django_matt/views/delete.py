@@ -11,7 +11,6 @@ from typing import Any
 from django.db import models
 from django.http import HttpRequest
 
-from django_matt.core.errors import NotFoundAPIError
 from django_matt.views.base import APIView
 from django_matt.views.hooks import HookType
 
@@ -92,20 +91,6 @@ class DeleteView(APIView):
         if self.return_deleted and deleted_data:
             return {"deleted": True, "data": deleted_data}
         return {"deleted": True}
-
-    async def _get_instance(self, lookup_value: Any) -> models.Model:
-        """Get the model instance by lookup value."""
-        queryset = self.get_queryset(None)
-
-        try:
-            return await queryset.aget(**{self.lookup_field: lookup_value})
-        except queryset.model.DoesNotExist:
-            model_name = self.get_model().__name__
-            raise NotFoundAPIError(
-                message=f"{model_name} not found",
-                resource_type=model_name,
-                resource_id=str(lookup_value),
-            )
 
     async def _delete_instance(self, instance: models.Model):
         """Delete the model instance asynchronously."""

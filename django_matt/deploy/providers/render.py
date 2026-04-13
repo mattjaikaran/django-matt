@@ -14,6 +14,7 @@ from django_matt.deploy.base import (
     DeploymentProvider,
     DeploymentResult,
     DeploymentStatus,
+    build_start_command,
     register_provider,
 )
 
@@ -84,7 +85,7 @@ class RenderProvider(DeploymentProvider):
             "name": self.config.app_name,
             "runtime": "python",
             "buildCommand": "sh build.sh",
-            "startCommand": f"gunicorn {self.config.django_settings_module.rsplit('.', 1)[0]}.wsgi:application --bind 0.0.0.0:$PORT --workers {self.config.workers}",
+            "startCommand": build_start_command(self.config),
             "healthCheckPath": self.config.health_check_path,
             "envVars": self._get_env_vars_list(),
             "autoDeploy": True,
@@ -229,12 +230,7 @@ python manage.py migrate --noinput
             result.status = DeploymentStatus.BUILDING
 
             # Write configuration files
-            configs = self.generate_config()
-            for filename, content in configs.items():
-                file_path = self.config.project_dir / filename
-                with open(file_path, "w") as f:
-                    f.write(content)
-                result.add_log(f"Generated {filename}")
+            self.write_config_files(result)
 
             # Make build script executable
             build_script = self.config.project_dir / "build.sh"

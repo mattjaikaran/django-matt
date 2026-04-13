@@ -24,6 +24,80 @@ class DeploymentStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+class ServerBackend(str, Enum):
+    """ASGI/WSGI server backend for production deployments."""
+
+    UVICORN = "uvicorn"
+    GUNICORN = "gunicorn"
+    GRANIAN = "granian"
+    ROBYN = "robyn"
+
+    def get_install_package(self) -> str:
+        """Return the pip/uv package name for this backend."""
+        return {
+            ServerBackend.UVICORN: "uvicorn[standard]",
+            ServerBackend.GUNICORN: "gunicorn",
+            ServerBackend.GRANIAN: "granian",
+            ServerBackend.ROBYN: "robyn",
+        }[self]
+
+    def get_serve_command(
+        self,
+        asgi_module: str,
+        *,
+        host: str = "0.0.0.0",
+        port: str = "$PORT",
+        workers: int = 4,
+    ) -> str:
+        """Return the CLI command to start this server."""
+        if self == ServerBackend.GRANIAN:
+            return (
+                f"granian --interface asgi {asgi_module} "
+                f"--host {host} --port {port} --workers {workers} "
+                f"--http auto"
+            )
+        if self == ServerBackend.ROBYN:
+            return (
+                f"python -m robyn {asgi_module} "
+                f"--host {host} --port {port} --workers {workers}"
+            )
+        if self == ServerBackend.GUNICORN:
+            return (
+                f"gunicorn {asgi_module} "
+                f"--bind {host}:{port} --workers {workers} "
+                f"--worker-class uvicorn.workers.UvicornWorker"
+            )
+        # Default: uvicorn
+        return (
+            f"uvicorn {asgi_module} "
+            f"--host {host} --port {port} --workers {workers}"
+        )
+
+    def get_dev_command(
+        self,
+        asgi_module: str,
+        *,
+        host: str = "127.0.0.1",
+        port: int = 8000,
+    ) -> str:
+        """Return the CLI command for development with auto-reload."""
+        if self == ServerBackend.GRANIAN:
+            return (
+                f"granian --interface asgi {asgi_module} "
+                f"--host {host} --port {port} --workers 1 --reload"
+            )
+        if self == ServerBackend.ROBYN:
+            return (
+                f"python -m robyn {asgi_module} "
+                f"--host {host} --port {port} --dev"
+            )
+        # uvicorn/gunicorn dev mode uses uvicorn directly
+        return (
+            f"uvicorn {asgi_module} "
+            f"--host {host} --port {port} --reload"
+        )
+
+
 @dataclass
 class DeploymentConfig:
     """
@@ -42,6 +116,7 @@ class DeploymentConfig:
     # Server settings
     port: int = 8000
     workers: int = 4
+    server_backend: ServerBackend = ServerBackend.GRANIAN
     worker_class: str = "uvicorn.workers.UvicornWorker"
 
     # Database
@@ -194,6 +269,13 @@ class DeploymentProvider(ABC):
         """Get application logs."""
         raise NotImplementedError(f"{self.name} does not support logs")
 
+    def write_config_files(self, result: DeploymentResult) -> None:
+        """Write all generated config files to disk and log each."""
+        for filename, content in self.generate_config().items():
+            file_path = self.config.project_dir / filename
+            file_path.write_text(content)
+            result.add_log(f"Generated {filename}")
+
     def run_command(self, command: list[str], capture: bool = True) -> subprocess.CompletedProcess:
         """Run a shell command."""
         return subprocess.run(
@@ -324,12 +406,28 @@ def list_providers() -> list[str]:
     return list(_providers.keys())
 
 
+def build_start_command(config: DeploymentConfig) -> str:
+    """Build the production server start command from config.
+
+    Used by all deployment providers to generate consistent server commands.
+    """
+    asgi_module = config.django_settings_module.rsplit(".", 1)[0] + ".asgi:application"
+    return config.server_backend.get_serve_command(
+        asgi_module,
+        host="0.0.0.0",
+        port="$PORT",
+        workers=config.workers,
+    )
+
+
 __all__ = [
     "DeploymentConfig",
     "DeploymentProvider",
     "DeploymentResult",
     "DeploymentStatus",
     "SecretManager",
+    "ServerBackend",
+    "build_start_command",
     "get_provider",
     "list_providers",
     "register_provider",

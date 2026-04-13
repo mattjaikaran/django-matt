@@ -8,10 +8,8 @@ Provides the core building blocks for the Django Matt framework:
 - Error handling utilities
 """
 
+from django_matt.compat import DJANGO_5_2_PLUS, DJANGO_6_0_PLUS, DJANGO_VERSION
 from django_matt.core.controller import (
-    DJANGO_5_2_PLUS,
-    DJANGO_6_0_PLUS,
-    DJANGO_VERSION,
     APIController,
     Controller,
     CRUDController,

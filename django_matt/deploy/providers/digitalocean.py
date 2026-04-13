@@ -14,6 +14,7 @@ from django_matt.deploy.base import (
     DeploymentProvider,
     DeploymentResult,
     DeploymentStatus,
+    build_start_command,
     register_provider,
 )
 
@@ -209,7 +210,7 @@ COPY . .
 RUN python manage.py collectstatic --noinput
 
 # Run migrations and start server
-CMD python manage.py migrate --noinput && gunicorn {self.config.django_settings_module.rsplit(".", 1)[0]}.wsgi:application --bind 0.0.0.0:$PORT --workers {self.config.workers}
+CMD python manage.py migrate --noinput && {build_start_command(self.config)}
 """
 
     async def deploy(self) -> DeploymentResult:

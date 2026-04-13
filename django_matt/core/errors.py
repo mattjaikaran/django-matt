@@ -798,7 +798,13 @@ class ErrorMiddleware:
             raise  # Re-raise for non-API requests
 
     async def __acall__(self, request):
-        return await self.get_response(request)
+        try:
+            response = await self.get_response(request)
+            return response
+        except Exception as e:
+            if request.path.startswith("/api/"):
+                return ErrorHandler.json_response(e)
+            raise
 
     def process_exception(self, request, exception):
         """Process an exception and return a formatted error response."""

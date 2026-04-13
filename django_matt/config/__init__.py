@@ -293,12 +293,26 @@ def configure(
         existing_matt.update(matt_settings)
         extra_settings["DJANGO_MATT"] = existing_matt
 
-    return config.configure(
+    result = config.configure(
         environment=environment,
         components=components,
         extra_settings=extra_settings,
         apply_to_django=apply_to_django,
     )
+
+    # Auto-insert django_matt into INSTALLED_APPS if missing
+    if apply_to_django:
+        installed = list(getattr(django_settings, "INSTALLED_APPS", []))
+        if "django_matt" not in installed:
+            # Insert after django.contrib.contenttypes (or at end if not found)
+            try:
+                ct_idx = installed.index("django.contrib.contenttypes")
+                installed.insert(ct_idx + 1, "django_matt")
+            except ValueError:
+                installed.append("django_matt")
+            django_settings.INSTALLED_APPS = installed
+
+    return result
 
 
 def get_settings() -> dict[str, Any]:

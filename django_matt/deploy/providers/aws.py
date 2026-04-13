@@ -11,6 +11,7 @@ from django_matt.deploy.base import (
     DeploymentProvider,
     DeploymentResult,
     DeploymentStatus,
+    build_start_command,
     register_provider,
 )
 
@@ -119,7 +120,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \\
     CMD curl -f http://localhost:$PORT{self.config.health_check_path} || exit 1
 
 # Run the application
-CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.django_settings_module.rsplit(".", 1)[0]}.wsgi:application --bind 0.0.0.0:$PORT --workers {self.config.workers}"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && {build_start_command(self.config)}"]
 """
 
     def _generate_apprunner_yaml(self) -> str:
@@ -135,7 +136,7 @@ CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.dj
             },
             "run": {
                 "runtime-version": "3.13",
-                "command": f"gunicorn {self.config.django_settings_module.rsplit('.', 1)[0]}.wsgi:application --bind 0.0.0.0:$PORT --workers {self.config.workers}",
+                "command": build_start_command(self.config),
                 "network": {
                     "port": self.config.port,
                     "env": "PORT",

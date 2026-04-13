@@ -275,6 +275,30 @@ class APIView(Generic[ModelT, SchemaT]):
 
         return queryset
 
+    async def _get_instance(
+        self, lookup_value: Any, selected_fields: list[str] | None = None
+    ) -> models.Model:
+        """Get a model instance by lookup value.
+
+        Applies queryset optimization and optional field selection.
+        Raises NotFoundAPIError if the instance does not exist.
+        """
+        queryset = self.get_queryset(None)
+        queryset = self.optimize_queryset(queryset)
+
+        if selected_fields:
+            queryset = self._apply_field_selection_to_queryset(queryset, selected_fields)
+
+        try:
+            return await queryset.aget(**{self.lookup_field: lookup_value})
+        except queryset.model.DoesNotExist:
+            model_name = self.get_model().__name__
+            raise NotFoundAPIError(
+                message=f"{model_name} not found",
+                resource_type=model_name,
+                resource_id=str(lookup_value),
+            )
+
     def _get_parsed_qs(self, request: HttpRequest) -> dict | None:
         cached = getattr(request, "_parsed_qs", None)
         if cached is not None:

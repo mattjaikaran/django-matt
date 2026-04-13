@@ -29,25 +29,13 @@ if _DJANGO_VERSION >= (5, 1):
 # Cache type hints per function to avoid repeated introspection
 _hints_cache: dict[int, dict] = {}
 
-# --- DI auto-wire config (cached at module level) ---
-_di_config: bool | None = None
+from django_matt.conf import get_matt_setting
+from django_matt.conf import reset_cache as _reset_di_config  # noqa: F401 — backward compat
 
 
 def _get_di_config() -> bool:
-    """Check if DI auto-wire is enabled. Cached after first call."""
-    global _di_config
-    if _di_config is None:
-        from django.conf import settings
-
-        matt_config = getattr(settings, "DJANGO_MATT", {})
-        _di_config = matt_config.get("DI_AUTO_WIRE", False)
-    return _di_config
-
-
-def _reset_di_config() -> None:
-    """Reset the cached DI config. Used in tests."""
-    global _di_config
-    _di_config = None
+    """Check if DI auto-wire is enabled."""
+    return get_matt_setting("DI_AUTO_WIRE", False)
 
 
 def _analyze_di_params(endpoint: Callable) -> dict | None:

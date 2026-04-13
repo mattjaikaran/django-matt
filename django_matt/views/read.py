@@ -8,10 +8,8 @@ Supports lifecycle hooks:
 
 from typing import Any
 
-from django.db import models
 from django.http import HttpRequest
 
-from django_matt.core.errors import NotFoundAPIError
 from django_matt.views.base import APIView
 from django_matt.views.hooks import HookType
 
@@ -73,27 +71,7 @@ class ReadView(APIView):
         result = self.serialize_single(instance)
         return self._filter_dict_fields(result, selected_fields)
 
-    async def _get_instance(
-        self, lookup_value: Any, selected_fields: list[str] | None = None
-    ) -> models.Model:
-        """Get the model instance by lookup value."""
-        queryset = self.get_queryset(None)
-
-        # Auto-optimize for single object retrieval too
-        queryset = self.optimize_queryset(queryset)
-
-        # Apply .only() for DB-level optimization when fields are selected
-        queryset = self._apply_field_selection_to_queryset(queryset, selected_fields)
-
-        try:
-            return await queryset.aget(**{self.lookup_field: lookup_value})
-        except queryset.model.DoesNotExist:
-            model_name = self.get_model().__name__
-            raise NotFoundAPIError(
-                message=f"{model_name} not found",
-                resource_type=model_name,
-                resource_id=str(lookup_value),
-            )
+    # _get_instance is inherited from APIView (base.py)
 
 
 # Alias for ReadView (common naming convention)

@@ -147,10 +147,18 @@ postgres = [
     "psycopg[binary,pool]>=3.2.0",
 ]
 
-# ASGI server (production)
+# ASGI server (production) — pick one
 server = [
     "uvicorn[standard]>=0.32.0",
     "gunicorn>=23.0.0",
+]
+
+# Rust-based ASGI servers (recommended for performance)
+granian = [
+    "granian>=2.0.0",
+]
+robyn = [
+    "robyn>=0.63.0",
 ]
 
 # Testing utilities - built-in factories and data generators
@@ -173,7 +181,7 @@ full = [
 
 # Everything
 all = [
-    "django-matt[auth,oauth,passkeys,performance,typegen,testing,files,tasks,billing,email,server,postgres,docs]",
+    "django-matt[auth,oauth,passkeys,performance,typegen,testing,files,tasks,billing,email,server,granian,postgres,docs]",
 ]
 
 [project.urls]

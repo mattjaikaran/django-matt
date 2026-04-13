@@ -328,10 +328,26 @@ class TestDockerfileGenerator(TestCase):
         self.assertIn("PORT=9000", dockerfile)
 
     def test_asgi_config(self):
-        """Test Dockerfile with ASGI config."""
+        """Test Dockerfile with ASGI config uses configured server backend."""
         config = DockerfileConfig(
             use_asgi=True,
             asgi_module="myapp.asgi:application",
+        )
+        generator = DockerfileGenerator(config)
+        dockerfile = generator.generate("production")
+
+        # Default backend is granian
+        self.assertIn("granian", dockerfile)
+        self.assertIn("myapp.asgi:application", dockerfile)
+
+    def test_asgi_config_uvicorn(self):
+        """Test Dockerfile with uvicorn backend."""
+        from django_matt.deploy.base import ServerBackend
+
+        config = DockerfileConfig(
+            use_asgi=True,
+            asgi_module="myapp.asgi:application",
+            server_backend=ServerBackend.UVICORN,
         )
         generator = DockerfileGenerator(config)
         dockerfile = generator.generate("production")
@@ -969,7 +985,8 @@ class TestRailwayProvider(TestCase):
         procfile = configs["Procfile"]
 
         self.assertIn("web:", procfile)
-        self.assertIn("gunicorn", procfile)
+        # Default server backend is granian
+        self.assertIn("granian", procfile)
         self.assertIn("release:", procfile)
 
 
@@ -1168,19 +1185,19 @@ class TestConnMaxAgeEnforcement(TestCase):
         config = DockerfileConfig()
         self.assertTrue(config.use_asgi)
 
-    def test_docker_production_uses_uvicorn(self):
-        """Production Dockerfile CMD must use uvicorn (ASGI server)."""
+    def test_docker_production_uses_granian(self):
+        """Production Dockerfile CMD must use granian (default ASGI server)."""
         config = DockerfileConfig()  # use_asgi=True by default
         generator = DockerfileGenerator(config)
         dockerfile = generator.generate("production")
-        self.assertIn("uvicorn", dockerfile)
+        self.assertIn("granian", dockerfile)
 
-    def test_docker_multistage_uses_uvicorn(self):
-        """Multi-stage Dockerfile CMD must use uvicorn (ASGI server)."""
+    def test_docker_multistage_uses_granian(self):
+        """Multi-stage Dockerfile CMD must use granian (default ASGI server)."""
         config = DockerfileConfig()
         generator = DockerfileGenerator(config)
         dockerfile = generator.generate("multistage")
-        self.assertIn("uvicorn", dockerfile)
+        self.assertIn("granian", dockerfile)
 
     # ---- config/components/database.py ----
 

@@ -14,6 +14,7 @@ from django_matt.deploy.base import (
     DeploymentProvider,
     DeploymentResult,
     DeploymentStatus,
+    build_start_command,
     register_provider,
 )
 
@@ -134,89 +135,23 @@ class FlyioProvider(DeploymentProvider):
         return toml.dumps(config)
 
     def _generate_dockerfile(self) -> str:
-        """Generate Dockerfile for Fly.io."""
-        return f"""# Dockerfile for Fly.io deployment
-FROM python:3.13-slim
+        """Generate Dockerfile for Fly.io using shared DockerfileGenerator."""
+        from django_matt.deploy.docker import DockerfileConfig, DockerfileGenerator
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PORT={self.config.port}
-
-# Set work directory
-WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \\
-    build-essential \\
-    libpq-dev \\
-    curl \\
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
-COPY requirements.txt .
-RUN uv pip install --no-cache-dir -r requirements.txt
-
-# Copy project
-COPY . .
-
-# Collect static files
-RUN python manage.py collectstatic --noinput
-
-# Create non-root user
-RUN useradd -m appuser && chown -R appuser:appuser /app
-USER appuser
-
-# Run gunicorn
-CMD ["sh", "-c", "gunicorn {self.config.django_settings_module.rsplit(".", 1)[0]}.wsgi:application --bind 0.0.0.0:$PORT --workers {self.config.workers} --worker-class {self.config.worker_class}"]
-"""
+        cfg = DockerfileConfig(
+            python_version=self.config.python_version,
+            port=self.config.port,
+            workers=self.config.workers,
+            server_backend=self.config.server_backend,
+            health_check_path=self.config.health_check_path,
+        )
+        return DockerfileGenerator(cfg).generate("production")
 
     def _generate_dockerignore(self) -> str:
-        """Generate .dockerignore file."""
-        return """# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-.venv/
-ENV/
-env/
+        """Generate .dockerignore file using shared generator."""
+        from django_matt.deploy.docker import generate_dockerignore
 
-# Django
-*.log
-local_settings.py
-db.sqlite3
-media/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# Git
-.git/
-.gitignore
-
-# Docker
-Dockerfile*
-docker-compose*
-.docker/
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-
-# Misc
-*.env
-.env.*
-!.env.example
-.DS_Store
-"""
+        return generate_dockerignore()
 
     def _generate_release_script(self) -> str:
         """Generate release script for migrations."""
@@ -244,12 +179,7 @@ echo "Release complete!"
             result.status = DeploymentStatus.BUILDING
 
             # Write configuration files
-            configs = self.generate_config()
-            for filename, content in configs.items():
-                file_path = self.config.project_dir / filename
-                with open(file_path, "w") as f:
-                    f.write(content)
-                result.add_log(f"Generated {filename}")
+            self.write_config_files(result)
 
             # Check if app exists
             check_result = self.run_command(["flyctl", "apps", "list", "--json"])

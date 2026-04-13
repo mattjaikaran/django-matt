@@ -15,10 +15,8 @@ import pytest
 from pydantic import BaseModel
 
 # Import directly from modules to avoid full package import
+from django_matt.compat import DJANGO_5_2_PLUS, DJANGO_6_0_PLUS, DJANGO_VERSION
 from django_matt.core.controller import (
-    DJANGO_5_2_PLUS,
-    DJANGO_6_0_PLUS,
-    DJANGO_VERSION,
     APIController,
     Controller,
     CRUDController,

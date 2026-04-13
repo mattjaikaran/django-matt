@@ -164,22 +164,18 @@ class TestGetDIConfig:
             del settings.DJANGO_MATT
         assert router_get_di_config() is False
 
-    def test_controller_config_independent(self, settings):
-        """Controller and router have independent config caches."""
+    def test_controller_and_router_share_config_cache(self, settings):
+        """Controller and router read from the same shared config cache."""
         settings.DJANGO_MATT = {"DI_AUTO_WIRE": True}
         controller_reset_di_config()
         assert controller_get_di_config() is True
-
-        # Router should also read True from the same settings
-        router_reset_di_config()
         assert router_get_di_config() is True
 
-        # Now verify they cache independently
+        # After reset, both pick up the new value
         settings.DJANGO_MATT = {"DI_AUTO_WIRE": False}
         controller_reset_di_config()
         assert controller_get_di_config() is False
-        # Router still cached as True
-        assert router_get_di_config() is True
+        assert router_get_di_config() is False
 
 
 # =============================================================================
@@ -201,7 +197,7 @@ class TestAnalyzeDIParams:
 
     def test_returns_none_for_no_di_params(self):
         """Returns None when endpoint has no Depends() markers."""
-        with patch("django_matt.core.router._di_config", True):
+        with patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}):
 
             async def endpoint(request, name: str = "default"):
                 pass
@@ -211,7 +207,7 @@ class TestAnalyzeDIParams:
 
     def test_returns_dict_for_depends_params(self):
         """Returns dict mapping param names to DependencyMarker instances."""
-        with patch("django_matt.core.router._di_config", True):
+        with patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}):
             dep = Depends()
 
             async def endpoint(request, svc: FakeService = dep):
@@ -224,7 +220,7 @@ class TestAnalyzeDIParams:
 
     def test_skips_self_cls_request_body(self):
         """Skips self, cls, request, and body parameters."""
-        with patch("django_matt.core.router._di_config", True):
+        with patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}):
 
             async def endpoint(self, request, body, svc: FakeService = Depends()):
                 pass
@@ -238,7 +234,7 @@ class TestAnalyzeDIParams:
 
     def test_skips_var_positional_and_keyword(self):
         """Skips *args and **kwargs."""
-        with patch("django_matt.core.router._di_config", True):
+        with patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}):
 
             async def endpoint(request, *args, svc: FakeService = Depends(), **kwargs):
                 pass
@@ -250,7 +246,7 @@ class TestAnalyzeDIParams:
 
     def test_multiple_depends_params(self):
         """Detects multiple Depends() markers."""
-        with patch("django_matt.core.router._di_config", True):
+        with patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}):
             dep1 = Depends()
             dep2 = Depends(FakeService)
 
@@ -298,7 +294,7 @@ class TestRouterDIAutoWire:
     def test_di_enabled_resolves_depends(self, rf, di_container):
         """When DI_AUTO_WIRE=True, Depends() markers are resolved."""
         with (
-            patch("django_matt.core.router._di_config", True),
+            patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}),
             patch("django_matt.di.depends.default_container", di_container),
         ):
             call_log = {}
@@ -319,7 +315,7 @@ class TestRouterDIAutoWire:
 
     def test_di_enabled_no_di_params_unaffected(self, rf):
         """Endpoints without Depends() params work normally when DI is enabled."""
-        with patch("django_matt.core.router._di_config", True):
+        with patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}):
             call_log = {}
 
             async def endpoint(request):
@@ -337,7 +333,7 @@ class TestRouterDIAutoWire:
     def test_di_scoped_per_request(self, rf, di_container):
         """Scoped services get one instance per request scope."""
         with (
-            patch("django_matt.core.router._di_config", True),
+            patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}),
             patch("django_matt.di.depends.default_container", di_container),
         ):
             results = []
@@ -364,7 +360,7 @@ class TestRouterDIAutoWire:
     def test_di_singleton_shared_across_requests(self, rf, di_container):
         """Singleton services are shared across requests."""
         with (
-            patch("django_matt.core.router._di_config", True),
+            patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}),
             patch("django_matt.di.depends.default_container", di_container),
         ):
             results = []
@@ -391,7 +387,7 @@ class TestRouterDIAutoWire:
     def test_di_scope_cleanup_in_finally(self, rf, di_container):
         """Scope token is cleaned up even when endpoint raises."""
         with (
-            patch("django_matt.core.router._di_config", True),
+            patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}),
             patch("django_matt.di.depends.default_container", di_container),
         ):
 
@@ -412,7 +408,7 @@ class TestRouterDIAutoWire:
     def test_di_sync_endpoint(self, rf, di_container):
         """DI works with sync endpoints."""
         with (
-            patch("django_matt.core.router._di_config", True),
+            patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}),
             patch("django_matt.di.depends.default_container", di_container),
         ):
             call_log = {}
@@ -433,7 +429,7 @@ class TestRouterDIAutoWire:
     def test_di_preserves_existing_kwargs(self, rf, di_container):
         """DI resolution does not overwrite existing kwargs (e.g., URL params)."""
         with (
-            patch("django_matt.core.router._di_config", True),
+            patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}),
             patch("django_matt.di.depends.default_container", di_container),
         ):
             call_log = {}
@@ -455,7 +451,7 @@ class TestRouterDIAutoWire:
     def test_di_does_not_create_scope_if_already_exists(self, rf, di_container):
         """If a scope already exists (e.g., from middleware), don't create a new one."""
         with (
-            patch("django_matt.core.router._di_config", True),
+            patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}),
             patch("django_matt.di.depends.default_container", di_container),
         ):
             scope_ids = []
@@ -525,7 +521,7 @@ class TestControllerDIAutoWire:
         from django_matt.core.router import get as route_get
 
         with (
-            patch("django_matt.core.controller._di_config", True),
+            patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}),
             patch("django_matt.di.depends.default_container", di_container),
         ):
             call_log = {}
@@ -554,7 +550,7 @@ class TestControllerDIAutoWire:
         from django_matt.core.router import get as route_get
 
         with (
-            patch("django_matt.core.controller._di_config", True),
+            patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}),
             patch("django_matt.di.depends.default_container", di_container),
         ):
 
@@ -581,7 +577,7 @@ class TestControllerDIAutoWire:
         """Controller methods without Depends() are not affected by DI."""
         from django_matt.core.router import get as route_get
 
-        with patch("django_matt.core.controller._di_config", True):
+        with patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}):
             call_log = {}
 
             class TestController(Controller):
@@ -607,7 +603,7 @@ class TestControllerDIAutoWire:
         from django_matt.core.router import get as route_get
 
         with (
-            patch("django_matt.core.controller._di_config", True),
+            patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}),
             patch("django_matt.di.depends.default_container", di_container),
         ):
             call_log = {}
@@ -647,7 +643,7 @@ class TestDIAutoWireIntegration:
     def test_router_add_route_with_di(self, rf, di_container):
         """Full flow: add_route -> get_urls -> call view with DI."""
         with (
-            patch("django_matt.core.router._di_config", True),
+            patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}),
             patch("django_matt.di.depends.default_container", di_container),
         ):
             call_log = {}
@@ -673,7 +669,7 @@ class TestDIAutoWireIntegration:
     def test_depends_with_explicit_type(self, rf, di_container):
         """Depends(ExplicitType) resolves the explicit type."""
         with (
-            patch("django_matt.core.router._di_config", True),
+            patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}),
             patch("django_matt.di.depends.default_container", di_container),
         ):
             call_log = {}
@@ -693,7 +689,7 @@ class TestDIAutoWireIntegration:
     def test_depends_with_factory(self, rf, di_container):
         """Depends(factory_fn) calls the factory function."""
         with (
-            patch("django_matt.core.router._di_config", True),
+            patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}),
             patch("django_matt.di.depends.default_container", di_container),
         ):
             call_log = {}
@@ -717,7 +713,7 @@ class TestDIAutoWireIntegration:
     def test_transient_service_new_each_resolve(self, rf, di_container):
         """Transient services get a new instance each time they are resolved."""
         with (
-            patch("django_matt.core.router._di_config", True),
+            patch("django_matt.conf._cache", {"DI_AUTO_WIRE": True}),
             patch("django_matt.di.depends.default_container", di_container),
         ):
             results = []

@@ -11,6 +11,7 @@ from django_matt.deploy.base import (
     DeploymentProvider,
     DeploymentResult,
     DeploymentStatus,
+    build_start_command,
     register_provider,
 )
 
@@ -221,7 +222,7 @@ USER appuser
 EXPOSE {self.config.port}
 
 # Run the application
-CMD ["sh", "-c", "python manage.py migrate --noinput && gunicorn {self.config.django_settings_module.rsplit(".", 1)[0]}.wsgi:application --bind 0.0.0.0:{self.config.port} --workers {self.config.workers}"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && {build_start_command(self.config)}"]
 """
 
     def _generate_caddyfile(self) -> str:
