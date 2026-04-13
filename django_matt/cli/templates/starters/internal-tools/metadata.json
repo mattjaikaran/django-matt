@@ -1,0 +1,8 @@
+{
+    "name": "internal-tools",
+    "description": "Internal dashboard and tools with Django Unfold admin, SSO/SAML, audit logging, feature flags, and analytics",
+    "modules": ["core", "auth", "views", "permissions", "openapi", "admin", "audit", "flags", "analytics"],
+    "features": ["jwt-auth", "cors", "crud-example", "docker", "pytest", "unfold-admin", "sso-saml", "audit-logging", "feature-flags", "analytics"],
+    "requires_redis": true,
+    "requires_celery": false
+}

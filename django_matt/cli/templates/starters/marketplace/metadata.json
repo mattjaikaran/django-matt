@@ -1,0 +1,8 @@
+{
+    "name": "marketplace",
+    "description": "Multi-vendor marketplace with multitenancy, connected payments, reviews, search, and file uploads",
+    "modules": ["core", "auth", "views", "permissions", "openapi", "multitenancy", "billing", "filtering", "files", "pagination"],
+    "features": ["jwt-auth", "cors", "crud-example", "docker", "pytest", "multitenancy", "stripe-connect", "reviews", "search", "file-uploads"],
+    "requires_redis": true,
+    "requires_celery": false
+}

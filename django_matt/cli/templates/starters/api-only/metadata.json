@@ -1,0 +1,8 @@
+{
+    "name": "api-only",
+    "description": "Pure API backend with JWT auth, CORS, and Docker support",
+    "modules": ["core", "auth", "views", "permissions", "openapi"],
+    "features": ["jwt-auth", "cors", "crud-example", "docker", "pytest"],
+    "requires_redis": false,
+    "requires_celery": false
+}

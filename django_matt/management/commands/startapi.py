@@ -30,6 +30,8 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             "name",
+            nargs="?",
+            default=None,
             help="Name of the project to create",
         )
         parser.add_argument(
@@ -51,9 +53,22 @@ class Command(BaseCommand):
         parser.add_argument(
             "--template",
             "-t",
-            choices=["starter", "b2b", "b2c", "saas", "ai-saas", "marketplace"],
-            default="starter",
-            help="Project template type (default: starter)",
+            choices=[
+                "starter", "b2b", "b2c", "saas",
+                "api-only", "ai-saas", "marketplace", "internal-tools",
+            ],
+            default="api-only",
+            help="Project template type (default: api-only)",
+        )
+        parser.add_argument(
+            "--list-templates",
+            action="store_true",
+            help="List available starter templates and exit",
+        )
+        parser.add_argument(
+            "--use-starter",
+            action="store_true",
+            help="Use the new starter template system (file-based scaffolds)",
         )
         parser.add_argument(
             "--auth",
@@ -86,11 +101,28 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        # Handle --list-templates
+        if options.get("list_templates"):
+            self._list_templates()
+            return
+
         project_name = options["name"]
+        if not project_name:
+            raise CommandError("You must provide a project name (or use --list-templates)")
+
         directory = options["directory"] or os.getcwd()
+        template = options["template"]
+
+        # New starter template system
+        if options.get("use_starter") or template in (
+            "api-only", "ai-saas", "marketplace", "internal-tools"
+        ):
+            self._handle_starter_template(project_name, directory, template, options)
+            return
+
+        # Legacy flow below
         api_app = options["api_app"]
         db = options["db"]
-        template = options["template"]
         auth = options["auth"]
         frontend = options["frontend"]
         docker = options["docker"]
@@ -174,6 +206,64 @@ class Command(BaseCommand):
         finally:
             # Change back to the original directory
             os.chdir(original_dir)
+
+    def _list_templates(self) -> None:
+        """List all available starter templates."""
+        from django_matt.cli.templates.starters import list_templates
+
+        templates = list_templates()
+        self.stdout.write(self.style.SUCCESS("Available starter templates:\n"))
+        for tmpl in templates:
+            name = tmpl["name"]
+            desc = tmpl["description"]
+            modules = ", ".join(tmpl.get("modules", []))
+            self.stdout.write(f"  {self.style.WARNING(name)}")
+            self.stdout.write(f"    {desc}")
+            self.stdout.write(f"    Modules: {modules}\n")
+
+        self.stdout.write(
+            "\nUsage: python manage.py startapi myproject --template <name>"
+        )
+
+    def _handle_starter_template(
+        self,
+        project_name: str,
+        directory: str,
+        template: str,
+        options: dict,
+    ) -> None:
+        """Generate a project from the new file-based starter templates."""
+        from django_matt.cli.templates.starters import load_metadata, render_template
+
+        force = options.get("force", False)
+        output_dir = Path(directory) / project_name
+
+        if output_dir.exists() and not force:
+            raise CommandError(
+                f"Directory {output_dir} already exists. Use --force to overwrite."
+            )
+
+        metadata = load_metadata(template)
+        self.stdout.write(f"Creating project {project_name} from {template!r} template...")
+        self.stdout.write(f"  Description: {metadata['description']}")
+        self.stdout.write(f"  Modules: {', '.join(metadata.get('modules', []))}")
+
+        render_template(template, project_name, output_dir)
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"\nSuccessfully created {project_name} from {template!r} template"
+            )
+        )
+        self.stdout.write(f"\nNext steps:")
+        self.stdout.write(f"  cd {output_dir}")
+        self.stdout.write(f"  uv sync")
+        self.stdout.write(f"  uv run python manage.py migrate")
+        self.stdout.write(f"  uv run python manage.py runserver")
+
+        if metadata.get("requires_redis"):
+            self.stdout.write(f"\nThis template requires Redis:")
+            self.stdout.write(f"  docker compose up db redis -d")
 
     def _create_claude_md(
         self, project_name: str, template: str, auth: str, docker: bool, frontend: str

@@ -1,0 +1,8 @@
+{
+    "name": "ai-saas",
+    "description": "AI-powered SaaS with LLM integration, embeddings/RAG, billing, rate limiting, background tasks, and WebSocket streaming",
+    "modules": ["core", "auth", "views", "permissions", "openapi", "ai", "ml", "billing", "throttling", "tasks", "websockets", "streaming"],
+    "features": ["jwt-auth", "cors", "crud-example", "docker", "pytest", "llm-integration", "embeddings", "rag", "stripe-billing", "rate-limiting", "background-tasks", "websocket-streaming"],
+    "requires_redis": true,
+    "requires_celery": true
+}

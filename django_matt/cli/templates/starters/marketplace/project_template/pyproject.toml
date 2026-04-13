@@ -1,0 +1,32 @@
+[project]
+name = "{{ project_name }}"
+version = "0.1.0"
+description = "Multi-vendor marketplace built with django-matt"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=5.2",
+    "django-matt>=1.0",
+    "django-cors-headers>=4.3",
+    "psycopg[binary]>=3.1",
+    "orjson>=3.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-django>=4.8",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.4",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+asyncio_mode = "auto"
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
