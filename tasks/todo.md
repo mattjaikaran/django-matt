@@ -74,6 +74,38 @@ Benchmarks exist but aren't enforced — a regression should block merge.
 - [ ] `--template internal-tools` — admin-heavy, HTMX, audit logging
 - [ ] Template registry — `matt templates list` shows available, `matt new --template <name>`
 
+### Code Review Agent (`django_matt/review/`)
+Automated code audit agent — static analysis + optional LLM review for Django best practices, SOLID, complexity, security, modularity, and AI-friendliness.
+
+#### Foundation
+- [ ] `review/__init__.py` — module exports
+- [ ] `review/findings.py` — Finding dataclass, Severity enum, Category enum
+- [ ] `review/config.py` — ReviewConfig: thresholds, ignore patterns, rulesets
+- [ ] `review/analyzers/base.py` — BaseAnalyzer protocol
+- [ ] `review/engine.py` — ReviewEngine orchestrates analyzers, collects/deduplicates findings
+
+#### Analyzers (AST-based, zero external deps)
+- [ ] `review/analyzers/complexity.py` — cyclomatic complexity, cognitive complexity, function length, nesting depth, class size
+- [ ] `review/analyzers/solid.py` — SRP (method count, mixed concerns), OCP (hardcoded type checks), LSP, ISP (fat interfaces), DIP (concrete deps)
+- [ ] `review/analyzers/django.py` — N+1 patterns, sync ORM in async, fat views, raw SQL injection, missing auth decorators, missing indexes
+- [ ] `review/analyzers/ai_friendly.py` — file size, function length, type hint coverage, naming clarity score, docstring coverage, deep nesting
+- [ ] `review/analyzers/security.py` — hardcoded secrets, missing CSRF, SQL injection, open redirects, unsafe deserialization, eval/exec usage
+- [ ] `review/analyzers/modularity.py` — circular imports, coupling metrics (afferent/efferent), import graph, service layer detection, god modules
+- [ ] `review/analyzers/performance.py` — unbounded querysets, missing pagination, blocking IO in async, N+1 in loops, missing select_related
+
+#### Reporters
+- [ ] `review/reporters/console.py` — Rich terminal output with severity coloring, grouped by file
+- [ ] `review/reporters/markdown.py` — Markdown report for docs/PRs
+- [ ] `review/reporters/json_reporter.py` — Machine-readable JSON for CI pipelines
+- [ ] `review/reporters/github.py` — GitHub PR review comment format
+
+#### Management Command & AI
+- [ ] `review/management/commands/matt_review.py` — CLI: `--analyzers`, `--format`, `--min-severity`, `--paths`, `--ai`, `--suggest-refactors`
+- [ ] `review/ai_reviewer.py` — Optional LLM-powered review using django_matt.ai providers (architectural review, refactor suggestions)
+
+#### Tests
+- [ ] `tests/test_review/` — tests for all analyzers, engine, reporters, config, management command
+
 ### AI/LLM Context & Agent Support
 Make django-matt projects first-class citizens for AI-assisted development and autonomous agents.
 
