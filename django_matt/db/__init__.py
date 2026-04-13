@@ -13,6 +13,13 @@ from django.db import connection, connections
 from django.db.models import ExpressionWrapper, F, Func, Q, Value
 from django.db.models.functions import Cast, Coalesce
 
+# Import hybrid properties
+from .hybrid import (
+    HybridManager,
+    HybridQuerySet,
+    hybrid_method,
+    hybrid_property,
+)
 from .planetscale import (
     # Branch management
     BranchInfo as PlanetScaleBranchInfo,
@@ -225,6 +232,11 @@ __all__ = [
     # PostgreSQL support
     "HAS_POSTGRES",
     "HAS_PGVECTOR",
+    # Hybrid properties
+    "hybrid_property",
+    "hybrid_method",
+    "HybridManager",
+    "HybridQuerySet",
     # Soft delete
     "SoftDeleteMixin",
     "SoftDeleteWithUserMixin",

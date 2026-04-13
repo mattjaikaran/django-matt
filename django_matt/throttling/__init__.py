@@ -27,6 +27,13 @@ from django_matt.throttling.backends import (
 )
 from django_matt.throttling.base import BaseThrottle
 from django_matt.throttling.decorators import throttle
+from django_matt.throttling.defaults import (
+    PRESETS,
+    get_rate_for_scope,
+    get_scope_for_path,
+    get_throttle_defaults,
+    resolve_throttle_config,
+)
 from django_matt.throttling.middleware import ThrottleMiddleware
 from django_matt.throttling.throttles import (
     AnonRateThrottle,
@@ -49,4 +56,10 @@ __all__ = [
     "RedisBackend",
     # Middleware
     "ThrottleMiddleware",
+    # Defaults
+    "PRESETS",
+    "get_throttle_defaults",
+    "get_rate_for_scope",
+    "get_scope_for_path",
+    "resolve_throttle_config",
 ]
