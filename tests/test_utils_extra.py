@@ -561,23 +561,47 @@ class TestFileChangeHandler:
         self.callback = MagicMock()
         self.handler = FileChangeHandler(self.callback)
 
-    def test_ignores_non_py_files(self):
-        """Non-.py files should not trigger the callback."""
+    def test_ignores_unwatched_extensions(self):
+        """Extensions not in watch set should not trigger the callback."""
         event = MagicMock()
         event.is_directory = False
-        event.src_path = "/app/static/style.css"
+        event.src_path = "/app/readme.md"
 
-        self.handler.on_modified(event)
+        self.handler.dispatch(event)
         self.callback.assert_not_called()
 
     def test_fires_for_py_files(self):
         """A .py file modification should trigger the callback."""
+        from django_matt.utils.hot_reload import ChangeType
+
         event = MagicMock()
         event.is_directory = False
         event.src_path = "/app/views.py"
 
-        self.handler.on_modified(event)
-        self.callback.assert_called_once_with("/app/views.py")
+        self.handler.dispatch(event)
+        self.callback.assert_called_once_with("/app/views.py", ChangeType.PYTHON)
+
+    def test_fires_for_css_files(self):
+        """CSS files should trigger callback with CSS change type."""
+        from django_matt.utils.hot_reload import ChangeType
+
+        event = MagicMock()
+        event.is_directory = False
+        event.src_path = "/app/static/style.css"
+
+        self.handler.dispatch(event)
+        self.callback.assert_called_once_with("/app/static/style.css", ChangeType.CSS)
+
+    def test_fires_for_html_templates(self):
+        """HTML templates should trigger callback with TEMPLATE type."""
+        from django_matt.utils.hot_reload import ChangeType
+
+        event = MagicMock()
+        event.is_directory = False
+        event.src_path = "/templates/base.html"
+
+        self.handler.dispatch(event)
+        self.callback.assert_called_once_with("/templates/base.html", ChangeType.TEMPLATE)
 
     def test_debounce_skips_rapid_second_event(self):
         """A second event for the same file within debounce_time is ignored."""
@@ -585,11 +609,11 @@ class TestFileChangeHandler:
         event.is_directory = False
         event.src_path = "/app/models.py"
 
-        self.handler.on_modified(event)
+        self.handler.dispatch(event)
         assert self.callback.call_count == 1
 
         # Immediate second event — should be debounced
-        self.handler.on_modified(event)
+        self.handler.dispatch(event)
         assert self.callback.call_count == 1
 
     def test_fires_after_debounce_period(self):
@@ -598,12 +622,12 @@ class TestFileChangeHandler:
         event.is_directory = False
         event.src_path = "/app/urls.py"
 
-        self.handler.on_modified(event)
+        self.handler.dispatch(event)
         assert self.callback.call_count == 1
 
         # Manually advance the recorded time to simulate debounce expiry
-        self.handler.last_reload_time["/app/urls.py"] -= 1.0
-        self.handler.on_modified(event)
+        self.handler._last_event["/app/urls.py"] -= 1.0
+        self.handler.dispatch(event)
         assert self.callback.call_count == 2
 
     def test_ignores_directory_events(self):
@@ -612,23 +636,5 @@ class TestFileChangeHandler:
         event.is_directory = True
         event.src_path = "/app/views.py"
 
-        self.handler.on_modified(event)
-        self.callback.assert_not_called()
-
-    def test_on_created_fires_for_py_files(self):
-        """on_created should also trigger callback for .py files."""
-        event = MagicMock()
-        event.is_directory = False
-        event.src_path = "/app/new_module.py"
-
-        self.handler.on_created(event)
-        self.callback.assert_called_once_with("/app/new_module.py")
-
-    def test_on_created_ignores_non_py(self):
-        """on_created should ignore non-.py files."""
-        event = MagicMock()
-        event.is_directory = False
-        event.src_path = "/app/readme.md"
-
-        self.handler.on_created(event)
+        self.handler.dispatch(event)
         self.callback.assert_not_called()
