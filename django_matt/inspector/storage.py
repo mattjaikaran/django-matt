@@ -43,6 +43,10 @@ class CapturedRequest:
     user_email: Optional[str] = None
     exception: Optional[str] = None
     traceback: Optional[str] = None
+    db_queries: list[dict[str, Any]] = field(default_factory=list)
+    db_query_count: int = 0
+    db_query_time_ms: float = 0.0
+    n_plus_one_warnings: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""

@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import get_type_hints
 
 import django
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, HttpResponseBase, JsonResponse
 from django.urls import path
 
 import orjson
@@ -353,8 +353,8 @@ class APIRouter:
             else:
                 result = endpoint(request, *args, **kwargs)
 
-            # Early return for HttpResponse
-            if isinstance(result, HttpResponse):
+            # Early return for HttpResponse and StreamingHttpResponse
+            if isinstance(result, HttpResponseBase):
                 return result
 
             # Serialize the response (use aliases for camelCase when enabled)

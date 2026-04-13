@@ -8,9 +8,10 @@ and inspection purposes during development.
 from __future__ import annotations
 
 import logging
+import re
 import time
 import traceback
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from django.conf import settings
 
@@ -191,6 +192,11 @@ class RequestCaptureMiddleware:
         exception_info = None
         response = None
 
+        # Snapshot query count before processing (only in DEBUG mode)
+        if settings.DEBUG:
+            from django.db import connection
+            initial_count = len(connection.queries)
+
         try:
             response = self.get_response(request)
         except Exception as e:
@@ -213,6 +219,15 @@ class RequestCaptureMiddleware:
                 captured.exception = str(exception_info)
                 captured.traceback = traceback.format_exc()
 
+            # Capture DB query info (only in DEBUG mode)
+            if settings.DEBUG:
+                from django.db import connection
+                queries = connection.queries[initial_count:]
+                captured.db_queries = [{"sql": q["sql"], "time": q["time"]} for q in queries]
+                captured.db_query_count = len(queries)
+                captured.db_query_time_ms = sum(float(q.get("time", 0)) for q in queries) * 1000
+                captured.n_plus_one_warnings = self._detect_n_plus_one(queries)
+
             # Store the captured request
             try:
                 storage = get_storage()
@@ -221,6 +236,29 @@ class RequestCaptureMiddleware:
                 logger.warning(f"Failed to store captured request: {e}")
 
         return response
+
+    def _detect_n_plus_one(self, queries: list[dict]) -> list[dict[str, Any]]:
+        """Detect potential N+1 query patterns by finding duplicate normalized SQL."""
+        normalized: dict[str, list[int]] = {}
+        for i, q in enumerate(queries):
+            sql = q.get("sql", "")
+            norm = re.sub(r"= '\d+'", "= ?", sql)
+            norm = re.sub(r"= \d+", "= ?", norm)
+            norm = re.sub(r"IN \([^)]+\)", "IN (?)", norm)
+            if norm not in normalized:
+                normalized[norm] = []
+            normalized[norm].append(i)
+
+        warnings = []
+        for norm_sql, indices in normalized.items():
+            if len(indices) >= 3:
+                warnings.append({
+                    "pattern": norm_sql[:200],
+                    "count": len(indices),
+                    "example_sql": queries[indices[0]].get("sql", "")[:300],
+                    "suggestion": "Consider using select_related() or prefetch_related()",
+                })
+        return warnings
 
     def process_exception(self, request: HttpRequest, exception: Exception):
         """Process exceptions (for additional capture if needed)."""
