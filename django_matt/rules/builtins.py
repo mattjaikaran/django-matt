@@ -14,13 +14,13 @@ from django_matt.rules.predicates import Predicate, predicate
 
 
 @predicate
-def is_authenticated(user: Any) -> bool:
+def is_authenticated(user: Any, *args: Any, **kwargs: Any) -> bool:
     """True when the user is authenticated."""
     return getattr(user, "is_authenticated", False)
 
 
 @predicate
-def is_superuser(user: Any) -> bool:
+def is_superuser(user: Any, *args: Any, **kwargs: Any) -> bool:
     """True when the user is a superuser."""
     if not getattr(user, "is_authenticated", False):
         return False
@@ -28,7 +28,7 @@ def is_superuser(user: Any) -> bool:
 
 
 @predicate
-def is_staff(user: Any) -> bool:
+def is_staff(user: Any, *args: Any, **kwargs: Any) -> bool:
     """True when the user is staff."""
     if not getattr(user, "is_authenticated", False):
         return False
@@ -36,7 +36,7 @@ def is_staff(user: Any) -> bool:
 
 
 @predicate
-def is_active(user: Any) -> bool:
+def is_active(user: Any, *args: Any, **kwargs: Any) -> bool:
     """True when the user is active."""
     return getattr(user, "is_active", False)
 

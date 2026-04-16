@@ -2,6 +2,10 @@
 Django settings for testing Django Matt.
 """
 
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 SECRET_KEY = "django-matt-test-key"
 
 DEBUG = True

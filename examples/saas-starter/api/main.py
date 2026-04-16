@@ -3,15 +3,20 @@ Main API configuration for SaaS Starter.
 
 This module configures the django-matt API with all routes,
 middleware, and OpenAPI documentation.
-
-NOTE: The controllers under ``api/analytics.py``, ``api/auth.py``, etc. were
-scaffolded against an early django-matt API (``@api_controller`` +
-``@APIController.post`` decorators) that was retired before 0.9. They need
-porting to the current ``prefix = "..."`` / ``@api.get(...)`` style before
-they can be re-wired into this module. See each file's TODO banner.
 """
 
 from django_matt import MattAPI
+
+from api.analytics import AnalyticsController
+from api.auth import AuthController
+from api.billing import BillingController, WebhookController
+from api.comments import CommentController
+from api.health import HealthController
+from api.notifications import NotificationController
+from api.organizations import OrganizationController
+from api.projects import ProjectController
+from api.tasks import TaskController
+from api.teams import TeamController
 
 # Create the main API instance
 api = MattAPI(
@@ -55,11 +60,17 @@ api = MattAPI(
     ],
 )
 
-
-@api.get("", tags=["Health"])
-async def root(request) -> dict:
-    """Placeholder root endpoint. Port the real controllers and register them here."""
-    return {
-        "status": "ok",
-        "message": "SaaS Starter API scaffold — controllers pending migration to django-matt 0.9 API",
-    }
+# Register all controllers
+api.register_controllers(
+    HealthController,
+    AuthController,
+    OrganizationController,
+    TeamController,
+    ProjectController,
+    TaskController,
+    CommentController,
+    NotificationController,
+    AnalyticsController,
+    BillingController,
+    WebhookController,
+)

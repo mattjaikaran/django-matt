@@ -6,19 +6,17 @@ Includes:
 - Team member management
 """
 
-from uuid import UUID
-
 from django_matt.auth import jwt_required
-from django_matt.core import APIController, api_controller
-from django_matt.permissions import IsAuthenticated
+from django_matt.core import APIController
+from django_matt.core.router import delete, get, patch, post
 
 from core.models import AuditLog, Membership, Organization, Team
 from core.schemas import TeamCreate, TeamDetailResponse, TeamUpdate, UserMiniResponse
 
 
-@api_controller("/organizations/{org_slug}/teams", tags=["Teams"])
 class TeamController(APIController):
-    """Team management endpoints."""
+    prefix = "/organizations/<str:org_slug>/teams"
+    tags = ["Teams"]
 
     async def get_org_and_check_access(self, request, org_slug: str, require_admin: bool = False):
         """Helper to get organization and check user access."""
@@ -45,12 +43,10 @@ class TeamController(APIController):
     # Team CRUD
     # =========================================================================
 
-    @APIController.get("/", response=list[TeamDetailResponse], permissions=[IsAuthenticated])
+    @get("/")
     @jwt_required
-    async def list_teams(self, request, org_slug: str):
-        """
-        List all teams in the organization.
-        """
+    async def list_teams(self, request, org_slug: str) -> list:
+        """List all teams in the organization."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
             return error
@@ -66,14 +62,10 @@ class TeamController(APIController):
 
         return result
 
-    @APIController.post("/", response=TeamDetailResponse, permissions=[IsAuthenticated])
+    @post("/")
     @jwt_required
-    async def create_team(self, request, org_slug: str, data: TeamCreate):
-        """
-        Create a new team.
-
-        Requires admin permission.
-        """
+    async def create_team(self, request, org_slug: str, data: TeamCreate) -> dict:
+        """Create a new team. Requires admin permission."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug, require_admin=True)
         if error:
             return error
@@ -107,12 +99,10 @@ class TeamController(APIController):
 
         return TeamDetailResponse.model_validate(team)
 
-    @APIController.get("/{team_slug}", response=TeamDetailResponse, permissions=[IsAuthenticated])
+    @get("/<str:team_slug>")
     @jwt_required
-    async def get_team(self, request, org_slug: str, team_slug: str):
-        """
-        Get team details.
-        """
+    async def get_team(self, request, org_slug: str, team_slug: str) -> dict:
+        """Get team details."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
             return error
@@ -125,14 +115,10 @@ class TeamController(APIController):
         except Team.DoesNotExist:
             return {"error": "Team not found"}, 404
 
-    @APIController.patch("/{team_slug}", response=TeamDetailResponse, permissions=[IsAuthenticated])
+    @patch("/<str:team_slug>")
     @jwt_required
-    async def update_team(self, request, org_slug: str, team_slug: str, data: TeamUpdate):
-        """
-        Update team details.
-
-        Requires admin permission.
-        """
+    async def update_team(self, request, org_slug: str, team_slug: str, data: TeamUpdate) -> dict:
+        """Update team details. Requires admin permission."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug, require_admin=True)
         if error:
             return error
@@ -160,14 +146,10 @@ class TeamController(APIController):
         except Team.DoesNotExist:
             return {"error": "Team not found"}, 404
 
-    @APIController.delete("/{team_slug}", permissions=[IsAuthenticated])
+    @delete("/<str:team_slug>")
     @jwt_required
-    async def delete_team(self, request, org_slug: str, team_slug: str):
-        """
-        Delete team.
-
-        Requires admin permission.
-        """
+    async def delete_team(self, request, org_slug: str, team_slug: str) -> dict:
+        """Delete team. Requires admin permission."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug, require_admin=True)
         if error:
             return error
@@ -198,12 +180,10 @@ class TeamController(APIController):
     # Team Members
     # =========================================================================
 
-    @APIController.get("/{team_slug}/members", response=list[UserMiniResponse], permissions=[IsAuthenticated])
+    @get("/<str:team_slug>/members")
     @jwt_required
-    async def list_team_members(self, request, org_slug: str, team_slug: str):
-        """
-        List members of a team.
-        """
+    async def list_team_members(self, request, org_slug: str, team_slug: str) -> list:
+        """List members of a team."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
             return error
@@ -220,14 +200,10 @@ class TeamController(APIController):
         except Team.DoesNotExist:
             return {"error": "Team not found"}, 404
 
-    @APIController.post("/{team_slug}/members/{member_id}", permissions=[IsAuthenticated])
+    @post("/<str:team_slug>/members/<str:member_id>")
     @jwt_required
-    async def add_team_member(self, request, org_slug: str, team_slug: str, member_id: UUID):
-        """
-        Add member to team.
-
-        Requires admin permission.
-        """
+    async def add_team_member(self, request, org_slug: str, team_slug: str, member_id: str) -> dict:
+        """Add member to team. Requires admin permission."""
         org, req_membership, error = await self.get_org_and_check_access(request, org_slug, require_admin=True)
         if error:
             return error
@@ -259,14 +235,10 @@ class TeamController(APIController):
         except Membership.DoesNotExist:
             return {"error": "Member not found"}, 404
 
-    @APIController.delete("/{team_slug}/members/{member_id}", permissions=[IsAuthenticated])
+    @delete("/<str:team_slug>/members/<str:member_id>")
     @jwt_required
-    async def remove_team_member(self, request, org_slug: str, team_slug: str, member_id: UUID):
-        """
-        Remove member from team.
-
-        Requires admin permission.
-        """
+    async def remove_team_member(self, request, org_slug: str, team_slug: str, member_id: str) -> dict:
+        """Remove member from team. Requires admin permission."""
         org, req_membership, error = await self.get_org_and_check_access(request, org_slug, require_admin=True)
         if error:
             return error

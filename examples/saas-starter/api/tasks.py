@@ -8,8 +8,6 @@ Includes:
 - Real-time updates via WebSocket
 """
 
-from uuid import UUID
-
 from django.db import models
 from django.utils import timezone
 from django_matt.auth import jwt_required

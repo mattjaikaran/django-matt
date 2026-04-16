@@ -13,9 +13,9 @@ from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 from django_matt.auth import jwt_optional, jwt_required
-from django_matt.core import APIController, api_controller
+from django_matt.core import APIController
+from django_matt.core.router import get, post
 from django_matt.flags import get_variant
-from django_matt.permissions import AllowAny, IsAuthenticated
 
 from core.models import Membership, Organization
 from notifications.models import AnalyticsEvent
@@ -34,22 +34,18 @@ from notifications.schemas import (
 )
 
 
-@api_controller("/analytics", tags=["Analytics"])
 class AnalyticsController(APIController):
-    """Analytics and event tracking endpoints."""
+    prefix = "/analytics"
+    tags = ["Analytics"]
 
     # =========================================================================
     # Event Tracking
     # =========================================================================
 
-    @APIController.post("/events", response=AnalyticsEventResponse, permissions=[AllowAny])
+    @post("/events")
     @jwt_optional
-    async def track_event(self, request, data: AnalyticsEventCreate):
-        """
-        Track a single analytics event.
-
-        Can be called authenticated or anonymously.
-        """
+    async def track_event(self, request, data: AnalyticsEventCreate) -> dict:
+        """Track a single analytics event. Can be called authenticated or anonymously."""
         user = request.user if hasattr(request, "user") and request.user.is_authenticated else None
 
         # Get organization context from session or header
@@ -83,12 +79,10 @@ class AnalyticsController(APIController):
 
         return AnalyticsEventResponse.model_validate(event)
 
-    @APIController.post("/events/batch", response=AnalyticsBatchResponse, permissions=[AllowAny])
+    @post("/events/batch")
     @jwt_optional
-    async def track_events_batch(self, request, data: AnalyticsBatchCreate):
-        """
-        Track multiple analytics events in batch.
-        """
+    async def track_events_batch(self, request, data: AnalyticsBatchCreate) -> dict:
+        """Track multiple analytics events in batch."""
         user = request.user if hasattr(request, "user") and request.user.is_authenticated else None
         user_agent = request.META.get("HTTP_USER_AGENT", "")
         device_type = self._detect_device_type(user_agent)
@@ -137,19 +131,13 @@ class AnalyticsController(APIController):
     # Dashboard
     # =========================================================================
 
-    @APIController.get("/dashboard", response=AnalyticsDashboardResponse, permissions=[IsAuthenticated])
+    @get("/dashboard")
     @jwt_required
-    async def get_dashboard(
-        self,
-        request,
-        org_slug: str,
-        period: str = "7d",  # 7d, 30d, 90d
-    ):
-        """
-        Get analytics dashboard data for an organization.
+    async def get_dashboard(self, request) -> dict:
+        """Get analytics dashboard data for an organization. Requires admin permission."""
+        org_slug = request.GET.get("org_slug", "")
+        period = request.GET.get("period", "7d")
 
-        Requires admin permission.
-        """
         try:
             org = await Organization.objects.aget(slug=org_slug)
         except Organization.DoesNotExist:
@@ -259,18 +247,14 @@ class AnalyticsController(APIController):
             return None
         return round(((current - previous) / previous) * 100, 2)
 
-    @APIController.get("/top-events", response=TopEventsResponse, permissions=[IsAuthenticated])
+    @get("/top-events")
     @jwt_required
-    async def get_top_events(
-        self,
-        request,
-        org_slug: str,
-        period: str = "7d",
-        limit: int = 10,
-    ):
-        """
-        Get top events by frequency.
-        """
+    async def get_top_events(self, request) -> dict:
+        """Get top events by frequency."""
+        org_slug = request.GET.get("org_slug", "")
+        period = request.GET.get("period", "7d")
+        limit = int(request.GET.get("limit", "10"))
+
         try:
             org = await Organization.objects.aget(slug=org_slug)
         except Organization.DoesNotExist:
@@ -313,14 +297,10 @@ class AnalyticsController(APIController):
     # A/B Testing / Feature Flags
     # =========================================================================
 
-    @APIController.get("/experiment/{experiment_id}", response=ExperimentResponse, permissions=[AllowAny])
+    @get("/experiment/<str:experiment_id>")
     @jwt_optional
-    async def get_experiment_assignment(self, request, experiment_id: str):
-        """
-        Get experiment variant assignment for the current user.
-
-        Uses feature flags backend for consistent assignment.
-        """
+    async def get_experiment_assignment(self, request, experiment_id: str) -> dict:
+        """Get experiment variant assignment for the current user."""
         user = request.user if hasattr(request, "user") and request.user.is_authenticated else None
 
         # Get variant from feature flags
@@ -336,14 +316,12 @@ class AnalyticsController(APIController):
             properties={},
         )
 
-    @APIController.get("/experiment/{experiment_id}/results", response=ExperimentResultResponse, permissions=[IsAuthenticated])
+    @get("/experiment/<str:experiment_id>/results")
     @jwt_required
-    async def get_experiment_results(self, request, experiment_id: str, org_slug: str):
-        """
-        Get experiment results (conversion rates by variant).
+    async def get_experiment_results(self, request, experiment_id: str) -> dict:
+        """Get experiment results (conversion rates by variant). Requires admin permission."""
+        org_slug = request.GET.get("org_slug", "")
 
-        Requires admin permission.
-        """
         try:
             org = await Organization.objects.aget(slug=org_slug)
         except Organization.DoesNotExist:

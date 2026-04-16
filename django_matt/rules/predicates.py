@@ -38,7 +38,7 @@ class Predicate:
     the predicate object).
     """
 
-    __slots__ = ("bind", "fn", "name")
+    __slots__ = ("__dict__", "__wrapped__", "bind", "fn", "name")
 
     def __init__(
         self,
