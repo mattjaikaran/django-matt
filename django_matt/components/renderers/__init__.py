@@ -25,6 +25,21 @@ from django_matt.components.renderers.svelte import (
     generate_svelte_types,
     get_svelte_component_name,
 )
+from django_matt.components.renderers.astro import (
+    ASTRO_COMPONENT_MAP,
+    INTERACTIVE_COMPONENTS,
+    AstroRenderer,
+    generate_astro_page,
+    generate_astro_project,
+    get_astro_component_name,
+)
+from django_matt.components.renderers.remix import (
+    REMIX_COMPONENT_MAP,
+    RemixRenderer,
+    generate_remix_project,
+    generate_remix_route,
+    get_remix_component_name,
+)
 from django_matt.components.renderers.vue import (
     VUE_COMPONENT_MAP,
     VueRenderer,
@@ -63,4 +78,17 @@ __all__ = [
     "generate_svelte_project",
     "generate_svelte_types",
     "generate_stores",
+    # Astro utilities
+    "AstroRenderer",
+    "ASTRO_COMPONENT_MAP",
+    "INTERACTIVE_COMPONENTS",
+    "get_astro_component_name",
+    "generate_astro_page",
+    "generate_astro_project",
+    # Remix utilities
+    "RemixRenderer",
+    "REMIX_COMPONENT_MAP",
+    "get_remix_component_name",
+    "generate_remix_route",
+    "generate_remix_project",
 ]
