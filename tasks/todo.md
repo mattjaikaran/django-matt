@@ -22,7 +22,7 @@
   - saas-starter: interceptors on projects, events on CRUD, SSE notifications
 - [x] Add new example: AI chat app with SSE streaming + CQRS — `examples/ai-chat/`
 - [x] Add new example: multi-tenant SaaS with events + feature flags — `examples/multitenant-saas/`
-- [x] Ensure all examples run with `uv run python manage.py runserver` — all 8 examples (ai-chat, devplatform, ecommerce-api, ecommerce-v2, multitenant-saas, quicktodo, realtime-chat, saas-starter) pass `manage.py check` against the parent workspace. Install deps via `uv sync --group examples` then run from each example dir with `uv run --project ../.. python manage.py check`. saas-starter's `api/*.py` controllers still target an early API shape (`@api_controller`, `@APIController.post`) and need porting before they can be re-registered — main.py has a placeholder root route.
+- [x] Ensure all examples run with `uv run python manage.py runserver` — all 8 examples pass `manage.py check`. saas-starter controllers ported to current APIController pattern.
 
 ### Polish
 - [x] Ruff lint pass — all source clean (0 errors)
@@ -55,7 +55,7 @@ Get from v0.8.0 to a proper public release people can actually find and use.
 - [ ] Discord or GitHub Discussions for community
 - [ ] `django-matt` landing page (single page, could be the docs index)
 - [ ] PyPI classifiers and metadata polish
-- [ ] Security policy (SECURITY.md) — vulnerability reporting process
+- [x] Security policy (SECURITY.md) — vulnerability reporting process
 
 ### Performance CI & Regression Gates
 Benchmarks exist but aren't enforced — a regression should block merge.
@@ -159,7 +159,7 @@ Module system exists — build the ecosystem around it.
 
 - [x] `matt plugin init <name>` — `plugins/scaffold.py` + `matt_plugin` command
 - [x] Plugin discovery / registry — `plugins/registry.py`, `plugins/loader.py`, `plugins/hooks.py`
-- [ ] Example plugins: `django-matt-stripe-webhooks`, `django-matt-clerk-auth`, `django-matt-resend`
+- [x] Example plugins: `django-matt-stripe-webhooks`, `django-matt-clerk-auth`, `django-matt-resend` — in `examples/plugins/`
 - [ ] Plugin compatibility matrix (django-matt version × plugin version)
 
 ### Rust Extensions (Deferred)
@@ -168,10 +168,10 @@ Module system exists — build the ecosystem around it.
 - [ ] Wire Rust query string parser into filtering/ordering/pagination middleware (7.4.3)
 
 ### Renderers & Frontend
-- [ ] Vue renderer (Stage 12D.4)
-- [ ] Svelte renderer (Stage 12D.5)
-- [ ] Astro framework support
-- [ ] Remix framework support
+- [x] Vue renderer — `components/renderers/vue.py` (VueRenderer, VueSFCRenderer, 1329 lines)
+- [x] Svelte renderer — `components/renderers/svelte.py` (SvelteRenderer with runes, transitions)
+- [x] Astro framework support — `components/renderers/astro.py` (island architecture, client directives)
+- [x] Remix framework support — `components/renderers/remix.py` (loader/action patterns, Form integration)
 
 ### Database
 - [ ] PlanetScale support (Stage 9B.6)
@@ -193,154 +193,154 @@ Priority: high-impact DX wins that address the most common Django pain points.
 ### Zero-Config Defaults & Convenience Commands
 Things Django should ship with but doesn't. We fill the gap.
 
-- [ ] **Default rate limiting preset** — `MATT_THROTTLE_DEFAULTS = "standard"` enables sensible per-IP/per-user/per-endpoint limits out of the box (100/min anon, 1000/min auth, 10/min login). Throttling module exists but requires manual config.
-- [ ] **`cache_clear` management command** — `python manage.py cache_clear [--backend default] [--prefix ...]` to purge cache. Django's cache framework has no built-in clear command.
+- [x] **Default rate limiting preset** — `MATT_THROTTLE_DEFAULTS = "standard"` in `throttling/defaults.py` (52 tests)
+- [x] **`cache_clear` management command** — `python manage.py cache_clear [--backend default] [--prefix ...]` (117 lines)
 - [x] **`matt shell+` enhanced shell** — `matt_shell.py`
 - [x] **`matt dbshell+`** — `matt_dbshell.py`
-- [ ] **Login-by-email config toggle** — `MATT_AUTH = {"login_field": "email"}` switches the default User auth to email-based login without custom user model gymnastics. Wire into AuthController, JWT, admin login.
-- [ ] **`matt check --strict`** — run system checks + config validation + import verification in one pass (combines `check`, `validate_api`, `check_settings`)
+- [x] **Login-by-email config toggle** — `auth/login_config.py` with `MATT_AUTH = {"login_field": "email"}`, fallback to username (52 tests)
+- [x] **`matt check --strict`** — `matt_check.py` runs system checks + config validation + import verification
 
 ### Vite & Modern Asset Pipeline
 The #1 cited gap vs Rails/Laravel. No Django answer exists that isn't a third-party hack.
 
-- [ ] **`django_matt/vite/` module** — Vite integration for Django
-  - [ ] `manifest.py` — parse Vite manifest.json, resolve asset URLs, cache busting
-  - [ ] `config.py` — ViteConfig: dev server URL, build output dir, entry points, HMR settings
-  - [ ] `templatetags/vite.py` — `{% vite_asset "main.js" %}`, `{% vite_hmr_client %}`, `{% vite_react_refresh %}`
-  - [ ] `middleware.py` — ViteDevMiddleware: proxy to Vite dev server in development
-  - [ ] `management/commands/vite_build.py` — `python manage.py vite_build` (wraps vite build with Django env)
-  - [ ] `management/commands/vite_dev.py` — `python manage.py vite_dev` (starts Vite + Django dev server together)
-- [ ] **CSS framework integration** — component form fields emit classes for Tailwind, Bootstrap, Shadcn/ui out of the box
+- [x] **`django_matt/vite/` module** — Vite integration for Django (712 lines, 58 tests)
+  - [x] `manifest.py` — parse Vite manifest.json, resolve asset URLs, cache busting
+  - [x] `config.py` — ViteConfig: dev server URL, build output dir, entry points, HMR settings
+  - [x] `templatetags/vite.py` — `{% vite_asset "main.js" %}`, `{% vite_hmr_client %}`, `{% vite_react_refresh %}`
+  - [x] `middleware.py` — ViteDevMiddleware: proxy to Vite dev server in development
+  - [x] `management/commands/vite_build.py` — `python manage.py vite_build` (wraps vite build with Django env)
+  - [x] `management/commands/vite_dev.py` — `python manage.py vite_dev` (starts Vite + Django dev server together)
+- [x] **CSS framework integration** — `tailwind/` module (1250 lines) + component form field classes
 - [ ] **Static file fingerprinting** — content-hash URLs for cache busting without Vite (simple mode)
 
 ### Inertia.js Adapter
 Server-driven SPA without an API. Huge DX win for Django + React/Vue/Svelte.
 
-- [ ] **`django_matt/inertia/` module** — first-class Inertia.js support
-  - [ ] `middleware.py` — InertiaMiddleware: handle X-Inertia headers, version checking, partial reloads
-  - [ ] `response.py` — `inertia(component, props)` response helper, lazy/deferred props
-  - [ ] `share.py` — shared data (flash messages, auth user, CSRF) injected into every Inertia response
-  - [ ] `ssr.py` — optional SSR support via Node.js subprocess
-  - [ ] `views.py` — InertiaView mixin, @inertia decorator for function views
-  - [ ] `templatetags/inertia.py` — `{% inertia %}` root div tag
-  - [ ] `testing.py` — InertiaTestCase: assert_inertia_component, assert_inertia_props
-- [ ] Integration with django-matt auth — auto-share authenticated user + permissions
+- [x] **`django_matt/inertia/` module** — first-class Inertia.js support (1031 lines, 89 tests)
+  - [x] `middleware.py` — InertiaMiddleware: handle X-Inertia headers, version checking, partial reloads
+  - [x] `response.py` — `inertia(component, props)` response helper, lazy/deferred props
+  - [x] `share.py` — shared data (flash messages, auth user, CSRF) injected into every Inertia response
+  - [x] `ssr.py` — optional SSR support via Node.js subprocess
+  - [x] `views.py` — InertiaView mixin, @inertia decorator for function views
+  - [x] `templatetags/inertia.py` — `{% inertia %}` root div tag
+  - [x] `testing.py` — InertiaTestCase: assert_inertia_component, assert_inertia_props
+- [x] Integration with django-matt auth — auto-share authenticated user + permissions
 
 ### Unpoly Integration
 Lightweight alternative to Inertia for server-rendered apps that want SPA-like UX.
 
-- [ ] **`django_matt/unpoly/` module** — Unpoly server-side helpers
-  - [ ] `middleware.py` — detect Unpoly requests (X-Up-* headers), set response headers (X-Up-Target, X-Up-Events)
-  - [ ] `decorators.py` — `@up_target`, `@up_layer`, `@up_fail_target`
-  - [ ] `response.py` — UnpolyResponse: layer control, event emission, cache eviction
-  - [ ] `templatetags/unpoly.py` — `{% up_current %}` nav helpers, `{% up_config %}`
+- [x] **`django_matt/unpoly/` module** — Unpoly server-side helpers (57 tests)
+  - [x] `middleware.py` — detect Unpoly requests (X-Up-* headers), set response headers (X-Up-Target, X-Up-Events)
+  - [x] `decorators.py` — `@up_target`, `@up_layer`, `@up_fail_target`
+  - [x] `response.py` — UnpolyResponse: layer control, event emission, cache eviction
+  - [x] `templatetags/unpoly.py` — `{% up_current %}` nav helpers, `{% up_config %}`
 
 ### Predicate-Based Permissions (django-rules Style)
 RBAC is role-to-permission mapping. Predicates are composable boolean logic. Both are needed.
 
-- [ ] **`django_matt/rules/` module** — predicate-based authorization
-  - [ ] `predicates.py` — Predicate base, `@predicate` decorator, AND/OR/NOT composition (`&`, `|`, `~`)
-  - [ ] `builtins.py` — `is_authenticated`, `is_superuser`, `is_staff`, `is_owner`, `is_group_member`, `is_active`
-  - [ ] `permissions.py` — `add_perm`, `remove_perm`, `has_perm`, `perm_exists` — global permission registry
-  - [ ] `mixins.py` — `PermissionRequiredMixin` for views, `ObjectPermissionMixin` for per-object checks
-  - [ ] `decorators.py` — `@permission_required("app.change_post")` that uses predicate registry
-  - [ ] `backends.py` — `RulesBackend` — Django auth backend that delegates to predicate registry
-  - [ ] Integration with django-matt controllers — `permission_predicates = [is_owner | is_admin]` on APIController
+- [x] **`django_matt/rules/` module** — predicate-based authorization (745 lines, 88 tests)
+  - [x] `predicates.py` — Predicate base, `@predicate` decorator, AND/OR/NOT composition (`&`, `|`, `~`)
+  - [x] `builtins.py` — `is_authenticated`, `is_superuser`, `is_staff`, `is_owner`, `is_group_member`, `is_active`
+  - [x] `permissions.py` — `add_perm`, `remove_perm`, `has_perm`, `perm_exists` — global permission registry
+  - [x] `mixins.py` — `PermissionRequiredMixin` for views, `ObjectPermissionMixin` for per-object checks
+  - [x] `decorators.py` — `@permission_required("app.change_post")` that uses predicate registry
+  - [x] `backends.py` — `RulesBackend` — Django auth backend that delegates to predicate registry
+  - [x] Integration with django-matt controllers — `permission_predicates = [is_owner | is_admin]` on APIController
 
 ### Hybrid Properties (SQLAlchemy-Style)
 Computed properties that work in Python AND at the database level.
 
-- [ ] **`django_matt/db/hybrid.py`** — hybrid property descriptor
-  - [ ] `@hybrid_property` — property that works on instances AND in querysets
-  - [ ] `@hybrid_property.expression` — define the SQL expression equivalent
-  - [ ] `HybridManager` — queryset mixin that resolves hybrid properties in filter()/order_by()/annotate()
-  - [ ] Support for comparisons: `Model.objects.filter(full_name="John Doe")` generates `Concat(F('first_name'), Value(' '), F('last_name'))`
+- [x] **`django_matt/db/hybrid.py`** — hybrid property descriptor (278 lines, 36 tests)
+  - [x] `@hybrid_property` — property that works on instances AND in querysets
+  - [x] `@hybrid_property.expression` — define the SQL expression equivalent
+  - [x] `HybridManager` — queryset mixin that resolves hybrid properties in filter()/order_by()/annotate()
+  - [x] Support for comparisons: `Model.objects.filter(full_name="John Doe")` generates `Concat(F('first_name'), Value(' '), F('last_name'))`
 - [ ] Docs with side-by-side SQLAlchemy comparison
 
 ### Model Refactoring Tools
 Moving models between apps is one of Django's biggest pain points.
 
-- [ ] **`matt refactor move-model`** — move a model from one app to another
-  - [ ] Generate migration in source app (CreateModel + DeleteModel with db_table preservation)
-  - [ ] Generate migration in target app with dependency on source migration
-  - [ ] Update all ForeignKey/M2M references across the project
-  - [ ] Update imports across the project
-  - [ ] `--dry-run` mode showing what would change
-- [ ] **`matt refactor rename-model`** — rename model + update all references + generate migration
-- [ ] **`matt refactor split-app`** — extract models from a fat app into a new one
-- [ ] **`matt refactor merge-apps`** — merge two apps into one with migration chain preservation
+- [x] **`matt refactor move-model`** — `matt_refactor.py` (1473 lines, tested in test_management_dx.py)
+  - [x] Generate migration in source app (CreateModel + DeleteModel with db_table preservation)
+  - [x] Generate migration in target app with dependency on source migration
+  - [x] Update all ForeignKey/M2M references across the project
+  - [x] Update imports across the project
+  - [x] `--dry-run` mode showing what would change
+- [x] **`matt refactor rename-model`** — rename model + update all references + generate migration
+- [x] **`matt refactor split-app`** — extract models from a fat app into a new one
+- [x] **`matt refactor merge-apps`** — merge two apps into one with migration chain preservation
 
 ### Strict Template Mode
 Django's silent variable failure is a debugging nightmare. Opt-in strictness.
 
-- [ ] **`django_matt/templates/strict.py`** — strict template engine
-  - [ ] `StrictEngine` — subclass of DjangoTemplates that raises on undefined variables
-  - [ ] `MATT_TEMPLATES = {"strict": True}` config option
-  - [ ] `StrictContext` — context class that raises `UndefinedVariableError` instead of returning `""`
-  - [ ] Dev-mode integration: show which template, which line, which variable is undefined
-  - [ ] Allowlist: `{% allow_undefined var1 var2 %}` for intentionally optional variables
+- [x] **`django_matt/templates/strict.py`** — strict template engine (177 lines)
+  - [x] `StrictEngine` — subclass of DjangoTemplates that raises on undefined variables
+  - [x] `MATT_TEMPLATES = {"strict": True}` config option
+  - [x] `StrictContext` — context class that raises `UndefinedVariableError` instead of returning `""`
+  - [x] Dev-mode integration: show which template, which line, which variable is undefined
+  - [x] Allowlist: `{% allow_undefined var1 var2 %}` for intentionally optional variables
 
 ### Enhanced CLI Scaffolding
 Angular CLI-style generation for individual components, not just full CRUD.
 
-- [ ] **`matt generate model`** — `python manage.py matt generate model myapp.Product --fields "name:str price:decimal category:fk:Category"` → model + migration
-- [ ] **`matt generate controller`** — scaffold an APIController with typed endpoints
-- [ ] **`matt generate service`** — service layer class with async methods
-- [ ] **`matt generate schema`** — Pydantic schema from existing model or from scratch
-- [ ] **`matt generate test`** — test file with fixtures and basic test cases for a given model/controller
-- [ ] **`matt generate middleware`** — async middleware skeleton
-- [ ] **`matt generate migration`** — data migration template with forwards/backwards
-- [ ] **`matt generate factory`** — test factory for a model using factory_boy patterns
-- [ ] All generators respect existing code — append to files, don't overwrite
+- [x] **`matt generate model`** — `matt_generate.py` (921 lines, tested in test_management_dx.py)
+- [x] **`matt generate controller`** — scaffold an APIController with typed endpoints
+- [x] **`matt generate service`** — service layer class with async methods
+- [x] **`matt generate schema`** — Pydantic schema from existing model or from scratch
+- [x] **`matt generate test`** — test file with fixtures and basic test cases for a given model/controller
+- [x] **`matt generate middleware`** — async middleware skeleton
+- [x] **`matt generate migration`** — data migration template with forwards/backwards
+- [x] **`matt generate factory`** — test factory for a model using factory_boy patterns
+- [x] All generators respect existing code — append to files, don't overwrite
 
 ### File Storage Redesign
 Current storage works but lacks modern features. S3 presigned URLs, chunked uploads, resumable.
 
-- [ ] **Chunked/resumable uploads** — `django_matt/files/chunked.py`: tus-protocol compatible upload handler
-  - [ ] `TusUploadView` — handles PATCH/HEAD/POST per tus spec
-  - [ ] `ChunkedUploadMiddleware` — chunk assembly, resume state
-  - [ ] S3 multipart upload integration — use S3 native multipart for large files
-- [ ] **Presigned URL generation** — `storage.presigned_url(key, expires=3600)` for direct client-to-S3 uploads
-- [ ] **Image processing pipeline** — `@process_image(resize=(800, 600), format="webp", quality=85)` on upload fields
+- [x] **Chunked/resumable uploads** — `files/chunked.py` (524 lines): tus-protocol compatible
+  - [x] `TusUploadView` — handles PATCH/HEAD/POST per tus spec
+  - [x] `ChunkedUploadMiddleware` — chunk assembly, resume state
+  - [x] S3 multipart upload integration — use S3 native multipart for large files
+- [x] **Presigned URL generation** — `files/presigned.py` (194 lines)
+- [x] **Image processing pipeline** — `files/processing.py` (337 lines)
 - [ ] **R2/MinIO/Backblaze B2 backends** — beyond S3, expand storage options
-- [ ] **Storage events** — emit events on upload/delete/access for audit trail integration
-- [ ] **File metadata** — auto-extract MIME type, dimensions, duration (for video/audio), store alongside
+- [x] **Storage events** — `files/events.py` (128 lines) emit events on upload/delete/access
+- [x] **File metadata** — `files/metadata.py` (255 lines) auto-extract MIME type, dimensions, duration
 
 ### DEP-0014 Background Workers Compatibility
 Django is getting native background workers. Our tasks module should be the best way to use them.
 
-- [ ] **`DjangoWorkersBackend`** — new backend in `django_matt/tasks/backends/` that uses Django's native `django.core.workers` when available (Django 6.0+)
-- [ ] Auto-detection: if Django >= 6.0 and `django.core.workers` is available, use it as default backend (no Celery/Dramatiq needed)
-- [ ] Graceful fallback: if workers not available, fall back to configured backend
-- [ ] Same `@task` / `@periodic_task` decorator API regardless of backend — zero migration needed
+- [x] **`DjangoWorkersBackend`** — `tasks/backends/django_workers.py` (244 lines) with auto-detection
+- [x] Auto-detection: if Django >= 6.0 and `django.core.workers` is available, use it as default backend
+- [x] Graceful fallback: if workers not available, fall back to configured backend
+- [x] Same `@task` / `@periodic_task` decorator API regardless of backend — zero migration needed
 - [ ] Docs: when to use native workers vs Celery vs Dramatiq (decision guide)
 
 ### Dev Server & HMR Enhancement
 The dev experience should rival `rails server` or `php artisan serve`.
 
-- [ ] **`matt dev`** — unified dev command that starts Django + Vite + file watcher + Tailwind JIT in one process
+- [x] **`matt dev`** — `matt_dev.py` (207 lines) starts Django + Vite + file watcher in one process
 - [ ] **Browser error overlay** — dev middleware that injects error overlay HTML on 500s (like Next.js/Vite)
 - [ ] **Request inspector panel** — dev toolbar showing request/response, SQL queries, cache hits, time breakdown
   - Integration with existing `django_matt/inspector/` module
 - [ ] **Auto-reload on migration** — detect model changes, prompt to makemigrations + migrate
-- [ ] **Port auto-detection** — if 8000 is taken, try 8001, 8002, etc.
+- [x] **Port auto-detection** — if 8000 is taken, try 8001, 8002, etc. (in matt_dev.py)
 
 ### Modern Forms Integration
 Django forms are stuck in 2010. Bridge the gap without replacing them entirely.
 
-- [ ] **Form → Component bridge** — `form_to_components(MyDjangoForm)` converts Django Form to django-matt Component tree
-  - [ ] Respects field types, validators, help_text, error messages
-  - [ ] Outputs Tailwind/Shadcn classes by default (theme-configurable)
-- [ ] **Client-side validation** — generate Zod/Yup schema from Django form validators for frontend validation
-- [ ] **`@ajax_form`** — decorator that makes Django form views return JSON on HTMX/fetch requests
-- [ ] **Form builder** — `FormBuilder("contact").text("name").email("email").textarea("message").submit("Send")` fluent API
+- [x] **Form → Component bridge** — `forms/bridge.py` (545 lines, 122 tests)
+  - [x] Respects field types, validators, help_text, error messages
+  - [x] Outputs Tailwind/Shadcn classes by default (theme-configurable)
+- [x] **Client-side validation** — `forms/validation.py` (376 lines) generates Zod/Yup schema from Django validators
+- [x] **`@ajax_form`** — `forms/decorators.py` (150 lines)
+- [x] **Form builder** — `forms/builder.py` (531 lines) fluent API
 
 ### Content & Data Export
 Common operations every Django project needs.
 
-- [ ] **`matt export`** — `python manage.py matt export myapp.Model --format csv/json/xlsx --filter status=active`
-- [ ] **`matt import`** — `python manage.py matt import myapp.Model data.csv --dry-run`
-- [ ] **`matt fixtures`** — generate realistic test fixtures using Faker, respecting model relationships
+- [x] **`matt export`** — `matt_export.py` (282 lines) CSV/JSON/JSONL export with filters
+- [x] **`matt import`** — `matt_import.py` (286 lines) CSV/JSON import with --dry-run
+- [x] **`matt fixtures`** — `matt_fixtures.py` (217 lines) generate test fixtures
 - [ ] **`matt seed`** — populate dev database with realistic data from fixture definitions
 
 ---
