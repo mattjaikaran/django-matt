@@ -169,10 +169,15 @@ testing = [
     "httpx>=0.27.0",
 ]
 
-# Rust-accelerated hot paths (router, JWT, serialization)
-# Not on PyPI yet — build locally: make rust-dev
-# Will become: django-matt[rust] once published
-# rust = ["django-matt-rust>=0.1.0"]
+# Rust-accelerated hot paths (router, JWT, serialization).
+# The extension is published as ``django-matt-rust`` with pre-built wheels for
+# manylinux/macOS/Windows on Python 3.12–3.13 (see .github/workflows/release.yml).
+# The framework imports the wheel lazily via ``django_matt/_accel.py`` and falls
+# back to the pure-Python path if the wheel isn't installed, so this extra is
+# purely opt-in acceleration.
+rust = [
+    "django-matt-rust>=0.1.0 ; platform_machine in 'x86_64 aarch64 arm64 AMD64'",
+]
 
 # Full install with common features
 full = [

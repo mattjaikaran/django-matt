@@ -6,7 +6,7 @@
 - [x] PyPI package distribution — `uv build`, twine check pass
 - [x] Trusted publisher setup on PyPI — OIDC publishing in release.yml
 - [x] Publish to TestPyPI for validation before real publish — TestPyPI → PyPI pipeline
-- [ ] `django-matt[rust]` optional extra with pre-built wheels
+- [x] `django-matt[rust]` optional extra with pre-built wheels — exposed in pyproject.toml as `rust = ["django-matt-rust>=0.1.0 ; platform_machine in ...]`, gracefully degrades to pure-Python via `django_matt/_accel.py` when the wheel isn't installed
 - [ ] CI wheel building for Rust extensions (see Rust Extensions below)
 
 ### Documentation Site
