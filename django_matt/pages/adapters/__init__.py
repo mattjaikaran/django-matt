@@ -8,9 +8,11 @@ that can be used to build the SPA.
 from django_matt.pages.adapters.react import generate_react_adapter
 from django_matt.pages.adapters.solid import generate_solid_adapter
 from django_matt.pages.adapters.svelte import generate_svelte_adapter
+from django_matt.pages.adapters.vue import generate_vue_adapter
 
 __all__ = [
     "generate_react_adapter",
     "generate_solid_adapter",
     "generate_svelte_adapter",
+    "generate_vue_adapter",
 ]
