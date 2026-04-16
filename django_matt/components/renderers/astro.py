@@ -179,7 +179,7 @@ class AstroRenderer(BaseRenderer):
 
         # Props interface
         lines.append("interface Props {")
-        lines.append(f'  class?: string;')
+        lines.append('  class?: string;')
 
         props = self._extract_props(component)
         for prop_name, prop_type in props.items():

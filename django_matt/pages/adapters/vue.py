@@ -381,4 +381,3 @@ export type { PageData, FlashMessage, PageAppOptions };
 __all__ = [
     "generate_vue_adapter",
 ]
-"""
