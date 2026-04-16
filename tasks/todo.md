@@ -60,51 +60,52 @@ Get from v0.8.0 to a proper public release people can actually find and use.
 ### Performance CI & Regression Gates
 Benchmarks exist but aren't enforced — a regression should block merge.
 
-- [ ] Benchmark CI job — run `make bench-compare` on every PR
-- [ ] Performance budget — fail PR if route dispatch, schema validation, or request lifecycle regresses >5%
+- [x] Benchmark CI job — `.github/workflows/benchmark.yml` runs on every PR
+- [x] Performance budget — `--fail-on-regression` flag + CI gate: PRs blocked if any benchmark regresses >5% vs last main baseline (fetched via `dawidd6/action-download-artifact`)
 - [ ] Memory profiling — track RSS per-worker across server backends
 - [ ] Publish benchmark results to GitHub Pages (charts over time)
 
 ### Starter Templates & Scaffolding
 `startapi` works but more templates = faster adoption.
 
-- [ ] `--template api-only` — minimal REST API (no admin, no frontend)
-- [ ] `--template ai-saas` — AI chat app with SSE, CQRS, vector search, billing
-- [ ] `--template marketplace` — multi-vendor with Stripe Connect
-- [ ] `--template internal-tools` — admin-heavy, HTMX, audit logging
-- [ ] Template registry — `matt templates list` shows available, `matt new --template <name>`
+- [x] `--template api-only` — minimal REST API (no admin, no frontend)
+- [x] `--template ai-saas` — AI chat app with SSE, CQRS, vector search, billing
+- [x] `--template marketplace` — multi-vendor with Stripe Connect
+- [x] `--template internal-tools` — admin-heavy, HTMX, audit logging
+- [x] Template registry — `matt templates list` shows available, `matt new --template <name>`
 
 ### Code Review Agent (`django_matt/review/`)
 Automated code audit agent — static analysis + optional LLM review for Django best practices, SOLID, complexity, security, modularity, and AI-friendliness.
 
 #### Foundation
-- [ ] `review/__init__.py` — module exports
-- [ ] `review/findings.py` — Finding dataclass, Severity enum, Category enum
-- [ ] `review/config.py` — ReviewConfig: thresholds, ignore patterns, rulesets
-- [ ] `review/analyzers/base.py` — BaseAnalyzer protocol
-- [ ] `review/engine.py` — ReviewEngine orchestrates analyzers, collects/deduplicates findings
+- [x] `review/__init__.py` — module exports
+- [x] `review/findings.py` — Finding dataclass, Severity enum, Category enum
+- [x] `review/config.py` — ReviewConfig: thresholds, ignore patterns, rulesets
+- [x] `review/analyzers/base.py` — BaseAnalyzer protocol
+- [x] `review/engine.py` — ReviewEngine orchestrates analyzers, collects/deduplicates findings
 
 #### Analyzers (AST-based, zero external deps)
-- [ ] `review/analyzers/complexity.py` — cyclomatic complexity, cognitive complexity, function length, nesting depth, class size
-- [ ] `review/analyzers/solid.py` — SRP (method count, mixed concerns), OCP (hardcoded type checks), LSP, ISP (fat interfaces), DIP (concrete deps)
-- [ ] `review/analyzers/django.py` — N+1 patterns, sync ORM in async, fat views, raw SQL injection, missing auth decorators, missing indexes
-- [ ] `review/analyzers/ai_friendly.py` — file size, function length, type hint coverage, naming clarity score, docstring coverage, deep nesting
-- [ ] `review/analyzers/security.py` — hardcoded secrets, missing CSRF, SQL injection, open redirects, unsafe deserialization, eval/exec usage
-- [ ] `review/analyzers/modularity.py` — circular imports, coupling metrics (afferent/efferent), import graph, service layer detection, god modules
-- [ ] `review/analyzers/performance.py` — unbounded querysets, missing pagination, blocking IO in async, N+1 in loops, missing select_related
+- [x] `review/analyzers/complexity.py`
+- [x] `review/analyzers/solid.py`
+- [x] `review/analyzers/django.py`
+- [x] `review/analyzers/ai_friendly.py`
+- [x] `review/analyzers/security.py`
+- [x] `review/analyzers/modularity.py`
+- [x] `review/analyzers/performance.py`
+- [x] `review/analyzers/async_safety.py`, `n_plus_one.py`, `migration_safety.py`, `api_design.py` (added in enhance review PR)
 
 #### Reporters
-- [ ] `review/reporters/console.py` — Rich terminal output with severity coloring, grouped by file
-- [ ] `review/reporters/markdown.py` — Markdown report for docs/PRs
-- [ ] `review/reporters/json_reporter.py` — Machine-readable JSON for CI pipelines
-- [ ] `review/reporters/github.py` — GitHub PR review comment format
+- [x] `review/reporters/console.py`
+- [x] `review/reporters/markdown.py`
+- [x] `review/reporters/json_reporter.py`
+- [x] `review/reporters/github.py`
 
 #### Management Command & AI
-- [ ] `review/management/commands/matt_review.py` — CLI: `--analyzers`, `--format`, `--min-severity`, `--paths`, `--ai`, `--suggest-refactors`
-- [ ] `review/ai_reviewer.py` — Optional LLM-powered review using django_matt.ai providers (architectural review, refactor suggestions)
+- [x] `matt_review` management command
+- [x] `review/ai_reviewer.py` — optional LLM-powered review
 
 #### Tests
-- [ ] `tests/test_review/` — tests for all analyzers, engine, reporters, config, management command
+- [x] `tests/test_review/` — 154 tests across analyzers, engine, reporters, config, command
 
 ### AI/LLM Context & Agent Support
 Make django-matt projects first-class citizens for AI-assisted development and autonomous agents.
@@ -114,7 +115,7 @@ Make django-matt projects first-class citizens for AI-assisted development and a
 - [x] MCP server generator — `python manage.py generate_mcp_server` creates MCP server from introspection
 - [x] Cursor rules / Claude instructions auto-generation — `generate_ai_context --format claude/cursor/copilot`
 - [x] IDE context file watcher — `generate_ai_context --watch` with debounced auto-updates
-- [ ] LLM-optimized error messages — structured error responses with fix suggestions that agents can parse and act on
+- [x] LLM-optimized error messages — structured error responses with fix suggestions (commits e8dd538, cac010e)
 - [x] `matt ai context` CLI — `python manage.py matt ai --format all`
 
 **Why:** AI agents and IDE copilots are the primary consumers of framework documentation now. A framework that generates its own perfect context files gives developers (and their AI tools) an immediate productivity advantage. This is a differentiator — no other Django framework does this well.
@@ -122,11 +123,11 @@ Make django-matt projects first-class citizens for AI-assisted development and a
 ### Production Server Backends (Robyn / Granian)
 Replace gunicorn+uvicorn with Rust-native ASGI servers for lower latency and simpler deployment.
 
-- [ ] Abstract server backend interface — `DeploymentConfig.server_backend` enum (`gunicorn`, `robyn`, `granian`)
-- [ ] Robyn integration — Rust-native HTTP server, direct ASGI mounting, zero-copy response path
-- [ ] Granian integration — Rust HTTP/2 server with RSGIHttpProtocol for ASGI apps
-- [ ] Auto-detect best server — pick Robyn/Granian if installed, fall back to gunicorn+uvicorn
-- [ ] `matt serve` CLI command — unified entry point: `python manage.py serve --server robyn --workers 4`
+- [x] Abstract server backend interface — `django_matt/servers/` with registry
+- [x] Robyn integration — `robyn_backend.py`
+- [x] Granian integration — `granian_backend.py`
+- [x] Auto-detect best server — registry picks installed backend
+- [x] `matt serve` CLI command — `matt_serve.py`
 - [ ] Dockerfile templates per server backend (robyn, granian, gunicorn)
 - [ ] Benchmark suite — compare request/s, p99 latency, memory across all three backends
 - [ ] Docs: server backend selection guide with tradeoffs
@@ -138,25 +139,26 @@ Replace gunicorn+uvicorn with Rust-native ASGI servers for lower latency and sim
 ### Automated Migration Tooling
 LLM migration prompts exist — add codemods that actually do the rewrite.
 
-- [ ] `matt migrate-from drf` — AST-based codemod: DRF serializers → Pydantic schemas, ViewSets → Controllers
-- [ ] `matt migrate-from ninja` — lighter transform, mostly import rewriting
-- [ ] `matt migrate-from fastapi` — route decorators + Depends → DI container
-- [ ] Dry-run mode with diff preview before applying changes
-- [ ] Migration report — what was converted, what needs manual review
+- [x] `matt migrate-from drf` — `codemods/drf.py`
+- [x] `matt migrate-from ninja` — `codemods/ninja.py`
+- [x] `matt migrate-from fastapi` — `codemods/fastapi.py`
+- [x] Dry-run mode with diff preview before applying changes
+- [x] Migration report — what was converted, what needs manual review
 
 ### Published Client SDKs
 The typegen and RPC modules generate code — ship pre-built SDK packages too.
 
-- [ ] `django-matt-ts-client` — published bun/npm package generated from RPC module
-- [ ] `django-matt-swift-client` — Swift Package Manager distribution
+- [x] TypeScript SDK generator — `sdkgen/typescript.py`
+- [x] Swift SDK generator — `sdkgen/swift.py`
+- [x] Python SDK generator — `sdkgen/python_sdk.py`
 - [ ] SDK versioning tied to API schema hash (auto-bump on breaking changes)
 - [ ] SDK generation as part of CI — publish on tag
 
 ### Plugin Ecosystem
 Module system exists — build the ecosystem around it.
 
-- [ ] `matt plugin init <name>` — scaffold a django-matt plugin package
-- [ ] Plugin registry / directory (GitHub-based initially)
+- [x] `matt plugin init <name>` — `plugins/scaffold.py` + `matt_plugin` command
+- [x] Plugin discovery / registry — `plugins/registry.py`, `plugins/loader.py`, `plugins/hooks.py`
 - [ ] Example plugins: `django-matt-stripe-webhooks`, `django-matt-clerk-auth`, `django-matt-resend`
 - [ ] Plugin compatibility matrix (django-matt version × plugin version)
 
@@ -193,8 +195,8 @@ Things Django should ship with but doesn't. We fill the gap.
 
 - [ ] **Default rate limiting preset** — `MATT_THROTTLE_DEFAULTS = "standard"` enables sensible per-IP/per-user/per-endpoint limits out of the box (100/min anon, 1000/min auth, 10/min login). Throttling module exists but requires manual config.
 - [ ] **`cache_clear` management command** — `python manage.py cache_clear [--backend default] [--prefix ...]` to purge cache. Django's cache framework has no built-in clear command.
-- [ ] **`matt shell+` enhanced shell** — auto-imports all models, services, common utils. Like `shell_plus` but built-in.
-- [ ] **`matt dbshell+`** — connect to DB with auto-detected connection params, pgcli/litecli if installed
+- [x] **`matt shell+` enhanced shell** — `matt_shell.py`
+- [x] **`matt dbshell+`** — `matt_dbshell.py`
 - [ ] **Login-by-email config toggle** — `MATT_AUTH = {"login_field": "email"}` switches the default User auth to email-based login without custom user model gymnastics. Wire into AuthController, JWT, admin login.
 - [ ] **`matt check --strict`** — run system checks + config validation + import verification in one pass (combines `check`, `validate_api`, `check_settings`)
 

@@ -639,3 +639,137 @@ class TestReporterSave:
             assert filepath.exists()
             content = filepath.read_text()
             assert "# Django Matt Benchmark Report" in content
+
+
+class TestBenchmarkRegressionGate:
+    """Tests for --fail-on-regression CI gate."""
+
+    def _make_baseline(self, tmpdir: Path, names: list[tuple[str, float]]) -> None:
+        """Write a latest.json baseline with the given (name, mean_time_ms) entries."""
+        baseline_dir = tmpdir / ".matt" / "benchmarks"
+        baseline_dir.mkdir(parents=True, exist_ok=True)
+        data = {
+            "timestamp": "2026-04-16T00:00:00",
+            "results": [
+                {
+                    "name": name,
+                    "scenario": "test",
+                    "iterations": 100,
+                    "total_time_ms": mean * 100,
+                    "mean_time_ms": mean,
+                    "median_time_ms": mean,
+                    "min_time_ms": mean * 0.9,
+                    "max_time_ms": mean * 1.1,
+                    "std_dev_ms": mean * 0.05,
+                    "ops_per_second": 1000.0 / mean if mean else 0.0,
+                    "memory_mb": None,
+                    "metadata": {},
+                }
+                for name, mean in names
+            ],
+            "metadata": {},
+        }
+        (baseline_dir / "latest.json").write_text(json.dumps(data))
+
+    def test_fail_on_regression_requires_compare(self, tmp_path, monkeypatch):
+        """Flag without --compare raises CommandError."""
+        from django.core.management import call_command
+        from django.core.management.base import CommandError
+
+        monkeypatch.chdir(tmp_path)
+        with pytest.raises(CommandError, match="--fail-on-regression requires --compare"):
+            call_command(
+                "benchmark",
+                "--scenario",
+                "json",
+                "--iterations",
+                "10",
+                "--warmup",
+                "1",
+                "--fail-on-regression",
+                "--quiet",
+                "--no-color",
+            )
+
+    def test_fail_on_regression_no_baseline_is_noop(self, tmp_path, monkeypatch):
+        """No baseline = nothing to compare against = no error."""
+        from django.core.management import call_command
+
+        monkeypatch.chdir(tmp_path)
+        # No baseline file written — should pass with a warning, not raise
+        call_command(
+            "benchmark",
+            "--scenario",
+            "json",
+            "--iterations",
+            "10",
+            "--warmup",
+            "1",
+            "--compare",
+            "--fail-on-regression",
+            "--quiet",
+            "--no-color",
+        )
+
+    def test_fail_on_regression_raises_on_slowdown(self, tmp_path, monkeypatch):
+        """A baseline 100x faster than the current run must trigger the gate."""
+        from django.core.management import call_command
+        from django.core.management.base import CommandError
+
+        monkeypatch.chdir(tmp_path)
+        # Seed baselines that are absurdly fast — guarantees every scenario regresses
+        self._make_baseline(
+            tmp_path,
+            [
+                ("orjson.dumps (small)", 0.000001),
+                ("orjson.loads (small)", 0.000001),
+                ("orjson.dumps (medium)", 0.000001),
+            ],
+        )
+        with pytest.raises(CommandError, match="Benchmark regression gate failed"):
+            call_command(
+                "benchmark",
+                "--scenario",
+                "json",
+                "--iterations",
+                "10",
+                "--warmup",
+                "1",
+                "--compare",
+                "--threshold",
+                "5.0",
+                "--fail-on-regression",
+                "--quiet",
+                "--no-color",
+            )
+
+    def test_no_regression_when_baseline_matches(self, tmp_path, monkeypatch):
+        """A baseline within threshold must NOT trigger the gate."""
+        from django.core.management import call_command
+
+        monkeypatch.chdir(tmp_path)
+        # Seed baselines that are absurdly slow — guarantees every scenario is "faster"
+        self._make_baseline(
+            tmp_path,
+            [
+                ("orjson.dumps (small)", 1000.0),
+                ("orjson.loads (small)", 1000.0),
+                ("orjson.dumps (medium)", 1000.0),
+            ],
+        )
+        # Should pass cleanly
+        call_command(
+            "benchmark",
+            "--scenario",
+            "json",
+            "--iterations",
+            "10",
+            "--warmup",
+            "1",
+            "--compare",
+            "--threshold",
+            "5.0",
+            "--fail-on-regression",
+            "--quiet",
+            "--no-color",
+        )

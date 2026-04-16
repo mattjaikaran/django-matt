@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  actions: read
+
 jobs:
   benchmark:
     runs-on: ubuntu-latest
@@ -23,20 +29,58 @@ jobs:
 
       - run: uv sync --frozen
 
+      # On PRs, fetch the most recent main baseline so we can compare against it.
+      - name: Download main baseline
+        if: github.event_name == 'pull_request'
+        id: baseline
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: benchmark.yml
+          branch: main
+          name: benchmark-baseline
+          path: .matt/benchmarks
+          if_no_artifact_found: warn
+
       - name: Run benchmarks
         run: |
           uv run python -m django benchmark \
             --scenario json schema routing \
             --format json \
             --output benchmark-results.json \
+            --save \
             --no-color
 
-      - name: Generate markdown report
+      - name: Generate markdown report (with comparison on PRs)
+        if: github.event_name == 'pull_request'
         run: |
           uv run python -m django benchmark \
             --scenario json schema routing \
             --format markdown \
             --output benchmark-report.md \
+            --compare \
+            --threshold 5.0 \
+            --no-color
+
+      - name: Generate markdown report (main push)
+        if: github.event_name != 'pull_request'
+        run: |
+          uv run python -m django benchmark \
+            --scenario json schema routing \
+            --format markdown \
+            --output benchmark-report.md \
+            --no-color
+
+      # Regression gate: fail PR if any benchmark is >5% slower than the main baseline.
+      # Skipped when no baseline artifact was found (first-run / bootstrap).
+      - name: Check for performance regression
+        if: github.event_name == 'pull_request' && steps.baseline.outputs.found_artifact == 'true'
+        run: |
+          uv run python -m django benchmark \
+            --scenario json schema routing \
+            --compare \
+            --threshold 5.0 \
+            --fail-on-regression \
+            --quiet \
             --no-color
 
       - name: Upload benchmark results
@@ -46,6 +90,15 @@ jobs:
           path: |
             benchmark-results.json
             benchmark-report.md
+
+      # On main pushes, publish the current run as the new baseline artifact.
+      - name: Publish main baseline
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-baseline
+          path: .matt/benchmarks/latest.json
+          retention-days: 90
 
       - name: Comment PR with benchmark results
         if: github.event_name == 'pull_request'

@@ -78,15 +78,18 @@ class Command(BaseCommand):
             help="List available scenarios",
         )
         parser.add_argument(
-            "--no-color",
-            action="store_true",
-            help="Disable colored output",
-        )
-        parser.add_argument(
             "--threshold",
             type=float,
             default=5.0,
             help="Percentage threshold for 'same' status in comparisons (default: 5.0)",
+        )
+        parser.add_argument(
+            "--fail-on-regression",
+            action="store_true",
+            help=(
+                "Exit with non-zero code when any benchmark regresses beyond --threshold "
+                "compared to --baseline. Requires --compare."
+            ),
         )
         parser.add_argument(
             "--quiet",
@@ -215,6 +218,39 @@ class Command(BaseCommand):
         # Show summary for console output
         if output_format == "console" and not options["quiet"]:
             self._show_summary(results, comparisons)
+
+        # Regression gate: fail the command if any benchmark regressed beyond threshold
+        if options["fail_on_regression"]:
+            if not options["compare"]:
+                raise CommandError("--fail-on-regression requires --compare")
+            if comparisons is None:
+                # No baseline was found — nothing to regress against; treat as pass
+                if not options["quiet"]:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            "No baseline found; --fail-on-regression has nothing to compare against"
+                        )
+                    )
+                return
+            regressions = [c for c in comparisons if c.status == "slower"]
+            if regressions:
+                self.stdout.write("")
+                self.stdout.write(
+                    self.style.ERROR(
+                        f"Performance regression: {len(regressions)} benchmark(s) slower by more "
+                        f"than {options['threshold']:.1f}%"
+                    )
+                )
+                for c in sorted(regressions, key=lambda x: -x.mean_diff_percent):
+                    self.stdout.write(
+                        self.style.ERROR(
+                            f"  {c.name}: {c.mean_diff_percent:+.1f}% "
+                            f"({c.baseline.mean_time_ms:.3f}ms → {c.current.mean_time_ms:.3f}ms)"
+                        )
+                    )
+                raise CommandError(
+                    f"Benchmark regression gate failed ({len(regressions)} regression(s))"
+                )
 
     def _list_scenarios(self):
         """List available benchmark scenarios."""
