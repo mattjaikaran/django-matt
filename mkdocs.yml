@@ -254,6 +254,7 @@ nav:
       - Comparison: benchmarks/comparison.md
       - Custom Benchmarks: benchmarks/custom.md
       - CI Integration: benchmarks/ci-integration.md
+      - Live Charts: benchmarks/live.html
 
   - Multi-Tenancy:
       - multitenancy/overview.md

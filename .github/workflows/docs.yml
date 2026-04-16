@@ -6,15 +6,25 @@ on:
     paths:
       - "docs/**"
       - "mkdocs.yml"
+      - "scripts/publish_bench_charts.py"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
+  # Rebuild whenever a benchmark run finishes on main so charts stay fresh.
+  workflow_run:
+    workflows: ["Benchmark"]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,6 +37,30 @@ jobs:
       - run: uv python install 3.13
 
       - run: uv sync --frozen
+
+      # Pull the latest main benchmark baseline so the live charts page has
+      # current data. First-run is tolerated — publish_bench_charts handles
+      # empty inputs by writing an empty dashboard.
+      - name: Download benchmark baselines
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: benchmark.yml
+          branch: main
+          name: benchmark-baseline
+          path: .matt/benchmarks
+          if_no_artifact_found: warn
+
+      - name: Download timestamped benchmark runs
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: benchmark.yml
+          branch: main
+          name: benchmark-results
+          path: .matt/benchmarks
+          if_no_artifact_found: warn
+
+      - name: Generate benchmark dashboard
+        run: uv run python scripts/publish_bench_charts.py
 
       - name: Configure git
         run: |
