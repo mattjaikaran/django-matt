@@ -7,13 +7,13 @@ Includes:
 - Preferences
 """
 
-from uuid import UUID
+import asyncio
 
 from django.db import models
 from django.utils import timezone
 from django_matt.auth import jwt_required
-from django_matt.core import APIController, api_controller
-from django_matt.permissions import IsAuthenticated
+from django_matt.core import APIController
+from django_matt.core.router import delete, get, patch, post
 from django_matt.streaming import event as sse_event
 from django_matt.streaming import sse_response
 
@@ -30,29 +30,23 @@ from notifications.schemas import (
 )
 
 
-@api_controller("/notifications", tags=["Notifications"])
 class NotificationController(APIController):
-    """Notification management endpoints."""
+    prefix = "/notifications"
+    tags = ["Notifications"]
 
     # =========================================================================
     # Notifications
     # =========================================================================
 
-    @APIController.get("/", response=NotificationListResponse, permissions=[IsAuthenticated])
+    @get("/")
     @jwt_required
-    async def list_notifications(
-        self,
-        request,
-        org_slug: str | None = None,
-        unread_only: bool = False,
-        page: int = 1,
-        page_size: int = 20,
-    ):
-        """
-        List notifications for the current user.
+    async def list_notifications(self, request) -> dict:
+        """List notifications for the current user."""
+        org_slug = request.GET.get("org_slug")
+        unread_only = request.GET.get("unread_only", "").lower() == "true"
+        page = int(request.GET.get("page", "1"))
+        page_size = int(request.GET.get("page_size", "20"))
 
-        Optionally filter by organization.
-        """
         queryset = Notification.objects.filter(user=request.user)
 
         # Filter by organization if specified
@@ -95,12 +89,11 @@ class NotificationController(APIController):
             page_size=page_size,
         )
 
-    @APIController.get("/count", response=NotificationCountResponse, permissions=[IsAuthenticated])
+    @get("/count")
     @jwt_required
-    async def get_notification_count(self, request, org_slug: str | None = None):
-        """
-        Get notification counts for the current user.
-        """
+    async def get_notification_count(self, request) -> dict:
+        """Get notification counts for the current user."""
+        org_slug = request.GET.get("org_slug")
         queryset = Notification.objects.filter(user=request.user)
 
         if org_slug:
@@ -124,12 +117,10 @@ class NotificationController(APIController):
             by_type=by_type,
         )
 
-    @APIController.get("/{notification_id}", response=NotificationResponse, permissions=[IsAuthenticated])
+    @get("/<str:notification_id>")
     @jwt_required
-    async def get_notification(self, request, notification_id: UUID):
-        """
-        Get notification details.
-        """
+    async def get_notification(self, request, notification_id: str) -> dict:
+        """Get notification details."""
         try:
             notification = await Notification.objects.select_related("actor").aget(
                 id=notification_id,
@@ -139,12 +130,10 @@ class NotificationController(APIController):
         except Notification.DoesNotExist:
             return {"error": "Notification not found"}, 404
 
-    @APIController.post("/mark-read", permissions=[IsAuthenticated])
+    @post("/mark-read")
     @jwt_required
-    async def mark_notifications_read(self, request, data: NotificationMarkReadRequest):
-        """
-        Mark specific notifications as read.
-        """
+    async def mark_notifications_read(self, request, data: NotificationMarkReadRequest) -> dict:
+        """Mark specific notifications as read."""
         await Notification.objects.filter(
             id__in=data.notification_ids,
             user=request.user,
@@ -153,12 +142,10 @@ class NotificationController(APIController):
 
         return {"marked": len(data.notification_ids)}
 
-    @APIController.post("/mark-all-read", permissions=[IsAuthenticated])
+    @post("/mark-all-read")
     @jwt_required
-    async def mark_all_read(self, request, data: NotificationMarkAllReadRequest):
-        """
-        Mark all notifications as read.
-        """
+    async def mark_all_read(self, request, data: NotificationMarkAllReadRequest) -> dict:
+        """Mark all notifications as read."""
         queryset = Notification.objects.filter(user=request.user, is_read=False)
 
         if data.organization_id:
@@ -168,12 +155,10 @@ class NotificationController(APIController):
 
         return {"marked": count}
 
-    @APIController.delete("/{notification_id}", permissions=[IsAuthenticated])
+    @delete("/<str:notification_id>")
     @jwt_required
-    async def delete_notification(self, request, notification_id: UUID):
-        """
-        Delete a notification.
-        """
+    async def delete_notification(self, request, notification_id: str) -> dict:
+        """Delete a notification."""
         try:
             notification = await Notification.objects.aget(
                 id=notification_id,
@@ -188,13 +173,10 @@ class NotificationController(APIController):
     # SSE Streaming
     # =========================================================================
 
-    @APIController.get("/stream", permissions=[IsAuthenticated])
+    @get("/stream")
     @jwt_required
-    @staticmethod
-    async def stream_notifications(request):
+    async def stream_notifications(self, request):
         """Stream new notifications via SSE."""
-        import asyncio
-
         async def generate():
             last_check = timezone.now()
             while True:
@@ -222,12 +204,10 @@ class NotificationController(APIController):
     # Preferences
     # =========================================================================
 
-    @APIController.get("/preferences", response=NotificationPreferenceResponse, permissions=[IsAuthenticated])
+    @get("/preferences")
     @jwt_required
-    async def get_preferences(self, request):
-        """
-        Get notification preferences for the current user.
-        """
+    async def get_preferences(self, request) -> dict:
+        """Get notification preferences for the current user."""
         preference, created = await NotificationPreference.objects.aget_or_create(
             user=request.user,
             defaults={
@@ -239,12 +219,10 @@ class NotificationController(APIController):
         )
         return NotificationPreferenceResponse.model_validate(preference)
 
-    @APIController.patch("/preferences", response=NotificationPreferenceResponse, permissions=[IsAuthenticated])
+    @patch("/preferences")
     @jwt_required
-    async def update_preferences(self, request, data: NotificationPreferenceUpdate):
-        """
-        Update notification preferences.
-        """
+    async def update_preferences(self, request, data: NotificationPreferenceUpdate) -> dict:
+        """Update notification preferences."""
         preference, _ = await NotificationPreference.objects.aget_or_create(
             user=request.user,
             defaults={

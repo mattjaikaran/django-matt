@@ -9,13 +9,12 @@ Includes:
 
 import secrets
 from datetime import timedelta
-from uuid import UUID
 
 from django.conf import settings
 from django.utils import timezone
 from django_matt.auth import jwt_required
-from django_matt.core import APIController, api_controller
-from django_matt.permissions import IsAuthenticated
+from django_matt.core import APIController
+from django_matt.core.router import delete, get, patch, post
 
 from core.models import AuditLog, Invitation, Membership, MembershipRole, Organization
 from core.schemas import (
@@ -31,20 +30,18 @@ from core.schemas import (
 )
 
 
-@api_controller("/organizations", tags=["Organizations"])
 class OrganizationController(APIController):
-    """Organization management endpoints."""
+    prefix = "/organizations"
+    tags = ["Organizations"]
 
     # =========================================================================
     # Organization CRUD
     # =========================================================================
 
-    @APIController.get("/", response=list[OrganizationResponse], permissions=[IsAuthenticated])
+    @get("/")
     @jwt_required
-    async def list_organizations(self, request):
-        """
-        List all organizations the current user is a member of.
-        """
+    async def list_organizations(self, request) -> list:
+        """List all organizations the current user is a member of."""
         memberships = Membership.objects.filter(
             user=request.user,
             is_active=True,
@@ -57,14 +54,10 @@ class OrganizationController(APIController):
 
         return orgs
 
-    @APIController.post("/", response=OrganizationDetailResponse, permissions=[IsAuthenticated])
+    @post("/")
     @jwt_required
-    async def create_organization(self, request, data: OrganizationCreate):
-        """
-        Create a new organization.
-
-        The creating user becomes the organization owner.
-        """
+    async def create_organization(self, request, data: OrganizationCreate) -> dict:
+        """Create a new organization. The creating user becomes the owner."""
         user = request.user
 
         # Check if slug is unique
@@ -102,12 +95,10 @@ class OrganizationController(APIController):
 
         return OrganizationDetailResponse.model_validate(org)
 
-    @APIController.get("/{org_slug}", response=OrganizationDetailResponse, permissions=[IsAuthenticated])
+    @get("/<str:org_slug>")
     @jwt_required
-    async def get_organization(self, request, org_slug: str):
-        """
-        Get organization details.
-        """
+    async def get_organization(self, request, org_slug: str) -> dict:
+        """Get organization details."""
         try:
             org = await Organization.objects.select_related("owner").aget(slug=org_slug)
 
@@ -126,14 +117,10 @@ class OrganizationController(APIController):
         except Organization.DoesNotExist:
             return {"error": "Organization not found"}, 404
 
-    @APIController.patch("/{org_slug}", response=OrganizationDetailResponse, permissions=[IsAuthenticated])
+    @patch("/<str:org_slug>")
     @jwt_required
-    async def update_organization(self, request, org_slug: str, data: OrganizationUpdate):
-        """
-        Update organization details.
-
-        Requires admin or owner role.
-        """
+    async def update_organization(self, request, org_slug: str, data: OrganizationUpdate) -> dict:
+        """Update organization details. Requires admin or owner role."""
         try:
             org = await Organization.objects.select_related("owner").aget(slug=org_slug)
 
@@ -166,14 +153,10 @@ class OrganizationController(APIController):
         except Organization.DoesNotExist:
             return {"error": "Organization not found"}, 404
 
-    @APIController.delete("/{org_slug}", permissions=[IsAuthenticated])
+    @delete("/<str:org_slug>")
     @jwt_required
-    async def delete_organization(self, request, org_slug: str):
-        """
-        Delete organization.
-
-        Requires owner role. Personal organizations cannot be deleted.
-        """
+    async def delete_organization(self, request, org_slug: str) -> dict:
+        """Delete organization. Requires owner role."""
         try:
             org = await Organization.objects.aget(slug=org_slug)
 
@@ -197,12 +180,10 @@ class OrganizationController(APIController):
     # Members
     # =========================================================================
 
-    @APIController.get("/{org_slug}/members", response=list[MembershipDetailResponse], permissions=[IsAuthenticated])
+    @get("/<str:org_slug>/members")
     @jwt_required
-    async def list_members(self, request, org_slug: str):
-        """
-        List all members of an organization.
-        """
+    async def list_members(self, request, org_slug: str) -> list:
+        """List all members of an organization."""
         try:
             org = await Organization.objects.aget(slug=org_slug)
 
@@ -230,14 +211,10 @@ class OrganizationController(APIController):
         except Organization.DoesNotExist:
             return {"error": "Organization not found"}, 404
 
-    @APIController.patch("/{org_slug}/members/{member_id}", response=MembershipDetailResponse, permissions=[IsAuthenticated])
+    @patch("/<str:org_slug>/members/<str:member_id>")
     @jwt_required
-    async def update_member(self, request, org_slug: str, member_id: UUID, data: MembershipUpdate):
-        """
-        Update member role or team assignments.
-
-        Requires admin permission.
-        """
+    async def update_member(self, request, org_slug: str, member_id: str, data: MembershipUpdate) -> dict:
+        """Update member role or team assignments. Requires admin permission."""
         try:
             org = await Organization.objects.aget(slug=org_slug)
 
@@ -290,14 +267,10 @@ class OrganizationController(APIController):
         except Membership.DoesNotExist:
             return {"error": "Member not found"}, 404
 
-    @APIController.delete("/{org_slug}/members/{member_id}", permissions=[IsAuthenticated])
+    @delete("/<str:org_slug>/members/<str:member_id>")
     @jwt_required
-    async def remove_member(self, request, org_slug: str, member_id: UUID):
-        """
-        Remove member from organization.
-
-        Requires admin permission. Cannot remove the owner.
-        """
+    async def remove_member(self, request, org_slug: str, member_id: str) -> dict:
+        """Remove member from organization. Requires admin permission."""
         try:
             org = await Organization.objects.aget(slug=org_slug)
 
@@ -348,14 +321,10 @@ class OrganizationController(APIController):
     # Invitations
     # =========================================================================
 
-    @APIController.get("/{org_slug}/invitations", response=list[InvitationResponse], permissions=[IsAuthenticated])
+    @get("/<str:org_slug>/invitations")
     @jwt_required
-    async def list_invitations(self, request, org_slug: str):
-        """
-        List pending invitations.
-
-        Requires admin permission.
-        """
+    async def list_invitations(self, request, org_slug: str) -> list:
+        """List pending invitations. Requires admin permission."""
         try:
             org = await Organization.objects.aget(slug=org_slug)
 
@@ -383,14 +352,10 @@ class OrganizationController(APIController):
         except Organization.DoesNotExist:
             return {"error": "Organization not found"}, 404
 
-    @APIController.post("/{org_slug}/invitations", response=InvitationResponse, permissions=[IsAuthenticated])
+    @post("/<str:org_slug>/invitations")
     @jwt_required
-    async def create_invitation(self, request, org_slug: str, data: InvitationCreate):
-        """
-        Invite a user to the organization.
-
-        Requires invite permission.
-        """
+    async def create_invitation(self, request, org_slug: str, data: InvitationCreate) -> dict:
+        """Invite a user to the organization. Requires invite permission."""
         try:
             org = await Organization.objects.aget(slug=org_slug)
 
@@ -459,12 +424,10 @@ class OrganizationController(APIController):
         except Organization.DoesNotExist:
             return {"error": "Organization not found"}, 404
 
-    @APIController.post("/invitations/accept", permissions=[IsAuthenticated])
+    @post("/invitations/accept")
     @jwt_required
-    async def accept_invitation(self, request, data: InvitationAccept):
-        """
-        Accept an invitation to join an organization.
-        """
+    async def accept_invitation(self, request, data: InvitationAccept) -> dict:
+        """Accept an invitation to join an organization."""
         try:
             invitation = await Invitation.objects.select_related(
                 "organization"
@@ -511,14 +474,10 @@ class OrganizationController(APIController):
         except Invitation.DoesNotExist:
             return {"error": "Invalid invitation token"}, 400
 
-    @APIController.delete("/{org_slug}/invitations/{invitation_id}", permissions=[IsAuthenticated])
+    @delete("/<str:org_slug>/invitations/<str:invitation_id>")
     @jwt_required
-    async def revoke_invitation(self, request, org_slug: str, invitation_id: UUID):
-        """
-        Revoke a pending invitation.
-
-        Requires admin permission.
-        """
+    async def revoke_invitation(self, request, org_slug: str, invitation_id: str) -> dict:
+        """Revoke a pending invitation. Requires admin permission."""
         try:
             org = await Organization.objects.aget(slug=org_slug)
 

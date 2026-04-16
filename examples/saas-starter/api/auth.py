@@ -17,33 +17,29 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 from django_matt.auth import jwt_required
-from django_matt.core import APIController, api_controller
-from django_matt.permissions import AllowAny, IsAuthenticated
+from django_matt.core import APIController
+from django_matt.core.router import delete, get, patch, post
 
 from core.models import AuditLog, MagicLinkToken, User
 from core.schemas import (
     LoginRequest,
-    LoginResponse,
     MagicLinkRequest,
     MagicLinkVerifyRequest,
-    OAuthAuthorizationRequest,
     OAuthCallbackRequest,
     PasswordChangeRequest,
     PasswordResetConfirmRequest,
     PasswordResetRequest,
     RefreshRequest,
     RegisterRequest,
-    RegisterResponse,
-    TokenResponse,
     UserProfileResponse,
     UserResponse,
     UserUpdate,
 )
 
 
-@api_controller("/auth", tags=["Auth"])
 class AuthController(APIController):
-    """Authentication endpoints."""
+    prefix = "/auth"
+    tags = ["Auth"]
 
     @staticmethod
     def create_tokens(user: User) -> dict:
@@ -65,13 +61,9 @@ class AuthController(APIController):
     # Basic Auth
     # =========================================================================
 
-    @APIController.post("/login", response=LoginResponse, permissions=[AllowAny])
-    async def login(self, request, data: LoginRequest):
-        """
-        Authenticate user with email and password.
-
-        Returns JWT access and refresh tokens.
-        """
+    @post("/login")
+    async def login(self, request, data: LoginRequest) -> dict:
+        """Authenticate user with email and password."""
         try:
             user = await User.objects.aget(email=data.email.lower())
         except User.DoesNotExist:
@@ -101,13 +93,9 @@ class AuthController(APIController):
             "user": UserResponse.model_validate(user),
         }
 
-    @APIController.post("/register", response=RegisterResponse, permissions=[AllowAny])
-    async def register(self, request, data: RegisterRequest):
-        """
-        Register a new user account.
-
-        Creates a new user and their personal organization.
-        """
+    @post("/register")
+    async def register(self, request, data: RegisterRequest) -> dict:
+        """Register a new user account."""
         # Check if email already exists
         if await User.objects.filter(email=data.email.lower()).aexists():
             return {"error": "Email already registered"}, 400
@@ -134,11 +122,9 @@ class AuthController(APIController):
             "message": "Registration successful. Please verify your email.",
         }
 
-    @APIController.post("/refresh", response=TokenResponse, permissions=[AllowAny])
-    async def refresh_token(self, request, data: RefreshRequest):
-        """
-        Refresh access token using refresh token.
-        """
+    @post("/refresh")
+    async def refresh_token(self, request, data: RefreshRequest) -> dict:
+        """Refresh access token using refresh token."""
         from django_matt.auth.jwt import create_access_token, decode_token
 
         try:
@@ -159,14 +145,10 @@ class AuthController(APIController):
         except Exception:
             return {"error": "Invalid refresh token"}, 401
 
-    @APIController.post("/logout", permissions=[IsAuthenticated])
+    @post("/logout")
     @jwt_required
-    async def logout(self, request):
-        """
-        Logout current user.
-
-        Invalidates the current refresh token (if token blacklisting is enabled).
-        """
+    async def logout(self, request) -> dict:
+        """Logout current user."""
         await AuditLog.objects.acreate(
             user=request.user,
             action="user.logout",
@@ -179,20 +161,16 @@ class AuthController(APIController):
     # Current User
     # =========================================================================
 
-    @APIController.get("/me", response=UserProfileResponse, permissions=[IsAuthenticated])
+    @get("/me")
     @jwt_required
-    async def get_current_user(self, request):
-        """
-        Get current authenticated user profile.
-        """
+    async def get_current_user(self, request) -> dict:
+        """Get current authenticated user profile."""
         return UserProfileResponse.model_validate(request.user)
 
-    @APIController.patch("/me", response=UserProfileResponse, permissions=[IsAuthenticated])
+    @patch("/me")
     @jwt_required
-    async def update_current_user(self, request, data: UserUpdate):
-        """
-        Update current user profile.
-        """
+    async def update_current_user(self, request, data: UserUpdate) -> dict:
+        """Update current user profile."""
         user = request.user
 
         for field, value in data.model_dump(exclude_unset=True).items():
@@ -206,13 +184,9 @@ class AuthController(APIController):
     # Magic Link
     # =========================================================================
 
-    @APIController.post("/magic-link", permissions=[AllowAny])
-    async def request_magic_link(self, request, data: MagicLinkRequest):
-        """
-        Request a magic link for passwordless login.
-
-        Sends an email with a one-time login link.
-        """
+    @post("/magic-link")
+    async def request_magic_link(self, request, data: MagicLinkRequest) -> dict:
+        """Request a magic link for passwordless login."""
         # Always return success to prevent email enumeration
         try:
             user = await User.objects.aget(email=data.email.lower())
@@ -240,11 +214,9 @@ class AuthController(APIController):
 
         return {"message": "If the email exists, a magic link has been sent."}
 
-    @APIController.post("/magic-link/verify", response=LoginResponse, permissions=[AllowAny])
-    async def verify_magic_link(self, request, data: MagicLinkVerifyRequest):
-        """
-        Verify magic link token and login.
-        """
+    @post("/magic-link/verify")
+    async def verify_magic_link(self, request, data: MagicLinkVerifyRequest) -> dict:
+        """Verify magic link token and login."""
         try:
             token = await MagicLinkToken.objects.select_related().aget(
                 token=data.token,
@@ -287,11 +259,9 @@ class AuthController(APIController):
     # Password Reset
     # =========================================================================
 
-    @APIController.post("/password/reset", permissions=[AllowAny])
-    async def request_password_reset(self, request, data: PasswordResetRequest):
-        """
-        Request password reset email.
-        """
+    @post("/password/reset")
+    async def request_password_reset(self, request, data: PasswordResetRequest) -> dict:
+        """Request password reset email."""
         # Always return success to prevent email enumeration
         with contextlib.suppress(User.DoesNotExist):
             await User.objects.aget(email=data.email.lower())
@@ -300,20 +270,16 @@ class AuthController(APIController):
 
         return {"message": "If the email exists, a password reset link has been sent."}
 
-    @APIController.post("/password/reset/confirm", permissions=[AllowAny])
-    async def confirm_password_reset(self, request, data: PasswordResetConfirmRequest):
-        """
-        Confirm password reset with token.
-        """
+    @post("/password/reset/confirm")
+    async def confirm_password_reset(self, request, data: PasswordResetConfirmRequest) -> dict:
+        """Confirm password reset with token."""
         # TODO: Implement token verification and password reset
         return {"message": "Password has been reset successfully."}
 
-    @APIController.post("/password/change", permissions=[IsAuthenticated])
+    @post("/password/change")
     @jwt_required
-    async def change_password(self, request, data: PasswordChangeRequest):
-        """
-        Change password for authenticated user.
-        """
+    async def change_password(self, request, data: PasswordChangeRequest) -> dict:
+        """Change password for authenticated user."""
         user = request.user
 
         if not user.check_password(data.current_password):
@@ -334,16 +300,14 @@ class AuthController(APIController):
     # OAuth
     # =========================================================================
 
-    @APIController.get("/oauth/{provider}/authorize", permissions=[AllowAny])
-    async def oauth_authorize(self, request, provider: str, params: OAuthAuthorizationRequest = None):
-        """
-        Get OAuth authorization URL for provider.
-
-        Supported providers: google, github
-        """
+    @get("/oauth/<str:provider>/authorize")
+    async def oauth_authorize(self, request, provider: str) -> dict:
+        """Get OAuth authorization URL for provider."""
         oauth_settings = settings.MATT_OAUTH.get(provider.upper())
         if not oauth_settings:
             return {"error": f"Unknown provider: {provider}"}, 400
+
+        state = request.GET.get("state", "")
 
         # Build authorization URL based on provider
         if provider == "google":
@@ -353,7 +317,7 @@ class AuthController(APIController):
                 f"&redirect_uri={oauth_settings['REDIRECT_URI']}"
                 f"&response_type=code"
                 f"&scope=email profile"
-                f"&state={params.state if params else ''}"
+                f"&state={state}"
             )
         elif provider == "github":
             auth_url = (
@@ -361,27 +325,23 @@ class AuthController(APIController):
                 f"?client_id={oauth_settings['CLIENT_ID']}"
                 f"&redirect_uri={oauth_settings['REDIRECT_URI']}"
                 f"&scope=user:email"
-                f"&state={params.state if params else ''}"
+                f"&state={state}"
             )
         else:
             return {"error": f"Provider not implemented: {provider}"}, 400
 
         return {"authorization_url": auth_url}
 
-    @APIController.post("/oauth/{provider}/callback", response=LoginResponse, permissions=[AllowAny])
-    async def oauth_callback(self, request, provider: str, data: OAuthCallbackRequest):
-        """
-        Handle OAuth callback and exchange code for tokens.
-        """
+    @post("/oauth/<str:provider>/callback")
+    async def oauth_callback(self, request, provider: str, data: OAuthCallbackRequest) -> dict:
+        """Handle OAuth callback and exchange code for tokens."""
         # TODO: Implement OAuth token exchange and user creation/login
         return {"error": "OAuth callback not implemented"}, 501
 
-    @APIController.get("/oauth/connections", permissions=[IsAuthenticated])
+    @get("/oauth/connections")
     @jwt_required
-    async def list_oauth_connections(self, request):
-        """
-        List OAuth connections for current user.
-        """
+    async def list_oauth_connections(self, request) -> dict:
+        """List OAuth connections for current user."""
         user = request.user
         connections = []
 
@@ -397,12 +357,10 @@ class AuthController(APIController):
 
         return {"connections": connections}
 
-    @APIController.delete("/oauth/{provider}", permissions=[IsAuthenticated])
+    @delete("/oauth/<str:provider>")
     @jwt_required
-    async def disconnect_oauth(self, request, provider: str):
-        """
-        Disconnect OAuth provider from current user.
-        """
+    async def disconnect_oauth(self, request, provider: str) -> dict:
+        """Disconnect OAuth provider from current user."""
         user = request.user
 
         if provider == "google":

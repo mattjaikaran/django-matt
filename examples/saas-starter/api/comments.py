@@ -8,13 +8,12 @@ Includes:
 """
 
 import re
-from uuid import UUID
 
 from django.db import models
 from django.utils import timezone
 from django_matt.auth import jwt_required
-from django_matt.core import APIController, api_controller
-from django_matt.permissions import IsAuthenticated
+from django_matt.core import APIController
+from django_matt.core.router import delete, get, patch, post
 
 from core.models import Membership, Organization, User
 from projects.models import Comment, Project, ProjectMember, Task, TaskActivity
@@ -27,11 +26,11 @@ from projects.schemas import (
 )
 
 
-@api_controller("/organizations/{org_slug}/projects/{project_slug}/tasks/{task_id}/comments", tags=["Comments"])
 class CommentController(APIController):
-    """Comment management endpoints."""
+    prefix = "/organizations/<str:org_slug>/projects/<str:project_slug>/tasks/<str:task_id>/comments"
+    tags = ["Comments"]
 
-    async def get_task_and_check_access(self, request, org_slug: str, project_slug: str, task_id: UUID, require_edit: bool = False):
+    async def get_task_and_check_access(self, request, org_slug: str, project_slug: str, task_id: str, require_edit: bool = False):
         """Helper to get task and check user access."""
         try:
             org = await Organization.objects.aget(slug=org_slug)
@@ -94,12 +93,10 @@ class CommentController(APIController):
     # Comment CRUD
     # =========================================================================
 
-    @APIController.get("/", response=list[CommentDetailResponse], permissions=[IsAuthenticated])
+    @get("/")
     @jwt_required
-    async def list_comments(self, request, org_slug: str, project_slug: str, task_id: UUID):
-        """
-        List all comments on a task.
-        """
+    async def list_comments(self, request, org_slug: str, project_slug: str, task_id: str) -> list:
+        """List all comments on a task."""
         org, project, task, membership, error = await self.get_task_and_check_access(
             request, org_slug, project_slug, task_id
         )
@@ -132,12 +129,10 @@ class CommentController(APIController):
 
         return result
 
-    @APIController.post("/", response=CommentDetailResponse, permissions=[IsAuthenticated])
+    @post("/")
     @jwt_required
-    async def create_comment(self, request, org_slug: str, project_slug: str, task_id: UUID, data: CommentCreate):
-        """
-        Add a comment to a task.
-        """
+    async def create_comment(self, request, org_slug: str, project_slug: str, task_id: str, data: CommentCreate) -> dict:
+        """Add a comment to a task."""
         org, project, task, membership, error = await self.get_task_and_check_access(
             request, org_slug, project_slug, task_id
         )
@@ -190,14 +185,10 @@ class CommentController(APIController):
 
         return CommentDetailResponse.model_validate(comment)
 
-    @APIController.patch("/{comment_id}", response=CommentDetailResponse, permissions=[IsAuthenticated])
+    @patch("/<str:comment_id>")
     @jwt_required
-    async def update_comment(self, request, org_slug: str, project_slug: str, task_id: UUID, comment_id: UUID, data: CommentUpdate):
-        """
-        Update a comment.
-
-        Only the comment author can edit.
-        """
+    async def update_comment(self, request, org_slug: str, project_slug: str, task_id: str, comment_id: str, data: CommentUpdate) -> dict:
+        """Update a comment. Only the comment author can edit."""
         org, project, task, membership, error = await self.get_task_and_check_access(
             request, org_slug, project_slug, task_id
         )
@@ -228,14 +219,10 @@ class CommentController(APIController):
         except Comment.DoesNotExist:
             return {"error": "Comment not found"}, 404
 
-    @APIController.delete("/{comment_id}", permissions=[IsAuthenticated])
+    @delete("/<str:comment_id>")
     @jwt_required
-    async def delete_comment(self, request, org_slug: str, project_slug: str, task_id: UUID, comment_id: UUID):
-        """
-        Delete a comment.
-
-        Only the comment author or admins can delete.
-        """
+    async def delete_comment(self, request, org_slug: str, project_slug: str, task_id: str, comment_id: str) -> dict:
+        """Delete a comment. Only the comment author or admins can delete."""
         org, project, task, membership, error = await self.get_task_and_check_access(
             request, org_slug, project_slug, task_id
         )
@@ -260,12 +247,10 @@ class CommentController(APIController):
     # Reactions
     # =========================================================================
 
-    @APIController.post("/{comment_id}/reactions", permissions=[IsAuthenticated])
+    @post("/<str:comment_id>/reactions")
     @jwt_required
-    async def add_reaction(self, request, org_slug: str, project_slug: str, task_id: UUID, comment_id: UUID, data: ReactionRequest):
-        """
-        Add a reaction to a comment.
-        """
+    async def add_reaction(self, request, org_slug: str, project_slug: str, task_id: str, comment_id: str, data: ReactionRequest) -> dict:
+        """Add a reaction to a comment."""
         org, project, task, membership, error = await self.get_task_and_check_access(
             request, org_slug, project_slug, task_id
         )
@@ -291,12 +276,10 @@ class CommentController(APIController):
         except Comment.DoesNotExist:
             return {"error": "Comment not found"}, 404
 
-    @APIController.delete("/{comment_id}/reactions/{reaction}", permissions=[IsAuthenticated])
+    @delete("/<str:comment_id>/reactions/<str:reaction>")
     @jwt_required
-    async def remove_reaction(self, request, org_slug: str, project_slug: str, task_id: UUID, comment_id: UUID, reaction: str):
-        """
-        Remove a reaction from a comment.
-        """
+    async def remove_reaction(self, request, org_slug: str, project_slug: str, task_id: str, comment_id: str, reaction: str) -> dict:
+        """Remove a reaction from a comment."""
         org, project, task, membership, error = await self.get_task_and_check_access(
             request, org_slug, project_slug, task_id
         )

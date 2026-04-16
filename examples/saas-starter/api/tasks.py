@@ -13,8 +13,8 @@ from uuid import UUID
 from django.db import models
 from django.utils import timezone
 from django_matt.auth import jwt_required
-from django_matt.core import APIController, api_controller
-from django_matt.permissions import IsAuthenticated
+from django_matt.core import APIController
+from django_matt.core.router import delete, get, patch, post
 
 from core.models import AuditLog, Membership, Organization, User
 from projects.models import Project, ProjectMember, Task, TaskActivity, TaskStatus
@@ -31,9 +31,9 @@ from projects.schemas import (
 )
 
 
-@api_controller("/organizations/{org_slug}/projects/{project_slug}/tasks", tags=["Tasks"])
 class TaskController(APIController):
-    """Task management endpoints."""
+    prefix = "/organizations/<str:org_slug>/projects/<str:project_slug>/tasks"
+    tags = ["Tasks"]
 
     async def get_project_and_check_access(self, request, org_slug: str, project_slug: str, require_edit: bool = False):
         """Helper to get project and check user access."""
@@ -74,7 +74,7 @@ class TaskController(APIController):
 
         return org, project, membership, None
 
-    async def broadcast_task_update(self, org_id: str, project_id: str, action: str, task_id: str, data: dict = None):
+    async def broadcast_task_update(self, org_id: str, project_id: str, action: str, task_id: str, data: dict | None = None) -> None:
         """Broadcast task update via WebSocket."""
         from channels.layers import get_channel_layer
 
@@ -94,28 +94,23 @@ class TaskController(APIController):
     # Task CRUD
     # =========================================================================
 
-    @APIController.get("/", response=TaskListResponse, permissions=[IsAuthenticated])
+    @get("/")
     @jwt_required
-    async def list_tasks(
-        self,
-        request,
-        org_slug: str,
-        project_slug: str,
-        status: str | None = None,
-        priority: str | None = None,
-        assignee_id: UUID | None = None,
-        search: str | None = None,
-        page: int = 1,
-        page_size: int = 50,
-    ):
-        """
-        List tasks in a project with filtering and pagination.
-        """
+    async def list_tasks(self, request, org_slug: str, project_slug: str) -> dict:
+        """List tasks in a project with filtering and pagination."""
         org, project, membership, error = await self.get_project_and_check_access(
             request, org_slug, project_slug
         )
         if error:
             return error
+
+        params = request.GET
+        status = params.get("status")
+        priority = params.get("priority")
+        assignee_id = params.get("assignee_id")
+        search = params.get("search")
+        page = int(params.get("page", "1"))
+        page_size = int(params.get("page_size", "50"))
 
         # Build queryset
         queryset = Task.objects.filter(
@@ -161,12 +156,10 @@ class TaskController(APIController):
             has_prev=page > 1,
         )
 
-    @APIController.post("/", response=TaskDetailResponse, permissions=[IsAuthenticated])
+    @post("/")
     @jwt_required
-    async def create_task(self, request, org_slug: str, project_slug: str, data: TaskCreate):
-        """
-        Create a new task.
-        """
+    async def create_task(self, request, org_slug: str, project_slug: str, data: TaskCreate) -> dict:
+        """Create a new task."""
         org, project, membership, error = await self.get_project_and_check_access(
             request, org_slug, project_slug, require_edit=True
         )
@@ -227,12 +220,10 @@ class TaskController(APIController):
 
         return TaskDetailResponse.model_validate(task)
 
-    @APIController.get("/{task_id}", response=TaskDetailResponse, permissions=[IsAuthenticated])
+    @get("/<str:task_id>")
     @jwt_required
-    async def get_task(self, request, org_slug: str, project_slug: str, task_id: UUID):
-        """
-        Get task details including subtasks.
-        """
+    async def get_task(self, request, org_slug: str, project_slug: str, task_id: str) -> dict:
+        """Get task details including subtasks."""
         org, project, membership, error = await self.get_project_and_check_access(
             request, org_slug, project_slug
         )
@@ -260,12 +251,10 @@ class TaskController(APIController):
         except Task.DoesNotExist:
             return {"error": "Task not found"}, 404
 
-    @APIController.patch("/{task_id}", response=TaskDetailResponse, permissions=[IsAuthenticated])
+    @patch("/<str:task_id>")
     @jwt_required
-    async def update_task(self, request, org_slug: str, project_slug: str, task_id: UUID, data: TaskUpdate):
-        """
-        Update task details.
-        """
+    async def update_task(self, request, org_slug: str, project_slug: str, task_id: str, data: TaskUpdate) -> dict:
+        """Update task details."""
         org, project, membership, error = await self.get_project_and_check_access(
             request, org_slug, project_slug, require_edit=True
         )
@@ -320,12 +309,10 @@ class TaskController(APIController):
         except Task.DoesNotExist:
             return {"error": "Task not found"}, 404
 
-    @APIController.delete("/{task_id}", permissions=[IsAuthenticated])
+    @delete("/<str:task_id>")
     @jwt_required
-    async def delete_task(self, request, org_slug: str, project_slug: str, task_id: UUID):
-        """
-        Delete task and its subtasks.
-        """
+    async def delete_task(self, request, org_slug: str, project_slug: str, task_id: str) -> dict:
+        """Delete task and its subtasks."""
         org, project, membership, error = await self.get_project_and_check_access(
             request, org_slug, project_slug, require_edit=True
         )
@@ -361,12 +348,10 @@ class TaskController(APIController):
     # Task Movement (Kanban)
     # =========================================================================
 
-    @APIController.post("/{task_id}/move", response=TaskResponse, permissions=[IsAuthenticated])
+    @post("/<str:task_id>/move")
     @jwt_required
-    async def move_task(self, request, org_slug: str, project_slug: str, task_id: UUID, data: TaskMove):
-        """
-        Move task to different status/position (for Kanban drag-and-drop).
-        """
+    async def move_task(self, request, org_slug: str, project_slug: str, task_id: str, data: TaskMove) -> dict:
+        """Move task to different status/position (for Kanban drag-and-drop)."""
         org, project, membership, error = await self.get_project_and_check_access(
             request, org_slug, project_slug, require_edit=True
         )
@@ -451,12 +436,10 @@ class TaskController(APIController):
     # Bulk Operations
     # =========================================================================
 
-    @APIController.post("/bulk", response=dict, permissions=[IsAuthenticated])
+    @post("/bulk")
     @jwt_required
-    async def bulk_update_tasks(self, request, org_slug: str, project_slug: str, data: TaskBulkUpdate):
-        """
-        Bulk update multiple tasks.
-        """
+    async def bulk_update_tasks(self, request, org_slug: str, project_slug: str, data: TaskBulkUpdate) -> dict:
+        """Bulk update multiple tasks."""
         org, project, membership, error = await self.get_project_and_check_access(
             request, org_slug, project_slug, require_edit=True
         )
@@ -499,12 +482,10 @@ class TaskController(APIController):
     # Task Activity
     # =========================================================================
 
-    @APIController.get("/{task_id}/activity", response=list[TaskActivityResponse], permissions=[IsAuthenticated])
+    @get("/<str:task_id>/activity")
     @jwt_required
-    async def get_task_activity(self, request, org_slug: str, project_slug: str, task_id: UUID):
-        """
-        Get activity log for a task.
-        """
+    async def get_task_activity(self, request, org_slug: str, project_slug: str, task_id: str) -> list:
+        """Get activity log for a task."""
         org, project, membership, error = await self.get_project_and_check_access(
             request, org_slug, project_slug
         )

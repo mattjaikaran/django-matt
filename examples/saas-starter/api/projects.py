@@ -7,14 +7,13 @@ Includes:
 - Kanban board view
 """
 
-from uuid import UUID
 
 from django.db import models
 from django_matt.auth import jwt_required
-from django_matt.core import APIController, api_controller
+from django_matt.core import APIController
+from django_matt.core.router import delete, get, patch, post
 from django_matt.events import Event, get_event_bus
 from django_matt.interceptors import LoggingInterceptor, TimingInterceptor, intercept
-from django_matt.permissions import IsAuthenticated
 
 from core.models import AuditLog, Membership, Organization, User
 from projects.models import Project, ProjectMember, TaskStatus
@@ -33,10 +32,10 @@ from projects.schemas import (
 )
 
 
-@api_controller("/organizations/{org_slug}/projects", tags=["Projects"])
 @intercept(TimingInterceptor(), LoggingInterceptor())
 class ProjectController(APIController):
-    """Project management endpoints."""
+    prefix = "/organizations/<str:org_slug>/projects"
+    tags = ["Projects"]
 
     async def get_org_and_check_access(self, request, org_slug: str):
         """Helper to get organization and check user access."""
@@ -56,7 +55,7 @@ class ProjectController(APIController):
 
         return org, membership, None
 
-    async def check_project_access(self, request, org, project, require_edit: bool = False):
+    async def check_project_access(self, request, org, project, require_edit: bool = False) -> bool:
         """Check if user has access to project."""
         # Check org membership
         membership = await Membership.objects.filter(
@@ -101,24 +100,17 @@ class ProjectController(APIController):
     # Project CRUD
     # =========================================================================
 
-    @APIController.get("/", response=list[ProjectResponse], permissions=[IsAuthenticated])
+    @get("/")
     @jwt_required
-    async def list_projects(
-        self,
-        request,
-        org_slug: str,
-        status: str | None = None,
-        team_id: UUID | None = None,
-        search: str | None = None,
-    ):
-        """
-        List projects in the organization.
-
-        Returns projects the user has access to (public or member of).
-        """
+    async def list_projects(self, request, org_slug: str) -> list:
+        """List projects in the organization."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
             return error
+
+        status = request.GET.get("status")
+        team_id = request.GET.get("team_id")
+        search = request.GET.get("search")
 
         # Base queryset
         queryset = Project.objects.filter(organization=org)
@@ -150,12 +142,10 @@ class ProjectController(APIController):
 
         return result
 
-    @APIController.post("/", response=ProjectDetailResponse, permissions=[IsAuthenticated])
+    @post("/")
     @jwt_required
-    async def create_project(self, request, org_slug: str, data: ProjectCreate):
-        """
-        Create a new project.
-        """
+    async def create_project(self, request, org_slug: str, data: ProjectCreate) -> dict:
+        """Create a new project."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
             return error
@@ -211,12 +201,10 @@ class ProjectController(APIController):
 
         return ProjectDetailResponse.model_validate(project)
 
-    @APIController.get("/{project_slug}", response=ProjectDetailResponse, permissions=[IsAuthenticated])
+    @get("/<str:project_slug>")
     @jwt_required
-    async def get_project(self, request, org_slug: str, project_slug: str):
-        """
-        Get project details.
-        """
+    async def get_project(self, request, org_slug: str, project_slug: str) -> dict:
+        """Get project details."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
             return error
@@ -235,14 +223,10 @@ class ProjectController(APIController):
         except Project.DoesNotExist:
             return {"error": "Project not found"}, 404
 
-    @APIController.patch("/{project_slug}", response=ProjectDetailResponse, permissions=[IsAuthenticated])
+    @patch("/<str:project_slug>")
     @jwt_required
-    async def update_project(self, request, org_slug: str, project_slug: str, data: ProjectUpdate):
-        """
-        Update project details.
-
-        Requires edit permission on the project.
-        """
+    async def update_project(self, request, org_slug: str, project_slug: str, data: ProjectUpdate) -> dict:
+        """Update project details. Requires edit permission on the project."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
             return error
@@ -286,14 +270,10 @@ class ProjectController(APIController):
         except Project.DoesNotExist:
             return {"error": "Project not found"}, 404
 
-    @APIController.delete("/{project_slug}", permissions=[IsAuthenticated])
+    @delete("/<str:project_slug>")
     @jwt_required
-    async def delete_project(self, request, org_slug: str, project_slug: str):
-        """
-        Delete (archive) project.
-
-        Requires owner permission on the project.
-        """
+    async def delete_project(self, request, org_slug: str, project_slug: str) -> dict:
+        """Delete (archive) project. Requires owner permission on the project."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
             return error
@@ -344,12 +324,10 @@ class ProjectController(APIController):
     # Project Members
     # =========================================================================
 
-    @APIController.get("/{project_slug}/members", response=list[ProjectMemberResponse], permissions=[IsAuthenticated])
+    @get("/<str:project_slug>/members")
     @jwt_required
-    async def list_project_members(self, request, org_slug: str, project_slug: str):
-        """
-        List project members.
-        """
+    async def list_project_members(self, request, org_slug: str, project_slug: str) -> list:
+        """List project members."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
             return error
@@ -371,14 +349,10 @@ class ProjectController(APIController):
         except Project.DoesNotExist:
             return {"error": "Project not found"}, 404
 
-    @APIController.post("/{project_slug}/members", response=ProjectMemberResponse, permissions=[IsAuthenticated])
+    @post("/<str:project_slug>/members")
     @jwt_required
-    async def add_project_member(self, request, org_slug: str, project_slug: str, data: ProjectMemberCreate):
-        """
-        Add member to project.
-
-        Requires edit permission on the project.
-        """
+    async def add_project_member(self, request, org_slug: str, project_slug: str, data: ProjectMemberCreate) -> dict:
+        """Add member to project. Requires edit permission on the project."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
             return error
@@ -417,12 +391,10 @@ class ProjectController(APIController):
         except User.DoesNotExist:
             return {"error": "User not found"}, 404
 
-    @APIController.patch("/{project_slug}/members/{member_id}", response=ProjectMemberResponse, permissions=[IsAuthenticated])
+    @patch("/<str:project_slug>/members/<str:member_id>")
     @jwt_required
-    async def update_project_member(self, request, org_slug: str, project_slug: str, member_id: UUID, data: ProjectMemberUpdate):
-        """
-        Update project member role.
-        """
+    async def update_project_member(self, request, org_slug: str, project_slug: str, member_id: str, data: ProjectMemberUpdate) -> dict:
+        """Update project member role."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
             return error
@@ -448,12 +420,10 @@ class ProjectController(APIController):
         except ProjectMember.DoesNotExist:
             return {"error": "Project member not found"}, 404
 
-    @APIController.delete("/{project_slug}/members/{member_id}", permissions=[IsAuthenticated])
+    @delete("/<str:project_slug>/members/<str:member_id>")
     @jwt_required
-    async def remove_project_member(self, request, org_slug: str, project_slug: str, member_id: UUID):
-        """
-        Remove member from project.
-        """
+    async def remove_project_member(self, request, org_slug: str, project_slug: str, member_id: str) -> dict:
+        """Remove member from project."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
             return error
@@ -482,12 +452,10 @@ class ProjectController(APIController):
     # Kanban Board
     # =========================================================================
 
-    @APIController.get("/{project_slug}/board", response=KanbanBoardResponse, permissions=[IsAuthenticated])
+    @get("/<str:project_slug>/board")
     @jwt_required
-    async def get_kanban_board(self, request, org_slug: str, project_slug: str):
-        """
-        Get Kanban board view with tasks grouped by status.
-        """
+    async def get_kanban_board(self, request, org_slug: str, project_slug: str) -> dict:
+        """Get Kanban board view with tasks grouped by status."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
             return error

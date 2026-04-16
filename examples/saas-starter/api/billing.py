@@ -10,13 +10,12 @@ Includes:
 - Webhook handling
 """
 
-from uuid import UUID
 
 import stripe
 from django.conf import settings
 from django_matt.auth import jwt_required
-from django_matt.core import APIController, api_controller
-from django_matt.permissions import AllowAny, IsAuthenticated
+from django_matt.core import APIController
+from django_matt.core.router import delete, get, patch, post
 
 from billing.models import Invoice, PaymentMethod, Subscription
 from billing.schemas import (
@@ -44,9 +43,9 @@ from core.models import AuditLog, Membership, Organization
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
-@api_controller("/organizations/{org_slug}/billing", tags=["Billing"])
 class BillingController(APIController):
-    """Billing and subscription management endpoints."""
+    prefix = "/organizations/<str:org_slug>/billing"
+    tags = ["Billing"]
 
     async def get_org_and_check_billing_access(self, request, org_slug: str):
         """Helper to get organization and check billing permission."""
@@ -73,12 +72,10 @@ class BillingController(APIController):
     # Plans
     # =========================================================================
 
-    @APIController.get("/plans", response=PlansListResponse, permissions=[IsAuthenticated])
+    @get("/plans")
     @jwt_required
-    async def list_plans(self, request, org_slug: str):
-        """
-        List available subscription plans.
-        """
+    async def list_plans(self, request, org_slug: str) -> dict:
+        """List available subscription plans."""
         plans = []
         for plan_id, plan_data in settings.BILLING_PRODUCTS.items():
             plans.append(PlanResponse(
@@ -97,12 +94,10 @@ class BillingController(APIController):
     # Subscription
     # =========================================================================
 
-    @APIController.get("/subscription", response=SubscriptionDetailResponse, permissions=[IsAuthenticated])
+    @get("/subscription")
     @jwt_required
-    async def get_subscription(self, request, org_slug: str):
-        """
-        Get current subscription details.
-        """
+    async def get_subscription(self, request, org_slug: str) -> dict:
+        """Get current subscription details."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
             return error
@@ -115,12 +110,10 @@ class BillingController(APIController):
         except Subscription.DoesNotExist:
             return {"error": "No active subscription"}, 404
 
-    @APIController.patch("/subscription", response=SubscriptionDetailResponse, permissions=[IsAuthenticated])
+    @patch("/subscription")
     @jwt_required
-    async def update_subscription(self, request, org_slug: str, data: SubscriptionUpdateRequest):
-        """
-        Update subscription (change plan).
-        """
+    async def update_subscription(self, request, org_slug: str, data: SubscriptionUpdateRequest) -> dict:
+        """Update subscription (change plan)."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
             return error
@@ -159,12 +152,10 @@ class BillingController(APIController):
         except stripe.error.StripeError as e:
             return {"error": str(e)}, 400
 
-    @APIController.post("/subscription/cancel", permissions=[IsAuthenticated])
+    @post("/subscription/cancel")
     @jwt_required
-    async def cancel_subscription(self, request, org_slug: str, data: SubscriptionCancelRequest):
-        """
-        Cancel subscription.
-        """
+    async def cancel_subscription(self, request, org_slug: str, data: SubscriptionCancelRequest) -> dict:
+        """Cancel subscription."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
             return error
@@ -198,12 +189,10 @@ class BillingController(APIController):
         except stripe.error.StripeError as e:
             return {"error": str(e)}, 400
 
-    @APIController.post("/subscription/reactivate", permissions=[IsAuthenticated])
+    @post("/subscription/reactivate")
     @jwt_required
-    async def reactivate_subscription(self, request, org_slug: str):
-        """
-        Reactivate a cancelled subscription (before period ends).
-        """
+    async def reactivate_subscription(self, request, org_slug: str) -> dict:
+        """Reactivate a cancelled subscription (before period ends)."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
             return error
@@ -236,12 +225,10 @@ class BillingController(APIController):
     # Checkout
     # =========================================================================
 
-    @APIController.post("/checkout", response=CheckoutSessionResponse, permissions=[IsAuthenticated])
+    @post("/checkout")
     @jwt_required
-    async def create_checkout_session(self, request, org_slug: str, data: CheckoutSessionRequest):
-        """
-        Create a Stripe Checkout session for new subscription.
-        """
+    async def create_checkout_session(self, request, org_slug: str, data: CheckoutSessionRequest) -> dict:
+        """Create a Stripe Checkout session for new subscription."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
             return error
@@ -301,12 +288,10 @@ class BillingController(APIController):
     # Billing Portal
     # =========================================================================
 
-    @APIController.post("/portal", response=BillingPortalResponse, permissions=[IsAuthenticated])
+    @post("/portal")
     @jwt_required
-    async def create_billing_portal_session(self, request, org_slug: str, data: BillingPortalRequest):
-        """
-        Create a Stripe Billing Portal session.
-        """
+    async def create_billing_portal_session(self, request, org_slug: str, data: BillingPortalRequest) -> dict:
+        """Create a Stripe Billing Portal session."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
             return error
@@ -329,15 +314,16 @@ class BillingController(APIController):
     # Invoices
     # =========================================================================
 
-    @APIController.get("/invoices", response=InvoiceListResponse, permissions=[IsAuthenticated])
+    @get("/invoices")
     @jwt_required
-    async def list_invoices(self, request, org_slug: str, page: int = 1, page_size: int = 20):
-        """
-        List invoices for the organization.
-        """
+    async def list_invoices(self, request, org_slug: str) -> dict:
+        """List invoices for the organization."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
             return error
+
+        page = int(request.GET.get("page", "1"))
+        page_size = int(request.GET.get("page_size", "20"))
 
         invoices = Invoice.objects.filter(organization=org)
         total = await invoices.acount()
@@ -356,12 +342,10 @@ class BillingController(APIController):
             page_size=page_size,
         )
 
-    @APIController.get("/invoices/{invoice_id}", response=InvoiceDetailResponse, permissions=[IsAuthenticated])
+    @get("/invoices/<str:invoice_id>")
     @jwt_required
-    async def get_invoice(self, request, org_slug: str, invoice_id: UUID):
-        """
-        Get invoice details.
-        """
+    async def get_invoice(self, request, org_slug: str, invoice_id: str) -> dict:
+        """Get invoice details."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
             return error
@@ -376,12 +360,10 @@ class BillingController(APIController):
     # Payment Methods
     # =========================================================================
 
-    @APIController.get("/payment-methods", response=list[PaymentMethodResponse], permissions=[IsAuthenticated])
+    @get("/payment-methods")
     @jwt_required
-    async def list_payment_methods(self, request, org_slug: str):
-        """
-        List payment methods for the organization.
-        """
+    async def list_payment_methods(self, request, org_slug: str) -> dict:
+        """List payment methods for the organization."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
             return error
@@ -394,12 +376,10 @@ class BillingController(APIController):
 
         return result
 
-    @APIController.post("/payment-methods", response=PaymentMethodResponse, permissions=[IsAuthenticated])
+    @post("/payment-methods")
     @jwt_required
-    async def add_payment_method(self, request, org_slug: str, data: PaymentMethodCreateRequest):
-        """
-        Add a new payment method.
-        """
+    async def add_payment_method(self, request, org_slug: str, data: PaymentMethodCreateRequest) -> dict:
+        """Add a new payment method."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
             return error
@@ -441,12 +421,10 @@ class BillingController(APIController):
         except stripe.error.StripeError as e:
             return {"error": str(e)}, 400
 
-    @APIController.post("/payment-methods/default", permissions=[IsAuthenticated])
+    @post("/payment-methods/default")
     @jwt_required
-    async def set_default_payment_method(self, request, org_slug: str, data: PaymentMethodSetDefaultRequest):
-        """
-        Set default payment method.
-        """
+    async def set_default_payment_method(self, request, org_slug: str, data: PaymentMethodSetDefaultRequest) -> dict:
+        """Set default payment method."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
             return error
@@ -475,12 +453,10 @@ class BillingController(APIController):
         except stripe.error.StripeError as e:
             return {"error": str(e)}, 400
 
-    @APIController.delete("/payment-methods/{method_id}", permissions=[IsAuthenticated])
+    @delete("/payment-methods/<str:method_id>")
     @jwt_required
-    async def delete_payment_method(self, request, org_slug: str, method_id: UUID):
-        """
-        Delete a payment method.
-        """
+    async def delete_payment_method(self, request, org_slug: str, method_id: str) -> dict:
+        """Delete a payment method."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
             return error
@@ -511,12 +487,10 @@ class BillingController(APIController):
     # Overview
     # =========================================================================
 
-    @APIController.get("/overview", response=BillingOverviewResponse, permissions=[IsAuthenticated])
+    @get("/overview")
     @jwt_required
-    async def get_billing_overview(self, request, org_slug: str):
-        """
-        Get complete billing overview for the organization.
-        """
+    async def get_billing_overview(self, request, org_slug: str) -> dict:
+        """Get complete billing overview for the organization."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
             return error
@@ -559,15 +533,14 @@ class BillingController(APIController):
 # Webhooks (separate controller for security)
 # =========================================================================
 
-@api_controller("/webhooks", tags=["Webhooks"])
-class WebhookController(APIController):
-    """Webhook handlers for external services."""
 
-    @APIController.post("/stripe", permissions=[AllowAny])
-    async def stripe_webhook(self, request):
-        """
-        Handle Stripe webhook events.
-        """
+class WebhookController(APIController):
+    prefix = "/webhooks"
+    tags = ["Webhooks"]
+
+    @post("/stripe")
+    async def stripe_webhook(self, request) -> dict:
+        """Handle Stripe webhook events."""
         payload = request.body
         sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
 
@@ -597,7 +570,7 @@ class WebhookController(APIController):
 
         return {"received": True}
 
-    async def _handle_checkout_completed(self, data):
+    async def _handle_checkout_completed(self, data: dict) -> None:
         """Handle successful checkout."""
         org_id = data.get("metadata", {}).get("organization_id")
         if not org_id:
@@ -628,7 +601,7 @@ class WebhookController(APIController):
         except Organization.DoesNotExist:
             pass
 
-    async def _handle_subscription_updated(self, data):
+    async def _handle_subscription_updated(self, data: dict) -> None:
         """Handle subscription updates."""
         try:
             sub = await Subscription.objects.aget(stripe_subscription_id=data["id"])
@@ -638,7 +611,7 @@ class WebhookController(APIController):
         except Subscription.DoesNotExist:
             pass
 
-    async def _handle_subscription_deleted(self, data):
+    async def _handle_subscription_deleted(self, data: dict) -> None:
         """Handle subscription cancellation."""
         try:
             sub = await Subscription.objects.select_related("organization").aget(
@@ -655,7 +628,7 @@ class WebhookController(APIController):
         except Subscription.DoesNotExist:
             pass
 
-    async def _handle_invoice_paid(self, data):
+    async def _handle_invoice_paid(self, data: dict) -> None:
         """Handle successful invoice payment."""
         try:
             org = await Organization.objects.aget(stripe_customer_id=data["customer"])
@@ -678,7 +651,7 @@ class WebhookController(APIController):
         except Organization.DoesNotExist:
             pass
 
-    async def _handle_payment_failed(self, data):
+    async def _handle_payment_failed(self, data: dict) -> None:
         """Handle failed payment."""
         try:
             org = await Organization.objects.aget(stripe_customer_id=data["customer"])
