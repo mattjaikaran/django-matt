@@ -1,0 +1,57 @@
+# GitHub repository settings manifest.
+#
+# GitHub does not currently expose a code-owned mechanism for topics,
+# description, or social preview images (Settings → General → About).
+# This file captures the intended values; apply them by running
+# `scripts/apply_repo_settings.sh` once you have gh-cli authenticated,
+# or copy/paste into the Settings UI.
+
+description: >
+  The fastest, most developer-friendly way to build Django APIs —
+  async-first, Pydantic-powered, with codegen, observability, and
+  Rust-accelerated hot paths.
+
+homepage: https://mattjaikaran.github.io/django-matt/
+
+# Topics rendered above the repo About box — GitHub caps at 20.
+topics:
+  - django
+  - python
+  - api-framework
+  - async
+  - pydantic
+  - openapi
+  - rest-api
+  - jwt
+  - multi-tenant
+  - developer-experience
+  - meta-framework
+  - async-first
+  - rust-python
+  - sdk-generator
+  - graphql
+  - websockets
+  - sse
+  - cqrs
+  - observability
+  - plugin-system
+
+# Social preview image — upload the PNG at .github/assets/social-preview.png
+# under Settings → General → Social preview. GitHub requires 1280×640 PNG/JPG.
+social_preview:
+  path: .github/assets/social-preview.png
+  dimensions: 1280x640
+
+# General repo toggles worth keeping consistent with launch prep.
+features:
+  issues: true
+  projects: false
+  wiki: false
+  discussions: true
+
+merge_settings:
+  allow_squash_merge: true
+  allow_merge_commit: false
+  allow_rebase_merge: true
+  allow_auto_merge: true
+  delete_branch_on_merge: true

@@ -38,7 +38,7 @@
 - [x] CONTRIBUTING.md — contribution guidelines, PR process, code style
 - [x] Issue templates (bug report, feature request)
 - [x] PR template
-- [ ] GitHub repo settings (topics, description, social preview)
+- [x] GitHub repo settings (topics, description, social preview) — declared in `.github/repo-settings.yml`; apply with `scripts/apply_repo_settings.sh` (requires `gh` + `yq`). Social preview image must still be uploaded manually to Settings → General → Social preview.
 
 ---
 
