@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "django-matt-resend"
+version = "0.1.0"
+description = "Resend email backend for django-matt — transactional email via Resend API"
+requires-python = ">=3.12"
+dependencies = [
+    "django-matt>=0.9.0",
+    "resend>=2.0.0",
+]
+authors = [{ name = "Matt Jaikaran" }]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-django>=4.8.0",
+    "pytest-asyncio>=0.23.0",
+    "ruff>=0.4.0",
+]
+
+[project.entry-points."matt.plugins"]
+django_matt_resend = "django_matt_resend.plugin:ResendPlugin"
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
