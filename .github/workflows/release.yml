@@ -225,3 +225,36 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  docs-versioned:
+    name: Deploy Versioned Docs
+    needs: [pypi-publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - run: uv python install 3.13
+      - run: uv sync --frozen
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # Derive the MAJOR.MINOR version from the tag (e.g. v0.9.3 -> 0.9) so the
+      # alias is stable across patch releases. mike's version switcher surfaces
+      # this in the dropdown; 'latest' always points at the newest MAJOR.MINOR.
+      - name: Deploy versioned docs with mike
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          MAJOR_MINOR="${VERSION%.*}"
+          uv run mike deploy --push --update-aliases "${MAJOR_MINOR}" latest
+          uv run mike set-default --push latest

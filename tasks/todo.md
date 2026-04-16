@@ -13,7 +13,7 @@
 - [x] MkDocs Material site builds successfully (`uv run mkdocs build`)
 - [x] Deploy docs site (GitHub Pages) — `.github/workflows/docs.yml`
 - [x] Fix broken links — 0 warnings in strict mode
-- [ ] Add version switcher for future releases
+- [x] Add version switcher for future releases — `mkdocs.yml` already declares `extra.version.provider: mike`; `.github/workflows/release.yml` now runs `mike deploy MAJOR.MINOR --update-aliases latest` on every tag push so each release adds a new entry to the mike-powered dropdown
 
 ### Example App Refresh
 - [x] Update example apps with new modules (interceptors, events, streaming)
