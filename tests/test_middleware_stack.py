@@ -5,6 +5,7 @@ import logging
 from django.http import HttpResponse, JsonResponse
 from django.test import RequestFactory, override_settings
 
+from django_matt.errors import ErrorEnhancementMiddleware
 from django_matt.middleware import (
     DEVELOPMENT_STACK,
     PRODUCTION_STACK,
@@ -484,6 +485,7 @@ class TestTiming:
 
 class TestStacks:
     def test_production_stack_has_all(self):
+        assert ErrorEnhancementMiddleware in PRODUCTION_STACK
         assert SecurityHeadersMiddleware in PRODUCTION_STACK
         assert RequestIDMiddleware in PRODUCTION_STACK
         assert CORSMiddleware in PRODUCTION_STACK
@@ -491,31 +493,34 @@ class TestStacks:
         assert TimingMiddleware in PRODUCTION_STACK
 
     def test_production_stack_length(self):
-        assert len(PRODUCTION_STACK) == 5
+        assert len(PRODUCTION_STACK) == 6
 
     def test_development_stack_no_security(self):
         assert SecurityHeadersMiddleware not in DEVELOPMENT_STACK
+        assert ErrorEnhancementMiddleware in DEVELOPMENT_STACK
         assert RequestIDMiddleware in DEVELOPMENT_STACK
         assert CORSMiddleware in DEVELOPMENT_STACK
         assert RequestLoggingMiddleware in DEVELOPMENT_STACK
         assert TimingMiddleware in DEVELOPMENT_STACK
 
     def test_development_stack_length(self):
-        assert len(DEVELOPMENT_STACK) == 4
+        assert len(DEVELOPMENT_STACK) == 5
 
     def test_production_stack_order(self):
-        # Security should be first, then RequestID, CORS, Logging, Timing
-        assert PRODUCTION_STACK[0] is SecurityHeadersMiddleware
-        assert PRODUCTION_STACK[1] is RequestIDMiddleware
-        assert PRODUCTION_STACK[2] is CORSMiddleware
-        assert PRODUCTION_STACK[3] is RequestLoggingMiddleware
-        assert PRODUCTION_STACK[4] is TimingMiddleware
+        # ErrorEnhancement must be first (outermost) so it catches everything.
+        assert PRODUCTION_STACK[0] is ErrorEnhancementMiddleware
+        assert PRODUCTION_STACK[1] is SecurityHeadersMiddleware
+        assert PRODUCTION_STACK[2] is RequestIDMiddleware
+        assert PRODUCTION_STACK[3] is CORSMiddleware
+        assert PRODUCTION_STACK[4] is RequestLoggingMiddleware
+        assert PRODUCTION_STACK[5] is TimingMiddleware
 
     def test_development_stack_order(self):
-        assert DEVELOPMENT_STACK[0] is RequestIDMiddleware
-        assert DEVELOPMENT_STACK[1] is CORSMiddleware
-        assert DEVELOPMENT_STACK[2] is RequestLoggingMiddleware
-        assert DEVELOPMENT_STACK[3] is TimingMiddleware
+        assert DEVELOPMENT_STACK[0] is ErrorEnhancementMiddleware
+        assert DEVELOPMENT_STACK[1] is RequestIDMiddleware
+        assert DEVELOPMENT_STACK[2] is CORSMiddleware
+        assert DEVELOPMENT_STACK[3] is RequestLoggingMiddleware
+        assert DEVELOPMENT_STACK[4] is TimingMiddleware
 
 
 # ---------------------------------------------------------------

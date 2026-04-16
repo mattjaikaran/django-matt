@@ -20,10 +20,13 @@ from django_matt.errors import (
     ErrorEnhancementMiddleware,
     StructuredError,
     SuggestionEngine,
+    build_error_response,
     format_for_api,
+    format_for_html,
     format_for_human,
     format_for_llm,
     format_for_log,
+    install_default_handlers,
 )
 
 # ---------------------------------------------------------------------------
@@ -460,3 +463,136 @@ class TestDevOverlay:
         print_dev_error(err)
         captured = capsys.readouterr()
         assert "PRINT_TEST" in captured.err
+
+
+# ---------------------------------------------------------------------------
+# HTML formatter + browser content negotiation + default handlers
+# ---------------------------------------------------------------------------
+
+
+class TestHtmlFormatter:
+    def test_format_for_html_production(self) -> None:
+        err = StructuredError(
+            code="DB_ERROR",
+            message="Connection refused",
+            status_code=500,
+            fix_suggestions=["Check DB is running"],
+            traceback_str="secret traceback",
+            related_settings=["DATABASES"],
+        )
+        out = format_for_html(err, include_debug=False)
+        assert "<!DOCTYPE html>" in out
+        assert "DB_ERROR" in out
+        assert "Connection refused" in out
+        assert "Check DB is running" in out
+        # production: no traceback, no related settings values
+        assert "secret traceback" not in out
+        assert "DATABASES" not in out
+
+    def test_format_for_html_debug(self) -> None:
+        err = StructuredError(
+            code="DB_ERROR",
+            message="Connection refused",
+            traceback_str="Traceback (most recent call last): ...",
+            related_settings=["DATABASES"],
+            context={"host": "localhost"},
+        )
+        out = format_for_html(err, include_debug=True)
+        assert "Traceback" in out
+        assert "DATABASES" in out
+        assert "host" in out
+
+    def test_format_for_html_escapes(self) -> None:
+        err = StructuredError(code="XSS", message="<script>alert(1)</script>")
+        out = format_for_html(err)
+        assert "<script>alert(1)</script>" not in out
+        assert "&lt;script&gt;" in out
+
+
+class TestBrowserContentNegotiation:
+    def test_browser_request_gets_html(self, settings: object) -> None:
+        settings.DEBUG = False  # type: ignore[attr-defined]
+        factory = RequestFactory()
+        request = factory.get("/dashboard", HTTP_ACCEPT="text/html")
+
+        def get_response(req: object) -> None:
+            raise RuntimeError("boom")
+
+        mw = ErrorEnhancementMiddleware(get_response)
+        response = mw(request)
+        assert response.status_code == 500
+        assert response["Content-Type"].startswith("text/html")
+        assert b"<!DOCTYPE html>" in response.content
+        # message is preserved even in production
+        assert b"boom" in response.content
+
+    def test_api_path_gets_json_even_without_accept(self, settings: object) -> None:
+        settings.DEBUG = False  # type: ignore[attr-defined]
+        factory = RequestFactory()
+        request = factory.get("/api/users")
+
+        def get_response(req: object) -> None:
+            raise RuntimeError("api boom")
+
+        mw = ErrorEnhancementMiddleware(get_response)
+        response = mw(request)
+        assert response["Content-Type"] == "application/json"
+        import orjson
+
+        body = orjson.loads(response.content)
+        assert body["detail"] == "api boom"
+
+    def test_production_still_shows_useful_detail(self, settings: object) -> None:
+        """Users never see bare 'Server Error (500)' — always code+message."""
+        settings.DEBUG = False  # type: ignore[attr-defined]
+        factory = RequestFactory()
+        request = factory.get("/api/things")
+
+        def get_response(req: object) -> None:
+            raise ValueError("something specific went wrong")
+
+        mw = ErrorEnhancementMiddleware(get_response)
+        response = mw(request)
+        import orjson
+
+        body = orjson.loads(response.content)
+        assert body["code"] is not None
+        assert body["detail"] == "something specific went wrong"
+        assert "hint" in body  # at least one suggestion always present
+
+
+class TestInstallDefaultHandlers:
+    def test_install_sets_all_four_handlers(self) -> None:
+        import types
+
+        mod = types.ModuleType("fake_urlconf")
+        install_default_handlers(mod)
+        assert callable(mod.handler400)
+        assert callable(mod.handler403)
+        assert callable(mod.handler404)
+        assert callable(mod.handler500)
+
+    def test_handler500_returns_structured_response(self, settings: object) -> None:
+        settings.DEBUG = False  # type: ignore[attr-defined]
+        import types
+
+        mod = types.ModuleType("fake_urlconf")
+        install_default_handlers(mod)
+
+        factory = RequestFactory()
+        request = factory.get("/api/x")
+        response = mod.handler500(request)
+        assert response.status_code == 500
+        import orjson
+
+        body = orjson.loads(response.content)
+        assert body["code"] is not None
+
+
+class TestBuildErrorResponse:
+    def test_build_error_response_without_request(self) -> None:
+        """Callable even when no request is available (e.g., Celery worker)."""
+        response = build_error_response(RuntimeError("worker error"))
+        assert response.status_code == 500
+        # defaults to JSON when no request context
+        assert response["Content-Type"] == "application/json"

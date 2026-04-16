@@ -62,6 +62,10 @@ _LAZY_IMPORTS = {
     "ErrorHandler": "django_matt.core.errors",
     "ErrorMiddleware": "django_matt.core.errors",
     "error_handler": "django_matt.core.errors",
+    "ErrorEnhancementMiddleware": "django_matt.errors",
+    "StructuredError": "django_matt.errors",
+    "install_default_handlers": "django_matt.errors",
+    "build_error_response": "django_matt.errors",
     # Hot reload
     "HotReloadMiddleware": "django_matt.utils.hot_reload",
     "start_hot_reloading": "django_matt.utils.hot_reload",
@@ -325,6 +329,10 @@ __all__ = [
     "ErrorHandler",
     "ErrorMiddleware",
     "error_handler",
+    "ErrorEnhancementMiddleware",
+    "StructuredError",
+    "install_default_handlers",
+    "build_error_response",
     # Hot reloading
     "HotReloadMiddleware",
     "start_hot_reloading",

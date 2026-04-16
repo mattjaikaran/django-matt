@@ -1,7 +1,8 @@
-"""Output formatters for StructuredError — LLM, human, API, and log formats."""
+"""Output formatters for StructuredError — LLM, human, API, HTML, and log formats."""
 
 from __future__ import annotations
 
+import html
 import logging
 from typing import Any
 
@@ -145,6 +146,116 @@ def format_for_api(error: StructuredError, *, include_debug: bool = False) -> di
 
     result["extra"] = None
     return result
+
+
+def format_for_html(error: StructuredError, *, include_debug: bool = False) -> str:
+    """Format a structured error as a standalone HTML page.
+
+    Designed so browsers rendering an error response still show useful,
+    actionable information — replacing Django's default bare
+    ``Server Error (500)`` page with the same structured detail that
+    API clients receive as JSON.
+
+    In production (``include_debug=False``): shows code, status, message,
+    hint, exception type, and docs link. Omits traceback, related
+    settings values, and internal context.
+
+    In debug: adds traceback, related settings, context, and search terms.
+    """
+    esc = html.escape
+    status = error.status_code
+    severity_color = "#c0392b" if status >= 500 else "#d68910"
+
+    parts: list[str] = []
+    parts.append("<!DOCTYPE html>")
+    parts.append('<html lang="en"><head>')
+    parts.append('<meta charset="utf-8">')
+    parts.append(f"<title>{status} {esc(error.code)}</title>")
+    parts.append(
+        "<style>"
+        "body{margin:0;padding:2rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;"
+        "background:#f6f7f9;color:#1b1f23;line-height:1.5}"
+        ".wrap{max-width:960px;margin:0 auto;background:#fff;border:1px solid #e1e4e8;"
+        "border-radius:8px;overflow:hidden}"
+        f".hdr{{background:{severity_color};color:#fff;padding:1.25rem 1.5rem}}"
+        ".hdr .status{font-size:.85rem;opacity:.85;letter-spacing:.05em;text-transform:uppercase}"
+        ".hdr .code{font-size:1.4rem;font-weight:600;margin-top:.25rem}"
+        ".body{padding:1.5rem}"
+        ".msg{font-size:1.05rem;margin:0 0 1rem;color:#24292e}"
+        ".detail{color:#586069;margin:0 0 1.25rem}"
+        "section{margin-top:1.25rem}"
+        "section h3{margin:0 0 .5rem;font-size:.8rem;text-transform:uppercase;"
+        "letter-spacing:.06em;color:#6a737d}"
+        "ul{margin:0;padding-left:1.25rem}"
+        "li{margin:.25rem 0}"
+        "pre{background:#0d1117;color:#e6edf3;padding:1rem;border-radius:6px;"
+        "overflow-x:auto;font-size:.82rem;margin:0}"
+        ".kv{display:grid;grid-template-columns:max-content 1fr;gap:.25rem 1rem;font-size:.9rem}"
+        ".kv dt{color:#6a737d}"
+        ".kv dd{margin:0;color:#24292e}"
+        "a{color:#0366d6;text-decoration:none}"
+        "a:hover{text-decoration:underline}"
+        "</style>"
+    )
+    parts.append("</head><body><div class=\"wrap\">")
+
+    parts.append('<div class="hdr">')
+    parts.append(f'<div class="status">{status} error</div>')
+    parts.append(f'<div class="code">{esc(error.code)}</div>')
+    parts.append("</div>")
+
+    parts.append('<div class="body">')
+    parts.append(f'<p class="msg">{esc(error.message)}</p>')
+    if error.detail:
+        parts.append(f'<p class="detail">{esc(error.detail)}</p>')
+
+    # Metadata grid: exception type, docs, timestamp
+    meta_rows: list[tuple[str, str]] = []
+    if error.exception_type:
+        meta_rows.append(("Exception", error.exception_type))
+    if error.docs_url:
+        safe_url = esc(error.docs_url)
+        meta_rows.append(("Docs", f'<a href="{safe_url}">{safe_url}</a>'))
+    meta_rows.append(("Timestamp", error.timestamp))
+    if meta_rows:
+        parts.append('<dl class="kv">')
+        for k, v in meta_rows:
+            parts.append(f"<dt>{esc(k)}</dt><dd>{v}</dd>")
+        parts.append("</dl>")
+
+    if error.fix_suggestions:
+        parts.append("<section><h3>Suggestions</h3><ul>")
+        for s in error.fix_suggestions:
+            parts.append(f"<li>{esc(s)}</li>")
+        parts.append("</ul></section>")
+
+    if include_debug:
+        if error.context:
+            parts.append("<section><h3>Context</h3><pre>")
+            parts.append(
+                esc(orjson.dumps(error.context, option=orjson.OPT_INDENT_2).decode())
+            )
+            parts.append("</pre></section>")
+
+        if error.related_settings:
+            parts.append("<section><h3>Related settings</h3><ul>")
+            for s in error.related_settings:
+                parts.append(f"<li><code>{esc(s)}</code></li>")
+            parts.append("</ul></section>")
+
+        if error.search_terms:
+            parts.append("<section><h3>Search terms</h3><ul>")
+            for t in error.search_terms:
+                parts.append(f"<li>{esc(t)}</li>")
+            parts.append("</ul></section>")
+
+        if error.traceback_str:
+            parts.append("<section><h3>Traceback</h3><pre>")
+            parts.append(esc(error.traceback_str.rstrip()))
+            parts.append("</pre></section>")
+
+    parts.append("</div></div></body></html>")
+    return "".join(parts)
 
 
 def format_for_log(error: StructuredError) -> dict[str, Any]:

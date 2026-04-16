@@ -626,11 +626,17 @@ class TestDjangoMattMiddlewareSlimMode:
         mw = DjangoMattMiddleware(dummy_response)
         assert mw._inner_chain is not None
 
-    def test_middleware_chain_none_when_no_active_modules(self, settings):
+    def test_middleware_chain_keeps_error_middleware_when_no_active_modules(self, settings):
+        """ErrorEnhancementMiddleware is always-on — even in minimal slim mode.
+
+        Error visibility is a core framework guarantee: users should never see
+        Django's bare ``Server Error (500)`` page because of slim-mode filtering.
+        """
+        from django_matt.errors.middleware import ErrorEnhancementMiddleware
         from django_matt.middleware.chaining import DjangoMattMiddleware
 
         reg = ModuleRegistry(mode="minimal")
-        # deactivate auth so no middleware modules are active
+        # deactivate auth so all slim-filterable middleware modules are inactive
         reg.deactivate("auth")
 
         settings.DJANGO_MATT = {
@@ -643,7 +649,9 @@ class TestDjangoMattMiddlewareSlimMode:
             return HttpResponse("ok")
 
         mw = DjangoMattMiddleware(dummy_response)
-        assert mw._inner_chain is None
+        # The chain is non-None because ErrorEnhancementMiddleware always survives.
+        assert mw._inner_chain is not None
+        assert isinstance(mw._inner_chain, ErrorEnhancementMiddleware)
 
     def test_middleware_chain_no_registry_loads_all(self, settings):
         from django_matt.middleware.chaining import DjangoMattMiddleware

@@ -5,6 +5,7 @@ Provides security headers, CORS, request IDs, structured logging, and timing.
 Configure via settings.DJANGO_MATT["MIDDLEWARE_STACK"] or use the preset stacks.
 """
 
+from django_matt.errors.middleware import ErrorEnhancementMiddleware
 from django_matt.middleware.builtins import (
     ScopedAuthMiddleware,
     ScopedCacheMiddleware,
@@ -28,7 +29,11 @@ from django_matt.middleware.scoped import (
 from django_matt.middleware.security import SecurityHeadersMiddleware
 from django_matt.middleware.timing import TimingMiddleware
 
+# ErrorEnhancementMiddleware is first (outermost) so it catches exceptions
+# raised by every downstream middleware and view. Without it, Django falls
+# back to the bare "Server Error (500)" template with no detail.
 PRODUCTION_STACK = [
+    ErrorEnhancementMiddleware,
     SecurityHeadersMiddleware,
     RequestIDMiddleware,
     CORSMiddleware,
@@ -37,6 +42,7 @@ PRODUCTION_STACK = [
 ]
 
 DEVELOPMENT_STACK = [
+    ErrorEnhancementMiddleware,
     RequestIDMiddleware,
     CORSMiddleware,
     RequestLoggingMiddleware,
@@ -47,6 +53,7 @@ __all__ = [
     "DjangoMattMiddleware",
     "APIExceptionMiddleware",
     "JSONResponseMiddleware",
+    "ErrorEnhancementMiddleware",
     "SecurityHeadersMiddleware",
     "RequestIDMiddleware",
     "CORSMiddleware",
