@@ -7,7 +7,8 @@ from typing import Any
 
 from django_matt.slim import is_module_enabled
 
-# Heavy modules that benefit from deferred loading
+# Heavy modules that benefit from deferred loading.
+# These are never imported at startup — only when explicitly used.
 HEAVY_MODULES: frozenset[str] = frozenset({
     "billing",
     "ai",
@@ -21,6 +22,22 @@ HEAVY_MODULES: frozenset[str] = frozenset({
     "messaging",
     "files",
     "tasks",
+    # Frontend integration modules — only needed if you use them
+    "vite",
+    "inertia",
+    "unpoly",
+    "components",
+    "htmx",
+    "livewire",
+    "pages",
+    "tailwind",
+    "forms",
+    # Dev-only modules
+    "review",
+    "codemods",
+    "sdkgen",
+    "typegen",
+    "codegen",
 })
 
 # Light modules always loaded eagerly
