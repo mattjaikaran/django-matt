@@ -1,0 +1,41 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "django-matt reference API",
+    "version": "0.9.0",
+    "description": "Minimal seed schema — replace with the real OpenAPI output from your application before the release workflow runs. See sdk-reference/README.md."
+  },
+  "servers": [
+    {"url": "https://api.example.com", "description": "Production"}
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health_check",
+        "summary": "Liveness probe",
+        "tags": ["Health"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/HealthResponse"}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {"type": "string"}
+        },
+        "required": ["status"]
+      }
+    }
+  }
+}

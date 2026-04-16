@@ -258,3 +258,131 @@ jobs:
           MAJOR_MINOR="${VERSION%.*}"
           uv run mike deploy --push --update-aliases "${MAJOR_MINOR}" latest
           uv run mike set-default --push latest
+
+  # ---------------------------------------------------------------------------
+  # Generated SDK publishing — TypeScript (npm), Python (PyPI), Swift (tarball)
+  #
+  # Runs after the main django-matt PyPI publish so every tag yields matching
+  # client SDKs. Each SDK is built from the reference OpenAPI schema committed
+  # at sdk-reference/openapi.json; update that file when the public API changes.
+  # ---------------------------------------------------------------------------
+
+  generate-sdks:
+    name: Generate SDK Packages
+    needs: [pypi-publish]
+    runs-on: ubuntu-latest
+    outputs:
+      sdk-version: ${{ steps.derive.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - run: uv python install 3.13
+      - run: uv sync --frozen
+
+      - name: Derive SDK version from tag
+        id: derive
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate TypeScript / Python / Swift SDKs
+        run: |
+          test -f sdk-reference/openapi.json || {
+            echo "::error::sdk-reference/openapi.json missing — commit a reference schema to enable SDK publishing"; exit 1; }
+          uv run python scripts/generate_sdks.py \
+            --schema sdk-reference/openapi.json \
+            --package django-matt-client \
+            --version "${{ steps.derive.outputs.version }}" \
+            --base-url https://api.example.com \
+            --output dist/sdks
+
+      - name: Upload SDK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-sdks
+          path: dist/sdks/**
+
+  publish-ts-sdk:
+    name: Publish TypeScript SDK to npm
+    needs: [generate-sdks]
+    runs-on: ubuntu-latest
+    environment:
+      name: npm
+    steps:
+      - name: Download SDK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-sdks
+          path: dist/sdks
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Publish to npm
+        working-directory: dist/sdks/typescript
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm install --no-audit --no-fund
+          npm run build --if-present
+          npm publish --access public
+
+  publish-py-sdk:
+    name: Publish Python SDK to PyPI
+    needs: [generate-sdks]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi-sdk
+      url: https://pypi.org/p/django-matt-client
+    permissions:
+      id-token: write
+    steps:
+      - name: Download SDK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-sdks
+          path: dist/sdks
+
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - run: uv python install 3.13
+
+      - name: Build Python SDK distribution
+        working-directory: dist/sdks/python
+        run: uv build --out-dir built-dist
+
+      - name: Publish Python SDK to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/sdks/python/built-dist
+
+  publish-swift-sdk:
+    name: Attach Swift SDK to GitHub Release
+    needs: [generate-sdks, github-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download SDK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-sdks
+          path: dist/sdks
+
+      # Swift doesn't have a central registry like npm/PyPI; SwiftPM consumes
+      # packages by git URL + tag. We ship a tarball as a release asset and
+      # document the git-URL install in the SDK's README.
+      - name: Tar up Swift SDK
+        working-directory: dist/sdks
+        run: tar -czf swift-sdk-${{ needs.generate-sdks.outputs.sdk-version }}.tar.gz swift
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/sdks/swift-sdk-${{ needs.generate-sdks.outputs.sdk-version }}.tar.gz

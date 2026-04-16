@@ -754,6 +754,9 @@ postgres = [
 robyn = [
     { name = "robyn" },
 ]
+rust = [
+    { name = "django-matt-rust", marker = "platform_machine in 'x86_64 aarch64 arm64 AMD64'" },
+]
 server = [
     { name = "gunicorn" },
     { name = "uvicorn", extra = ["standard"] },
@@ -813,6 +816,7 @@ requires-dist = [
     { name = "django", specifier = ">=5.2.0" },
     { name = "django-matt", extras = ["auth", "oauth", "passkeys", "performance", "typegen", "testing", "files", "tasks", "billing", "email", "server", "granian", "postgres", "docs"], marker = "extra == 'all'" },
     { name = "django-matt", extras = ["auth", "performance", "typegen", "files", "postgres"], marker = "extra == 'full'" },
+    { name = "django-matt-rust", marker = "platform_machine in 'x86_64 aarch64 arm64 AMD64' and extra == 'rust'", directory = "rust" },
     { name = "django-ninja", marker = "extra == 'benchmark'", specifier = ">=1.3.0" },
     { name = "django-q2", marker = "extra == 'tasks'", specifier = ">=1.6.0" },
     { name = "django-stubs", marker = "extra == 'dev'", specifier = ">=5.0.0" },
@@ -863,7 +867,7 @@ requires-dist = [
     { name = "watchdog", specifier = ">=6.0.0" },
     { name = "webauthn", marker = "extra == 'passkeys'", specifier = ">=2.1.0" },
 ]
-provides-extras = ["dev", "docs", "performance", "benchmark", "auth", "jwt-asymmetric", "oauth", "centrifugo", "passkeys", "typegen", "files", "tasks", "email", "billing", "postgres", "server", "granian", "robyn", "testing", "full", "all"]
+provides-extras = ["dev", "docs", "performance", "benchmark", "auth", "jwt-asymmetric", "oauth", "centrifugo", "passkeys", "typegen", "files", "tasks", "email", "billing", "postgres", "server", "granian", "robyn", "testing", "rust", "full", "all"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -897,6 +901,11 @@ examples = [
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
 ]
+
+[[package]]
+name = "django-matt-rust"
+version = "0.1.0"
+source = { directory = "rust" }
 
 [[package]]
 name = "django-mptt"

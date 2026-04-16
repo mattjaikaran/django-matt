@@ -152,7 +152,7 @@ The typegen and RPC modules generate code — ship pre-built SDK packages too.
 - [x] Swift SDK generator — `sdkgen/swift.py`
 - [x] Python SDK generator — `sdkgen/python_sdk.py`
 - [ ] SDK versioning tied to API schema hash (auto-bump on breaking changes)
-- [ ] SDK generation as part of CI — publish on tag
+- [x] SDK generation as part of CI — publish on tag — `scripts/generate_sdks.py` produces TS/Python/Swift packages from `sdk-reference/openapi.json`; release.yml runs generate→npm publish / PyPI publish / GitHub release asset attach on every `vX.Y.Z` tag
 
 ### Plugin Ecosystem
 Module system exists — build the ecosystem around it.
