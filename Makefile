@@ -37,7 +37,7 @@
         release version startapp startproject startapi \
         run db gen quality setup \
         rust-dev rust-build rust-test rust-bench rust-clean \
-        bench-compare \
+        bench-compare bench-servers \
         release-patch release-minor release-major changelog
 
 # Colors for terminal output
@@ -742,6 +742,10 @@ benchmark-compare: ## Compare with other frameworks
 bench-compare: ## Framework comparison benchmarks (route, schema, request lifecycle)
 	@echo "$(CYAN)Running framework comparison benchmarks...$(RESET)"
 	@uv run python benchmarks/framework_comparison.py $(ARGS)
+
+bench-servers: ## Compare server backends (uvicorn/gunicorn/granian) — req/s, p50/p95/p99
+	@echo "$(CYAN)Running server backend benchmarks...$(RESET)"
+	@uv run python benchmarks/bench_servers.py $(ARGS)
 
 benchmark-save: ## Run benchmarks and save results
 	@echo "$(CYAN)Running benchmarks and saving...$(RESET)"

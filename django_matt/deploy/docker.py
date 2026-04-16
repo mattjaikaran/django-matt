@@ -68,8 +68,9 @@ class DockerfileGenerator:
         """Generate production Dockerfile."""
         base_image = self.config.base_image.format(version=self.config.python_version)
         server_cmd = self._get_server_command()
+        server_install = self._get_server_install_line()
 
-        dockerfile = f"""# Production Dockerfile
+        dockerfile = f"""# Production Dockerfile ({self.config.server_backend.value} backend)
 FROM {base_image}
 
 # Set environment variables
@@ -82,12 +83,15 @@ WORKDIR {self.config.working_dir}
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \\
-    {" ".join(self.config.system_packages)} \\
+    {" ".join(self._all_system_packages())} \\
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY {self.config.requirements_file} .
 RUN uv pip install --no-cache-dir -r {self.config.requirements_file}
+
+# Install ASGI/WSGI server backend ({self.config.server_backend.value})
+{server_install}
 
 # Copy project
 COPY . .
@@ -118,8 +122,9 @@ CMD {server_cmd}
         """Generate multi-stage Dockerfile for smaller images."""
         base_image = self.config.base_image.format(version=self.config.python_version)
         server_cmd = self._get_server_command()
+        server_install = self._get_server_install_line()
 
-        dockerfile = f"""# Multi-stage production Dockerfile
+        dockerfile = f"""# Multi-stage production Dockerfile ({self.config.server_backend.value} backend)
 # Stage 1: Build
 FROM {base_image} AS builder
 
@@ -137,6 +142,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Install Python dependencies
 COPY {self.config.requirements_file} .
 RUN uv pip install --no-cache-dir -r {self.config.requirements_file}
+
+# Install ASGI/WSGI server backend ({self.config.server_backend.value})
+{server_install}
 
 # Copy project and collect static files
 COPY . .
@@ -220,6 +228,29 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:{self.config.port}"]
             workers=self.config.workers,
         )
         return f'["sh", "-c", "python manage.py migrate --noinput && {serve_cmd}"]'
+
+    def _get_server_install_line(self) -> str:
+        """Return the RUN line that installs the chosen server backend.
+
+        gunicorn pairs with uvicorn workers; granian/robyn ship Rust binaries
+        as wheels (no extra apt packages needed).
+        """
+        backend = self.config.server_backend
+        package = backend.get_install_package()
+        if backend == ServerBackend.GUNICORN:
+            return (
+                f"RUN uv pip install --no-cache-dir {package} 'uvicorn[standard]'"
+            )
+        return f"RUN uv pip install --no-cache-dir {package}"
+
+    def _all_system_packages(self) -> list[str]:
+        """Return system packages required by the OS plus per-backend extras.
+
+        Robyn/Granian wheels are self-contained (Rust musl-built); no extra
+        apt packages required today. Method exists so future backends can
+        inject their own apt deps without touching the Dockerfile body.
+        """
+        return list(self.config.system_packages)
 
     def write(self, path: Path, mode: str = "production"):
         """Write Dockerfile to path."""

@@ -426,6 +426,12 @@ ignore = [
 "scripts/**/*.py" = [
     "T201",    # print OK in scripts
 ]
+"benchmarks/**/*.py" = [
+    "T201",    # print OK in benchmark scripts
+    "ASYNC220",# spawning subprocess from async benchmark is intentional
+    "S603",    # subprocess call with controlled args (server backends)
+    "S607",    # partial executable paths for backend CLIs
+]
 "django_matt/ai/context/watcher.py" = [
     "T201",    # print OK in file watcher (user feedback)
 ]

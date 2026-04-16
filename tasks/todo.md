@@ -128,8 +128,8 @@ Replace gunicorn+uvicorn with Rust-native ASGI servers for lower latency and sim
 - [x] Granian integration — `granian_backend.py`
 - [x] Auto-detect best server — registry picks installed backend
 - [x] `matt serve` CLI command — `matt_serve.py`
-- [ ] Dockerfile templates per server backend (robyn, granian, gunicorn)
-- [ ] Benchmark suite — compare request/s, p99 latency, memory across all three backends
+- [x] Dockerfile templates per server backend (robyn, granian, gunicorn) — `DockerfileGenerator` installs the chosen backend wheel and renders backend-specific CMD; `--server` flag wired into `deploy docker` and `deploy config --platform docker`
+- [x] Benchmark suite — compare request/s, p50/p95/p99 latency across uvicorn/gunicorn/granian (`benchmarks/bench_servers.py` + `make bench-servers`); robyn skipped (own framework, not generic ASGI host); memory profiling deferred to next item
 - [ ] Docs: server backend selection guide with tradeoffs
 
 **Why:** Gunicorn is a process manager written in Python wrapping uvicorn workers. Robyn and Granian are Rust-native servers that handle HTTP parsing, connection management, and worker orchestration in compiled code. This removes an entire Python layer from the hot path. Combined with django-matt's existing Rust extensions (router dispatch, JWT, serialization), the full request pipeline from TCP accept to response write can be predominantly Rust.

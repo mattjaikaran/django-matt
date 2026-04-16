@@ -355,6 +355,67 @@ class TestDockerfileGenerator(TestCase):
         self.assertIn("uvicorn", dockerfile)
         self.assertIn("myapp.asgi:application", dockerfile)
 
+    def test_backend_install_granian(self):
+        """Granian Dockerfile installs the granian wheel and CMDs into granian."""
+        from django_matt.deploy.base import ServerBackend
+
+        config = DockerfileConfig(server_backend=ServerBackend.GRANIAN)
+        dockerfile = DockerfileGenerator(config).generate("production")
+
+        self.assertIn("uv pip install --no-cache-dir granian", dockerfile)
+        self.assertIn("granian --interface asgi", dockerfile)
+        self.assertIn("(granian backend)", dockerfile)
+        self.assertIn(f"EXPOSE {config.port}", dockerfile)
+        self.assertIn("HEALTHCHECK", dockerfile)
+
+    def test_backend_install_robyn(self):
+        """Robyn Dockerfile installs robyn and CMDs into the robyn entrypoint."""
+        from django_matt.deploy.base import ServerBackend
+
+        config = DockerfileConfig(server_backend=ServerBackend.ROBYN)
+        dockerfile = DockerfileGenerator(config).generate("production")
+
+        self.assertIn("uv pip install --no-cache-dir robyn", dockerfile)
+        self.assertIn("python -m robyn", dockerfile)
+        self.assertIn("(robyn backend)", dockerfile)
+
+    def test_backend_install_gunicorn_pairs_uvicorn(self):
+        """Gunicorn install line pulls uvicorn[standard] for the worker class."""
+        from django_matt.deploy.base import ServerBackend
+
+        config = DockerfileConfig(server_backend=ServerBackend.GUNICORN)
+        dockerfile = DockerfileGenerator(config).generate("production")
+
+        self.assertIn(
+            "uv pip install --no-cache-dir gunicorn 'uvicorn[standard]'", dockerfile
+        )
+        self.assertIn("--worker-class uvicorn.workers.UvicornWorker", dockerfile)
+
+    def test_backend_install_uvicorn_extras(self):
+        """Uvicorn install line uses the [standard] extra for httptools/uvloop."""
+        from django_matt.deploy.base import ServerBackend
+
+        config = DockerfileConfig(server_backend=ServerBackend.UVICORN)
+        dockerfile = DockerfileGenerator(config).generate("production")
+
+        self.assertIn("uv pip install --no-cache-dir uvicorn[standard]", dockerfile)
+        self.assertIn("uvicorn ", dockerfile)
+
+    def test_multistage_includes_backend_install(self):
+        """Multi-stage Dockerfile installs the backend in the builder stage."""
+        from django_matt.deploy.base import ServerBackend
+
+        for backend in (ServerBackend.GRANIAN, ServerBackend.ROBYN, ServerBackend.UVICORN):
+            with self.subTest(backend=backend):
+                dockerfile = DockerfileGenerator(
+                    DockerfileConfig(server_backend=backend)
+                ).generate("multistage")
+
+                self.assertIn(backend.get_install_package(), dockerfile)
+                self.assertIn("AS builder", dockerfile)
+                self.assertIn("AS runtime", dockerfile)
+                self.assertIn(f"({backend.value} backend)", dockerfile)
+
 
 class TestComposeGenerator(TestCase):
     """Tests for ComposeGenerator class."""

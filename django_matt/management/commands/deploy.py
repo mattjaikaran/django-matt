@@ -69,6 +69,12 @@ class Command(BaseCommand):
         )
         config_parser.add_argument("--output", "-o", help="Output directory")
         config_parser.add_argument("--app-name", help="Application name")
+        config_parser.add_argument(
+            "--server",
+            choices=["uvicorn", "gunicorn", "granian", "robyn"],
+            default="granian",
+            help="ASGI/WSGI server backend (docker platform only, default: granian)",
+        )
 
         # Docker subcommand
         docker_parser = subparsers.add_parser("docker", help="Generate Docker configuration")
@@ -91,6 +97,12 @@ class Command(BaseCommand):
             "--proxy", choices=["caddy", "nginx", "none"], default="caddy", help="Reverse proxy"
         )
         docker_parser.add_argument("--domain", help="Domain for SSL")
+        docker_parser.add_argument(
+            "--server",
+            choices=["uvicorn", "gunicorn", "granian", "robyn"],
+            default="granian",
+            help="ASGI/WSGI server backend (default: granian)",
+        )
 
         # Env subcommand
         env_parser = subparsers.add_parser("env", help="Manage deployment environments")
@@ -306,7 +318,13 @@ class Command(BaseCommand):
 
         if platform == "docker":
             # Use Docker generators directly
-            dockerfile_gen = DockerfileGenerator()
+            from django_matt.deploy.base import ServerBackend
+            from django_matt.deploy.docker import DockerfileConfig
+
+            server_backend = ServerBackend(options.get("server", "granian"))
+            dockerfile_gen = DockerfileGenerator(
+                DockerfileConfig(server_backend=server_backend)
+            )
             compose_gen = ComposeGenerator(app_name=app_name)
 
             files = {
@@ -339,6 +357,7 @@ class Command(BaseCommand):
 
     def handle_docker(self, **options):
         """Handle Docker configuration generation."""
+        from django_matt.deploy.base import ServerBackend
         from django_matt.deploy.docker import (
             ComposeGenerator,
             DockerfileConfig,
@@ -352,15 +371,19 @@ class Command(BaseCommand):
         include_celery = options.get("include_celery", False)
         proxy = options.get("proxy", "caddy")
         domain = options.get("domain")
+        server_backend = ServerBackend(options.get("server", "granian"))
 
         app_name = self._get_app_name()
 
-        self.stdout.write(f"\nGenerating Docker configuration ({mode} mode)...\n")
+        self.stdout.write(
+            f"\nGenerating Docker configuration ({mode} mode, {server_backend.value} backend)...\n"
+        )
 
         # Generate Dockerfile
         dockerfile_config = DockerfileConfig(
             wsgi_module=f"{app_name}.wsgi:application",
             asgi_module=f"{app_name}.asgi:application",
+            server_backend=server_backend,
         )
         dockerfile_gen = DockerfileGenerator(dockerfile_config)
 

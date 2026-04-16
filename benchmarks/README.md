@@ -26,7 +26,27 @@ python benchmarks/bench_throughput.py
 | `bench_schema.py` | Pydantic schema validation performance |
 | `bench_database.py` | Database CRUD operation performance |
 | `bench_throughput.py` | Request/response throughput simulation |
+| `bench_servers.py` | Real-process HTTP load comparison: uvicorn / gunicorn / granian (req/s, p50/p95/p99) |
 | `run_all.py` | Run all benchmarks with summary |
+
+### Server backend benchmark
+
+```bash
+# Compare every installed backend with default settings (5s, 32 conns, 1 worker)
+make bench-servers
+
+# Tweak duration / concurrency / which backends to run
+uv run python benchmarks/bench_servers.py --duration 10 --concurrency 64 \
+    --backends granian,uvicorn --json /tmp/servers.json
+```
+
+The script spawns each backend in a subprocess against `_bench_asgi:app`
+(a minimal ASGI handler returning a tiny JSON body) so results reflect
+*server overhead*, not Django middleware or ORM work. Backends that
+aren't installed are skipped with a note. Robyn is intentionally listed
+but skipped — it's a framework with its own router, not a generic ASGI
+host, so a head-to-head against ASGI apps would measure something
+unrelated.
 
 ## Requirements
 
