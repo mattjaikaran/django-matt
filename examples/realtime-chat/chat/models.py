@@ -77,6 +77,7 @@ class Workspace(models.Model):
     members = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         through="WorkspaceMembership",
+        through_fields=("workspace", "user"),
         related_name="workspaces",
     )
     created_at = models.DateTimeField(auto_now_add=True)

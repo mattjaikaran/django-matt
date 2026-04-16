@@ -3,7 +3,7 @@
 from uuid import UUID
 
 from django.db import models
-from django_matt.auth import create_tokens, jwt_required, refresh_access_token
+from django_matt.auth import create_token_pair, jwt_required, refresh_tokens
 from django_matt.core import APIController
 from django_matt.core.errors import NotFoundAPIError, ValidationAPIError
 from django_matt.permissions import IsAuthenticated
@@ -70,10 +70,10 @@ class AuthController(APIController):
         if not user.is_active:
             raise ValidationAPIError("Account is disabled")
 
-        tokens = create_tokens(user)
+        tokens = create_token_pair(user)
         return LoginResponse(
-            access_token=tokens["access_token"],
-            refresh_token=tokens["refresh_token"],
+            access_token=tokens.access_token,
+            refresh_token=tokens.refresh_token,
             user=UserResponse.model_validate(user),
         )
 
@@ -81,8 +81,8 @@ class AuthController(APIController):
     async def refresh(data: RefreshTokenRequest) -> TokenResponse:
         """Refresh access token."""
         try:
-            access_token = refresh_access_token(data.refresh_token)
-            return TokenResponse(access_token=access_token)
+            tokens = refresh_tokens(data.refresh_token)
+            return TokenResponse(access_token=tokens.access_token)
         except Exception:
             raise ValidationAPIError("Invalid refresh token")
 

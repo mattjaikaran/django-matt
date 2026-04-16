@@ -8,6 +8,10 @@ Demonstrates:
 - Event bus for side effects (auto-titling, analytics)
 """
 
+# Defer annotation evaluation — `list` is a method name on this controller and
+# would shadow the builtin in eager-evaluated annotations like ``list[Message]``.
+from __future__ import annotations
+
 from collections.abc import AsyncIterator
 from uuid import UUID
 
@@ -47,6 +51,7 @@ from chat.schemas import (
 class ChatController(APIController):
     """AI Chat API with CQRS and SSE streaming."""
 
+    prefix = "/conversations"
     tags = ["Chat"]
 
     def __init__(self) -> None:

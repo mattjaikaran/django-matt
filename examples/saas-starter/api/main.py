@@ -3,21 +3,15 @@ Main API configuration for SaaS Starter.
 
 This module configures the django-matt API with all routes,
 middleware, and OpenAPI documentation.
+
+NOTE: The controllers under ``api/analytics.py``, ``api/auth.py``, etc. were
+scaffolded against an early django-matt API (``@api_controller`` +
+``@APIController.post`` decorators) that was retired before 0.9. They need
+porting to the current ``prefix = "..."`` / ``@api.get(...)`` style before
+they can be re-wired into this module. See each file's TODO banner.
 """
 
 from django_matt import MattAPI
-from django_matt.openapi import OpenAPIConfig
-
-from .analytics import AnalyticsController
-from .auth import AuthController
-from .billing import BillingController
-from .comments import CommentController
-from .health import HealthController
-from .notifications import NotificationController
-from .organizations import OrganizationController
-from .projects import ProjectController
-from .tasks import TaskController
-from .teams import TeamController
 
 # Create the main API instance
 api = MattAPI(
@@ -55,47 +49,17 @@ api = MattAPI(
     - Stripe events
     - GitHub integrations
     """,
-    openapi_config=OpenAPIConfig(
-        servers=[
-            {"url": "http://localhost:8000", "description": "Development"},
-            {"url": "https://api.saas-starter.example.com", "description": "Production"},
-        ],
-        tags=[
-            {"name": "Auth", "description": "Authentication and authorization"},
-            {"name": "Users", "description": "User management"},
-            {"name": "Organizations", "description": "Organization management"},
-            {"name": "Teams", "description": "Team management within organizations"},
-            {"name": "Projects", "description": "Project management"},
-            {"name": "Tasks", "description": "Task management"},
-            {"name": "Comments", "description": "Task comments and discussions"},
-            {"name": "Billing", "description": "Subscription and payment management"},
-            {"name": "Notifications", "description": "Notification management"},
-            {"name": "Analytics", "description": "Analytics and tracking"},
-            {"name": "Health", "description": "Health checks and status"},
-        ],
-        security_schemes={
-            "BearerAuth": {
-                "type": "http",
-                "scheme": "bearer",
-                "bearerFormat": "JWT",
-            },
-            "ApiKeyAuth": {
-                "type": "apiKey",
-                "in": "header",
-                "name": "X-API-Key",
-            },
-        },
-    ),
+    servers=[
+        {"url": "http://localhost:8000", "description": "Development"},
+        {"url": "https://api.saas-starter.example.com", "description": "Production"},
+    ],
 )
 
-# Register all controllers
-api.register_controller(HealthController)
-api.register_controller(AuthController)
-api.register_controller(OrganizationController)
-api.register_controller(TeamController)
-api.register_controller(ProjectController)
-api.register_controller(TaskController)
-api.register_controller(CommentController)
-api.register_controller(BillingController)
-api.register_controller(NotificationController)
-api.register_controller(AnalyticsController)
+
+@api.get("", tags=["Health"])
+async def root(request) -> dict:
+    """Placeholder root endpoint. Port the real controllers and register them here."""
+    return {
+        "status": "ok",
+        "message": "SaaS Starter API scaffold — controllers pending migration to django-matt 0.9 API",
+    }

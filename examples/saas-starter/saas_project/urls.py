@@ -20,7 +20,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
 
     # API endpoints (handled by django-matt)
-    path("api/", api.urls),
+    path("api/", include(api.urls)),
 
     # Health check endpoint
     path("health/", include("core.healthcheck")),

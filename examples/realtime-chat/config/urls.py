@@ -39,7 +39,7 @@ urlpatterns = [
     # Admin
     path("admin/", admin.site.urls),
     # API endpoints
-    path("api/", api.urls),
+    path("api/", include(api.urls)),
     # Chat frontend (demo)
     path("chat/", include("chat.urls")),
 ]

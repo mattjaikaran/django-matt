@@ -15,7 +15,7 @@ from django.http import HttpRequest
 
 from django_matt.core.controller import APIController
 from django_matt.events.bus import EventBus
-from django_matt.interceptors.decorators import intercept
+from django_matt.interceptors.decorators import intercept, intercept_controller
 
 from api.interceptors import FeatureGateInterceptor, TenantInterceptor
 from tenants.models import Membership, Organization, Project
@@ -34,6 +34,7 @@ event_bus = EventBus()
 class OrganizationController(APIController):
     """Organization (tenant) management."""
 
+    prefix = "/organizations"
     tags = ["Organizations"]
 
     async def list(self, request: HttpRequest) -> dict:
@@ -70,13 +71,14 @@ class OrganizationController(APIController):
         return schema.model_dump()
 
 
-@intercept(TenantInterceptor())
+@intercept_controller(TenantInterceptor())
 class ProjectController(APIController):
     """Tenant-scoped project management.
 
     All endpoints require X-Tenant-Slug header (enforced by TenantInterceptor).
     """
 
+    prefix = "/projects"
     tags = ["Projects"]
 
     async def list(self, request: HttpRequest) -> dict:

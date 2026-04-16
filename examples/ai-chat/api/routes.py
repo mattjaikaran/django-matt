@@ -12,4 +12,4 @@ api = MattAPI(
     description="AI-powered chat with SSE streaming and CQRS",
 )
 
-api.register_controller("/conversations", ChatController)
+api.register_controller(ChatController)

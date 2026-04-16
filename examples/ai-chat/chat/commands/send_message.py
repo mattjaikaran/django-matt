@@ -5,7 +5,6 @@ The handler saves the user message, calls the LLM, and saves the assistant
 response. For streaming, see the SSE endpoint in the controller.
 """
 
-from dataclasses import dataclass
 from uuid import UUID
 
 from django_matt.cqrs.commands import Command, CommandHandler
@@ -14,17 +13,16 @@ from django_matt.events.bus import EventBus
 from chat.models import Conversation, Message
 
 
-@dataclass
 class SendMessageCommand(Command):
     conversation_id: UUID
     content: str
 
 
-class SendMessageHandler(CommandHandler[SendMessageCommand]):
+class SendMessageHandler(CommandHandler[SendMessageCommand, Message]):
     def __init__(self) -> None:
         self.event_bus = EventBus()
 
-    async def handle(self, command: SendMessageCommand) -> Message:
+    async def execute(self, command: SendMessageCommand) -> Message:
         conversation = await Conversation.objects.aget(id=command.conversation_id)
 
         # Save user message

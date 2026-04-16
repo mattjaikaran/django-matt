@@ -44,9 +44,9 @@ INSTALLED_APPS = [
     # Third-party apps
     "channels",
 
-    # Django Matt modules
+    # Django Matt modules — this example defines its own Organization/Membership
+    # models in core.models, so we don't install django_matt.multitenancy.
     "django_matt",
-    "django_matt.multitenancy",
     "django_matt.billing",
     "django_matt.flags",
 
@@ -67,7 +67,6 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 
     # Django Matt middleware
-    "django_matt.multitenancy.middleware.TenantMiddleware",
     "django_matt.flags.FlagMiddleware",
     "django_matt.negotiation.ContentNegotiationMiddleware",
 ]

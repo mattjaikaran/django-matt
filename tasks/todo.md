@@ -22,7 +22,7 @@
   - saas-starter: interceptors on projects, events on CRUD, SSE notifications
 - [x] Add new example: AI chat app with SSE streaming + CQRS — `examples/ai-chat/`
 - [x] Add new example: multi-tenant SaaS with events + feature flags — `examples/multitenant-saas/`
-- [ ] Ensure all examples run with `uv run python manage.py runserver`
+- [x] Ensure all examples run with `uv run python manage.py runserver` — all 8 examples (ai-chat, devplatform, ecommerce-api, ecommerce-v2, multitenant-saas, quicktodo, realtime-chat, saas-starter) pass `manage.py check` against the parent workspace. Install deps via `uv sync --group examples` then run from each example dir with `uv run --project ../.. python manage.py check`. saas-starter's `api/*.py` controllers still target an early API shape (`@api_controller`, `@APIController.post`) and need porting before they can be re-registered — main.py has a placeholder root route.
 
 ### Polish
 - [x] Ruff lint pass — all source clean (0 errors)

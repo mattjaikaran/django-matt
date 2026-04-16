@@ -2,7 +2,6 @@
 CQRS query: get a single conversation with its messages.
 """
 
-from dataclasses import dataclass
 from uuid import UUID
 
 from django_matt.cqrs.queries import Query, QueryHandler
@@ -10,13 +9,12 @@ from django_matt.cqrs.queries import Query, QueryHandler
 from chat.models import Conversation
 
 
-@dataclass
 class GetConversationQuery(Query):
     conversation_id: UUID
 
 
-class GetConversationHandler(QueryHandler[GetConversationQuery]):
-    async def handle(self, query: GetConversationQuery) -> Conversation:
+class GetConversationHandler(QueryHandler[GetConversationQuery, Conversation]):
+    async def execute(self, query: GetConversationQuery) -> Conversation:
         conversation = await Conversation.objects.aget(id=query.conversation_id)
         # Prefetch messages for the detail view
         conversation.messages_list = [

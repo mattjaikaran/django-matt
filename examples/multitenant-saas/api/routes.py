@@ -12,5 +12,5 @@ api = MattAPI(
     description="Multi-tenant SaaS with events, interceptors, and feature flags",
 )
 
-api.register_controller("/organizations", OrganizationController)
-api.register_controller("/projects", ProjectController)
+api.register_controller(OrganizationController)
+api.register_controller(ProjectController)

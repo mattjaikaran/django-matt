@@ -2,8 +2,6 @@
 CQRS query: list all conversations.
 """
 
-from dataclasses import dataclass
-
 from django.db.models import Count
 
 from django_matt.cqrs.queries import Query, QueryHandler
@@ -11,14 +9,13 @@ from django_matt.cqrs.queries import Query, QueryHandler
 from chat.models import Conversation
 
 
-@dataclass
 class GetConversationsQuery(Query):
     limit: int = 50
     offset: int = 0
 
 
-class GetConversationsHandler(QueryHandler[GetConversationsQuery]):
-    async def handle(self, query: GetConversationsQuery) -> dict:
+class GetConversationsHandler(QueryHandler[GetConversationsQuery, dict]):
+    async def execute(self, query: GetConversationsQuery) -> dict:
         qs = Conversation.objects.annotate(message_count=Count("messages"))
         total = await qs.acount()
         conversations = [

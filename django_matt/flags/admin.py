@@ -25,19 +25,22 @@ except ImportError:
     HAS_UNFOLD = False
 
 
+def _flag_override_model():
+    # Late import so this module can be imported before the app registry is ready.
+    from django_matt.flags.models import FlagOverride
+
+    return FlagOverride
+
+
 class FlagOverrideInline(UnfoldTabularInline):
     """Inline admin for flag overrides."""
 
-    model = None  # Set dynamically
+    # Resolved at class-body time via a lazy callable; Django's admin.E105 check
+    # requires a concrete ``model`` attribute at class registration.
+    model = _flag_override_model()
     extra = 0
     readonly_fields = ["created_at", "created_by"]
     fields = ["override_type", "target_id", "target_value", "enabled", "variant", "expires_at"]
-
-    def __init__(self, *args, **kwargs):
-        from django_matt.flags.models import FlagOverride
-
-        self.model = FlagOverride
-        super().__init__(*args, **kwargs)
 
 
 class FeatureFlagAdmin(UnfoldModelAdmin):

@@ -6,7 +6,6 @@ from django_matt.auth import jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import APIError, NotFoundAPIError, ValidationAPIError
 from django_matt.events import Event, get_event_bus
-from django_matt.exceptions import ValidationExceptionFilter, catch
 
 from apps.catalog.models import Inventory, Product, Variant
 from apps.orders.models import Order, OrderItem, OrderStatus
@@ -37,7 +36,6 @@ async def _get_inventory(variant: Variant) -> Inventory | None:
         return None
 
 
-@catch(ValidationExceptionFilter())
 class OrderController(APIController):
     prefix = "orders"
     tags = ["Orders"]

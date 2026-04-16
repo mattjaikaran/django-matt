@@ -4,6 +4,11 @@ REST API controllers for the chat application.
 Uses django-matt APIController for clean, organized endpoints.
 """
 
+# Defer annotation evaluation — controllers define a `list` method that would
+# otherwise shadow the builtin in eager-evaluated annotations like
+# ``list[ChannelResponse]``.
+from __future__ import annotations
+
 from datetime import datetime
 from uuid import UUID
 

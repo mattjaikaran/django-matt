@@ -216,6 +216,22 @@ docs = [
     "mike>=2.1.0",
 ]
 
+# Example-app dependencies — install with `uv sync --group examples` before
+# running any of the apps under ``examples/``. These are only needed to boot
+# the reference implementations; the core framework has no runtime dependency
+# on them.
+examples = [
+    "celery>=5.4.0",
+    "channels>=4.0.0",
+    "daphne>=4.1.0",
+    "django-mptt>=0.16.0",
+    "django-unfold>=0.50.0",
+    "pillow>=10.0.0",
+    "psutil>=6.0.0",
+    "psycopg[binary]>=3.2.0",
+    "python-dotenv>=1.0.0",
+]
+
 # =============================================================================
 # Ruff Configuration (replaces black, isort, flake8)
 # =============================================================================
