@@ -29,6 +29,12 @@ from pathlib import Path
 
 import httpx
 
+try:
+    import psutil
+    HAS_PSUTIL = True
+except ImportError:
+    HAS_PSUTIL = False
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 BENCH_APP = "_bench_asgi:app"
 
@@ -46,6 +52,8 @@ class BackendResult:
     p50_ms: float
     p95_ms: float
     p99_ms: float
+    rss_peak_mb: float = 0.0
+    rss_avg_mb: float = 0.0
     note: str = ""
 
     @property
@@ -57,6 +65,12 @@ class BackendResult:
         if not self.requests:
             return "—"
         return f"{self.p50_ms:.2f} / {self.p95_ms:.2f} / {self.p99_ms:.2f}"
+
+    @property
+    def display_memory(self) -> str:
+        if not self.requests or self.rss_peak_mb == 0.0:
+            return "—"
+        return f"{self.rss_avg_mb:.1f} / {self.rss_peak_mb:.1f}"
 
 
 # --- Backend command builders -----------------------------------------------
@@ -176,6 +190,44 @@ async def _hammer(url: str, duration: float, concurrency: int) -> tuple[list[flo
     return latencies, errors
 
 
+async def _sample_rss(
+    pid: int,
+    stop_event: asyncio.Event,
+    interval: float = 0.1,
+) -> list[float]:
+    """Sample RSS (in MB) of a process tree every ``interval`` seconds.
+
+    Gunicorn forks workers, so we sum the master + children's RSS to capture
+    the full memory cost of serving. Returns empty list if psutil is missing
+    or the process disappears immediately.
+    """
+    if not HAS_PSUTIL:
+        return []
+
+    readings: list[float] = []
+    try:
+        proc = psutil.Process(pid)
+    except psutil.NoSuchProcess:
+        return readings
+
+    while not stop_event.is_set():
+        try:
+            rss_bytes = proc.memory_info().rss
+            for child in proc.children(recursive=True):
+                try:
+                    rss_bytes += child.memory_info().rss
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    continue
+            readings.append(rss_bytes / (1024 * 1024))
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            break
+        try:
+            await asyncio.wait_for(stop_event.wait(), timeout=interval)
+        except TimeoutError:
+            continue
+    return readings
+
+
 def _percentiles(latencies: list[float]) -> tuple[float, float, float]:
     if not latencies:
         return 0.0, 0.0, 0.0
@@ -235,13 +287,22 @@ async def _bench_one(
         # Warmup pass — discard latencies
         await _hammer(url, warmup, concurrency)
 
-        # Real measurement
+        # Real measurement — sample RSS concurrently while hammering
+        stop_sampling = asyncio.Event()
+        sampler_task = asyncio.create_task(_sample_rss(proc.pid, stop_sampling))
+
         t0 = time.monotonic()
         latencies, errors = await _hammer(url, duration, concurrency)
         elapsed = time.monotonic() - t0
 
+        stop_sampling.set()
+        rss_readings = await sampler_task
+        rss_peak = max(rss_readings) if rss_readings else 0.0
+        rss_avg = sum(rss_readings) / len(rss_readings) if rss_readings else 0.0
+
         rps = len(latencies) / elapsed if elapsed > 0 else 0.0
         p50, p95, p99 = _percentiles(latencies)
+        note = "" if HAS_PSUTIL else "psutil not installed — RSS unavailable"
         return BackendResult(
             name=name,
             available=True,
@@ -252,6 +313,9 @@ async def _bench_one(
             p50_ms=p50,
             p95_ms=p95,
             p99_ms=p99,
+            rss_peak_mb=rss_peak,
+            rss_avg_mb=rss_avg,
+            note=note,
         )
     finally:
         proc.terminate()
@@ -276,6 +340,7 @@ def _print_table(results: list[BackendResult]) -> None:
         table.add_column("Status", style="green")
         table.add_column("RPS", justify="right", style="bold")
         table.add_column("p50/p95/p99 ms", justify="right")
+        table.add_column("RSS avg/peak MB", justify="right", style="magenta")
         table.add_column("Errors", justify="right", style="red")
         for r in results:
             status = "ok" if r.available and r.requests else (r.note or "skipped")
@@ -284,16 +349,21 @@ def _print_table(results: list[BackendResult]) -> None:
                 status,
                 r.display_rps,
                 r.display_latency,
+                r.display_memory,
                 str(r.errors) if r.requests else "—",
             )
         console.print(table)
     except ImportError:
-        print(f"{'Backend':<10} {'RPS':>10} {'p50':>8} {'p95':>8} {'p99':>8}  Note")
+        print(
+            f"{'Backend':<10} {'RPS':>10} {'p50':>8} {'p95':>8} {'p99':>8} "
+            f"{'RSSavg':>8} {'RSSpeak':>9}  Note"
+        )
         for r in results:
             note = r.note if not r.requests else ""
             print(
                 f"{r.name:<10} {r.display_rps:>10} "
-                f"{r.p50_ms:>8.2f} {r.p95_ms:>8.2f} {r.p99_ms:>8.2f}  {note}"
+                f"{r.p50_ms:>8.2f} {r.p95_ms:>8.2f} {r.p99_ms:>8.2f} "
+                f"{r.rss_avg_mb:>8.1f} {r.rss_peak_mb:>9.1f}  {note}"
             )
 
 
@@ -309,6 +379,52 @@ def _baseline_speedup(results: list[BackendResult]) -> None:
         if r.requests and r.name != "uvicorn":
             ratio = r.rps / baseline.rps
             print(f"  {r.name:<10} {ratio:>5.2f}x")
+
+
+def _check_memory_regression(
+    results: list[BackendResult],
+    baseline_path: Path,
+    threshold_pct: float,
+) -> int:
+    """Compare current RSS peak against a stored baseline and return # of regressions.
+
+    Baseline format: ``{"results": [{"name": str, "rss_peak_mb": float}, ...]}``.
+    Backends without baseline entries are skipped (first-run bootstrap).
+    """
+    if not baseline_path.exists():
+        print(f"\nNo memory baseline at {baseline_path} — skipping regression check.")
+        return 0
+
+    try:
+        baseline = json.loads(baseline_path.read_text())
+    except (json.JSONDecodeError, OSError) as exc:
+        print(f"\nCould not read baseline {baseline_path}: {exc}")
+        return 0
+
+    baseline_by_name = {
+        r.get("name"): r.get("rss_peak_mb", 0.0)
+        for r in baseline.get("results", [])
+        if r.get("name")
+    }
+    regressions = 0
+    print(f"\nMemory regression check (threshold +{threshold_pct:.1f}% vs baseline):")
+    for r in results:
+        if not r.requests or r.rss_peak_mb == 0.0:
+            continue
+        prev = baseline_by_name.get(r.name, 0.0)
+        if prev <= 0.0:
+            print(f"  {r.name:<10} no prior baseline — skipped")
+            continue
+        delta_pct = ((r.rss_peak_mb - prev) / prev) * 100.0
+        marker = ">>" if delta_pct > threshold_pct else "  "
+        print(
+            f"  {marker} {r.name:<10} "
+            f"peak={r.rss_peak_mb:>6.1f}MB  prev={prev:>6.1f}MB  "
+            f"Δ={delta_pct:+.1f}%"
+        )
+        if delta_pct > threshold_pct:
+            regressions += 1
+    return regressions
 
 
 # --- Entry point ------------------------------------------------------------
@@ -342,6 +458,27 @@ def main() -> int:
         help="Comma list of backends to run (default: all). E.g. granian,uvicorn",
     )
     parser.add_argument("--json", default="", help="Optional path to write JSON results")
+    parser.add_argument(
+        "--save",
+        action="store_true",
+        help="Save a timestamped JSON + update .matt/benchmarks/servers-latest.json baseline",
+    )
+    parser.add_argument(
+        "--compare-baseline",
+        default=".matt/benchmarks/servers-latest.json",
+        help="Baseline JSON to compare memory against (default: servers-latest.json)",
+    )
+    parser.add_argument(
+        "--fail-on-memory-growth",
+        action="store_true",
+        help="Exit non-zero if any backend's peak RSS regresses beyond --memory-threshold vs baseline",
+    )
+    parser.add_argument(
+        "--memory-threshold",
+        type=float,
+        default=15.0,
+        help="Allowed RSS peak growth in percent before --fail-on-memory-growth fires (default 15)",
+    )
     args = parser.parse_args()
 
     print(
@@ -352,6 +489,10 @@ def main() -> int:
     _print_table(results)
     _baseline_speedup(results)
 
+    regressions = _check_memory_regression(
+        results, Path(args.compare_baseline), args.memory_threshold
+    )
+
     if args.json:
         out = {
             "config": vars(args),
@@ -360,6 +501,24 @@ def main() -> int:
         }
         Path(args.json).write_text(json.dumps(out, indent=2))
         print(f"\nWrote {args.json}")
+
+    if args.save:
+        out_dir = REPO_ROOT / ".matt" / "benchmarks"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "config": vars(args),
+            "results": [asdict(r) for r in results],
+            "ts": int(time.time()),
+        }
+        serialized = json.dumps(payload, indent=2)
+        ts = time.strftime("%Y%m%d_%H%M%S")
+        (out_dir / f"servers_{ts}.json").write_text(serialized)
+        (out_dir / "servers-latest.json").write_text(serialized)
+        print(f"Saved baseline to {out_dir}/servers-latest.json")
+
+    if args.fail_on_memory_growth and regressions:
+        print(f"\nFAIL: {regressions} backend(s) exceeded +{args.memory_threshold:.1f}% RSS growth")
+        return 1
 
     return 0
 

@@ -83,6 +83,31 @@ jobs:
             --quiet \
             --no-color
 
+      # Server backend memory + throughput benchmark (uvicorn/granian/gunicorn)
+      - name: Install optional server backends
+        run: uv pip install 'granian>=2.0.0' 'psutil>=6.0.0'
+
+      - name: Run server backend benchmark
+        run: |
+          uv run python benchmarks/bench_servers.py \
+            --duration 5 \
+            --warmup 1 \
+            --concurrency 32 \
+            --json server-benchmark.json \
+            --save
+
+      # Server memory regression gate — only on PRs with a prior main baseline.
+      - name: Check server memory regression
+        if: github.event_name == 'pull_request' && steps.baseline.outputs.found_artifact == 'true'
+        run: |
+          uv run python benchmarks/bench_servers.py \
+            --duration 5 \
+            --warmup 1 \
+            --concurrency 32 \
+            --fail-on-memory-growth \
+            --memory-threshold 15.0 \
+            --compare-baseline .matt/benchmarks/servers-latest.json
+
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
         with:
@@ -90,6 +115,7 @@ jobs:
           path: |
             benchmark-results.json
             benchmark-report.md
+            server-benchmark.json
 
       # On main pushes, publish the current run as the new baseline artifact.
       - name: Publish main baseline
@@ -97,7 +123,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-baseline
-          path: .matt/benchmarks/latest.json
+          path: |
+            .matt/benchmarks/latest.json
+            .matt/benchmarks/servers-latest.json
           retention-days: 90
 
       - name: Comment PR with benchmark results

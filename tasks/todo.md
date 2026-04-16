@@ -62,7 +62,7 @@ Benchmarks exist but aren't enforced — a regression should block merge.
 
 - [x] Benchmark CI job — `.github/workflows/benchmark.yml` runs on every PR
 - [x] Performance budget — `--fail-on-regression` flag + CI gate: PRs blocked if any benchmark regresses >5% vs last main baseline (fetched via `dawidd6/action-download-artifact`)
-- [ ] Memory profiling — track RSS per-worker across server backends
+- [x] Memory profiling — RSS avg/peak sampled via psutil during bench_servers.py load; `--fail-on-memory-growth` gate wired into benchmark.yml
 - [ ] Publish benchmark results to GitHub Pages (charts over time)
 
 ### Starter Templates & Scaffolding
