@@ -9,6 +9,7 @@ cryptography = pytest.importorskip("cryptography")
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec, rsa
 
+from django_matt._accel import HAS_RUST
 from django_matt.auth.jwt_builtin import (
     JWTDecodeError,
     JWTExpiredError,
@@ -16,7 +17,6 @@ from django_matt.auth.jwt_builtin import (
     decode_jwt,
     encode_jwt,
 )
-
 
 # ---------------------------------------------------------------------------
 # Key fixtures
@@ -223,12 +223,12 @@ def test_rust_acceleration_available():
 # Direct Rust function tests (when available)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.skip(reason="Rust RSA/EC JWT not yet implemented (deferred 7.2.2)")
+@pytest.mark.skipif(not HAS_RUST, reason="Rust extensions not available")
 def test_rust_jwt_encode_decode_rsa_direct(rsa_keypair):
     """Test Rust functions directly if available."""
-    from django_matt._rust import jwt_decode, jwt_encode
-
     import orjson
+
+    from django_matt._rust import jwt_decode, jwt_encode
 
     private_pem, public_pem = rsa_keypair
     payload = {"sub": "direct_test", "exp": int(time.time()) + 300}
@@ -240,12 +240,12 @@ def test_rust_jwt_encode_decode_rsa_direct(rsa_keypair):
     assert decoded["sub"] == "direct_test"
 
 
-@pytest.mark.skip(reason="Rust RSA/EC JWT not yet implemented (deferred 7.2.2)")
+@pytest.mark.skipif(not HAS_RUST, reason="Rust extensions not available")
 def test_rust_jwt_encode_decode_ec_direct(ec_p256_keypair):
     """Test Rust EC functions directly if available."""
-    from django_matt._rust import jwt_decode, jwt_encode
-
     import orjson
+
+    from django_matt._rust import jwt_decode, jwt_encode
 
     private_pem, public_pem = ec_p256_keypair
     payload = {"sub": "ec_direct", "exp": int(time.time()) + 300}
@@ -257,12 +257,12 @@ def test_rust_jwt_encode_decode_ec_direct(ec_p256_keypair):
     assert decoded["sub"] == "ec_direct"
 
 
-@pytest.mark.skip(reason="Rust RSA/EC JWT not yet implemented (deferred 7.2.2)")
+@pytest.mark.skipif(not HAS_RUST, reason="Rust extensions not available")
 def test_rust_jwt_verify_rsa(rsa_keypair):
     """Test Rust jwt_verify with RSA."""
-    from django_matt._rust import jwt_encode, jwt_verify
-
     import orjson
+
+    from django_matt._rust import jwt_encode, jwt_verify
 
     private_pem, public_pem = rsa_keypair
     payload = {"sub": "verify_test", "exp": int(time.time()) + 300}
@@ -273,12 +273,12 @@ def test_rust_jwt_verify_rsa(rsa_keypair):
     assert jwt_verify(token + "tampered", public_pem.encode(), "RS256") is False
 
 
-@pytest.mark.skip(reason="Rust RSA/EC JWT not yet implemented (deferred 7.2.2)")
+@pytest.mark.skipif(not HAS_RUST, reason="Rust extensions not available")
 def test_rust_jwt_verify_ec(ec_p256_keypair):
     """Test Rust jwt_verify with EC."""
-    from django_matt._rust import jwt_encode, jwt_verify
-
     import orjson
+
+    from django_matt._rust import jwt_encode, jwt_verify
 
     private_pem, public_pem = ec_p256_keypair
     payload = {"sub": "verify_ec", "exp": int(time.time()) + 300}

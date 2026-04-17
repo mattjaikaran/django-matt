@@ -19,6 +19,7 @@ from django_matt.middleware.chaining import (
 )
 from django_matt.middleware.cors import CORSMiddleware
 from django_matt.middleware.logging import RequestLoggingMiddleware
+from django_matt.middleware.querystring import QueryStringParserMiddleware
 from django_matt.middleware.request_id import RequestIDMiddleware
 from django_matt.middleware.scoped import (
     MiddlewareStack,
@@ -37,6 +38,7 @@ PRODUCTION_STACK = [
     SecurityHeadersMiddleware,
     RequestIDMiddleware,
     CORSMiddleware,
+    QueryStringParserMiddleware,
     RequestLoggingMiddleware,
     TimingMiddleware,
 ]
@@ -45,6 +47,7 @@ DEVELOPMENT_STACK = [
     ErrorEnhancementMiddleware,
     RequestIDMiddleware,
     CORSMiddleware,
+    QueryStringParserMiddleware,
     RequestLoggingMiddleware,
     TimingMiddleware,
 ]
@@ -59,6 +62,7 @@ __all__ = [
     "CORSMiddleware",
     "RequestLoggingMiddleware",
     "TimingMiddleware",
+    "QueryStringParserMiddleware",
     "PRODUCTION_STACK",
     "DEVELOPMENT_STACK",
     "RouteMiddleware",

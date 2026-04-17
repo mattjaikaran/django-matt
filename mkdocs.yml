@@ -432,6 +432,10 @@ nav:
 
   - Examples:
       - examples/index.md
+      - CRUD API: examples/crud.md
+      - Authentication: examples/auth.md
+      - Features: examples/features.md
+      - Task Management: examples/task-management.md
 
   - Design:
       - Pages System: design/pages-system.md
