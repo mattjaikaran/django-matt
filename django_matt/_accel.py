@@ -27,6 +27,7 @@ try:
     from django_matt._rust import parse_query_string as parse_query_string_rust
     from django_matt._rust import PermissionEvaluator as PermissionEvaluatorRust
     from django_matt._rust import RateLimiter as RateLimiterRust
+    from django_matt._rust import SchemaValidator as SchemaValidatorRust
 except ImportError:
     HAS_RUST = False
     RadixRouter = None  # type: ignore[assignment, misc]
@@ -40,12 +41,14 @@ except ImportError:
     build_camel_case_map: Callable | None = None  # type: ignore[assignment, no-redef]
     RateLimiterRust = None  # type: ignore[assignment, misc]
     PermissionEvaluatorRust = None  # type: ignore[assignment, misc]
+    SchemaValidatorRust = None  # type: ignore[assignment, misc]
 
 __all__ = [
     "HAS_RUST",
     "PermissionEvaluatorRust",
     "RadixRouter",
     "RateLimiterRust",
+    "SchemaValidatorRust",
     "build_camel_case_map",
     "jwt_decode_rust",
     "jwt_encode_rust",

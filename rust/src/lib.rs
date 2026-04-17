@@ -7,6 +7,7 @@ mod querystring;
 mod rate_limiter;
 mod router;
 mod serializer;
+mod validator;
 
 /// django-matt Rust acceleration module.
 ///
@@ -18,6 +19,7 @@ mod serializer;
 /// - JSON serialization (dict list → bytes)
 /// - Rate limiting (token bucket)
 /// - Permission evaluation (bitfield expressions)
+/// - Schema validation (pre-compiled rules)
 #[pymodule]
 fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
@@ -30,6 +32,7 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     serializer::register(m)?;
     rate_limiter::register(m)?;
     permissions::register(m)?;
+    validator::register(m)?;
 
     Ok(())
 }
