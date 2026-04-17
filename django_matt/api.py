@@ -103,6 +103,9 @@ class MattAPI(APIRouter):
 
         self._openapi_schema: dict | None = None
 
+        # Batch endpoints
+        self._batch_endpoints: list = []
+
         # Lifecycle hooks
         self._startup_handlers: list[LifecycleHandler] = []
         self._shutdown_handlers: list[LifecycleHandler] = []
@@ -331,6 +334,21 @@ class MattAPI(APIRouter):
         for viewset_cls in self._resource_viewsets:
             url_patterns.extend(viewset_cls.as_urls())
 
+        # Add batch endpoint URLs
+        for batch_ep in self._batch_endpoints:
+            _ep = batch_ep  # closure binding
+
+            async def _batch_view(request: HttpRequest, _handler=_ep) -> HttpResponse:
+                return await _handler.handle(request)
+
+            if csrf_exempt:
+                _batch_view._csrf_exempt = True  # type: ignore[attr-defined]
+            if _login_not_required is not None:
+                _batch_view = _login_not_required(_batch_view)
+            url_patterns.append(
+                path(_ep.path.lstrip("/"), _batch_view, name="batch-endpoint")
+            )
+
         # Add health check endpoint (only if observability is active)
         if self.health_url and self._registry.is_active("observability"):
             from django_matt.observability.views import health_view
@@ -374,6 +392,19 @@ class MattAPI(APIRouter):
             url_patterns.append(path(self.redoc_url.lstrip("/"), _exempt(redoc_view), name="redoc"))
 
         return url_patterns
+
+    def register_batch(self, batch_endpoint: Any) -> None:
+        """Register a BatchEndpoint with this API.
+
+        Usage::
+
+            from django_matt.batch import BatchEndpoint
+
+            batch = BatchEndpoint(api, path="/batch")
+            api.register_batch(batch)
+        """
+        self._batch_endpoints.append(batch_endpoint)
+        self._openapi_schema = None
 
     def exception_handler(self, exc_class: type[Exception]) -> Callable:
         """
