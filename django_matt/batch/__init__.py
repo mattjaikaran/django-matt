@@ -1,6 +1,8 @@
-"""HTTP Batch endpoint — Facebook Graph API-style batch request handler."""
+"""Batch & async request handling — HTTP batch, query coalescing, N+1 detection."""
 
+from django_matt.batch.coalescer import QueryCoalescer
 from django_matt.batch.endpoint import BatchEndpoint
+from django_matt.batch.n_plus_one import NPlusOneMiddleware, QueryPatternTracker
 from django_matt.batch.request import BatchPayload, BatchRequest, BatchResponse
 from django_matt.batch.resolver import (
     CyclicDependencyError,
@@ -20,4 +22,7 @@ __all__ = [
     "interpolate_value",
     "jsonpath_extract",
     "topological_sort",
+    "QueryCoalescer",
+    "NPlusOneMiddleware",
+    "QueryPatternTracker",
 ]
