@@ -50,6 +50,7 @@ def report_json(summary: ReviewSummary, config: ReviewConfig) -> str:
             "exit_code": summary.exit_code,
         },
         "findings": [_finding_dict(f) for f in summary.findings],
+        "refactor_suggestions": summary.refactor_suggestions,
         "config": {
             "min_severity": config.min_severity.name,
             "analyzers": sorted(config.analyzers),

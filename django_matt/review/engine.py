@@ -99,6 +99,9 @@ class ReviewEngine:
 
         summary.duration_ms = (time.monotonic() - start) * 1000
 
+        # Deduplicate: same file + line + category = keep highest severity
+        summary.findings = self._deduplicate(summary.findings)
+
         # Sort findings
         if self.config.sort_by == "severity":
             summary.findings.sort(key=lambda f: (-f.severity, f.location.file))
@@ -112,6 +115,26 @@ class ReviewEngine:
     def review_directory(self, directory: Path) -> ReviewSummary:
         """Review all Python files in a directory."""
         return self.review_paths([directory])
+
+    @staticmethod
+    def _deduplicate(findings: list) -> list:
+        """Deduplicate overlapping findings, keeping highest severity.
+
+        Two findings at the same file+line with substantially similar messages
+        (from different analyzers/categories) are merged. Findings with distinct
+        messages at the same location are preserved.
+        """
+        from django_matt.review.findings import Finding
+
+        best: dict[tuple, Finding] = {}
+        for f in findings:
+            # Normalize: strip punctuation and lowercase for fuzzy message matching
+            norm_msg = f.message.lower().rstrip(".")
+            key = (f.location.file, f.location.line, norm_msg)
+            existing = best.get(key)
+            if existing is None or f.severity > existing.severity:
+                best[key] = f
+        return list(best.values())
 
     def _collect_files(self, paths: list[Path]) -> list[Path]:
         """Expand paths into individual Python files, respecting config filters."""

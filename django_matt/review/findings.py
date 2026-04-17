@@ -87,6 +87,7 @@ class ReviewSummary:
     files_analyzed: int = 0
     analyzers_run: list[str] = field(default_factory=list)
     duration_ms: float = 0.0
+    refactor_suggestions: list[dict[str, object]] = field(default_factory=list)
 
     @property
     def total(self) -> int:

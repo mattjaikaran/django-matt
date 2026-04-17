@@ -308,8 +308,8 @@ class TestReviewEngineMultipleAnalyzers:
         src = tmp_path / "app.py"
         src.write_text("x = 1\n", encoding="utf-8")
 
-        f1 = _make_finding(rule_id="A001", file=str(src))
-        f2 = _make_finding(rule_id="B001", file=str(src))
+        f1 = _make_finding(rule_id="A001", file=str(src), message="issue A")
+        f2 = _make_finding(rule_id="B001", file=str(src), message="issue B")
 
         cfg = ReviewConfig(analyzers=set())
         engine = ReviewEngine(

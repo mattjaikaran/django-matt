@@ -82,23 +82,49 @@ class APIDesignAnalyzer(BaseAnalyzer):
         """Collect all route-decorated functions with their metadata."""
         endpoints: list[dict[str, object]] = []
 
+        # Walk with parent tracking to know enclosing class
         for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
-            for dec in node.decorator_list:
-                route_info = self._parse_route_decorator(dec)
-                if route_info is None:
-                    continue
-                method, path = route_info
-                has_auth = self._function_has_auth(node)
-                endpoints.append({
-                    "node": node,
-                    "method": method,
-                    "path": path,
-                    "has_auth": has_auth,
-                    "name": node.name,
-                    "lineno": node.lineno,
-                })
+            if isinstance(node, ast.ClassDef):
+                for item in node.body:
+                    if not isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        continue
+                    for dec in item.decorator_list:
+                        route_info = self._parse_route_decorator(dec)
+                        if route_info is None:
+                            continue
+                        method, path = route_info
+                        has_auth = self._function_has_auth(item)
+                        endpoints.append({
+                            "node": item,
+                            "method": method,
+                            "path": path,
+                            "has_auth": has_auth,
+                            "name": item.name,
+                            "lineno": item.lineno,
+                            "class_name": node.name,
+                        })
+
+            # Also collect module-level route functions (no enclosing class)
+            if isinstance(node, ast.Module):
+                for item in node.body:
+                    if not isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        continue
+                    for dec in item.decorator_list:
+                        route_info = self._parse_route_decorator(dec)
+                        if route_info is None:
+                            continue
+                        method, path = route_info
+                        has_auth = self._function_has_auth(item)
+                        endpoints.append({
+                            "node": item,
+                            "method": method,
+                            "path": path,
+                            "has_auth": has_auth,
+                            "name": item.name,
+                            "lineno": item.lineno,
+                            "class_name": None,
+                        })
+
         return endpoints
 
     def _parse_route_decorator(self, dec: ast.expr) -> tuple[str, str | None] | None:
@@ -233,12 +259,11 @@ class APIDesignAnalyzer(BaseAnalyzer):
             # Check if pagination is applied
             has_pagination = self._function_has_pagination(node)
 
-            # Check class-level pagination
+            # Check class-level pagination (scoped to enclosing class)
             if not has_pagination:
-                for cls_name, cls_info in class_info.items():
-                    if cls_info.get("has_pagination"):
-                        has_pagination = True
-                        break
+                enclosing_class = ep.get("class_name")
+                if enclosing_class and enclosing_class in class_info:
+                    has_pagination = bool(class_info[enclosing_class].get("has_pagination"))
 
             if not has_pagination:
                 finding = Finding(
@@ -267,14 +292,13 @@ class APIDesignAnalyzer(BaseAnalyzer):
             if ep["has_auth"]:
                 continue
 
-            # Check if enclosing class has auth
+            # Check if enclosing class has auth (scoped to the actual parent class)
             node = ep["node"]
             assert isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             has_class_auth = False
-            for cls_name, cls_info in class_info.items():
-                if cls_info.get("has_auth"):
-                    has_class_auth = True
-                    break
+            enclosing_class = ep.get("class_name")
+            if enclosing_class and enclosing_class in class_info:
+                has_class_auth = bool(class_info[enclosing_class].get("has_auth"))
 
             if has_class_auth:
                 continue

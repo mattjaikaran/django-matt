@@ -7,9 +7,12 @@ that goes beyond what static analysis can detect.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger("django_matt.review")
 
 from django_matt.review.config import ReviewConfig
 from django_matt.review.findings import (
@@ -89,6 +92,13 @@ _CATEGORY_MAP = {
     "ai_friendly": Category.AI_FRIENDLY,
     "security": Category.SECURITY,
     "performance": Category.PERFORMANCE,
+    "async_safety": Category.ASYNC_SAFETY,
+    "n_plus_one": Category.N_PLUS_ONE,
+    "modularity": Category.MODULARITY,
+    "style": Category.STYLE,
+    "testing": Category.TESTING,
+    "migration": Category.MIGRATION,
+    "api_design": Category.API_DESIGN,
 }
 
 
@@ -172,7 +182,13 @@ class AIReviewer:
 
         for f in data.get("findings", []):
             severity = _SEVERITY_MAP.get(f.get("severity", "hint"), Severity.HINT)
-            category = _CATEGORY_MAP.get(f.get("category", "architecture"), Category.SOLID)
+            raw_category = f.get("category", "")
+            category = _CATEGORY_MAP.get(raw_category)
+            if category is None:
+                logger.warning(
+                    "AI reviewer returned unknown category %r, skipping finding", raw_category
+                )
+                continue
 
             finding = Finding(
                 rule_id=f.get("rule_id", "AIR-000"),

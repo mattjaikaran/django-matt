@@ -99,6 +99,27 @@ def report_console(summary: ReviewSummary, config: ReviewConfig) -> None:
 
     _print_stats(summary, rc)
 
+    # Refactor suggestions (from AI review)
+    if summary.refactor_suggestions:
+        rc.print()
+        ref_table = Table(title="Refactoring Suggestions", show_edge=False, pad_edge=False)
+        ref_table.add_column("Title", style="bold")
+        ref_table.add_column("Files", style="cyan")
+        ref_table.add_column("Effort", justify="right")
+        for sug in summary.refactor_suggestions:
+            ref_table.add_row(
+                str(sug.get("title", "")),
+                ", ".join(sug.get("files", [])),
+                str(sug.get("effort", "")),
+            )
+        rc.print(ref_table)
+        for sug in summary.refactor_suggestions:
+            desc = sug.get("description", "")
+            if desc:
+                title = sug.get("title", "Suggestion")
+                rc.print(Text(f"\n  {title}: ", style="bold"), end="")
+                rc.print(Text(desc, style="dim"))
+
     # Final verdict
     rc.print()
     if summary.has_critical:

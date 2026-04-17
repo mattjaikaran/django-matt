@@ -90,4 +90,23 @@ def report_markdown(summary: ReviewSummary, config: ReviewConfig) -> str:
             lines.append(_finding_row(finding))
             lines.append("")
 
+    # Refactor suggestions (from AI review)
+    if summary.refactor_suggestions:
+        lines.append("## Refactoring Suggestions")
+        lines.append("")
+        for sug in summary.refactor_suggestions:
+            title = sug.get("title", "Suggestion")
+            effort = sug.get("effort", "unknown")
+            files = ", ".join(f"`{f}`" for f in sug.get("files", []))
+            desc = sug.get("description", "")
+            lines.append(f"### {title}")
+            lines.append("")
+            if files:
+                lines.append(f"**Files:** {files}")
+            lines.append(f"**Effort:** {effort}")
+            lines.append("")
+            if desc:
+                lines.append(desc)
+                lines.append("")
+
     return "\n".join(lines)

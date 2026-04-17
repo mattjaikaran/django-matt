@@ -22,8 +22,7 @@ from pathlib import Path
 from django_matt.cli import MattCommand
 from django_matt.review.config import ReviewConfig
 from django_matt.review.engine import ReviewEngine
-from django_matt.review.findings import Category, Severity
-
+from django_matt.review.findings import Severity
 
 _SEVERITY_CHOICES = ["info", "hint", "warning", "error", "critical"]
 _FORMAT_CHOICES = ["console", "markdown", "json", "github"]
@@ -151,8 +150,9 @@ class Command(MattCommand):
         # Run AI review if enabled
         if config.ai_enabled:
             self.console.info("Running AI-powered review...")
-            ai_findings = asyncio.run(self._run_ai_review(config, paths))
-            summary.findings.extend(ai_findings)
+            ai_result = asyncio.run(self._run_ai_review_full(config, paths))
+            summary.findings.extend(ai_result.findings)
+            summary.refactor_suggestions.extend(ai_result.refactor_suggestions)
 
         # Output results
         output_format = "json" if options.get("json") else config.output_format
@@ -225,22 +225,22 @@ class Command(MattCommand):
 
             report_console(summary, config)
             return ""
-        elif output_format == "markdown":
+        if output_format == "markdown":
             from django_matt.review.reporters.markdown import report_markdown
 
             return report_markdown(summary, config)
-        elif output_format == "json":
+        if output_format == "json":
             from django_matt.review.reporters.json_reporter import report_json
 
             return report_json(summary, config)
-        elif output_format == "github":
+        if output_format == "github":
             from django_matt.review.reporters.github import report_github
 
             return report_github(summary, config)
         return ""
 
-    async def _run_ai_review(self, config: ReviewConfig, paths: list[Path]) -> list:
-        from django_matt.review.ai_reviewer import AIReviewer
+    async def _run_ai_review_full(self, config: ReviewConfig, paths: list[Path]):
+        from django_matt.review.ai_reviewer import AIReviewer, AIReviewResult
         from django_matt.review.engine import ReviewEngine
 
         engine = ReviewEngine(config)
@@ -254,10 +254,13 @@ class Command(MattCommand):
                 except (OSError, UnicodeDecodeError):
                     continue
 
+        if not files_data:
+            return AIReviewResult()
+
         reviewer = AIReviewer(config)
         result = await reviewer.review_files(files_data)
 
         if result.tokens_used:
             self.console.info(f"AI review used {result.tokens_used} tokens")
 
-        return result.findings
+        return result
