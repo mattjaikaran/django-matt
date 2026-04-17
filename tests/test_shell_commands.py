@@ -179,6 +179,11 @@ class TestSetReadOnly(TestCase):
         # SQLite supports PRAGMA query_only — should return True or gracefully False
         result = set_read_only()
         assert isinstance(result, bool)
+        # Restore writable state so subsequent tests can write to the DB
+        from django.db import connections
+
+        with connections["default"].cursor() as cursor:
+            cursor.execute("PRAGMA query_only = OFF")
 
 
 # ── matt_dbshell: query execution ──
