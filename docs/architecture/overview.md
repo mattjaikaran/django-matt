@@ -186,6 +186,71 @@ django_matt/
     └── hot_reload.py        # Development hot reloading
 ```
 
+## Layered Architecture
+
+```mermaid
+graph TB
+    CLIENT[Client<br/>Browser / Mobile / CLI] --> ASGI[ASGI Server<br/>Uvicorn / Granian]
+    ASGI --> MW_CHAIN[Middleware Chain<br/>CORS · Auth · Events · Observability]
+    MW_CHAIN --> INTERCEPT_PRE[Interceptors: Before<br/>Logging · Rate Limit · Cache]
+    INTERCEPT_PRE --> ROUTER_L[Router<br/>Radix Tree Match]
+    ROUTER_L --> CTRL_L[Controller<br/>Input Validation · Permissions]
+    CTRL_L --> SVC_L[Service Layer<br/>Business Logic · Transactions]
+    SVC_L --> ORM_L[Django ORM<br/>QuerySet · Managers]
+    ORM_L --> DB_L[(PostgreSQL<br/>+ pgvector)]
+    SVC_L --> CACHE_L[(Redis<br/>Cache · Pub/Sub)]
+    CTRL_L --> INTERCEPT_POST[Interceptors: After<br/>Transform · Headers]
+    INTERCEPT_POST --> SERIALIZE_L[Serialization<br/>Pydantic · orjson · Rust]
+    SERIALIZE_L --> CLIENT
+```
+
+## Module Dependency Graph
+
+```mermaid
+graph TD
+    CORE[core<br/>router · controller · schema · errors] --> API_DEP[api.py]
+    CORE --> VIEWS_DEP[views]
+    CORE --> PERMS_DEP[permissions]
+    CORE --> DI_DEP[di]
+
+    AUTH_DEP[auth] --> CORE
+    AUTH_DEP --> PERMS_DEP
+
+    VIEWS_DEP --> PAGINATION_DEP[pagination]
+    VIEWS_DEP --> FILTERING_DEP[filtering]
+    VIEWS_DEP --> SERIALIZATION_DEP[serialization]
+
+    INTERCEPTORS_DEP[interceptors] --> CORE
+    EXCEPTIONS_DEP[exceptions] --> CORE
+    MIDDLEWARE_DEP[middleware] --> AUTH_DEP
+
+    EVENTS_DEP[events] --> CORE
+    CQRS_DEP[cqrs] --> EVENTS_DEP
+    MESSAGING_DEP[messaging] --> EVENTS_DEP
+    MESSAGING_DEP --> WEBSOCKETS_DEP[websockets]
+    NOTIFICATIONS_DEP[notifications] --> EVENTS_DEP
+    NOTIFICATIONS_DEP --> EMAIL_DEP[email]
+
+    BILLING_DEP[billing] --> AUTH_DEP
+    MULTITENANCY_DEP[multitenancy] --> AUTH_DEP
+    ANALYTICS_DEP[analytics] --> EVENTS_DEP
+
+    MODULES_DEP[modules] --> CORE
+    LOADER_DEP[loader] --> MODULES_DEP
+    SLIM_DEP[slim] --> LOADER_DEP
+
+    OBSERVABILITY_DEP[observability] --> CORE
+    INTROSPECTION_DEP[introspection] --> MODULES_DEP
+    SECRETS_DEP[secrets] --> CONFIG_DEP[config]
+    DEPLOYMENT_DEP[deployment] --> CONFIG_DEP
+
+    AI_DEP[ai] --> CORE
+    GRAPHQL_DEP[graphql] --> CORE
+    RPC_DEP[rpc] --> CORE
+    STREAMING_DEP[streaming] --> EVENTS_DEP
+    TYPEGEN_DEP[typegen] --> CORE
+```
+
 ## Layer Responsibilities
 
 ### API Layer

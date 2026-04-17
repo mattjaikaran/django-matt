@@ -7,7 +7,7 @@
 - [x] Trusted publisher setup on PyPI — OIDC publishing in release.yml
 - [x] Publish to TestPyPI for validation before real publish — TestPyPI → PyPI pipeline
 - [x] `django-matt[rust]` optional extra with pre-built wheels — exposed in pyproject.toml as `rust = ["django-matt-rust>=0.1.0 ; platform_machine in ...]`, gracefully degrades to pure-Python via `django_matt/_accel.py` when the wheel isn't installed
-- [ ] CI wheel building for Rust extensions (see Rust Extensions below)
+- [x] CI wheel building for Rust extensions — `rust-wheels.yml` with manylinux/macOS/Windows, smoke tests, PyPI publish; Python 3.12–3.14
 
 ### Documentation Site
 - [x] MkDocs Material site builds successfully (`uv run mkdocs build`)
@@ -163,7 +163,7 @@ Module system exists — build the ecosystem around it.
 - [x] Plugin compatibility matrix (django-matt version × plugin version) — `PluginLoader.compatibility_matrix()`, `MattPlugin.django_matt_max_version/python_requires/django_requires`
 
 ### Rust Extensions (Deferred)
-- [ ] CI wheel building — GitHub Actions manylinux/macOS/Windows (7.0.4)
+- [x] CI wheel building — GitHub Actions manylinux/macOS/Windows with smoke tests + Python 3.12–3.14 (7.0.4)
 - [ ] RSA/EC JWT signing in Rust (7.2.2 — deferred, `cryptography` pkg already Rust-based)
 - [ ] Wire Rust query string parser into filtering/ordering/pagination middleware (7.4.3)
 

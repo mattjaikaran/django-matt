@@ -14,6 +14,25 @@ Django Matt provides a comprehensive authentication system with multiple strateg
 | **SSO** | Enterprise SAML/OIDC | `django_matt.auth.sso` |
 | **Magic Links** | Passwordless email authentication | `django_matt.auth.magic_link` |
 
+## Choosing an Auth Method
+
+```mermaid
+flowchart TD
+    START{What type of client?} -->|Server-to-server| APIKEYS[API Keys<br/>auth/api_keys]
+    START -->|SPA or Mobile app| SPA{Need social login?}
+    START -->|Enterprise / B2B| ENTERPRISE{SSO required?}
+    START -->|Passwordless UX| PASSWORDLESS{Biometric capable?}
+
+    SPA -->|Yes| OAUTH_C[OAuth 2.0<br/>Google · GitHub · Apple]
+    SPA -->|No| JWT_C[JWT Tokens<br/>Access + Refresh]
+
+    ENTERPRISE -->|Yes SAML/OIDC| SSO_C[Enterprise SSO<br/>SAML 2.0 · OpenID Connect]
+    ENTERPRISE -->|No| RBAC_C[JWT + RBAC<br/>Role hierarchy]
+
+    PASSWORDLESS -->|Yes WebAuthn| PASSKEY_C[Passkeys<br/>FIDO2 / WebAuthn]
+    PASSWORDLESS -->|No email only| MAGIC_C[Magic Links<br/>Email token login]
+```
+
 ## Quick Start
 
 ### JWT Authentication (Recommended for APIs)

@@ -245,6 +245,38 @@ source.addEventListener("status", (e) => {
 });
 ```
 
+## SSE Connection Lifecycle
+
+```mermaid
+sequenceDiagram
+    participant C as Client (EventSource)
+    participant S as SSE Endpoint
+    participant E as Event Bus
+    participant SVC as Service Layer
+
+    C->>S: GET /stream (Accept: text/event-stream)
+    S->>C: HTTP 200 (Content-Type: text/event-stream)
+    S->>E: Subscribe to event channels
+
+    loop Active connection
+        SVC->>E: emit(DomainEvent)
+        E->>S: Notify subscriber
+        S->>C: event: domain.event\ndata: {...}\n\n
+    end
+
+    loop Keepalive (every 15s)
+        S->>C: : heartbeat\n\n
+    end
+
+    C--xS: Client disconnects
+    S->>E: Unsubscribe
+    S->>S: Cleanup resources (finally block)
+
+    Note over C,S: Client reconnects with Last-Event-ID
+    C->>S: GET /stream (Last-Event-ID: msg-42)
+    S->>C: Resume from msg-43
+```
+
 ## Best Practices
 
 1. **Always use `with_heartbeat()`** for long-lived SSE connections to prevent proxy timeouts

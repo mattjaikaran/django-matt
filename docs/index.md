@@ -6,7 +6,7 @@
 
     ---
 
-    Built for Python 3.12+ with full async/await support throughout the stack.
+    Built for Python 3.12+ with full async/await support throughout the stack. Optional Rust extensions for hot paths.
 
 -   :lock: **Secure by Default**
 
@@ -24,7 +24,7 @@
 
     ---
 
-    Replaces 5+ packages with one cohesive, well-designed framework.
+    54+ modules replace 5+ packages with one cohesive, production-ready framework.
 
 </div>
 
@@ -67,6 +67,12 @@ class UserController(APIController):
 | Multi-tenancy | Yes | No | No |
 | Billing integration | Yes | No | No |
 | Type generation | Yes | Via package | No |
+| SSE streaming | Yes | No | No |
+| Event bus | Yes | No | No |
+| CQRS | Yes | No | No |
+| Interceptors | Yes | No | No |
+| Rust extensions | Yes | No | No |
+| Secrets management | Yes | No | No |
 | Interactive playground | Yes | Browsable API | No |
 | Hot reload | Yes | No | No |
 
@@ -112,6 +118,47 @@ urlpatterns = [
 ```
 
 Visit `http://localhost:8000/api/docs` for interactive Swagger documentation.
+
+## What's New in 0.8
+
+The 0.8 release is the largest yet, adding 13 new modules and optional Rust acceleration:
+
+- **13 new modules** -- interceptors, SSE streaming, async event bus, CQRS, secrets management, introspection, RPC client generation, module system, serialization groups, exception filters, config validation, route-scoped middleware, slim mode
+- **Rust extensions** -- optional PyO3 native extensions deliver up to 1.9x overall speedup on hot paths (router, JWT, serialization, rate limiting, permissions, query building, middleware)
+- **54+ total modules** -- from auth to billing to observability, all designed to work together
+- **6,300+ tests** -- comprehensive coverage across sync, async, and Rust paths
+- **Code review agent** -- `generate_ai_context` produces CLAUDE.md and .cursorrules for AI-assisted development
+- **Vite integration** -- first-class Vite dev server support with HMR proxy
+- **Inertia.js adapter** -- server-driven SPA with Django templates and React/Vue/Svelte frontends
+- **Predicate-based permissions** -- compose permission checks with `&`, `|`, `~` operators
+- **Hybrid properties** -- `@hybrid_property` for computed fields that work in Python and SQL
+- **Modern forms** -- Pydantic-powered form handling with validation
+- **File storage redesign** -- unified API across S3, R2, MinIO, and local backends
+
+## Rust Acceleration
+
+Django Matt includes optional Rust extensions (via PyO3) that accelerate CPU-bound hot paths while keeping the framework pure-Python by default:
+
+```bash
+# Install with Rust support
+uv add "django-matt[rust]"
+```
+
+| Component | What it accelerates |
+|-----------|-------------------|
+| Router | Radix tree route matching |
+| JWT | Token encode/decode/verify |
+| Serialization | JSON serialization with camelCase mapping |
+| Rate limiting | Token bucket and sliding window counters |
+| Permissions | Permission tree evaluation |
+| Query building | Query string and filter parsing |
+| Middleware | Header parsing and request routing |
+
+Extensions are **completely optional** -- the framework auto-detects availability and falls back to pure Python:
+
+```python
+from django_matt._accel import HAS_RUST  # True if extensions are installed
+```
 
 ## Key Features
 
@@ -195,10 +242,11 @@ api.register_controller(WebhookController)
 
 Built-in performance optimizations:
 
-- **Fast JSON** - orjson/ujson serialization
-- **Streaming** - Large dataset streaming
-- **Caching** - Response and query caching
-- **Query optimization** - N+1 detection
+- **Fast JSON** - orjson serialization (base dependency)
+- **Rust extensions** - optional PyO3 native modules for router, JWT, serialization, and more
+- **Streaming** - SSE, NDJSON, and large dataset streaming
+- **Caching** - Response and query caching with Redis support
+- **Query optimization** - automatic N+1 detection with `select_related`/`prefetch_related`
 
 [Learn more about performance](performance/optimization.md)
 
@@ -258,10 +306,10 @@ Built-in performance optimizations:
 
 ## Version Compatibility
 
-| django-matt | Python | Django |
-|-------------|--------|--------|
-| 0.1.x | 3.12+ | 5.2+ |
-| 0.2.x (planned) | 3.13+ | 6.0+ |
+| django-matt | Python | Django | Status |
+|-------------|--------|--------|--------|
+| 0.8.x | 3.12+ | 5.2+ | **Current** |
+| 1.0 (planned) | 3.13+ | 6.0+ | Upcoming |
 
 ## Community
 
@@ -269,6 +317,6 @@ Built-in performance optimizations:
 - [Issue Tracker](https://github.com/mattjaikaran/django-matt/issues)
 - [Discussions](https://github.com/mattjaikaran/django-matt/discussions)
 
-## Status
+## License
 
-This is an internal/private framework. It is not published to PyPI.
+Apache License 2.0. See [LICENSE](https://github.com/mattjaikaran/django-matt/blob/main/LICENSE) for details.

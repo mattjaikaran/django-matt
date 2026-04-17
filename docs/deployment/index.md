@@ -32,6 +32,27 @@ django-matt provides comprehensive deployment support for popular cloud platform
 +----------------+--------+--------+-----------+------------+----------+
 ```
 
+## Deployment Options
+
+```mermaid
+flowchart TD
+    CHOOSE{Choose a platform} -->|Global edge<br/>WebSocket support| FLY[Fly.io<br/>Multi-region · Managed PG]
+    CHOOSE -->|Rapid prototype<br/>Git push deploy| RAILWAY[Railway<br/>Auto-detect · Managed DB]
+    CHOOSE -->|Simple PaaS<br/>Free tier| RENDER[Render<br/>Auto SSL · Managed PG]
+    CHOOSE -->|Enterprise scale<br/>Full control| AWS[AWS<br/>ECS/EKS · RDS · ElastiCache]
+    CHOOSE -->|Cost-effective<br/>SSH access| HETZNER[Hetzner VPS<br/>Docker · Caddy · Self-managed]
+    CHOOSE -->|Any infra<br/>Portable| DOCKER[Docker<br/>Compose · Dockerfile gen]
+    CHOOSE -->|Large scale<br/>Auto-scaling| K8S[Kubernetes<br/>Helm charts · HPA]
+
+    FLY --> PROD[Production Ready<br/>SSL · Health Checks · Secrets]
+    RAILWAY --> PROD
+    RENDER --> PROD
+    AWS --> PROD
+    HETZNER --> PROD
+    DOCKER --> PROD
+    K8S --> PROD
+```
+
 ## Quick Start
 
 ### Using the Deploy Module

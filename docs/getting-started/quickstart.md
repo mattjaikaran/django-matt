@@ -2,6 +2,17 @@
 
 This guide will help you create your first API with django-matt in under 5 minutes.
 
+## 5-Minute Setup Flow
+
+```mermaid
+flowchart LR
+    INSTALL["uv add django-matt"] --> STARTAPI["manage.py startapi<br/>--template b2b --auth jwt"]
+    STARTAPI --> MODELS["Define Models<br/>models.py"]
+    MODELS --> CRUD["manage.py generate_crud<br/>MyApp.Model --full"]
+    CRUD --> RUN["manage.py runserver"]
+    RUN --> SWAGGER["localhost:8000/api/docs<br/>Swagger UI"]
+```
+
 ## Prerequisites
 
 - Python 3.12+

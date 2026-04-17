@@ -43,7 +43,7 @@ jobs:
       fail-fast: false
       matrix:
         target: [x86_64, aarch64]
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
 
@@ -68,13 +68,14 @@ jobs:
       fail-fast: false
       matrix:
         target: [x86_64-apple-darwin, aarch64-apple-darwin]
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
 
       - name: Build wheel
         uses: PyO3/maturin-action@v1
@@ -95,13 +96,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
 
       - name: Build wheel
         uses: PyO3/maturin-action@v1
@@ -135,9 +137,57 @@ jobs:
           name: dist-rust-sdist
           path: rust/dist/*.tar.gz
 
+  # ---------------------------------------------------------------------------
+  # Smoke test — verify Rust wheels load on each platform before publishing
+  # ---------------------------------------------------------------------------
+  smoke-test-rust:
+    name: Smoke Test Rust (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    needs: [build-rust-linux, build-rust-macos, build-rust-windows]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python-version: "3.12"
+            artifact: dist-rust-linux-x86_64-py3.12
+          - os: ubuntu-latest
+            python-version: "3.13"
+            artifact: dist-rust-linux-x86_64-py3.13
+          - os: macos-14
+            python-version: "3.13"
+            artifact: dist-rust-macos-aarch64-apple-darwin-py3.13
+          - os: windows-latest
+            python-version: "3.13"
+            artifact: dist-rust-windows-py3.13
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Download wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/
+
+      - name: Install and verify
+        run: |
+          pip install dist/*.whl
+          python -c "
+          from django_matt._rust import HAS_RUST_EXTENSIONS, RadixRouter, jwt_encode, jwt_decode
+          assert HAS_RUST_EXTENSIONS is True
+          router = RadixRouter()
+          router.insert('/test', 'handler')
+          assert router.match('/test') == ('handler', {})
+          token = jwt_encode({'sub': '1', 'exp': 9999999999}, 'secret', 'HS256')
+          assert jwt_decode(token, 'secret', 'HS256')['sub'] == '1'
+          print('Smoke test passed')
+          "
+
   github-release:
     name: Create GitHub Release
-    needs: [build-python, build-rust-linux, build-rust-macos, build-rust-windows, build-rust-sdist]
+    needs: [build-python, smoke-test-rust, build-rust-sdist]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -184,9 +234,12 @@ jobs:
           draft: false
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
 
+  # ---------------------------------------------------------------------------
+  # django-matt (pure Python) — TestPyPI then PyPI
+  # ---------------------------------------------------------------------------
   testpypi-publish:
-    name: Publish to TestPyPI
-    needs: [build-python, build-rust-linux, build-rust-macos, build-rust-windows, build-rust-sdist]
+    name: Publish django-matt to TestPyPI
+    needs: [build-python, smoke-test-rust]
     runs-on: ubuntu-latest
     environment:
       name: testpypi
@@ -194,12 +247,11 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - name: Download all artifacts
+      - name: Download Python package
         uses: actions/download-artifact@v4
         with:
-          pattern: dist-*
+          name: dist-python
           path: dist/
-          merge-multiple: true
 
       - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -207,7 +259,7 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
 
   pypi-publish:
-    name: Publish to PyPI
+    name: Publish django-matt to PyPI
     needs: [testpypi-publish]
     runs-on: ubuntu-latest
     environment:
@@ -216,19 +268,44 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - name: Download all artifacts
+      - name: Download Python package
         uses: actions/download-artifact@v4
         with:
-          pattern: dist-*
+          name: dist-python
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  # ---------------------------------------------------------------------------
+  # django-matt-rust (compiled wheels) — separate PyPI project
+  # ---------------------------------------------------------------------------
+  pypi-publish-rust:
+    name: Publish django-matt-rust to PyPI
+    needs: [smoke-test-rust, build-rust-sdist]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi-rust
+      url: https://pypi.org/p/django-matt-rust
+    permissions:
+      id-token: write
+    steps:
+      - name: Download Rust wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: dist-rust-*
           path: dist/
           merge-multiple: true
+
+      - name: List artifacts
+        run: ls -lh dist/
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
   docs-versioned:
     name: Deploy Versioned Docs
-    needs: [pypi-publish]
+    needs: [pypi-publish, pypi-publish-rust]
     runs-on: ubuntu-latest
     permissions:
       contents: write

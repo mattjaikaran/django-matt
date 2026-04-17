@@ -71,6 +71,62 @@ else:
 
 This means django-matt works everywhere Python runs — Rust extensions are a transparent performance upgrade.
 
+## Request Hot Path — Rust vs Python
+
+```mermaid
+graph LR
+    subgraph "Python (ASGI)"
+        A1[TCP Accept]
+        A2[HTTP Parse]
+    end
+
+    subgraph "Rust Accelerated"
+        B1["Route Match<br/>RadixRouter 4x"]
+        B2["Header Parse<br/>Auth · Accept · Content-Type"]
+        B3["JWT Verify<br/>HMAC 1.5x + GIL release"]
+        B4["Query Parse<br/>filters · sort · pagination 4x"]
+    end
+
+    subgraph "Python (Application)"
+        C1[Controller Handler]
+        C2[Django ORM]
+    end
+
+    subgraph "Rust Accelerated "
+        D1["JSON Serialize<br/>+ camelCase 1.9x"]
+    end
+
+    subgraph "Python (ASGI) "
+        E1[Send Response]
+    end
+
+    A1 --> A2 --> B1 --> B2 --> B3 --> B4 --> C1 --> C2 --> D1 --> E1
+
+    style B1 fill:#dea584,stroke:#b7472a
+    style B2 fill:#dea584,stroke:#b7472a
+    style B3 fill:#dea584,stroke:#b7472a
+    style B4 fill:#dea584,stroke:#b7472a
+    style D1 fill:#dea584,stroke:#b7472a
+```
+
+## Fallback Dispatch
+
+```mermaid
+flowchart TD
+    START[_accel.py loads] --> IMPORT{import _rust}
+    IMPORT -->|Success| RUST[HAS_RUST = True<br/>Bind Rust functions]
+    IMPORT -->|ImportError| PYTHON[HAS_RUST = False<br/>Set all to None]
+
+    RUST --> DISPATCH{Consumer checks HAS_RUST}
+    PYTHON --> DISPATCH
+
+    DISPATCH -->|True| USE_RUST[Call Rust function<br/>RadixRouter · jwt_encode · ...]
+    DISPATCH -->|False| USE_PYTHON[Call Python fallback<br/>Django resolver · PyJWT · ...]
+
+    USE_RUST --> RESULT[Same result either path]
+    USE_PYTHON --> RESULT
+```
+
 ## Components
 
 ### Radix Tree URL Router

@@ -1,13 +1,15 @@
 # Django Matt
 
 [![CI](https://github.com/mattjaikaran/django-matt/actions/workflows/ci.yml/badge.svg)](https://github.com/mattjaikaran/django-matt/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/django-matt.svg)](https://pypi.org/project/django-matt/)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Django 5.2+](https://img.shields.io/badge/django-5.2+-green.svg)](https://www.djangoproject.com/)
 [![Pydantic v2](https://img.shields.io/badge/pydantic-v2-e92063.svg)](https://docs.pydantic.dev/)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-django--matt-blue.svg)](https://mattjaikaran.github.io/django-matt/)
 
-A modern Django meta-framework for building production-ready APIs with minimal boilerplate. Async-first, type-safe, batteries-included.
+The Django meta-framework for production APIs. 54+ modules, async-first, Pydantic v2, optional Rust acceleration -- one package replaces your entire Django API stack.
 
 ```mermaid
 graph LR
@@ -73,7 +75,8 @@ Django Matt consolidates the Django API ecosystem into a single, cohesive framew
 - **Async-first** -- built for async from the ground up, sync fallbacks where needed
 - **Type-safe** -- Pydantic v2 schemas with full IDE support and OpenAPI 3.1 generation
 - **Zero config** -- sensible defaults that work out of the box
-- **60+ modules** -- from JWT auth to CQRS to SSE streaming, all integrated
+- **54+ modules** -- from JWT auth to CQRS to SSE streaming, all integrated
+- **Rust-accelerated** -- optional PyO3 extensions for router, JWT, serialization hot paths
 
 ---
 
@@ -246,7 +249,9 @@ async def list_users(request):
 
 ---
 
-## What's New in 0.9
+## What's New in 0.8
+
+**13 new modules, Rust acceleration, 6,300+ tests.**
 
 - **Interceptors** -- before/after/error hooks on any route or controller
 - **SSE Streaming** -- server-sent events with heartbeat and backpressure
@@ -259,10 +264,12 @@ async def list_users(request):
 - **RPC Client Generation** -- typed Python and TypeScript clients from OpenAPI
 - **Secrets Management** -- unified API for env, AWS Secrets Manager, Vault, GCP
 - **Introspection** -- health checks, K8s liveness/readiness probes, `/_info`
-- **Auto-Instrumentation** -- zero-config OpenTelemetry tracing and Prometheus metrics
-- **LLM-Optimized Errors** -- structured `code`, `hint`, `docs_url` fields in error responses
-- **Starter Templates** -- `--template ai-saas` and `--template marketplace` for project scaffolding
-- **Rust Extensions** -- optional PyO3 native extensions for hot paths
+- **Rust Extensions** -- optional PyO3 native extensions with up to 1.9x speedup
+- **Vite Integration** -- first-class Vite dev server support with HMR proxy
+- **Inertia.js Adapter** -- server-driven SPA with React/Vue/Svelte frontends
+- **Predicate Permissions** -- compose checks with `&`, `|`, `~` operators
+- **File Storage Redesign** -- unified API across S3, R2, MinIO, and local backends
+- **Code Review Agent** -- `generate_ai_context` produces CLAUDE.md and .cursorrules
 
 ---
 
@@ -382,6 +389,8 @@ Django Matt includes optional Rust extensions (via PyO3) for CPU-bound hot paths
 | Router | ~3x | Radix tree route matching |
 | JWT | ~2-4x | Token encode/decode/verify |
 | Serialization | ~2x | JSON serialization with camelCase mapping |
+| Rate limiting | ~2x | Token bucket and sliding window counters |
+| Permissions | ~2x | Permission tree evaluation |
 | Query parsing | ~2x | Query string parameter parsing |
 | Header parsing | ~2x | HTTP header parsing |
 

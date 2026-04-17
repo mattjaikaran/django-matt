@@ -626,6 +626,185 @@ flowchart LR
     CACHE_S --> AUTH & DB_CONF & API_KEYS
 ```
 
+## Module Ecosystem
+
+```mermaid
+graph TB
+    subgraph "Core"
+        API[api.py<br/>MattAPI]
+        ROUTER[core/router]
+        CTRL[core/controller]
+        SCHEMA[core/schema]
+        ERRORS[core/errors]
+    end
+
+    subgraph "Auth & Access"
+        JWT[auth/jwt]
+        OAUTH[auth/oauth]
+        SSO[auth/sso]
+        PASSKEYS[auth/passkeys]
+        APIKEYS[auth/api_keys]
+        RBAC[auth/rbac]
+        PERMS[permissions]
+    end
+
+    subgraph "Request Pipeline"
+        MW[middleware]
+        INTERCEPT[interceptors]
+        EXCFILTER[exceptions]
+        THROTTLE[throttling]
+        NEGOTIATE[negotiation]
+        VERSION[versioning]
+        DI_MOD[di]
+    end
+
+    subgraph "Data & Query"
+        VIEWS[views]
+        PAGINATE[pagination]
+        FILTER[filtering]
+        SERIAL[serialization]
+        DB[db]
+        AUDIT_MOD[audit]
+    end
+
+    subgraph "Communication"
+        MSG_MOD[messaging]
+        NOTIF_MOD[notifications]
+        EMAIL_MOD[email]
+        WS[websockets]
+        STREAM_MOD[streaming]
+        EVENTS_MOD[events]
+    end
+
+    subgraph "Business Logic"
+        BILLING_MOD[billing]
+        TENANT[multitenancy]
+        FLAGS_MOD[flags]
+        ANALYTICS_MOD[analytics]
+        EXPERIMENTS_MOD[experiments]
+        TASKS_MOD[tasks]
+    end
+
+    subgraph "AI & ML"
+        AI[ai]
+        ML[ml]
+        GRAPHQL_MOD[graphql]
+    end
+
+    subgraph "Frontend & Codegen"
+        HTMX_MOD[htmx]
+        COMPONENTS_MOD[components]
+        TYPEGEN[typegen]
+        CODEGEN[codegen]
+        RPC_MOD[rpc]
+    end
+
+    subgraph "DevOps & Infra"
+        DEPLOY[deployment]
+        CLI_MOD[cli]
+        OBSERVE_MOD[observability]
+        SECRETS_MOD[secrets]
+        FILES[files]
+        INTRO_MOD[introspection]
+        CONFIG[config]
+    end
+
+    subgraph "Architecture"
+        CQRS_MOD[cqrs]
+        MODULES_MOD[modules]
+        LOADER[loader]
+        SLIM[slim]
+    end
+
+    API --> ROUTER
+    ROUTER --> CTRL
+    CTRL --> SCHEMA
+    CTRL --> ERRORS
+    CTRL --> PERMS
+    CTRL --> DI_MOD
+
+    API --> MW
+    MW --> INTERCEPT
+    INTERCEPT --> EXCFILTER
+    MW --> THROTTLE
+    MW --> NEGOTIATE
+    MW --> VERSION
+
+    CTRL --> VIEWS
+    VIEWS --> PAGINATE
+    VIEWS --> FILTER
+    VIEWS --> SERIAL
+    VIEWS --> DB
+
+    JWT --> RBAC
+    OAUTH --> JWT
+    SSO --> JWT
+    PASSKEYS --> JWT
+    APIKEYS --> JWT
+
+    EVENTS_MOD --> CQRS_MOD
+    MSG_MOD --> WS
+    MSG_MOD --> EVENTS_MOD
+    NOTIF_MOD --> EMAIL_MOD
+    STREAM_MOD --> EVENTS_MOD
+
+    MODULES_MOD --> LOADER
+    LOADER --> SLIM
+    OBSERVE_MOD --> INTRO_MOD
+    SECRETS_MOD --> CONFIG
+```
+
+## Rust Acceleration Map
+
+```mermaid
+graph LR
+    subgraph "Request Hot Path"
+        direction LR
+        TCP["TCP Accept<br/>🐍 Python"]
+        HTTP["HTTP Parse<br/>🐍 ASGI Server"]
+        ROUTE["Route Match<br/>🦀 Rust 4x"]
+        HEADERS["Header Parse<br/>🦀 Rust"]
+        AUTH_R["JWT Verify<br/>🦀 Rust 1.5x"]
+        QS["Query Parse<br/>🦀 Rust 4x"]
+        HANDLER["Handler<br/>🐍 Python"]
+        ORM["ORM Query<br/>🐍 Python"]
+        SERIALIZE["JSON Serialize<br/>🦀 Rust 1.9x"]
+        RESP["Response<br/>🐍 Python"]
+    end
+
+    TCP --> HTTP --> ROUTE --> HEADERS --> AUTH_R --> QS --> HANDLER --> ORM --> SERIALIZE --> RESP
+
+    style ROUTE fill:#dea584,stroke:#b7472a
+    style HEADERS fill:#dea584,stroke:#b7472a
+    style AUTH_R fill:#dea584,stroke:#b7472a
+    style QS fill:#dea584,stroke:#b7472a
+    style SERIALIZE fill:#dea584,stroke:#b7472a
+
+    style TCP fill:#306998,stroke:#FFD43B,color:#fff
+    style HTTP fill:#306998,stroke:#FFD43B,color:#fff
+    style HANDLER fill:#306998,stroke:#FFD43B,color:#fff
+    style ORM fill:#306998,stroke:#FFD43B,color:#fff
+    style RESP fill:#306998,stroke:#FFD43B,color:#fff
+```
+
+## Release Pipeline
+
+```mermaid
+flowchart LR
+    PR[Pull Request] --> LINT[Ruff Lint<br/>+ Type Check]
+    LINT --> TEST[pytest<br/>4100+ tests]
+    TEST --> RUSTBUILD[Build Rust<br/>Wheels]
+    RUSTBUILD --> SMOKE[Smoke Test<br/>Import + CLI]
+    SMOKE --> TESTPYPI[Upload to<br/>TestPyPI]
+    TESTPYPI --> VERIFY[Install Verify<br/>from TestPyPI]
+    VERIFY --> PYPI[Publish to<br/>PyPI]
+    PYPI --> DOCS[Deploy<br/>Docs]
+    DOCS --> SDK[Generate<br/>TS/Swift SDK]
+
+    RUSTBUILD --> |"Linux x86_64<br/>Linux aarch64<br/>macOS x86_64<br/>macOS aarch64<br/>Windows x86_64"| WHEELS[Platform<br/>Wheels]
+    WHEELS --> SMOKE
+```
+
 ## Related Documentation
 
 - [Architecture Overview](./architecture/overview.md)

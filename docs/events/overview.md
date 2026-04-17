@@ -318,6 +318,48 @@ async def process_order(event):
     ))
 ```
 
+## Event Bus Architecture
+
+```mermaid
+graph TB
+    subgraph "Publishers"
+        P1[Controller<br/>collect_event]
+        P2[Service Layer<br/>bus.emit]
+        P3[Middleware<br/>RequestEvent]
+        P4[Signals<br/>post_save / post_delete]
+    end
+
+    subgraph "Event Bus"
+        direction TB
+        EMIT[emit / emit_many]
+        MATCH[Pattern Matcher<br/>fnmatch globs]
+
+        subgraph "Backends"
+            MEM[InMemoryBackend<br/>Single process]
+            REDIS_B[RedisBackend<br/>Pub/Sub cross-process]
+        end
+
+        EMIT --> MATCH
+        MATCH --> MEM
+        MATCH --> REDIS_B
+    end
+
+    subgraph "Subscribers"
+        S1["@on('order.placed')<br/>Exact match"]
+        S2["@on('order.*')<br/>Wildcard match"]
+        S3["@on('*')<br/>Catch-all"]
+        S4["bus.subscribe<br/>Programmatic"]
+    end
+
+    P1 --> EMIT
+    P2 --> EMIT
+    P3 --> EMIT
+    P4 --> EMIT
+
+    MEM --> S1 & S2 & S3 & S4
+    REDIS_B --> S1 & S2 & S3 & S4
+```
+
 ## Best Practices
 
 1. **Define `__event_type__` on every Event subclass** -- explicit routing keys are easier to trace than auto-generated class names

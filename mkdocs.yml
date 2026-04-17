@@ -195,6 +195,10 @@ nav:
       - Decorators: observability/decorators.md
       - Endpoints: observability/endpoints.md
       - Integrations: observability/integrations.md
+      - Auto-Instrumentation: observability/auto-instrumentation.md
+      - Collectors: observability/collectors.md
+      - Exporters: observability/exporters.md
+      - Spans: observability/spans.md
 
   - Configuration:
       - config/index.md
@@ -246,6 +250,15 @@ nav:
       - Database: performance/database.md
       - Async: performance/async.md
       - Query Optimization: performance/optimization.md
+      - Memory Profiling: performance/memory-profiling.md
+      - Rust Extensions:
+          - Overview: performance/rust-extensions.md
+          - Radix Router: performance/rust-radix-router.md
+          - JWT: performance/rust-jwt.md
+          - Serializer: performance/rust-serializer.md
+          - Header Parser: performance/rust-header-parser.md
+          - Query Parser: performance/rust-query-parser.md
+          - Fuzz Testing: performance/rust-fuzz-testing.md
 
   - Benchmarks:
       - benchmarks/index.md
@@ -281,16 +294,39 @@ nav:
       - Factories: testing/factories.md
       - Assertions: testing/assertions.md
 
+  - Analytics:
+      - analytics/index.md
+
+  - Experiments:
+      - experiments/index.md
+
   - Cookbook:
       - cookbook/index.md
       - Common Patterns: cookbook/common-patterns.md
       - Authentication: cookbook/authentication.md
       - Database: cookbook/database.md
       - Testing: cookbook/testing.md
+      - CQRS: cookbook/cqrs-recipes.md
+      - Events: cookbook/events-recipes.md
+      - Interceptors: cookbook/interceptors-recipes.md
+      - Streaming: cookbook/streaming-recipes.md
+      - Security: cookbook/security-recipes.md
+      - Performance: cookbook/performance-recipes.md
+      - Deployment: cookbook/deployment-recipes.md
+
+  - Tutorials:
+      - tutorials/index.md
+      - Build a REST API: tutorials/build-a-rest-api.md
+      - Build a SaaS App: tutorials/build-a-saas-app.md
+      - AI Streaming API: tutorials/ai-streaming-api.md
+      - Realtime Features: tutorials/realtime-features.md
+      - Testing Guide: tutorials/testing-guide.md
+      - Service Layer: tutorials/service-layer.md
 
   - Migration Guides:
       - From DRF: migration/from-drf.md
       - From Django Ninja: migration/from-django-ninja.md
+      - From FastAPI: migration/from-fastapi.md
 
   - API Reference:
       - Core: api/core.md
@@ -307,6 +343,8 @@ nav:
       - Files: features/files.md
       - Tasks: features/tasks.md
       - WebSockets: features/websockets.md
+      - Server Backends: features/server-backends.md
+      - Background Workers: features/background-workers.md
 
   - Request Pipeline:
       - Interceptors: interceptors/overview.md
@@ -324,17 +362,20 @@ nav:
       - Providers: email/providers.md
       - Templates: email/templates.md
       - Tracking: email/tracking.md
+      - Suppression Lists: email/suppression.md
 
   - Messaging:
       - messaging/overview.md
       - Conversations: messaging/conversations.md
       - Messages: messaging/messages.md
       - Realtime: messaging/realtime.md
+      - Attachments: messaging/attachments.md
 
   - Notifications:
       - notifications/overview.md
       - Channels: notifications/channels.md
       - Preferences: notifications/preferences.md
+      - Delivery Pipeline: notifications/delivery.md
 
   - Streaming:
       - SSE & Streaming: streaming/overview.md
@@ -350,11 +391,20 @@ nav:
       - Slim Mode: slim-mode.md
 
   - Frontend:
-      - Components: components/overview.md
-      - Forms: components/forms.md
-      - Theming: components/theming.md
+      - Components:
+          - Overview: components/overview.md
+          - Forms: components/forms.md
+          - Theming: components/theming.md
+          - Data Binding: components/data.md
+          - Layout: components/layout.md
+          - Renderers: components/renderers.md
+      - Vite Integration: vite/index.md
+      - Tailwind CSS: tailwind/index.md
+      - Inertia.js: inertia/index.md
+      - Unpoly: unpoly/index.md
       - HTMX: htmx/overview.md
       - Livewire: livewire/overview.md
+      - Modern Forms: forms/index.md
 
   - Data:
       - Serialization Groups: serialization/overview.md
@@ -386,9 +436,16 @@ nav:
   - Design:
       - Pages System: design/pages-system.md
 
+  - Developer Tools:
+      - Code Review Agent: review/index.md
+      - Request Inspector: inspector/index.md
+      - Hot Reload: features/hot-reload.md
+      - Predicate Permissions: rules/index.md
+      - Hybrid Properties: features/hybrid-properties.md
+
   - Advanced:
       - Dependency Injection: di/overview.md
-      - Content Negotiation: negotiation/overview.md
+      - Content Negotiation: features/content-negotiation.md
       - Admin Integration: admin/overview.md
       - Audit Logging: audit/overview.md
       - OpenAPI: openapi/overview.md

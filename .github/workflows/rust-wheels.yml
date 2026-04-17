@@ -15,7 +15,9 @@ permissions:
   contents: read
 
 jobs:
+  # ---------------------------------------------------------------------------
   # Linux manylinux wheels (x86_64 + aarch64)
+  # ---------------------------------------------------------------------------
   build-linux:
     name: Linux (${{ matrix.target }}, Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
@@ -23,7 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         target: [x86_64, aarch64]
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
 
@@ -41,7 +43,9 @@ jobs:
           name: wheel-linux-${{ matrix.target }}-py${{ matrix.python-version }}
           path: rust/dist/*.whl
 
+  # ---------------------------------------------------------------------------
   # macOS wheels (x86_64 + ARM)
+  # ---------------------------------------------------------------------------
   build-macos:
     name: macOS (${{ matrix.target }}, Python ${{ matrix.python-version }})
     runs-on: ${{ matrix.target == 'aarch64-apple-darwin' && 'macos-14' || 'macos-13' }}
@@ -49,13 +53,14 @@ jobs:
       fail-fast: false
       matrix:
         target: [x86_64-apple-darwin, aarch64-apple-darwin]
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
 
       - name: Build wheel
         uses: PyO3/maturin-action@v1
@@ -70,20 +75,23 @@ jobs:
           name: wheel-macos-${{ matrix.target }}-py${{ matrix.python-version }}
           path: rust/dist/*.whl
 
+  # ---------------------------------------------------------------------------
   # Windows wheels
+  # ---------------------------------------------------------------------------
   build-windows:
     name: Windows (Python ${{ matrix.python-version }})
     runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
 
       - name: Build wheel
         uses: PyO3/maturin-action@v1
@@ -98,7 +106,9 @@ jobs:
           name: wheel-windows-py${{ matrix.python-version }}
           path: rust/dist/*.whl
 
+  # ---------------------------------------------------------------------------
   # Source distribution
+  # ---------------------------------------------------------------------------
   build-sdist:
     name: Source Distribution
     runs-on: ubuntu-latest
@@ -117,3 +127,133 @@ jobs:
         with:
           name: sdist
           path: rust/dist/*.tar.gz
+
+  # ---------------------------------------------------------------------------
+  # Smoke test — install each wheel and verify the Rust module loads
+  # ---------------------------------------------------------------------------
+  smoke-test:
+    name: Smoke Test (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    needs: [build-linux, build-macos, build-windows]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python-version: "3.12"
+            artifact: wheel-linux-x86_64-py3.12
+          - os: ubuntu-latest
+            python-version: "3.13"
+            artifact: wheel-linux-x86_64-py3.13
+          - os: macos-14
+            python-version: "3.12"
+            artifact: wheel-macos-aarch64-apple-darwin-py3.12
+          - os: macos-14
+            python-version: "3.13"
+            artifact: wheel-macos-aarch64-apple-darwin-py3.13
+          - os: windows-latest
+            python-version: "3.12"
+            artifact: wheel-windows-py3.12
+          - os: windows-latest
+            python-version: "3.13"
+            artifact: wheel-windows-py3.13
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Download wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/
+
+      - name: Install wheel
+        run: pip install dist/*.whl
+
+      - name: Verify Rust module loads
+        run: |
+          python -c "
+          from django_matt._rust import (
+              HAS_RUST_EXTENSIONS,
+              RadixRouter,
+              jwt_encode,
+              jwt_decode,
+              jwt_verify,
+              parse_headers,
+              parse_query_string,
+              serialize_dicts_to_json,
+              serialize_dict_to_json,
+              build_camel_case_map,
+              RateLimiter,
+              PermissionEvaluator,
+              SchemaValidator,
+              MiddlewareChain,
+              build_select,
+              build_filter_clause,
+          )
+          assert HAS_RUST_EXTENSIONS is True, 'HAS_RUST_EXTENSIONS should be True'
+          print('All Rust extensions loaded successfully')
+          "
+
+      - name: Run basic functionality check
+        run: |
+          python -c "
+          from django_matt._rust import RadixRouter, jwt_encode, jwt_decode, parse_query_string
+
+          # Router
+          router = RadixRouter()
+          router.insert('/users', 'list_users')
+          router.insert('/users/{id}', 'get_user')
+          assert router.match('/users') == ('list_users', {})
+          match = router.match('/users/42')
+          assert match[0] == 'get_user'
+          print('Router: OK')
+
+          # JWT round-trip (HS256)
+          token = jwt_encode({'sub': '123', 'exp': 9999999999}, 'secret', 'HS256')
+          assert isinstance(token, str)
+          payload = jwt_decode(token, 'secret', 'HS256')
+          assert payload['sub'] == '123'
+          print('JWT: OK')
+
+          # Query string parsing
+          result = parse_query_string('page=1&limit=20&sort=-created_at')
+          assert result is not None
+          print('Query string parser: OK')
+
+          print('All smoke tests passed')
+          "
+
+  # ---------------------------------------------------------------------------
+  # Publish to PyPI (only on tag push)
+  # ---------------------------------------------------------------------------
+  publish:
+    name: Publish django-matt-rust to PyPI
+    needs: [smoke-test, build-sdist]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi-rust
+      url: https://pypi.org/p/django-matt-rust
+    permissions:
+      id-token: write
+    steps:
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheel-*
+          path: dist/
+          merge-multiple: true
+
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist/
+
+      - name: List artifacts
+        run: ls -lh dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
