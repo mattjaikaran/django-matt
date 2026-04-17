@@ -10,7 +10,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any
 
-logger = logging.getLogger("django_matt.migrations.squash")
+logger = logging.getLogger("django_matt.migration_tools.squash")
 
 
 @dataclass

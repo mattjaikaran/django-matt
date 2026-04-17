@@ -7,7 +7,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
 
-logger = logging.getLogger("django_matt.migrations.graph")
+logger = logging.getLogger("django_matt.migration_tools.graph")
 
 
 @dataclass

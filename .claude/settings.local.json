@@ -140,7 +140,14 @@
       "Bash(while read:*)",
       "Bash(do git:*)",
       "Bash(do echo:*)",
-      "Read(//Users/mattjaikaran/dev/django-matt/.claude/worktrees/agent-a481bec9/**)"
+      "Read(//Users/mattjaikaran/dev/django-matt/.claude/worktrees/agent-a481bec9/**)",
+      "Bash(head -10 wc -l /Users/mattjaikaran/dev/django-matt/django_matt/modules/*.py)",
+      "Bash([ ! -f /Users/mattjaikaran/dev/django-matt/tests/test_review/test_core.py ])",
+      "Bash([ ! -f /Users/mattjaikaran/dev/django-matt/tests/test_review/test_analyzers.py ])",
+      "Bash([ ! -f /Users/mattjaikaran/dev/django-matt/tests/test_review/test_reporters.py ])",
+      "Bash(git stash:*)",
+      "Bash(cargo check:*)",
+      "Bash(/usr/bin/find:*)"
     ]
   }
 }

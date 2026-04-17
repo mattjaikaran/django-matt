@@ -51,6 +51,9 @@ dependencies = [
 [project.scripts]
 matt = "django_matt.cli.main:app"
 
+[project.entry-points.pytest11]
+matt = "django_matt.testing.smart.plugin"
+
 [project.optional-dependencies]
 # Development tools
 dev = [

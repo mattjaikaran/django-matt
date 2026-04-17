@@ -12,7 +12,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-logger = logging.getLogger("django_matt.migrations.state_hash")
+logger = logging.getLogger("django_matt.migration_tools.state_hash")
 
 
 @dataclass

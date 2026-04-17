@@ -7,9 +7,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from django_matt.migrations.rewriters.base import BaseRewriter, RewriteResult, Severity
+from django_matt.migration_tools.rewriters.base import BaseRewriter, RewriteResult, Severity
 
-logger = logging.getLogger("django_matt.migrations.advisor")
+logger = logging.getLogger("django_matt.migration_tools.advisor")
 
 
 @dataclass
@@ -41,7 +41,7 @@ class MigrationAdvisor:
 
     def __init__(self, rewriters: list[BaseRewriter] | None = None) -> None:
         if rewriters is None:
-            from django_matt.migrations.rewriters import (
+            from django_matt.migration_tools.rewriters import (
                 AddNonNullableRewriter,
                 ConcurrentIndexRewriter,
                 RenameFieldRewriter,

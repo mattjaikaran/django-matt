@@ -1,4 +1,4 @@
-"""Tests for django_matt.migrations — advisor, rewriters, and graph renderer."""
+"""Tests for django_matt.migration_tools — advisor, rewriters, and graph renderer."""
 
 from __future__ import annotations
 
@@ -10,12 +10,12 @@ from django.db import models
 from django.db.migrations.operations.fields import AddField, RenameField
 from django.db.migrations.operations.models import AddIndex
 
-from django_matt.migrations.advisor import MigrationAdvisor, MigrationIssue
-from django_matt.migrations.graph import MigrationConflict, MigrationGraphRenderer
-from django_matt.migrations.rewriters.base import Severity
-from django_matt.migrations.rewriters.concurrent import ConcurrentIndexRewriter
-from django_matt.migrations.rewriters.non_nullable import AddNonNullableRewriter
-from django_matt.migrations.rewriters.rename import RenameFieldRewriter
+from django_matt.migration_tools.advisor import MigrationAdvisor, MigrationIssue
+from django_matt.migration_tools.graph import MigrationConflict, MigrationGraphRenderer
+from django_matt.migration_tools.rewriters.base import Severity
+from django_matt.migration_tools.rewriters.concurrent import ConcurrentIndexRewriter
+from django_matt.migration_tools.rewriters.non_nullable import AddNonNullableRewriter
+from django_matt.migration_tools.rewriters.rename import RenameFieldRewriter
 
 
 # ──────────────────────────────────────────────

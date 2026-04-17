@@ -70,7 +70,7 @@ class Command(BaseCommand):
             sys.exit(1)
 
     def _handle_check(self, options):
-        from django_matt.migrations.advisor import MigrationAdvisor
+        from django_matt.migration_tools.advisor import MigrationAdvisor
 
         advisor = MigrationAdvisor()
 
@@ -110,7 +110,7 @@ class Command(BaseCommand):
         from django.db import connection
         from django.db.migrations.loader import MigrationLoader
 
-        from django_matt.migrations.graph import MigrationGraphRenderer
+        from django_matt.migration_tools.graph import MigrationGraphRenderer
 
         loader = MigrationLoader(connection)
         renderer = MigrationGraphRenderer()
@@ -128,7 +128,7 @@ class Command(BaseCommand):
         from django.db import connection
         from django.db.migrations.loader import MigrationLoader
 
-        from django_matt.migrations.graph import MigrationGraphRenderer
+        from django_matt.migration_tools.graph import MigrationGraphRenderer
 
         loader = MigrationLoader(connection)
         renderer = MigrationGraphRenderer()
@@ -145,7 +145,7 @@ class Command(BaseCommand):
         from django.db import connection
         from django.db.migrations.loader import MigrationLoader
 
-        from django_matt.migrations.graph import MigrationGraphRenderer
+        from django_matt.migration_tools.graph import MigrationGraphRenderer
 
         loader = MigrationLoader(connection)
         renderer = MigrationGraphRenderer()

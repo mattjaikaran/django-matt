@@ -6,7 +6,7 @@ from typing import Any
 
 from django.db.migrations.operations.fields import RenameField
 
-from django_matt.migrations.rewriters.base import BaseRewriter, RewriteResult, RewriteStep
+from django_matt.migration_tools.rewriters.base import BaseRewriter, RewriteResult, RewriteStep
 
 
 class RenameFieldRewriter(BaseRewriter):
