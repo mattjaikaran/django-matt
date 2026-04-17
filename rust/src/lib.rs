@@ -2,7 +2,9 @@ use pyo3::prelude::*;
 
 mod headers;
 mod jwt;
+mod permissions;
 mod querystring;
+mod rate_limiter;
 mod router;
 mod serializer;
 
@@ -14,6 +16,8 @@ mod serializer;
 /// - Query string parsing
 /// - Header parsing
 /// - JSON serialization (dict list → bytes)
+/// - Rate limiting (token bucket)
+/// - Permission evaluation (bitfield expressions)
 #[pymodule]
 fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
@@ -24,6 +28,8 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     querystring::register(m)?;
     headers::register(m)?;
     serializer::register(m)?;
+    rate_limiter::register(m)?;
+    permissions::register(m)?;
 
     Ok(())
 }
