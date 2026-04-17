@@ -2,7 +2,9 @@ use pyo3::prelude::*;
 
 mod headers;
 mod jwt;
+mod middleware_chain;
 mod permissions;
+mod query_builder;
 mod querystring;
 mod rate_limiter;
 mod router;
@@ -20,6 +22,8 @@ mod validator;
 /// - Rate limiting (token bucket)
 /// - Permission evaluation (bitfield expressions)
 /// - Schema validation (pre-compiled rules)
+/// - Middleware chain (CORS, headers, blocking)
+/// - Query builder (parameterized SQL)
 #[pymodule]
 fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
@@ -33,6 +37,8 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     rate_limiter::register(m)?;
     permissions::register(m)?;
     validator::register(m)?;
+    middleware_chain::register(m)?;
+    query_builder::register(m)?;
 
     Ok(())
 }

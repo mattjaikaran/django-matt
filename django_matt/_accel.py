@@ -28,6 +28,9 @@ try:
     from django_matt._rust import PermissionEvaluator as PermissionEvaluatorRust
     from django_matt._rust import RateLimiter as RateLimiterRust
     from django_matt._rust import SchemaValidator as SchemaValidatorRust
+    from django_matt._rust import MiddlewareChain as MiddlewareChainRust
+    from django_matt._rust import build_select as build_select_rust
+    from django_matt._rust import build_filter_clause as build_filter_clause_rust
 except ImportError:
     HAS_RUST = False
     RadixRouter = None  # type: ignore[assignment, misc]
@@ -42,6 +45,9 @@ except ImportError:
     RateLimiterRust = None  # type: ignore[assignment, misc]
     PermissionEvaluatorRust = None  # type: ignore[assignment, misc]
     SchemaValidatorRust = None  # type: ignore[assignment, misc]
+    MiddlewareChainRust = None  # type: ignore[assignment, misc]
+    build_select_rust: Callable | None = None  # type: ignore[assignment, no-redef]
+    build_filter_clause_rust: Callable | None = None  # type: ignore[assignment, no-redef]
 
 __all__ = [
     "HAS_RUST",
@@ -57,4 +63,7 @@ __all__ = [
     "parse_query_string_rust",
     "serialize_dict_to_json",
     "serialize_dicts_to_json",
+    "MiddlewareChainRust",
+    "build_select_rust",
+    "build_filter_clause_rust",
 ]
