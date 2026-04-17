@@ -20,7 +20,7 @@ Example:
     output.write_to_disk()
 """
 
-from django_matt.sdkgen.base import SDKConfig, SDKGenerator, SDKOutput
+from django_matt.sdkgen.base import SchemaVersioning, SDKConfig, SDKGenerator, SDKOutput
 from django_matt.sdkgen.python_sdk import PythonSDKGenerator
 from django_matt.sdkgen.swift import SwiftSDKGenerator
 from django_matt.sdkgen.typescript import TypeScriptSDKGenerator
@@ -29,6 +29,7 @@ __all__ = [
     "SDKConfig",
     "SDKGenerator",
     "SDKOutput",
+    "SchemaVersioning",
     "TypeScriptSDKGenerator",
     "PythonSDKGenerator",
     "SwiftSDKGenerator",

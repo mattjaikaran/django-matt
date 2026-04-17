@@ -102,6 +102,108 @@ class HotReloadEventHandler(FileSystemEventHandler):
         self.reload_callback(event.src_path)
 
 
+class MigrationDetector:
+    """
+    Detect model changes that require new migrations.
+
+    Watches for model file changes and runs makemigrations check
+    to see if new migrations are needed.
+    """
+
+    def __init__(
+        self,
+        auto_make: bool = True,
+        auto_migrate: bool = True,
+        console_output: bool = True,
+    ) -> None:
+        self.auto_make = auto_make
+        self.auto_migrate = auto_migrate
+        self.console_output = console_output
+        self._last_check: float = 0
+        self._check_interval: float = 2.0
+        self._lock = threading.Lock()
+
+    def should_check(self, file_path: str) -> bool:
+        """Determine if a file change warrants a migration check."""
+        path = Path(file_path)
+        if "migrations" in path.parts:
+            return False
+        if path.suffix != ".py":
+            return False
+        name = path.stem
+        return name in ("models", "model") or path.parent.name == "models"
+
+    def check_and_apply(self) -> None:
+        """Check for pending migrations and optionally create/apply them."""
+        with self._lock:
+            now = time.time()
+            if now - self._last_check < self._check_interval:
+                return
+            self._last_check = now
+
+        result = subprocess.run(
+            [sys.executable, "manage.py", "makemigrations", "--check", "--dry-run"],
+            capture_output=True,
+            text=True,
+        )
+
+        if result.returncode == 0:
+            return
+
+        logger.info("Model changes detected — migrations needed")
+
+        if self.console_output:
+            print(f"\n{'=' * 60}")  # noqa: T201
+            print("  Model changes detected!")  # noqa: T201
+            print(f"{'=' * 60}")  # noqa: T201
+
+        if self.auto_make:
+            logger.info("Auto-generating migrations...")
+            if self.console_output:
+                print("  Running makemigrations...")  # noqa: T201
+
+            make_result = subprocess.run(
+                [sys.executable, "manage.py", "makemigrations"],
+                capture_output=True,
+                text=True,
+            )
+
+            if make_result.returncode == 0:
+                if self.console_output:
+                    for line in make_result.stdout.strip().splitlines():
+                        print(f"    {line}")  # noqa: T201
+
+                if self.auto_migrate:
+                    logger.info("Auto-applying migrations...")
+                    if self.console_output:
+                        print("  Running migrate...")  # noqa: T201
+
+                    migrate_result = subprocess.run(
+                        [sys.executable, "manage.py", "migrate"],
+                        capture_output=True,
+                        text=True,
+                    )
+
+                    if migrate_result.returncode == 0:
+                        if self.console_output:
+                            print("  Migrations applied successfully.")  # noqa: T201
+                    else:
+                        logger.error("Migration failed: %s", migrate_result.stderr)
+                        if self.console_output:
+                            print(  # noqa: T201
+                                f"  Migration failed: {migrate_result.stderr[:200]}"
+                            )
+            else:
+                logger.error("makemigrations failed: %s", make_result.stderr)
+                if self.console_output:
+                    print(  # noqa: T201
+                        f"  makemigrations failed: {make_result.stderr[:200]}"
+                    )
+
+        if self.console_output:
+            print(f"{'=' * 60}\n")  # noqa: T201
+
+
 class WebSocketServer:
     """
     WebSocket server for communicating with the browser.
@@ -231,6 +333,8 @@ class HotReloader:
         use_websocket: bool = True,
         websocket_host: str = "localhost",
         websocket_port: int = 35729,
+        auto_migrations: bool = False,
+        auto_migrate: bool = False,
     ):
         self.project_dir = Path(project_dir)
         self.watched_extensions = watched_extensions or {".py", ".html", ".js", ".css"}
@@ -260,6 +364,15 @@ class HotReloader:
         self.websocket_server = None
         self.server_process = None
         self.running = False
+        _enable_migrations = auto_migrations or auto_migrate
+        self.migration_detector: MigrationDetector | None = (
+            MigrationDetector(
+                auto_make=_enable_migrations,
+                auto_migrate=_enable_migrations,
+            )
+            if _enable_migrations
+            else None
+        )
 
     def start(self, server_command: list[str] = None):
         """
@@ -346,6 +459,13 @@ class HotReloader:
 
     def _handle_reload(self, file_path: str):
         """Handle a file change event."""
+        # Check for migration needs before reloading
+        if self.migration_detector and self.migration_detector.should_check(file_path):
+            threading.Thread(
+                target=self.migration_detector.check_and_apply,
+                daemon=True,
+            ).start()
+
         _, ext = os.path.splitext(file_path)
 
         # For Python files, restart the server

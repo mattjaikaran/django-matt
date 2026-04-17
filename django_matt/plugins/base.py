@@ -13,9 +13,7 @@ logger = logging.getLogger("django_matt.plugins")
 class CheckMessage:
     """Simple check message for plugin health checks."""
 
-    def __init__(
-        self, level: str, msg: str, hint: str = "", obj: Any = None
-    ) -> None:
+    def __init__(self, level: str, msg: str, hint: str = "", obj: Any = None) -> None:
         self.level = level
         self.msg = msg
         self.hint = hint
@@ -44,6 +42,9 @@ class MattPlugin(ABC):
     description: str = ""
     author: str = ""
     django_matt_version: str = "0.1.0"
+    django_matt_max_version: str = ""  # Empty = no upper bound
+    python_requires: str = ">=3.12"
+    django_requires: str = ">=5.2"
     dependencies: list[str] = []
     settings_prefix: str = ""
 

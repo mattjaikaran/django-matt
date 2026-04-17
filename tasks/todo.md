@@ -130,7 +130,7 @@ Replace gunicorn+uvicorn with Rust-native ASGI servers for lower latency and sim
 - [x] `matt serve` CLI command — `matt_serve.py`
 - [x] Dockerfile templates per server backend (robyn, granian, gunicorn) — `DockerfileGenerator` installs the chosen backend wheel and renders backend-specific CMD; `--server` flag wired into `deploy docker` and `deploy config --platform docker`
 - [x] Benchmark suite — compare request/s, p50/p95/p99 latency across uvicorn/gunicorn/granian (`benchmarks/bench_servers.py` + `make bench-servers`); robyn skipped (own framework, not generic ASGI host); memory profiling deferred to next item
-- [ ] Docs: server backend selection guide with tradeoffs
+- [x] Docs: server backend selection guide with tradeoffs — `docs/features/server-backends.md`
 
 **Why:** Gunicorn is a process manager written in Python wrapping uvicorn workers. Robyn and Granian are Rust-native servers that handle HTTP parsing, connection management, and worker orchestration in compiled code. This removes an entire Python layer from the hot path. Combined with django-matt's existing Rust extensions (router dispatch, JWT, serialization), the full request pipeline from TCP accept to response write can be predominantly Rust.
 
@@ -151,7 +151,7 @@ The typegen and RPC modules generate code — ship pre-built SDK packages too.
 - [x] TypeScript SDK generator — `sdkgen/typescript.py`
 - [x] Swift SDK generator — `sdkgen/swift.py`
 - [x] Python SDK generator — `sdkgen/python_sdk.py`
-- [ ] SDK versioning tied to API schema hash (auto-bump on breaking changes)
+- [x] SDK versioning tied to API schema hash (auto-bump on breaking changes) — `SchemaVersioning` in `sdkgen/base.py`
 - [x] SDK generation as part of CI — publish on tag — `scripts/generate_sdks.py` produces TS/Python/Swift packages from `sdk-reference/openapi.json`; release.yml runs generate→npm publish / PyPI publish / GitHub release asset attach on every `vX.Y.Z` tag
 
 ### Plugin Ecosystem
@@ -160,7 +160,7 @@ Module system exists — build the ecosystem around it.
 - [x] `matt plugin init <name>` — `plugins/scaffold.py` + `matt_plugin` command
 - [x] Plugin discovery / registry — `plugins/registry.py`, `plugins/loader.py`, `plugins/hooks.py`
 - [x] Example plugins: `django-matt-stripe-webhooks`, `django-matt-clerk-auth`, `django-matt-resend` — in `examples/plugins/`
-- [ ] Plugin compatibility matrix (django-matt version × plugin version)
+- [x] Plugin compatibility matrix (django-matt version × plugin version) — `PluginLoader.compatibility_matrix()`, `MattPlugin.django_matt_max_version/python_requires/django_requires`
 
 ### Rust Extensions (Deferred)
 - [ ] CI wheel building — GitHub Actions manylinux/macOS/Windows (7.0.4)
@@ -211,7 +211,7 @@ The #1 cited gap vs Rails/Laravel. No Django answer exists that isn't a third-pa
   - [x] `management/commands/vite_build.py` — `python manage.py vite_build` (wraps vite build with Django env)
   - [x] `management/commands/vite_dev.py` — `python manage.py vite_dev` (starts Vite + Django dev server together)
 - [x] **CSS framework integration** — `tailwind/` module (1250 lines) + component form field classes
-- [ ] **Static file fingerprinting** — content-hash URLs for cache busting without Vite (simple mode)
+- [x] **Static file fingerprinting** — content-hash URLs for cache busting without Vite (simple mode) — `vite/fingerprint.py`, `FingerprintedStorage`, `{% fingerprint %}` tag, `fingerprint_static` command
 
 ### Inertia.js Adapter
 Server-driven SPA without an API. Huge DX win for Django + React/Vue/Svelte.
@@ -255,7 +255,7 @@ Computed properties that work in Python AND at the database level.
   - [x] `@hybrid_property.expression` — define the SQL expression equivalent
   - [x] `HybridManager` — queryset mixin that resolves hybrid properties in filter()/order_by()/annotate()
   - [x] Support for comparisons: `Model.objects.filter(full_name="John Doe")` generates `Concat(F('first_name'), Value(' '), F('last_name'))`
-- [ ] Docs with side-by-side SQLAlchemy comparison
+- [x] Docs with side-by-side SQLAlchemy comparison — `docs/features/hybrid-properties.md`
 
 ### Model Refactoring Tools
 Moving models between apps is one of Django's biggest pain points.
@@ -302,7 +302,7 @@ Current storage works but lacks modern features. S3 presigned URLs, chunked uplo
   - [x] S3 multipart upload integration — use S3 native multipart for large files
 - [x] **Presigned URL generation** — `files/presigned.py` (194 lines)
 - [x] **Image processing pipeline** — `files/processing.py` (337 lines)
-- [ ] **R2/MinIO/Backblaze B2 backends** — beyond S3, expand storage options
+- [x] **R2/MinIO/Backblaze B2 backends** — beyond S3, expand storage options — R2, MinIO, DOSpaces already existed; added `B2Storage` in `files/s3.py`
 - [x] **Storage events** — `files/events.py` (128 lines) emit events on upload/delete/access
 - [x] **File metadata** — `files/metadata.py` (255 lines) auto-extract MIME type, dimensions, duration
 
@@ -313,16 +313,16 @@ Django is getting native background workers. Our tasks module should be the best
 - [x] Auto-detection: if Django >= 6.0 and `django.core.workers` is available, use it as default backend
 - [x] Graceful fallback: if workers not available, fall back to configured backend
 - [x] Same `@task` / `@periodic_task` decorator API regardless of backend — zero migration needed
-- [ ] Docs: when to use native workers vs Celery vs Dramatiq (decision guide)
+- [x] Docs: when to use native workers vs Celery vs Dramatiq (decision guide) — `docs/features/background-workers.md`
 
 ### Dev Server & HMR Enhancement
 The dev experience should rival `rails server` or `php artisan serve`.
 
 - [x] **`matt dev`** — `matt_dev.py` (207 lines) starts Django + Vite + file watcher in one process
-- [ ] **Browser error overlay** — dev middleware that injects error overlay HTML on 500s (like Next.js/Vite)
-- [ ] **Request inspector panel** — dev toolbar showing request/response, SQL queries, cache hits, time breakdown
+- [x] **Browser error overlay** — dev middleware that injects error overlay HTML on 500s (like Next.js/Vite) — `dev/error_overlay.py`, `ErrorOverlayMiddleware`
+- [x] **Request inspector panel** — dev toolbar showing request/response, SQL queries, cache hits, time breakdown — `inspector/toolbar.py`, `ToolbarMiddleware`
   - Integration with existing `django_matt/inspector/` module
-- [ ] **Auto-reload on migration** — detect model changes, prompt to makemigrations + migrate
+- [x] **Auto-reload on migration** — detect model changes, auto-run makemigrations + migrate — `MigrationDetector` in `dev/hot_reload.py`, `--auto-migrate` flag in `matt_dev`
 - [x] **Port auto-detection** — if 8000 is taken, try 8001, 8002, etc. (in matt_dev.py)
 
 ### Modern Forms Integration
@@ -341,7 +341,7 @@ Common operations every Django project needs.
 - [x] **`matt export`** — `matt_export.py` (282 lines) CSV/JSON/JSONL export with filters
 - [x] **`matt import`** — `matt_import.py` (286 lines) CSV/JSON import with --dry-run
 - [x] **`matt fixtures`** — `matt_fixtures.py` (217 lines) generate test fixtures
-- [ ] **`matt seed`** — populate dev database with realistic data from fixture definitions
+- [x] **`matt seed`** — populate dev database with realistic data from fixture definitions — `--fixtures` flag with YAML/TOML support, `seed.example.yaml`
 
 ---
 

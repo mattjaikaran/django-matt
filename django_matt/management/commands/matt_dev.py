@@ -66,6 +66,12 @@ class Command(BaseCommand):
             choices=["uvicorn", "robyn", "granian"],
             help="Server backend for dev (default: Django runserver)",
         )
+        parser.add_argument(
+            "--auto-migrate",
+            action="store_true",
+            default=False,
+            help="Auto-detect model changes and run makemigrations + migrate",
+        )
 
     def handle(self, **options: Any) -> str | None:
         host: str = options["host"]
@@ -74,6 +80,7 @@ class Command(BaseCommand):
         skip_hot_reload: bool = options["no_hot_reload"]
         vite_port: int = options["vite_port"]
         server_backend: str | None = options.get("server")
+        auto_migrate: bool = options["auto_migrate"]
 
         # Auto-detect available port
         port = self._find_open_port(host, port)
@@ -106,20 +113,24 @@ class Command(BaseCommand):
                     )
 
             # 2. Start Django
-            self.stdout.write(
-                self.style.SUCCESS(f"  Django server:   http://{host}:{port}")
-            )
+            self.stdout.write(self.style.SUCCESS(f"  Django server:   http://{host}:{port}"))
             self.stdout.write("")
 
             # Build runserver command
             if server_backend:
                 # Use matt_serve with the chosen backend in dev mode
                 cmd = [
-                    sys.executable, "manage.py", "matt_serve",
-                    "--backend", server_backend,
-                    "--host", host,
-                    "--port", str(port),
-                    "--workers", "1",
+                    sys.executable,
+                    "manage.py",
+                    "matt_serve",
+                    "--backend",
+                    server_backend,
+                    "--host",
+                    host,
+                    "--port",
+                    str(port),
+                    "--workers",
+                    "1",
                 ]
             else:
                 cmd = [sys.executable, "manage.py"]
@@ -130,7 +141,9 @@ class Command(BaseCommand):
                 cmd.append(f"{host}:{port}")
 
             # Run Django as the main process (blocks until exit)
-            django_proc = subprocess.Popen(cmd, env=self._build_env(vite_port))
+            django_proc = subprocess.Popen(
+                cmd, env=self._build_env(vite_port, auto_migrate=auto_migrate)
+            )
             processes.append(django_proc)
             django_proc.wait()
 
@@ -193,14 +206,14 @@ class Command(BaseCommand):
             except FileNotFoundError:
                 continue
 
-        self.stdout.write(
-            self.style.WARNING("  Vite not found (install with: bun add -D vite)")
-        )
+        self.stdout.write(self.style.WARNING("  Vite not found (install with: bun add -D vite)"))
         return None
 
-    def _build_env(self, vite_port: int) -> dict[str, str]:
+    def _build_env(self, vite_port: int, auto_migrate: bool = False) -> dict[str, str]:
         """Build environment variables for Django process."""
         env = os.environ.copy()
         env["VITE_DEV_SERVER_URL"] = f"http://localhost:{vite_port}"
         env["DJANGO_MATT_DEV_MODE"] = "1"
+        if auto_migrate:
+            env["DJANGO_MATT_AUTO_MIGRATE"] = "1"
         return env

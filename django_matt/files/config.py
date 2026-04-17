@@ -37,6 +37,10 @@ class FileConfig:
     # R2-specific
     r2_account_id: str = ""
 
+    # B2-specific
+    b2_application_key_id: str = ""
+    b2_application_key: str = ""
+
     # Validation defaults
     max_file_size: int = 10 * 1024 * 1024  # 10MB
     allowed_extensions: list[str] = field(
@@ -76,6 +80,9 @@ class FileConfig:
             s3_public_url=config_dict.get("S3_PUBLIC_URL"),
             # R2
             r2_account_id=config_dict.get("R2_ACCOUNT_ID", ""),
+            # B2
+            b2_application_key_id=config_dict.get("B2_APPLICATION_KEY_ID", ""),
+            b2_application_key=config_dict.get("B2_APPLICATION_KEY", ""),
             # Validation
             max_file_size=config_dict.get("MAX_FILE_SIZE", 10 * 1024 * 1024),
             allowed_extensions=config_dict.get(
@@ -196,4 +203,17 @@ def get_storage(
             public_url=kwargs.get("public_url", config.s3_public_url),
         )
 
-    raise ValueError(f"Unknown storage backend: {backend}. Supported: local, s3, r2, minio, spaces")
+    if backend == "b2":
+        from .s3 import B2Storage
+
+        return B2Storage(
+            bucket=kwargs.get("bucket", config.s3_bucket),
+            region=kwargs.get("region", config.s3_region),
+            application_key_id=kwargs.get("application_key_id", config.b2_application_key_id),
+            application_key=kwargs.get("application_key", config.b2_application_key),
+            public_url=kwargs.get("public_url", config.s3_public_url),
+        )
+
+    raise ValueError(
+        f"Unknown storage backend: {backend}. Supported: local, s3, r2, minio, spaces, b2"
+    )

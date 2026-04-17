@@ -3,7 +3,7 @@ File handling for django-matt.
 
 Provides a complete file handling system with:
 - File upload handling with validation
-- Multiple storage backends (Local, S3, R2, MinIO, DO Spaces)
+- Multiple storage backends (Local, S3, R2, MinIO, DO Spaces, Backblaze B2)
 - Pre-signed URL generation
 - Async support
 
@@ -125,6 +125,7 @@ from .processing import (
     process_image,
 )
 from .s3 import (
+    B2Storage,
     DOSpacesStorage,
     MinIOStorage,
     R2Storage,
@@ -180,6 +181,7 @@ __all__ = [
     "R2Storage",
     "MinIOStorage",
     "DOSpacesStorage",
+    "B2Storage",
     # Config
     "FileConfig",
     "get_file_config",

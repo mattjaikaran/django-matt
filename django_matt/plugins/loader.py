@@ -5,7 +5,7 @@ import importlib.metadata
 import logging
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from django_matt.plugins.base import MattPlugin
 from django_matt.plugins.registry import (
@@ -41,6 +41,32 @@ def _version_compatible(required: str, current: str) -> bool:
     return cur >= req
 
 
+def _satisfies_constraint(version: str, constraint: str) -> bool:
+    """Check if version satisfies a constraint like '>=3.12' or '>=5.2,<6.0'."""
+    ver = _parse_version(version)
+    for part in constraint.split(","):
+        part = part.strip()
+        if part.startswith(">="):
+            if ver < _parse_version(part[2:]):
+                return False
+        elif part.startswith("<="):
+            if ver > _parse_version(part[2:]):
+                return False
+        elif part.startswith(">"):
+            if ver <= _parse_version(part[1:]):
+                return False
+        elif part.startswith("<"):
+            if ver >= _parse_version(part[1:]):
+                return False
+        elif part.startswith("=="):
+            if ver != _parse_version(part[2:]):
+                return False
+        elif part.startswith("!="):
+            if ver == _parse_version(part[2:]):
+                return False
+    return True
+
+
 class PluginLoader:
     """Loads plugins from entry points, settings, and local directories."""
 
@@ -63,9 +89,7 @@ class PluginLoader:
                 discovered.append(plugin)
                 logger.debug("Discovered entry point plugin: %s", ep.name)
             except Exception as exc:
-                logger.warning(
-                    "Failed to load entry point %s: %s", ep.name, exc
-                )
+                logger.warning("Failed to load entry point %s: %s", ep.name, exc)
 
         return discovered
 
@@ -144,8 +168,7 @@ class PluginLoader:
                                 and issubclass(attr, MattPlugin)
                                 and attr is not MattPlugin
                                 and not self.registry.is_registered(
-                                    getattr(attr, "name", "")
-                                    or attr_name.lower()
+                                    getattr(attr, "name", "") or attr_name.lower()
                                 )
                             ):
                                 plugin = self.registry.register(attr)
@@ -164,6 +187,8 @@ class PluginLoader:
 
     def check_versions(self) -> list[str]:
         """Check version compatibility for all registered plugins."""
+        import django
+
         errors: list[str] = []
         for plugin in self.registry.list_plugins():
             if plugin.django_matt_version and not _version_compatible(
@@ -176,7 +201,135 @@ class PluginLoader:
                 )
                 errors.append(msg)
                 self.registry.set_error(plugin.name, msg)
+
+            if plugin.django_matt_max_version:
+                max_v = _parse_version(plugin.django_matt_max_version)
+                cur_v = _parse_version(FRAMEWORK_VERSION)
+                if cur_v > max_v:
+                    msg = (
+                        f"Plugin {plugin.name!r} requires django-matt <= "
+                        f"{plugin.django_matt_max_version}, but {FRAMEWORK_VERSION} "
+                        f"is installed"
+                    )
+                    errors.append(msg)
+                    self.registry.set_error(plugin.name, msg)
+
+            if plugin.python_requires:
+                py_ver = (
+                    f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+                )
+                if not self._check_version_spec(plugin.python_requires, py_ver):
+                    msg = (
+                        f"Plugin {plugin.name!r} requires Python {plugin.python_requires}, "
+                        f"but {py_ver} is installed"
+                    )
+                    errors.append(msg)
+                    self.registry.set_error(plugin.name, msg)
+
+            if plugin.django_requires:
+                django_ver = f"{django.VERSION[0]}.{django.VERSION[1]}"
+                if not self._check_version_spec(plugin.django_requires, django_ver):
+                    msg = (
+                        f"Plugin {plugin.name!r} requires Django {plugin.django_requires}, "
+                        f"but {django_ver} is installed"
+                    )
+                    errors.append(msg)
+                    self.registry.set_error(plugin.name, msg)
+
         return errors
+
+    def compatibility_matrix(self) -> list[dict[str, Any]]:
+        """Generate a compatibility matrix for all registered plugins."""
+        matrix = []
+        for plugin in self.registry.list_plugins():
+            status = self.registry.get_status(plugin.name)
+            compat = {
+                "name": plugin.name,
+                "version": plugin.version,
+                "status": status.value if hasattr(status, "value") else str(status),
+                "django_matt_min": plugin.django_matt_version or "any",
+                "django_matt_max": plugin.django_matt_max_version or "any",
+                "python_requires": plugin.python_requires or "any",
+                "django_requires": plugin.django_requires or "any",
+                "compatible": self._check_plugin_compat(plugin),
+            }
+            matrix.append(compat)
+        return matrix
+
+    def get_compatibility_matrix(self) -> list[dict[str, str]]:
+        """Build a compatibility matrix for all registered plugins."""
+        matrix: list[dict[str, str]] = []
+        for plugin in self.registry.list_plugins():
+            status = self.registry.get_status(plugin.name)
+            matt_range = f">={plugin.django_matt_version}"
+            if plugin.django_matt_max_version:
+                matt_range += f",<={plugin.django_matt_max_version}"
+            matrix.append(
+                {
+                    "name": plugin.name,
+                    "version": plugin.version,
+                    "django_matt": matt_range,
+                    "python": plugin.python_requires or "any",
+                    "django": plugin.django_requires or "any",
+                    "status": status.value if hasattr(status, "value") else str(status),
+                    "dependencies": ", ".join(plugin.dependencies)
+                    if plugin.dependencies
+                    else "none",
+                }
+            )
+        return matrix
+
+    def _check_plugin_compat(self, plugin: MattPlugin) -> bool:
+        """Check if a single plugin is compatible with the current environment."""
+        import django
+
+        # Framework version
+        if plugin.django_matt_version and not _version_compatible(
+            plugin.django_matt_version, FRAMEWORK_VERSION
+        ):
+            return False
+        if plugin.django_matt_max_version:
+            max_v = _parse_version(plugin.django_matt_max_version)
+            cur_v = _parse_version(FRAMEWORK_VERSION)
+            if cur_v > max_v:
+                return False
+        # Python version
+        if plugin.python_requires:
+            py_ver = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            if not self._check_version_spec(plugin.python_requires, py_ver):
+                return False
+        # Django version
+        if plugin.django_requires:
+            django_ver = f"{django.VERSION[0]}.{django.VERSION[1]}"
+            if not self._check_version_spec(plugin.django_requires, django_ver):
+                return False
+        return True
+
+    @staticmethod
+    def _check_version_spec(spec: str, current: str) -> bool:
+        """Check if current version satisfies a version spec like '>=3.12' or '>=5.2,<6.0'."""
+        cur = _parse_version(current)
+        for part in spec.split(","):
+            part = part.strip()
+            if part.startswith(">="):
+                if cur < _parse_version(part[2:]):
+                    return False
+            elif part.startswith("<="):
+                if cur > _parse_version(part[2:]):
+                    return False
+            elif part.startswith(">"):
+                if cur <= _parse_version(part[1:]):
+                    return False
+            elif part.startswith("<"):
+                if cur >= _parse_version(part[1:]):
+                    return False
+            elif part.startswith("=="):
+                if cur != _parse_version(part[2:]):
+                    return False
+            elif part.startswith("!="):
+                if cur == _parse_version(part[2:]):
+                    return False
+        return True
 
     def load_all(self, api: MattAPI) -> list[MattPlugin]:
         """Load all registered plugins in dependency order."""
@@ -203,9 +356,7 @@ class PluginLoader:
             # Check dependencies are loaded
             for dep in plugin.dependencies:
                 if not self.registry.is_loaded(dep):
-                    msg = (
-                        f"Plugin {name!r} dependency {dep!r} is not loaded"
-                    )
+                    msg = f"Plugin {name!r} dependency {dep!r} is not loaded"
                     logger.error(msg)
                     self.registry.set_error(name, msg)
                     break
@@ -231,7 +382,5 @@ class PluginLoader:
                 try:
                     plugin.on_shutdown()
                 except Exception as exc:
-                    logger.warning(
-                        "Error shutting down plugin %s: %s", name, exc
-                    )
+                    logger.warning("Error shutting down plugin %s: %s", name, exc)
                 self.registry.set_status(name, PluginStatus.REGISTERED)

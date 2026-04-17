@@ -6,6 +6,7 @@ Provides storage backends for:
 - Cloudflare R2
 - MinIO
 - DigitalOcean Spaces
+- Backblaze B2
 """
 
 from __future__ import annotations
@@ -599,4 +600,48 @@ class DOSpacesStorage(S3Storage):
             secret_key=secret_key,
             endpoint=f"https://{region}.digitaloceanspaces.com",
             public_url=public_url or f"https://{bucket}.{region}.digitaloceanspaces.com",
+        )
+
+
+class B2Storage(S3Storage):
+    """
+    Backblaze B2 storage backend.
+
+    B2 provides an S3-compatible API for object storage.
+
+    Usage:
+        storage = B2Storage(
+            bucket="my-bucket",
+            region="us-west-004",
+            application_key_id="...",
+            application_key="...",
+        )
+    """
+
+    def __init__(
+        self,
+        bucket: str,
+        region: str,
+        application_key_id: str,
+        application_key: str,
+        public_url: str = None,
+    ):
+        """
+        Initialize B2 storage.
+
+        Args:
+            bucket: B2 bucket name
+            region: B2 region (e.g., "us-west-004")
+            application_key_id: B2 application key ID
+            application_key: B2 application key
+            public_url: Custom CDN URL (e.g., f-files URL)
+        """
+        super().__init__(
+            bucket=bucket,
+            region=region,
+            access_key=application_key_id,
+            secret_key=application_key,
+            endpoint=f"https://s3.{region}.backblazeb2.com",
+            public_url=public_url,
+            addressing_style="path",
         )

@@ -1,0 +1,32 @@
+# Example seed fixture file for django-matt
+# Usage: python manage.py matt_seed --fixtures seed.yaml
+
+fixtures:
+  - model: auth.User
+    count: 20
+    fields:
+      is_active: true
+      is_staff: false
+    unique_fields: [username, email]
+
+  - model: myapp.Category
+    count: 5
+    fields:
+      name: ["Electronics", "Books", "Clothing", "Home & Garden", "Sports"]
+      is_active: true
+
+  - model: myapp.Product
+    count: 50
+    fields:
+      name: "Product {n}"
+      price: { min: 9.99, max: 999.99 }
+      status: ["active", "draft", "archived"]
+      stock: { min: 0, max: 500 }
+    dependencies: [myapp.Category]
+
+  - model: myapp.Order
+    count: 100
+    fields:
+      status: ["pending", "processing", "shipped", "delivered", "cancelled"]
+      total: { min: 10.0, max: 2000.0 }
+    dependencies: [auth.User, myapp.Product]

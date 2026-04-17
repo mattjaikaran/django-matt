@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import random
 import uuid
+from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -367,6 +369,85 @@ def _fake_url(rng: random.Random) -> str:
     return f"https://{domain}.{tld}/{path}"
 
 
+@dataclass
+class SeedFixture:
+    """Definition of seed data for a model."""
+
+    model: str
+    count: int = 10
+    fields: dict[str, Any] = dataclass_field(default_factory=dict)
+    unique_fields: list[str] = dataclass_field(default_factory=list)
+    dependencies: list[str] = dataclass_field(default_factory=list)
+
+
+def _parse_fixture_file(path: str) -> list[SeedFixture]:
+    """Parse a YAML or TOML seed fixture file."""
+    from pathlib import Path as P
+
+    filepath = P(path)
+
+    if not filepath.exists():
+        raise CommandError(f"Fixture file not found: {path}")
+
+    text = filepath.read_text()
+
+    if filepath.suffix in (".yml", ".yaml"):
+        try:
+            import yaml
+
+            data = yaml.safe_load(text)
+        except ImportError:
+            raise CommandError("PyYAML required for YAML fixtures. Install with: uv add pyyaml")
+    elif filepath.suffix == ".toml":
+        import tomllib
+
+        data = tomllib.loads(text)
+    else:
+        raise CommandError(f"Unsupported fixture format: {filepath.suffix}. Use .yaml or .toml")
+
+    fixtures: list[SeedFixture] = []
+    for item in data.get("fixtures", []):
+        fixtures.append(
+            SeedFixture(
+                model=item["model"],
+                count=item.get("count", 10),
+                fields=item.get("fields", {}),
+                unique_fields=item.get("unique_fields", []),
+                dependencies=item.get("dependencies", []),
+            )
+        )
+
+    return fixtures
+
+
+def _resolve_fixture_value(
+    value: Any,
+    field_obj: models.Field,
+    index: int,
+    rng: random.Random,
+) -> Any:
+    """Resolve a fixture field value to an actual value."""
+    if isinstance(value, list):
+        return rng.choice(value)
+
+    if isinstance(value, dict):
+        if "min" in value and "max" in value:
+            min_val, max_val = value["min"], value["max"]
+            if isinstance(min_val, float) or isinstance(max_val, float):
+                result = rng.uniform(float(min_val), float(max_val))
+                if isinstance(field_obj, models.DecimalField):
+                    places = field_obj.decimal_places or 2
+                    return Decimal(str(round(result, places)))
+                return round(result, 2)
+            return rng.randint(int(min_val), int(max_val))
+        return value
+
+    if isinstance(value, str) and "{n}" in value:
+        return value.replace("{n}", str(index + 1))
+
+    return value
+
+
 class Command(MattCommand):
     help = "Seed development database with realistic fake data"
 
@@ -383,6 +464,11 @@ class Command(MattCommand):
         )
         parser.add_argument("--clear", action="store_true", help="Delete existing records first")
         parser.add_argument("--seed", type=int, help="Random seed for reproducibility")
+        parser.add_argument(
+            "--fixtures",
+            "-f",
+            help="Path to YAML/TOML fixture definition file",
+        )
 
     def handle(self, *args, **options):
         target = options.get("target")
@@ -391,10 +477,14 @@ class Command(MattCommand):
         clear = options["clear"]
         seed_val = options.get("seed")
 
+        rng = random.Random(seed_val)
+
+        fixtures_path = options.get("fixtures")
+        if fixtures_path:
+            return self._handle_fixtures(fixtures_path, count, clear, rng)
+
         if not target and not seed_all:
             raise CommandError("Provide a model/app target or use --all")
-
-        rng = random.Random(seed_val)
 
         # resolve target models
         target_models = self._resolve_targets(target, seed_all)
@@ -507,6 +597,250 @@ class Command(MattCommand):
         self.console.table(results)
         self.console.newline()
         self.console.success("Seeding complete")
+
+    def _handle_fixtures(
+        self,
+        fixture_path: str,
+        default_count: int,
+        clear: bool,
+        rng: random.Random,
+    ) -> None:
+        """Handle seeding from a fixture definition file."""
+        fixtures = _parse_fixture_file(fixture_path)
+        fixtures = self._sort_fixtures(fixtures)
+
+        self.console.header("Database Seeder (Fixture Mode)", f"{len(fixtures)} fixture(s)")
+
+        if clear:
+            self.console.warning("Clearing existing data...")
+            for fixture in reversed(fixtures):
+                try:
+                    app_label, model_name = fixture.model.rsplit(".", 1)
+                    model = apps.get_model(app_label, model_name)
+                    deleted, _ = model.objects.all().delete()
+                    if deleted:
+                        self.console.info(f"  Deleted {deleted} {model.__name__} records")
+                except Exception as e:
+                    self.console.error(f"  Error clearing {fixture.model}: {e}")
+
+        results: list[dict[str, str]] = []
+
+        for fixture in fixtures:
+            app_label, model_name = fixture.model.rsplit(".", 1)
+            try:
+                model = apps.get_model(app_label, model_name)
+            except LookupError:
+                self.console.error(f"Model not found: {fixture.model}")
+                continue
+
+            self.console.section(fixture.model)
+            count_to_create = fixture.count or default_count
+
+            auto_fields = []
+            for f in model._meta.fields:
+                if f.primary_key and (f.has_default() or isinstance(f, models.AutoField)):
+                    continue
+                if isinstance(f, models.AutoField):
+                    continue
+                auto_fields.append(f)
+
+            created = 0
+            error_count = 0
+
+            with self.console.progress(
+                f"Seeding {model.__name__}...", total=count_to_create
+            ) as progress:
+                task = progress.add_task(f"Creating {model.__name__}", total=count_to_create)
+                batch: list[models.Model] = []
+
+                for i in range(count_to_create):
+                    progress.advance(task)
+                    kwargs: dict[str, Any] = {}
+
+                    for f in auto_fields:
+                        if f.name in fixture.fields:
+                            try:
+                                val = _resolve_fixture_value(fixture.fields[f.name], f, i, rng)
+                                if isinstance(f, models.ForeignKey):
+                                    kwargs[f"{f.name}_id"] = (
+                                        val.pk if isinstance(val, models.Model) else val
+                                    )
+                                else:
+                                    kwargs[f.name] = val
+                                continue
+                            except Exception:
+                                pass
+
+                        if f.has_default() and not isinstance(f, models.ForeignKey):
+                            if rng.random() < 0.3:
+                                continue
+                        if f.null and rng.random() < 0.1:
+                            kwargs[f.name] = None
+                            continue
+
+                        try:
+                            val = _generate_for_field(f, model, rng)
+                            if val is not None:
+                                if isinstance(f, models.ForeignKey):
+                                    kwargs[f"{f.name}_id"] = (
+                                        val.pk if isinstance(val, models.Model) else val
+                                    )
+                                else:
+                                    kwargs[f.name] = val
+                        except Exception:
+                            pass
+
+                    try:
+                        instance = model(**kwargs)
+                        instance.full_clean()
+                        batch.append(instance)
+                    except Exception as e:
+                        error_count += 1
+                        if error_count <= 3:
+                            self.console.error(f"  Row error: {e}")
+
+                try:
+                    model.objects.bulk_create(batch, ignore_conflicts=True)
+                    created = len(batch)
+                except Exception:
+                    for instance in batch:
+                        try:
+                            instance.save()
+                            created += 1
+                        except Exception:
+                            error_count += 1
+
+            results.append(
+                {
+                    "Model": fixture.model,
+                    "Created": str(created),
+                    "Errors": str(error_count),
+                }
+            )
+
+        self.console.newline()
+        self.console.section("Seed Summary")
+        self.console.table(results)
+        self.console.newline()
+        self.console.success("Seeding complete")
+
+    @staticmethod
+    def _sort_fixtures(fixtures: list[SeedFixture]) -> list[SeedFixture]:
+        """Topological sort of fixtures by dependencies."""
+        by_model = {f.model: f for f in fixtures}
+        visited: set[str] = set()
+        result: list[SeedFixture] = []
+
+        def visit(model_name: str) -> None:
+            if model_name in visited:
+                return
+            visited.add(model_name)
+            fixture = by_model.get(model_name)
+            if fixture:
+                for dep in fixture.dependencies:
+                    visit(dep)
+                result.append(fixture)
+
+        for f in fixtures:
+            visit(f.model)
+
+        return result
+
+    def _load_fixture_file(self, path) -> dict[str, Any]:
+        """Load fixture definitions from YAML or TOML."""
+        suffix = path.suffix.lower()
+        content = path.read_text()
+
+        if suffix in (".yaml", ".yml"):
+            try:
+                import yaml
+
+                data = yaml.safe_load(content)
+            except ImportError:
+                raise CommandError("PyYAML required for YAML fixtures: uv add pyyaml")
+        elif suffix == ".toml":
+            import tomllib
+
+            data = tomllib.loads(content)
+        elif suffix == ".json":
+            import orjson
+
+            data = orjson.loads(content.encode())
+        else:
+            raise CommandError(f"Unsupported fixture format: {suffix}. Use .yaml, .toml, or .json")
+
+        return data.get("models", {})
+
+    def _get_model(self, model_path: str) -> type[models.Model] | None:
+        """Resolve a model path like 'myapp.User' to a model class."""
+        if "." not in model_path:
+            return None
+        app_label, model_name = model_path.rsplit(".", 1)
+        try:
+            return apps.get_model(app_label, model_name)
+        except LookupError:
+            return None
+
+    def _resolve_fixture_order(self, definitions: dict[str, Any]) -> list[str]:
+        """Topological sort of models based on depends_on."""
+        ordered = []
+        visited: set[str] = set()
+
+        def visit(name: str):
+            if name in visited:
+                return
+            visited.add(name)
+            defn = definitions.get(name, {})
+            for dep in defn.get("depends_on", []):
+                if dep in definitions:
+                    visit(dep)
+            ordered.append(name)
+
+        for name in definitions:
+            visit(name)
+
+        return ordered
+
+    def _resolve_field_value(self, spec: Any, index: int, rng: random.Random) -> Any:
+        """Resolve a fixture field spec to a concrete value."""
+        if isinstance(spec, bool):
+            return spec
+
+        if isinstance(spec, (int, float)):
+            return spec
+
+        if isinstance(spec, str):
+            # Template substitution
+            if "{n}" in spec:
+                return spec.replace("{n}", str(index + 1))
+            if "{" in spec and "}" in spec:
+                # Simple template: {first_name}, {last_name}, etc.
+                import re
+
+                def replacer(m):
+                    key = m.group(1)
+                    gen = _NAME_HEURISTICS.get(key)
+                    if gen:
+                        return str(
+                            _generate_from_hint(
+                                gen,
+                                type("F", (), {"max_length": 255})(),
+                                rng,
+                            )
+                        )
+                    return m.group(0)
+
+                return re.sub(r"\{(\w+)\}", replacer, spec)
+            return spec
+
+        if isinstance(spec, list):
+            if len(spec) == 2 and all(isinstance(x, (int, float)) for x in spec):
+                # Range: [min, max]
+                return round(rng.uniform(spec[0], spec[1]), 2)
+            # Choice list
+            return rng.choice(spec)
+
+        return spec
 
     def _resolve_targets(self, target: str | None, seed_all: bool) -> list[type[models.Model]]:
         """Resolve target string to a list of model classes."""
