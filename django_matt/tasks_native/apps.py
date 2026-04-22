@@ -15,4 +15,18 @@ class TasksNativeConfig(AppConfig):
 
     def ready(self) -> None:
         """Initialize task system when Django starts."""
-        pass
+        from .loading import get_loader, should_register_admin
+
+        loader = get_loader()
+
+        # Register admin if available
+        if should_register_admin():
+            try:
+                from .admin import register_admin
+
+                register_admin()
+                loader.mark_loaded("admin")
+            except Exception:
+                pass
+
+        loader.mark_loaded("core")
