@@ -34,6 +34,19 @@ With Pydantic Validation:
     # Dict is auto-converted and validated
     send_email.delay({"user_id": 1, "template": "welcome"})
 
+Periodic Tasks:
+    from django_matt.tasks_native import periodic_task, crontab, every
+
+    @periodic_task(crontab(hour=9, minute=0))
+    async def daily_report():
+        # Runs daily at 9 AM
+        await generate_report()
+
+    @periodic_task(every(minutes=5))
+    async def health_check():
+        # Runs every 5 minutes
+        await check_system_health()
+
 Production Setup (One Line):
     # settings.py
     MATT_TASKS = {
@@ -58,6 +71,16 @@ from .config import (
 )
 from .core import NativeTask, task
 from .registry import TaskRegistry, task_registry
+from .scheduling import (
+    CrontabSchedule,
+    IntervalSchedule,
+    ScheduledTaskEntry,
+    ScheduleRegistry,
+    crontab,
+    every,
+    periodic_task,
+    schedule_registry,
+)
 from .types import (
     TaskExecutionError,
     TaskMeta,
@@ -71,6 +94,15 @@ __all__ = [
     # Core
     "task",
     "NativeTask",
+    # Scheduling
+    "periodic_task",
+    "crontab",
+    "every",
+    "CrontabSchedule",
+    "IntervalSchedule",
+    "ScheduledTaskEntry",
+    "ScheduleRegistry",
+    "schedule_registry",
     # Types
     "TaskState",
     "TaskMeta",
@@ -92,3 +124,5 @@ __all__ = [
     "BaseNativeBackend",
     "SyncNativeBackend",
 ]
+
+default_app_config = "django_matt.tasks_native.apps.TasksNativeConfig"
