@@ -132,6 +132,11 @@ python manage.py matt_audit                       # run all audits
 python manage.py matt_audit security --level strict
 python manage.py matt_audit bundle                # bundle size analysis
 python manage.py matt_audit context --for claude  # generate LLM context
+
+# Documentation tools
+python manage.py matt_docs coverage               # show documentation coverage
+python manage.py matt_docs stubs                  # generate docstring stubs
+python manage.py matt_docs hints                  # find missing type hints
 ```
 
 ## Testing
@@ -177,7 +182,7 @@ No known issues. Phase 1 Correctness Audit (Plans 01-01 through 01-03) resolved 
 
 ## Important Files
 
-- `ROADMAP.md` — 17-stage development plan (Stage 17: Native Tasks & AI Audits in progress)
+- `ROADMAP.md` — 17-stage development plan (Stage 17: Native Tasks & AI Audits complete)
 - `tasks/todo.md` — Active tasks and priorities
 - `pyproject.toml` — deps, build config, tool settings
 - `Makefile` — comprehensive dev commands

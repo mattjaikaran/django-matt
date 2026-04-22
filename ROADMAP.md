@@ -1735,12 +1735,12 @@ function LoginPage() {
 - [x] `python manage.py matt_tasks retry --failed --last 24h` - Bulk retry recent failures
 - [x] `python manage.py matt_tasks schedules` - List all periodic task schedules
 
-### Phase 17B: AI-Assisted Codebase Audits ✅ (Planned)
+### Phase 17B: AI-Assisted Codebase Audits ✅ (Complete)
 
 > LLM/AI agent helpers for optimizing django-matt projects. Provides structured prompts, audit commands, and actionable recommendations.
 
 #### 17B.1 - Audit Framework (`django_matt/audits/`)
-- [ ] **Multi-perspective audits** - Different audit "lenses"
+- [x] **Multi-perspective audits** - Different audit "lenses"
   ```python
   from django_matt.audits import run_audit, AuditLevel
 
@@ -1753,7 +1753,7 @@ function LoginPage() {
   # Run all audits
   results = run_audit("all", level=AuditLevel.RELAXED)
   ```
-- [ ] **Audit perspectives**:
+- [x] **Audit perspectives**:
   - `security` - Auth, permissions, SQL injection, XSS, CSRF, secrets exposure
   - `performance` - N+1 queries, missing indexes, cache usage, async opportunities
   - `scalability` - Connection pooling, task offloading, pagination, rate limiting
@@ -1761,14 +1761,14 @@ function LoginPage() {
   - `best_practices` - Code organization, typing, documentation, testing coverage
   - `accessibility` - Frontend a11y (if using components/pages modules)
   - `maintainability` - Complexity metrics, dependency health, tech debt
-- [ ] **Strictness levels**:
+- [x] **Strictness levels**:
   - `RELAXED` - Only critical issues
   - `STANDARD` - Critical + important (default)
   - `STRICT` - All issues including suggestions
   - `PARANOID` - Security-focused, treats warnings as errors
 
 #### 17B.2 - Bundle Size Optimization (`django_matt/audits/bundle.py`)
-- [ ] **Import analyzer** - Detect unused django_matt modules
+- [x] **Import analyzer** - Detect unused django_matt modules
   ```bash
   python manage.py matt_audit bundle
 
@@ -1785,34 +1785,34 @@ function LoginPage() {
   2. Add 'graphql' to MATT_DISABLED_MODULES
   3. Use lazy imports for ml module
   ```
-- [ ] **Startup time profiler** - Measure import time per module
-- [ ] **Dependency graph** - Visualize what imports what
-- [ ] **Slim mode suggestions** - Auto-generate optimal `SlimConfig`
-- [ ] **Production build analyzer** - Compare dev vs prod bundle
+- [x] **Startup time profiler** - Measure import time per module
+- [x] **Slim mode suggestions** - Auto-generate optimal `SlimConfig`
+- [ ] **Dependency graph** - Visualize what imports what (future)
+- [ ] **Production build analyzer** - Compare dev vs prod bundle (future)
 
 #### 17B.3 - LLM Prompt Helpers (`django_matt/audits/prompts/`)
-- [ ] **Structured context generation** - Generate project context for LLMs
+- [x] **Structured context generation** - Generate project context for LLMs
   ```bash
   python manage.py matt_audit context --for claude
 
   # Outputs structured context file optimized for Claude
   # Includes: models, routes, settings, dependencies, current issues
   ```
-- [ ] **Pre-built audit prompts** - Copy-paste prompts for common audits
+- [x] **Pre-built audit prompts** - Copy-paste prompts for common audits
   ```python
   from django_matt.audits.prompts import get_prompt
 
   # Get security audit prompt with project context
   prompt = get_prompt("security_audit", include_context=True)
   ```
-- [ ] **Prompt library**:
+- [x] **Prompt library**:
   - `security_audit` - "Review this Django project for security vulnerabilities..."
   - `performance_review` - "Analyze this codebase for performance issues..."
   - `refactoring_suggestions` - "Suggest refactoring opportunities..."
   - `test_coverage_gaps` - "Identify areas lacking test coverage..."
   - `api_design_review` - "Review API design for RESTful best practices..."
   - `database_optimization` - "Analyze models and queries for optimization..."
-- [ ] **Response parsers** - Parse structured LLM responses into actionable items
+- [x] **Response parsers** - Parse structured LLM responses into actionable items
   ```python
   from django_matt.audits.prompts import parse_audit_response
 
@@ -1822,7 +1822,7 @@ function LoginPage() {
   ```
 
 #### 17B.4 - Automated Audit CLI (`django_matt/management/commands/matt_audit.py`)
-- [ ] **Comprehensive audit command**
+- [x] **Comprehensive audit command**
   ```bash
   # Run all audits at standard level
   python manage.py matt_audit
@@ -1838,22 +1838,22 @@ function LoginPage() {
   # CI mode - exit 1 if critical issues found
   python manage.py matt_audit --ci --fail-on warning
   ```
-- [ ] **Auto-fix suggestions** - Generate fix commands/patches
+- [x] **Auto-fix suggestions** - Generate fix commands/patches (preview mode)
   ```bash
   python manage.py matt_audit --fix-preview  # Show what would be fixed
   python manage.py matt_audit --fix          # Apply safe auto-fixes
   ```
-- [ ] **Diff mode** - Only audit changed files (for CI)
+- [x] **Diff mode** - Only audit changed files (for CI)
   ```bash
   python manage.py matt_audit --diff origin/main
   ```
-- [ ] **Watch mode** - Continuous audit during development
+- [ ] **Watch mode** - Continuous audit during development (future)
   ```bash
   python manage.py matt_audit --watch
   ```
 
 #### 17B.5 - AI Agent Integration (`django_matt/audits/agents/`)
-- [ ] **MCP tool definitions** - Tools for AI agents to run audits
+- [x] **MCP tool definitions** - Tools for AI agents to run audits
   ```json
   {
     "name": "run_django_matt_audit",
@@ -1864,9 +1864,9 @@ function LoginPage() {
     }
   }
   ```
-- [ ] **Structured output schemas** - Pydantic models for audit results
-- [ ] **Cursor/Claude Code integration** - `.cursorrules` and `CLAUDE.md` audit sections
-- [ ] **GitHub Actions integration** - Audit workflow template
+- [x] **Structured output schemas** - Pydantic models for audit results
+- [x] **Cursor/Claude Code integration** - `.cursorrules` and `CLAUDE.md` generators
+- [ ] **GitHub Actions integration** - Audit workflow template (future)
   ```yaml
   # .github/workflows/audit.yml
   - uses: django-matt/audit-action@v1
@@ -1877,11 +1877,13 @@ function LoginPage() {
   ```
 
 #### 17B.6 - Audit Reports & History
-- [ ] **Audit history model** - Track audits over time
-- [ ] **Trend visualization** - See improvement/regression over time
-- [ ] **Baseline comparison** - Compare current state to a baseline
-- [ ] **Team notifications** - Slack/Discord webhooks for new issues
-- [ ] **Scheduled audits** - Run weekly security audits automatically
+- [x] **SARIF output** - GitHub Code Scanning compatible format
+- [x] **Markdown reports** - Human-readable audit reports
+- [ ] **Audit history model** - Track audits over time (future)
+- [ ] **Trend visualization** - See improvement/regression over time (future)
+- [ ] **Baseline comparison** - Compare current state to a baseline (future)
+- [ ] **Team notifications** - Slack/Discord webhooks for new issues (future)
+- [ ] **Scheduled audits** - Run weekly security audits automatically (future)
 
 ### Example: Full Task Workflow
 

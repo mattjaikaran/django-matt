@@ -787,6 +787,201 @@ graph LR
     style RESP fill:#306998,stroke:#FFD43B,color:#fff
 ```
 
+## Native Task System (Stage 17A)
+
+```mermaid
+flowchart TB
+    subgraph "Task Definition"
+        TASK[@task decorator]
+        PERIODIC[@periodic_task]
+        PAYLOAD[Pydantic Payload]
+    end
+
+    subgraph "Enqueueing"
+        DELAY[task.delay]
+        APPLY[task.apply_async]
+        VALIDATE[Payload Validation]
+    end
+
+    subgraph "Backend Detection"
+        AUTO{Auto-detect}
+        AUTO -->|Django 6.0+| NATIVE[Django Native Backend]
+        AUTO -->|Django 5.x| CELERY[Celery Backend]
+        AUTO -->|Dramatiq| DRAMATIQ[Dramatiq Backend]
+        AUTO -->|Sync| SYNC[Sync Backend]
+    end
+
+    subgraph "Execution"
+        QUEUE[(Task Queue)]
+        WORKER[Worker Process]
+        RETRY[Retry Policy]
+        DLQ[Dead Letter Queue]
+    end
+
+    subgraph "Monitoring"
+        ADMIN[Unfold Admin Dashboard]
+        METRICS[Queue Metrics]
+        HISTORY[Task History]
+    end
+
+    TASK --> DELAY
+    PERIODIC --> SCHEDULER[DB Scheduler]
+    PAYLOAD --> VALIDATE
+    DELAY --> VALIDATE
+    VALIDATE --> AUTO
+    NATIVE --> QUEUE
+    CELERY --> QUEUE
+    QUEUE --> WORKER
+    WORKER -->|success| HISTORY
+    WORKER -->|failure| RETRY
+    RETRY -->|max retries| DLQ
+    ADMIN --> QUEUE
+    ADMIN --> HISTORY
+    ADMIN --> DLQ
+    METRICS --> ADMIN
+```
+
+## AI-Assisted Audit System (Stage 17B)
+
+```mermaid
+flowchart TB
+    subgraph "Audit Categories"
+        SEC[Security Auditor]
+        PERF[Performance Auditor]
+        BP[Best Practices Auditor]
+        MAINT[Maintainability Auditor]
+    end
+
+    subgraph "Audit Framework"
+        RUN[run_audit]
+        LEVEL{Audit Level}
+        LEVEL -->|relaxed| CRIT[Critical Only]
+        LEVEL -->|standard| STD[Critical + Important]
+        LEVEL -->|strict| ALL[All Issues]
+        LEVEL -->|paranoid| PARANOID[Security Focus]
+    end
+
+    subgraph "Findings"
+        FINDING[AuditFinding]
+        REPORT[AuditReport]
+    end
+
+    subgraph "Output Formats"
+        TXT[Text]
+        JSON_OUT[JSON]
+        MD[Markdown]
+        SARIF[SARIF<br/>GitHub Code Scanning]
+    end
+
+    SEC --> RUN
+    PERF --> RUN
+    BP --> RUN
+    MAINT --> RUN
+    RUN --> LEVEL
+    CRIT --> FINDING
+    STD --> FINDING
+    ALL --> FINDING
+    FINDING --> REPORT
+    REPORT --> TXT
+    REPORT --> JSON_OUT
+    REPORT --> MD
+    REPORT --> SARIF
+```
+
+## Bundle Size Analyzer
+
+```mermaid
+flowchart LR
+    subgraph "Analysis"
+        SCAN[Module Scanner]
+        IMPORT[Import Profiler]
+        DEPS[Dependency Analyzer]
+    end
+
+    subgraph "Detection"
+        UNUSED[Unused Modules]
+        HEAVY[Heavy Imports]
+        STARTUP[Startup Time]
+    end
+
+    subgraph "Optimization"
+        SLIM[SlimConfig Generator]
+        LAZY[Lazy Loading Suggestions]
+        TREE[Tree Shaking Opportunities]
+    end
+
+    SCAN --> UNUSED
+    IMPORT --> HEAVY
+    IMPORT --> STARTUP
+    DEPS --> TREE
+    UNUSED --> SLIM
+    HEAVY --> LAZY
+    TREE --> SLIM
+```
+
+## LLM Audit Integration
+
+```mermaid
+sequenceDiagram
+    participant U as Developer
+    participant CLI as matt_audit CLI
+    participant CTX as Context Generator
+    participant LLM as Claude/GPT
+    participant PARSE as Response Parser
+
+    U->>CLI: matt_audit context --for claude
+    CLI->>CTX: Generate project context
+    CTX->>CTX: Gather settings, models, routes, patterns
+    CTX->>U: Markdown/XML context file
+
+    U->>LLM: Paste context + prompt
+    LLM->>LLM: Analyze codebase
+    LLM->>U: Structured findings
+
+    U->>CLI: Parse LLM response
+    CLI->>PARSE: Extract findings
+    PARSE->>CLI: AuditFinding objects
+    CLI->>U: Formatted report
+```
+
+## MCP Tool Integration
+
+```mermaid
+flowchart TB
+    subgraph "MCP Tools"
+        TOOL1[run_django_matt_audit]
+        TOOL2[analyze_bundle_size]
+        TOOL3[get_audit_prompt]
+        TOOL4[generate_project_context]
+        TOOL5[fix_audit_finding]
+    end
+
+    subgraph "AI Agents"
+        CURSOR[Cursor IDE]
+        CLAUDE[Claude Code]
+        CODEX[OpenAI Codex]
+    end
+
+    subgraph "Actions"
+        AUDIT[Run Audit]
+        ANALYZE[Bundle Analysis]
+        CONTEXT[Generate Context]
+        FIX[Auto-fix Issues]
+    end
+
+    CURSOR --> TOOL1
+    CURSOR --> TOOL2
+    CLAUDE --> TOOL3
+    CLAUDE --> TOOL4
+    CODEX --> TOOL5
+
+    TOOL1 --> AUDIT
+    TOOL2 --> ANALYZE
+    TOOL3 --> CONTEXT
+    TOOL4 --> CONTEXT
+    TOOL5 --> FIX
+```
+
 ## Release Pipeline
 
 ```mermaid
@@ -833,3 +1028,6 @@ flowchart LR
 - [Introspection](./introspection/overview.md)
 - [RPC Client](./rpc/overview.md)
 - [Observability](./observability/index.md)
+- [Native Tasks](./tasks/overview.md) (Stage 17A)
+- [AI-Assisted Audits](./audits/overview.md) (Stage 17B)
+- [Slim Mode](./slim-mode.md)
