@@ -1611,12 +1611,12 @@ function LoginPage() {
 
 > Goal: Best-in-class background task DX with Django 6.0 native tasks, a modern Unfold-powered dashboard, and AI-assisted codebase optimization.
 
-### Phase 17A: Native Task Engine ✅ (Planned)
+### Phase 17A: Native Task Engine ✅ (Complete)
 
 > DX layer on top of Django 6.0's built-in tasks. Zero-config for development, production-ready with one setting.
 
 #### 17A.1 - Core Task API (`django_matt/tasks_native/`)
-- [ ] **Task decorator** - Type-safe with Pydantic validation
+- [x] **Task decorator** - Type-safe with Pydantic validation
   ```python
   from django_matt.tasks import task, periodic_task
   from pydantic import BaseModel
@@ -1634,12 +1634,12 @@ function LoginPage() {
   # Enqueue - validates payload automatically
   send_email.delay(EmailPayload(user_id=1, template="welcome"))
   ```
-- [ ] **Auto-backend detection** - Uses Django 6.0 native, falls back to existing backends
+- [x] **Auto-backend detection** - Uses Django 6.0 native, falls back to existing backends
   - Django 6.0+: `django_matt.tasks.backends.DjangoNativeBackend` (default)
   - Django 5.2: Falls back to `CeleryBackend`, `DramatiqBackend`, or `SyncBackend`
   - Auto-detect from installed packages
-- [ ] **Zero-config development** - Works out of the box with in-memory/sync execution
-- [ ] **One-line production setup**
+- [x] **Zero-config development** - Works out of the box with in-memory/sync execution
+- [x] **One-line production setup**
   ```python
   # settings.py
   MATT_TASKS = {
@@ -1649,7 +1649,7 @@ function LoginPage() {
   ```
 
 #### 17A.2 - Scheduling System (`django_matt/tasks_native/scheduling.py`)
-- [ ] **Database-driven schedules** - No celerybeat, no external processes
+- [x] **Database-driven schedules** - No celerybeat, no external processes
   ```python
   from django_matt.tasks import schedule, crontab, every
 
@@ -1661,13 +1661,13 @@ function LoginPage() {
   async def health_check():
       ...
   ```
-- [ ] **Schedule model** - `TaskSchedule` stored in DB, editable via admin
-- [ ] **Admin UI for schedules** - Create/edit/disable schedules without code changes
-- [ ] **Schedule history** - Track when schedules ran, success/failure
-- [ ] **Timezone-aware** - Per-schedule timezone support
+- [x] **Schedule model** - `TaskSchedule` stored in DB, editable via admin
+- [x] **Admin UI for schedules** - Create/edit/disable schedules without code changes
+- [x] **Schedule history** - Track when schedules ran, success/failure
+- [x] **Timezone-aware** - Per-schedule timezone support
 
 #### 17A.3 - Retry & Error Handling (`django_matt/tasks_native/retry.py`)
-- [ ] **Built-in retry policies** (extend existing `ExponentialBackoff`, `LinearBackoff`, `FixedDelay`)
+- [x] **Built-in retry policies** (extend existing `ExponentialBackoff`, `LinearBackoff`, `FixedDelay`)
   ```python
   from django_matt.tasks import task, retry
 
@@ -1679,9 +1679,9 @@ function LoginPage() {
   async def send_webhook(payload: dict):
       ...
   ```
-- [ ] **Dead letter queue** - Failed tasks after max retries go to DLQ
-- [ ] **Retry from admin** - One-click retry of failed tasks
-- [ ] **Custom exception handlers** - Per-task or global error handling
+- [x] **Dead letter queue** - Failed tasks after max retries go to DLQ
+- [x] **Retry from admin** - One-click retry of failed tasks
+- [x] **Custom exception handlers** - Per-task or global error handling
   ```python
   @task.on_failure
   async def handle_email_failure(task, exc, payload):
@@ -1689,51 +1689,51 @@ function LoginPage() {
   ```
 
 #### 17A.4 - Task Dashboard (Unfold Admin) (`django_matt/tasks_native/admin/`)
-- [ ] **Real-time task status** - WebSocket-powered live updates
+- [x] **Real-time task status** - WebSocket-powered live updates
   - Pending, Running, Completed, Failed, Retrying states
   - Task duration and progress indicators
   - Auto-refresh with configurable interval
-- [ ] **Failure tracking with stack traces**
+- [x] **Failure tracking with stack traces**
   - Full exception traceback display
   - Input payload inspection
   - Retry count and history
   - Link to related objects (if task has model reference)
-- [ ] **Retry controls**
+- [x] **Retry controls**
   - Retry single task
   - Bulk retry failed tasks
   - Cancel pending/running tasks
   - Purge old completed tasks
-- [ ] **Schedule management UI**
+- [x] **Schedule management UI**
   - List all periodic tasks
   - Enable/disable schedules
   - Edit cron expressions visually
   - Run schedule immediately (manual trigger)
   - Next run time preview
-- [ ] **Queue metrics dashboard**
+- [x] **Queue metrics dashboard**
   - Tasks per queue (pending/running/completed/failed)
   - Throughput charts (tasks/minute, tasks/hour)
   - Average duration per task type
   - Error rate trends
   - Worker status (if applicable)
-- [ ] **Filterable task history**
+- [x] **Filterable task history**
   - Filter by status, task name, date range
   - Search by task ID or payload content
   - Export task history (CSV/JSON)
 
 #### 17A.5 - Conditional Loading & Tree-Shaking
-- [ ] **Optional module** - Only loaded if `"django_matt.tasks_native"` in `INSTALLED_APPS`
-- [ ] **Zero production overhead** - If not enabled, no models, no migrations, no admin pages
-- [ ] **Slim mode compatible** - Respects `MattAPI(mode="slim")` configuration
-- [ ] **Lazy imports** - Dashboard assets only loaded when accessing admin pages
-- [ ] **Bundle size documentation** - Document impact of enabling tasks module
+- [x] **Optional module** - Only loaded if `"django_matt.tasks_native"` in `INSTALLED_APPS`
+- [x] **Zero production overhead** - If not enabled, no models, no migrations, no admin pages
+- [x] **Slim mode compatible** - Respects `MattAPI(mode="slim")` configuration
+- [x] **Lazy imports** - Dashboard assets only loaded when accessing admin pages
+- [x] **Bundle size documentation** - Document impact of enabling tasks module
 
 #### 17A.6 - CLI Commands (`django_matt/management/commands/`)
-- [ ] `python manage.py matt_tasks list` - List all registered tasks
-- [ ] `python manage.py matt_tasks run <task_name> --payload '{}'` - Run task manually
-- [ ] `python manage.py matt_tasks status` - Show queue status and worker health
-- [ ] `python manage.py matt_tasks purge --older-than 30d` - Clean up old tasks
-- [ ] `python manage.py matt_tasks retry --failed --last 24h` - Bulk retry recent failures
-- [ ] `python manage.py matt_tasks schedules` - List all periodic task schedules
+- [x] `python manage.py matt_tasks list` - List all registered tasks
+- [x] `python manage.py matt_tasks run <task_name> --payload '{}'` - Run task manually
+- [x] `python manage.py matt_tasks status` - Show queue status and worker health
+- [x] `python manage.py matt_tasks purge --older-than 30d` - Clean up old tasks
+- [x] `python manage.py matt_tasks retry --failed --last 24h` - Bulk retry recent failures
+- [x] `python manage.py matt_tasks schedules` - List all periodic task schedules
 
 ### Phase 17B: AI-Assisted Codebase Audits ✅ (Planned)
 

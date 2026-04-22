@@ -11,19 +11,19 @@
 
 ## Stage 17: Native Task Engine & AI Audits (Priority)
 
-### Phase 17A: Native Task Engine
-- [ ] Core Task API with Pydantic validation (`django_matt/tasks_native/`)
-- [ ] Auto-backend detection (Django 6.0 native → Celery fallback)
-- [ ] Database-driven scheduling (no celerybeat)
-- [ ] Retry policies with dead letter queue
-- [ ] **Unfold Admin Dashboard**:
-  - [ ] Real-time task status (WebSocket)
-  - [ ] Failure tracking with stack traces
-  - [ ] Retry/cancel controls
-  - [ ] Schedule management UI
-  - [ ] Queue metrics charts
-- [ ] Conditional loading (zero overhead if not enabled)
-- [ ] CLI commands (list, run, status, purge, retry)
+### Phase 17A: Native Task Engine ✅ (Complete)
+- [x] Core Task API with Pydantic validation (`django_matt/tasks_native/`)
+- [x] Auto-backend detection (Django 6.0 native → Celery fallback)
+- [x] Database-driven scheduling (no celerybeat)
+- [x] Retry policies with dead letter queue
+- [x] **Unfold Admin Dashboard**:
+  - [x] Real-time task status (WebSocket)
+  - [x] Failure tracking with stack traces
+  - [x] Retry/cancel controls
+  - [x] Schedule management UI
+  - [x] Queue metrics charts
+- [x] Conditional loading (zero overhead if not enabled)
+- [x] CLI commands (list, run, status, purge, retry)
 
 ### Phase 17B: AI-Assisted Codebase Audits
 - [ ] Multi-perspective audit framework (security, performance, scalability, bundle_size)
