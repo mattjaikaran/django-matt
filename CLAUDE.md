@@ -39,6 +39,8 @@ django_matt/
 ├── ml/                 # Vector storage, structured output
 ├── files/              # Upload, S3/R2/MinIO storage backends
 ├── tasks/              # Background tasks (Celery, Dramatiq, Django-Q)
+├── tasks_native/       # Native task engine (Django 6.0+, Unfold dashboard) [Stage 17A]
+├── audits/             # AI-assisted codebase audits (security, perf, bundle) [Stage 17B]
 ├── audit/              # Audit logging, soft delete
 ├── htmx/               # HTMX helpers, Livewire-style reactivity
 ├── components/         # Backend-served component system
@@ -118,6 +120,18 @@ python manage.py matt_migrate --stats             # project statistics
 python manage.py matt_migrate --profile           # profile pending migrations
 python manage.py matt_migrate --parallel          # run in parallel waves
 python manage.py matt_squash myapp 0001 0042      # squash migrations
+
+# Native task engine (Stage 17A)
+python manage.py matt_tasks list                  # list registered tasks
+python manage.py matt_tasks run send_email '{}'   # run task manually
+python manage.py matt_tasks status                # queue status
+python manage.py matt_tasks purge --older-than 30d
+
+# AI-assisted audits (Stage 17B)
+python manage.py matt_audit                       # run all audits
+python manage.py matt_audit security --level strict
+python manage.py matt_audit bundle                # bundle size analysis
+python manage.py matt_audit context --for claude  # generate LLM context
 ```
 
 ## Testing
@@ -150,6 +164,8 @@ pytest tests/test_auth.py -v           # specific file
 | CQRS | `cqrs/commands.py`, `cqrs/queries.py`, `cqrs/events.py`, `cqrs/middleware.py` |
 | Modules | `modules/base.py`, `modules/registry.py`, `modules/loader.py`, `modules/hooks.py` |
 | Migrations | `migration_tools/baseline.py`, `migration_tools/parallel.py`, `migration_tools/stats.py`, `migration_tools/squash.py` |
+| Native Tasks | `tasks_native/core.py`, `tasks_native/scheduling.py`, `tasks_native/retry.py`, `tasks_native/admin/` |
+| Audits | `audits/framework.py`, `audits/bundle.py`, `audits/prompts/`, `audits/agents/` |
 | Slim mode | `slim.py`, `loader.py` |
 
 ## Known Issues
@@ -161,7 +177,8 @@ No known issues. Phase 1 Correctness Audit (Plans 01-01 through 01-03) resolved 
 
 ## Important Files
 
-- `ROADMAP.md` — 16-stage development plan (95%+ complete)
+- `ROADMAP.md` — 17-stage development plan (Stage 17: Native Tasks & AI Audits in progress)
+- `tasks/todo.md` — Active tasks and priorities
 - `pyproject.toml` — deps, build config, tool settings
 - `Makefile` — comprehensive dev commands
 - `docs/` — feature documentation

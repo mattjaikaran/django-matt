@@ -9,6 +9,32 @@
 - [ ] `django-matt` landing page (single page, could be the docs index)
 - [ ] PyPI classifiers and metadata polish
 
+## Stage 17: Native Task Engine & AI Audits (Priority)
+
+### Phase 17A: Native Task Engine
+- [ ] Core Task API with Pydantic validation (`django_matt/tasks_native/`)
+- [ ] Auto-backend detection (Django 6.0 native → Celery fallback)
+- [ ] Database-driven scheduling (no celerybeat)
+- [ ] Retry policies with dead letter queue
+- [ ] **Unfold Admin Dashboard**:
+  - [ ] Real-time task status (WebSocket)
+  - [ ] Failure tracking with stack traces
+  - [ ] Retry/cancel controls
+  - [ ] Schedule management UI
+  - [ ] Queue metrics charts
+- [ ] Conditional loading (zero overhead if not enabled)
+- [ ] CLI commands (list, run, status, purge, retry)
+
+### Phase 17B: AI-Assisted Codebase Audits
+- [ ] Multi-perspective audit framework (security, performance, scalability, bundle_size)
+- [ ] Strictness levels (RELAXED, STANDARD, STRICT, PARANOID)
+- [ ] Bundle size analyzer with tree-shaking suggestions
+- [ ] LLM prompt helpers with project context
+- [ ] `matt_audit` CLI with JSON/Markdown/SARIF output
+- [ ] Auto-fix suggestions and diff mode
+- [ ] MCP tools for AI agents
+- [ ] GitHub Actions integration
+
 ## Future Technical Work
 
 ### Database

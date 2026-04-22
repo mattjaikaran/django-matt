@@ -1607,6 +1607,376 @@ function LoginPage() {
 
 ---
 
+## Stage 17: Native Task Engine & AI Audits
+
+> Goal: Best-in-class background task DX with Django 6.0 native tasks, a modern Unfold-powered dashboard, and AI-assisted codebase optimization.
+
+### Phase 17A: Native Task Engine ✅ (Planned)
+
+> DX layer on top of Django 6.0's built-in tasks. Zero-config for development, production-ready with one setting.
+
+#### 17A.1 - Core Task API (`django_matt/tasks_native/`)
+- [ ] **Task decorator** - Type-safe with Pydantic validation
+  ```python
+  from django_matt.tasks import task, periodic_task
+  from pydantic import BaseModel
+
+  class EmailPayload(BaseModel):
+      user_id: int
+      template: str
+
+  @task
+  async def send_email(payload: EmailPayload) -> bool:
+      """Fully typed, validated at enqueue time."""
+      user = await User.objects.aget(id=payload.user_id)
+      return await deliver_email(user, payload.template)
+
+  # Enqueue - validates payload automatically
+  send_email.delay(EmailPayload(user_id=1, template="welcome"))
+  ```
+- [ ] **Auto-backend detection** - Uses Django 6.0 native, falls back to existing backends
+  - Django 6.0+: `django_matt.tasks.backends.DjangoNativeBackend` (default)
+  - Django 5.2: Falls back to `CeleryBackend`, `DramatiqBackend`, or `SyncBackend`
+  - Auto-detect from installed packages
+- [ ] **Zero-config development** - Works out of the box with in-memory/sync execution
+- [ ] **One-line production setup**
+  ```python
+  # settings.py
+  MATT_TASKS = {
+      "backend": "redis",  # or "postgres", "rabbitmq"
+      "url": "redis://localhost:6379/0",
+  }
+  ```
+
+#### 17A.2 - Scheduling System (`django_matt/tasks_native/scheduling.py`)
+- [ ] **Database-driven schedules** - No celerybeat, no external processes
+  ```python
+  from django_matt.tasks import schedule, crontab, every
+
+  @periodic_task(crontab(hour=9, minute=0))  # 9 AM daily
+  async def daily_report():
+      ...
+
+  @periodic_task(every(minutes=5))  # Every 5 minutes
+  async def health_check():
+      ...
+  ```
+- [ ] **Schedule model** - `TaskSchedule` stored in DB, editable via admin
+- [ ] **Admin UI for schedules** - Create/edit/disable schedules without code changes
+- [ ] **Schedule history** - Track when schedules ran, success/failure
+- [ ] **Timezone-aware** - Per-schedule timezone support
+
+#### 17A.3 - Retry & Error Handling (`django_matt/tasks_native/retry.py`)
+- [ ] **Built-in retry policies** (extend existing `ExponentialBackoff`, `LinearBackoff`, `FixedDelay`)
+  ```python
+  from django_matt.tasks import task, retry
+
+  @task(retry=retry.exponential(max_retries=5, base_delay=1.0))
+  async def flaky_api_call(url: str):
+      ...
+
+  @task(retry=retry.linear(max_retries=3, delay=10))
+  async def send_webhook(payload: dict):
+      ...
+  ```
+- [ ] **Dead letter queue** - Failed tasks after max retries go to DLQ
+- [ ] **Retry from admin** - One-click retry of failed tasks
+- [ ] **Custom exception handlers** - Per-task or global error handling
+  ```python
+  @task.on_failure
+  async def handle_email_failure(task, exc, payload):
+      await notify_ops(f"Email task failed: {exc}")
+  ```
+
+#### 17A.4 - Task Dashboard (Unfold Admin) (`django_matt/tasks_native/admin/`)
+- [ ] **Real-time task status** - WebSocket-powered live updates
+  - Pending, Running, Completed, Failed, Retrying states
+  - Task duration and progress indicators
+  - Auto-refresh with configurable interval
+- [ ] **Failure tracking with stack traces**
+  - Full exception traceback display
+  - Input payload inspection
+  - Retry count and history
+  - Link to related objects (if task has model reference)
+- [ ] **Retry controls**
+  - Retry single task
+  - Bulk retry failed tasks
+  - Cancel pending/running tasks
+  - Purge old completed tasks
+- [ ] **Schedule management UI**
+  - List all periodic tasks
+  - Enable/disable schedules
+  - Edit cron expressions visually
+  - Run schedule immediately (manual trigger)
+  - Next run time preview
+- [ ] **Queue metrics dashboard**
+  - Tasks per queue (pending/running/completed/failed)
+  - Throughput charts (tasks/minute, tasks/hour)
+  - Average duration per task type
+  - Error rate trends
+  - Worker status (if applicable)
+- [ ] **Filterable task history**
+  - Filter by status, task name, date range
+  - Search by task ID or payload content
+  - Export task history (CSV/JSON)
+
+#### 17A.5 - Conditional Loading & Tree-Shaking
+- [ ] **Optional module** - Only loaded if `"django_matt.tasks_native"` in `INSTALLED_APPS`
+- [ ] **Zero production overhead** - If not enabled, no models, no migrations, no admin pages
+- [ ] **Slim mode compatible** - Respects `MattAPI(mode="slim")` configuration
+- [ ] **Lazy imports** - Dashboard assets only loaded when accessing admin pages
+- [ ] **Bundle size documentation** - Document impact of enabling tasks module
+
+#### 17A.6 - CLI Commands (`django_matt/management/commands/`)
+- [ ] `python manage.py matt_tasks list` - List all registered tasks
+- [ ] `python manage.py matt_tasks run <task_name> --payload '{}'` - Run task manually
+- [ ] `python manage.py matt_tasks status` - Show queue status and worker health
+- [ ] `python manage.py matt_tasks purge --older-than 30d` - Clean up old tasks
+- [ ] `python manage.py matt_tasks retry --failed --last 24h` - Bulk retry recent failures
+- [ ] `python manage.py matt_tasks schedules` - List all periodic task schedules
+
+### Phase 17B: AI-Assisted Codebase Audits ✅ (Planned)
+
+> LLM/AI agent helpers for optimizing django-matt projects. Provides structured prompts, audit commands, and actionable recommendations.
+
+#### 17B.1 - Audit Framework (`django_matt/audits/`)
+- [ ] **Multi-perspective audits** - Different audit "lenses"
+  ```python
+  from django_matt.audits import run_audit, AuditLevel
+
+  # Run security-focused audit
+  results = run_audit("security", level=AuditLevel.STRICT)
+
+  # Run performance audit
+  results = run_audit("performance", level=AuditLevel.STANDARD)
+
+  # Run all audits
+  results = run_audit("all", level=AuditLevel.RELAXED)
+  ```
+- [ ] **Audit perspectives**:
+  - `security` - Auth, permissions, SQL injection, XSS, CSRF, secrets exposure
+  - `performance` - N+1 queries, missing indexes, cache usage, async opportunities
+  - `scalability` - Connection pooling, task offloading, pagination, rate limiting
+  - `bundle_size` - Unused modules, tree-shaking opportunities, lazy loading
+  - `best_practices` - Code organization, typing, documentation, testing coverage
+  - `accessibility` - Frontend a11y (if using components/pages modules)
+  - `maintainability` - Complexity metrics, dependency health, tech debt
+- [ ] **Strictness levels**:
+  - `RELAXED` - Only critical issues
+  - `STANDARD` - Critical + important (default)
+  - `STRICT` - All issues including suggestions
+  - `PARANOID` - Security-focused, treats warnings as errors
+
+#### 17B.2 - Bundle Size Optimization (`django_matt/audits/bundle.py`)
+- [ ] **Import analyzer** - Detect unused django_matt modules
+  ```bash
+  python manage.py matt_audit bundle
+
+  Bundle Size Analysis
+  ════════════════════
+  ✓ Core modules: 45KB (required)
+  ⚠ Unused modules detected:
+    - graphql (180KB) - not imported anywhere
+    - billing (95KB) - not imported anywhere
+    - ml (220KB) - only imported in tests
+
+  Recommendations:
+  1. Remove 'django_matt.graphql' from INSTALLED_APPS
+  2. Add 'graphql' to MATT_DISABLED_MODULES
+  3. Use lazy imports for ml module
+  ```
+- [ ] **Startup time profiler** - Measure import time per module
+- [ ] **Dependency graph** - Visualize what imports what
+- [ ] **Slim mode suggestions** - Auto-generate optimal `SlimConfig`
+- [ ] **Production build analyzer** - Compare dev vs prod bundle
+
+#### 17B.3 - LLM Prompt Helpers (`django_matt/audits/prompts/`)
+- [ ] **Structured context generation** - Generate project context for LLMs
+  ```bash
+  python manage.py matt_audit context --for claude
+
+  # Outputs structured context file optimized for Claude
+  # Includes: models, routes, settings, dependencies, current issues
+  ```
+- [ ] **Pre-built audit prompts** - Copy-paste prompts for common audits
+  ```python
+  from django_matt.audits.prompts import get_prompt
+
+  # Get security audit prompt with project context
+  prompt = get_prompt("security_audit", include_context=True)
+  ```
+- [ ] **Prompt library**:
+  - `security_audit` - "Review this Django project for security vulnerabilities..."
+  - `performance_review` - "Analyze this codebase for performance issues..."
+  - `refactoring_suggestions` - "Suggest refactoring opportunities..."
+  - `test_coverage_gaps` - "Identify areas lacking test coverage..."
+  - `api_design_review` - "Review API design for RESTful best practices..."
+  - `database_optimization` - "Analyze models and queries for optimization..."
+- [ ] **Response parsers** - Parse structured LLM responses into actionable items
+  ```python
+  from django_matt.audits.prompts import parse_audit_response
+
+  findings = parse_audit_response(llm_output, audit_type="security")
+  for finding in findings:
+      print(f"[{finding.severity}] {finding.file}:{finding.line} - {finding.message}")
+  ```
+
+#### 17B.4 - Automated Audit CLI (`django_matt/management/commands/matt_audit.py`)
+- [ ] **Comprehensive audit command**
+  ```bash
+  # Run all audits at standard level
+  python manage.py matt_audit
+
+  # Run specific audit
+  python manage.py matt_audit security --level strict
+
+  # Output formats
+  python manage.py matt_audit --format json > audit.json
+  python manage.py matt_audit --format markdown > AUDIT.md
+  python manage.py matt_audit --format sarif > audit.sarif  # GitHub Code Scanning
+
+  # CI mode - exit 1 if critical issues found
+  python manage.py matt_audit --ci --fail-on warning
+  ```
+- [ ] **Auto-fix suggestions** - Generate fix commands/patches
+  ```bash
+  python manage.py matt_audit --fix-preview  # Show what would be fixed
+  python manage.py matt_audit --fix          # Apply safe auto-fixes
+  ```
+- [ ] **Diff mode** - Only audit changed files (for CI)
+  ```bash
+  python manage.py matt_audit --diff origin/main
+  ```
+- [ ] **Watch mode** - Continuous audit during development
+  ```bash
+  python manage.py matt_audit --watch
+  ```
+
+#### 17B.5 - AI Agent Integration (`django_matt/audits/agents/`)
+- [ ] **MCP tool definitions** - Tools for AI agents to run audits
+  ```json
+  {
+    "name": "run_django_matt_audit",
+    "description": "Run a codebase audit on the Django Matt project",
+    "parameters": {
+      "type": ["security", "performance", "bundle_size", "all"],
+      "level": ["relaxed", "standard", "strict"]
+    }
+  }
+  ```
+- [ ] **Structured output schemas** - Pydantic models for audit results
+- [ ] **Cursor/Claude Code integration** - `.cursorrules` and `CLAUDE.md` audit sections
+- [ ] **GitHub Actions integration** - Audit workflow template
+  ```yaml
+  # .github/workflows/audit.yml
+  - uses: django-matt/audit-action@v1
+    with:
+      audits: security,performance
+      level: strict
+      fail-on: warning
+  ```
+
+#### 17B.6 - Audit Reports & History
+- [ ] **Audit history model** - Track audits over time
+- [ ] **Trend visualization** - See improvement/regression over time
+- [ ] **Baseline comparison** - Compare current state to a baseline
+- [ ] **Team notifications** - Slack/Discord webhooks for new issues
+- [ ] **Scheduled audits** - Run weekly security audits automatically
+
+### Example: Full Task Workflow
+
+```python
+# tasks.py
+from django_matt.tasks import task, periodic_task, retry, crontab
+from pydantic import BaseModel, EmailStr
+
+class WelcomeEmailPayload(BaseModel):
+    user_id: int
+    email: EmailStr
+
+@task(
+    retry=retry.exponential(max_retries=3),
+    timeout=30,
+    queue="emails",
+)
+async def send_welcome_email(payload: WelcomeEmailPayload) -> bool:
+    """Send welcome email to new user."""
+    user = await User.objects.aget(id=payload.user_id)
+    return await email_service.send(
+        to=payload.email,
+        template="welcome",
+        context={"name": user.first_name},
+    )
+
+@send_welcome_email.on_failure
+async def handle_email_failure(task, exc, payload):
+    """Called after all retries exhausted."""
+    await AlertService.notify(
+        channel="ops",
+        message=f"Failed to send welcome email to user {payload.user_id}: {exc}",
+    )
+
+@periodic_task(crontab(hour=2, minute=0))  # 2 AM daily
+async def cleanup_old_tasks():
+    """Purge completed tasks older than 30 days."""
+    await TaskResult.objects.filter(
+        status="completed",
+        completed_at__lt=timezone.now() - timedelta(days=30),
+    ).adelete()
+
+# Usage
+await send_welcome_email.delay(WelcomeEmailPayload(user_id=123, email="user@example.com"))
+```
+
+```python
+# settings.py - Production
+INSTALLED_APPS = [
+    ...
+    "django_matt.tasks_native",  # Enable tasks module
+]
+
+MATT_TASKS = {
+    "backend": "redis",
+    "url": env("REDIS_URL"),
+    "default_queue": "default",
+    "queues": {
+        "default": {"workers": 4},
+        "emails": {"workers": 2, "rate_limit": "100/m"},
+        "heavy": {"workers": 1, "timeout": 300},
+    },
+}
+```
+
+### Example: AI Audit Workflow
+
+```bash
+# Quick security check
+$ python manage.py matt_audit security
+🔒 Security Audit (STANDARD)
+════════════════════════════
+
+✓ Authentication: JWT configured correctly
+✓ CSRF: Protection enabled
+✓ SQL Injection: No raw queries detected
+⚠ Secrets: Found potential secret in settings.py:45
+  └─ API_KEY = "sk-..." should use environment variable
+⚠ Permissions: 3 views missing permission classes
+  └─ myapp/views.py:23 - UserListView
+  └─ myapp/views.py:45 - OrderCreateView
+  └─ myapp/views.py:89 - ReportDownloadView
+
+Summary: 0 critical, 2 warnings, 12 passed
+
+# Generate context for Claude
+$ python manage.py matt_audit context --for claude > .claude-context.md
+
+# CI integration
+$ python manage.py matt_audit --ci --fail-on warning
+Exit code: 1 (2 warnings found)
+```
+
+---
+
 ## Future Ideas
 
 > These are potential enhancements that could be added in future versions.
