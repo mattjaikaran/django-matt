@@ -60,6 +60,7 @@ django_matt/
 ├── rpc/                # Typed HTTP client generation (Python + TypeScript)
 ├── modules/            # Plugin system with dependency resolution and lifecycle hooks
 ├── cqrs/               # Command/Query buses, domain events, bus middleware
+├── migration_tools/    # SQL baselines, parallel execution, profiling, squashing
 ├── slim.py             # Slim mode config (full/slim/minimal/auto module loading)
 ├── loader.py           # Lazy/deferred module loading (LazyModuleProxy, DeferredLoader)
 └── management/commands/ # startapi, config, sync_types, generate_crud, deploy
@@ -109,6 +110,14 @@ python manage.py sync_types --target typescript --output frontend/types
 python manage.py generate_ai_context --format all
 python manage.py config init
 python manage.py deploy --platform fly
+
+# Migration acceleration (for large codebases)
+python manage.py matt_baseline create v1.0.0      # create SQL baseline
+python manage.py matt_baseline load v1.0.0        # load on fresh DB
+python manage.py matt_migrate --stats             # project statistics
+python manage.py matt_migrate --profile           # profile pending migrations
+python manage.py matt_migrate --parallel          # run in parallel waves
+python manage.py matt_squash myapp 0001 0042      # squash migrations
 ```
 
 ## Testing
@@ -140,6 +149,7 @@ pytest tests/test_auth.py -v           # specific file
 | RPC | `rpc/client.py`, `rpc/proxy.py`, `rpc/auth.py`, `rpc/generator.py` |
 | CQRS | `cqrs/commands.py`, `cqrs/queries.py`, `cqrs/events.py`, `cqrs/middleware.py` |
 | Modules | `modules/base.py`, `modules/registry.py`, `modules/loader.py`, `modules/hooks.py` |
+| Migrations | `migration_tools/baseline.py`, `migration_tools/parallel.py`, `migration_tools/stats.py`, `migration_tools/squash.py` |
 | Slim mode | `slim.py`, `loader.py` |
 
 ## Known Issues

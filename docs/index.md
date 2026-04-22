@@ -250,6 +250,30 @@ Built-in performance optimizations:
 
 [Learn more about performance](performance/optimization.md)
 
+### Migration Acceleration
+
+Solve the 2-hour migration problem for large codebases:
+
+- **SQL Baselines** - Skip running migrations entirely; load schema dumps instead
+- **Parallel Execution** - Run independent migrations concurrently (3-8x speedup)
+- **Migration Profiling** - Understand exactly which migrations are slow
+- **Smart Squashing** - Consolidate old migrations with preview mode
+- **Safety Analysis** - Detect dangerous patterns before production
+
+```bash
+# New dev setup: 2 hours → 30 seconds
+python manage.py matt_baseline load v1.0.0
+python manage.py migrate
+
+# Profile before deploying
+python manage.py matt_migrate --profile
+
+# Run in parallel
+python manage.py matt_migrate --parallel
+```
+
+[Learn more about migration acceleration](migration-acceleration.md)
+
 ## Documentation
 
 <div class="grid cards" markdown>

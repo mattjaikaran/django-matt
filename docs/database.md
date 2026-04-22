@@ -343,8 +343,55 @@ If you're having trouble with pgvector:
    field = VectorField(dimensions=1536)
    ```
 
+## Migration Acceleration
+
+For large codebases with hundreds of migrations, django-matt provides comprehensive tools to dramatically speed up migration workflows:
+
+### Quick Overview
+
+```bash
+# See your migration landscape
+python manage.py matt_migrate --stats
+
+# Profile which migrations are slow
+python manage.py matt_migrate --profile
+
+# Create a SQL baseline for fast setup
+python manage.py matt_baseline create v1.0.0
+
+# Load baseline on fresh database (seconds instead of hours)
+python manage.py matt_baseline load v1.0.0
+python manage.py migrate
+
+# Run migrations in parallel
+python manage.py matt_migrate --parallel
+
+# Squash old migrations
+python manage.py matt_squash accounts 0001 0100
+```
+
+### Key Features
+
+| Feature | Command | Purpose |
+|---------|---------|---------|
+| SQL Baselines | `matt_baseline` | Skip running migrations; load schema dump |
+| Parallel Execution | `matt_migrate --parallel` | Run independent migrations concurrently |
+| Profiling | `matt_migrate --profile` | Identify slow migrations before running |
+| Squashing | `matt_squash` | Consolidate old migrations |
+| Safety Analysis | `matt_migrate --check` | Detect dangerous DDL patterns |
+
+### When to Use
+
+- **New dev setup taking hours?** → Use baselines
+- **Deploying 20+ migrations?** → Use parallel execution
+- **500+ migration files?** → Use squashing
+- **Concerned about production deploy?** → Use profiling + safety analysis
+
+For comprehensive documentation, see [Migration Acceleration](migration-acceleration.md).
+
 ## Further Reading
 
+- [Migration Acceleration](migration-acceleration.md)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 - [pgvector Documentation](https://github.com/pgvector/pgvector)
 - [Django Database Documentation](https://docs.djangoproject.com/en/stable/ref/databases/)

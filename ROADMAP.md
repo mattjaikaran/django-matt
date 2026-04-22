@@ -1566,6 +1566,45 @@ function LoginPage() {
   - `ErrorCatcher` and `MockErrorHandler` for error testing
   - Pytest fixtures: `cli_runner`, `mock_prompts`, `file_tracker`, etc.
 
+### Phase 16F: Migration Acceleration ✅ (Complete)
+
+> Solve the 2-hour migration problem for large codebases. Provides SQL baselines, parallel execution, profiling, and smart squashing.
+
+- [x] **16F.1** - SQL Baselines (`django_matt/migration_tools/baseline.py`)
+  - `MigrationBaseline` class for managing baselines
+  - Create baseline from current state: `python manage.py matt_baseline create v1.0.0`
+  - Load baseline on fresh DB: `python manage.py matt_baseline load v1.0.0`
+  - Supports PostgreSQL, MySQL, SQLite with vendor-specific dumps
+  - Schema hash verification for integrity
+  - Gzip compression for dumps
+  - Manifest with applied migrations list
+- [x] **16F.2** - Parallel Migration Execution (`django_matt/migration_tools/parallel.py`)
+  - `MigrationWavePlanner` - groups independent migrations into waves
+  - `ParallelMigrationExecutor` - runs waves concurrently
+  - Topological sort respects dependencies
+  - `python manage.py matt_migrate --parallel` - execute in waves
+  - `python manage.py matt_migrate --plan-waves` - preview execution plan
+  - Speedup estimation based on historical timing
+- [x] **16F.3** - Migration Profiling (`django_matt/migration_tools/stats.py`)
+  - `MigrationProfiler` - estimate complexity and time
+  - `MigrationTimer` - record historical timing data
+  - `python manage.py matt_migrate --stats` - project statistics
+  - `python manage.py matt_migrate --profile` - profile pending migrations
+  - `python manage.py matt_migrate --slowest N` - show slowest from history
+  - Complexity classification: trivial, simple, moderate, complex, extreme
+  - Warnings for RunPython/RunSQL, non-nullable adds, index builds
+- [x] **16F.4** - Smart Squashing (`django_matt/migration_tools/squash.py`)
+  - `SmartSquasher` with preview mode
+  - `python manage.py matt_squash myapp 0001 0042 --preview`
+  - `python manage.py matt_squash --analyze` - find squash opportunities
+  - Detects RunPython/RunSQL that can't be optimized
+  - Shows operation reduction percentage
+- [x] **16F.5** - Safety Analysis (existing, enhanced)
+  - `python manage.py matt_migrate --check` - detect unsafe DDL
+  - `python manage.py matt_migrate --rewrite` - show safe alternatives
+  - `python manage.py matt_migrate --graph` - dependency visualization
+  - `python manage.py matt_migrate --check-cycles` - detect circular deps
+
 ---
 
 ## Future Ideas
