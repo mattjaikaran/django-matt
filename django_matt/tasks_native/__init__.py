@@ -81,6 +81,19 @@ from .scheduling import (
     periodic_task,
     schedule_registry,
 )
+from .retry import (
+    CompositePolicy,
+    ExponentialBackoff,
+    FixedDelay,
+    LinearBackoff,
+    NoRetry,
+    RetryOnException,
+    RetryPolicy,
+    RetryState,
+    TaskFailureHandler,
+    failure_handler,
+    retry,
+)
 from .types import (
     TaskExecutionError,
     TaskMeta,
@@ -120,6 +133,18 @@ __all__ = [
     "get_backend",
     "set_backend",
     "reset",
+    # Retry
+    "retry",
+    "RetryPolicy",
+    "ExponentialBackoff",
+    "LinearBackoff",
+    "FixedDelay",
+    "NoRetry",
+    "RetryOnException",
+    "CompositePolicy",
+    "RetryState",
+    "TaskFailureHandler",
+    "failure_handler",
     # Backends
     "BaseNativeBackend",
     "SyncNativeBackend",
