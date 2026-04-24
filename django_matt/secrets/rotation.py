@@ -1,3 +1,5 @@
+"""TTL-based secret rotation scheduling and hook management."""
+
 from __future__ import annotations
 
 import asyncio
@@ -30,6 +32,7 @@ class RotationPolicy:
         return max(0.0, remaining)
 
     def mark_rotated(self) -> None:
+        """Reset the rotation timer to now."""
         self.last_rotated = time.monotonic()
 
 
@@ -51,10 +54,12 @@ def on_rotation(key: str) -> Callable:
 
 
 def get_rotation_hooks(key: str) -> list[Callable]:
+    """Return all registered rotation hooks for the given key."""
     return _rotation_registry.get(key, [])
 
 
 async def fire_rotation_hooks(key: str) -> None:
+    """Execute all rotation hooks for the given key."""
     hooks = get_rotation_hooks(key)
     for hook in hooks:
         if asyncio.iscoroutinefunction(hook):
@@ -72,13 +77,16 @@ class RotationChecker:
         self._task: asyncio.Task | None = None
 
     def add_policy(self, policy: RotationPolicy) -> None:
+        """Add a rotation policy to monitor."""
         self._policies.append(policy)
 
     def start(self) -> None:
+        """Start the background rotation checking task."""
         if self._task is None or self._task.done():
             self._task = asyncio.ensure_future(self._run())
 
     def stop(self) -> None:
+        """Stop the background rotation checking task."""
         if self._task and not self._task.done():
             self._task.cancel()
 

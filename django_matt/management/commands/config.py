@@ -10,6 +10,8 @@ from django_matt.cli.base import InteractiveCommand
 
 
 class Command(InteractiveCommand):
+    """Initialize, validate, and interactively edit Django Matt configuration."""
+
     help = "Manage Django Matt configuration files"
 
     def add_arguments(self, parser):

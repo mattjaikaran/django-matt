@@ -1,3 +1,5 @@
+"""Streaming HTTP response factories for binary, NDJSON, and text content."""
+
 from __future__ import annotations
 
 from typing import Any, AsyncIterator
@@ -27,6 +29,7 @@ def stream_response(
     status: int = 200,
     headers: dict[str, str] | None = None,
 ) -> StreamingHttpResponse:
+    """Create a StreamingHttpResponse from an async byte generator."""
     response = StreamingHttpResponse(
         streaming_content=generator,
         status=status,
@@ -46,6 +49,7 @@ def stream_json(
     status: int = 200,
     headers: dict[str, str] | None = None,
 ) -> StreamingHttpResponse:
+    """Create an NDJSON streaming response from an async generator of serializable objects."""
     return stream_response(
         _encode_ndjson(generator),
         content_type="application/x-ndjson",
@@ -60,6 +64,7 @@ def stream_text(
     status: int = 200,
     headers: dict[str, str] | None = None,
 ) -> StreamingHttpResponse:
+    """Create a text/plain streaming response from an async string generator."""
     return stream_response(
         _encode_text(generator),
         content_type="text/plain; charset=utf-8",

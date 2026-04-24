@@ -13,7 +13,6 @@ Usage:
 from __future__ import annotations
 
 import code
-import sys
 from typing import Any
 
 from django.apps import apps
@@ -148,6 +147,8 @@ def format_banner_rich(import_log: list[str]) -> None:
 
 
 class Command(BaseCommand):
+    """Enhanced Django shell that auto-imports all models, ORM helpers, and django_matt classes."""
+
     help = "Enhanced Django shell with auto-imports for models, utils, and django_matt classes"
 
     def add_arguments(self, parser: Any) -> None:
@@ -165,6 +166,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, **options: Any) -> str | None:
+        """Launch an interactive shell with auto-imported models and utilities."""
         namespace, import_log = collect_auto_imports()
 
         if options["print_imports"]:

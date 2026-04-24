@@ -1,3 +1,5 @@
+"""In-memory bus implementations and assertions for testing CQRS handlers."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -7,6 +9,7 @@ from .queries import Query, QueryBus
 
 
 class InMemoryCommandBus(CommandBus):
+    """Test double that records dispatched commands without executing handlers."""
     def __init__(self) -> None:
         super().__init__()
         self._dispatched: list[Command] = []
@@ -31,6 +34,8 @@ class InMemoryCommandBus(CommandBus):
 
 
 class InMemoryQueryBus(QueryBus):
+    """Test double that records dispatched queries without executing handlers."""
+
     def __init__(self) -> None:
         super().__init__()
         self._dispatched: list[Query] = []
@@ -59,6 +64,7 @@ def assert_command_dispatched(
     command_type: type[Command],
     **kwargs: Any,
 ) -> Command:
+    """Assert that a command of the given type was dispatched, optionally matching fields."""
     matches = [c for c in bus.dispatched if isinstance(c, command_type)]
     assert matches, f"No {command_type.__name__} was dispatched"
 
@@ -80,6 +86,7 @@ def assert_query_dispatched(
     query_type: type[Query],
     **kwargs: Any,
 ) -> Query:
+    """Assert that a query of the given type was dispatched, optionally matching fields."""
     matches = [q for q in bus.dispatched if isinstance(q, query_type)]
     assert matches, f"No {query_type.__name__} was dispatched"
 

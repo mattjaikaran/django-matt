@@ -5,6 +5,8 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
+    """Validate Django Matt settings and flag production-safety issues."""
+
     help = "Validate Django Matt settings and check for production-safety issues."
 
     def add_arguments(self, parser):
@@ -21,6 +23,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        """Validate settings and report errors or warnings."""
         env = options["env"]
         strict = options["strict"]
         errors = []

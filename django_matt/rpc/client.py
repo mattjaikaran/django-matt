@@ -1,3 +1,5 @@
+"""Async RPC client with retry, auth, and typed response deserialization."""
+
 from __future__ import annotations
 
 import asyncio
@@ -37,6 +39,8 @@ except ImportError:
 
 
 class RPCClient:
+    """Async HTTP client with retry logic and pluggable auth strategies."""
+
     def __init__(
         self,
         base_url: str,
@@ -99,6 +103,7 @@ class RPCClient:
         headers: dict[str, str] | None = None,
         response_model: type[BaseModel] | None = None,
     ) -> Any:
+        """Send an HTTP request with automatic retry and optional response model parsing."""
         merged_headers = self._build_headers(headers)
         body: bytes | None = None
         if data is not None:
@@ -207,6 +212,7 @@ class RPCClient:
         response_model: type[BaseModel] | None = None,
         **kwargs: Any,
     ) -> Any:
+        """Call a named RPC method, resolving it to an HTTP request."""
         route = self._resolve_method(method_name)
         if route is None:
             raise RPCError(f"Unknown method: {method_name}", status_code=404)
@@ -222,6 +228,7 @@ class RPCClient:
         return None
 
     async def close(self) -> None:
+        """Close underlying HTTP client connections."""
         if self._httpx_client is not None:
             await self._httpx_client.aclose()
             self._httpx_client = None
@@ -237,6 +244,8 @@ class RPCClient:
 
 
 class TypedRPCClient(RPCClient):
+    """RPC client that builds a route map from an API instance for typed method calls."""
+
     def __init__(
         self,
         base_url: str,
@@ -277,4 +286,5 @@ class TypedRPCClient(RPCClient):
         return self._routes.get(method_name)
 
     def get_available_methods(self) -> list[str]:
+        """Return sorted list of all available RPC method names."""
         return sorted(self._routes.keys())

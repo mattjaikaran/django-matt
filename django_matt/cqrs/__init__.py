@@ -1,3 +1,5 @@
+"""Command/Query buses, domain events, and bus middleware for CQRS patterns."""
+
 from .commands import Command, CommandBus, CommandHandler, command_handler, get_command_bus
 from .decorators import command, query
 from .events import DomainEvent, EventCollector, emits

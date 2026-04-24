@@ -25,6 +25,8 @@ from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
+    """Scaffold a new Django project with django-matt API configuration and optional frontends."""
+
     help = "Generate a new Django project with django-matt API configuration"
 
     def add_arguments(self, parser):
@@ -255,15 +257,15 @@ class Command(BaseCommand):
                 f"\nSuccessfully created {project_name} from {template!r} template"
             )
         )
-        self.stdout.write(f"\nNext steps:")
+        self.stdout.write("\nNext steps:")
         self.stdout.write(f"  cd {output_dir}")
-        self.stdout.write(f"  uv sync")
-        self.stdout.write(f"  uv run python manage.py migrate")
-        self.stdout.write(f"  uv run python manage.py runserver")
+        self.stdout.write("  uv sync")
+        self.stdout.write("  uv run python manage.py migrate")
+        self.stdout.write("  uv run python manage.py runserver")
 
         if metadata.get("requires_redis"):
-            self.stdout.write(f"\nThis template requires Redis:")
-            self.stdout.write(f"  docker compose up db redis -d")
+            self.stdout.write("\nThis template requires Redis:")
+            self.stdout.write("  docker compose up db redis -d")
 
     def _create_claude_md(
         self, project_name: str, template: str, auth: str, docker: bool, frontend: str

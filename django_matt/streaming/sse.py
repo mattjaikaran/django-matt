@@ -1,3 +1,5 @@
+"""Server-Sent Events (SSE) formatting and response construction."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -10,6 +12,7 @@ import orjson
 
 @dataclass(slots=True)
 class SSEEvent:
+    """Data class representing a single Server-Sent Event."""
     data: str | bytes | dict[str, Any] | list[Any] | None = None
     event: str | None = None
     id: str | None = None
@@ -18,6 +21,7 @@ class SSEEvent:
 
 
 def format_sse_event(event: SSEEvent) -> bytes:
+    """Serialize an SSEEvent into the wire-format bytes per the SSE specification."""
     lines: list[bytes] = []
 
     if event.comment is not None:
@@ -61,6 +65,7 @@ def sse_response(
     status: int = 200,
     headers: dict[str, str] | None = None,
 ) -> StreamingHttpResponse:
+    """Create a text/event-stream StreamingHttpResponse from an async SSEEvent generator."""
     response_headers = {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",

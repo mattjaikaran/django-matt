@@ -1,3 +1,5 @@
+"""Django middleware that emits collected events and a RequestEvent after each request."""
+
 from __future__ import annotations
 
 import asyncio
@@ -16,6 +18,7 @@ _request_events: dict[int, list[Event]] = {}
 
 
 def collect_event(request: HttpRequest, event: Event) -> None:
+    """Attach an event to the current request for deferred emission after response."""
     req_id = id(request)
     if req_id not in _request_events:
         _request_events[req_id] = []
@@ -23,6 +26,8 @@ def collect_event(request: HttpRequest, event: Event) -> None:
 
 
 class EventMiddleware:
+    """Middleware that collects events during a request and emits them on success."""
+
     def __init__(self, get_response: Callable) -> None:
         self.get_response = get_response
         self._is_async = asyncio.iscoroutinefunction(get_response)

@@ -1,3 +1,5 @@
+"""Infrastructure component registry with async health check orchestration."""
+
 from __future__ import annotations
 
 import asyncio
@@ -12,6 +14,7 @@ logger = logging.getLogger("django_matt.introspection")
 
 
 class ComponentStatus(str, Enum):
+    """Health status values for infrastructure components."""
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -19,6 +22,8 @@ class ComponentStatus(str, Enum):
 
 
 class ComponentInfo(BaseModel):
+    """Health check result for a single infrastructure component."""
+
     name: str
     component_type: str
     status: ComponentStatus = ComponentStatus.UNKNOWN
@@ -30,6 +35,8 @@ class ComponentInfo(BaseModel):
 
 
 class HealthResult(BaseModel):
+    """Aggregate health check result across all registered components."""
+
     status: ComponentStatus
     components: dict[str, ComponentInfo]
     timestamp: float
@@ -39,6 +46,8 @@ CheckFn = Callable[[], Coroutine[Any, Any, ComponentInfo]]
 
 
 class InfraRegistry:
+    """Registry of infrastructure components with parallel health check execution."""
+
     def __init__(self) -> None:
         self._components: dict[str, tuple[str, CheckFn, bool]] = {}
 
@@ -50,9 +59,11 @@ class InfraRegistry:
         *,
         critical: bool = True,
     ) -> None:
+        """Register a component with its health check function."""
         self._components[name] = (component_type, check_fn, critical)
 
     def unregister(self, name: str) -> None:
+        """Remove a component from the registry."""
         self._components.pop(name, None)
 
     def clear(self) -> None:
@@ -63,6 +74,7 @@ class InfraRegistry:
         return list(self._components.keys())
 
     async def health_check(self) -> HealthResult:
+        """Run all registered health checks in parallel and return aggregate result."""
         components: dict[str, ComponentInfo] = {}
         tasks = {}
 

@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import csv
 import io
-import sys
 from typing import Any
 
 from django.conf import settings
@@ -70,7 +69,7 @@ def get_table_sizes(alias: str = "default", limit: int = 10) -> list[tuple[str, 
                 )
                 tables = [row[0] for row in cursor.fetchall()]
                 for table in tables:
-                    cursor.execute(f'SELECT COUNT(*) FROM "{table}"')  # noqa: S608
+                    cursor.execute(f'SELECT COUNT(*) FROM "{table}"')
                     count = cursor.fetchone()[0]
                     results.append((table, count))
                 results.sort(key=lambda x: x[1], reverse=True)
@@ -160,7 +159,7 @@ def set_read_only(alias: str = "default") -> bool:
             if "postgresql" in engine or "postgis" in engine:
                 cursor.execute("SET default_transaction_read_only = ON")
                 return True
-            elif "sqlite" in engine:
+            if "sqlite" in engine:
                 cursor.execute("PRAGMA query_only = ON")
                 return True
     except Exception:
@@ -169,6 +168,8 @@ def set_read_only(alias: str = "default") -> bool:
 
 
 class Command(BaseCommand):
+    """Enhanced DB shell with connection info, one-shot queries, and formatted output."""
+
     help = "Enhanced DB shell with connection info, query execution, and formatted output"
 
     def add_arguments(self, parser: Any) -> None:

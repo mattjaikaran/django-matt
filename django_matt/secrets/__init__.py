@@ -1,3 +1,5 @@
+"""Multi-backend secrets management (env, Vault, AWS SM, GCP SM, dotenv, encrypted files)."""
+
 from __future__ import annotations
 
 from django_matt.secrets.backends import (

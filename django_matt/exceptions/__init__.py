@@ -1,3 +1,5 @@
+"""Exception filters for structured error handling with route/controller/global scoping."""
+
 from __future__ import annotations
 
 from django_matt.exceptions.builtins import (

@@ -1,3 +1,8 @@
+"""Semver versioning tool for pyproject.toml and __init__.py.
+
+Reads, validates, and bumps the version across both canonical sources.
+"""
+
 from __future__ import annotations
 
 import re
@@ -13,6 +18,7 @@ INIT_VERSION_RE = re.compile(r'^(__version__\s*=\s*")([^"]+)(")', re.MULTILINE)
 
 
 def current() -> str:
+    """Return the current version from pyproject.toml."""
     text = PYPROJECT_PATH.read_text()
     m = PYPROJECT_VERSION_RE.search(text)
     if not m:
@@ -29,6 +35,7 @@ def _read_init_version() -> str:
 
 
 def validate() -> bool:
+    """Return True if pyproject.toml and __init__.py versions match."""
     return current() == _read_init_version()
 
 
@@ -40,6 +47,7 @@ def _parse(version: str) -> tuple[int, int, int]:
 
 
 def bump(part: str) -> str:
+    """Bump the version by the given part and write to both files."""
     if part not in ("major", "minor", "patch"):
         raise ValueError(f"part must be major, minor, or patch, got: {part}")
 

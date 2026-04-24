@@ -40,6 +40,8 @@ from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
+    """Deploy to cloud platforms (Fly.io, Railway, Render, K3s) or generate Docker/K8s configs."""
+
     help = "Deploy Django application to cloud platforms"
 
     def add_arguments(self, parser: ArgumentParser):

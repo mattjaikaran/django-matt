@@ -1,3 +1,5 @@
+"""Decorators for defining modules and guarding functions with module dependencies."""
+
 from __future__ import annotations
 
 import functools
@@ -17,6 +19,7 @@ def module(
     depends: list[str] | None = None,
     config_namespace: str | None = None,
 ) -> Any:
+    """Class decorator that configures a class as a MattModule."""
     def decorator(cls: type) -> type[MattModule]:
         if not issubclass(cls, MattModule):
             bases = (cls, MattModule)
@@ -33,6 +36,7 @@ def module(
 
 
 def requires_module(module_name: str) -> Any:
+    """Guard a function so it raises if the required module is not loaded."""
     def decorator(func: Any) -> Any:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -68,6 +72,7 @@ def requires_module(module_name: str) -> Any:
 
 
 def optional_module(module_name: str, default: Any = None) -> Any:
+    """Guard a function so it returns default if the optional module is not loaded."""
     def decorator(func: Any) -> Any:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:

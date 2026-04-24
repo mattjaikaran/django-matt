@@ -1,3 +1,5 @@
+"""Event bus backend implementations (in-memory and Redis pub/sub)."""
+
 from __future__ import annotations
 
 import asyncio
@@ -11,6 +13,8 @@ logger = logging.getLogger("django_matt.events")
 
 
 class InMemoryBackend(BackendProtocol):
+    """In-process event backend using local subscriber dictionaries."""
+
     def __init__(self) -> None:
         self._subscribers: dict[str, list[Callable]] = {}
 
@@ -36,6 +40,8 @@ class InMemoryBackend(BackendProtocol):
 
 
 class RedisBackend(BackendProtocol):
+    """Redis pub/sub event backend for distributed event delivery."""
+
     def __init__(self, redis_url: str = "redis://localhost:6379/0", **kwargs: Any) -> None:
         self._redis_url = redis_url
         self._redis: Any = None

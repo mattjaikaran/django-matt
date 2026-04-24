@@ -1,3 +1,5 @@
+"""Development server with hot reloading for browser and Python file changes."""
+
 import os
 import sys
 
@@ -56,6 +58,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        """Start the development server with hot reloading enabled."""
         # Set environment variables
         os.environ["DJANGO_DEBUG"] = "True"
         os.environ["LIVE_RELOAD_HOST"] = options["websocket_host"]

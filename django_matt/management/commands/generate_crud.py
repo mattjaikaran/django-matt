@@ -25,6 +25,8 @@ from django_matt.cli import GeneratorCommand
 
 
 class Command(GeneratorCommand):
+    """Generate complete CRUD stack (controller, schema, service, admin, tests) for a Django model."""
+
     help = "Generate CRUD controllers, schemas, and tests for Django models"
 
     def add_arguments(self, parser):

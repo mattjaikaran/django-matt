@@ -1,3 +1,5 @@
+"""Built-in exception filters for validation, not-found, permission, DB, and throttle errors."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -19,6 +21,8 @@ def _json_response(data: dict[str, Any], status: int, headers: dict[str, str] | 
 
 
 class ValidationExceptionFilter(ExceptionFilter):
+    """Converts Pydantic ValidationError into a 422 JSON response."""
+
     order: int = 10
 
     @property
@@ -59,6 +63,8 @@ class ValidationExceptionFilter(ExceptionFilter):
 
 
 class NotFoundExceptionFilter(ExceptionFilter):
+    """Converts Django ObjectDoesNotExist into a 404 JSON response."""
+
     exception_types = ()
     order: int = 10
 
@@ -82,6 +88,8 @@ class NotFoundExceptionFilter(ExceptionFilter):
 
 
 class PermissionExceptionFilter(ExceptionFilter):
+    """Converts PermissionDenied into a 403 JSON response."""
+
     exception_types = ()
     order: int = 10
 
@@ -105,6 +113,8 @@ class PermissionExceptionFilter(ExceptionFilter):
 
 
 class DatabaseExceptionFilter(ExceptionFilter):
+    """Converts Django IntegrityError into a 409 JSON response."""
+
     exception_types = ()
     order: int = 20
 
@@ -128,6 +138,8 @@ class DatabaseExceptionFilter(ExceptionFilter):
 
 
 class ThrottleExceptionFilter(ExceptionFilter):
+    """Converts RateLimitAPIError into a 429 JSON response with Retry-After header."""
+
     exception_types = ()
     order: int = 5
 

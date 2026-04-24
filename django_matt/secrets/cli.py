@@ -1,3 +1,5 @@
+"""CLI commands for listing, getting, setting, rotating, and encrypting secrets."""
+
 from __future__ import annotations
 
 import asyncio

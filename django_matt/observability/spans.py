@@ -1,3 +1,5 @@
+"""Lightweight in-process span tracking with sync and async context managers."""
+
 from __future__ import annotations
 
 import asyncio

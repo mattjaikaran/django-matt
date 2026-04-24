@@ -1,3 +1,5 @@
+"""Group-based field visibility for Pydantic schemas (Grouped, Secret, @serialize_for)."""
+
 from django_matt.serialization.decorators import serialize_for
 from django_matt.serialization.fields import Grouped, Public, Secret
 from django_matt.serialization.groups import (

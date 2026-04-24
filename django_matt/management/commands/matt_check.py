@@ -22,6 +22,8 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
+    """Unified system check combining Django checks, config validation, and import verification."""
+
     help = "Run all django-matt system checks in one pass"
 
     def add_arguments(self, parser: Any) -> None:

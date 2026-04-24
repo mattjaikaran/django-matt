@@ -12,6 +12,8 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
+    """Generate an MCP server from project introspection for LLM tool integration."""
+
     help = "Generate an MCP (Model Context Protocol) server from project introspection"
 
     def add_arguments(self, parser):
@@ -38,6 +40,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        """Generate MCP server code from project introspection."""
         from django_matt.ai.context.mcp import generate_mcp_server, write_mcp_server
 
         base_url = options["base_url"]

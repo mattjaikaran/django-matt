@@ -51,6 +51,7 @@ class Command(BaseRunserverCommand):
         )
 
     def handle(self, *args, **options):
+        """Start the server, delegating to hot reload or standard runserver."""
         # If --no-hot is specified or --noreload is used, run standard Django runserver
         if options.get("no_hot") or options.get("use_reloader") is False:
             return super().handle(*args, **options)

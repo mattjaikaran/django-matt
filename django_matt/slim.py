@@ -83,6 +83,8 @@ Mode = Literal["full", "slim", "minimal", "auto"]
 
 
 class SlimConfig(BaseModel):
+    """Configuration for slim mode module loading."""
+
     mode: Mode = "full"
     enabled_modules: list[str] | None = None  # None = all, list = only these
     disabled_modules: list[str] = []
@@ -94,6 +96,7 @@ _slim_config: SlimConfig | None = None
 
 
 def get_slim_config() -> SlimConfig:
+    """Return the cached SlimConfig, creating it from Django settings if needed."""
     global _slim_config
     if _slim_config is not None:
         return _slim_config
@@ -108,11 +111,13 @@ def get_slim_config() -> SlimConfig:
 
 
 def reset_slim_config() -> None:
+    """Clear the cached SlimConfig so it is re-read on next access."""
     global _slim_config
     _slim_config = None
 
 
 def is_module_enabled(module_name: str) -> bool:
+    """Check whether a module is enabled under the current slim mode config."""
     config = get_slim_config()
     if module_name in CORE_MODULES:
         return True

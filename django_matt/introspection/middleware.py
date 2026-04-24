@@ -1,3 +1,5 @@
+"""Middleware that short-circuits health/liveness probes before Django routing."""
+
 from __future__ import annotations
 
 import time
@@ -8,6 +10,7 @@ import orjson
 
 
 class HealthCheckMiddleware:
+    """Short-circuit middleware that responds to health probe paths without full dispatch."""
     def __init__(self, get_response) -> None:
         self.get_response = get_response
         self._health_paths = frozenset({"/health/", "/health/live/"})

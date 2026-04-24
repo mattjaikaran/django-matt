@@ -449,6 +449,8 @@ def _resolve_fixture_value(
 
 
 class Command(MattCommand):
+    """Seed the development database with realistic fake data generated from model introspection."""
+
     help = "Seed development database with realistic fake data"
 
     def add_arguments(self, parser):

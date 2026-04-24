@@ -23,6 +23,8 @@ _TARGETS = ("typescript", "python", "swift", "all")
 
 
 class Command(BaseCommand):
+    """Generate typed client SDKs (TypeScript, Python, Swift) from API introspection."""
+
     help = "Generate typed client SDKs from your API definition"
 
     def add_arguments(self, parser: Any) -> None:

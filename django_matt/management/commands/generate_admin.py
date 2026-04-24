@@ -28,6 +28,8 @@ from django.db import models
 
 
 class Command(BaseCommand):
+    """Generate Django Unfold admin classes from model introspection."""
+
     help = "Generate admin.py from Django models"
 
     def add_arguments(self, parser):

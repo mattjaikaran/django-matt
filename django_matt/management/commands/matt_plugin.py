@@ -17,6 +17,8 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
+    """Manage django-matt plugins: list, create, enable, disable, and inspect."""
+
     help = "Manage django-matt plugins"
 
     def add_arguments(self, parser: Any) -> None:
@@ -50,6 +52,7 @@ class Command(BaseCommand):
         disable_parser.add_argument("name", type=str)
 
     def handle(self, *args: Any, **options: Any) -> str | None:
+        """Dispatch to the appropriate plugin subcommand."""
         subcommand = options.get("subcommand")
         if not subcommand:
             self.stderr.write("Usage: matt_plugin <list|info|create|check|enable|disable>")

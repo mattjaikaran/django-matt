@@ -21,6 +21,8 @@ from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
+    """Start the production ASGI server using the configured or specified backend."""
+
     help = "Start production server with configured backend"
 
     def add_arguments(self, parser: Any) -> None:

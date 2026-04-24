@@ -87,6 +87,8 @@ def _get_value(obj: Any, field_path: str) -> Any:
 
 
 class Command(MattCommand):
+    """Export model data to CSV, JSON, JSONL, or XLSX with filtering and field selection."""
+
     help = "Export model data to CSV, JSON, JSONL, or XLSX"
 
     def add_arguments(self, parser):

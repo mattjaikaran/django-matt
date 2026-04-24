@@ -25,6 +25,8 @@ from django_matt.vite.config import get_vite_config, reset_vite_config
 
 
 class Command(BaseCommand):
+    """Start the Vite dev server with HMR proxying for Django integration."""
+
     help = "Start Vite dev server with Django integration"
 
     def add_arguments(self, parser: Any) -> None:

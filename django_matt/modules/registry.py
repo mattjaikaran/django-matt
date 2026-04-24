@@ -1,3 +1,5 @@
+"""Module registry with dependency resolution, lifecycle management, and autodiscovery."""
+
 from __future__ import annotations
 
 import importlib
@@ -14,22 +16,23 @@ _registry: ModuleRegistry | None = None
 
 
 class ModuleError(Exception):
-    pass
+    """Base exception for module system errors."""
 
 
 class CircularDependencyError(ModuleError):
-    pass
+    """Raised when module dependencies form a cycle."""
 
 
 class MissingDependencyError(ModuleError):
-    pass
+    """Raised when a required module dependency is not registered."""
 
 
 class ModuleNotFoundError(ModuleError):
-    pass
+    """Raised when attempting to access a module that is not loaded."""
 
 
 class ModuleRegistry:
+    """Central registry for module registration, dependency resolution, and lifecycle."""
     def __init__(self) -> None:
         self._modules: dict[str, MattModule] = {}
         self._loaded: dict[str, MattModule] = {}
@@ -40,6 +43,7 @@ class ModuleRegistry:
         self._configs: dict[str, Any] = {}
 
     def register(self, module: MattModule | type[MattModule]) -> MattModule:
+        """Register a module instance or class with the registry."""
         if isinstance(module, type):
             module = module()
         if not isinstance(module, MattModule):
@@ -51,6 +55,7 @@ class ModuleRegistry:
         return module
 
     def resolve_dependencies(self) -> list[str]:
+        """Topologically sort modules by dependencies and return the load order."""
         graph: dict[str, list[str]] = {}
         for name, mod in self._modules.items():
             for dep in mod.dependencies:
@@ -85,6 +90,7 @@ class ModuleRegistry:
         return order
 
     async def load_all(self) -> None:
+        """Load all registered modules in dependency order."""
         if not self._load_order:
             self.resolve_dependencies()
 
@@ -114,6 +120,7 @@ class ModuleRegistry:
             await hook(module)
 
     async def unload_all(self) -> None:
+        """Unload all modules in reverse dependency order."""
         for name in reversed(self._load_order):
             if name in self._loaded:
                 await self._loaded[name].on_shutdown()
@@ -166,6 +173,7 @@ class ModuleRegistry:
 
 
 def get_registry() -> ModuleRegistry:
+    """Return the global ModuleRegistry singleton."""
     global _registry
     if _registry is None:
         _registry = ModuleRegistry()
@@ -173,6 +181,7 @@ def get_registry() -> ModuleRegistry:
 
 
 def reset_registry() -> None:
+    """Reset the global ModuleRegistry singleton."""
     global _registry
     if _registry is not None:
         _registry.reset()
@@ -180,6 +189,7 @@ def reset_registry() -> None:
 
 
 def discover_modules() -> list[MattModule]:
+    """Discover and register modules from entry points, settings, and app conventions."""
     registry = get_registry()
     discovered: list[MattModule] = []
 

@@ -1,3 +1,5 @@
+"""Typed HTTP client generation for Python and TypeScript from API routes."""
+
 from django_matt.rpc.auth import (
     APIKeyAuth,
     AuthStrategy,

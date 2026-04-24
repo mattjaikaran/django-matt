@@ -1,3 +1,5 @@
+"""Validators for configuration values such as durations, sizes, and URLs."""
+
 from __future__ import annotations
 
 import re
@@ -26,6 +28,7 @@ _SIZE_MULTIPLIERS: dict[str, int] = {
 
 
 def validate_url(v: Any) -> str:
+    """Validate that a value is an HTTP or HTTPS URL string."""
     if not isinstance(v, str):
         raise ValueError(f"expected string, got {type(v).__name__}")
     if not re.match(r"^https?://\S+$", v):
@@ -34,6 +37,7 @@ def validate_url(v: Any) -> str:
 
 
 def validate_duration(v: Any) -> timedelta:
+    """Parse a duration value (timedelta, number of seconds, or string like '30s', '5m') into a timedelta."""
     if isinstance(v, timedelta):
         return v
     if isinstance(v, (int, float)):
@@ -51,6 +55,7 @@ def validate_duration(v: Any) -> timedelta:
 
 
 def validate_size(v: Any) -> int:
+    """Parse a size value (int bytes or string like '10MB', '1GB') into bytes."""
     if isinstance(v, int):
         return v
     if not isinstance(v, str):

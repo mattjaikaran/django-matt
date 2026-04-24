@@ -1,3 +1,5 @@
+"""Startup-time configuration validation and namespace registration."""
+
 from __future__ import annotations
 
 import logging
@@ -14,16 +16,19 @@ _skipped: set[str] = set()
 
 
 def register_namespace(key: str, cls: type[ConfigNamespace]) -> None:
+    """Register a ConfigNamespace subclass for startup validation."""
     if not issubclass(cls, ConfigNamespace):
         raise TypeError(f"{cls!r} must be a ConfigNamespace subclass")
     _registry[key] = cls
 
 
 def skip_validation(key: str) -> None:
+    """Exclude a namespace key from startup validation."""
     _skipped.add(key)
 
 
 def validate_config() -> dict[str, ConfigNamespace]:
+    """Validate all registered namespaces against current Django settings."""
     from django.conf import settings
 
     matt_settings: dict[str, Any] = getattr(settings, "DJANGO_MATT", {})
@@ -53,5 +58,6 @@ def validate_config() -> dict[str, ConfigNamespace]:
 
 
 def reset_startup() -> None:
+    """Clear all registered namespaces and skip flags (for testing)."""
     _registry.clear()
     _skipped.clear()

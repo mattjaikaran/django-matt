@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+"""Startup profiling utilities for django_matt.
+
+Measures import times for all django_matt modules to identify slow imports
+and aid in optimizing application startup performance.
+"""
+
 import importlib
 import logging
 import time
@@ -12,6 +18,12 @@ _profile_results: dict[str, float] | None = None
 
 
 def profile_imports() -> dict[str, float]:
+    """Profile import times for all django_matt modules.
+
+    Returns:
+        Dict mapping module name to import time in milliseconds
+        (-1.0 if the module failed to import).
+    """
     from django_matt.slim import CORE_MODULES, MODULE_MIDDLEWARE
 
     all_modules = sorted(
@@ -46,6 +58,8 @@ def profile_imports() -> dict[str, float]:
 
 
 class StartupProfiler:
+    """Context manager that profiles django_matt module imports on startup."""
+
     def __init__(self) -> None:
         self._results: dict[str, float] = {}
         self._total_ms: float = 0.0
@@ -80,6 +94,7 @@ class StartupProfiler:
         return sorted(importable.items(), key=lambda x: x[1], reverse=True)[:n]
 
     def summary(self) -> dict[str, Any]:
+        """Return a summary dict with total time, counts, and slowest modules."""
         importable = {k: v for k, v in self._results.items() if v >= 0}
         failed = [k for k, v in self._results.items() if v < 0]
         return {
@@ -94,4 +109,5 @@ class StartupProfiler:
 
 
 def get_profile_results() -> dict[str, float] | None:
+    """Return cached profiling results, or None if profiling has not run."""
     return _profile_results

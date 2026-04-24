@@ -1,3 +1,5 @@
+"""One-call setup and teardown for the full observability stack (tracing, metrics, logging)."""
+
 from __future__ import annotations
 
 import logging

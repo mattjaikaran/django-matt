@@ -1,3 +1,5 @@
+"""Decorators for attaching exception filters to views and registering global filters."""
+
 from __future__ import annotations
 
 import functools
@@ -14,6 +16,7 @@ def exception_filter(
     *exception_types: type[Exception],
     order: int = 0,
 ) -> Callable[[type], type]:
+    """Class decorator that configures exception_types and order on a filter class."""
     def decorator(cls: type) -> type:
         if not hasattr(cls, "catch"):
             raise TypeError(f"{cls.__name__} must define an async 'catch' method")
@@ -29,6 +32,7 @@ def catch(
     handler: Callable[..., HttpResponse] | None = None,
     order: int = 0,
 ) -> Callable:
+    """Decorator to attach an exception handler to a view function."""
     def decorator(func: Callable) -> Callable:
         if handler is not None:
             filter_ = FunctionExceptionFilter(
@@ -63,9 +67,11 @@ def catch_all(
     handler: Callable[..., HttpResponse],
     order: int = 0,
 ) -> Callable:
+    """Shortcut for @catch(Exception, handler=...) to catch all exceptions."""
     return catch(Exception, handler=handler, order=order)
 
 
 def register_global_filter(filter_: ExceptionFilter) -> ExceptionFilter:
+    """Register a filter instance in the default global registry."""
     default_registry.register_global_filter(filter_)
     return filter_

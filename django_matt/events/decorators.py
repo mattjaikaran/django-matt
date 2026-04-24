@@ -1,3 +1,5 @@
+"""Decorator-based event subscription and autodiscovery for app event modules."""
+
 from __future__ import annotations
 
 import importlib
@@ -12,6 +14,7 @@ _pending_subscriptions: list[tuple[str, Callable]] = []
 
 
 def on(event_type: str | type[Event]) -> Callable:
+    """Subscribe the decorated function to the given event type."""
     def decorator(func: Callable) -> Callable:
         if isinstance(event_type, str):
             key = event_type
@@ -30,6 +33,7 @@ def on(event_type: str | type[Event]) -> Callable:
 
 
 def autodiscover(app_labels: list[str] | None = None) -> int:
+    """Import `events` modules from installed apps to register @on handlers."""
     from django.apps import apps
 
     count = 0

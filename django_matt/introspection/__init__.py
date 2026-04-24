@@ -1,3 +1,5 @@
+"""Health checks, infrastructure reporting, and readiness/liveness probes."""
+
 from __future__ import annotations
 
 from django_matt.introspection.checks import (

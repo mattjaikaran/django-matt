@@ -1,3 +1,5 @@
+"""Command bus with single-handler dispatch and middleware pipeline."""
+
 from __future__ import annotations
 
 import logging
@@ -13,6 +15,8 @@ R = TypeVar("R")
 
 
 class Command(BaseModel):
+    """Immutable base model for CQRS commands."""
+
     model_config = ConfigDict(frozen=True)
 
 
@@ -22,15 +26,19 @@ class CommandHandler(Protocol[C, R]):
 
 
 class CommandBus:
+    """Dispatches commands to their registered handler with middleware support."""
+
     def __init__(self) -> None:
         self._handlers: dict[type[Command], CommandHandler] = {}
         self._middleware: list[Any] = []
 
     def use(self, middleware: Any) -> CommandBus:
+        """Add a middleware to the command bus pipeline."""
         self._middleware.append(middleware)
         return self
 
     def register(self, command_type: type[Command], handler: CommandHandler) -> CommandBus:
+        """Register the sole handler for a command type."""
         if command_type in self._handlers:
             raise ValueError(
                 f"Handler already registered for {command_type.__name__}. "
@@ -40,6 +48,7 @@ class CommandBus:
         return self
 
     async def dispatch(self, command: Command) -> Any:
+        """Dispatch a command through the middleware pipeline to its handler."""
         command_type = type(command)
         handler = self._handlers.get(command_type)
         if handler is None:
@@ -66,6 +75,7 @@ _default_command_bus = CommandBus()
 
 
 def get_command_bus() -> CommandBus:
+    """Return the default global CommandBus singleton."""
     return _default_command_bus
 
 
@@ -74,6 +84,7 @@ def command_handler(
     *,
     bus: CommandBus | None = None,
 ) -> Callable:
+    """Class decorator that registers a command handler with the bus."""
     def decorator(cls: type) -> type:
         target_bus = bus or _default_command_bus
         target_bus.register(command_type, cls())

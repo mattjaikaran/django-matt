@@ -136,6 +136,8 @@ def _snake_case(name: str) -> str:
 
 
 class Command(GeneratorCommand):
+    """Scaffold individual components: model, controller, service, schema, test, middleware, migration, or factory."""
+
     help = "Generate individual Django Matt components (model, controller, service, schema, test, middleware, migration, factory)"
 
     def add_arguments(self, parser) -> None:

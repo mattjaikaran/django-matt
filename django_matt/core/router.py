@@ -1,10 +1,30 @@
+"""URL routing system for Django Matt.
+
+Registers API endpoints, creates Django URL patterns, and optionally dispatches
+through a Rust-accelerated radix tree for O(path-length) lookups. Supports both
+function-based routes via decorator methods and class-based controllers.
+
+Usage::
+
+    from django_matt.core.router import APIRouter
+
+    router = APIRouter(prefix="/api/v1")
+
+    @router.get("/users/")
+    async def list_users(request):
+        return {"users": []}
+
+    # In urls.py
+    urlpatterns = router.get_urls()
+"""
+
 import inspect
 import logging
 from collections.abc import Callable
 from typing import get_type_hints
 
 import django
-from django.http import HttpResponse, HttpResponseBase, JsonResponse
+from django.http import HttpResponseBase, JsonResponse
 from django.urls import path
 
 import orjson
@@ -126,7 +146,7 @@ class APIRouter:
         status_code: int = 200,
         tags: list[str] = None,
         responses: dict[int, type[BaseModel]] | None = None,
-    ):
+    ) -> Callable:
         """Add a route to the router."""
         route = {
             "path": path_pattern,
@@ -150,7 +170,7 @@ class APIRouter:
         name: str | None = None,
         tags: list[str] = None,
         responses: dict[int, type[BaseModel]] | None = None,
-    ):
+    ) -> Callable:
         """Register a GET endpoint."""
 
         def decorator(endpoint):
@@ -176,7 +196,7 @@ class APIRouter:
         name: str | None = None,
         tags: list[str] = None,
         responses: dict[int, type[BaseModel]] | None = None,
-    ):
+    ) -> Callable:
         """Register a POST endpoint."""
 
         def decorator(endpoint):
@@ -202,7 +222,7 @@ class APIRouter:
         name: str | None = None,
         tags: list[str] = None,
         responses: dict[int, type[BaseModel]] | None = None,
-    ):
+    ) -> Callable:
         """Register a PUT endpoint."""
 
         def decorator(endpoint):
@@ -228,7 +248,7 @@ class APIRouter:
         name: str | None = None,
         tags: list[str] = None,
         responses: dict[int, type[BaseModel]] | None = None,
-    ):
+    ) -> Callable:
         """Register a PATCH endpoint."""
 
         def decorator(endpoint):
@@ -254,7 +274,7 @@ class APIRouter:
         name: str | None = None,
         tags: list[str] = None,
         responses: dict[int, type[BaseModel]] | None = None,
-    ):
+    ) -> Callable:
         """Register a DELETE endpoint."""
 
         def decorator(endpoint):
@@ -271,7 +291,7 @@ class APIRouter:
 
         return decorator
 
-    def include_router(self, router: "APIRouter", prefix: str = ""):
+    def include_router(self, router: "APIRouter", prefix: str = "") -> None:
         """Include another router in this router."""
         combined_prefix = self.prefix + prefix
         for route in router.routes:
@@ -283,7 +303,7 @@ class APIRouter:
         for controller in router.controllers:
             self.controllers.append(controller)
 
-    def register_controller(self, controller_class: type):
+    def register_controller(self, controller_class: type) -> type:
         """Register a controller class with the router."""
         self.controllers.append(controller_class)
         return controller_class
@@ -388,7 +408,7 @@ class APIRouter:
             route = str(url_pattern.pattern)
         return "<" in route
 
-    def get_urls(self, csrf_exempt: bool = False):
+    def get_urls(self, csrf_exempt: bool = False) -> list:
         """Get Django URL patterns for all registered routes.
 
         Routes with the same URL path pattern are merged into a single Django
@@ -605,7 +625,7 @@ def get(
     name: str | None = None,
     tags: list[str] | None = None,
     responses: dict[int, type[BaseModel]] | None = None,
-):
+) -> Callable:
     """Decorator to mark a controller method as a GET endpoint."""
 
     def decorator(func):
@@ -631,7 +651,7 @@ def post(
     name: str | None = None,
     tags: list[str] | None = None,
     responses: dict[int, type[BaseModel]] | None = None,
-):
+) -> Callable:
     """Decorator to mark a controller method as a POST endpoint."""
 
     def decorator(func):
@@ -657,7 +677,7 @@ def put(
     name: str | None = None,
     tags: list[str] | None = None,
     responses: dict[int, type[BaseModel]] | None = None,
-):
+) -> Callable:
     """Decorator to mark a controller method as a PUT endpoint."""
 
     def decorator(func):
@@ -683,7 +703,7 @@ def patch(
     name: str | None = None,
     tags: list[str] | None = None,
     responses: dict[int, type[BaseModel]] | None = None,
-):
+) -> Callable:
     """Decorator to mark a controller method as a PATCH endpoint."""
 
     def decorator(func):
@@ -709,7 +729,7 @@ def delete(
     name: str | None = None,
     tags: list[str] | None = None,
     responses: dict[int, type[BaseModel]] | None = None,
-):
+) -> Callable:
     """Decorator to mark a controller method as a DELETE endpoint."""
 
     def decorator(func):

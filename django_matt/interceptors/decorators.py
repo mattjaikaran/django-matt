@@ -1,3 +1,5 @@
+"""Decorators for applying interceptors to views and controllers."""
+
 from __future__ import annotations
 
 from collections.abc import Callable

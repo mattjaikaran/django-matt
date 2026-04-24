@@ -26,6 +26,8 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
+    """Unified dev server that launches Django, Vite, and file watcher together."""
+
     help = "Start Django + Vite + hot reload in one command"
 
     def add_arguments(self, parser: Any) -> None:

@@ -68,6 +68,8 @@ def get_model_name(app_name: str) -> str:
 
 
 class Command(StartAppCommand):
+    """Create a Django app with package-based directory structure and optional model scaffolding."""
+
     help = (
         "Creates a Django app with package-based directory structure: "
         "models/, schemas/, controllers/, admin/, services/, tests/, utils/"

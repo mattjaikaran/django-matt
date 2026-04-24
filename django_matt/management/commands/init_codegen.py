@@ -27,6 +27,8 @@ from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
+    """Scaffold a codegen configuration file from project introspection."""
+
     help = "Initialize code generation configuration file"
 
     def add_arguments(self, parser):

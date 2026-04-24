@@ -1,3 +1,5 @@
+"""Central secrets manager with caching, multi-backend resolution, and rotation hooks."""
+
 from __future__ import annotations
 
 import asyncio
@@ -74,6 +76,7 @@ class SecretsManager:
         self._rotation_hooks: dict[str, list[Any]] = {}
 
     def register_backend(self, scheme: str, backend: SecretsBackend) -> None:
+        """Register a backend for the given URI scheme."""
         self._backends[scheme] = backend
 
     def _get_backend(self, scheme: str | None = None) -> SecretsBackend:
@@ -94,12 +97,15 @@ class SecretsManager:
         self._cache[key] = _CacheEntry(value, self._cache_ttl)
 
     def invalidate(self, key: str) -> None:
+        """Remove a single key from the cache."""
         self._cache.pop(key, None)
 
     def invalidate_all(self) -> None:
+        """Clear the entire secrets cache."""
         self._cache.clear()
 
     async def get(self, key: str, default: str | None = None) -> str | None:
+        """Retrieve a secret value by key, with caching."""
         cached = self._check_cache(key)
         if cached is not None:
             return cached
@@ -112,6 +118,7 @@ class SecretsManager:
         return value
 
     async def get_many(self, keys: list[str]) -> dict[str, str | None]:
+        """Retrieve multiple secret values, batching uncached keys."""
         result: dict[str, str | None] = {}
         uncached: list[str] = []
 
@@ -133,18 +140,21 @@ class SecretsManager:
         return result
 
     async def set(self, key: str, value: str) -> None:
+        """Store a secret value via the default backend."""
         backend = self._get_backend()
         await backend.set(key, value)
         self._set_cache(key, value)
         logger.info("secret stored: %s", key)
 
     async def delete(self, key: str) -> None:
+        """Delete a secret from the backend and invalidate cache."""
         backend = self._get_backend()
         await backend.delete(key)
         self.invalidate(key)
         logger.info("secret deleted: %s", key)
 
     async def resolve_ref(self, ref: SecretReference) -> str | None:
+        """Resolve a SecretReference URI to its value using the matching backend."""
         if ref.scheme == "plain":
             return ref.path
 
@@ -160,6 +170,7 @@ class SecretsManager:
         return value
 
     async def rotate(self, key: str) -> None:
+        """Invalidate cache for a key and fire all registered rotation hooks."""
         self.invalidate(key)
         logger.info("secret rotated: %s", key)
         hooks = self._rotation_hooks.get(key, [])
@@ -170,14 +181,17 @@ class SecretsManager:
                 hook(key)
 
     def on_rotation(self, key: str, callback: Any) -> None:
+        """Register a callback to run when the given key is rotated."""
         self._rotation_hooks.setdefault(key, []).append(callback)
 
     async def list_keys(self) -> list[str]:
+        """List all secret keys from the default backend."""
         backend = self._get_backend()
         return await backend.list_keys()
 
 
 def get_secrets_manager(**kwargs: Any) -> SecretsManager:
+    """Return the global SecretsManager singleton, creating it if necessary."""
     global _manager_instance
     if _manager_instance is None:
         _manager_instance = SecretsManager(**kwargs)
@@ -185,5 +199,6 @@ def get_secrets_manager(**kwargs: Any) -> SecretsManager:
 
 
 def reset_secrets_manager() -> None:
+    """Reset the global SecretsManager singleton (useful in tests)."""
     global _manager_instance
     _manager_instance = None

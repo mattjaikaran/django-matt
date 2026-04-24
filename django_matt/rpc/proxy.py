@@ -1,3 +1,5 @@
+"""Attribute-based RPC proxy that maps dotted names to HTTP endpoint calls."""
+
 from __future__ import annotations
 
 import re
@@ -60,6 +62,8 @@ class _EndpointCaller:
 
 
 class RPCProxy:
+    """Proxy object that maps attribute access to RPC endpoint calls via namespaces."""
+
     def __init__(
         self,
         api: Any,
@@ -108,6 +112,7 @@ class RPCProxy:
         return self._client
 
     async def close(self) -> None:
+        """Close the underlying RPC client."""
         await self._client.close()
 
     async def __aenter__(self) -> RPCProxy:

@@ -104,6 +104,8 @@ def _coerce_value(field: models.Field, value: Any) -> Any:
 
 
 class Command(MattCommand):
+    """Import model data from CSV, JSON, or JSONL files with type coercion and validation."""
+
     help = "Import model data from CSV, JSON, or JSONL files"
 
     def add_arguments(self, parser):
@@ -134,6 +136,7 @@ class Command(MattCommand):
         )
 
     def handle(self, *args, **options):
+        """Import records from file into the specified model."""
         model = _resolve_model(options["model"])
         file_path = Path(options["file"])
 

@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+"""Lazy and deferred module loading system for django_matt.
+
+Provides ``LazyModuleProxy`` for thread-safe deferred imports and
+``DeferredLoader`` for managing module lifecycle based on weight
+classification (heavy vs. light).
+"""
+
 import importlib
 import threading
 from types import ModuleType
@@ -54,6 +61,8 @@ LIGHT_MODULES: frozenset[str] = frozenset({
 
 
 class LazyModuleProxy:
+    """Thread-safe proxy that defers module import until first attribute access."""
+
     __slots__ = ("_lock", "_module", "_module_path")
 
     def __init__(self, module_path: str) -> None:
@@ -62,6 +71,7 @@ class LazyModuleProxy:
         object.__setattr__(self, "_lock", threading.Lock())
 
     def _load(self) -> ModuleType:
+        """Load the underlying module, thread-safe with double-check locking."""
         mod = object.__getattribute__(self, "_module")
         if mod is not None:
             return mod
@@ -92,15 +102,19 @@ class LazyModuleProxy:
 
 
 def lazy_import(module_path: str) -> LazyModuleProxy:
+    """Create a lazy proxy for the given module path."""
     return LazyModuleProxy(module_path)
 
 
 class DeferredLoader:
+    """Manager for lazy and eager module loading based on module weight."""
+
     def __init__(self) -> None:
         self._proxies: dict[str, LazyModuleProxy] = {}
         self._loaded: dict[str, ModuleType] = {}
 
     def get(self, module_name: str) -> LazyModuleProxy | ModuleType | None:
+        """Get a module by name, loading eagerly or lazily based on weight."""
         if not is_module_enabled(module_name):
             return None
         full_path = f"django_matt.{module_name}"
@@ -113,12 +127,14 @@ class DeferredLoader:
         return self._proxies[module_name]
 
     def preload(self, *module_names: str) -> None:
+        """Force-load one or more modules, resolving any lazy proxies."""
         for name in module_names:
             proxy = self.get(name)
             if isinstance(proxy, LazyModuleProxy):
                 proxy._load()
 
     def is_loaded(self, module_name: str) -> bool:
+        """Check whether a module has been fully imported."""
         if module_name in self._loaded:
             return True
         proxy = self._proxies.get(module_name)

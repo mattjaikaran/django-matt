@@ -1,3 +1,5 @@
+"""Pydantic-compatible secret fields and lazy resolvers for Django settings."""
+
 from __future__ import annotations
 
 import os

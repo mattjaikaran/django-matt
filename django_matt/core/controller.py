@@ -1,5 +1,30 @@
 from __future__ import annotations
 
+"""Controller system for Django Matt.
+
+Provides class-based API endpoint definitions with automatic dependency injection,
+error handling, permission checks, and query optimization. Controllers group related
+endpoints under a shared prefix and configuration.
+
+Usage::
+
+    from django_matt.core.controller import APIController
+    from django_matt.core.router import get, post
+
+    class UserController(APIController):
+        prefix = "/users"
+        tags = ["Users"]
+        permission_classes = [IsAuthenticated]
+
+        @get("/")
+        async def list_users(self, request):
+            return await self.list(request)
+
+        @post("/")
+        async def create_user(self, request, data: UserCreateSchema):
+            return await self.create(request, data)
+"""
+
 import inspect
 from functools import wraps
 from typing import TYPE_CHECKING, Any, get_type_hints
@@ -60,10 +85,10 @@ class Controller:
         if "middleware_classes" not in cls.__dict__:
             cls.middleware_classes = list(cls.middleware_classes)
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._setup_methods()
 
-    def _setup_methods(self):
+    def _setup_methods(self) -> None:
         """
         Single-pass setup: dependency injection + error handling for all route methods.
 

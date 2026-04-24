@@ -28,6 +28,8 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
+    """Create, load, and manage SQL migration baselines for fast database setup."""
+
     help = "Manage migration baselines for fast database setup."
 
     def add_arguments(self, parser):

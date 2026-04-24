@@ -1,3 +1,5 @@
+"""Route-scoped middleware (interceptors) for before/after request hooks."""
+
 from django_matt.interceptors.base import Interceptor
 from django_matt.interceptors.builtins import (
     CachingInterceptor,

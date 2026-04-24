@@ -1,3 +1,5 @@
+"""Infrastructure report generation with framework, system, and health data."""
+
 from __future__ import annotations
 
 import platform
@@ -13,6 +15,8 @@ import django_matt
 
 
 class InfraReport(BaseModel):
+    """Pydantic model containing full infrastructure and environment details."""
+
     timestamp: float
     framework_version: str
     python_version: str
@@ -29,6 +33,7 @@ class InfraReport(BaseModel):
 
 
 async def generate_report() -> InfraReport:
+    """Generate a full infrastructure report including health checks and module detection."""
     from django.conf import settings
 
     from django_matt.introspection.registry import registry

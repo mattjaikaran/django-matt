@@ -1,3 +1,5 @@
+"""Plugin system with dependency resolution, lifecycle hooks, and autodiscovery."""
+
 from __future__ import annotations
 
 from django_matt.modules.base import MattModule

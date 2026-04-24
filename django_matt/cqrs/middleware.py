@@ -1,3 +1,5 @@
+"""Bus middleware implementations for logging, validation, transactions, and caching."""
+
 from __future__ import annotations
 
 import hashlib
@@ -17,6 +19,7 @@ class BusMiddleware(Protocol):
 
 
 class LoggingMiddleware:
+    """Logs command/query dispatch with timing information."""
     def __init__(self, log: logging.Logger | None = None) -> None:
         self._log = log or logger
 
@@ -33,6 +36,7 @@ class LoggingMiddleware:
 
 
 class ValidationMiddleware:
+    """Re-validates Pydantic models before handler execution."""
     async def before(self, message: Any) -> None:
         if hasattr(message, "model_validate"):
             type(message).model_validate(message.model_dump())
@@ -42,6 +46,7 @@ class ValidationMiddleware:
 
 
 class TransactionMiddleware:
+    """Wraps command execution in a database transaction."""
     async def before(self, message: Any) -> None:
         from django.db import connection
 
@@ -61,6 +66,7 @@ class TransactionMiddleware:
 
 
 class CachingMiddleware:
+    """Caches query results by content hash with TTL-based expiration."""
     def __init__(self, ttl: int = 300) -> None:
         self._cache: dict[str, tuple[float, Any]] = {}
         self._ttl = ttl

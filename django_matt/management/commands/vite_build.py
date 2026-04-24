@@ -24,6 +24,8 @@ from django_matt.vite.config import get_vite_config, reset_vite_config
 
 
 class Command(BaseCommand):
+    """Run Vite production build with Django environment awareness and manifest validation."""
+
     help = "Run Vite build with Django environment"
 
     def add_arguments(self, parser: Any) -> None:

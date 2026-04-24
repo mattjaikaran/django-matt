@@ -1,3 +1,5 @@
+"""CLI helper for generating RPC client code in Python or TypeScript."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,6 +12,7 @@ def generate_rpc_client(
     output: str | None = None,
     class_name: str | None = None,
 ) -> str:
+    """Generate an RPC client in the specified language and optionally write to a file."""
     from django_matt.rpc.generator import generate_python_client, generate_typescript_client
 
     if lang == "python":

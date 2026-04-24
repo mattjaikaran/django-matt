@@ -49,6 +49,8 @@ from pydantic import BaseModel
 
 
 class Command(BaseCommand):
+    """Generate TypeScript, Zod, or Swift types from Pydantic schemas and Django models."""
+
     help = "Generate TypeScript or Swift types from Pydantic schemas and Django models"
 
     def add_arguments(self, parser):

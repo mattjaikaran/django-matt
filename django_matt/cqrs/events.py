@@ -1,3 +1,5 @@
+"""Domain events for CQRS with collection and publication support."""
+
 from __future__ import annotations
 
 import time
@@ -8,6 +10,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class DomainEvent(BaseModel):
+    """Immutable base model for CQRS domain events."""
+
     model_config = ConfigDict(frozen=True)
 
     event_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -15,6 +19,7 @@ class DomainEvent(BaseModel):
 
 
 def emits(*event_types: type[DomainEvent]) -> Callable:
+    """Decorator that marks a handler as emitting specific domain event types."""
     def decorator(cls: type) -> type:
         cls._emitted_events = tuple(event_types)
         return cls
@@ -23,17 +28,22 @@ def emits(*event_types: type[DomainEvent]) -> Callable:
 
 
 class EventCollector:
+    """Collects domain events during command handling and publishes them afterward."""
+
     def __init__(self) -> None:
         self._events: list[DomainEvent] = []
         self._handlers: dict[type[DomainEvent], list[Callable]] = {}
 
     def collect(self, event: DomainEvent) -> None:
+        """Add a domain event to the collection."""
         self._events.append(event)
 
     def on(self, event_type: type[DomainEvent], handler: Callable) -> None:
+        """Register a handler for a specific domain event type."""
         self._handlers.setdefault(event_type, []).append(handler)
 
     async def publish(self) -> None:
+        """Publish all collected events to their registered handlers and clear."""
         for event in self._events:
             handlers = self._handlers.get(type(event), [])
             for handler in handlers:

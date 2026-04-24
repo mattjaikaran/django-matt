@@ -1,9 +1,12 @@
+"""CLI commands for listing, inspecting, and checking module health."""
+
 from __future__ import annotations
 
 from typing import Any
 
 
 def get_module_commands() -> dict[str, Any]:
+    """Return the CLI command mapping for module management."""
     return {
         "modules list": modules_list,
         "modules info": modules_info,
@@ -12,6 +15,7 @@ def get_module_commands() -> dict[str, Any]:
 
 
 def modules_list() -> None:
+    """Print a table of all registered modules with their status."""
     from django_matt.modules.registry import get_registry
 
     registry = get_registry()
@@ -32,6 +36,7 @@ def modules_list() -> None:
 
 
 def modules_info(name: str) -> None:
+    """Print detailed information about a specific module."""
     from django_matt.modules.registry import get_registry
 
     registry = get_registry()
@@ -55,6 +60,7 @@ def modules_info(name: str) -> None:
 
 
 def modules_check() -> list[str]:
+    """Check all modules for missing dependencies and config validation errors."""
     from django_matt.modules.registry import get_registry
 
     registry = get_registry()

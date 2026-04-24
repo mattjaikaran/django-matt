@@ -1,3 +1,5 @@
+"""Auto-instrumentation that patches Django views, ORM, and cache with spans and metrics."""
+
 from __future__ import annotations
 
 import asyncio

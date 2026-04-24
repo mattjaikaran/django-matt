@@ -17,6 +17,8 @@ from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
+    """Run performance benchmarks for serialization, routing, and request handling."""
+
     help = "Run performance benchmarks for Django Matt framework"
 
     def add_arguments(self, parser):

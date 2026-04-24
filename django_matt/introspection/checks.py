@@ -1,3 +1,5 @@
+"""Built-in health check functions for database, cache, Redis, Celery, storage, and email."""
+
 from __future__ import annotations
 
 import logging
@@ -8,6 +10,7 @@ logger = logging.getLogger("django_matt.introspection")
 
 
 async def check_database() -> ComponentInfo:
+    """Check database connectivity by executing a simple query."""
     info = ComponentInfo(name="database", component_type="database")
     try:
         backend, name = await _db_ping()
@@ -39,6 +42,7 @@ async def _db_ping() -> tuple[str, str]:
 
 
 async def check_cache() -> ComponentInfo:
+    """Check cache backend by writing and reading back a test key."""
     from django.core.cache import cache
 
     info = ComponentInfo(name="cache", component_type="cache")
@@ -65,6 +69,7 @@ async def check_cache() -> ComponentInfo:
 
 
 async def check_redis() -> ComponentInfo:
+    """Check Redis connectivity via PING and retrieve server version."""
     info = ComponentInfo(name="redis", component_type="cache")
     try:
         from django.conf import settings
@@ -97,6 +102,7 @@ async def check_redis() -> ComponentInfo:
 
 
 async def check_celery() -> ComponentInfo:
+    """Check Celery task queue by inspecting active workers."""
     info = ComponentInfo(name="celery", component_type="task_queue", critical=False)
     try:
         from asgiref.sync import sync_to_async
@@ -124,6 +130,7 @@ async def check_celery() -> ComponentInfo:
 
 
 async def check_storage() -> ComponentInfo:
+    """Check default file storage backend accessibility."""
     from django.core.files.storage import default_storage
 
     info = ComponentInfo(name="storage", component_type="storage", critical=False)
@@ -143,6 +150,7 @@ async def check_storage() -> ComponentInfo:
 
 
 async def check_email() -> ComponentInfo:
+    """Check email backend connectivity."""
     from django.conf import settings
 
     info = ComponentInfo(name="email", component_type="email", critical=False)
@@ -172,6 +180,7 @@ async def check_email() -> ComponentInfo:
 
 
 def auto_register(reg: object | None = None) -> None:
+    """Register all built-in health checks with the given (or default) registry."""
     from django_matt.introspection.registry import registry as default_registry
 
     target = reg or default_registry

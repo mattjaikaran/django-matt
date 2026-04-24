@@ -10,6 +10,8 @@ from django_matt.cli.console import console
 
 
 class Command(BaseCommand):
+    """Clear one or all configured Django cache backends."""
+
     help = "Clear Django cache backends (all or specific)."
 
     def add_arguments(self, parser) -> None:
@@ -32,6 +34,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args: object, **options: object) -> None:
+        """Clear the specified or all cache backends."""
         backend_alias: str | None = options["backend"]
         prefix: str | None = options["prefix"]
         dry_run: bool = options["dry_run"]

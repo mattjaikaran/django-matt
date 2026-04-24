@@ -1,3 +1,5 @@
+"""Span exporters for the local observability pipeline (console, JSON, Prometheus, OTel)."""
+
 from __future__ import annotations
 
 import io

@@ -1,3 +1,5 @@
+"""Lifecycle hook decorators for module load events."""
+
 from __future__ import annotations
 
 import functools
@@ -5,6 +7,7 @@ from typing import Any
 
 
 def on_module_loaded(module_name: str) -> Any:
+    """Register a callback to run after a specific module finishes loading."""
     def decorator(func: Any) -> Any:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -24,6 +27,7 @@ def on_module_loaded(module_name: str) -> Any:
 
 
 def on_all_loaded(func: Any) -> Any:
+    """Register a callback to run after all modules have been loaded."""
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         return func(*args, **kwargs)
@@ -39,6 +43,7 @@ def on_all_loaded(func: Any) -> Any:
 
 
 def before_module_load(module_name: str) -> Any:
+    """Register a callback to run before a specific module starts loading."""
     def decorator(func: Any) -> Any:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:

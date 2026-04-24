@@ -135,6 +135,8 @@ def _generate_fixture_code(
 
 
 class Command(MattCommand):
+    """Generate fixture definition files with faker-based generators for seed data."""
+
     help = "Generate fixture definition files for reusable seed configs"
 
     def add_arguments(self, parser):

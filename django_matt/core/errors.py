@@ -1,3 +1,10 @@
+"""Error handling system for django_matt.
+
+Provides structured API errors, error capture with tracebacks, middleware
+for automatic exception handling, and validation formatters for Pydantic
+and Django form errors.
+"""
+
 import datetime
 import inspect
 import json
@@ -6,7 +13,7 @@ import os
 import sys
 import traceback
 from functools import wraps
-from typing import Any
+from typing import Any, Callable
 
 from django.conf import settings
 from django.http import HttpRequest, JsonResponse
@@ -806,7 +813,7 @@ class ErrorMiddleware:
                 return ErrorHandler.json_response(e)
             raise
 
-    def process_exception(self, request, exception):
+    def process_exception(self, request, exception) -> JsonResponse | None:
         """Process an exception and return a formatted error response."""
         error_detail = self.error_handler.capture_exception(exception, request)
 
@@ -823,7 +830,7 @@ class ErrorMiddleware:
 # ------------------------------------------------------------------
 
 
-def handle_exceptions(func):
+def handle_exceptions(func) -> Callable:
     """
     Decorator for handling exceptions in view functions.
 
@@ -851,7 +858,7 @@ def handle_exceptions(func):
     return wrapper
 
 
-def error_handler(view_func):
+def error_handler(view_func) -> Callable:
     """
     Decorator to add error handling to view functions (utils/errors style).
 

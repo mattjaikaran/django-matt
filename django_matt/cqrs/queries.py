@@ -1,3 +1,5 @@
+"""Query bus with single-handler dispatch, caching support, and middleware pipeline."""
+
 from __future__ import annotations
 
 import logging
@@ -13,6 +15,8 @@ R = TypeVar("R")
 
 
 class Query(BaseModel):
+    """Immutable base model for CQRS queries."""
+
     model_config = ConfigDict(frozen=True)
 
 
@@ -22,6 +26,8 @@ class QueryHandler(Protocol[Q, R]):
 
 
 class QueryBus:
+    """Dispatches queries to their registered handler with middleware support."""
+
     def __init__(self) -> None:
         self._handlers: dict[type[Query], QueryHandler] = {}
         self._middleware: list[Any] = []
@@ -71,6 +77,7 @@ _default_query_bus = QueryBus()
 
 
 def get_query_bus() -> QueryBus:
+    """Return the default global QueryBus singleton."""
     return _default_query_bus
 
 
@@ -79,6 +86,7 @@ def query_handler(
     *,
     bus: QueryBus | None = None,
 ) -> Callable:
+    """Class decorator that registers a query handler with the bus."""
     def decorator(cls: type) -> type:
         target_bus = bus or _default_query_bus
         target_bus.register(query_type, cls())

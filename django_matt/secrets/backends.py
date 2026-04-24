@@ -1,3 +1,5 @@
+"""Secrets backend implementations (env, dotenv, encrypted file, AWS, Vault, GCP)."""
+
 from __future__ import annotations
 
 import logging
@@ -12,6 +14,7 @@ logger = logging.getLogger("django_matt.secrets")
 
 @runtime_checkable
 class SecretsBackend(Protocol):
+    """Protocol defining the interface all secrets backends must implement."""
     async def get(self, key: str) -> str | None: ...
     async def get_many(self, keys: list[str]) -> dict[str, str | None]: ...
     async def set(self, key: str, value: str) -> None: ...

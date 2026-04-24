@@ -11,6 +11,8 @@ from django_matt.vite.fingerprint import FingerprintManifest
 
 
 class Command(MattCommand):
+    """Build a content-hash fingerprint manifest for static files."""
+
     help = "Build content-hash fingerprints for static files"
 
     def add_arguments(self, parser):
@@ -22,6 +24,7 @@ class Command(MattCommand):
         )
 
     def handle(self, *args, **options):
+        """Build the fingerprint manifest for all static files."""
         from pathlib import Path
 
         from django.conf import settings

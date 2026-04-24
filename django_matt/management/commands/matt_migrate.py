@@ -8,6 +8,8 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
+    """Analyze, profile, and run migrations in parallel for large codebases."""
+
     help = "Analyze, profile, and accelerate migrations for large Django codebases."
 
     def add_arguments(self, parser):
@@ -235,7 +237,7 @@ class Command(BaseCommand):
         applied_count = len([k for k in loader.disk_migrations if k in applied])
         pending = total - applied_count
 
-        self.stdout.write(f"\nMigration Status")
+        self.stdout.write("\nMigration Status")
         self.stdout.write("=" * 40)
         self.stdout.write(f"Total migrations: {total}")
         self.stdout.write(f"Applied: {applied_count}")
@@ -295,7 +297,7 @@ class Command(BaseCommand):
             parallel_time = 0
             for wave in waves:
                 wave_times = [
-                    next((p.estimated_seconds for p in profiles 
+                    next((p.estimated_seconds for p in profiles
                           if p.app_label == app and p.migration_name == name), 0.5)
                     for app, name in wave
                 ]
@@ -392,5 +394,5 @@ class Command(BaseCommand):
 
         self.stdout.write(f"Total: {total} migrations across {len(waves)} waves")
         self.stdout.write(
-            f"\nRun with --parallel to execute this plan."
+            "\nRun with --parallel to execute this plan."
         )

@@ -1,3 +1,5 @@
+"""Metrics collectors for requests, database queries, and cache operations."""
+
 from __future__ import annotations
 
 import threading

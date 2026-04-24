@@ -1,3 +1,5 @@
+"""Async event bus with pub/sub, @on decorator, and pluggable backends."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

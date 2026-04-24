@@ -1,3 +1,5 @@
+"""Core logic for group-based schema filtering and dynamic model generation."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -8,12 +10,14 @@ from pydantic import BaseModel, create_model
 
 @dataclass(frozen=True, slots=True)
 class SerializationContext:
+    """Immutable context specifying which groups/fields are visible for serialization."""
     groups: frozenset[str] = field(default_factory=frozenset)
     include_fields: frozenset[str] | None = None
     exclude_fields: frozenset[str] | None = None
 
     @classmethod
     def from_groups(cls, *groups: str) -> SerializationContext:
+        """Create a context from one or more group names."""
         return cls(groups=frozenset(groups))
 
 
@@ -44,6 +48,7 @@ def _is_field_visible(
 
 
 def filter_schema(instance: BaseModel, context: SerializationContext) -> dict[str, Any]:
+    """Return a dict of visible fields from a model instance based on the context."""
     model_class = type(instance)
     return {
         name: getattr(instance, name)
@@ -59,6 +64,7 @@ def schema_for_groups(
     base_schema: type[BaseModel],
     *groups: str,
 ) -> type[BaseModel]:
+    """Create a dynamic Pydantic model with only fields visible to the given groups."""
     group_set = frozenset(groups)
     cache_key = (base_schema, group_set)
     if cache_key in _schema_cache:
@@ -80,4 +86,5 @@ def schema_for_groups(
 
 
 def clear_schema_cache() -> None:
+    """Clear the cached dynamically-generated schema models."""
     _schema_cache.clear()

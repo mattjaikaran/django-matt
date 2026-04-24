@@ -1,3 +1,5 @@
+"""@serialize_for decorator for group-based response filtering on views."""
+
 from __future__ import annotations
 
 import functools
@@ -38,6 +40,7 @@ def serialize_for(
     include_fields: set[str] | None = None,
     exclude_fields: set[str] | None = None,
 ) -> Callable:
+    """Decorator that filters the view's response through group-based serialization."""
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:

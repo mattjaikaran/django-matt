@@ -1,3 +1,5 @@
+"""HTTP endpoints for health, readiness, liveness probes, and infrastructure info."""
+
 from __future__ import annotations
 
 import time
@@ -12,6 +14,7 @@ from django_matt.introspection.report import generate_report
 
 
 async def health_view(request: HttpRequest) -> HttpResponse:
+    """Simple health check returning ok/error status."""
     result = await registry.health_check()
     ok = result.status != ComponentStatus.UNHEALTHY
     body = orjson.dumps({"status": "ok" if ok else "error"})
@@ -23,6 +26,7 @@ async def health_view(request: HttpRequest) -> HttpResponse:
 
 
 async def health_detailed_view(request: HttpRequest) -> HttpResponse:
+    """Detailed health check with per-component status (requires authentication)."""
     if not await _is_authenticated(request):
         return HttpResponse(
             orjson.dumps({"error": "authentication required"}),
@@ -55,6 +59,7 @@ async def health_detailed_view(request: HttpRequest) -> HttpResponse:
 
 
 async def health_ready_view(request: HttpRequest) -> HttpResponse:
+    """Readiness probe: 200 if all critical components are healthy, 503 otherwise."""
     result = await registry.health_check()
     critical_ok = all(
         comp.status != ComponentStatus.UNHEALTHY
@@ -70,11 +75,13 @@ async def health_ready_view(request: HttpRequest) -> HttpResponse:
 
 
 async def health_live_view(request: HttpRequest) -> HttpResponse:
+    """Liveness probe: always returns 200 to indicate the process is running."""
     body = orjson.dumps({"alive": True, "timestamp": time.time()})
     return HttpResponse(body, content_type="application/json", status=200)
 
 
 async def info_view(request: HttpRequest) -> HttpResponse:
+    """Return a full infrastructure report as JSON."""
     report = await generate_report()
     body = orjson.dumps(report.model_dump())
     return HttpResponse(body, content_type="application/json", status=200)
@@ -91,6 +98,7 @@ async def _is_authenticated(request: HttpRequest) -> bool:
 
 
 def get_health_urls(prefix: str = "health") -> list:
+    """Return URL patterns for all health/info endpoints."""
     return [
         path(f"{prefix}/", health_view, name="introspection-health"),
         path(f"{prefix}/detailed/", health_detailed_view, name="introspection-health-detailed"),

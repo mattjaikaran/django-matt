@@ -46,6 +46,8 @@ from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
+    """Generate AI assistant context files from project introspection."""
+
     help = "Generate AI assistant context files (CLAUDE.md, .cursorrules, .copilot-instructions)"
 
     def add_arguments(self, parser):

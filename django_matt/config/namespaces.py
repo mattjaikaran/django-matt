@@ -1,3 +1,5 @@
+"""Pydantic-based configuration namespaces for typed, validated settings sections."""
+
 from __future__ import annotations
 
 from datetime import timedelta
@@ -11,12 +13,15 @@ _cache: dict[str, ConfigNamespace] = {}
 
 
 class ConfigNamespace(BaseModel):
+    """Base class for typed configuration sections read from DJANGO_MATT settings."""
+
     model_config = ConfigDict(extra="forbid")
 
     _settings_key: ClassVar[str] = ""
 
     @classmethod
     def from_settings(cls, key: str | None = None) -> ConfigNamespace:
+        """Load and cache a namespace instance from Django settings."""
         settings_key = key or cls._settings_key
         if not settings_key:
             raise ValueError(
@@ -36,16 +41,20 @@ class ConfigNamespace(BaseModel):
 
     @classmethod
     def reset(cls) -> None:
+        """Clear the cached instance for this namespace."""
         key = cls._settings_key
         if key and key in _cache:
             del _cache[key]
 
     @classmethod
     def reset_all(cls) -> None:
+        """Clear all cached namespace instances."""
         _cache.clear()
 
 
 class AuthConfig(ConfigNamespace):
+    """Authentication configuration (JWT secret, algorithm, token expiry)."""
+
     _settings_key: ClassVar[str] = "AUTH"
 
     secret: SecretStr = SecretStr("change-me")
@@ -61,6 +70,8 @@ class AuthConfig(ConfigNamespace):
 
 
 class CacheConfig(ConfigNamespace):
+    """Cache backend configuration (backend, TTL, prefix, serializer)."""
+
     _settings_key: ClassVar[str] = "CACHE"
 
     backend: str = "django.core.cache.backends.locmem.LocMemCache"
@@ -70,6 +81,8 @@ class CacheConfig(ConfigNamespace):
 
 
 class DatabaseConfig(ConfigNamespace):
+    """Database connection pool and timeout configuration."""
+
     _settings_key: ClassVar[str] = "DATABASE"
 
     pool_min_size: int = 2
@@ -79,6 +92,8 @@ class DatabaseConfig(ConfigNamespace):
 
 
 class SecurityConfig(ConfigNamespace):
+    """Security configuration (CORS, CSP, rate limiting, allowed hosts)."""
+
     _settings_key: ClassVar[str] = "SECURITY"
 
     cors_origins: list[str] = []
@@ -88,6 +103,8 @@ class SecurityConfig(ConfigNamespace):
 
 
 class APIConfig(ConfigNamespace):
+    """API configuration (pagination, throttling, versioning)."""
+
     _settings_key: ClassVar[str] = "API"
 
     page_size: int = 25
@@ -97,6 +114,8 @@ class APIConfig(ConfigNamespace):
 
 
 class BillingConfig(ConfigNamespace):
+    """Billing provider configuration (Stripe, PayPal, Polar)."""
+
     _settings_key: ClassVar[str] = "BILLING"
 
     provider: Literal["stripe", "paypal", "polar"] = "stripe"
@@ -105,6 +124,8 @@ class BillingConfig(ConfigNamespace):
 
 
 class ObservabilityConfig(ConfigNamespace):
+    """Observability configuration (log level, tracing, metrics backend)."""
+
     _settings_key: ClassVar[str] = "OBSERVABILITY"
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"

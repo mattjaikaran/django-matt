@@ -6,6 +6,8 @@ from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
+    """Generate CI/CD pipeline configuration for GitHub Actions or GitLab CI."""
+
     help = "Generate CI/CD configuration for your project."
 
     def add_arguments(self, parser):
@@ -58,6 +60,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        """Generate CI/CD workflow files for the selected platform."""
         platform = options["platform"]
         deploy = options["deploy"]
         python_version = options["python"]

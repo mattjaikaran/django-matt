@@ -1,3 +1,5 @@
+"""Interceptor chain that manages an ordered pipeline of interceptors around a handler."""
+
 from __future__ import annotations
 
 from collections.abc import Callable, Coroutine
@@ -18,6 +20,7 @@ class InterceptorChain:
                 self.add(i)
 
     def add(self, interceptor: Interceptor) -> InterceptorChain:
+        """Add an interceptor to the chain, maintaining sort order."""
         self._interceptors.append(interceptor)
         self._interceptors.sort(key=lambda i: i.order)
         return self
@@ -33,6 +36,7 @@ class InterceptorChain:
         *args: Any,
         **kwargs: Any,
     ) -> HttpResponse:
+        """Run the full interceptor pipeline (before -> handler -> after) for a request."""
         active = [i for i in self._interceptors if i.enabled(request)]
 
         # before_request phase
@@ -68,6 +72,7 @@ class InterceptorChain:
         return response
 
     def merge(self, other: InterceptorChain) -> InterceptorChain:
+        """Merge two chains into a new chain with combined interceptors."""
         combined = InterceptorChain(self._interceptors + other._interceptors)
         return combined
 

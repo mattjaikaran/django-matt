@@ -1,3 +1,8 @@
+"""Conventional-commit changelog generator.
+
+Parses git log for conventional commits and produces Keep a Changelog formatted output.
+"""
+
 from __future__ import annotations
 
 import re
@@ -31,6 +36,8 @@ TYPE_TO_SECTION: dict[str, str] = {
 
 @dataclass
 class CommitEntry:
+    """A parsed conventional commit with type, scope, subject, and metadata."""
+
     type: str
     scope: str | None
     subject: str
@@ -41,11 +48,14 @@ class CommitEntry:
 
 @dataclass
 class ChangelogEntries:
+    """Grouped changelog entries organized by section with breaking changes."""
+
     sections: dict[str, list[str]] = field(default_factory=dict)
     breaking_changes: list[str] = field(default_factory=list)
 
 
 def _run_git(*args: str) -> str:
+    """Run a git command and return stripped stdout."""
     result = subprocess.run(
         ["git", *args],
         capture_output=True,
@@ -56,6 +66,7 @@ def _run_git(*args: str) -> str:
 
 
 def _get_latest_tag() -> str | None:
+    """Return the most recent git tag, or None if no tags exist."""
     try:
         return _run_git("describe", "--tags", "--abbrev=0")
     except subprocess.CalledProcessError:
@@ -63,6 +74,7 @@ def _get_latest_tag() -> str | None:
 
 
 def _parse_commit(log_entry: str) -> CommitEntry | None:
+    """Parse a raw git log entry into a CommitEntry."""
     lines = log_entry.strip().split("\n")
     if not lines:
         return None
@@ -96,6 +108,7 @@ def _parse_commit(log_entry: str) -> CommitEntry | None:
 
 
 def generate(from_tag: str | None = None, to: str = "HEAD") -> ChangelogEntries:
+    """Generate changelog entries from git commits between two refs."""
     if from_tag is None:
         from_tag = _get_latest_tag()
 
@@ -152,6 +165,7 @@ def generate(from_tag: str | None = None, to: str = "HEAD") -> ChangelogEntries:
 
 
 def format_entries(version: str, entries: ChangelogEntries, date: str | None = None) -> str:
+    """Format changelog entries as Keep a Changelog markdown."""
     if date is None:
         date = datetime.now(UTC).strftime("%Y-%m-%d")
 
@@ -185,6 +199,7 @@ def format_entries(version: str, entries: ChangelogEntries, date: str | None = N
 
 
 def update_changelog(version: str, entries: ChangelogEntries, path: Path | None = None) -> None:
+    """Insert a new version block into the CHANGELOG.md file."""
     if path is None:
         path = CHANGELOG_PATH
 

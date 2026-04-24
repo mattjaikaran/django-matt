@@ -1,3 +1,5 @@
+"""Middleware that attaches a SerializationContext to each request based on user role."""
+
 from __future__ import annotations
 
 from typing import Callable
@@ -8,6 +10,7 @@ from django_matt.serialization.groups import SerializationContext
 
 
 class SerializationContextMiddleware:
+    """Sets request.serialization_context based on the authenticated user's role."""
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response
         self.role_to_groups: dict[str, list[str]] = {

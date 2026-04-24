@@ -28,6 +28,8 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
+    """Smart migration squashing with preview, safety checks, and bulk support."""
+
     help = "Smart migration squashing with preview and safety checks."
 
     def add_arguments(self, parser):

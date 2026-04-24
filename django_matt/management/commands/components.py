@@ -14,6 +14,8 @@ import orjson
 
 
 class Command(BaseCommand):
+    """List, preview, export, and document backend-served UI components."""
+
     help = "Manage and inspect UI components"
 
     def add_arguments(self, parser: CommandParser):

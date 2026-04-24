@@ -1,3 +1,5 @@
+"""Helper functions for constructing SSE events and heartbeat generators."""
+
 from __future__ import annotations
 
 import asyncio
@@ -14,10 +16,12 @@ def event(
     retry: int | None = None,
     comment: str | None = None,
 ) -> SSEEvent:
+    """Create an SSEEvent with the given data and optional metadata fields."""
     return SSEEvent(data=data, event=event_type, id=id, retry=retry, comment=comment)
 
 
 async def heartbeat(interval: float = 15) -> AsyncIterator[SSEEvent]:
+    """Yield SSE heartbeat comments at a fixed interval to keep connections alive."""
     while True:
         await asyncio.sleep(interval)
         yield SSEEvent(comment="heartbeat")
@@ -27,6 +31,7 @@ async def with_heartbeat(
     generator: AsyncIterator[SSEEvent],
     interval: float = 15,
 ) -> AsyncIterator[SSEEvent]:
+    """Wrap an SSE generator to interleave heartbeat comments at regular intervals."""
     heartbeat_task: asyncio.Task[None] | None = None
     queue: asyncio.Queue[SSEEvent | None] = asyncio.Queue()
 
