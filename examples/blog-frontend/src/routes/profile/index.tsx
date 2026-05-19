@@ -17,7 +17,7 @@ import { useAuth } from '@/lib/store';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { Calendar, Edit, Mail, MapPin, Settings } from 'lucide-react';
 
-export const Route = createFileRoute('/profile' as any)({
+export const Route = createFileRoute('/profile/')({
   component: ProfilePage,
 });
 

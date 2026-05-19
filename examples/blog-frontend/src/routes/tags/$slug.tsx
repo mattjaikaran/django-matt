@@ -6,7 +6,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 
-export const Route = createFileRoute('/tags/$slug' as any)({
+export const Route = createFileRoute('/tags/$slug')({
   component: TagPage,
 });
 

@@ -14,7 +14,7 @@ import { formatDate } from '@/lib/utils';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { Edit, Plus, Trash2 } from 'lucide-react';
 
-export const Route = createFileRoute('/dashboard/' as any)({
+export const Route = createFileRoute('/dashboard/')({
   component: DashboardPage,
 });
 

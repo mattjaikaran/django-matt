@@ -22,7 +22,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-export const Route = createFileRoute('/dashboard/edit/$slug' as any)({
+export const Route = createFileRoute('/dashboard/edit/$slug')({
   component: EditPostPage,
 });
 

@@ -3,7 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useTags } from '@/hooks/use-blog';
 import { createFileRoute } from '@tanstack/react-router';
 
-export const Route = createFileRoute('/tags/' as any)({
+export const Route = createFileRoute('/tags/')({
   component: TagsIndexPage,
 });
 

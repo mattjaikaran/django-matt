@@ -16,7 +16,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 
-export const Route = createFileRoute('/dashboard/new' as any)({
+export const Route = createFileRoute('/dashboard/new')({
   component: NewPostPage,
 });
 

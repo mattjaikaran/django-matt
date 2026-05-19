@@ -9,7 +9,7 @@ import { formatDate } from '@/lib/utils';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft, Clock, Eye, Folder } from 'lucide-react';
 
-export const Route = createFileRoute('/posts/$slug' as any)({
+export const Route = createFileRoute('/posts/$slug')({
   component: PostDetailPage,
 });
 

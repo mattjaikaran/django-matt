@@ -9,7 +9,7 @@ const searchSchema = z.object({
   q: z.string().default(''),
 });
 
-export const Route = createFileRoute('/search' as any)({
+export const Route = createFileRoute('/search')({
   validateSearch: searchSchema,
   component: SearchPage,
 });

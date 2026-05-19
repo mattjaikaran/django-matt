@@ -3,7 +3,7 @@ import { useCategories } from '@/hooks/use-blog';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { Folder } from 'lucide-react';
 
-export const Route = createFileRoute('/categories/' as any)({
+export const Route = createFileRoute('/categories/')({
   component: CategoriesIndexPage,
 });
 

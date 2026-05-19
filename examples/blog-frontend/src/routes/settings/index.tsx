@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-export const Route = createFileRoute('/settings' as any)({
+export const Route = createFileRoute('/settings/')({
   component: SettingsPage,
 });
 
