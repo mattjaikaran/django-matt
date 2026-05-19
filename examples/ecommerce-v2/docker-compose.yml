@@ -1,14 +1,17 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     environment:
       POSTGRES_DB: ecommerce
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ecommerce
+      POSTGRES_PASSWORD: ecommerce_secret
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecommerce"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -16,21 +19,46 @@ services:
       - "6379:6379"
 
   api:
-    build: .
+    build:
+      context: ../..
+      dockerfile: examples/ecommerce-v2/Dockerfile
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: dev-secret-key
+      ALLOWED_HOSTS: "localhost,127.0.0.1,api"
+      DATABASE_URL: postgres://ecommerce:ecommerce_secret@db:5432/ecommerce
+      REDIS_URL: redis://redis:6379/0
+      CORS_ALLOWED_ORIGINS: "http://localhost:3001"
+      STRIPE_SECRET_KEY: "sk_test_change-me"
+      STRIPE_WEBHOOK_SECRET: "whsec_change-me"
     ports:
       - "8000:8000"
-    env_file: .env
+    volumes:
+      - ../../django_matt:/app/django_matt
+      - ./:/app/examples/ecommerce-v2
+      - api_venv:/app/examples/ecommerce-v2/.venv
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
-  celery:
-    build: .
-    command: celery -A config worker -l info
-    env_file: .env
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    environment:
+      VITE_API_BASE_URL: "http://localhost:8000/api"
+      VITE_STRIPE_PUBLISHABLE_KEY: "pk_test_change-me"
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
     depends_on:
-      - db
-      - redis
+      - api
 
 volumes:
-  pgdata:
+  postgres_data:
+  api_venv:
+  frontend_node_modules:
