@@ -5,6 +5,7 @@ for automatic exception handling, and validation formatters for Pydantic
 and Django form errors.
 """
 
+import asyncio
 import datetime
 import inspect
 import json
@@ -794,8 +795,22 @@ class ErrorMiddleware:
         self.error_handler = ErrorHandler(
             debug=os.environ.get("DJANGO_DEBUG", "False").lower() == "true"
         )
+        # Signal to Django's ASGI handler that this middleware is coroutine-aware.
+        # Django 5.x imports iscoroutinefunction from inspect (not asyncio), which
+        # checks inspect._is_coroutine (different sentinel). Use markcoroutinefunction
+        # (Python 3.12+) to set the correct sentinel so convert_exception_to_response
+        # picks the async inner branch.
+        if asyncio.iscoroutinefunction(self.get_response):
+            import inspect as _inspect
+            if hasattr(_inspect, "markcoroutinefunction"):
+                _inspect.markcoroutinefunction(self)
+            else:
+                self._is_coroutine = asyncio.coroutines._is_coroutine
 
     def __call__(self, request):
+        # Delegate to async path when the chain is async (mirrors MiddlewareMixin)
+        if asyncio.iscoroutinefunction(self.get_response):
+            return self.__acall__(request)
         try:
             response = self.get_response(request)
             return response

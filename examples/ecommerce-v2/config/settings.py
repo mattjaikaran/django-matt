@@ -122,9 +122,10 @@ DJANGO_MATT_JWT = {
 
 # CORS
 CORS_ALLOWED_ORIGINS = os.getenv(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:3001"
+    "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001"
 ).split(",")
 CORS_ALLOW_CREDENTIALS = True
+APPEND_SLASH = False
 
 # Stripe
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
