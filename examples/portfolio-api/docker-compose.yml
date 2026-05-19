@@ -1,0 +1,20 @@
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: examples/portfolio-api/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DEBUG: "False"
+      SECRET_KEY: "change-me-in-production-use-a-real-secret"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0"
+      DB_PATH: "/data/db.sqlite3"
+      RESEND_API_KEY: "${RESEND_API_KEY:-}"
+      CONTACT_TO_EMAIL: "${CONTACT_TO_EMAIL:-hello@example.dev}"
+      CONTACT_FROM_EMAIL: "${CONTACT_FROM_EMAIL:-portfolio@example.dev}"
+    volumes:
+      - db_data:/data
+
+volumes:
+  db_data:
