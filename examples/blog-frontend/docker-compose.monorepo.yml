@@ -1,0 +1,110 @@
+version: "3.8"
+
+# Docker Compose for Django + React Monorepo
+# This configuration is designed to work alongside the Django backend
+#
+# Usage:
+#   docker-compose -f docker-compose.monorepo.yml up
+#
+# Expected monorepo structure:
+#   /monorepo
+#   ├── backend/     (django-ninja-boilerplate)
+#   └── frontend/    (this project)
+#
+# Or use --project-directory to specify paths
+
+services:
+  # React Frontend (Development)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_MODE=django-spa
+      - VITE_API_BASE_URL=http://backend:8000/api
+      - VITE_ENABLE_MOCK_API=false
+      - VITE_DEBUG=true
+    command: bun run dev --host
+    depends_on:
+      - backend
+    networks:
+      - monorepo-network
+
+  # Django Backend
+  # This assumes the backend is in ../backend or you can override
+  backend:
+    build:
+      context: ${BACKEND_PATH:-../backend}
+      dockerfile: ${BACKEND_DOCKERFILE:-Dockerfile}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ${BACKEND_PATH:-../backend}:/app
+    environment:
+      - DEBUG=True
+      - ALLOWED_HOSTS=localhost,127.0.0.1,backend,frontend
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://frontend:3000
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/app_db
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - monorepo-network
+
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=app_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - monorepo-network
+
+  # Redis (for caching and sessions)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - monorepo-network
+
+  # Nginx Reverse Proxy (Production-like setup)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/monorepo.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - monorepo-network
+    profiles:
+      - production
+
+networks:
+  monorepo-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

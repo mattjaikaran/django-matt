@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep \"\\\\.py$\")",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(bun run:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}

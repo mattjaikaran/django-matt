@@ -18,15 +18,15 @@
   - [x] `seed_blog` management command with realistic sample data
   - [x] Docker + docker-compose + Makefile + README
   - [ ] `sync_types` output committed to repo (run after confirming API boots)
-- [ ] `examples/blog-frontend/` — React+Vite frontend (from `react-vite-boilerplate`)
-  - [ ] Post listing page with filters
-  - [ ] Single post page with comments
-  - [ ] Author dashboard (create/edit/delete own posts)
-  - [ ] Tag/category browse pages
-  - [ ] Search UI
-  - [ ] Auth: login/logout, JWT refresh
-  - [ ] Uses generated types from `sync_types`
-  - [ ] `.env.example` pointing at blog-api
+- [x] `examples/blog-frontend/` — React+Vite frontend (from `react-vite-boilerplate`) ✅
+  - [x] Post listing page with filters
+  - [x] Single post page with comments
+  - [x] Author dashboard (create/edit/delete own posts)
+  - [x] Tag/category browse pages
+  - [x] Search UI
+  - [x] Auth: login/logout, JWT refresh
+  - [x] Uses generated types from `sync_types`
+  - [x] `.env.example` pointing at blog-api
 
 #### Example Apps — Portfolio
 - [ ] `examples/portfolio-api/` — Django-matt backend
