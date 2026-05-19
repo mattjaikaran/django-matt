@@ -92,6 +92,9 @@ sequenceDiagram
 ```
 django_matt/
 ├── api.py                    # MattAPI - Main entry point
+├── slim.py                   # Slim mode config (full/slim/minimal/auto)
+├── loader.py                 # Lazy/deferred module loading (LazyModuleProxy)
+│
 ├── core/                     # Core framework components
 │   ├── router.py            # Route decorators (@get, @post, etc.)
 │   ├── controller.py        # Base controllers (APIController, CRUDController)
@@ -122,24 +125,77 @@ django_matt/
 │   ├── base.py              # BaseService, CRUDService, ServiceError hierarchy
 │   └── third_party.py       # BaseThirdPartyService, ThirdPartyServiceError
 │
+├── interceptors/             # Route-scoped pre/post-handler middleware
+│   ├── base.py              # Interceptor base class and chain
+│   ├── builtins.py          # Logging, timing, cache interceptors
+│   ├── decorators.py        # @intercept decorator
+│   └── chain.py             # InterceptorChain execution
+│
+├── exceptions/               # Exception filter system
+│   ├── filters.py           # ExceptionFilter base class
+│   ├── decorators.py        # @catch decorator
+│   ├── builtins.py          # Built-in filters (404, 403, 422)
+│   └── registry.py          # Global filter registry
+│
+├── events/                   # Async event bus (pub/sub)
+│   ├── bus.py               # EventBus implementation
+│   ├── decorators.py        # @on event subscriber
+│   ├── middleware.py        # Event context middleware
+│   └── backends.py          # InMemory, Redis backends
+│
+├── cqrs/                     # Command/Query buses and domain events
+│   ├── commands.py          # Command bus and handlers
+│   ├── queries.py           # Query bus and handlers
+│   ├── events.py            # Domain events
+│   └── middleware.py        # Bus middleware
+│
+├── di/                       # Dependency injection container
+│
+├── middleware/               # Global middleware utilities
+│
+├── config/                   # Modular configuration
+│
+├── openapi/                  # OpenAPI / Swagger / ReDoc generation
+│
+├── pagination/               # PageNumber, LimitOffset, Cursor
+│
+├── filtering/                # Filter, search, ordering backends
+│
+├── throttling/               # Rate limiting
+│
+├── versioning/               # API versioning strategies
+│
+├── negotiation/              # Content negotiation (JSON, XML, CSV, YAML, MsgPack)
+│
+├── serialization/            # Group-based field visibility
+│   ├── groups.py            # Serialization group definitions
+│   ├── fields.py            # Field visibility helpers
+│   └── decorators.py        # @serialize_for
+│
+├── streaming/                # SSE and NDJSON streaming
+│   ├── sse.py               # SSEResponse and helpers
+│   ├── response.py          # Streaming response types
+│   └── decorators.py        # @sse_endpoint
+│
+├── websockets/               # WebSocket consumers and routing
+│   ├── consumers.py         # Base consumers
+│   ├── routing.py           # WebSocket routing
+│   └── auth.py              # WebSocket authentication
+│
 ├── messaging/                # Real-time messaging
 │   ├── models/              # Conversation, Message, Attachment
 │   ├── services/            # ConversationService, MessageService
 │   ├── controllers/         # REST API endpoints
 │   └── realtime/            # WebSocket & polling transport
 │
-├── notifications/            # Multi-channel notifications
-│   ├── models/              # Notification, Preferences, Rules
-│   ├── services/            # NotificationService, DeliveryService
-│   └── controllers/         # Notification API
+├── notifications/            # Multi-channel notifications (in-app, push, SMS)
 │
-├── email/                    # Email service
+├── email/                    # Transactional email
 │   ├── providers/           # SMTP, SES, SendGrid, Mailgun
-│   ├── models.py            # EmailMessage, Template, Events
 │   └── service.py           # EmailService
 │
-├── billing/                  # Subscription billing
-│   ├── providers/           # Stripe, PayPal, Polar
+├── billing/                  # Subscription billing (Stripe, PayPal, Polar)
+│   ├── providers/           # Payment provider adapters
 │   ├── models.py            # Customer, Subscription, Invoice
 │   └── controllers.py       # Billing API
 │
@@ -147,43 +203,117 @@ django_matt/
 │   ├── models.py            # Organization, Team, Membership
 │   └── controllers.py       # Tenant management API
 │
-├── components/               # Backend-served UI components
-│   ├── base.py              # Component base classes
-│   ├── forms.py             # Form components
-│   ├── layout.py            # Layout components
-│   └── renderers/           # JSON, HTML, React renderers
+├── analytics/                # Event tracking, sessions, funnels
 │
-├── websockets/               # WebSocket support
-│   ├── consumers.py         # Base consumers
-│   ├── routing.py           # WebSocket routing
-│   └── auth.py              # WebSocket authentication
+├── experiments/              # A/B testing, multi-armed bandits
 │
-├── codegen/                  # Frontend code generation
-│   ├── typescript.py        # TypeScript types & Zod schemas
-│   ├── react.py             # React components & hooks
-│   ├── svelte.py            # Svelte components & stores
-│   └── solid.py             # SolidJS components
+├── flags/                    # Feature flags (DB, Redis, LaunchDarkly, Unleash)
 │
-├── tasks/                    # Background task queue
-│   ├── backends/            # Celery, Dramatiq, Django-Q
-│   └── decorators.py        # @task, @periodic_task
+├── audit/                    # Audit logging and soft delete
 │
-├── files/                    # File handling
-│   ├── storage/             # S3, R2, MinIO, Local
+├── ai/                       # LLM integration, embeddings, RAG
+│
+├── ml/                       # Vector storage, structured output
+│
+├── db/                       # PostgreSQL / pgvector helpers
+│
+├── files/                    # File uploads, S3/R2/MinIO storage
+│   ├── storage/             # Storage backends
 │   └── upload.py            # Upload handling & validation
 │
-├── deployment/               # Deployment utilities
-│   ├── providers/           # Fly, Railway, Render, AWS, etc.
-│   └── docker.py            # Dockerfile generation
+├── tasks/                    # Background tasks (Celery, Dramatiq, Django-Q)
+│   ├── backends/            # Backend adapters
+│   └── decorators.py        # @task, @periodic_task
 │
-├── cli/                      # CLI infrastructure
-│   ├── base.py              # Command base classes
-│   ├── console.py           # Rich terminal output
-│   └── prompts.py           # Interactive prompts
+├── tasks_native/             # Native task engine (Django 6.0+)
+│   ├── core.py              # Task registry and execution
+│   ├── scheduling.py        # Periodic task scheduler
+│   ├── retry.py             # Retry policies and DLQ
+│   └── admin/               # Unfold dashboard integration
+│
+├── audits/                   # AI-assisted codebase audits
+│   ├── framework.py         # Audit framework and runners
+│   ├── bundle.py            # Bundle size analysis
+│   ├── prompts/             # LLM audit prompt templates
+│   └── agents/              # MCP tool integration
+│
+├── migration_tools/          # Migration acceleration
+│   ├── baseline.py          # SQL baseline creation/loading
+│   ├── parallel.py          # Parallel migration execution
+│   ├── stats.py             # Migration statistics
+│   └── squash.py            # Migration squashing
+│
+├── secrets/                  # Multi-backend secret management
+│   ├── manager.py           # SecretStore
+│   ├── backends.py          # env, Vault, AWS SM, GCP SM
+│   └── rotation.py          # Rotation monitoring
+│
+├── introspection/            # Health checks, readiness/liveness probes
+│   ├── checks.py            # Connectivity health checks
+│   ├── endpoints.py         # /health, /ready, /info endpoints
+│   └── registry.py          # Check registry
+│
+├── observability/            # Logging, metrics, tracing
+│
+├── rpc/                      # Typed inter-service HTTP client
+│   ├── client.py            # RPC client implementation
+│   └── generator.py         # Client code generation
+│
+├── modules/                  # Plugin system with lifecycle hooks
+│   ├── base.py              # MattModule base class
+│   ├── registry.py          # Module registry and discovery
+│   └── hooks.py             # Lifecycle hook management
+│
+├── graphql/                  # Strawberry-based GraphQL schema generation
+│
+├── htmx/                     # HTMX helpers
+│
+├── components/               # Backend-served component system
+│
+├── inertia/                  # Inertia.js adapter
+│
+├── livewire/                 # Livewire-style reactivity
+│
+├── typegen/                  # TypeScript/Swift code generation
+│
+├── codegen/                  # Frontend code generation (React, Svelte, SolidJS)
+│
+├── sdkgen/                   # SDK generation
+│
+├── testing/                  # Test client, factories, assertions
+│
+├── admin/                    # Django Unfold integration, dashboards
+│
+├── dashboard/                # Admin dashboard widgets
+│
+├── cli/                      # Rich CLI commands
+│
+├── deployment/               # Docker, Fly, Railway, Render, AWS
+│
+├── servers/                  # Alternative ASGI server backends (Robyn, Granian)
+│
+├── batch/                    # Bulk data operations
+│
+├── prefetch/                 # Advanced prefetch utilities
+│
+├── forms/                    # Form handling helpers
+│
+├── advisor/                  # Code quality advisor
+│
+├── benchmarks/               # Performance benchmarking tools
+│
+├── codemods/                 # Code migration utilities
+│
+├── inspector/                # Request/response capture for dev
+│
+├── wasm/                     # WebAssembly integration
+│
+├── vite/                     # Vite dev server integration
+│
+├── tailwind/                 # Tailwind CSS helpers
 │
 └── utils/                    # Utilities
-    ├── performance.py       # Caching, serialization, benchmarks
-    └── hot_reload.py        # Development hot reloading
+    └── performance.py       # Caching, serialization, benchmarks
 ```
 
 ## Layered Architecture
@@ -249,6 +379,12 @@ graph TD
     RPC_DEP[rpc] --> CORE
     STREAMING_DEP[streaming] --> EVENTS_DEP
     TYPEGEN_DEP[typegen] --> CORE
+
+    TASKS_NATIVE_DEP[tasks_native] --> CORE
+    TASKS_NATIVE_DEP --> EVENTS_DEP
+    AUDITS_DEP[audits] --> CORE
+    AUDITS_DEP --> INTROSPECTION_DEP
+    MIGRATION_TOOLS_DEP[migration_tools] --> CORE
 ```
 
 ## Layer Responsibilities

@@ -17,7 +17,7 @@
   - [x] Pagination + filtering (by tag, category, author, status, featured)
   - [x] `seed_blog` management command with realistic sample data
   - [x] Docker + docker-compose + Makefile + README
-  - [ ] `sync_types` output committed to repo (run after confirming API boots)
+  - [x] `sync_types` output committed to repo (`generated.ts` + `generated.schemas.ts`)
 - [x] `examples/blog-frontend/` — React+Vite frontend (from `react-vite-boilerplate`) ✅
   - [x] Post listing page with filters
   - [x] Single post page with comments
@@ -82,9 +82,9 @@
 ### Tier 2: Should Fix Before Announce
 
 #### Migration Guides
-- [ ] `docs/migrations/from-drf.md` — serializers→schemas, ViewSets→controllers, auth→JWT decorators, side-by-side
-- [ ] `docs/migrations/from-fastapi.md` — DI, Pydantic models, async patterns, routers
-- [ ] `docs/migrations/from-ninja.md` — already have codemods, need human-readable guide
+- [x] `docs/migrations/from-drf.md` — serializers→schemas, ViewSets→controllers, auth→JWT decorators, side-by-side
+- [x] `docs/migrations/from-fastapi.md` — DI, Pydantic models, async patterns, routers
+- [x] `docs/migrations/from-ninja.md` — already have codemods, need human-readable guide
 
 #### Packaging / PyPI Polish
 - [ ] `pyproject.toml` — add `[project.urls]`: Homepage, Documentation, Repository, Changelog

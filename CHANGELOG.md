@@ -21,175 +21,130 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All broken documentation links resolved
 - Ruff lint warnings fixed (quoted annotations, unused imports)
 
-## [0.9.0] - 2026-04-11
+---
+
+## [0.9.0] - 2026-05-19
 
 ### Added
 
-**13 New Modules — Node.js-Inspired Features (555 tests)**
+**Stage 17A — Native Task Engine** (`django_matt/tasks_native/`) — complete
 
-- **Interceptors** (`django_matt.interceptors`) — composable request/response wrappers with before_request, after_response, on_error hooks. Built-ins: Logging, Timing, Caching, Transform, Retry, RateLimit. 32 tests.
-- **SSE/Streaming** (`django_matt.streaming`) — `sse_response()`, `stream_json()`, `stream_text()`, `@sse_endpoint` decorator, heartbeat helpers. 30 tests.
-- **Config Validation** (`django_matt.config.namespaces`) — Pydantic-validated settings namespaces (AuthConfig, CacheConfig, DatabaseConfig, SecurityConfig, APIConfig, BillingConfig, ObservabilityConfig). Catches typos via `extra="forbid"`. 45 tests.
-- **Route-Scoped Middleware** (`django_matt.middleware.scoped`) — per-controller and per-route middleware via `middleware_classes` and `@use_middleware`/`@skip_middleware`. Built-ins: ScopedCors, ScopedRateLimit, ScopedCache, ScopedAuth. 34 tests.
-- **Exception Filters** (`django_matt.exceptions`) — layered typed exception handlers at route/controller/global scope. Built-ins: Validation→422, NotFound→404, Permission→403, Database→409, Throttle→429. 28 tests.
-- **Event Bus** (`django_matt.events`) — async pub/sub with typed Pydantic events, wildcard matching, concurrent handlers, error isolation. InMemory and Redis backends. 41 tests.
-- **Serialization Groups** (`django_matt.serialization`) — role-based field visibility via `Grouped()` field annotations and `@serialize_for()` decorator. 34 tests.
-- **Auto-Instrumentation** (`django_matt.observability.auto`) — zero-config tracing for controllers, services, DB, cache, HTTP. Span management with contextvars. Console/JSON/Prometheus/OTel exporters. 51 tests.
-- **Secrets** (`django_matt.secrets`) — pluggable secret management with Env, Dotenv, EncryptedFile, AWS, Vault, GCP backends. Rotation policies, SecretField for Pydantic, CLI commands. 80 tests.
-- **Introspection** (`django_matt.introspection`) — `/health`, `/health/detailed`, `/health/ready`, `/health/live`, `/_info` endpoints. Auto-registers DB, cache, Redis, Celery, storage checks. K8s probe compatible. 33 tests.
-- **RPC Client** (`django_matt.rpc`) — typed client generation from controllers. Python and TypeScript output. Dynamic proxy (`proxy.users.list()`). Auth strategies. 60 tests.
-- **Module System** (`django_matt.modules`) — plugin architecture with dependency resolution, entry point discovery, lifecycle hooks. `@module`, `@requires_module`, `@optional_module`. 51 tests.
-- **CQRS** (`django_matt.cqrs`) — command/query buses with middleware (logging, validation, transaction, caching). Domain events. Test utilities. 36 tests.
+- `@task` decorator for registering background tasks with Pydantic-validated payloads
+- `TaskConfig` — per-task configuration: queue, priority, timeout, max_retries
+- `RetryPolicy` — linear, exponential backoff, jitter, and fixed-delay strategies
+- `ScheduledTask` model — periodic task definitions with cron/interval expressions
+- `TaskResult` model — persistent result storage with status tracking
+- `TaskBeat` scheduler — APScheduler-based periodic runner (no Celery Beat dependency)
+- Unfold admin dashboard — real-time task status via WebSocket, queue depth charts, retry controls
+- Conditional loading and tree-shaking — only active when `"django_matt.tasks_native"` is in `INSTALLED_APPS`
+- Backends: in-process threading (default), Celery, Dramatiq, Django-Q2, sync (testing)
+- CLI commands:
+  - `python manage.py matt_tasks list` — list all registered tasks
+  - `python manage.py matt_tasks run <task_name> '<json>'` — run a task manually
+  - `python manage.py matt_tasks status` — show queue depth and worker status
+  - `python manage.py matt_tasks purge --older-than <duration>` — purge old results
 
-**Slim Mode (77 tests)**
+**Stage 17B — AI-Assisted Codebase Audits** (`django_matt/audits/`)
 
-- `MattAPI(mode="minimal")` — core routing + auth only
-- `MattAPI(mode="slim")` — user-specified module list
-- `LazyModuleProxy` for deferred heavy module imports
-- `StartupProfiler` for import time measurement
+- `AuditFramework` class with pluggable `AuditLens` protocol
+- Security audit lens: OWASP top-10, SQL injection, exposed secrets, auth gaps
+- Performance audit lens: N+1 queries, missing indexes, slow views, cache misses
+- Bundle audit lens: frontend bundle analysis, dead code, large dependencies
+- Pre-built LLM prompt templates (`audits/prompts/`)
+- `AuditAgent` — MCP tool definitions for AI agent integration (`audits/agents/`)
+- CLI commands:
+  - `python manage.py matt_audit` — run all audit lenses
+  - `python manage.py matt_audit security --level strict`
+  - `python manage.py matt_audit bundle`
+  - `python manage.py matt_audit context --for claude` — generate `CLAUDE.md` / `.cursorrules` from live codebase state
 
-**Framework Benchmarks**
+**TypeScript Codegen fixes** (`django_matt/typegen/`)
 
-- `benchmarks/framework_comparison.py` with Rich tables
-- Route resolution, schema serialization, request parsing, full lifecycle comparisons
-- `make bench-compare` target
+- Python 3.10+ `X | None` union syntax now correctly emits `string | null` (was broken for non-`Optional` unions)
+- `EmailStr` fields now map to `string` in TypeScript output (was emitting `EmailStr` literally)
+- Inherited field resolution uses `get_type_hints()` instead of `__annotations__` — fields from parent Pydantic models are now included in generated interfaces
 
-**Python 3.14 CI**
+**Docs: Recipes Cookbook** (`docs/recipes/`)
 
-- Added Python 3.14 to CI matrix for Django 6.0 with `continue-on-error`
+Nine end-to-end cookbook recipes covering real-world patterns:
+- `auth-flows.md` — JWT login, magic links, OAuth, SSO, passkey registration
+- `file-uploads.md` — local/S3/R2 uploads, image processing, signed URLs
+- `background-tasks.md` — `@task` decorator, retry policies, periodic scheduling
+- `pagination-filtering.md` — PageNumber/LimitOffset/Cursor pagination, FilterSet
+- `multi-tenancy.md` — org/team/membership setup, tenant middleware, scoped queries
+- `webhooks.md` — incoming webhook verification, outgoing webhook delivery
+- `rate-limiting.md` — per-user/per-key/per-IP throttling, Redis sliding window
+- `testing-patterns.md` — `AsyncAPITestClient`, factories, assertion helpers
+- `frontend-integration.md` — `sync_types` workflow, Zod schemas, React hooks
 
-**640+ New Tests Across Existing Modules**
+**Docs: Migration Guides** (`docs/migrations/`)
 
-- Auth: passwords, middleware, session, RBAC
-- Billing: Stripe Connect, webhooks, signals
-- Multitenancy: org, team, membership, isolation
-- Views, flags, analytics, experiments, GraphQL, management commands
+Three comprehensive migration guides:
+- `from-drf.md` — serializer → Pydantic schema, ViewSet → APIViewSet, simplejwt → built-in auth
+- `from-fastapi.md` — Starlette routing → MattAPI, Depends → built-in DI, SQLAlchemy → Django ORM
+- `from-ninja.md` — NinjaAPI → MattAPI, ninja-extra → APIController, ninja-jwt → AuthController
+
+**Examples**
+
+- `examples/blog-app/` — full-stack blog: Django API + React/Vite frontend with TanStack Router, Zustand, shadcn/ui; committed `sync_types` output (`generated.ts` and `generated.schemas.ts`) as codegen reference
+- `examples/portfolio-api/` + `examples/portfolio-frontend/` — personal portfolio backend + React frontend with contact form
+- `examples/ecommerce-v2/` — multi-store marketplace with React/TypeScript frontend (replaces `ecommerce-api`)
 
 ### Fixed
-- Example app READMEs added (ecommerce-v2, devplatform, quicktodo)
+
+- `typegen`: `X | None` (PEP 604 unions) were not detected as optional — only `Optional[X]` was handled
+- `typegen`: `EmailStr` was passed through as-is instead of resolving to `string`
+- `typegen`: subclasses of Pydantic models with fields defined on a parent class generated empty interfaces
+- Blog example app: comment thread rendering, Swagger docs prefix, Docker Compose wiring
+- Ecommerce v2: orders flow, payment mock, cart storeId, async middleware, CORS, and migrations
+
+---
 
 ## [0.1.0] - 2026-03-09
 
-### v1.0 Milestone Complete
-
-Full audit, hardening, and completion pass across all modules — 7 phases, 24 plans, 2100+ tests passing.
+v1.0 Milestone — 54 modules, 2100+ tests. Full audit, hardening, and completion pass across all modules (7 phases, 24 plans).
 
 ### Added
 
-**Phase 7: Deployment, Observability, and Completion** (2026-03-09)
-- CONN_MAX_AGE=0 enforced across all ASGI deployment configs — production connection leak blocker resolved
-- TracingMiddleware fix: only 5xx responses marked as OTEL ERROR (was incorrectly marking 4xx)
-- Admin inline generation (`AdminGenerator._generate_inlines()`) auto-creates TabularInline from reverse FK relations
-- Soft-delete integration with audit trail — delete/restore operations produce audit log entries
-- 100+ new tests across deployment, observability, audit, files, tasks, admin, GraphQL, HTMX, components, AI/ML, pagination, filtering, throttling
-
-**Phase 6: Real-Time, Notifications, and Communications** (2026-03-08)
-- `MessageService.asend_message()` and `amark_as_read()` async wrappers via `sync_to_async`
-- `Conversation.ais_member()` async instance method
-- `PresenceManager.get_user_groups()` reverse cache index for O(1) user-to-groups lookup
-- `PushToken` model for per-device push notification targeting (FCM/APNs/web)
-- `EmailDeliveryHandler` wired through `EmailService` (not `django.core.mail` directly)
-- SMTP provider tests and EMAIL requirement-to-test mapping
-- 49 new tests across messaging, notifications, and email
-
-**Phase 5: Billing, Feature Flags, and Analytics** (2026-03-08)
-- Stripe/PayPal/Polar billing webhook lifecycle with signature verification
-- Billing signals (`subscription_created`, `subscription_updated`, `subscription_canceled`)
-- Mock event factories for billing webhook testing (`django_matt.billing.testing`)
-- Feature flag backends: DB, Redis, LaunchDarkly, Unleash with percentage rollout
-- `@feature_flag` decorator and `FeatureFlagMiddleware`
-- Analytics funnel analysis and session aggregation
-- A/B experiment deterministic assignment with `@experiment` decorator
-- Statistical significance computation for experiment results
-
-**Phase 4: Auth Hardening and Multi-Tenancy** (2026-03-08)
-- JWT token blacklist with cache-first backend and bulk revocation
-- CSRF exemption for JWT-authenticated API endpoints
-- OAuth provider integration (Google, GitHub, Apple, Microsoft)
-- SSO support (SAML 2.0, OIDC)
-- Passkeys/WebAuthn support
-- Org-aware permission classes (`IsOrgMember`, `IsOrgAdmin`)
-- `TenantMiddlewareAsync` for automatic org scoping
-- Cross-org data isolation enforcement
-
-**Phase 3: CLI and Type Generation** (2026-03-08)
-- `generate_crud` command — full controller, schema, service, admin, tests from model
-- `sync_types --target typescript` — TypeScript interfaces + Zod schemas from Pydantic
-- `sync_types --target swift` — Swift Codable structs
-- `generate_ai_context --format all` — CLAUDE.md, .cursorrules generation
-- `matt routes` — Rich table of all registered API routes
-- `matt doctor` — configuration diagnostics
-- Migration tool from Django Ninja to django-matt
-
-**Phase 2: Performance Baseline** (2026-03-08)
-- Framework comparison benchmarks (`make benchmark`) — django-matt vs DRF vs Ninja vs FastAPI
-- API-mode middleware stripping profile
-- `assert_query_count()` test helper for N+1 detection
-- `@cache_response` decorator with stampede prevention
-- `model_construct()` on all ORM-read list serialization paths
-- Hot-path verification: zero `get_type_hints()` or `inspect` per-request
-
-**Phase 1: Correctness Audit** (2026-03-07)
-- Removed `DJANGO_ALLOW_ASYNC_UNSAFE=true` — all sync ORM calls converted to async
-- Consolidated error classes: `django_matt.core.errors` is single canonical import
-- PATCH null semantics with `model_fields_set` sentinel
-- `AsyncAPITestClient.force_authenticate()` uses `acreate_access_token()`
-
-### Core Framework (pre-milestone)
-
-- Core routing and decorators (`django_matt.core`)
-- Class-based controllers (`django_matt.core.controller`)
-- Pydantic ModelSchema (`django_matt.core.schema`)
-- OpenAPI/Swagger/ReDoc documentation (`django_matt.openapi`)
-- JWT authentication (`django_matt.auth.jwt`)
-- Magic link authentication (`django_matt.auth.magic_link`)
-- Permission system (`django_matt.permissions`)
-- RBAC with hierarchy (`django_matt.auth.rbac`)
-- Multi-tenancy — organizations, teams (`django_matt.multitenancy`)
-- Type generation — TypeScript, Swift (`django_matt.typegen`)
-- CRUD generator CLI (`manage.py generate_crud`)
-- Testing utilities (`django_matt.testing`)
-- Service layer — `CRUDService`, `BaseThirdPartyService` (`django_matt.services`)
-- Content negotiation — JSON, XML, CSV, YAML (`django_matt.negotiation`)
-- WebSocket support with Django Channels (`django_matt.websockets`)
-- Billing integration — Stripe, PayPal, Polar (`django_matt.billing`)
-- Dependency injection container (`django_matt.di`)
-- Pagination and filtering backends (`django_matt.pagination`, `django_matt.filtering`)
-- API versioning schemes (`django_matt.versioning`)
-- Rate limiting and throttling (`django_matt.throttling`)
-- Session authentication with CSRF protection (`django_matt.auth.session`)
-- Audit logging system with model change tracking (`django_matt.audit`)
-- Background tasks — Celery, Dramatiq, Django-Q2 (`django_matt.tasks`)
-- File handling — S3, R2, MinIO, local storage (`django_matt.files`)
-- API Key authentication with rate limiting (`django_matt.auth.api_keys`)
-- Soft delete mixin for models (`django_matt.db.soft_delete`)
-- Frontend codegen — React, Svelte, Solid (`django_matt.codegen`)
-- GraphQL — Strawberry schema generation, DataLoaders (`django_matt.graphql`)
-- HTMX helpers and reactive components (`django_matt.htmx`)
-- Backend component system (`django_matt.components`)
-- AI/ML integration — LLM helpers, embeddings, RAG, vector storage (`django_matt.ai`, `django_matt.ml`)
-- Observability — OpenTelemetry, Prometheus, structured logging (`django_matt.observability`)
-- Deployment configs — Docker, Fly.io, Railway, Render, AWS (`django_matt.deploy`)
-- Email providers — SendGrid, Mailgun, SES, SMTP (`django_matt.email`)
-- Notifications — in-app, push, SMS, webhooks (`django_matt.notifications`)
-- Messaging — conversations, attachments, WebSocket transport (`django_matt.messaging`)
-- Feature flags — DB, Redis, LaunchDarkly, Unleash (`django_matt.flags`)
-- Analytics — event tracking, sessions, funnels (`django_matt.analytics`)
-- Experiments — A/B testing, multi-armed bandits (`django_matt.experiments`)
+- **Core framework**: `MattAPI`, `APIRouter`, `APIController`, `CRUDController`, `ModelSchema`, HTTP method decorators, single-pass `_setup_methods()`, `from_orm_fast()` list serialization, orjson as base dependency
+- **Authentication**: JWT (access/refresh/blacklist, `@jwt_required`/`@jwt_optional`), session + CSRF, API keys with rate limiting, magic links, OAuth (Google/GitHub/Apple/Microsoft), Passkeys/WebAuthn, Enterprise SSO (SAML 2.0, OIDC)
+- **RBAC**: `Role`/`Permission` models with hierarchy, `HasRole`/`HasPermission` permission classes, `@requires_role()`/`@requires_permission()` decorators
+- **Multi-tenancy**: `Organization`, `Team`, `Membership`, `Invitation` models, `TenantMiddleware`, org-aware permission classes, cross-org data isolation
+- **CRUD views**: `ListView`, `CreateView`, `ReadView`, `UpdateView`, `PatchView`, `DeleteView`, `APIViewSet`; auto `optimize_queryset()` with select_related/prefetch_related detection
+- **Billing**: Stripe (checkout, subscriptions, customer portal, webhooks), PayPal, Polar; webhook signature verification; billing signals
+- **Background tasks abstraction**: `@task` decorator with Celery, Dramatiq, Django-Q2, and sync backends; periodic cron scheduling
+- **File handling**: local, S3, R2, MinIO storage backends; `@file_upload` decorator; image processing helpers
+- **Type generation**: TypeScript interfaces + Zod schemas; Swift Codable structs; `sync_types` with watch mode
+- **CLI**: `startapi`, `generate_crud`, `sync_types`, `config`, `deploy`; migration tools (`matt_baseline`, `matt_migrate --profile/--parallel`, `matt_squash`)
+- **Testing utilities**: `APITestClient`, `AsyncAPITestClient` (with `force_authenticate()` via `acreate_access_token()`); `UserFactory`, `OrganizationFactory`; `assert_status()`, `assert_query_count()`
+- **Advanced modules** (54 total): `streaming/` (SSE/NDJSON), `events/` (async pub/sub), `exceptions/` (typed filters), `serialization/` (group-based visibility), `secrets/` (multi-backend), `introspection/` (health/readiness probes), `rpc/` (typed client gen), `modules/` (plugin system), `cqrs/` (command/query buses), `migration_tools/`, `flags/`, `analytics/`, `experiments/`, `graphql/`, `websockets/`, `htmx/`, `components/`, `ai/`, `ml/`, `messaging/`, `notifications/`, `email/`, `interceptors/`, `versioning/`, `throttling/`, `observability/`, `di/`, `audit/`, `openapi/`, `inspector/`; slim/minimal module loading (`slim.py`, `loader.py`)
+- **Admin integration** (Django Unfold): `MattModelAdmin`, dashboard widgets, custom admin pages
+- **Pagination & filtering**: `PageNumberPagination`, `LimitOffsetPagination`, `CursorPagination`; `FilterSet`, search, ordering backends
+- **Dependency injection**: `Container` with Singleton/Scoped/Transient lifetimes, `Depends()`, `@inject`
+- **Content negotiation**: JSON, XML, CSV, YAML, MessagePack, HTML renderers and parsers
+- **OpenAPI / Interactive docs**: Swagger UI at `/docs`, ReDoc at `/redoc`, API playground at `/_matt/docs/playground/`
+- **Performance**: `FastJSONRenderer`, `@cache_response()` with stampede prevention, `QueryAnalyzer` (N+1 detection), `APIBenchmark`
 
 ### Changed
+
 - Python 3.12+ minimum (3.13 recommended)
 - Django 5.2+ minimum (6.0 compatible)
-- Replaced black/isort with Ruff for linting and formatting
+- Pydantic 2.0+ required
+- Replaced black/isort with Ruff (line-length 88, py313 target)
 - All deprecated `datetime.utcnow()` replaced with `datetime.now(UTC)`
 - All deprecated `asyncio.get_event_loop()` replaced with `asyncio.to_thread()`
-- orjson used everywhere (controller, router, views) instead of stdlib json
+- orjson used everywhere instead of stdlib json
 
 ### Fixed
-- CONN_MAX_AGE production blocker — Django ticket #33497 persistent connection leak under ASGI
-- TracingMiddleware incorrectly marking 4xx responses as OTEL ERROR status
+
+- `CONN_MAX_AGE=0` enforced across all ASGI deployment configs — production connection leak blocker (Django ticket #33497)
+- `TracingMiddleware` was incorrectly marking 4xx responses as OTEL ERROR status
+- Removed `DJANGO_ALLOW_ASYNC_UNSAFE=true` — all sync ORM calls converted to async equivalents
+- Consolidated error classes: `django_matt.core.errors` is single canonical import (eliminated `utils/errors.py` duplication)
+- `AsyncAPITestClient.force_authenticate()` now uses `acreate_access_token()`
+- `PATCH` null semantics corrected using `model_fields_set` sentinel
 - S3 storage backend using deprecated `asyncio.get_event_loop()`
-- Background tasks using deprecated `datetime.utcnow()`
-- AI base classes using deprecated `asyncio.get_event_loop()`
 - PayPal webhook test missing required transmission headers
-- `_get_push_tokens` app_label bug (was "notifications", fixed to "django_matt")
+- `_get_push_tokens` app_label bug (`"notifications"` → `"django_matt"`)
+- Admin inline generation: `AdminGenerator._generate_inlines()` auto-creates `TabularInline` from reverse FK relations
+- Soft-delete integration with audit trail — delete/restore operations produce audit log entries

@@ -83,13 +83,15 @@ The 1.5x speedup is modest because Python's HMAC is already C-optimized. The rea
 
 ## Supported Algorithms
 
-| Algorithm | Rust | Python Fallback |
-|-----------|------|-----------------|
-| HS256 | Yes | Yes |
-| HS384 | Yes | Yes |
-| HS512 | Yes | Yes |
-| RS256/384/512 | No (deferred) | Yes (via `cryptography`) |
-| ES256/384/512 | No (deferred) | Yes (via `cryptography`) |
+| Algorithm | Rust | Fallback |
+|-----------|------|---------|
+| HS256 | Yes | Python `hmac` (C-accelerated) |
+| HS384 | Yes | Python `hmac` (C-accelerated) |
+| HS512 | Yes | Python `hmac` (C-accelerated) |
+| RS256/384/512 | No | `cryptography` package (itself Rust-based internally) |
+| ES256/384/512 | No | `cryptography` package (itself Rust-based internally) |
+
+RSA and EC algorithms are not implemented in this Rust module because the `cryptography` package that handles them is already a Rust extension internally. There is no performance gap to close.
 
 ## Error Handling
 

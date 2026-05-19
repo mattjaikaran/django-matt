@@ -339,7 +339,7 @@ Utility function to manually check permissions.
 
 ## Custom Permission Classes
 
-Create custom permissions by subclassing `BasePermission`:
+Create custom permissions by subclassing `BasePermission`. Permission methods can be either sync or async — django-matt handles both:
 
 ```python
 from django_matt.permissions import BasePermission
@@ -368,6 +368,18 @@ class IsPremiumUser(BasePermission):
     def has_object_permission(self, request, view, obj) -> bool:
         # Additional object-level check
         return self.has_permission(request, view)
+
+class HasActiveSubscription(BasePermission):
+    """Async permission — checks subscription in the database."""
+
+    message = "Active subscription required."
+
+    async def has_permission(self, request, view) -> bool:
+        if not request.user.is_authenticated:
+            return False
+        return await Subscription.objects.filter(
+            user=request.user, is_active=True
+        ).aexists()
 
 # Usage
 class PremiumController(APIController):

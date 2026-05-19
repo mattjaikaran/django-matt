@@ -171,12 +171,12 @@ from django_matt.events import collect_event, ModelCreatedEvent
 
 @api.post("/products")
 async def create_product(request, data: ProductCreate):
-    product = await Product.objects.acreate(**data.dict())
+    product = await Product.objects.acreate(**data.model_dump())
 
     collect_event(request, ModelCreatedEvent(
         model_name="Product",
         instance_id=product.id,
-        data=data.dict(),
+        data=data.model_dump(),
     ))
 
     return {"id": product.id}

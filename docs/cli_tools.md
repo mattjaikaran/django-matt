@@ -36,10 +36,13 @@ python manage.py generate_crud blog.Post
 python manage.py generate_crud blog.Post --full
 
 # Interactive wizard
-python manage.py generate_crud
+python manage.py generate_crud --wizard
 
 # With permissions and soft delete
 python manage.py generate_crud blog.Post --full --permissions IsAuthenticated --soft-delete
+
+# Preview without writing
+python manage.py generate_crud blog.Post --full --dry-run
 ```
 
 See [CRUD generator documentation](crud-generator.md) for all options.
@@ -49,15 +52,20 @@ See [CRUD generator documentation](crud-generator.md) for all options.
 Generates a complete Django Matt project with settings, URL config, Docker, frontend scaffold, and authentication.
 
 ```bash
-# Starter project with JWT auth
-python manage.py startapi myproject --auth jwt
+# Minimal API project (default template)
+python manage.py startapi myproject
 
 # B2B SaaS project with Docker
 python manage.py startapi myproject --template b2b --auth jwt --docker
 
+# AI-SaaS project
+python manage.py startapi myproject --template ai-saas --auth jwt --docker
+
 # With React frontend
 python manage.py startapi myproject --frontend react-vite --docker
 ```
+
+Available templates: `api-only` (default), `starter`, `b2b`, `b2c`, `saas`, `ai-saas`, `marketplace`, `internal-tools`.
 
 ### Typical Workflow
 
@@ -77,6 +85,66 @@ python manage.py generate_crud blog.Comment --full
 ```
 
 See [Scaffolding Workflow](scaffolding.md) for the full guide.
+
+---
+
+## Type Generation (`sync_types`)
+
+Generate TypeScript, Zod, Swift, or API client types from Pydantic schemas.
+
+```bash
+# TypeScript interfaces
+python manage.py sync_types --target typescript --output frontend/src/types/api.ts
+
+# Zod schemas (runtime validation)
+python manage.py sync_types --target zod --output frontend/src/schemas/api.ts
+
+# Typed API client
+python manage.py sync_types --target api-client --output frontend/src/api/client.ts
+
+# Swift Codable structs
+python manage.py sync_types --target swift --output ios/App/API/Models.swift
+
+# Watch mode — regenerate on file changes
+python manage.py sync_types --target typescript --output frontend/src/types/api.ts --watch
+
+# Scan specific apps
+python manage.py sync_types --target typescript --apps myapp,users
+
+# Include React Query hooks in API client
+python manage.py sync_types --target api-client --include-react-query
+
+# Use config file (django_matt_codegen.py or pyproject.toml)
+python manage.py sync_types --config
+```
+
+---
+
+## AI Context Generation (`generate_ai_context`)
+
+Analyze your project and generate context files for Claude, Cursor, and GitHub Copilot.
+
+```bash
+# Generate all context files (CLAUDE.md, .cursorrules, .copilot-instructions)
+python manage.py generate_ai_context
+
+# Specific format
+python manage.py generate_ai_context --format claude
+python manage.py generate_ai_context --format cursor
+python manage.py generate_ai_context --format all
+
+# Watch mode — auto-regenerate on file changes
+python manage.py generate_ai_context --watch
+
+# Install pre-commit hook for automatic regeneration
+python manage.py generate_ai_context --install-hook
+
+# Include code examples from the codebase
+python manage.py generate_ai_context --include-examples
+
+# Preview without writing
+python manage.py generate_ai_context --dry-run
+```
 
 ---
 
@@ -369,4 +437,138 @@ python manage.py runserver_hot 8080
 python manage.py runserver_hot 0.0.0.0:8000
 ```
 
-For more information on hot reloading, see the [Hot Reloading documentation](hot_reloading.md). 
+For more information on hot reloading, see the [Hot Reloading documentation](hot_reloading.md).
+
+---
+
+## Native Task Engine (`matt_tasks`)
+
+Manage background tasks registered with the django-matt native task engine (Stage 17A).
+
+```bash
+python manage.py matt_tasks list                              # List all registered tasks
+python manage.py matt_tasks run send_email --payload '{}'     # Enqueue a task
+python manage.py matt_tasks run send_email --payload '{}' --sync  # Run synchronously
+python manage.py matt_tasks status                            # Queue health and counts
+python manage.py matt_tasks status --queue emails             # Filter by queue
+python manage.py matt_tasks purge --older-than 30d            # Remove old completed tasks
+python manage.py matt_tasks purge --state failed --older-than 7d  # Remove old failures
+python manage.py matt_tasks purge --dry-run                   # Preview without deleting
+python manage.py matt_tasks retry --failed --last 24h         # Bulk retry failures
+python manage.py matt_tasks retry --task send_email --last 7d # Retry specific task
+python manage.py matt_tasks schedules                         # List all schedules
+python manage.py matt_tasks schedules --enabled-only          # Only enabled schedules
+```
+
+Output formats for `list`, `status`, `schedules`: `--format table` (default) or `--format json`.
+
+---
+
+## AI-Assisted Audits (`matt_audit`)
+
+Run AI-assisted codebase audits (Stage 17B). Accepts a positional `audit_type` argument.
+
+```bash
+python manage.py matt_audit                         # Run all audits
+python manage.py matt_audit security                # Security vulnerability scan
+python manage.py matt_audit performance             # Performance bottleneck analysis
+python manage.py matt_audit scalability             # Scalability review
+python manage.py matt_audit best_practices          # Code quality checks
+python manage.py matt_audit maintainability         # Code health analysis
+python manage.py matt_audit accessibility           # Accessibility review
+python manage.py matt_audit bundle                  # Bundle size and startup time
+python manage.py matt_audit context                 # Generate LLM context
+```
+
+Options:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--level` | `standard` | Strictness: `relaxed`, `standard`, `strict`, `paranoid` |
+| `--format` | `text` | Output: `text`, `json`, `markdown`, `sarif` |
+| `--output` | stdout | Write report to file |
+| `--ci` | `false` | Exit non-zero if issues found |
+| `--fail-on` | `critical` | Min severity to fail: `critical`, `high`, `medium`, `low`, `info` |
+| `--exclude` | None | Glob patterns to exclude (repeatable) |
+| `--diff` | None | Only audit files changed since this git ref |
+| `--fix` | `false` | Apply safe auto-fixes |
+| `--fix-preview` | `false` | Show what would be auto-fixed |
+| `--for` | `generic` | For `context`: optimize for `claude`, `gpt`, or `generic` |
+
+---
+
+## Migration Baselines (`matt_baseline`)
+
+Create and load SQL schema baselines to dramatically speed up fresh database setup.
+
+```bash
+# Create a baseline from current database state
+python manage.py matt_baseline create v1.0.0 --notes "Release 1.0 schema"
+
+# Load a baseline on a fresh database (skips running all migrations)
+python manage.py matt_baseline load v1.0.0
+
+# List available baselines
+python manage.py matt_baseline list
+
+# Verify integrity
+python manage.py matt_baseline verify v1.0.0
+
+# Delete
+python manage.py matt_baseline delete v1.0.0
+```
+
+---
+
+## Migration Analysis (`matt_migrate`)
+
+Analyze, profile, and safely accelerate migrations in large projects.
+
+```bash
+python manage.py matt_migrate --stats             # Show project migration statistics
+python manage.py matt_migrate --profile           # Profile pending migrations, estimate time
+python manage.py matt_migrate --parallel          # Run pending migrations in parallel waves
+python manage.py matt_migrate --check             # Detect unsafe DDL in pending migrations
+python manage.py matt_migrate --check --rewrite   # Show safe rewrites for unsafe patterns
+python manage.py matt_migrate --graph             # Show migration dependency graph
+python manage.py matt_migrate --graph --format mermaid  # Mermaid diagram output
+python manage.py matt_migrate --check-cycles      # Detect circular dependencies
+python manage.py matt_migrate --check-conflicts   # Detect branch conflicts
+python manage.py matt_migrate --app myapp         # Filter to a specific app
+```
+
+---
+
+## Migration Squashing (`matt_squash`)
+
+Smart migration squashing with preview and safety checks.
+
+```bash
+# Preview what would be squashed
+python manage.py matt_squash myapp 0001 0042 --preview
+
+# Execute the squash
+python manage.py matt_squash myapp 0001 0042
+
+# Find squash opportunities across all apps
+python manage.py matt_squash --analyze
+
+# Squash all apps up to a git tag boundary
+python manage.py matt_squash --all --to-tag v1.0.0
+```
+
+---
+
+## Documentation Tools (`matt_docs`)
+
+Analyze and improve code documentation coverage.
+
+```bash
+python manage.py matt_docs coverage              # Show coverage stats (default threshold: 80%)
+python manage.py matt_docs coverage --ci         # Exit non-zero if below threshold
+python manage.py matt_docs coverage --threshold 90  # Custom threshold
+python manage.py matt_docs stubs                 # Generate docstring stubs for all modules
+python manage.py matt_docs stubs --module core   # Generate for a specific module
+python manage.py matt_docs stubs --style google  # Docstring style: google, numpy, sphinx
+python manage.py matt_docs hints                 # Find missing type hints
+```

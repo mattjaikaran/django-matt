@@ -132,13 +132,13 @@ Matt provides `sse_response()`, the `event()` helper, and the
 
 ```python
 # notifications/controllers.py
-from django_matt.core.controller import Controller
+from django_matt import APIController
 from django_matt.streaming import sse_response, event, SSEEvent
 from .api import api
 
 
 @api.controller("/stream", tags=["Streaming"])
-class StreamController(Controller):
+class StreamController(APIController):
 
     @api.get("/notifications")
     async def notification_stream(self, request):
@@ -403,14 +403,14 @@ await service.send(
 
 ```python
 # notifications/controllers.py
-from django_matt.core.controller import Controller
+from django_matt import APIController
 from django_matt.auth import jwt_required
 from django_matt.notifications import Notification
 from .api import api
 
 
 @api.controller("/notifications", tags=["Notifications"])
-class NotificationController(Controller):
+class NotificationController(APIController):
 
     @api.get("/")
     @jwt_required
@@ -614,13 +614,13 @@ router.route("ws/chat/<str:room_name>/", ChatConsumer)
 
 ```python
 # stream/controllers.py
-from django_matt.core.controller import Controller
+from django_matt import APIController
 from django_matt.streaming import sse_response, event, with_heartbeat
 from .api import api
 
 
 @api.controller("/stream", tags=["Streaming"])
-class StreamController(Controller):
+class StreamController(APIController):
 
     @api.get("/events")
     async def event_stream(self, request):

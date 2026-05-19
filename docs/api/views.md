@@ -2,6 +2,24 @@
 
 Composable CRUD views for building REST APIs with minimal code.
 
+## Performance Notes
+
+### Auto Query Optimization
+
+All views use `optimize_queryset()` internally. At view class instantiation time (not per-request), the view introspects `model._meta.get_fields()` and caches the result as a `frozenset` (`_valid_filter_fields`). This means:
+
+- `select_related` / `prefetch_related` decisions happen once at startup
+- Per-request filter field validation is an O(1) frozenset membership check
+- No repeated `_meta` introspection per request
+
+### Schema Serialization
+
+Views serialize ORM results via `from_orm_fast()` (uses `model_construct()` — skips re-validation). For large list results this is significantly faster than full Pydantic validation.
+
+### Rust-Accelerated List Endpoint
+
+When Rust extensions are installed and `CAMEL_CASE_API = True`, `ListView` uses `serialize_dicts_to_json()` to serialize the entire items list in a single native pass (rename + JSON encoding combined).
+
 ## ViewSets
 
 ### APIViewSet
@@ -54,8 +72,8 @@ View for listing resources with pagination and filtering.
 from django_matt.views import APIViewSet, ListView
 
 class ProductViewSet(APIViewSet):
-    api = api
     model = Product
+    prefix = "products"
     default_response_schema = ProductSchema
 
     # Basic list
@@ -85,8 +103,8 @@ View for creating new resources.
 from django_matt.views import APIViewSet, CreateView
 
 class ProductViewSet(APIViewSet):
-    api = api
     model = Product
+    prefix = "products"
     default_request_schema = ProductCreateSchema
     default_response_schema = ProductSchema
 
@@ -116,8 +134,8 @@ View for retrieving a single resource by ID.
 from django_matt.views import APIViewSet, ReadView
 
 class ProductViewSet(APIViewSet):
-    api = api
     model = Product
+    prefix = "products"
     default_response_schema = ProductSchema
 
     read_product = ReadView()
@@ -157,8 +175,8 @@ View for fully updating a resource (PUT).
 from django_matt.views import APIViewSet, UpdateView
 
 class ProductViewSet(APIViewSet):
-    api = api
     model = Product
+    prefix = "products"
     default_request_schema = ProductUpdateSchema
     default_response_schema = ProductSchema
 
@@ -182,8 +200,8 @@ View for partially updating a resource (PATCH).
 from django_matt.views import APIViewSet, PatchView
 
 class ProductViewSet(APIViewSet):
-    api = api
     model = Product
+    prefix = "products"
     default_request_schema = ProductPatchSchema
     default_response_schema = ProductSchema
 
@@ -207,8 +225,8 @@ View for deleting a resource.
 from django_matt.views import APIViewSet, DeleteView
 
 class ProductViewSet(APIViewSet):
-    api = api
     model = Product
+    prefix = "products"
 
     delete_product = DeleteView()
 
@@ -243,8 +261,8 @@ api = MattAPI()
 class ProductViewSet(APIViewSet):
     """Complete CRUD API for products."""
 
-    api = api
     model = Product
+    prefix = "products"
     default_response_schema = ProductSchema
     default_request_schema = ProductCreateSchema
     permission_classes = [IsAuthenticated, IsAdminOrReadOnly]

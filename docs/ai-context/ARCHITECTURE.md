@@ -56,9 +56,24 @@ django_matt/
 ├── rpc/                # Typed HTTP client gen (Python + TypeScript from OpenAPI)
 ├── modules/            # Plugin system with dependency resolution and lifecycle hooks
 ├── cqrs/               # Command/Query buses, domain events, bus middleware
+├── tasks_native/       # Native background task engine (Stage 17A — no Celery required)
+│   ├── core.py         # NativeTask, @task decorator, Pydantic payload validation
+│   ├── scheduling.py   # CrontabSchedule, every(), @periodic_task
+│   ├── retry.py        # ExponentialBackoff, LinearBackoff, FixedDelay retry policies
+│   ├── models.py       # Task, TaskResult, PeriodicTask Django models
+│   ├── backends/       # In-process, DB, and Redis queue backends
+│   └── admin/          # Unfold dashboard — queue status, task history, manual trigger
+├── audits/             # AI-assisted codebase audit framework (Stage 17B)
+│   ├── framework.py    # BaseAuditor, AuditFinding, AuditReport, AuditLevel, run_audit()
+│   ├── bundle.py       # Bundle size analysis and SlimConfig recommendations
+│   ├── docs_helper.py  # LLM context generation helpers
+│   ├── auditors/       # Security, Performance, Scalability, Maintainability, BestPractices
+│   ├── agents/         # LLM-agent integration (planned: auto-fix)
+│   └── prompts/        # Built-in audit prompt templates
+├── migration_tools/    # Migration acceleration (baseline, parallel execution, squash, stats)
 ├── slim.py             # Slim mode config (full/slim/minimal/auto module loading)
 ├── loader.py           # Lazy module loading (LazyModuleProxy, DeferredLoader)
-└── ... (20+ more modules)
+└── ... (50+ modules total)
 ```
 
 ## How It Works
@@ -242,6 +257,64 @@ DJANGO_MATT_ERRORS = {
     "INCLUDE_SNIPPET": DEBUG,
 }
 ```
+
+## Stage 17A: Native Task Engine
+
+No Celery, Dramatiq, or Django-Q required. Tasks run via the built-in engine backed by your existing database or Redis.
+
+```python
+from django_matt.tasks_native import task, periodic_task, retry
+from pydantic import BaseModel
+
+class WelcomePayload(BaseModel):
+    user_id: int
+    email: str
+
+@task(queue="email", retry=retry.exponential(max_retries=3, base_delay=2.0))
+async def send_welcome_email(payload: WelcomePayload) -> bool:
+    user = await User.objects.aget(id=payload.user_id)
+    return await deliver_email(user)
+
+# Enqueue — payload validated by Pydantic at call time
+await send_welcome_email.delay(WelcomePayload(user_id=1, email="user@example.com"))
+
+# Periodic task (crontab or interval)
+from django_matt.tasks_native.scheduling import crontab, every
+
+@periodic_task(schedule=crontab(hour=9, minute=0))  # daily at 9 AM
+async def daily_digest():
+    ...
+
+@periodic_task(schedule=every(minutes=15))
+async def refresh_cache():
+    ...
+```
+
+CLI:
+```bash
+python manage.py matt_tasks list               # list registered tasks
+python manage.py matt_tasks run send_welcome_email '{}'  # run manually
+python manage.py matt_tasks status             # queue status
+python manage.py matt_tasks purge --older-than 30d
+```
+
+## Stage 17B: AI-Assisted Audits
+
+Multi-perspective codebase audits with pluggable auditors, configurable strictness, and SARIF output for GitHub Code Scanning.
+
+```bash
+python manage.py matt_audit                        # all categories, standard level
+python manage.py matt_audit security --level strict
+python manage.py matt_audit performance
+python manage.py matt_audit bundle                 # unused module analysis
+python manage.py matt_audit context --for claude   # generate LLM context
+python manage.py matt_audit --format sarif > results.sarif  # GitHub Code Scanning
+python manage.py matt_audit --ci --fail-on high    # CI gate
+```
+
+Audit levels: `RELAXED` (critical only) → `STANDARD` (default) → `STRICT` (all) → `PARANOID` (security-focused).
+
+Categories: `security`, `performance`, `scalability`, `bundle_size`, `best_practices`, `maintainability`, `accessibility`, `all`.
 
 ## Dependencies
 

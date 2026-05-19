@@ -39,7 +39,7 @@ The `startapi` command creates a complete Django Matt API project with:
 | `--directory` | Current directory | Directory to create the project in |
 | `--api-app` | `api` | Name of the API app to create |
 | `--db` | `postgres` | Database: `postgres`, `mysql`, `sqlite` |
-| `--template`, `-t` | `starter` | Template: `starter`, `b2b`, `b2c` |
+| `--template`, `-t` | `api-only` | Template: `starter`, `b2b`, `b2c`, `saas`, `api-only`, `ai-saas`, `marketplace`, `internal-tools` |
 | `--auth`, `-a` | `jwt` | Auth: `none`, `jwt`, `magic-link`, `oauth`, `all` |
 | `--frontend`, `-f` | `none` | Frontend: `none`, `react-vite`, `swift` |
 | `--docker` | `false` | Include Docker configuration |
@@ -48,12 +48,22 @@ The `startapi` command creates a complete Django Matt API project with:
 
 ## Templates
 
-### starter
+### api-only (default)
 
-Basic API template with minimal setup:
+Minimal API-only template with no frontend or extras:
 
 - Single `api` app
 - Basic URL routing
+- Health check endpoint
+
+Best for: Pure API backends, microservices, internal tooling APIs.
+
+### starter
+
+Basic API template with common extras:
+
+- Single `api` app
+- JWT authentication pre-configured
 - Health check endpoint
 
 Best for: Learning, small projects, APIs without complex requirements.
@@ -80,6 +90,46 @@ Consumer-facing template with user features:
 - Social login ready
 
 Best for: Consumer apps, social platforms, marketplaces.
+
+### saas
+
+Full SaaS template with billing and subscriptions:
+
+- Stripe billing integration scaffolding
+- Subscription model
+- Multi-tenant organization support
+
+Best for: Subscription-based SaaS products.
+
+### ai-saas
+
+AI-first SaaS template with LLM integration stubs:
+
+- LLM provider scaffolding
+- Embedding and RAG stubs
+- Usage tracking
+
+Best for: AI-powered products, chatbots, semantic search apps.
+
+### marketplace
+
+Marketplace template with buyer/seller roles:
+
+- Product listing models
+- Order management
+- Seller profile
+
+Best for: Two-sided marketplaces, e-commerce platforms.
+
+### internal-tools
+
+Internal tooling template with admin-focused setup:
+
+- Rich admin dashboard
+- Permission-based access
+- Minimal public API surface
+
+Best for: Internal dashboards, back-office tools, admin portals.
 
 ## Examples
 

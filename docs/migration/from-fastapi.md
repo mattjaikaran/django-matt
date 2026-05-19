@@ -1,4 +1,6 @@
-# Migrating from FastAPI
+# Migrating from FastAPI (Legacy)
+
+> **This is a legacy guide.** The current, authoritative version is [`docs/migrations/from-fastapi.md`](../migrations/from-fastapi.md). This file is preserved for historical reference.
 
 This guide is for Python developers coming from FastAPI who want to use Django's ORM, admin, and ecosystem while keeping the modern API patterns they know. django-matt brings Pydantic v2, async-first design, and dependency injection to Django.
 

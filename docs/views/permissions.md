@@ -192,10 +192,13 @@ full_access = HasPermission(
 
 ### `@authenticated`
 
-Require authentication for a single endpoint:
+Require authentication for a single function-based endpoint:
 
 ```python
+from django_matt import MattAPI
 from django_matt.permissions import authenticated
+
+api = MattAPI()
 
 @api.get("/protected")
 @authenticated
@@ -205,35 +208,42 @@ async def protected_view(request):
 
 ### `@allow_any`
 
-Mark endpoint as public when ViewSet has default permissions:
+Mark a controller method as public when the controller has default `permission_classes`:
 
 ```python
+from django_matt.core.controller import APIController
+from django_matt.core.router import get
 from django_matt.permissions import allow_any, IsAuthenticated
 
-class UserViewSet(APIViewSet):
+class UserController(APIController):
+    prefix = "/users"
     permission_classes = [IsAuthenticated]
 
-    @api.get("/public")
+    @get("/public")
     @allow_any
-    async def public_info(request):
+    async def public_info(self, request):
         return {"status": "ok"}
 ```
 
 ### `@requires_permission`
 
-Check specific Django permissions:
+Check specific Django permissions on controller methods:
 
 ```python
+from django_matt.core.controller import APIController
+from django_matt.core.router import delete, post
 from django_matt.permissions import requires_permission
 
-class TaskViewSet(APIViewSet):
-    @api.delete("/{id}")
+class TaskController(APIController):
+    prefix = "/tasks"
+
+    @delete("/<str:id>")
     @requires_permission("tasks.delete_task")
     async def delete_task(self, request, id: str):
         # Only users with tasks.delete_task can access
         pass
 
-    @api.post("/")
+    @post("/")
     @requires_permission("tasks.add_task", "tasks.change_task")
     async def create_task(self, request):
         # User needs either permission
@@ -519,7 +529,23 @@ class ProductViewSet(APIViewSet):
             return [IsAuthenticated(), IsOrganizationMember()]
         return [IsAuthenticated()]
 
-    # Custom endpoint with decorator
+    # Custom endpoints: for APIViewSet, add custom endpoints as APIView instances
+    # or use APIController instead for custom route handlers with permission decorators.
+    # See docs/core/controllers.md for combining @requires_role with controller routes.
+```
+
+For custom endpoints with permission decorators, use `APIController`:
+
+```python
+from django_matt.core.controller import APIController
+from django_matt.core.router import get, post
+from django_matt.permissions import requires_role, requires_permission
+
+class ProductController(APIController):
+    prefix = "/products"
+    permission_classes = [IsAuthenticated]
+
+    @post("/<str:id>/approve")
     @requires_role("manager", "admin")
     async def approve_product(self, request, id: str):
         product = await Product.objects.aget(id=id)
@@ -527,10 +553,11 @@ class ProductViewSet(APIViewSet):
         await product.asave()
         return {"approved": True}
 
+    @get("/export")
     @requires_permission("products.export")
     async def export_products(self, request):
-        products = await self.get_queryset(request).aall()
-        return {"products": [p.to_dict() for p in products]}
+        products = [p async for p in Product.objects.all()]
+        return {"products": [self._model_to_dict_raw(p) for p in products]}
 ```
 
 ## Best Practices

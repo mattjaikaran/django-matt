@@ -140,33 +140,35 @@ Configure roles with hierarchy:
 
 ```python
 # settings.py
-DJANGO_MATT = {
-    "RBAC": {
-        "ROLES": {
-            "admin": {
-                "permissions": ["*"],
-                "inherits": ["moderator"],
-            },
-            "moderator": {
-                "permissions": ["users.read", "posts.moderate"],
-                "inherits": ["user"],
-            },
-            "user": {
-                "permissions": ["posts.read", "posts.create"],
-            },
+DJANGO_MATT_RBAC = {
+    "ROLES": {
+        "admin": {
+            "permissions": ["*"],
+            "priority": 80,
+        },
+        "moderator": {
+            "permissions": ["users.read", "posts.moderate"],
+            "inherits": ["member"],
+            "priority": 60,
+        },
+        "member": {
+            "permissions": ["posts.read", "posts.create"],
+            "priority": 40,
         },
     },
+    "DEFAULT_ROLE": "member",
 }
 ```
 
 ```python
-from django_matt.auth import with_roles, user_has_permission
+from django_matt.auth import with_roles
+from django_matt.auth.rbac import user_has_permission
 
 @api.post("/posts")
 @jwt_required
-@with_roles("user")
+@with_roles("member")
 async def create_post(request, data: PostCreate):
-    # Only users with 'user' role or higher can create posts
+    # Only users with 'member' role can create posts
     ...
 
 # Check permissions programmatically

@@ -84,13 +84,18 @@ async def list_items(request):
 ### Registering Controllers
 
 ```python
-from django_matt.core import APIController
+from django_matt.core.controller import APIController
+from django_matt.core.router import get
 
-@api.controller("/users", tags=["Users"])
 class UserController(APIController):
-    @api.get("/")
+    prefix = "/users"
+    tags = ["Users"]
+
+    @get("/")
     async def list(self, request):
         return {"users": []}
+
+api.register_controller(UserController)
 ```
 
 ---
@@ -102,25 +107,28 @@ class UserController(APIController):
 Base class for grouping related endpoints.
 
 ```python
-from django_matt.core import APIController
+from django_matt.core.controller import APIController
+from django_matt.core.router import get, post
+from django_matt.core.errors import NotFoundAPIError
 from django_matt.permissions import IsAuthenticated
 
-@api.controller("/products", tags=["Products"])
 class ProductController(APIController):
+    prefix = "/products"
+    tags = ["Products"]
     # Class-level permissions
     permission_classes = [IsAuthenticated]
 
-    # Dependency injection
-    def __init__(self, product_service: ProductService):
-        self.service = product_service
+    def __init__(self):
+        self.service = ProductService()
+        super().__init__()
 
-    @api.get("/")
+    @get("/")
     async def list(self, request):
         """List all products."""
         products = await self.service.get_all()
         return {"products": products}
 
-    @api.get("/{id}")
+    @get("/<int:id>")
     async def detail(self, request, id: int):
         """Get product by ID."""
         product = await self.service.get(id)
@@ -128,11 +136,13 @@ class ProductController(APIController):
             raise NotFoundAPIError("Product not found")
         return product
 
-    @api.post("/")
+    @post("/")
     async def create(self, request, data: ProductCreate):
         """Create a new product."""
         product = await self.service.create(data)
         return product
+
+api.register_controller(ProductController)
 ```
 
 ### CRUDController
@@ -140,10 +150,12 @@ class ProductController(APIController):
 Controller with built-in CRUD operations.
 
 ```python
-from django_matt.core import CRUDController
+from django_matt.core.controller import CRUDController
+from django_matt.core.router import post
 
-@api.controller("/products", tags=["Products"])
 class ProductController(CRUDController):
+    prefix = "/products"
+    tags = ["Products"]
     model = Product
     schema = ProductSchema
     create_schema = ProductCreate
@@ -157,12 +169,14 @@ class ProductController(CRUDController):
         return qs
 
     # Add custom endpoints
-    @api.post("/{id}/publish")
+    @post("/<int:id>/publish")
     async def publish(self, request, id: int):
         product = await self.get_object(id)
         product.is_published = True
         await product.asave()
         return {"status": "published"}
+
+api.register_controller(ProductController)
 ```
 
 #### CRUDController Options
@@ -181,31 +195,53 @@ class ProductController(CRUDController):
 
 ## Schemas
 
-### ModelSchema
+### ModelSchema / Schema
 
-Auto-generate Pydantic schemas from Django models.
+`ModelSchema` is the base schema class. Use it to get `from_orm_fast()` for high-performance list serialization:
 
 ```python
-from django_matt.core import ModelSchema
+from django_matt.core.schema import ModelSchema
+
+class UserSchema(ModelSchema):
+    class Config:
+        model = User
+        include = ["id", "email", "first_name", "last_name"]
+
+# Fast ORM serialization (uses model_construct — skips re-validation):
+schema = UserSchema.from_orm_fast(user_orm_instance)
+
+# Standard ORM serialization (full validation):
+schema = UserSchema.from_orm(user_orm_instance)
+
+# Bulk async serialization (used internally by ListView):
+schemas = await UserSchema.afrom_queryset(User.objects.all())
+```
+
+`from_orm_fast()` is called automatically by all built-in views (`ListView`, `ReadView`, etc.) for performance.
+
+### ModelSchema
+
+Auto-generate Pydantic schemas from Django models. Use `class Config` (not `class Meta`) with `include` (not `fields`):
+
+```python
+from django_matt.core.schema import ModelSchema
 from myapp.models import User
 
 class UserSchema(ModelSchema):
-    class Meta:
+    class Config:
         model = User
-        fields = ["id", "email", "name", "created_at"]
-        # Or use exclude:
-        # exclude = ["password", "last_login"]
+        include = ["id", "email", "first_name", "last_name", "created_at"]
 
-class UserCreate(ModelSchema):
-    class Meta:
+class UserCreateSchema(ModelSchema):
+    class Config:
         model = User
-        fields = ["email", "name", "password"]
+        include = ["email", "first_name", "last_name", "password"]
 
-class UserUpdate(ModelSchema):
-    class Meta:
+class UserUpdateSchema(ModelSchema):
+    class Config:
         model = User
-        fields = ["name"]
-        fields_optional = ["name"]  # Make all fields optional
+        include = ["first_name", "last_name", "email"]
+        optional = "__all__"  # All fields optional for partial updates
 ```
 
 ### Schema Functions
@@ -217,29 +253,25 @@ from django_matt.core.schema import create_schema_from_model
 UserSchema = create_schema_from_model(
     User,
     name="UserSchema",
-    fields=["id", "email", "name"],
-    depth=1,  # Include related objects 1 level deep
+    include=["id", "email", "first_name", "last_name"],
 )
 
-# With custom field options
+# With excluded and optional fields
 UserSchema = create_schema_from_model(
     User,
     name="UserSchema",
-    fields=["id", "email", "name"],
-    custom_fields={
-        "full_name": (str, ...),  # Required string field
-        "age": (int | None, None),  # Optional int field
-    },
+    include=None,                    # include all fields
+    exclude=["password", "is_staff"],
+    optional=["last_name"],
 )
 ```
 
 ### Validation
 
 ```python
-from pydantic import field_validator, model_validator
-from django_matt.core import Schema
+from pydantic import BaseModel, field_validator, model_validator
 
-class UserCreate(Schema):
+class UserCreate(BaseModel):
     email: str
     password: str
     password_confirm: str
@@ -266,64 +298,74 @@ Composable CRUD views for rapid API development.
 
 ### ListView
 
+`ListView` is a descriptor instance assigned on an `APIViewSet` subclass:
+
 ```python
-from django_matt.views import ListView
+from django_matt.views import APIViewSet, ListView
 
-class UserListView(ListView):
+class UserViewSet(APIViewSet):
     model = User
-    schema = UserSchema
-    pagination_class = PageNumberPagination
+    prefix = "users"
+    tags = ["Users"]
+    default_response_schema = UserSchema
 
-    # Filtering
-    filterset_fields = ["is_active", "role"]
-    search_fields = ["email", "name"]
-    ordering_fields = ["created_at", "name"]
-    ordering = ["-created_at"]
-
-    def get_queryset(self, request):
-        return User.objects.filter(is_active=True)
+    list_users = ListView(
+        filter_fields=["is_active", "role"],
+        search_fields=["email", "first_name", "last_name"],
+        page_size=20,
+    )
 ```
 
 ### CreateView
 
 ```python
-from django_matt.views import CreateView
+from django_matt.views import APIViewSet, CreateView
 
-class UserCreateView(CreateView):
+class UserViewSet(APIViewSet):
     model = User
-    schema = UserCreate
-    response_schema = UserSchema
+    prefix = "users"
+    default_response_schema = UserSchema
 
-    async def perform_create(self, request, data):
-        # Custom creation logic
-        user = await User.objects.acreate(**data.dict())
-        await send_welcome_email(user)
-        return user
+    create_user = CreateView(request_schema=UserCreate)
+
+    async def before_create(self, request, data):
+        data["created_by_id"] = request.user.id
+        return data
+
+    async def after_create(self, request, instance):
+        await send_welcome_email(instance)
+        return instance
 ```
 
 ### ReadView
 
 ```python
-from django_matt.views import ReadView
+from django_matt.views import APIViewSet, ReadView
 
-class UserDetailView(ReadView):
+class UserViewSet(APIViewSet):
     model = User
-    schema = UserSchema
-    lookup_field = "pk"  # or "slug", "uuid", etc.
+    prefix = "users"
+    default_response_schema = UserSchema
+    lookup_field = "id"   # default
+    lookup_type = "int"   # default
+
+    read_user = ReadView()
 ```
 
 ### UpdateView
 
 ```python
-from django_matt.views import UpdateView
+from django_matt.views import APIViewSet, UpdateView
 
-class UserUpdateView(UpdateView):
+class UserViewSet(APIViewSet):
     model = User
-    schema = UserUpdate
-    response_schema = UserSchema
+    prefix = "users"
+    default_response_schema = UserSchema
+
+    update_user = UpdateView(request_schema=UserUpdate)
 
     async def perform_update(self, request, instance, data):
-        for key, value in data.dict(exclude_unset=True).items():
+        for key, value in data.items():
             setattr(instance, key, value)
         await instance.asave()
         return instance
@@ -332,10 +374,13 @@ class UserUpdateView(UpdateView):
 ### DeleteView
 
 ```python
-from django_matt.views import DeleteView
+from django_matt.views import APIViewSet, DeleteView
 
-class UserDeleteView(DeleteView):
+class UserViewSet(APIViewSet):
     model = User
+    prefix = "users"
+
+    delete_user = DeleteView()
 
     async def perform_delete(self, request, instance):
         # Soft delete
@@ -345,22 +390,27 @@ class UserDeleteView(DeleteView):
 
 ### APIViewSet
 
-Combine views into a viewset:
+Combine views into a complete CRUD API:
 
 ```python
 from django_matt.views import APIViewSet, ListView, CreateView, ReadView, UpdateView, DeleteView
 
 class UserViewSet(APIViewSet):
-    api = api
-    prefix = "/users"
+    prefix = "users"
     tags = ["Users"]
     model = User
+    default_response_schema = UserSchema
 
-    list = ListView()
-    create = CreateView(schema=UserCreate)
-    read = ReadView()
-    update = UpdateView(schema=UserUpdate)
-    delete = DeleteView()
+    list_users = ListView()
+    create_user = CreateView(request_schema=UserCreate)
+    read_user = ReadView()
+    update_user = UpdateView(request_schema=UserUpdate)
+    delete_user = DeleteView()
+
+# Register URL patterns
+urlpatterns = [
+    path("api/", include(UserViewSet.as_urls())),
+]
 ```
 
 ---
@@ -470,18 +520,23 @@ from django_matt.permissions import (
     HasPermission,
 )
 
-@api.controller("/admin", tags=["Admin"])
 class AdminController(APIController):
+    prefix = "/admin"
+    tags = ["Admin"]
     permission_classes = [IsAdmin]
 
-@api.controller("/users", tags=["Users"])
 class UserController(APIController):
+    prefix = "/users"
+    tags = ["Users"]
     permission_classes = [IsAuthenticated]
 
-    @api.get("/{id}")
+    @get("/<int:id>")
     @IsOwner(owner_field="id")  # User can only access their own
     async def detail(self, request, id: int):
         ...
+
+api.register_controller(AdminController)
+api.register_controller(UserController)
 ```
 
 ### Custom Permissions
@@ -533,10 +588,10 @@ from django_matt.core.errors import (
 # Basic usage
 raise NotFoundAPIError("User not found")
 
-# With details
+# With field-level validation errors (list of dicts)
 raise ValidationAPIError(
     message="Validation failed",
-    errors={"email": ["Invalid email format"]},
+    errors=[{"field": "email", "message": "Invalid email format"}],
 )
 
 # Custom error
@@ -544,7 +599,7 @@ raise APIError(
     message="Payment failed",
     status_code=402,
     code="payment_failed",
-    details={"reason": "Card declined"},
+    context={"reason": "Card declined"},
 )
 ```
 
@@ -554,33 +609,31 @@ All errors return JSON in this format:
 
 ```json
 {
-    "error": {
-        "code": "not_found",
-        "message": "User not found",
-        "details": {}
-    }
+    "status": 404,
+    "detail": "User not found",
+    "code": "not_found",
+    "hint": null,
+    "extra": null
 }
 ```
 
 ### Custom Error Handler
 
+Subclass `ErrorHandler` and override `capture_exception()` to add custom behaviour:
+
 ```python
-from django_matt.core.errors import ErrorHandler
+from django_matt.core.errors import ErrorHandler, APIError
 
 class CustomErrorHandler(ErrorHandler):
-    def handle_exception(self, exc, request):
+    def capture_exception(self, exc, request=None):
         if isinstance(exc, MyCustomException):
-            return self.create_response(
+            # Re-wrap as a structured APIError
+            raise APIError(
                 message=str(exc),
                 status_code=400,
                 code="custom_error",
-            )
-        return super().handle_exception(exc, request)
-
-# Register in settings
-MATT_API = {
-    "error_handler": "myapp.errors.CustomErrorHandler",
-}
+            ) from exc
+        return super().capture_exception(exc, request)
 ```
 
 ---
@@ -590,7 +643,7 @@ MATT_API = {
 ### PageNumberPagination
 
 ```python
-from django_matt.core.pagination import PageNumberPagination
+from django_matt.pagination import PageNumberPagination
 
 class CustomPagination(PageNumberPagination):
     page_size = 20
@@ -613,7 +666,7 @@ Response format:
 ### CursorPagination
 
 ```python
-from django_matt.core.pagination import CursorPagination
+from django_matt.pagination import CursorPagination
 
 class TimelinePagination(CursorPagination):
     page_size = 20

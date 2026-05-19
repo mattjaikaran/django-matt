@@ -223,6 +223,36 @@ Regenerating...
 Stopped watching. Generated 3 time(s) in 127s.
 ```
 
+## Type Resolution Details
+
+Field types are resolved with `get_type_hints()` (not raw annotations), so:
+
+- **Inherited fields** — fields defined on a Pydantic base class are emitted for all
+  subclasses, even if the subclass does not re-declare them.
+- **Forward references** — string annotations are resolved against the schema's module
+  namespace.
+- **`X | None` syntax** — Python 3.10+ union syntax produces `T | null` (TypeScript) or
+  `.nullable()` (Zod).
+- **`EmailStr`** — maps to `string` / `z.string().email()` (not `any`).
+
+## Type Mapping
+
+| Python Type | TypeScript | Zod | Swift |
+|-------------|-----------|-----|-------|
+| `str` | `string` | `z.string()` | `String` |
+| `int` | `number` | `z.number().int()` | `Int` |
+| `float` | `number` | `z.number()` | `Double` |
+| `bool` | `boolean` | `z.boolean()` | `Bool` |
+| `datetime` | `string` | `z.string().datetime()` | `Date` |
+| `date` | `string` | `z.string().date()` | `Date` |
+| `UUID` | `string` | `z.string().uuid()` | `UUID` |
+| `EmailStr` | `string` | `z.string().email()` | `String` |
+| `Decimal` | `number` | `z.number()` | `Double` |
+| `list[T]` | `T[]` | `z.array(T)` | `[T]` |
+| `dict[K, V]` | `Record<K, V>` | `z.record(z.string(), V)` | `[String: V]` |
+| `Optional[T]` / `T \| None` | `T \| null` | `T.nullable()` | `T?` |
+| `Literal["a", "b"]` | `"a" \| "b"` | `z.enum(["a","b"])` | — |
+
 ## Generated Output Examples
 
 ### TypeScript Interface

@@ -87,7 +87,20 @@ python manage.py makemigrations blog
 python manage.py migrate
 ```
 
-## 3. Create Pydantic Schemas
+## 3. Generate CRUD (Optional Shortcut)
+
+For new models, skip writing schemas, controller, admin, and tests by hand:
+
+```bash
+python manage.py generate_crud blog.Post --full
+```
+
+This generates `blog/schemas.py`, `blog/controllers.py`, `blog/services.py`,
+`blog/admin.py`, and `blog/tests/` — all wired together.  Then add custom
+business logic on top.  The rest of this tutorial walks through what
+`generate_crud` produces so you understand the building blocks.
+
+## 4. Create Pydantic Schemas
 
 `ModelSchema` introspects the Django model and generates Pydantic fields
 automatically.  Use `Config.include` to pick fields, or `Config.exclude`
@@ -138,7 +151,7 @@ Key points:
 - ForeignKey fields become `int` (the PK) by default. Set
   `Config.model_fk_use_pks = True` to use the `_id` column name instead.
 
-## 4. Create a Controller
+## 5. Create a Controller
 
 A `Controller` groups related endpoints under a URL prefix. Methods
 decorated with `@api.get`, `@api.post`, etc. become routes.
@@ -146,7 +159,7 @@ decorated with `@api.get`, `@api.post`, etc. become routes.
 ```python
 # blog/controllers.py
 from django.http import HttpRequest
-from django_matt.core.controller import Controller
+from django_matt import APIController
 from django_matt.permissions import IsAuthenticated
 from blog.models import Post
 from blog.schemas import PostSchema, PostCreateSchema, PostUpdateSchema
@@ -154,7 +167,7 @@ from .api import api
 
 
 @api.controller("/posts", tags=["Posts"])
-class PostController(Controller):
+class PostController(APIController):
     """Blog post CRUD endpoints."""
 
     @api.get("/")
@@ -208,11 +221,15 @@ The controller auto-parses JSON bodies with `orjson` and validates
 `PostCreateSchema` / `PostUpdateSchema` via Pydantic. Validation errors
 return a `422` with structured error details.
 
-## 5. Run and Test
+## 6. Run and Test
 
 ```bash
 python manage.py runserver
 ```
+
+For automated tests, use `AsyncAPITestClient` (the standard test client for
+Django Matt) instead of `curl`/`httpie`.  See the
+[Testing Guide](testing-guide.md) for setup.
 
 ### Create a post
 
@@ -260,7 +277,7 @@ http DELETE http://localhost:8000/api/posts/a1b2c3d4-.../ \
     Authorization:"Bearer <token>"
 ```
 
-## 6. Add JWT Authentication
+## 7. Add JWT Authentication
 
 Django Matt ships a zero-dependency JWT implementation.  Configure it in
 `settings.py`:
@@ -310,7 +327,7 @@ Protect your controller with `permission_classes`:
 from django_matt.permissions import IsAuthenticated
 
 @api.controller("/posts", tags=["Posts"])
-class PostController(Controller):
+class PostController(APIController):
     permission_classes = [IsAuthenticated]
     # ... all methods now require a valid JWT
 ```
@@ -321,7 +338,7 @@ Or protect individual methods with decorators:
 from django_matt.auth import jwt_required, jwt_optional
 
 @api.controller("/posts", tags=["Posts"])
-class PostController(Controller):
+class PostController(APIController):
 
     @api.get("/")
     @jwt_optional
@@ -338,7 +355,7 @@ class PostController(Controller):
         ...
 ```
 
-## 7. Add Pagination and Filtering
+## 8. Add Pagination and Filtering
 
 ### Using the ViewSet pattern
 
@@ -429,7 +446,7 @@ class PostViewSet(APIViewSet):
         return instance
 ```
 
-## 8. Complete Code Listing
+## 9. Complete Code Listing
 
 ```python
 # settings.py (additions)

@@ -256,6 +256,8 @@ Catches Pydantic `ValidationError` and returns structured validation errors:
 {
     "status": 422,
     "detail": "Validation error",
+    "code": "validation_error",
+    "hint": "Check the request body against the expected schema. Run GET on this endpoint to see the required fields.",
     "extra": [
         {
             "message": "Value is not a valid integer",
@@ -274,6 +276,8 @@ Catches Django's `ObjectDoesNotExist`:
 {
     "status": 404,
     "detail": "Product matching query does not exist.",
+    "code": "not_found",
+    "hint": "Check that the resource ID is correct and that the resource has not been deleted.",
     "extra": null
 }
 ```
@@ -286,6 +290,8 @@ Catches Django's `PermissionDenied` and Python's `PermissionError`:
 {
     "status": 403,
     "detail": "Permission denied",
+    "code": "permission_denied",
+    "hint": "Ensure the authenticated user has the required role or permission for this action.",
     "extra": null
 }
 ```
@@ -298,6 +304,8 @@ Catches Django's `IntegrityError` (unique constraint violations, FK conflicts):
 {
     "status": 409,
     "detail": "Database conflict",
+    "code": "integrity_error",
+    "hint": "A uniqueness or foreign-key constraint was violated. Check for duplicate values or ensure referenced resources exist.",
     "extra": null
 }
 ```
@@ -310,6 +318,8 @@ Catches `RateLimitAPIError` from `django_matt.core.errors`. Includes a `Retry-Af
 {
     "status": 429,
     "detail": "Rate limit exceeded",
+    "code": "rate_limited",
+    "hint": "Too many requests.",
     "extra": null
 }
 ```
@@ -405,7 +415,7 @@ DJANGO_MATT = {
 
 1. **Use scoped filters** - Register filters at the narrowest scope needed. Route-level for endpoint-specific errors, controller-level for domain errors, global for cross-cutting concerns.
 2. **Set order carefully** - Lower `order` values run first. Put throttle/rate-limit filters early so they short-circuit before heavier logic.
-3. **Return structured JSON** - All built-in filters return `{"status": int, "detail": str, "extra": any}`. Follow this pattern for consistency.
+3. **Return structured JSON** - All built-in filters return `{"status": int, "detail": str, "code": str, "hint": str, "extra": any}`. Follow this pattern for consistency.
 4. **Don't swallow errors silently** - Always log unexpected exceptions inside `catch()`. If a filter's `catch` raises, the chain logs it and moves on.
 5. **Keep filters stateless** - Filter instances may be shared across requests. Don't store per-request state on `self`.
 6. **Test your filters** - Filters are plain classes. Instantiate them and call `can_handle()` / `catch()` directly in tests.

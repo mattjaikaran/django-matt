@@ -64,14 +64,14 @@ from django_matt.serialization import serialize_for
 @serialize_for(groups=["public"])
 async def get_user_public(request, id: int) -> UserSchema:
     user = await User.objects.aget(id=id)
-    return UserSchema.from_orm(user)
+    return UserSchema.model_validate(user)
 
 
 @api.get("/admin/users/{id}")
 @serialize_for(groups=["admin", "internal", "public"])
 async def get_user_admin(request, id: int) -> UserSchema:
     user = await User.objects.aget(id=id)
-    return UserSchema.from_orm(user)
+    return UserSchema.model_validate(user)
 ```
 
 Public endpoint returns:
@@ -236,7 +236,7 @@ The middleware sets `request.serialization_context` which can then be used by `g
 @api.get("/users/{id}")
 async def get_user(request, id: int):
     user = await User.objects.aget(id=id)
-    schema = UserSchema.from_orm(user)
+    schema = UserSchema.model_validate(user)
     ctx = request.serialization_context
     return filter_schema(schema, ctx)
 ```

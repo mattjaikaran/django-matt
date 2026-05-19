@@ -60,7 +60,8 @@ payload = verify_refresh_token(token)  # Verifies type="refresh"
 payload = decode_token(token, verify_type="access")
 
 # Get user from token
-from django_matt.auth import get_user_from_token, aget_user_from_token
+from django_matt.auth import get_user_from_token
+from django_matt.auth.jwt import aget_user_from_token
 
 user = get_user_from_token(token)           # sync
 user = await aget_user_from_token(token)    # async
@@ -69,7 +70,8 @@ user = await aget_user_from_token(token)    # async
 ### Refreshing Tokens
 
 ```python
-from django_matt.auth import refresh_tokens, async_refresh_tokens
+from django_matt.auth import refresh_tokens
+from django_matt.auth.jwt import async_refresh_tokens
 
 # Get new token pair from refresh token (sync)
 new_tokens = refresh_tokens(refresh_token_str)
@@ -170,16 +172,61 @@ in access tokens by default.
 
 ## Token Blacklisting
 
-!!! warning "Not Yet Implemented"
-    Token blacklisting is not currently implemented. There is no blacklist model or
-    storage backend. The `AuthController.logout` endpoint performs client-side token
-    removal only (the client discards the token).
+Django Matt includes a built-in token blacklist system with pluggable storage backends.
 
-    For immediate token revocation, consider:
+```python
+from django_matt.auth import (
+    blacklist_token,
+    ablacklist_token,
+    is_token_blacklisted,
+    ais_token_blacklisted,
+    prune_expired_tokens,
+    BlacklistConfig,
+    DatabaseBlacklistBackend,
+    CacheBlacklistBackend,
+    NullBlacklistBackend,
+)
+```
 
-    - Short-lived access tokens (e.g., 15 minutes) so stolen tokens expire quickly
-    - Implementing your own blacklist table keyed on the `jti` claim
-    - Using the `jti` claim from `TokenPayload` to track revoked tokens
+### Configuration
+
+```python
+# settings.py
+from django_matt.auth.blacklist import BlacklistConfig, DatabaseBlacklistBackend
+
+DJANGO_MATT_BLACKLIST = BlacklistConfig(
+    backend=DatabaseBlacklistBackend(),  # or CacheBlacklistBackend(), NullBlacklistBackend()
+)
+```
+
+### Revoking Tokens
+
+```python
+# On logout — synchronous
+blacklist_token(token)
+
+# On logout — async (from async controllers)
+await ablacklist_token(token)
+
+# Check if a token is blacklisted
+if is_token_blacklisted(token):
+    raise AuthenticationAPIError("Token has been revoked")
+
+# Async check
+if await ais_token_blacklisted(token):
+    raise AuthenticationAPIError("Token has been revoked")
+
+# Clean up expired entries
+prune_expired_tokens()
+```
+
+### Storage Backends
+
+| Backend | Description |
+|---------|-------------|
+| `DatabaseBlacklistBackend` | Stores revoked tokens in the database (default) |
+| `CacheBlacklistBackend` | Stores in Django cache (Redis recommended) |
+| `NullBlacklistBackend` | No-op — disables blacklisting |
 
 ## Asymmetric Keys (RS256/ES256)
 

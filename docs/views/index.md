@@ -17,7 +17,6 @@ The views system consists of:
 ## Quick Start
 
 ```python
-from django_matt import MattAPI
 from django_matt.views import (
     APIViewSet,
     ListView,
@@ -28,8 +27,6 @@ from django_matt.views import (
 )
 from myapp.models import Product
 from myapp.schemas import ProductSchema, ProductCreateSchema
-
-api = MattAPI()
 
 
 class ProductViewSet(APIViewSet):
@@ -63,7 +60,7 @@ class ProductViewSet(APIViewSet):
         return instance
 
 
-# Register routes
+# Register routes via as_urls()
 urlpatterns = [
     path("api/", include(ProductViewSet.as_urls())),
 ]

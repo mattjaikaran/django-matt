@@ -93,6 +93,37 @@ matt [OPTIONS] COMMAND [ARGS]...
 |---------|-------------|
 | `matt ai` | Generate AI context files |
 
+### Background Tasks (manage.py)
+
+| Command | Description |
+|---------|-------------|
+| `python manage.py matt_tasks list` | List all registered tasks |
+| `python manage.py matt_tasks run <name>` | Run a task manually |
+| `python manage.py matt_tasks status` | Show queue health |
+| `python manage.py matt_tasks purge` | Remove old completed/failed tasks |
+| `python manage.py matt_tasks retry` | Bulk retry failed tasks |
+| `python manage.py matt_tasks schedules` | List periodic schedules |
+
+### AI-Assisted Audits (manage.py)
+
+| Command | Description |
+|---------|-------------|
+| `python manage.py matt_audit` | Run all audit categories |
+| `python manage.py matt_audit security` | Security vulnerability scan |
+| `python manage.py matt_audit performance` | Performance analysis |
+| `python manage.py matt_audit bundle` | Bundle size analysis |
+| `python manage.py matt_audit context` | Generate LLM context |
+
+### Migration Tools (manage.py)
+
+| Command | Description |
+|---------|-------------|
+| `python manage.py matt_baseline create <v>` | Create SQL schema baseline |
+| `python manage.py matt_baseline load <v>` | Load baseline on fresh DB |
+| `python manage.py matt_migrate --stats` | Migration statistics |
+| `python manage.py matt_migrate --parallel` | Parallel migration execution |
+| `python manage.py matt_squash <app> <start> <end>` | Squash migrations |
+
 ## Usage Examples
 
 ### Basic Usage

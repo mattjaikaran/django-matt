@@ -77,21 +77,22 @@ Register a PATCH endpoint.
 
 Register a DELETE endpoint.
 
-#### `@api.controller(prefix, **kwargs)`
+#### `register_controller(controller_class)`
 
 Register a controller class.
 
 ```python
-@api.controller("/users", tags=["Users"])
+from django_matt.core.controller import APIController
+from django_matt.core.router import get
+
 class UserController(APIController):
-    ...
-```
+    prefix = "/users"
+    tags = ["Users"]
 
-#### `register_controller(controller_class)`
+    @get("/")
+    async def list(self, request):
+        return []
 
-Register a controller class programmatically.
-
-```python
 api.register_controller(UserController)
 ```
 
@@ -146,30 +147,37 @@ async def list_users(request):
 Base class for API controllers.
 
 ```python
-from django_matt import APIController, MattAPI
+from django_matt.core.controller import APIController
+from django_matt.core.router import get, post
+from django_matt.permissions import IsAuthenticated
 
-api = MattAPI()
-
-@api.controller("/products", tags=["Products"])
 class ProductController(APIController):
+    prefix = "/products"
+    tags = ["Products"]
     permission_classes = [IsAuthenticated]
 
-    @api.get("/")
-    async def list(self):
+    def __init__(self):
+        self.service = ProductService()
+        super().__init__()
+
+    @get("/")
+    async def list(self, request):
         return [p async for p in Product.objects.all()]
 
-    @api.get("/{id}")
-    async def retrieve(self, id: int):
+    @get("/<int:id>")
+    async def retrieve(self, request, id: int):
         return await Product.objects.aget(id=id)
+
+api.register_controller(ProductController)
 ```
 
 ### Class Attributes
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `permission_classes` | `list[Permission]` | Permission classes for all endpoints |
-| `tags` | `list[str]` | OpenAPI tags |
 | `prefix` | `str` | URL prefix |
+| `tags` | `list[str]` | OpenAPI tags |
+| `permission_classes` | `list[Permission]` | Permission classes for all endpoints |
 
 ### Methods
 
@@ -181,65 +189,67 @@ class ProductController(APIController):
 
 ### CRUDController
 
-Controller with built-in CRUD operations.
+Controller with built-in CRUD operations (`list`, `retrieve`, `create`, `update`, `partial_update`, `delete`, `bulk_create`, `bulk_update`, `exists`, `count`).
 
 ```python
-from django_matt import CRUDController
+from django_matt.core.controller import CRUDController
 
-@api.controller("/products")
 class ProductController(CRUDController):
+    prefix = "/products"
+    tags = ["Products"]
     model = Product
     schema = ProductSchema
     create_schema = ProductCreateSchema
     update_schema = ProductUpdateSchema
+
+api.register_controller(ProductController)
 ```
 
 ---
 
 ## Schemas
 
-### Schema
+### ModelSchema / Schema
 
-Base schema class (alias for `pydantic.BaseModel`).
-
-```python
-from django_matt import Schema
-
-class UserSchema(Schema):
-    id: int
-    email: str
-    name: str
-```
-
-### ModelSchema
-
-Schema that automatically generates fields from Django models.
+`ModelSchema` is the base schema class for django-matt. `Schema` is a legacy alias for `ModelSchema`. Both auto-generate Pydantic fields from a Django model when a `class Config` is provided.
 
 ```python
-from django_matt import ModelSchema
-from myapp.models import User
+from django_matt.core.schema import ModelSchema
 
 class UserSchema(ModelSchema):
-    class Meta:
+    class Config:
         model = User
-        fields = ['id', 'email', 'username', 'created_at']
-        # Or use exclude
-        # exclude = ['password']
-
-class UserDetailSchema(ModelSchema):
-    class Meta:
-        model = User
-        fields = '__all__'  # All fields except relations
+        include = ["id", "email", "first_name", "last_name", "created_at"]
 ```
 
-### Meta Options
+#### `from_orm_fast(instance)` — Skip Re-Validation
+
+For already-trusted ORM data (e.g., objects returned by a queryset), re-running full Pydantic validation is unnecessary overhead. `from_orm_fast()` uses `model_construct()` to bypass the validator pass:
+
+```python
+# Standard ORM serialization (full validation — slower):
+schema = UserSchema.from_orm(user_instance)
+
+# Fast ORM serialization (no re-validation — faster for list serialization):
+schema = UserSchema.from_orm_fast(user_instance)
+# Internally: UserSchema.model_construct(**extracted_fields)
+
+# Bulk async serialization (for querysets):
+schemas = await UserSchema.afrom_queryset(User.objects.all())
+```
+
+All built-in views (`ListView`, `ReadView`, etc.) call `from_orm_fast()` automatically. Only use `from_orm()` when you need to run validators on ORM data (e.g., for custom constraint checks).
+
+### Config Options
 
 | Option | Type | Description |
 |--------|------|-------------|
 | `model` | `Model` | Django model class |
-| `fields` | `list[str] \| "__all__"` | Fields to include |
-| `exclude` | `list[str]` | Fields to exclude |
-| `optional_fields` | `list[str]` | Fields that are optional |
+| `include` | `list[str] \| "__all__"` | Fields to include (`None` = all) |
+| `exclude` | `set[str]` | Fields to exclude |
+| `optional` | `set[str] \| "__all__"` | Fields to make `Optional` |
+| `depth` | `int` | FK depth (FKs default to int PK) |
+| `model_fk_use_pks` | `bool` | Use `author_id` column name instead of `author` |
 
 ### Schema Functions
 
@@ -248,32 +258,41 @@ class UserDetailSchema(ModelSchema):
 Dynamically create a schema from a model.
 
 ```python
-from django_matt import create_schema_from_model
+from django_matt.core.schema import create_schema_from_model
 
 UserSchema = create_schema_from_model(
     User,
-    fields=['id', 'email', 'username'],
-    name='UserSchema',
+    name="UserSchema",
+    include=["id", "email", "first_name", "last_name"],
+)
+
+# With optional and excluded fields
+UserDetailSchema = create_schema_from_model(
+    User,
+    name="UserDetailSchema",
+    include=None,           # all fields
+    exclude=["password"],
+    optional=["last_name"],
 )
 ```
 
 #### `model_validator()`
 
-Decorator for custom model validation.
+Field-level validator decorator for `ModelSchema` subclasses (wraps Pydantic's `field_validator`):
 
 ```python
-from django_matt import ModelSchema, model_validator
+from django_matt.core.schema import ModelSchema, model_validator
 
 class UserCreateSchema(ModelSchema):
-    class Meta:
+    class Config:
         model = User
-        fields = ['email', 'username']
+        include = ["email", "username"]
 
-    @model_validator(mode='after')
-    def validate_unique_email(self):
-        if User.objects.filter(email=self.email).exists():
-            raise ValueError('Email already exists')
-        return self
+    @model_validator("email")
+    def validate_email(cls, v):
+        if not v.endswith("@company.com"):
+            raise ValueError("Must be a company email")
+        return v
 ```
 
 ---
@@ -285,31 +304,55 @@ class UserCreateSchema(ModelSchema):
 | Exception | Status Code | Description |
 |-----------|-------------|-------------|
 | `APIError` | 500 | Base exception class |
-| `NotFoundError` | 404 | Resource not found |
-| `ValidationError` | 400 | Validation failed |
-| `UnauthorizedError` | 401 | Authentication required |
-| `ForbiddenError` | 403 | Permission denied |
-| `ConflictError` | 409 | Resource conflict |
-| `RateLimitError` | 429 | Rate limit exceeded |
+| `NotFoundAPIError` | 404 | Resource not found |
+| `ValidationAPIError` | 422 | Validation failed |
+| `AuthenticationAPIError` | 401 | Authentication required |
+| `PermissionAPIError` | 403 | Permission denied |
+| `RateLimitAPIError` | 429 | Rate limit exceeded |
+| `ConfigurationError` | 500 | Framework misconfiguration |
+
+`PermissionDeniedAPIError` is an alias for `PermissionAPIError`.
 
 ### Usage
 
 ```python
-from django_matt.core.errors import NotFoundError, ValidationError
+from django_matt.core.errors import (
+    NotFoundAPIError,
+    ValidationAPIError,
+    AuthenticationAPIError,
+    PermissionAPIError,
+)
 
-@api.get("/users/{user_id}")
-async def get_user(request, user_id: int):
+@get("/<int:user_id>")
+async def get_user(self, request, user_id: int):
     try:
         user = await User.objects.aget(id=user_id)
     except User.DoesNotExist:
-        raise NotFoundError(f"User {user_id} not found")
+        raise NotFoundAPIError(f"User {user_id} not found")
     return user
 
-@api.post("/users")
-async def create_user(request, data: UserCreateSchema):
+@post("/")
+async def create_user(self, request, data: UserCreateSchema):
     if await User.objects.filter(email=data.email).aexists():
-        raise ValidationError("Email already exists", field="email")
+        raise ValidationAPIError(
+            "Email already exists",
+            errors=[{"field": "email", "message": "Already in use"}],
+        )
     ...
+```
+
+### Error Response Format
+
+All errors use this JSON envelope:
+
+```json
+{
+    "status": 404,
+    "detail": "User 42 not found",
+    "code": "not_found",
+    "hint": null,
+    "extra": null
+}
 ```
 
 ### Custom Exceptions
@@ -318,35 +361,31 @@ async def create_user(request, data: UserCreateSchema):
 from django_matt.core.errors import APIError
 
 class InsufficientFundsError(APIError):
-    status_code = 402
-    default_message = "Insufficient funds"
-
     def __init__(self, required: float, available: float):
-        super().__init__(f"Need {required}, have {available}")
-        self.required = required
-        self.available = available
+        super().__init__(
+            message=f"Need {required}, have {available}",
+            status_code=402,
+            code="insufficient_funds",
+            context={"required": required, "available": available},
+        )
 ```
 
 ### ErrorHandler
 
-Customize error response format.
+Subclass `ErrorHandler` to add custom capture logic:
 
 ```python
-from django_matt.core.errors import ErrorHandler
+from django_matt.core.errors import ErrorHandler, APIError
 
 class CustomErrorHandler(ErrorHandler):
-    def format_error(self, error: APIError) -> dict:
-        return {
-            "success": False,
-            "error": {
-                "code": error.status_code,
-                "message": str(error),
-                "type": type(error).__name__,
-            }
-        }
-
-# Use in API
-api = MattAPI(error_handler=CustomErrorHandler())
+    def capture_exception(self, exc, request=None):
+        if isinstance(exc, MyCustomException):
+            raise APIError(
+                message=str(exc),
+                status_code=400,
+                code="custom_error",
+            ) from exc
+        return super().capture_exception(exc, request)
 ```
 
 ---

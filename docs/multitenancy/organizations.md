@@ -8,14 +8,15 @@ Top-level tenant management for B2B applications.
 from django_matt.multitenancy import Organization
 
 class Organization(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    slug = models.SlugField(max_length=100, unique=True)
+    description = models.TextField(blank=True, null=True)
+    logo_url = models.URLField(blank=True, null=True)
+    settings = models.JSONField(default=dict, blank=True)
     is_active = models.BooleanField(default=True)
-
-    # Billing
-    plan = models.CharField(max_length=50, default="free")
-    stripe_customer_id = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 ```
 
 ## Controller
@@ -31,8 +32,7 @@ api.register_controller(OrganizationController)
 # GET /organizations/{id} - Get organization
 # PUT /organizations/{id} - Update organization
 # DELETE /organizations/{id} - Delete organization
-# GET /organizations/{id}/members - List members
-# POST /organizations/{id}/invite - Invite user
+# POST /organizations/switch - Switch to organization
 ```
 
 ## Usage
@@ -59,6 +59,6 @@ await Membership.objects.acreate(
 ```python
 @api.get("/projects")
 async def list_projects(request):
-    org = request.org
+    org = request.organization
     return await Project.objects.filter(organization=org)
 ```

@@ -447,15 +447,31 @@ python manage.py sync_types --config
 | Python Type | TypeScript | Zod | Swift |
 |-------------|-----------|-----|-------|
 | `str` | `string` | `z.string()` | `String` |
-| `int` | `number` | `z.number()` | `Int` |
+| `int` | `number` | `z.number().int()` | `Int` |
 | `float` | `number` | `z.number()` | `Double` |
 | `bool` | `boolean` | `z.boolean()` | `Bool` |
 | `datetime` | `string` | `z.string().datetime()` | `Date` |
-| `date` | `string` | `z.string()` | `Date` |
+| `date` | `string` | `z.string().date()` | `Date` |
 | `UUID` | `string` | `z.string().uuid()` | `UUID` |
-| `list[T]` | `T[]` | `z.array()` | `[T]` |
-| `dict` | `Record<string, any>` | `z.record()` | `[String: Any]` |
-| `Optional[T]` | `T \| null` | `.nullable()` | `T?` |
+| `EmailStr` | `string` | `z.string().email()` | `String` |
+| `Decimal` | `number` | `z.number()` | `Double` |
+| `list[T]` | `T[]` | `z.array(T)` | `[T]` |
+| `dict[K, V]` | `Record<K, V>` | `z.record(z.string(), V)` | `[String: V]` |
+| `Optional[T]` / `T \| None` | `T \| null` | `T.nullable()` | `T?` |
+| `Literal["a", "b"]` | `"a" \| "b"` | `z.enum(["a","b"])` | — |
+
+### Type Resolution
+
+Field types are resolved using `get_type_hints()` rather than reading raw annotations.
+This means:
+
+- **Inherited fields** — fields defined on a Pydantic base class are correctly included
+  in the generated output for every subclass.
+- **Forward references** — string annotations like `"UserSchema"` are resolved against
+  the schema's own module namespace.
+- **`X \| None` syntax** — Python 3.10+ union syntax is detected and emitted as
+  `T \| null` (TypeScript) or `.nullable()` (Zod), not as `any`.
+- **`EmailStr`** — maps to `string` / `z.string().email()` instead of `any`.
 
 ## Best Practices
 

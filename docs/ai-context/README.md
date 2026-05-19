@@ -98,3 +98,7 @@ files = ctx.generate_all()  # CLAUDE.md, .cursorrules, .copilot-instructions, in
 12. **Serialization groups** — use `Grouped()`, `Secret()` field markers + `@serialize_for()` for role-based APIs
 13. **Exception filters** — use `ExceptionFilter` + `register_global_filter()` instead of try/except in controllers
 14. **Slim mode** — configure `DJANGO_MATT["SLIM_MODE"]` to control which modules load
+15. **Native tasks (Stage 17A)** — use `@task` from `django_matt.tasks_native` for type-safe background tasks with Pydantic payload validation, retry policies, and periodic scheduling; no Celery required
+16. **AI-assisted audits (Stage 17B)** — `python manage.py matt_audit [security|performance|bundle|context]` with RELAXED/STANDARD/STRICT/PARANOID levels; outputs JSON, Markdown, or SARIF
+17. **Typegen** — `sync_types --target typescript` generates `generated.ts` (interfaces) + `generated.schemas.ts` (Zod); Python `X | None` becomes `string | null` in TypeScript
+18. **Test suite** — ~4,143+ tests; run scoped with `uv run pytest tests/test_<module>.py -x -q`

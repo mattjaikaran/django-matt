@@ -20,6 +20,7 @@ Client Request
     |  - ErrorMiddleware
     |  - JWTAuthenticationMiddleware
     |  - DependencyInjectionMiddleware
+    |  - EventBusMiddleware (attaches event context to request)
     |
     v
 [3] MattAPI Router — URL resolution
@@ -28,25 +29,30 @@ Client Request
 [4] Route-Scoped Interceptors (before_request)
     |
     v
-[5] Permission Check
+[5] Exception Filters — scoped error handling active from here
     |
     v
-[6] Dependency Injection — resolve Depends() parameters
+[6] Permission Check
     |
     v
-[7] Request Validation — Pydantic schema (request body)
+[7] Dependency Injection — resolve Depends() parameters
     |
     v
-[8] Controller Method / ViewSet Handler
+[8] Request Validation — Pydantic schema (request body)
     |
     v
-[9] Response Serialization — ModelSchema.from_orm_fast()
+[9] Controller Method / ViewSet Handler
+    |  (CQRS: Commands/Queries dispatched to their buses here)
+    |  (Event Bus: domain events published after writes)
     |
     v
-[10] Route-Scoped Interceptors (after_response)
+[10] Response Serialization — ModelSchema.from_orm_fast()
     |
     v
-[11] Django Middleware (response phase, reverse order)
+[11] Route-Scoped Interceptors (after_response)
+    |
+    v
+[12] Django Middleware (response phase, reverse order)
     |
     v
 Client Response
@@ -55,7 +61,7 @@ Client Response
 If an exception occurs at any stage, the error handling layers activate:
 
 ```
-Exception raised at step [7-9]
+Exception raised at step [8-10]
     |
     v
 [E1] ViewSet Hook: on_error
@@ -124,7 +130,7 @@ The router matches the incoming URL and dispatches to the appropriate handler.
 
 ### 4. Interceptors (Before)
 
-Interceptors are route-scoped middleware. They run before and after the handler, scoped to specific controllers or routes rather than the entire application.
+Interceptors are route-scoped middleware. They run before and after the handler, scoped to specific controllers or routes rather than the entire application. The event bus context is available to interceptors via the request.
 
 ```python
 from django_matt.interceptors import Interceptor, intercept
@@ -194,7 +200,7 @@ async def create_user(self, request, data: UserCreateSchema) -> UserSchema:
 
 If validation fails, a 422 response with field-level errors is returned before the handler runs.
 
-### 8. Handler Execution
+### 9. Handler Execution
 
 The controller method or view handler runs. For ViewSets, this is the `handle()` method on the view class (e.g., `ListView.handle()`, `CreateView.handle()`).
 
@@ -209,7 +215,39 @@ before_delete -> model deletion -> after_delete
 
 Hooks can modify data in-flight. `StopHookChain` can short-circuit execution.
 
-### 9. Response Serialization
+#### CQRS Bus Dispatch
+
+When using the CQRS pattern, controllers dispatch commands and queries through their respective buses rather than calling services directly:
+
+```python
+from django_matt.cqrs import CommandBus, QueryBus
+
+class OrderController(APIController):
+    @api.post("/")
+    async def create_order(self, request, data: OrderCreateSchema):
+        command = CreateOrderCommand(**data.model_dump(), user_id=request.user.id)
+        order = await CommandBus.dispatch(command)
+        return order
+
+    @api.get("/")
+    async def list_orders(self, request):
+        query = ListOrdersQuery(user_id=request.user.id)
+        return await QueryBus.dispatch(query)
+```
+
+#### Event Bus Publishing
+
+After write operations, domain events are published to the event bus. Subscribers handle side effects (notifications, analytics, webhooks) without coupling them to the handler:
+
+```python
+from django_matt.events import EventBus
+
+async def after_create(self, request, instance):
+    await EventBus.publish("order.created", {"order_id": instance.id})
+    return instance
+```
+
+### 10. Response Serialization
 
 Model instances are serialized using `ModelSchema`:
 
@@ -219,11 +257,11 @@ Model instances are serialized using `ModelSchema`:
 
 The response is wrapped in a `JsonResponse` (or raw `HttpResponse` for the Rust path).
 
-### 10. Interceptors (After)
+### 11. Interceptors (After)
 
 The `after_response` method of each interceptor runs in reverse order, receiving the response. Interceptors can modify or replace the response.
 
-### 11. Response Middleware
+### 12. Response Middleware
 
 Django middleware processes the response in reverse order (timing headers, CORS headers, logging, etc.), and the response is sent to the client.
 

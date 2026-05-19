@@ -15,13 +15,18 @@ Django Matt follows these performance principles:
 
 Get immediate performance benefits with minimal effort:
 
-### 1. Install orjson
+### 1. Use orjson (Already Installed)
 
-```bash
-uv add orjson
+orjson is a **base dependency** — it is always available and always used. No installation needed.
+
+```python
+import orjson  # always works — orjson is a required dep
+
+# Django Matt uses it internally everywhere:
+# - Request body parsing (orjson.loads)
+# - Response serialization (orjson.dumps)
+# - JWT payload encoding (orjson.dumps before signing)
 ```
-
-Django Matt automatically uses orjson when available, providing 3-10x faster JSON serialization.
 
 ### 2. Enable Response Caching
 
@@ -226,6 +231,81 @@ for suggestion in suggestions:
         print(f"    - {rec}")
 ```
 
+## Slim Mode
+
+Reduce startup time and memory footprint by loading only the modules your app uses.
+
+```python
+# settings.py
+DJANGO_MATT = {
+    "SLIM_MODE": {
+        "mode": "auto",       # detect from settings which modules to load
+        "lazy_imports": True, # defer heavy imports until first use
+    },
+}
+
+# Or override per environment:
+# mode: "full"    — everything (default)
+# mode: "slim"    — only enabled_modules list
+# mode: "minimal" — core + auth + error handling only
+# mode: "auto"    — scan DJANGO_MATT settings to determine modules
+```
+
+The mode is configured exclusively via `DJANGO_MATT["SLIM_MODE"]` in Django settings. The `ModuleRegistry` can also be used programmatically at startup before `get_urls()` is called.
+
+## Key Internal Performance Patterns
+
+These patterns are baked into django-matt internals and are active at all times:
+
+| Pattern | Location | Effect |
+|---------|----------|--------|
+| `from_orm_fast()` uses `model_construct()` | `core/schema.py` | Skip Pydantic re-validation for already-trusted ORM data |
+| `get_type_hints()` cached at registration | `core/controller.py`, `core/schema.py` | No per-request introspection overhead |
+| `_meta.fields` cached as `_valid_filter_fields` frozenset | `views/base.py` | Fast field membership checks, no repeated introspection |
+| `orjson.loads()` everywhere | controller, router, views | 3-10x faster JSON parsing vs stdlib |
+| JWT decode once → pass `_payload=` downstream | Auth middleware → views | No double-decode per request |
+| Singleton `_ANONYMOUS_USER` | Auth middleware | No object allocation for unauthenticated requests |
+| Module-level `_error_config` cache | Error handling | Django settings read once at import time |
+| Class-level `_error_handler` on `APIController` | Controller | Shared across instances, no per-instance overhead |
+| Loop closure captured as `_method=method` default arg | Controller `_setup_methods()` | Correct binding — no per-request lambda creation |
+
+### `from_orm_fast()` — Skip Re-Validation
+
+When serializing ORM querysets, data has already been validated by the database and model constraints. Re-running Pydantic validation on every field for every object in a list is wasted work. `from_orm_fast()` bypasses this:
+
+```python
+from django_matt.core.schema import MattSchema
+
+class UserSchema(MattSchema):
+    id: int
+    email: str
+    name: str
+
+# Standard (validates every field):
+schema = UserSchema.from_orm(user_instance)
+
+# Fast (constructs without re-validation):
+schema = UserSchema.from_orm_fast(user_instance)
+# Internally uses: UserSchema.model_construct(**data)
+```
+
+`ListView` and all built-in views call `from_orm_fast()` automatically for list serialization.
+
+### `_valid_filter_fields` Frozenset Cache
+
+`ListView` caches `model._meta.fields` as a frozenset at view instantiation time, not per-request. This means field validation for filters and ordering is a single `in` operation:
+
+```python
+# Views internals — happens once at startup, not per request:
+self._valid_filter_fields = frozenset(
+    f.name for f in model._meta.get_fields()
+)
+
+# Per-request check is O(1):
+if field_name in self._valid_filter_fields:
+    ...
+```
+
 ## Common Optimizations
 
 ### 1. Large List Responses
@@ -323,7 +403,7 @@ async def get_dashboard(request):
 
 Before deploying to production:
 
-- [ ] Install `orjson` for fast JSON serialization
+- [ ] orjson already available (base dependency — no action needed)
 - [ ] Enable response caching for read-heavy endpoints
 - [ ] Add `select_related`/`prefetch_related` for related queries
 - [ ] Use pagination for list endpoints
@@ -331,11 +411,13 @@ Before deploying to production:
 - [ ] Run benchmarks to establish baseline
 - [ ] Enable N+1 detection in development
 - [ ] Review performance suggestions
+- [ ] Install Rust extensions (`django-matt[rust]`) for hot-path acceleration
+- [ ] Enable slim mode (`DJANGO_MATT["SLIM_MODE"]["mode"]`) if using < 10 of the 30+ available modules
 
 ## Next Steps
 
 - [Rust Extensions](rust-extensions.md) - Native hot paths for routing, JWT, parsing, serialization
-- [Fast Serialization](serialization.md) - orjson, ujson, MessagePack
+- [Fast Serialization](serialization.md) - orjson (base dep), MessagePack (optional)
 - [Response Caching](caching.md) - CacheManager, distributed caching
 - [Database Optimization](database.md) - Query analysis, N+1 detection
 - [Async Views](async.md) - Async handlers and concurrent operations

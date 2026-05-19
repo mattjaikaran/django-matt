@@ -114,7 +114,9 @@ assert response.status_code == 201
 
 ## 3. AsyncAPITestClient
 
-For testing async views (the default in Django Matt):
+`AsyncAPITestClient` is the standard test client for Django Matt.  All
+controllers are async by default, so prefer this client over the sync
+`APITestClient` for controller tests.
 
 ```python
 import pytest
@@ -123,15 +125,27 @@ from django_matt.testing import AsyncAPITestClient
 
 @pytest.mark.asyncio
 async def test_list_posts(async_client, user):
+    # force_authenticate is async — it calls acreate_access_token() internally
     await async_client.force_authenticate(user)
     response = await async_client.get("/api/posts/")
     assert response.status_code == 200
+    data = async_client.json(response)
+    assert "items" in data
 ```
 
-`AsyncAPITestClient` extends Django's `AsyncClient`.  The
-`force_authenticate` method generates a JWT token using
-`acreate_access_token()` (the async variant) so it is safe to call from
-an async test.
+`AsyncAPITestClient` extends Django's `AsyncClient`.  `force_authenticate`
+calls `acreate_access_token()` (the async token factory) so it is safe to
+`await` inside any `async def` test.
+
+For tests that need a pre-authenticated client from a fixture, authenticate
+inside an `async` fixture:
+
+```python
+@pytest.fixture
+async def authenticated_async_client(async_client, user):
+    await async_client.force_authenticate(user)
+    return async_client
+```
 
 ## 4. Testing Controllers
 

@@ -37,6 +37,8 @@ graph TB
         MODULES[Module System]
         INTRO[Introspection]
         OBSERVE[Auto-Instrumentation]
+        TASKS_NATIVE[Native Task Engine]
+        AUDITS[AI-Assisted Audits]
     end
 
     subgraph "Data Layer"
@@ -78,6 +80,8 @@ graph TB
     OBSERVE --> API
     INTRO --> MODULES
     RPC --> API
+    TASKS_NATIVE --> EVENTS
+    AUDITS --> INTRO
 ```
 
 ## Request Flow
@@ -683,6 +687,8 @@ graph TB
         ANALYTICS_MOD[analytics]
         EXPERIMENTS_MOD[experiments]
         TASKS_MOD[tasks]
+        TASKS_NATIVE_MOD[tasks_native]
+        AUDITS_MOD[audits]
     end
 
     subgraph "AI & ML"
@@ -697,6 +703,14 @@ graph TB
         TYPEGEN[typegen]
         CODEGEN[codegen]
         RPC_MOD[rpc]
+        SDKGEN[sdkgen]
+        INERTIA_MOD[inertia]
+        LIVEWIRE_MOD[livewire]
+        UNPOLY_MOD[unpoly]
+        VITE_MOD[vite]
+        TAILWIND_MOD[tailwind]
+        FORMS_MOD[forms]
+        PAGES_MOD[pages]
     end
 
     subgraph "DevOps & Infra"
@@ -707,6 +721,8 @@ graph TB
         FILES[files]
         INTRO_MOD[introspection]
         CONFIG[config]
+        SERVERS_MOD[servers]
+        WASM_MOD[wasm]
     end
 
     subgraph "Architecture"
@@ -714,6 +730,18 @@ graph TB
         MODULES_MOD[modules]
         LOADER[loader]
         SLIM[slim]
+        PLUGINS_MOD[plugins]
+        ADVISOR_MOD[advisor]
+    end
+
+    subgraph "Data & Query Extended"
+        BATCH_MOD[batch]
+        PREFETCH_MOD[prefetch]
+        SERVICES_MOD[services]
+        RESOURCES_MOD[resources]
+        SCHEMA_DESIGNER[schema_designer]
+        CODEMODS_MOD[codemods]
+        MIGRATION_TOOLS_MOD[migration_tools]
     end
 
     API --> ROUTER
@@ -752,6 +780,15 @@ graph TB
     LOADER --> SLIM
     OBSERVE_MOD --> INTRO_MOD
     SECRETS_MOD --> CONFIG
+    PLUGINS_MOD --> MODULES_MOD
+    ADVISOR_MOD --> INTRO_MOD
+    SDKGEN --> TYPEGEN
+    MIGRATION_TOOLS_MOD --> DB
+    BATCH_MOD --> TASKS_NATIVE_MOD
+    PREFETCH_MOD --> VIEWS
+    SERVERS_MOD --> API
+    CODEMODS_MOD --> CODEGEN
+    SCHEMA_DESIGNER --> DB
 ```
 
 ## Rust Acceleration Map
@@ -785,6 +822,43 @@ graph LR
     style HANDLER fill:#306998,stroke:#FFD43B,color:#fff
     style ORM fill:#306998,stroke:#FFD43B,color:#fff
     style RESP fill:#306998,stroke:#FFD43B,color:#fff
+```
+
+## Stage 17: Native Tasks & AI Audits
+
+Stage 17 adds two zero-dependency infrastructure layers: a native task engine that works without Celery (17A) and an AI-assisted audit pipeline that surfaces security, performance, and maintainability issues directly inside the Django management CLI (17B).
+
+### Task Lifecycle
+
+```mermaid
+flowchart LR
+    DEC["@task decorator"] --> ENQUEUE[task.delay / apply_async]
+    ENQUEUE --> VALID[Pydantic payload validation]
+    VALID --> BACKEND{Backend}
+    BACKEND -->|Django 6.0+| NATIVE[Django Native Queue]
+    BACKEND -->|Django 5.x| CELERY[Celery Broker]
+    BACKEND -->|Dramatiq| DRAMATIQ[Dramatiq Queue]
+    NATIVE & CELERY & DRAMATIQ --> WORKER[Worker]
+    WORKER -->|success| HIST[Task History]
+    WORKER -->|failure| RETRY[Retry w/ backoff]
+    RETRY -->|max retries| DLQ[Dead Letter Queue]
+    HIST & DLQ --> DASH[Unfold Admin Dashboard]
+```
+
+### Audit Pipeline
+
+```mermaid
+flowchart LR
+    CMD["python manage.py matt_audit"] --> FW[Audit Framework]
+    FW --> SEC[Security Auditor]
+    FW --> PERF[Performance Auditor]
+    FW --> BUNDLE[Bundle Analyzer]
+    FW --> BP[Best Practices Auditor]
+    SEC & PERF & BUNDLE & BP --> FINDINGS[AuditFindings]
+    FINDINGS --> SARIF[SARIF — GitHub Code Scanning]
+    FINDINGS --> JSON_O[JSON]
+    FINDINGS --> MD_O[Markdown]
+    FINDINGS --> TXT_O[Text]
 ```
 
 ## Native Task System (Stage 17A)

@@ -63,7 +63,7 @@ Access in views:
 ```python
 @api.get("/data")
 async def get_data(request):
-    org = request.org  # Current organization
+    org = request.organization  # Current organization
     return await Data.objects.filter(organization=org)
 ```
 

@@ -498,11 +498,8 @@ python manage.py sync_types --target react --output frontend/src/generated --wat
 # Custom watch directories
 python manage.py sync_types --watch --watch-dirs myapp/models,other/models
 
-# With debounce
-python manage.py sync_types --watch --debounce 500
-
-# Dry run
-python manage.py sync_types --target react --dry-run
+# With debounce (value is in seconds)
+python manage.py sync_types --watch --debounce 0.5
 
 # From config
 python manage.py sync_types --config

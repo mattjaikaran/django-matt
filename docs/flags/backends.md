@@ -84,8 +84,8 @@ variant = backend.get_variant("experiment", user=user)
 all_flags = backend.get_all_flags(user=user)
 
 # Invalidate cache
-backend.invalidate_cache("my_flag")
-backend.invalidate_cache()  # All flags
+backend.invalidate("my_flag")
+backend.invalidate_all()  # All flags
 ```
 
 ### Pros and Cons

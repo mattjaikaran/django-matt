@@ -50,11 +50,40 @@ matt deploy fly         # Deployment commands
 Django Matt adds these management commands:
 
 ```bash
-python manage.py startapi          # Create new API project
-python manage.py generate_crud     # Generate CRUD for models
-python manage.py sync_types        # Generate TypeScript/Swift types
-python manage.py benchmark         # Run performance benchmarks
-python manage.py generate_ai_context  # Generate AI context files
+# Project setup
+python manage.py startapi                  # Create new API project
+python manage.py generate_crud             # Generate CRUD for models
+python manage.py sync_types                # Generate TypeScript/Swift/Zod types
+python manage.py benchmark                 # Run performance benchmarks
+python manage.py generate_ai_context       # Generate AI context files
+
+# Native task engine (Stage 17A)
+python manage.py matt_tasks list           # List registered tasks
+python manage.py matt_tasks run <name>     # Run a task manually
+python manage.py matt_tasks status         # Queue health and pending counts
+python manage.py matt_tasks purge          # Clean up old completed/failed tasks
+python manage.py matt_tasks retry          # Bulk retry failed tasks
+python manage.py matt_tasks schedules      # List periodic schedules
+
+# AI-assisted audits (Stage 17B)
+python manage.py matt_audit                # Run all audit categories
+python manage.py matt_audit security       # Security vulnerability scan
+python manage.py matt_audit performance    # Performance bottleneck analysis
+python manage.py matt_audit bundle         # Bundle size analysis
+python manage.py matt_audit context        # Generate LLM context for code review
+
+# Migration acceleration
+python manage.py matt_baseline create v1.0.0  # Create SQL baseline
+python manage.py matt_baseline load v1.0.0    # Load on fresh DB
+python manage.py matt_migrate --stats         # Project migration statistics
+python manage.py matt_migrate --profile       # Profile pending migrations
+python manage.py matt_migrate --parallel      # Run in parallel waves
+python manage.py matt_squash myapp 0001 0042  # Squash migrations
+
+# Documentation tools
+python manage.py matt_docs coverage        # Documentation coverage stats
+python manage.py matt_docs stubs           # Generate docstring stubs
+python manage.py matt_docs hints           # Find missing type hints
 ```
 
 ## Getting Started

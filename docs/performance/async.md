@@ -453,16 +453,25 @@ async def get_data(request):
 
 ### ASGI Server Configuration
 
-```python
-# Using uvicorn
-# uvicorn myproject.asgi:application --workers 4
+django-matt is ASGI-first. The recommended production setup is gunicorn managing uvicorn worker processes:
 
-# Using hypercorn
-# hypercorn myproject.asgi:application --workers 4
+```bash
+# Production: gunicorn + uvicorn workers (ASGI)
+gunicorn config.asgi:application \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --workers 4 \
+    --bind 0.0.0.0:8000 \
+    --timeout 120 \
+    --graceful-timeout 30
 
-# Using gunicorn with uvicorn workers
-# gunicorn myproject.asgi:application -k uvicorn.workers.UvicornWorker --workers 4
+# Development only:
+# uvicorn config.asgi:application --reload
+
+# Alternative: hypercorn
+# hypercorn config.asgi:application --bind 0.0.0.0:8000 --workers 4
 ```
+
+Never use `gunicorn config.wsgi:application` (sync workers) — this blocks the event loop and defeats all async benefits.
 
 ### Connection Pool Settings
 

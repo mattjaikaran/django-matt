@@ -4,10 +4,10 @@ Django Matt uses Pydantic for request/response validation and serialization.
 
 ## ModelSchema
 
-Automatically generate schemas from Django models:
+Automatically generate schemas from Django models. Use `class Config` (not `class Meta`) to configure model introspection:
 
 ```python
-from django_matt import ModelSchema
+from django_matt.core.schema import ModelSchema
 from myapp.models import User
 
 class UserSchema(ModelSchema):
@@ -15,7 +15,7 @@ class UserSchema(ModelSchema):
         model = User
         include = ["id", "email", "first_name", "last_name", "is_active"]
 
-# Or include all fields
+# Include all fields
 class UserFullSchema(ModelSchema):
     class Config:
         model = User
@@ -25,7 +25,7 @@ class UserFullSchema(ModelSchema):
 class UserPublicSchema(ModelSchema):
     class Config:
         model = User
-        exclude = ["password", "is_superuser", "is_staff"]
+        exclude = {"password", "is_superuser", "is_staff"}
 ```
 
 ### Config Options
@@ -33,30 +33,37 @@ class UserPublicSchema(ModelSchema):
 | Option | Type | Description |
 |--------|------|-------------|
 | `model` | Django Model class | Required. The Django model to generate fields from. |
-| `include` | list or `"__all__"` | Fields to include. If `None`, all fields are included. |
-| `exclude` | set/list | Fields to exclude. |
-| `optional` | set/list or `"__all__"` | Fields to make optional. |
-| `depth` | int | Declared but **not yet functional** for nested relations. ForeignKey fields always resolve to their ID (int) regardless of depth. |
+| `include` | `list[str]` or `"__all__"` | Fields to include. `None` (default) includes all. |
+| `exclude` | `set[str]` | Fields to exclude. |
+| `optional` | `set[str]` or `"__all__"` | Fields to make `Optional`. |
+| `depth` | `int` | Declared but not yet functional for nested relations. FK fields always resolve to `int` (PK). |
+| `model_fk_use_pks` | `bool` | When `True`, uses `author_id` column name instead of `author`. |
 
 ### Many-to-Many Fields
 
 M2M fields are automatically included when listed in `include` (or when using `"__all__"`).
-They are serialized as `list[int]` (list of related object PKs) and default to an empty list.
+They are serialized as `Optional[list[int]]` (list of related PKs) and default to an empty list.
 
-## Schema
+## Schema (Legacy Alias)
 
-Base class for custom schemas:
+`Schema` is an alias for `ModelSchema` kept for backwards compatibility. Use `ModelSchema` in new code:
 
 ```python
-from django_matt import Schema
+from django_matt.core.schema import Schema  # same class as ModelSchema
+```
 
-class UserCreate(Schema):
+For plain request/response schemas with no model binding, use Pydantic's `BaseModel` directly:
+
+```python
+from pydantic import BaseModel
+
+class UserCreate(BaseModel):
     email: str
     password: str
     first_name: str = ""
     last_name: str = ""
 
-class UserUpdate(Schema):
+class UserUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     email: str | None = None
@@ -66,41 +73,43 @@ class UserUpdate(Schema):
 
 ### create_schema_from_model
 
-Generate schemas dynamically:
+Generate schemas programmatically. Use `include` (not `fields`):
 
 ```python
-from django_matt import create_schema_from_model
+from django_matt.core.schema import create_schema_from_model
 from myapp.models import Product
 
 # Create a schema at runtime
 ProductSchema = create_schema_from_model(
     Product,
     name="ProductSchema",
-    fields=["id", "name", "price", "description"],
+    include=["id", "name", "price", "description"],
 )
 
-# With custom field configuration
+# With optional and excluded fields
 ProductDetailSchema = create_schema_from_model(
     Product,
     name="ProductDetailSchema",
-    fields="__all__",
+    include=None,               # include all
     exclude=["internal_notes"],
+    optional=["description"],
 )
 ```
 
 ### create_model_from_schema
 
-Create Django models from schemas (for testing/prototyping):
+Create Django model classes from Pydantic schemas (primarily for testing/prototyping):
 
 ```python
-from django_matt import create_model_from_schema, Schema
+from django_matt.core.schema import create_model_from_schema
+from pydantic import BaseModel
 
-class ProductData(Schema):
+class ProductData(BaseModel):
     name: str
     price: float
     description: str = ""
 
-# Creates a Django model
+# Creates a Django model class (not saved to DB)
 ProductModel = create_model_from_schema(ProductData, "Product")
 ```
 
@@ -108,11 +117,12 @@ ProductModel = create_model_from_schema(ProductData, "Product")
 
 ### Field Validation
 
-```python
-from pydantic import Field, field_validator
-from django_matt import Schema
+Use standard Pydantic `field_validator`:
 
-class UserCreate(Schema):
+```python
+from pydantic import BaseModel, Field, field_validator
+
+class UserCreate(BaseModel):
     email: str = Field(..., pattern=r"^[\w\.-]+@[\w\.-]+\.\w+$")
     password: str = Field(..., min_length=8)
     age: int = Field(..., ge=18, le=120)
@@ -123,13 +133,15 @@ class UserCreate(Schema):
         return v.lower()
 ```
 
-### Model Validation
+### Model-Level Validation
+
+Use Pydantic's `model_validator` for cross-field validation:
 
 ```python
-from pydantic import model_validator
-from django_matt import Schema
+from pydantic import BaseModel, model_validator
+from datetime import date
 
-class DateRangeSchema(Schema):
+class DateRangeSchema(BaseModel):
     start_date: date
     end_date: date
 
@@ -140,20 +152,27 @@ class DateRangeSchema(Schema):
         return self
 ```
 
-### Using model_validator decorator
+### Using django_matt's model_validator (for ModelSchema)
+
+`django_matt.core.schema.model_validator` is a field-level decorator for `ModelSchema` subclasses that wraps Pydantic's `field_validator`:
 
 ```python
-from django_matt import Schema, model_validator
+from django_matt.core.schema import ModelSchema, model_validator
 
-class OrderCreate(Schema):
-    items: list[OrderItem]
-    discount_code: str | None = None
+class UserSchema(ModelSchema):
+    class Config:
+        model = User
+        include = ["email", "username"]
 
-@model_validator(OrderCreate)
-def validate_order(values):
-    if not values.get("items"):
-        raise ValueError("Order must have at least one item")
-    return values
+    @model_validator("email")
+    def validate_email(cls, v):
+        if not v.endswith("@company.com"):
+            raise ValueError("Must be a company email")
+        return v
+
+    @model_validator("username", mode="before")
+    def normalize_username(cls, v):
+        return v.lower().strip()
 ```
 
 ## Nested Schemas
@@ -220,51 +239,56 @@ class UserListResponse(PaginatedResponse[UserResponse]):
     pass
 ```
 
-## Schema Usage in Views
+## Schema Usage in Controllers
+
+Request body schemas are injected automatically. Response schemas can be returned directly as Pydantic model instances — the router calls `model_dump()` for serialization:
 
 ```python
-from django_matt import api, Schema
+from pydantic import BaseModel
+from django_matt.core.controller import APIController
+from django_matt.core.router import post
 
-class CreateUserRequest(Schema):
+class CreateUserRequest(BaseModel):
     email: str
     password: str
 
-class UserResponse(Schema):
+class UserResponse(BaseModel):
     id: int
     email: str
 
-@api.post("/users", response=UserResponse)
-async def create_user(request, data: CreateUserRequest) -> UserResponse:
-    user = await User.objects.acreate(
-        email=data.email,
-        password=make_password(data.password),
-    )
-    return UserResponse(id=user.id, email=user.email)
+class UserController(APIController):
+    prefix = "/users"
+
+    @post("/")
+    async def create_user(self, request, data: CreateUserRequest) -> UserResponse:
+        user = await User.objects.acreate(
+            email=data.email,
+            password=make_password(data.password),
+        )
+        return UserResponse(id=user.id, email=user.email)
 ```
 
 ## Optional Fields
 
 ```python
-from typing import Optional
-from django_matt import Schema
+from pydantic import BaseModel
 
-class UserUpdate(Schema):
-    email: Optional[str] = None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
+class UserUpdate(BaseModel):
+    email: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
 
     def get_update_data(self) -> dict:
-        """Return only fields that were provided."""
-        return {k: v for k, v in self.model_dump().items() if v is not None}
+        """Return only fields that were explicitly provided."""
+        return self.model_dump(exclude_none=True)
 ```
 
 ## Computed Fields
 
 ```python
-from pydantic import computed_field
-from django_matt import Schema
+from pydantic import BaseModel, computed_field
 
-class UserResponse(Schema):
+class UserResponse(BaseModel):
     id: int
     first_name: str
     last_name: str

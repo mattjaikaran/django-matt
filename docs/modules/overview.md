@@ -100,6 +100,7 @@ All modules extend `MattModule`. The `name` is auto-derived from the class name 
 ### Module with Config Validation
 
 ```python
+from django.conf import settings
 from pydantic import BaseModel
 from django_matt.modules import MattModule
 
@@ -118,7 +119,8 @@ class BillingModule(MattModule):
     config_schema = BillingConfig
 
     async def on_ready(self) -> None:
-        config = self.validate_config(self._get_config())
+        raw_config = getattr(settings, "DJANGO_MATT", {}).get("BILLING", {})
+        config = self.validate_config(raw_config)
         # config is a validated BillingConfig instance
 ```
 
@@ -404,7 +406,9 @@ class SearchModule(MattModule):
     config_schema = SearchConfig
 
     async def on_ready(self) -> None:
-        config = self.validate_config(self._config)
+        from django.conf import settings
+        raw_config = getattr(settings, "DJANGO_MATT", {}).get("SEARCH", {})
+        config = self.validate_config(raw_config)
         # Initialize search client
         pass
 

@@ -2,6 +2,19 @@
 
 A practical comparison of django-matt against Django REST Framework, Django Ninja, and FastAPI. This is not marketing -- we note honest trade-offs.
 
+django-matt v0.9.1 ships **56 modules** (54 core + `tasks_native` + `audits`) in a single package, replacing what would otherwise require 5–10 separate third-party packages.
+
+**Before (typical DRF/Ninja setup — 5+ packages):**
+```
+djangorestframework + simplejwt + dj-rest-auth + drf-spectacular + django-filter
++ celery + django-storages + factory-boy + ...
+```
+
+**After (django-matt — 1 package):**
+```
+django-matt  # auth, billing, tasks, codegen, real-time, admin, testing, and more
+```
+
 ## Feature Matrix
 
 | Feature | django-matt | DRF | Django Ninja | FastAPI |
@@ -16,6 +29,7 @@ A practical comparison of django-matt against Django REST Framework, Django Ninj
 | Dependency injection | Built-in | No | Via ninja-extra | Built-in |
 | orjson serialization | Built-in (base dep) | No | Optional | Optional |
 | Rust-accelerated router | Yes (optional) | No | No | No |
+| Slim / lazy module loading | Yes | No | No | No |
 | **Authentication** | | | | |
 | JWT | Built-in | Via simplejwt | Via ninja-jwt | Roll your own |
 | OAuth (Google, GitHub, etc.) | Built-in | Via dj-rest-auth | Roll your own | Roll your own |
@@ -42,14 +56,18 @@ A practical comparison of django-matt against Django REST Framework, Django Ninj
 | CLI scaffolding | Built-in | No | No | No |
 | Lifecycle hooks | Built-in | Signals | No | No |
 | Content negotiation | Built-in | Built-in | No | No |
+| Migration acceleration tools | Built-in | No | No | No |
 | **Infrastructure** | | | | |
-| Background tasks | Built-in abstraction | Via celery | Via celery | BackgroundTasks |
+| Native background tasks | Built-in (`tasks_native`) | Via celery | Via celery | BackgroundTasks |
+| Task abstraction (Celery/Dramatiq/Q2) | Built-in | Via celery | Via celery | BackgroundTasks |
+| Task admin dashboard (WebSocket) | Built-in | No | No | No |
 | Feature flags | Built-in | No | No | No |
 | A/B testing | Built-in | No | No | No |
-| Billing (Stripe, etc.) | Built-in | No | No | No |
+| Billing (Stripe, PayPal, Polar) | Built-in | No | No | No |
 | Observability (tracing, metrics) | Built-in | No | No | No |
 | Rate limiting / throttling | Built-in | Built-in | No | Via slowapi |
 | Deployment helpers | Built-in | No | No | No |
+| AI-assisted codebase audits | Built-in (`audits`) | No | No | No |
 | **Testing** | | | | |
 | Async test client | Built-in | No | No | httpx |
 | Model factories | Built-in | Via factory-boy | Via factory-boy | No |
@@ -74,11 +92,12 @@ django-matt is not the fastest Python framework in raw request/response throughp
 ## When to Choose Each
 
 ### Choose django-matt when:
-- You want batteries-included: auth, billing, multi-tenancy, codegen in one package
-- You are building a SaaS product and need org/team/membership models
+- You want batteries-included: auth, billing, multi-tenancy, native tasks, codegen in one package
+- You are building a SaaS product and need org/team/membership models out of the box
 - You want Django's admin panel, ORM, and ecosystem
-- You need TypeScript/Swift type generation from your API
+- You need TypeScript/Swift type generation from your API schema
 - You want async-first with Pydantic v2 on Django
+- You need a built-in native task engine without wiring up Celery
 - Your team knows Django or is coming from DRF/Django Ninja
 
 ### Choose DRF when:
@@ -102,7 +121,7 @@ django-matt is not the fastest Python framework in raw request/response throughp
 ## Honest Trade-offs
 
 ### django-matt drawbacks
-- **Large surface area** -- many modules means more to learn (mitigated by slim mode: load only what you use)
+- **Large surface area** -- 56 modules means more to learn (mitigated by slim mode and lazy loading: only installed modules are loaded)
 - **Django dependency** -- you are locked into the Django ecosystem
 - **Newer** -- less battle-tested than DRF (which has 10+ years of production use)
 - **Performance ceiling** -- Django's middleware stack adds overhead vs raw ASGI
@@ -128,6 +147,6 @@ django-matt is not the fastest Python framework in raw request/response throughp
 
 ## Migration Guides
 
-- [Migrating from DRF](migration/from-drf.md)
-- [Migrating from Django Ninja](migration/from-django-ninja.md)
-- [Migrating from FastAPI](migration/from-fastapi.md)
+- [Migrating from DRF](migrations/from-drf.md)
+- [Migrating from Django Ninja](migrations/from-ninja.md)
+- [Migrating from FastAPI](migrations/from-fastapi.md)

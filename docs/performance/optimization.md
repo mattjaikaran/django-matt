@@ -253,14 +253,15 @@ for suggestion in suggestions:
     },
     {
         "category": "dependencies",
-        "priority": "medium",
-        "title": "No fast JSON library installed",
-        "description": "Using standard library json module",
+        "priority": "low",
+        "title": "MessagePack not available",
+        "description": "Binary serialization unavailable for internal/service endpoints",
         "recommendations": [
-            "Install orjson for best performance: uv add orjson",
-            "Or install ujson: uv add ujson"
+            "Install msgpack for binary serialization: uv add msgpack",
+            "Useful for service-to-service communication (~30% smaller payload)"
         ]
     }
+    # Note: "No fast JSON library" will never appear — orjson is a base dependency
 ]
 ```
 
@@ -278,9 +279,8 @@ summary = performance_suggester.get_summary()
 #     },
 #     "suggestions": [...],
 #     "libraries": {
-#         "orjson": True,
-#         "ujson": False,
-#         "msgpack": True
+#         "orjson": True,   # always True — base dependency
+#         "msgpack": True   # optional — True if uv add msgpack was run
 #     }
 # }
 ```

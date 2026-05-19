@@ -67,11 +67,13 @@ django_matt/
   notifications/      → In-app, email, push, SMS, webhooks
   files/              → Upload, S3/R2/MinIO storage
   tasks/              → Background tasks (Celery, Dramatiq, Django-Q)
+  tasks_native/       → Native task engine [Stage 17A] — @task, retry policies, periodic scheduling, Unfold dashboard
   websockets/         → Consumers, auth middleware, presence
   graphql/            → Strawberry-based schema generation
   openapi/            → Swagger UI + ReDoc
-  typegen/            → TypeScript/Swift codegen
+  typegen/            → TypeScript/Swift/Zod codegen (sync_types command)
   testing/            → Test client, factories, assertions
+  audits/             → AI-assisted audit framework [Stage 17B] — security/performance/bundle/context
   interceptors/       → Route-scoped middleware (before/after hooks, @intercept)
   streaming/          → SSE responses, NDJSON streaming, heartbeat helpers
   events/             → Async event bus (pub/sub, @on decorator, InMemory/Redis backends)
@@ -441,7 +443,72 @@ register_global_filter(PaymentFilter())
 async def charge(self, request, body: ChargeSchema): ...
 ```
 
-## Pattern 16: AI / LLM Integration
+## Pattern 16: Native Tasks (Stage 17A)
+
+```python
+from django_matt.tasks_native import task, periodic_task, retry
+from django_matt.tasks_native.scheduling import crontab, every
+from pydantic import BaseModel
+
+class EmailPayload(BaseModel):
+    user_id: int
+    template: str
+
+# One-off task — payload validated by Pydantic at enqueue time
+@task(queue="email", retry=retry.exponential(max_retries=3, base_delay=2.0), timeout=30)
+async def send_email(payload: EmailPayload) -> bool:
+    user = await User.objects.aget(id=payload.user_id)
+    return await deliver_email(user, payload.template)
+
+# Periodic task
+@periodic_task(schedule=crontab(hour=9, minute=0))  # daily at 9 AM
+async def daily_digest():
+    ...
+
+@periodic_task(schedule=every(minutes=15))
+async def refresh_cache():
+    ...
+
+# Enqueue — Pydantic validates here, not at execution time
+await send_email.delay(EmailPayload(user_id=1, template="welcome"))
+```
+
+Retry policies: `retry.exponential(max_retries, base_delay, max_delay)`, `retry.linear(max_retries, step)`, `retry.fixed(max_retries, delay)`.
+
+CLI: `python manage.py matt_tasks list|run|status|purge`
+
+## Pattern 17: AI-Assisted Audits (Stage 17B)
+
+```bash
+# Run all audits
+python manage.py matt_audit
+
+# Security at PARANOID level
+python manage.py matt_audit security --level paranoid
+
+# Bundle size analysis
+python manage.py matt_audit bundle
+
+# Generate LLM context
+python manage.py matt_audit context --for claude
+
+# SARIF output for GitHub Code Scanning
+python manage.py matt_audit --format sarif > results.sarif
+
+# CI gate — fail on high severity or above
+python manage.py matt_audit --ci --fail-on high
+```
+
+Programmatic API:
+```python
+from django_matt.audits import run_audit, AuditLevel, AuditCategory
+
+report = run_audit("security", level=AuditLevel.STRICT)
+for finding in report.all_findings:
+    print(f"{finding.severity}: {finding.file}:{finding.line} — {finding.message}")
+```
+
+## Pattern 18: AI / LLM Integration
 
 ```python
 from django_matt.ai import get_provider, Message, LLMRouter
@@ -482,7 +549,7 @@ rag = RAGChain(llm=llm, vector_store=store)
 response = await rag.query("What is Django Matt?")
 ```
 
-## Pattern 11: Testing
+## Pattern 19: Testing
 
 ```python
 import pytest
@@ -565,6 +632,8 @@ MIDDLEWARE = [
 | Event bus for sync request/response flows | Use CQRS `CommandBus.dispatch()` when you need the result back |
 | Manual try/except when exception filters cover it | Register `ExceptionFilter` globally or use `@catch()` per-route |
 | Mixing commands and queries in CQRS | Commands = writes, Queries = reads — never combine |
+| Celery for simple background tasks | Use `@task` from `django_matt.tasks_native` (no broker needed for DB backend) |
+| Untyped dict payloads in tasks | Define a `BaseModel` payload class — Pydantic validates at `.delay()` call time |
 
 ## Imports Cheat Sheet
 
@@ -629,6 +698,13 @@ from django_matt.rpc import RPCClient, TypedRPCClient, BearerAuth
 # Modules
 from django_matt.modules import MattModule, load_modules, module, requires_module
 
+# Native Tasks [Stage 17A]
+from django_matt.tasks_native import task, periodic_task, retry
+from django_matt.tasks_native.scheduling import crontab, every
+
+# Audits [Stage 17B]
+from django_matt.audits import run_audit, AuditLevel, AuditCategory, AuditConfig
+
 # Slim Mode
 from django_matt.slim import is_module_enabled, get_slim_config
 
@@ -647,7 +723,9 @@ from django.test import AsyncClient
 3. **Controller** — `@api.controller("/prefix")` class extending `APIController`. All methods `async def`.
 4. **Auth** — `@jwt_required` on mutating endpoints. `@with_roles` / `@with_permission` for RBAC.
 5. **URLs** — `api.register_controller(MyController)` + `path("api/", api.urls)`
-6. **Tests** — `pytest.mark.django_db`, `AsyncClient`, async test functions.
+6. **Tests** — `pytest.mark.django_db`, `AsyncClient`, async test functions. (~4,143+ tests in the suite; run scoped)
+7. **Background work** — `@task` from `tasks_native` for anything that shouldn't block the request cycle.
+8. **Type generation** — `sync_types --target typescript` after adding new schemas; Python `X | None` → TypeScript `string | null`.
 
 ## When Building AI Features
 
@@ -671,11 +749,33 @@ python manage.py startapi myproject --template b2b --auth jwt --docker
 # CRUD generation
 python manage.py generate_crud myapp.Product --full
 
-# Type sync
+# Type sync — generates generated.ts + generated.schemas.ts; X | None → string | null
 python manage.py sync_types --target typescript --output frontend/types
+python manage.py sync_types --target zod --output frontend/src/schemas/api.ts
+python manage.py sync_types --target swift --output ios/Sources/API/Models.swift
+python manage.py sync_types --config --watch    # watch mode with config file
 
 # AI context
 python manage.py generate_ai_context --format all
+
+# Native task engine [Stage 17A]
+python manage.py matt_tasks list
+python manage.py matt_tasks run <task_name> '{}'
+python manage.py matt_tasks status
+python manage.py matt_tasks purge --older-than 30d
+
+# AI-assisted audits [Stage 17B]
+python manage.py matt_audit                        # all categories, standard level
+python manage.py matt_audit security --level strict
+python manage.py matt_audit bundle                 # unused module analysis
+python manage.py matt_audit context --for claude
+python manage.py matt_audit --format sarif > results.sarif
+python manage.py matt_audit --ci --fail-on high
+
+# Migration tools
+python manage.py matt_baseline create v1.0.0
+python manage.py matt_migrate --parallel
+python manage.py matt_squash myapp 0001 0042
 
 # Run
 uv run python manage.py runserver

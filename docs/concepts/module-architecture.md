@@ -10,7 +10,7 @@ Every top-level directory under `django_matt/` is a module. Modules follow these
 2. **Explicit dependencies** — cross-module imports go through public APIs (`__init__.py` exports)
 3. **Optional by default** — most modules can be disabled without breaking the core framework
 
-Core modules that are always loaded: `core`, `router`, `controller`, `schema`, `errors`, `openapi`, `docs`, `redoc`.
+Core modules that are always loaded: `core`, `router`, `controller`, `schema`, `errors`, `openapi`. All other modules (80+) are optional and can be controlled via slim mode.
 
 ## Slim Mode
 
@@ -81,6 +81,13 @@ In `auto` mode, the registry scans `DJANGO_MATT` settings keys to determine whic
 | `ANALYTICS` | analytics |
 | `WEBSOCKETS` | websockets |
 | `GRAPHQL` | graphql |
+| `TASKS` | tasks |
+| `TASKS_NATIVE` | tasks_native |
+| `CQRS` | cqrs |
+| `EVENTS` | events |
+| `SECRETS` | secrets |
+| `RPC` | rpc |
+| `STREAMING` | streaming |
 
 The `MIDDLEWARE_STACK` setting activates bundles:
 - `"production"` -> security, request_id, cors, logging, timing

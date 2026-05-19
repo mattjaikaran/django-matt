@@ -596,7 +596,72 @@ class BillingController(APIController):
 
 ---
 
-## Example 9: Testing
+## Example 9: Native Background Tasks (Stage 17A)
+
+```python
+# tasks.py
+from django_matt.tasks_native import task, periodic_task, retry
+from django_matt.tasks_native.scheduling import crontab, every
+from pydantic import BaseModel
+
+# Typed payload — validated at enqueue time
+class WelcomeEmailPayload(BaseModel):
+    user_id: int
+    email: str
+
+class ReportPayload(BaseModel):
+    org_id: int
+    format: str = "pdf"
+
+# One-off task with exponential backoff
+@task(
+    queue="email",
+    retry=retry.exponential(max_retries=3, base_delay=2.0, max_delay=60.0),
+    timeout=30,
+)
+async def send_welcome_email(payload: WelcomeEmailPayload) -> bool:
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    user = await User.objects.aget(id=payload.user_id)
+    return await deliver_email(user, template="welcome")
+
+# Periodic task — daily at 8 AM UTC
+@periodic_task(schedule=crontab(hour=8, minute=0))
+async def send_daily_digest():
+    active_users = [u async for u in User.objects.filter(is_active=True)]
+    for user in active_users:
+        await send_digest_email.delay(WelcomeEmailPayload(user_id=user.id, email=user.email))
+
+# Interval task — every 15 minutes
+@periodic_task(schedule=every(minutes=15))
+async def refresh_analytics_cache():
+    from django.core.cache import cache
+    stats = await compute_aggregate_stats()
+    cache.set("global_stats", stats, timeout=1800)
+
+
+# controllers.py — enqueue from a controller
+from django_matt import APIController, post
+from django_matt.auth import jwt_required
+from config.api import api
+from .tasks import send_welcome_email, WelcomeEmailPayload
+
+@api.controller("/users", tags=["Users"])
+class UserController(APIController):
+
+    @post("/register")
+    async def register(self, request, body: RegisterSchema):
+        user = await User.objects.acreate(**body.model_dump())
+        # Payload validated here — invalid data raises ValidationError immediately
+        await send_welcome_email.delay(
+            WelcomeEmailPayload(user_id=user.id, email=user.email)
+        )
+        return UserSchema.from_orm(user)
+```
+
+---
+
+## Example 10: Testing
 
 ```python
 import pytest

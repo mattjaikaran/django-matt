@@ -212,23 +212,7 @@ MIDDLEWARE = [
 | `.update()` | `.aupdate()` |
 | `list(qs)` | `[x async for x in qs]` |
 
-## Testing
-
-```bash
-# Run all tests
-uv run pytest tests/ -x -q
-
-# Run specific file
-uv run pytest tests/test_auth.py -v
-
-# With coverage
-uv run pytest tests/ --cov=django_matt
-
-# Lint
-uv run ruff check django_matt/
-```
-
-## New Module Imports
+## Module Imports Reference
 
 ```python
 # Interceptors — route-scoped middleware (before/after request hooks)
@@ -276,6 +260,16 @@ from django_matt.cqrs import Query, QueryBus, QueryHandler, query_handler, get_q
 from django_matt.cqrs import DomainEvent, EventCollector, emits
 from django_matt.cqrs import LoggingMiddleware, ValidationMiddleware, TransactionMiddleware, CachingMiddleware
 
+# Native tasks — type-safe background tasks (no Celery required) [Stage 17A]
+from django_matt.tasks_native import task, periodic_task, retry
+from django_matt.tasks_native.scheduling import crontab, every
+from django_matt.tasks_native.retry import ExponentialBackoff, LinearBackoff, FixedDelay
+
+# Audits — AI-assisted codebase analysis [Stage 17B]
+from django_matt.audits import run_audit, AuditLevel, AuditCategory, AuditFinding, AuditReport, AuditConfig
+from django_matt.audits import BaseAuditor, register_auditor
+from django_matt.audits.prompts import generate_context, get_prompt
+
 # Slim mode — control which modules load
 from django_matt.slim import SlimConfig, get_slim_config, is_module_enabled, ModuleRegistry as SlimModuleRegistry
 
@@ -292,9 +286,49 @@ python manage.py startapi myproject --template b2b --auth jwt
 # CRUD generation
 python manage.py generate_crud myapp.Product --full
 
-# Type sync
+# Type sync — generates generated.ts (interfaces) + generated.schemas.ts (Zod)
 python manage.py sync_types --target typescript --output frontend/types
+python manage.py sync_types --target zod --output frontend/src/schemas/api.ts
+python manage.py sync_types --target swift --output ios/Sources/API/Models.swift
+python manage.py sync_types --config --watch    # watch mode with config file
 
 # AI context generation
 python manage.py generate_ai_context --format all
+
+# Native task engine (Stage 17A)
+python manage.py matt_tasks list
+python manage.py matt_tasks run <task_name> '{}'
+python manage.py matt_tasks status
+python manage.py matt_tasks purge --older-than 30d
+
+# AI-assisted audits (Stage 17B)
+python manage.py matt_audit                          # all categories
+python manage.py matt_audit security --level strict
+python manage.py matt_audit performance
+python manage.py matt_audit bundle                   # unused module analysis
+python manage.py matt_audit context --for claude     # LLM context generation
+python manage.py matt_audit --format sarif > results.sarif
+python manage.py matt_audit --ci --fail-on high      # CI gate
+
+# Migration tools
+python manage.py matt_baseline create v1.0.0
+python manage.py matt_migrate --parallel
+python manage.py matt_squash myapp 0001 0042
+```
+
+## Testing
+
+```bash
+# Run all tests (~4,143+ tests)
+uv run pytest tests/ -x -q
+
+# Run scoped (preferred — avoids 4,000+ test run)
+uv run pytest tests/test_auth.py -v
+uv run pytest tests/test_tasks_native.py -v
+
+# With coverage
+uv run pytest tests/ --cov=django_matt
+
+# Lint
+uv run ruff check django_matt/
 ```

@@ -6,7 +6,7 @@ django-matt ships optional Rust-accelerated hot paths via [PyO3](https://pyo3.rs
 
 ```bash
 # Install with Rust extensions
-pip install django-matt[rust]
+uv add django-matt[rust]
 
 # Or build from source (development)
 cd rust && maturin develop --release

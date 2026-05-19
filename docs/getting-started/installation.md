@@ -25,17 +25,6 @@ uv add "django-matt[auth]"
 uv add "django-matt[all]"
 ```
 
-### Using uv
-
-```bash
-# Install with core dependencies
-uv add django-matt
-
-# Install with extras
-uv add "django-matt[auth]"
-uv add "django-matt[all]"
-```
-
 ## Installation Extras
 
 django-matt provides optional extras for specific features:

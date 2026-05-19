@@ -604,6 +604,65 @@ async def charge(self, request, body: ChargeSchema):
     ...
 ```
 
+## Native Task Patterns (Stage 17A)
+
+### Basic Task with Retry
+
+```python
+from django_matt.tasks_native import task, retry
+from pydantic import BaseModel
+
+class EmailPayload(BaseModel):
+    user_id: int
+    template: str
+
+@task(
+    queue="email",
+    retry=retry.exponential(max_retries=3, base_delay=2.0),
+    timeout=30,
+)
+async def send_email(payload: EmailPayload) -> bool:
+    user = await User.objects.aget(id=payload.user_id)
+    return await deliver_email(user, payload.template)
+
+# Enqueue — payload validated at call time, NOT at execution time
+await send_email.delay(EmailPayload(user_id=1, template="welcome"))
+```
+
+### Retry Policies
+
+```python
+from django_matt.tasks_native import retry
+
+# Exponential backoff: 2s, 4s, 8s, ...
+retry.exponential(max_retries=5, base_delay=2.0, max_delay=120.0)
+
+# Linear: 5s, 10s, 15s, ...
+retry.linear(max_retries=3, step=5.0)
+
+# Fixed: always 10s
+retry.fixed(max_retries=3, delay=10.0)
+```
+
+### Periodic Tasks
+
+```python
+from django_matt.tasks_native import periodic_task
+from django_matt.tasks_native.scheduling import crontab, every
+
+@periodic_task(schedule=crontab(hour=9, minute=0))     # Daily at 9 AM
+async def morning_digest():
+    ...
+
+@periodic_task(schedule=crontab(day_of_week=1, hour=9))  # Mondays at 9 AM
+async def weekly_report():
+    ...
+
+@periodic_task(schedule=every(minutes=15))             # Interval
+async def refresh_cache():
+    ...
+```
+
 ## Slim Mode Patterns
 
 ### Control Module Loading

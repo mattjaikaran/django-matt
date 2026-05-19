@@ -15,7 +15,10 @@ Zod schemas provide:
 ### CLI Usage
 
 ```bash
-# Generate schemas for all models
+# Generate Zod schemas only
+python manage.py sync_types --target zod --output frontend/src/schemas/api.ts --apps myapp
+
+# Generate Zod schemas as part of a full React output
 python manage.py sync_types --target react --output frontend/src/generated
 ```
 

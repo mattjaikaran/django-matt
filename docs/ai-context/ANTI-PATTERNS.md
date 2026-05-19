@@ -327,7 +327,53 @@ class UpdateUser(Command):   # write path
     name: str
 ```
 
-## 21. Don't Import Heavy Modules Eagerly in Slim Mode
+## 21. Don't Use Celery When tasks_native Suffices
+
+```python
+# WRONG — adding Celery for simple background tasks
+from celery import shared_task
+
+@shared_task
+def send_welcome_email(user_id):
+    ...
+
+# CORRECT — use the native task engine (no broker required for DB backend)
+from django_matt.tasks_native import task, retry
+from pydantic import BaseModel
+
+class EmailPayload(BaseModel):
+    user_id: int
+
+@task(retry=retry.exponential(max_retries=3))
+async def send_welcome_email(payload: EmailPayload):
+    ...
+
+# Enqueue
+await send_welcome_email.delay(EmailPayload(user_id=1))
+```
+
+## 22. Don't Pass Unvalidated Dicts to Tasks
+
+```python
+# WRONG — untyped dict payload, validation fails silently
+@task
+async def process_order(data: dict):
+    order_id = data["order_id"]  # KeyError at execution time
+
+# CORRECT — Pydantic model validates at enqueue time (not at execution)
+from pydantic import BaseModel
+
+class OrderPayload(BaseModel):
+    order_id: int
+    user_id: int
+
+@task
+async def process_order(payload: OrderPayload):
+    # payload is guaranteed valid — validated when .delay() was called
+    ...
+```
+
+## 24. Don't Import Heavy Modules Eagerly in Slim Mode
 
 ```python
 # WRONG — importing billing at module level when using slim mode

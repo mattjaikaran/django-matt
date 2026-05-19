@@ -1,28 +1,18 @@
 # Fast Serialization
 
-Django Matt provides high-performance serialization using the fastest available JSON libraries and support for binary formats like MessagePack.
+Django Matt provides high-performance serialization using orjson as the base JSON library and optional binary formats via MessagePack.
 
-## JSON Libraries Comparison
+## JSON Library
 
-Django Matt automatically selects the fastest available JSON library:
+Django Matt uses **orjson** as a base dependency — it is always installed and always used. There is no fallback to stdlib `json` or `ujson`.
 
-| Library | Speed | Notes |
-|---------|-------|-------|
-| **orjson** | Fastest (3-10x) | Recommended, handles datetime/UUID natively |
-| **ujson** | Fast (2-5x) | Good alternative, pure Python fallback |
-| **stdlib json** | Baseline | Always available, slowest |
+| Library | Speed | Status |
+|---------|-------|--------|
+| **orjson** | Fastest (3-10x vs stdlib) | Always available — base dependency |
+| **msgpack** | Binary, ~30% smaller | Optional: `uv add msgpack` |
+| **stdlib json** | Baseline | Not used by django-matt |
 
-### Installation
-
-```bash
-# Recommended: Install orjson
-uv add orjson
-
-# Alternative: Install ujson
-uv add ujson
-```
-
-Django Matt automatically detects and uses the fastest available library.
+orjson natively handles `datetime`, `UUID`, `Decimal`, and numpy arrays without custom encoders.
 
 ## FastJSONRenderer
 
@@ -41,11 +31,11 @@ json_bytes = FastJSONRenderer.dumps(data)
 parsed = FastJSONRenderer.loads(json_bytes)
 ```
 
-### Check Which Library is Used
+### Library Name
 
 ```python
 renderer = FastJSONRenderer()
-print(f"Using: {renderer.library_name}")  # "orjson", "ujson", or "json"
+print(f"Using: {renderer.library_name}")  # always "orjson"
 ```
 
 ### orjson Options
@@ -450,12 +440,12 @@ data = {
 }
 ```
 
-### Checking Library Availability
+### Checking Optional Library Availability
 
 ```python
-from django_matt.utils.performance import HAS_ORJSON, HAS_UJSON, HAS_MSGPACK
+from django_matt.utils.performance import HAS_MSGPACK
 
-print(f"orjson: {HAS_ORJSON}")
-print(f"ujson: {HAS_UJSON}")
+# orjson is always available (base dependency) — no flag needed
+# msgpack is optional
 print(f"msgpack: {HAS_MSGPACK}")
 ```

@@ -105,6 +105,7 @@ MIDDLEWARE = [
 ]
 
 DJANGO_MATT_QUERY_ANALYSIS_ENABLED = True  # Only in development!
+# Or via nested dict: DJANGO_MATT = {"QUERY_ANALYSIS_ENABLED": True}
 ```
 
 ### Viewing Query Reports

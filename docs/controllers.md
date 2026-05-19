@@ -5,39 +5,45 @@ This document provides a quick overview of controllers in django-matt. For detai
 ## Quick Reference
 
 ```python
-from django_matt.core import APIController
+from django_matt.core.controller import APIController
+from django_matt.core.router import get, post, put, delete
 from django_matt import MattAPI
 
 api = MattAPI()
 
-@api.controller("/users", tags=["Users"])
 class UserController(APIController):
     """User management controller."""
 
-    @api.get("/")
+    prefix = "/users"
+    tags = ["Users"]
+
+    @get("/")
     async def list(self, request):
-        return User.objects.all()
+        return [u async for u in User.objects.all()]
 
-    @api.get("/{id}")
+    @get("/<int:id>")
     async def get(self, request, id: int):
-        return User.objects.get(id=id)
+        return await User.objects.aget(id=id)
 
-    @api.post("/")
+    @post("/")
     async def create(self, request, data: UserCreate):
-        return User.objects.create(**data.dict())
+        return await User.objects.acreate(**data.model_dump())
 
-    @api.put("/{id}")
+    @put("/<int:id>")
     async def update(self, request, id: int, data: UserUpdate):
-        user = User.objects.get(id=id)
-        for key, value in data.dict(exclude_unset=True).items():
+        user = await User.objects.aget(id=id)
+        for key, value in data.model_dump(exclude_unset=True).items():
             setattr(user, key, value)
-        user.save()
+        await user.asave()
         return user
 
-    @api.delete("/{id}")
+    @delete("/<int:id>")
     async def delete(self, request, id: int):
-        User.objects.filter(id=id).delete()
+        await User.objects.filter(id=id).adelete()
         return {"deleted": True}
+
+
+api.register_controller(UserController)
 ```
 
 ## Service Layer Integration
@@ -47,13 +53,19 @@ Controllers should handle HTTP concerns only: parsing the request, checking perm
 ### Before: logic in the controller
 
 ```python
-@api.controller("/users", tags=["Users"])
+from django_matt.core.controller import APIController
+from django_matt.core.router import post
+from django_matt.core.errors import ValidationAPIError
+
 class UserController(APIController):
-    @api.post("/")
+    prefix = "/users"
+    tags = ["Users"]
+
+    @post("/")
     async def create(self, request, data: UserCreate):
         # ORM, audit, and business logic mixed into the endpoint
         if await User.objects.filter(email=data.email).aexists():
-            raise HttpError(409, "Email already in use")
+            raise ValidationAPIError("Email already in use", status_code=409)
         user = await User.objects.acreate(
             **data.model_dump(),
             created_by=request.user,
@@ -78,36 +90,41 @@ class UserService(CRUDService["User"]):
 
 
 # users/controllers.py
+from django_matt.core.controller import APIController
+from django_matt.core.router import get, post, put, delete
+from django_matt.core.errors import APIError
 from django_matt.services import ConflictError
 from .services import UserService
 
-@api.controller("/users", tags=["Users"])
 class UserController(APIController):
+    prefix = "/users"
+    tags = ["Users"]
+
     def __init__(self):
         self.service = UserService()
-        super().__init__()
+        super().__init__()   # super().__init__() must come last
 
-    @api.get("/")
+    @get("/")
     async def list(self, request):
         items, total = await self.service.list()
         return {"items": items, "total": total}
 
-    @api.post("/")
+    @post("/")
     async def create(self, request, data: UserCreate):
         try:
             return await self.service.create(data.model_dump(), user=request.user)
         except ConflictError as exc:
-            raise HttpError(409, exc.message)
+            raise APIError(exc.message, status_code=409, code="conflict")
 
-    @api.get("/{id}")
+    @get("/<int:id>")
     async def get(self, request, id: int):
         return await self.service.get(id)
 
-    @api.put("/{id}")
+    @put("/<int:id>")
     async def update(self, request, id: int, data: UserUpdate):
         return await self.service.update(id, data.model_dump(), user=request.user)
 
-    @api.delete("/{id}")
+    @delete("/<int:id>")
     async def delete(self, request, id: int):
         await self.service.delete(id)
         return {"deleted": True}
@@ -126,11 +143,16 @@ def __init__(self):
 For tenant-scoped services that need a per-request value, construct them inside the view method:
 
 ```python
-@api.get("/")
-async def list_products(self, request):
-    service = ProductService(organization=request.auth.organization)
-    items, total = await service.list()
-    return {"items": items, "total": total}
+from django_matt.core.router import get
+
+class ProductController(APIController):
+    prefix = "/products"
+
+    @get("/")
+    async def list_products(self, request):
+        service = ProductService(organization=request.auth.organization)
+        items, total = await service.list()
+        return {"items": items, "total": total}
 ```
 
 ### Full service layer reference

@@ -8,10 +8,15 @@ Sub-groups within organizations for finer-grained access control.
 from django_matt.multitenancy import Team
 
 class Team(models.Model):
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="teams")
     name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
+    slug = models.SlugField(max_length=100)  # unique within org
+    description = models.TextField(blank=True, null=True)
+    settings = models.JSONField(default=dict, blank=True)
+    is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 ```
 
 ## Controller
@@ -35,7 +40,7 @@ api.register_controller(TeamController)
 ## Usage
 
 ```python
-from django_matt.multitenancy import Team, TeamMembership
+from django_matt.multitenancy import Membership, Team, TeamMembership
 
 # Create team
 team = await Team.objects.acreate(
@@ -44,8 +49,10 @@ team = await Team.objects.acreate(
 )
 
 # Add user to team
+org_membership = await Membership.objects.aget(organization=org, user=user)
 await TeamMembership.objects.acreate(
     team=team,
     user=user,
+    organization_membership=org_membership,
 )
 ```

@@ -1,4 +1,6 @@
-# Migrating from Django REST Framework
+# Migrating from Django REST Framework (Legacy)
+
+> **This is a legacy guide.** The current, authoritative version is [`docs/migrations/from-drf.md`](../migrations/from-drf.md). This file is preserved for historical reference.
 
 This guide helps you migrate an existing Django REST Framework (DRF) application to django-matt. We cover the key differences and show equivalent patterns side-by-side.
 

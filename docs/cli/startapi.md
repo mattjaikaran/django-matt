@@ -28,7 +28,7 @@ matt new api myproject --template b2b --auth jwt --docker
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--template`, `-t` | `starter` | Template: `starter`, `b2b`, `b2c` |
+| `--template`, `-t` | `api-only` | Template: `starter`, `b2b`, `b2c`, `saas`, `api-only`, `ai-saas`, `marketplace`, `internal-tools` |
 | `--auth`, `-a` | `jwt` | Auth: `none`, `jwt`, `magic-link`, `oauth`, `all` |
 | `--frontend`, `-f` | `none` | Frontend: `none`, `react-vite`, `swift` |
 | `--docker` | `false` | Include Docker configuration |

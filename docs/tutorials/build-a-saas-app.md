@@ -181,7 +181,7 @@ class TenantScopedMixin:
 Use the multitenancy decorators to enforce roles:
 
 ```python
-from django_matt.core.controller import Controller
+from django_matt import APIController
 from django_matt.multitenancy.decorators import (
     requires_org_membership,
     requires_org_admin,
@@ -192,7 +192,7 @@ from .api import api
 
 
 @api.controller("/projects", tags=["Projects"])
-class ProjectController(Controller):
+class ProjectController(APIController):
 
     @api.get("/")
     @requires_org_membership
@@ -398,7 +398,81 @@ http POST http://localhost:8000/api/flags/ \
     Authorization:"Bearer <admin-token>"
 ```
 
-## 8. Putting It All Together
+## 8. Background Tasks with tasks_native
+
+Django Matt ships a native task engine (`tasks_native`) that does not
+require Celery or an external broker for most use cases. Use it for
+deferred work like sending welcome emails, syncing billing state, or
+provisioning new tenants.
+
+### Define a task
+
+```python
+# saas_app/tasks.py
+from django_matt.tasks_native import task
+from pydantic import BaseModel
+
+
+class WelcomeEmailPayload(BaseModel):
+    user_id: int
+    org_id: str
+
+
+@task(
+    name="saas_app.send_welcome_email",
+    retry_policy={"max_attempts": 3, "backoff": "exponential"},
+)
+async def send_welcome_email(payload: WelcomeEmailPayload) -> None:
+    """Send a welcome email when a user joins an organization."""
+    from django.contrib.auth import get_user_model
+    from django_matt.email import send_email
+
+    User = get_user_model()
+    user = await User.objects.aget(pk=payload.user_id)
+    await send_email(
+        to=user.email,
+        template="welcome",
+        context={"user": user, "org_id": payload.org_id},
+    )
+```
+
+### Enqueue from a controller
+
+```python
+# saas_app/controllers.py
+from .tasks import send_welcome_email, WelcomeEmailPayload
+
+@api.post("/")
+@requires_min_org_role("admin")
+async def create_project(self, request, data: dict):
+    org = get_current_tenant()
+    project = await Project.objects.acreate(
+        organization=org,
+        name=data["name"],
+        description=data.get("description", ""),
+    )
+    # Enqueue non-blocking background task
+    await send_welcome_email.enqueue(
+        WelcomeEmailPayload(
+            user_id=request.user.id,
+            org_id=str(org.id),
+        )
+    )
+    return {"id": str(project.id), "name": project.name}
+```
+
+### Manage tasks
+
+```bash
+python manage.py matt_tasks list            # list registered tasks
+python manage.py matt_tasks run saas_app.send_welcome_email '{}'
+python manage.py matt_tasks status          # queue status
+```
+
+Tasks are visible in the Django Unfold admin dashboard when
+`django_matt.tasks_native` is in `INSTALLED_APPS`.
+
+## 9. Putting It All Together
 
 ```python
 # settings.py
@@ -497,7 +571,7 @@ class Project(models.Model):
 
 ```python
 # saas_app/controllers.py
-from django_matt.core.controller import Controller
+from django_matt import APIController
 from django_matt.multitenancy.middleware import get_current_tenant
 from django_matt.multitenancy.decorators import (
     requires_org_membership,
@@ -510,7 +584,7 @@ from .models import Project
 
 
 @api.controller("/projects", tags=["Projects"])
-class ProjectController(Controller):
+class ProjectController(APIController):
 
     @api.get("/")
     @requires_org_membership
@@ -546,7 +620,7 @@ class ProjectController(Controller):
         return {"success": True}
 ```
 
-## 9. Deployment
+## 10. Deployment
 
 Generate a production Dockerfile:
 

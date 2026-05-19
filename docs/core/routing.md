@@ -29,35 +29,66 @@ api = MattAPI(
 
 ## Route Decorators
 
-### Basic Decorators
+### Function-Based Endpoints (via APIRouter)
+
+Use `api.get/post/put/patch/delete` as decorators on standalone async functions:
 
 ```python
-from django_matt import api, get, post, put, patch, delete
+from django_matt import MattAPI
+from pydantic import BaseModel
+
+api = MattAPI()
+
+class UserCreate(BaseModel):
+    email: str
+    name: str
 
 @api.get("/users")
 async def list_users(request):
-    return {"users": [...]}
+    return {"users": []}
 
 @api.post("/users")
-async def create_user(request, data: UserCreate):
-    return {"user": {...}}
+async def create_user(request, body: UserCreate):
+    return {"email": body.email}
 
-@api.get("/users/{user_id}")
+@api.get("/users/<int:user_id>")
 async def get_user(request, user_id: int):
-    return {"user": {...}}
+    return {"user_id": user_id}
 
-@api.put("/users/{user_id}")
-async def update_user(request, user_id: int, data: UserUpdate):
-    return {"user": {...}}
+@api.put("/users/<int:user_id>")
+async def update_user(request, user_id: int, body: UserCreate):
+    return {"updated": True}
 
-@api.patch("/users/{user_id}")
-async def patch_user(request, user_id: int, data: UserPatch):
-    return {"user": {...}}
+@api.patch("/users/<int:user_id>")
+async def patch_user(request, user_id: int):
+    return {"patched": True}
 
-@api.delete("/users/{user_id}")
+@api.delete("/users/<int:user_id>")
 async def delete_user(request, user_id: int):
     return {"deleted": True}
 ```
+
+### Controller-Based Endpoints
+
+Inside an `APIController` subclass, use the module-level decorators imported from `django_matt.core.router`:
+
+```python
+from django_matt.core.router import get, post, put, patch, delete
+from django_matt.core.controller import APIController
+
+class UserController(APIController):
+    prefix = "/users"
+
+    @get("/")
+    async def list_users(self, request):
+        return {"users": []}
+
+    @post("/")
+    async def create_user(self, request, data: UserCreate):
+        return {"email": data.email}
+```
+
+The `_route_info` attribute set by these decorators is what `APIRouter.get_urls()` reads to generate Django URL patterns.
 
 ### Path Parameters
 
@@ -86,6 +117,8 @@ async def list_users(
 
 ### Request Body
 
+For function-based routes, use the `body` parameter name — the router automatically detects it as the request body and validates it with Pydantic:
+
 ```python
 from pydantic import BaseModel
 
@@ -95,49 +128,79 @@ class UserCreate(BaseModel):
     name: str
 
 @api.post("/users")
-async def create_user(request, data: UserCreate):
-    # Request body is automatically validated
-    return {"email": data.email, "name": data.name}
+async def create_user(request, body: UserCreate):
+    # body is automatically parsed and validated from the JSON request
+    return {"email": body.email, "name": body.name}
+```
+
+For controller methods, any parameter typed as a `BaseModel` subclass (other than `request`) is injected from the parsed JSON body:
+
+```python
+class UserController(APIController):
+    prefix = "/users"
+
+    @post("/")
+    async def create_user(self, request, data: UserCreate):
+        # data is parsed from request body
+        ...
 ```
 
 ## Router Groups
 
-Group related endpoints with a router:
+Group related endpoints with a sub-router and include it in the main API:
 
 ```python
-from django_matt import APIRouter
+from django_matt.core.router import APIRouter
 
 users_router = APIRouter(prefix="/users", tags=["Users"])
 
 @users_router.get("/")
 async def list_users(request):
-    return {"users": [...]}
+    return {"users": []}
 
-@users_router.get("/{user_id}")
+@users_router.get("/<int:user_id>")
 async def get_user(request, user_id: int):
-    return {"user": {...}}
+    return {"user_id": user_id}
 
-# Register the router
+# Include in main API
 api.include_router(users_router)
+```
+
+## Registering Controllers
+
+```python
+from django_matt import MattAPI
+from myapp.controllers import UserController, ProductController
+
+api = MattAPI()
+api.register_controller(UserController)
+api.register_controller(ProductController)
+
+# Register multiple at once
+api.register_controllers(UserController, ProductController)
 ```
 
 ## URL Configuration
 
-Add the API to your Django URLs:
+Expose the API URLs in Django's `urls.py`:
 
 ```python
 # urls.py
-from django.urls import path
+from django.urls import path, include
 from myapp.api import api
 
 urlpatterns = [
-    path("api/", api.urls),
+    path("api/", include(api.urls)),
 ]
 ```
+
+`api.urls` calls `get_urls()` internally, which merges routes with the same path, sorts static patterns before parameterized ones, and optionally builds a Rust radix-tree router for O(path-length) dispatch.
 
 ## Response Types
 
 ### Dict Response
+
+Return a plain dict — the router serializes it with `orjson` into a `JsonResponse`:
 
 ```python
 @api.get("/status")
@@ -147,6 +210,8 @@ async def status(request):
 
 ### Pydantic Model Response
 
+Return a Pydantic model instance — it is serialized via `model_dump()`:
+
 ```python
 from pydantic import BaseModel
 
@@ -154,36 +219,55 @@ class StatusResponse(BaseModel):
     status: str
     version: str
 
-@api.get("/status", response=StatusResponse)
+@api.get("/status")
 async def status(request) -> StatusResponse:
     return StatusResponse(status="ok", version="1.0.0")
 ```
 
-### HTTP Status Codes
+### Django HttpResponse
+
+Return any `HttpResponse` subclass directly (e.g. `StreamingHttpResponse`, `FileResponse`):
 
 ```python
 from django.http import HttpResponse
 
-@api.post("/users", response={201: UserResponse})
-async def create_user(request, data: UserCreate):
-    user = await User.objects.acreate(**data.model_dump())
-    return 201, UserResponse.from_orm(user)
+@api.get("/ping")
+async def ping(request):
+    return HttpResponse("pong", content_type="text/plain")
+```
+
+### Default Status Codes
+
+| Method | Default status |
+|--------|---------------|
+| GET | 200 |
+| POST | 201 |
+| PUT | 200 |
+| PATCH | 200 |
+| DELETE | 204 |
+
+Override via `status_code` kwarg on the decorator:
+
+```python
+@api.post("/users", status_code=200)
+async def create_user(request, body: UserCreate):
+    ...
 ```
 
 ## Async Support
 
-Django Matt is async-first. All handlers support both sync and async:
+All handlers are async by default. Sync handlers are also supported — the router detects coroutines at registration time:
 
 ```python
 # Async (recommended)
 @api.get("/users")
 async def list_users(request):
-    users = [u async for u in User.objects.all()].acount()
-    return {"count": users}
+    count = await User.objects.acount()
+    return {"count": count}
 
-# Sync (also supported)
+# Sync (also works)
 @api.get("/sync-users")
 def list_users_sync(request):
-    users = User.objects.count()
-    return {"count": users}
+    count = User.objects.count()
+    return {"count": count}
 ```

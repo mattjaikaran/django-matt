@@ -792,6 +792,65 @@ class EmployeeController(APIController):
 
 ---
 
+---
+
+## Recipe 16: Native Background Task
+
+```python
+# myapp/tasks.py
+from django_matt.tasks_native import task, periodic_task, retry
+from django_matt.tasks_native.scheduling import crontab, every
+from pydantic import BaseModel
+
+class NotifyPayload(BaseModel):
+    user_id: int
+    message: str
+    channel: str = "email"
+
+@task(
+    queue="notifications",
+    retry=retry.exponential(max_retries=3, base_delay=5.0),
+    timeout=60,
+)
+async def notify_user(payload: NotifyPayload) -> bool:
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    user = await User.objects.aget(id=payload.user_id)
+    if payload.channel == "email":
+        return await send_email(user, payload.message)
+    elif payload.channel == "push":
+        return await send_push(user, payload.message)
+    return False
+
+@periodic_task(schedule=crontab(hour=7, minute=30))  # 7:30 AM daily
+async def morning_summary():
+    users = [u async for u in User.objects.filter(notifications_enabled=True)]
+    for user in users:
+        await notify_user.delay(NotifyPayload(
+            user_id=user.id,
+            message="Your daily summary is ready.",
+            channel="email",
+        ))
+
+
+# myapp/controllers.py — enqueue from endpoint
+from django_matt import APIController, post
+from django_matt.auth import jwt_required
+from config.api import api
+from .tasks import notify_user, NotifyPayload
+
+@api.controller("/notify", tags=["Notifications"])
+class NotifyController(APIController):
+
+    @post("/send")
+    @jwt_required
+    async def send_notification(self, request, body: NotifyPayload):
+        await notify_user.delay(body)
+        return {"queued": True}
+```
+
+---
+
 ## Decision Guide: Controller vs ViewSet
 
 | Use Case | Choice |

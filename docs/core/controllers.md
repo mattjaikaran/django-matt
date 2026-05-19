@@ -4,23 +4,29 @@ Controllers are class-based API handlers that group related endpoints together.
 
 ## APIController
 
-The base class for all controllers:
+The base class for all controllers. Route methods are decorated with the route decorators imported from `django_matt.core.router`, then the controller class is registered with the API via `api.register_controller()`:
 
 ```python
-from django_matt import MattAPI, APIController, get, post, put, delete
+from django_matt import MattAPI
+from django_matt.core.controller import APIController
+from django_matt.core.router import get, post, put, delete
+from django_matt.permissions import IsAuthenticated
 
 api = MattAPI()
 
-@api.controller("/users", tags=["Users"])
 class UserController(APIController):
     """User management endpoints."""
+
+    prefix = "/users"
+    tags = ["Users"]
+    permission_classes = [IsAuthenticated]
 
     @get("/")
     async def list_users(self, request):
         users = [u async for u in User.objects.all()]
         return {"users": [u.email for u in users]}
 
-    @get("/{user_id}")
+    @get("/<int:user_id>")
     async def get_user(self, request, user_id: int):
         user = await User.objects.aget(id=user_id)
         return {"user": user.email}
@@ -30,59 +36,81 @@ class UserController(APIController):
         user = await User.objects.acreate(**data.model_dump())
         return {"user": user.email}
 
-    @delete("/{user_id}")
+    @delete("/<int:user_id>")
     async def delete_user(self, request, user_id: int):
         await User.objects.filter(id=user_id).adelete()
         return {"deleted": True}
+
+
+api.register_controller(UserController)
+
+# In urls.py:
+# urlpatterns = [path("api/", include(api.urls))]
 ```
 
 ## CRUDController
 
-Pre-built CRUD operations with async ORM support and query optimization:
+Pre-built CRUD operations with async ORM support and automatic query optimization. Extends `APIController` with `list`, `retrieve`, `create`, `update`, `partial_update`, `delete`, `bulk_create`, `bulk_update`, `exists`, and `count` methods:
 
 ```python
-from django_matt import MattAPI, CRUDController
+from django_matt import MattAPI
+from django_matt.core.controller import CRUDController
+from django_matt.core.router import get, post
 from django_matt.permissions import IsAuthenticated
 
 api = MattAPI()
 
-@api.controller("/products", tags=["Products"])
 class ProductController(CRUDController):
+    prefix = "/products"
+    tags = ["Products"]
     model = Product
+    schema = ProductSchema
     permission_classes = [IsAuthenticated]
 
-    # Query optimization (auto-detected by default)
+    # Query optimization (auto-detected from model FK/M2M by default)
     auto_optimize = True
     select_related_fields = ["category", "brand"]
     prefetch_related_fields = ["tags", "images"]
 
-    # Optional: customize response schemas
-    list_schema = ProductListSchema
-    detail_schema = ProductDetailSchema
-    create_schema = ProductCreateSchema
-    update_schema = ProductUpdateSchema
+    # Pagination settings
+    default_limit = 20
+    max_limit = 100
+
+    # Use built-in CRUD methods in your route handlers
+    @get("/")
+    async def list_products(self, request):
+        return await self.list(request)
+
+    @post("/")
+    async def create_product(self, request, data: ProductCreateSchema):
+        return await self.create(request, data)
+
+
+api.register_controller(ProductController)
 ```
 
 ### Built-in Methods
 
-CRUDController provides these async methods:
+CRUDController provides these async methods that you call from your route handlers:
 
-| Method | HTTP | Path | Description |
-|--------|------|------|-------------|
-| `list()` | GET | `/` | List with pagination |
-| `create()` | POST | `/` | Create new resource |
-| `retrieve()` | GET | `/{id}` | Get single resource |
-| `update()` | PUT | `/{id}` | Full update |
-| `partial_update()` | PATCH | `/{id}` | Partial update |
-| `delete()` | DELETE | `/{id}` | Delete resource |
-| `exists()` | GET | `/{id}/exists` | Check if exists |
-| `count()` | GET | `/count` | Count resources |
-| `bulk_create()` | POST | `/bulk` | Create multiple |
-| `bulk_update()` | PUT | `/bulk` | Update multiple |
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `list(request)` | `async` | List with limit/offset pagination |
+| `retrieve(request, id)` | `async` | Get single resource by `lookup_field` |
+| `create(request, data)` | `async` | Create new resource from Pydantic model |
+| `update(request, id, data)` | `async` | Full update |
+| `partial_update(request, id, data)` | `async` | Partial update (PATCH semantics) |
+| `delete(request, id)` | `async` | Delete resource |
+| `bulk_create(request, items)` | `async` | Create multiple instances |
+| `bulk_update(request, items, fields)` | `async` | Update multiple instances |
+| `exists(request, id)` | `async` | Check if resource exists |
+| `count(request)` | `async` | Count resources |
+
+The `list()` method returns `{"items": [...], "count": total, "limit": n, "offset": n}`.
 
 ### Query Optimization
 
-CRUDController automatically optimizes queries:
+CRUDController automatically optimizes queries by detecting FK and M2M fields from the model at `__init__` time:
 
 ```python
 class OrderController(CRUDController):
@@ -91,125 +119,148 @@ class OrderController(CRUDController):
     # Auto-detect relations (default behavior)
     auto_optimize = True
 
-    # Or manually specify
+    # Or manually specify to override auto-detection
     select_related_fields = ["customer", "shipping_address"]
     prefetch_related_fields = ["items", "items__product"]
 
+    # Include reverse FK relations in prefetch (disabled by default)
+    include_reverse_relations = False
+
     # Debug optimization
-    async def list(self, request):
+    def inspect_optimization(self):
         info = self.get_query_optimization_info()
-        print(f"select_related: {info['select_related']}")
-        print(f"prefetch_related: {info['prefetch_related']}")
-        return await super().list(request)
+        print(f"select_related: {info['select_related_fields']}")
+        print(f"prefetch_related: {info['prefetch_related_fields']}")
 ```
 
 ### Customizing Behavior
 
-Override methods to customize behavior:
+Override `get_queryset()` to scope the base queryset. Use `sync_to_async()` for any sync ORM calls inside async handlers:
 
 ```python
 class ProductController(CRUDController):
     model = Product
 
     def get_queryset(self):
-        """Filter by user's organization."""
-        qs = super().get_queryset()
-        if hasattr(self.request, 'org'):
-            qs = qs.filter(organization=self.request.org)
-        return qs
+        """Filter to active products."""
+        return self.model.objects.filter(is_active=True)
 
-    async def pre_create(self, request, data):
-        """Add user before creation."""
-        data['created_by'] = request.user
-        return data
+    @get("/")
+    async def list_products(self, request):
+        # Add extra fields before delegating to built-in list()
+        result = await self.list(request)
+        result["metadata"] = {"source": "db"}
+        return result
 
-    async def post_create(self, request, instance):
-        """Send notification after creation."""
-        await send_notification(f"Product {instance.name} created")
+    @post("/")
+    async def create_product(self, request, data: ProductCreateSchema):
+        # Mutate data before creation
+        data_dict = data.model_dump()
+        data_dict["created_by_id"] = request.user.id
+        instance = await self.model.objects.acreate(**data_dict)
+        return self._model_to_dict(instance)
 ```
 
 ## Controller Options
 
 ### Prefix and Tags
 
+Set `prefix` and `tags` as class attributes:
+
 ```python
-@api.controller("/api/v1/users", tags=["Users", "V1"])
 class UserController(APIController):
-    ...
+    prefix = "/api/v1/users"
+    tags = ["Users", "V1"]
 ```
 
 ### Permission Classes
 
+`permission_classes` is a list of permission class instances or types resolved at init time. All classes in the list must pass (AND logic):
+
 ```python
 from django_matt.permissions import IsAuthenticated, IsAdmin
 
-@api.controller("/admin", tags=["Admin"])
 class AdminController(APIController):
+    prefix = "/admin"
+    tags = ["Admin"]
     permission_classes = [IsAuthenticated, IsAdmin]
 ```
 
 ### Per-Method Permissions
 
+Use `@guard()` on individual methods to override the controller-level `permission_classes`:
+
 ```python
-from django_matt.auth import jwt_required, admin_required
+from django_matt.permissions import IsAuthenticated
+from django_matt.auth.decorators import guard, jwt_required
 
 class UserController(APIController):
+    prefix = "/users"
+    permission_classes = [IsAuthenticated]
+
     @get("/")
     async def list_users(self, request):
-        # Public endpoint
+        # Inherits controller permission_classes
         ...
 
     @get("/me")
     @jwt_required
     async def get_me(self, request):
-        # Requires authentication
+        # JWT auth required
         ...
+```
 
-    @delete("/{user_id}")
-    @admin_required
-    async def delete_user(self, request, user_id: int):
-        # Requires admin
-        ...
+## Error Handling
+
+`APIController.handle_exception()` automatically converts common exceptions to JSON responses:
+
+- `APIError` subclasses → their `status_code` and `code`
+- Pydantic `ValidationError` → 422
+- Django `DoesNotExist` → 404
+- All others → 500 via `ErrorHandler`
+
+Override `handle_exception()` on your controller class to customize:
+
+```python
+class ProductController(APIController):
+    prefix = "/products"
+
+    def handle_exception(self, exc, request=None):
+        if isinstance(exc, MyCustomError):
+            from django.http import JsonResponse
+            return JsonResponse({"detail": str(exc)}, status=400)
+        return super().handle_exception(exc, request)
 ```
 
 ## Dependency Injection
 
-Controllers support dependency injection:
+Controllers support DI via the `Depends()` marker when `DJANGO_MATT["DI_AUTO_WIRE"] = True`:
 
 ```python
-from django_matt.di import Depends, CurrentUser, inject
+from django_matt.di.depends import Depends
 
 class UserService:
     async def get_profile(self, user_id: int):
         return await User.objects.aget(id=user_id)
 
-@api.controller("/users")
 class UserController(APIController):
-    def __init__(self, service: UserService = Depends()):
-        self.service = service
+    prefix = "/users"
 
     @get("/me")
-    @inject
-    async def get_me(self, request, user: CurrentUser):
-        return await self.service.get_profile(user.id)
+    async def get_me(self, request, svc: UserService = Depends(UserService)):
+        return await svc.get_profile(request.user.id)
 ```
 
 ## Django Version Compatibility
 
-CRUDController automatically adapts to your Django version:
+CRUDController uses Django 4.1+ async ORM methods (`aget`, `acreate`, `asave`, `adelete`, `acount`, `aexists`, `abulk_create`, `abulk_update`). Version constants are available for conditional code:
 
 ```python
 from django_matt.core import DJANGO_5_2_PLUS, DJANGO_6_0_PLUS
 
-# Check version at runtime
 if DJANGO_5_2_PLUS:
     print("Using Django 5.2+ features")
-
-if DJANGO_6_0_PLUS:
-    print("Using Django 6.0+ features")
 ```
-
-Features by version:
 
 | Feature | Django 4.1+ | Django 5.2+ | Django 6.0+ |
 |---------|-------------|-------------|-------------|

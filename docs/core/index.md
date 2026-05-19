@@ -61,8 +61,12 @@ graph TB
 Here's a complete example using all core concepts:
 
 ```python
-from django_matt import MattAPI, APIController, ModelSchema, IsAuthenticated
-from django_matt.core.errors import NotFoundError
+from django_matt import MattAPI
+from django_matt.core.controller import APIController
+from django_matt.core.schema import ModelSchema
+from django_matt.core.router import get, post
+from django_matt.core.errors import NotFoundAPIError
+from django_matt.permissions import IsAuthenticated
 from pydantic import BaseModel
 from myapp.models import Product
 
@@ -72,9 +76,9 @@ api = MattAPI(title="Product API", version="1.0.0")
 
 # Define schemas
 class ProductSchema(ModelSchema):
-    class Meta:
+    class Config:
         model = Product
-        fields = ['id', 'name', 'price', 'description']
+        include = ['id', 'name', 'price', 'description']
 
 
 class ProductCreateSchema(BaseModel):
@@ -84,50 +88,61 @@ class ProductCreateSchema(BaseModel):
 
 
 # Define controller
-@api.controller("/products", tags=["Products"])
 class ProductController(APIController):
+    prefix = "/products"
+    tags = ["Products"]
     permission_classes = [IsAuthenticated]
 
-    @api.get("/", response=list[ProductSchema])
-    async def list_products(self):
+    @get("/")
+    async def list_products(self, request):
         """List all products."""
         products = [p async for p in Product.objects.all()]
-        return [ProductSchema.from_orm(p) for p in products]
+        return [ProductSchema.from_orm_fast(p) for p in products]
 
-    @api.get("/{product_id}", response=ProductSchema)
-    async def get_product(self, product_id: int):
+    @get("/<int:product_id>")
+    async def get_product(self, request, product_id: int):
         """Get a single product."""
         try:
             product = await Product.objects.aget(id=product_id)
         except Product.DoesNotExist:
-            raise NotFoundError(f"Product {product_id} not found")
+            raise NotFoundAPIError(f"Product {product_id} not found")
         return ProductSchema.from_orm(product)
 
-    @api.post("/", response=ProductSchema)
-    async def create_product(self, data: ProductCreateSchema):
+    @post("/")
+    async def create_product(self, request, data: ProductCreateSchema):
         """Create a new product."""
         product = await Product.objects.acreate(**data.model_dump())
         return ProductSchema.from_orm(product)
+
+
+# Register controller and expose URLs
+api.register_controller(ProductController)
+
+# In urls.py:
+# from django.urls import path, include
+# urlpatterns = [path("api/", include(api.urls))]
 ```
 
 ## Key Principles
 
 ### Async-First
 
-django-matt is designed for async operations:
+django-matt is designed for async operations. All handlers are async by default. Use `sync_to_async()` from `asgiref` when you need to call synchronous ORM operations inside an async handler:
 
 ```python
-# Recommended: async handlers
+from asgiref.sync import sync_to_async
+
+# Recommended: async handlers with async ORM
 @api.get("/users")
 async def list_users(request):
     users = [u async for u in User.objects.all()]
     return users
 
-# Also supported: sync handlers
-@api.get("/sync-users")
-def list_users_sync(request):
-    users = User.objects.all()
-    return list(users)
+# Sync ORM inside async handler — wrap with sync_to_async
+@api.get("/count")
+async def count_users(request):
+    count = await sync_to_async(User.objects.count)()
+    return {"count": count}
 ```
 
 ### Type Safety

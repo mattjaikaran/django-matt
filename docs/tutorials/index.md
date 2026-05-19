@@ -7,15 +7,16 @@ Learn Django Matt through hands-on tutorials, from basic REST APIs to production
 ### [Build a REST API in 10 Minutes](build-a-rest-api.md)
 
 Create a complete blog API with CRUD, authentication, pagination, and filtering.
-Covers `MattAPI`, `Controller`, `ModelSchema`, `APIViewSet`, JWT auth, and the
+Covers `MattAPI`, `APIController`, `ModelSchema`, `APIViewSet`, JWT auth, and the
 built-in Swagger UI.
 
 **Time:** ~15 minutes | **Prerequisites:** Python 3.12+, Django basics
 
 ### [Testing Your Django Matt App](testing-guide.md)
 
-Set up pytest, use `APITestClient` and `AsyncAPITestClient`, write controller
-tests, factory patterns, auth flow tests, and webhook verification.
+Set up pytest, use `AsyncAPITestClient` (primary) and `APITestClient` (sync
+fallback), write controller tests, factory patterns, auth flow tests, and
+webhook verification.
 
 **Time:** ~20 minutes | **Prerequisites:** Build a REST API tutorial
 
@@ -46,7 +47,13 @@ interceptors for timing and logging, and rate limiting.
 
 ## Tutorial Conventions
 
-- All code is copy-pasteable and tested against the current release.
+- All code is copy-pasteable and verified against Stage 17 (current release).
 - Imports always use the public API (`from django_matt import ...`).
 - Async is the default. Sync alternatives are noted where they exist.
 - Each tutorial ends with a complete, runnable code listing.
+- Background tasks use `tasks_native` (`@task` decorator with Pydantic payloads).
+  Celery remains supported but is no longer the default recommendation.
+- TypeScript generation via `python manage.py sync_types` produces clean output
+  with no `any` for optional fields.
+- `AsyncAPITestClient` is the standard test client. All integration tests hit
+  a real database — no DB mocking.

@@ -11,11 +11,16 @@ flowchart LR
         M2 --> M3[Auth]
         M3 --> M4[Tenant]
         M4 --> M5[Throttle]
+        M5 --> M6[EventBus Context]
     end
 
     subgraph "Router"
         R1[URL Match] --> R2[Version Check]
         R2 --> R3[Content Negotiation]
+    end
+
+    subgraph "Interceptors"
+        I1[Before Request] --> I2[After Response]
     end
 
     subgraph "Handler"
@@ -24,10 +29,19 @@ flowchart LR
         H3 --> H4[Response Serialization]
     end
 
+    subgraph "Error Handling"
+        E1[@catch / Exception Filters] --> E2[Global Filter Registry]
+        E2 --> E3[ErrorMiddleware]
+    end
+
     REQ[Request] --> M1
-    M5 --> R1
-    R3 --> H1
-    H4 --> RES[Response]
+    M6 --> R1
+    R3 --> I1
+    I1 --> H1
+    H4 --> I2
+    I2 --> RES[Response]
+    H3 -.->|exception| E1
+    E3 --> RES
 ```
 
 ## Controller Data Flow

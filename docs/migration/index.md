@@ -1,10 +1,20 @@
 # Migration Guides
 
+> **Note:** This directory contains legacy migration guides. The current, actively-maintained guides live in [`docs/migrations/`](../migrations/). The files in this directory are preserved for historical reference only.
+
 Guides for migrating to django-matt from other Python API frameworks.
 
-## Available Guides
+## Current Guides (authoritative)
 
-### [From Django REST Framework](from-drf.md)
+The up-to-date guides are in `docs/migrations/`:
+
+- [`docs/migrations/from-drf.md`](../migrations/from-drf.md) — From Django REST Framework
+- [`docs/migrations/from-fastapi.md`](../migrations/from-fastapi.md) — From FastAPI
+- [`docs/migrations/from-ninja.md`](../migrations/from-ninja.md) — From Django Ninja
+
+## Legacy Guides (this directory)
+
+### [From Django REST Framework (legacy)](from-drf.md)
 
 For teams with existing DRF applications. Covers:
 - Serializers to Pydantic schemas
@@ -15,7 +25,7 @@ For teams with existing DRF applications. Covers:
 - Complete before/after app conversion
 - Incremental migration strategy (run DRF and django-matt side by side)
 
-### [From Django Ninja](from-django-ninja.md)
+### [From Django Ninja (legacy)](from-django-ninja.md)
 
 For projects using Django Ninja and its ecosystem (ninja-extra, ninja-jwt, ninja-crud). Covers:
 - NinjaAPI to MattAPI (near-identical API surface)
@@ -26,7 +36,7 @@ For projects using Django Ninja and its ecosystem (ninja-extra, ninja-jwt, ninja
 - Dependency injection differences
 - Import mapping reference
 
-### [From FastAPI](from-fastapi.md)
+### [From FastAPI (legacy)](from-fastapi.md)
 
 For Python developers coming from FastAPI/SQLAlchemy. Covers:
 - SQLAlchemy models to Django ORM

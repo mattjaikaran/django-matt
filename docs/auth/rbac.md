@@ -15,11 +15,11 @@ flowchart TB
     end
 
     subgraph "Permissions"
-        P1[users:read]
-        P2[users:write]
-        P3[users:delete]
-        P4[admin:access]
-        P5[billing:manage]
+        P1[users.read]
+        P2[users.write]
+        P3[users.delete]
+        P4[admin.access]
+        P5[billing.manage]
     end
 
     SUPER --> ADMIN
@@ -39,59 +39,33 @@ flowchart TB
 
 ```python
 # settings.py
-from django_matt.auth.rbac import Role, RBACConfig
-
-DJANGO_MATT_RBAC = RBACConfig(
-    roles=[
-        Role(
-            name="super_admin",
-            level=100,
-            permissions=["*"],  # All permissions
-        ),
-        Role(
-            name="admin",
-            level=80,
-            permissions=[
-                "users:*",
-                "posts:*",
-                "admin:access",
-            ],
-        ),
-        Role(
-            name="manager",
-            level=60,
-            permissions=[
-                "users:read",
-                "users:write",
-                "posts:*",
-            ],
-        ),
-        Role(
-            name="member",
-            level=40,
-            permissions=[
-                "users:read",
-                "posts:read",
-                "posts:write",
-            ],
-        ),
-        Role(
-            name="guest",
-            level=20,
-            permissions=[
-                "posts:read",
-            ],
-        ),
-    ],
-    # Map Django groups to RBAC roles
-    group_mapping={
-        "Administrators": "admin",
-        "Staff": "manager",
-        "Users": "member",
+DJANGO_MATT_RBAC = {
+    "ROLES": {
+        "super_admin": {
+            "permissions": ["*"],  # All permissions
+            "priority": 100,
+        },
+        "admin": {
+            "permissions": ["users.*", "posts.*", "admin.access"],
+            "priority": 80,
+        },
+        "manager": {
+            "permissions": ["users.read", "users.write", "posts.*"],
+            "inherits": ["member"],
+            "priority": 60,
+        },
+        "member": {
+            "permissions": ["users.read", "posts.read", "posts.write"],
+            "priority": 40,
+        },
+        "guest": {
+            "permissions": ["posts.read"],
+            "priority": 20,
+        },
     },
-    # Default role for new users
-    default_role="member",
-)
+    "DEFAULT_ROLE": "member",
+    "USE_DJANGO_GROUPS": True,  # Map Django groups to RBAC roles
+}
 ```
 
 ### Using in Views
@@ -107,7 +81,7 @@ async def list_users(request):
 
 # Require specific permission
 @api.delete("/users/{id}")
-@requires_rbac_permission("users:delete")
+@requires_rbac_permission("users.delete")
 async def delete_user(request, id: int):
     User.objects.filter(id=id).delete()
     return {"deleted": True}
@@ -115,40 +89,42 @@ async def delete_user(request, id: int):
 
 ## Role Hierarchy
 
-Roles are organized by level, where higher levels inherit permissions from lower levels:
+Roles are organized by `priority`, where higher priority roles have more authority. Use `inherits` to compose permissions from lower roles:
 
 ```python
 from django_matt.auth.rbac import Role
 
-roles = [
-    # Highest level - full access
-    Role(name="super_admin", level=100, permissions=["*"]),
+# Roles can also be defined as Role dataclass instances and registered
+# individually via rbac_config.register_role(role)
 
-    # Admin - most permissions
-    Role(name="admin", level=80, permissions=[
-        "users:*",
-        "settings:*",
-        "admin:access",
-    ]),
+from django_matt.auth.rbac import rbac_config
 
-    # Manager - team management
-    Role(name="manager", level=60, permissions=[
-        "users:read",
-        "users:invite",
-        "team:*",
-    ]),
-
-    # Member - standard access
-    Role(name="member", level=40, permissions=[
-        "users:read",
-        "projects:*",
-    ]),
-
-    # Guest - limited access
-    Role(name="guest", level=20, permissions=[
-        "projects:read",
-    ]),
-]
+rbac_config.register_role(Role(
+    name="super_admin",
+    permissions=["*"],  # Wildcard: all permissions
+    priority=100,
+))
+rbac_config.register_role(Role(
+    name="admin",
+    permissions=["users.*", "settings.*", "admin.access"],
+    priority=80,
+))
+rbac_config.register_role(Role(
+    name="manager",
+    permissions=["users.read", "users.invite", "team.*"],
+    inherits=["member"],
+    priority=60,
+))
+rbac_config.register_role(Role(
+    name="member",
+    permissions=["users.read", "projects.*"],
+    priority=40,
+))
+rbac_config.register_role(Role(
+    name="guest",
+    permissions=["projects.read"],
+    priority=20,
+))
 ```
 
 ### Permission Inheritance
@@ -165,13 +141,15 @@ async def team_view(request):
 
 ## Permission Syntax
 
+The default permission delimiter is `.` (configurable via `PERMISSION_DELIMITER` in `DJANGO_MATT_RBAC`).
+
 ### Wildcards
 
 ```python
 permissions = [
     "*",              # All permissions
-    "users:*",        # All user permissions
-    "posts:read",     # Specific permission
+    "users.*",        # All user permissions
+    "posts.read",     # Specific permission
 ]
 ```
 
@@ -179,14 +157,14 @@ permissions = [
 
 ```python
 permissions = [
-    "users:read",
-    "users:write",
-    "users:delete",
-    "posts:read",
-    "posts:write",
-    "posts:publish",
-    "admin:access",
-    "billing:manage",
+    "users.read",
+    "users.write",
+    "users.delete",
+    "posts.read",
+    "posts.write",
+    "posts.publish",
+    "admin.access",
+    "billing.manage",
 ]
 ```
 
@@ -232,15 +210,19 @@ from django_matt.auth.rbac import (
 
 # Get all permissions (including from role hierarchy)
 permissions = get_user_permissions(user)
-# {"users:read", "posts:read", "posts:write", ...}
+# {"users.read", "posts.read", "posts.write", ...}
 
 # Check specific permission
-if user_has_permission(user, "users:delete"):
+if user_has_permission(user, "users.delete"):
     # User can delete users
     pass
 
+# Check scoped permission (resource + action)
+if user_has_permission(user, "delete", resource="users"):
+    pass
+
 # Wildcard matching
-# If user has "users:*", then user_has_permission(user, "users:read") is True
+# If user has "users.*", then user_has_permission(user, "users.read") is True
 ```
 
 ## Decorators
@@ -273,65 +255,69 @@ Requires a specific permission (checks wildcards):
 from django_matt.auth.rbac import requires_rbac_permission
 
 @api.post("/posts")
-@requires_rbac_permission("posts:write")
+@requires_rbac_permission("posts.write")
 async def create_post(request, data: PostCreate):
     return Post.objects.create(**data.dict())
 
 @api.delete("/posts/{id}")
-@requires_rbac_permission("posts:delete")
+@requires_rbac_permission("posts.delete")
 async def delete_post(request, id: int):
     Post.objects.filter(id=id).delete()
     return {"deleted": True}
+
+# Scoped: permission + resource checked separately
+@api.delete("/users/{id}")
+@requires_rbac_permission("delete", resource="users")
+async def delete_user(request, id: int):
+    ...
 ```
 
 ## Integration with Django Groups
 
-Map Django groups to RBAC roles for compatibility with existing systems:
+When `USE_DJANGO_GROUPS` is `True` (the default), Django group names are treated directly as RBAC role names. Name your Django groups to match your role names:
 
 ```python
 # settings.py
-DJANGO_MATT_RBAC = RBACConfig(
-    roles=[...],
-    group_mapping={
-        "Django Admins": "super_admin",
-        "Staff": "admin",
-        "Moderators": "manager",
-        "Registered Users": "member",
+DJANGO_MATT_RBAC = {
+    "ROLES": {
+        "super_admin": {"permissions": ["*"], "priority": 100},
+        "admin": {"permissions": ["users.*"], "priority": 80},
+        "manager": {"permissions": ["users.read"], "inherits": ["member"], "priority": 60},
+        "member": {"permissions": ["posts.read"], "priority": 40},
     },
-)
+    "USE_DJANGO_GROUPS": True,  # Group named "admin" → "admin" RBAC role
+    "DEFAULT_ROLE": "member",
+}
 ```
 
-When a user belongs to a Django group, they automatically receive the mapped RBAC role.
+When a user belongs to a Django group, they automatically receive the matching RBAC role.
 
 ## Multi-Tenant RBAC
 
-For B2B applications with organization-scoped roles:
-
-```python
-from django_matt.auth.rbac import get_user_roles
-
-# Get roles within an organization
-org_roles = get_user_roles(user, organization=org)
-
-# Check permission within organization
-if user_has_permission(user, "billing:manage", organization=org):
-    # User can manage billing for this org
-    pass
-```
-
-### Organization Role Assignment
+For B2B applications, use the `Membership` model from multitenancy to assign per-organization roles. Check permissions by querying the membership role directly:
 
 ```python
 from django_matt.multitenancy import Membership
+from django_matt.auth.rbac import user_has_permission
 
 # Assign role within organization
-membership = Membership.objects.create(
+membership = await Membership.objects.acreate(
     user=user,
     organization=org,
     role="admin",  # RBAC role name
 )
 
-# User now has admin permissions within this org
+# Check permission for a user within an org
+async def user_can_manage_billing(user, org) -> bool:
+    membership = await Membership.objects.filter(
+        user=user, organization=org
+    ).afirst()
+    if not membership:
+        return False
+    return user_has_permission.__wrapped__(membership.role, "billing.manage")
+    # Or simpler: check the membership role against rbac_config directly
+    from django_matt.auth.rbac import rbac_config
+    return rbac_config.has_permission(membership.role, "billing.manage")
 ```
 
 ## Custom Permission Checks
@@ -347,47 +333,35 @@ def can_edit_post(user, post):
     if post.author == user:
         return True
 
-    # Check RBAC permission
-    if user_has_permission(user, "posts:edit_any"):
+    # Check RBAC permission (full dotted permission string)
+    if user_has_permission(user, "posts.edit_any"):
         return True
 
-    # Check organization permission
-    if post.organization:
-        return user_has_permission(
-            user,
-            "posts:edit",
-            organization=post.organization
-        )
+    # Check with resource scope
+    if user_has_permission(user, "edit", resource="posts"):
+        return True
 
     return False
 ```
 
-## Permission Middleware
+## Permission Checks in Views
 
-Add middleware for automatic permission context:
-
-```python
-# settings.py
-MIDDLEWARE = [
-    ...
-    # RBACMiddleware is not yet implemented - use permission decorators instead
-]
-```
-
-This adds `request.rbac` with helper methods:
+Use the RBAC utility functions directly inside views — no additional middleware needed:
 
 ```python
+from django_matt.auth.rbac import user_has_permission, get_user_highest_role, get_user_permissions
+
 async def my_view(request):
     # Check permission
-    if request.rbac.has_permission("posts:delete"):
+    if user_has_permission(request.user, "posts.delete"):
         # Can delete
         pass
 
-    # Get user's role
-    role = request.rbac.highest_role
+    # Get user's highest role
+    role = get_user_highest_role(request.user)
 
     # Get all permissions
-    permissions = request.rbac.permissions
+    permissions = get_user_permissions(request.user)
 ```
 
 ## Testing

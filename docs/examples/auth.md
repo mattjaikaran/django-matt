@@ -87,7 +87,7 @@ async def login(request, data: LoginSchema):
 @api.post("/auth/refresh", tags=["Auth"])
 async def refresh(request, data: RefreshTokenRequest):
     """Refresh access token."""
-    from django_matt.auth import async_refresh_tokens
+    from django_matt.auth.jwt import async_refresh_tokens
     try:
         tokens = await async_refresh_tokens(data.refresh_token)
         return {"access": tokens.access_token}

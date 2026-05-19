@@ -376,20 +376,22 @@ async def test_event_emitted_on_publish(service, draft_post, user):
 
 ## 8. The generate_crud Shortcut
 
-For new apps, skip the boilerplate entirely:
+For new models, skip writing all of this by hand:
 
 ```bash
 python manage.py generate_crud blog.Post --full
 ```
 
-This generates:
+`--full` generates every layer in one command:
 - `blog/services.py` — `PostService(CRUDService["Post"])` with `get_queryset()` stub
 - `blog/controllers.py` — thin controller wired to the service
 - `blog/schemas.py` — Pydantic create/update/response schemas
 - `blog/admin.py` — Django Unfold admin registration
-- `blog/tests/` — test stubs for service and controller
+- `blog/tests/` — integration test stubs for service and controller
 
-Then add your domain methods to the generated service.
+Then add your domain methods (like `publish`, `archive`, `get_featured`) to the
+generated service. The generated tests use `AsyncAPITestClient` and hit a real
+database — no mocking.
 
 ## Summary
 

@@ -62,7 +62,7 @@ client in real time:
 ```python
 # ai/controllers.py
 from django.http import HttpRequest
-from django_matt.core.controller import Controller
+from django_matt import APIController
 from django_matt.auth import jwt_required
 from django_matt.streaming import sse_response, event, SSEEvent
 from django_matt.ai import OpenAIProvider, Message
@@ -72,7 +72,7 @@ llm = OpenAIProvider()
 
 
 @api.controller("/ai", tags=["AI"])
-class AIController(Controller):
+class AIController(APIController):
 
     @api.post("/chat")
     @jwt_required
@@ -357,7 +357,7 @@ from django_matt.interceptors import (
 from django_matt.interceptors import intercept, LoggingInterceptor, TimingInterceptor
 
 @api.controller("/ai", tags=["AI"])
-class AIController(Controller):
+class AIController(APIController):
     middleware_classes = [
         LoggingInterceptor(log_body=True),
         TimingInterceptor(),
@@ -375,7 +375,7 @@ class AIController(Controller):
 from django_matt.interceptors import intercept, TimingInterceptor
 
 @api.controller("/ai", tags=["AI"])
-class AIController(Controller):
+class AIController(APIController):
 
     @api.post("/chat")
     @intercept(TimingInterceptor(), LoggingInterceptor(log_body=True))
@@ -435,7 +435,7 @@ Protect your AI endpoints from abuse:
 from django_matt.throttling import throttle, UserRateThrottle
 
 @api.controller("/ai", tags=["AI"])
-class AIController(Controller):
+class AIController(APIController):
 
     @api.post("/chat")
     @jwt_required
@@ -595,7 +595,7 @@ class GetConversationHistory(Query):
 import uuid
 
 from django.http import HttpRequest
-from django_matt.core.controller import Controller
+from django_matt import APIController
 from django_matt.auth import jwt_required
 from django_matt.streaming import sse_response, event
 from django_matt.throttling import throttle
@@ -611,7 +611,7 @@ query_bus = get_query_bus()
 
 
 @api.controller("/ai", tags=["AI"])
-class AIController(Controller):
+class AIController(APIController):
     middleware_classes = [LoggingInterceptor(log_body=True), TimingInterceptor()]
 
     @api.post("/chat")

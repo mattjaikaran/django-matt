@@ -330,7 +330,7 @@ The module system provides a plugin architecture with dependency resolution and 
 - **Lifecycle hooks** — `on_init`, `on_ready`, `on_shutdown` for setup and teardown
 - **Auto-discovery** — modules are discovered from `INSTALLED_APPS` or explicit registration
 
-### Slim Mode (`django_matt/slim.py`, `django_matt/loader.py`, `django_matt/startup.py`)
+### Slim Mode (`django_matt/slim.py`, `django_matt/loader.py`)
 
 Slim mode controls which modules are loaded at startup, reducing memory footprint and import time:
 

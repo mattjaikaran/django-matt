@@ -191,28 +191,34 @@ distributed_cache.clear_namespace()
 ```python
 # settings.py
 
-# Cache backend configuration
+# Cache backend configuration (use Redis for multi-process deployments)
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": "redis://localhost:6379/1",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
     }
 }
 
-# Django Matt cache settings
-DJANGO_MATT_CACHE_ENABLED = True
-DJANGO_MATT_CACHE_TIMEOUT = 300  # Default 5 minutes
-DJANGO_MATT_CACHE_LOCK_TIMEOUT = 10  # Stampede lock timeout
+# Django Matt cache settings (nested dict format)
+DJANGO_MATT = {
+    "CACHE_ENABLED": True,         # Enable/disable caching (default True)
+    "CACHE_TIMEOUT": 300,          # Default timeout in seconds (5 min)
+    "CACHE_LOCK_TIMEOUT": 10,      # Stampede prevention lock timeout
+}
+
+# Legacy flat-name settings are also accepted:
+# DJANGO_MATT_CACHE_ENABLED = True
+# DJANGO_MATT_CACHE_TIMEOUT = 300
+# DJANGO_MATT_CACHE_LOCK_TIMEOUT = 10
 ```
 
 ### Disabling Cache
 
 ```python
 # Disable caching globally (e.g., for testing)
-DJANGO_MATT_CACHE_ENABLED = False
+DJANGO_MATT = {
+    "CACHE_ENABLED": False,
+}
 ```
 
 ### Custom Cache Backend

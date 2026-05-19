@@ -1,4 +1,6 @@
-# Migrating from Django Ninja
+# Migrating from Django Ninja (Legacy)
+
+> **This is a legacy guide.** The current, authoritative version is [`docs/migrations/from-ninja.md`](../migrations/from-ninja.md). This file is preserved for historical reference.
 
 This guide helps you migrate from Django Ninja (and its ecosystem packages) to django-matt. Since django-matt was designed as a Django Ninja successor, most concepts map directly.
 
