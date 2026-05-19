@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class CommentAuthorSummary(BaseModel):
@@ -24,6 +24,13 @@ class CommentResponse(BaseModel):
     parent_id: UUID | None = None
     replies: list["CommentResponse"] = []
     is_approved: bool
+
+    @field_validator("replies", mode="before")
+    @classmethod
+    def coerce_replies(cls, v):
+        if hasattr(v, "all"):
+            return list(v.all())
+        return v
     created_at: datetime
     updated_at: datetime
 

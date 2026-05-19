@@ -51,12 +51,22 @@ export interface PaginatedPosts {
   totalPages: number;
 }
 
+export interface CommentAuthor {
+  id: string;
+  username: string;
+  fullName: string;
+}
+
 export interface Comment {
   id: string;
   postId: string;
-  author: AuthorSummary;
+  author: CommentAuthor | null;
+  displayName: string;
   content: string;
+  parentId: string | null;
+  replies: Comment[];
   createdAt: string;
+  updatedAt: string;
   isApproved: boolean;
 }
 

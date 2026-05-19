@@ -31,24 +31,16 @@ export function CommentThread({ comments, postId }: CommentThreadProps) {
   return (
     <div className="space-y-4">
       {comments.map(comment => {
-        const isOwn = isAuthenticated && user?.id === comment.author.id;
+        const isOwn = isAuthenticated && user?.id === comment.author?.id;
         return (
           <div key={comment.id} className="flex gap-3">
             <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden">
-              {comment.author.avatar ? (
-                <img
-                  src={comment.author.avatar}
-                  alt={comment.author.fullName}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <User className="h-4 w-4 text-muted-foreground" />
-              )}
+              <User className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="flex-1 rounded-lg bg-muted/50 p-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-medium">
-                  {comment.author.fullName}
+                  {comment.displayName}
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">

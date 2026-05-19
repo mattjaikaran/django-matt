@@ -196,7 +196,7 @@ class PostController(APIController):
 
     @staticmethod
     @get("/<str:slug>")
-    async def get_post(slug: str, request) -> PostDetailResponse:
+    async def get_post(request, slug: str) -> PostDetailResponse:
         post = await get_post_by_slug(slug)
         if post is None or post.status != "published":
             raise NotFoundAPIError(f"Post '{slug}' not found.")

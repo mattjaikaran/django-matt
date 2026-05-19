@@ -11,7 +11,7 @@ from blog.posts.feeds import LatestPostsFeed
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/", include(api.urls)),
+    path("", include(api.urls)),
     path("feed/rss/", LatestPostsFeed(), name="rss_feed"),
 ]
 

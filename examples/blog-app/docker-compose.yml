@@ -27,6 +27,11 @@ services:
       SITE_URL: "http://localhost:8000"
     ports:
       - "8000:8000"
+    volumes:
+      - ../../django_matt:/app/django_matt
+      - ./api:/app/examples/blog-app/api
+      - api_venv:/app/examples/blog-app/api/.venv
+    command: ["sh", "-c", "uv run python manage.py migrate --noinput && uv run uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --reload --reload-dir /app/django_matt --reload-dir /app/examples/blog-app/api"]
     depends_on:
       db:
         condition: service_healthy
@@ -39,8 +44,13 @@ services:
       VITE_API_BASE_URL: "http://localhost:8000/api"
     ports:
       - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
     depends_on:
       - api
 
 volumes:
   postgres_data:
+  api_venv:
+  frontend_node_modules:

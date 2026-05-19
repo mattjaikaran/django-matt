@@ -18,14 +18,15 @@ class CommentController(APIController):
 
     @staticmethod
     @get("/")
-    async def list_comments(post_id: str) -> list[CommentResponse]:
+    async def list_comments(request) -> list[CommentResponse]:
         """Return top-level approved comments for a post (by post UUID)."""
-        post = await Post.objects.filter(id=post_id, status="published").afirst()
-        if post is None:
+        post_id = request.GET.get("post", "")
+        post_obj = await Post.objects.filter(id=post_id, status="published").afirst()
+        if post_obj is None:
             raise NotFoundAPIError("Post not found.")
 
         top_level = (
-            Comment.objects.filter(post=post, parent=None, is_approved=True)
+            Comment.objects.filter(post=post_obj, parent=None, is_approved=True)
             .select_related("author")
             .prefetch_related("replies__author")
             .order_by("created_at")

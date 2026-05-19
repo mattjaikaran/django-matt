@@ -8,6 +8,10 @@ import { useComments, usePost } from '@/hooks/use-blog';
 import { formatDate } from '@/lib/utils';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { ArrowLeft, Clock, Eye, Folder } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github-dark.css';
 
 export const Route = createFileRoute('/posts/$slug')({
   component: PostDetailPage,
@@ -109,10 +113,10 @@ function PostDetailPage() {
       )}
 
       {/* Content */}
-      <div className="prose prose-neutral dark:prose-invert max-w-none">
-        <div className="whitespace-pre-wrap text-base leading-relaxed">
+      <div className="prose prose-neutral dark:prose-invert max-w-none prose-pre:p-0 prose-pre:bg-transparent">
+        <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
           {post.content}
-        </div>
+        </ReactMarkdown>
       </div>
 
       {/* Author card */}
