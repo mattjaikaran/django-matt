@@ -35,6 +35,7 @@ CommentResponse.model_rebuild()
 
 
 class CommentCreate(BaseModel):
+    post_id: UUID
     content: str = Field(min_length=1, max_length=2000)
     parent_id: UUID | None = None
     # For unauthenticated commenters

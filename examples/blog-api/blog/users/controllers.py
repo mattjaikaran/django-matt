@@ -1,9 +1,9 @@
 """Auth and user controllers."""
 
-from django.contrib.auth import authenticate
 from django_matt.auth import create_access_token, create_refresh_token, jwt_required
 from django_matt.core import APIController
 from django_matt.core.errors import AuthenticationAPIError, NotFoundAPIError, ValidationAPIError
+from django_matt.core.router import get, patch, post
 
 from blog.users.models import AuthorProfile, User
 from blog.users.schemas import (
@@ -23,8 +23,8 @@ class AuthController(APIController):
     tags = ["Auth"]
 
     @staticmethod
+    @post("/signup")
     async def register(data: RegisterRequest) -> TokenResponse:
-        """Register a new user."""
         if await User.objects.filter(email=data.email).aexists():
             raise ValidationAPIError("A user with this email already exists.")
         if await User.objects.filter(username=data.username).aexists():
@@ -44,8 +44,8 @@ class AuthController(APIController):
         return TokenResponse(access=access, refresh=refresh, user=UserResponse.model_validate(user))
 
     @staticmethod
+    @post("/login")
     async def login(data: LoginRequest) -> TokenResponse:
-        """Authenticate and return tokens."""
         user = await User.objects.filter(email=data.email).select_related("author_profile").afirst()
         if user is None:
             raise AuthenticationAPIError("Invalid credentials.")
@@ -63,9 +63,9 @@ class AuthController(APIController):
         return TokenResponse(access=access, refresh=refresh, user=UserResponse.model_validate(user))
 
     @staticmethod
+    @post("/token/refresh")
     async def refresh_token(data: RefreshRequest) -> RefreshResponse:
-        """Issue a new access token from a refresh token."""
-        from django_matt.auth import decode_token, create_access_token as _create
+        from django_matt.auth import decode_token
 
         try:
             payload = decode_token(data.refresh)
@@ -76,18 +76,18 @@ class AuthController(APIController):
         if user is None or not user.is_active:
             raise AuthenticationAPIError("User not found or inactive.")
 
-        access = _create({"sub": str(user.id), "email": user.email})
+        access = create_access_token({"sub": str(user.id), "email": user.email})
         return RefreshResponse(access=access)
 
+    @get("/me")
     @jwt_required
     async def me(self, request) -> UserResponse:
-        """Return current authenticated user."""
         user = await User.objects.select_related("author_profile").aget(id=request.user.id)
         return UserResponse.model_validate(user)
 
+    @patch("/me")
     @jwt_required
     async def update_profile(self, request, data: ProfileUpdateRequest) -> UserResponse:
-        """Update the current user's profile."""
         user = await User.objects.select_related("author_profile").aget(id=request.user.id)
 
         if data.first_name is not None:
@@ -116,8 +116,8 @@ class AuthorController(APIController):
     tags = ["Authors"]
 
     @staticmethod
+    @get("/")
     async def list_authors() -> list[UserPublicResponse]:
-        """List all authors (users who have published at least one post)."""
         users = (
             User.objects.filter(posts__status="published")
             .select_related("author_profile")
@@ -126,8 +126,8 @@ class AuthorController(APIController):
         return [UserPublicResponse.model_validate(u) async for u in users]
 
     @staticmethod
+    @get("/<str:username>")
     async def get_author(username: str) -> UserPublicResponse:
-        """Get a single author by username."""
         user = (
             await User.objects.select_related("author_profile")
             .filter(username=username)

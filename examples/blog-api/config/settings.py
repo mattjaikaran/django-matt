@@ -28,12 +28,14 @@ INSTALLED_APPS = [
     "blog.users",
     "blog.posts",
     "blog.comments",
+    "corsheaders",
 ]
 
 AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -86,7 +88,7 @@ if _m:
             "PASSWORD": _pass,
             "HOST": _host,
             "PORT": _port or "5432",
-            "OPTIONS": {"pool": True},
+            "OPTIONS": {},
         }
     }
 else:

@@ -507,10 +507,11 @@ class APIRouter:
                 static_patterns.append(pattern)
 
         for url_path, entries in grouped.items():
+            django_path = url_path.lstrip("/")
             if len(entries) == 1:
                 # Single method — use the view directly
                 vf, name, _methods = entries[0]
-                _append(path(url_path, vf, name=name))
+                _append(path(django_path, vf, name=name))
             else:
                 # Multiple methods on the same path — create a dispatch view
                 method_map: dict[str, Callable] = {}
@@ -540,7 +541,7 @@ class APIRouter:
                     _dispatch_view._csrf_exempt = True
                 if _login_not_required is not None:
                     _dispatch_view = _login_not_required(_dispatch_view)
-                _append(path(url_path, _dispatch_view, name=first_name))
+                _append(path(django_path, _dispatch_view, name=first_name))
 
         # Static patterns first, then parameterized — preserves ordering within each group.
         django_patterns = static_patterns + param_patterns

@@ -18,6 +18,8 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "markdown>=3.6",
     "bleach>=6.1",
+    "django-unfold>=0.94.0",
+    "django-cors-headers>=4.9.0",
 ]
 
 [dependency-groups]
@@ -42,6 +44,7 @@ build-backend = "hatchling.build"
 packages = ["blog"]
 
 [tool.uv]
+sources = { django-matt = { path = "../..", editable = true } }
 dev-dependencies = [
     "pytest>=8.0",
     "pytest-django>=4.8",
