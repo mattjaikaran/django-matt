@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: blog
+      POSTGRES_USER: blog
+      POSTGRES_PASSWORD: blog_secret
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blog"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ..          # repo root — needed for local django-matt path dep
+      dockerfile: examples/blog-api/Dockerfile
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: dev-secret-key
+      ALLOWED_HOSTS: "localhost,127.0.0.1,api"
+      DATABASE_URL: postgres://blog:blog_secret@db:5432/blog
+      CORS_ALLOWED_ORIGINS: "http://localhost:3000"
+      FRONTEND_URL: "http://localhost:3000"
+      SITE_URL: "http://localhost:8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./blog-frontend
+      dockerfile: Dockerfile.dev
+    environment:
+      VITE_API_BASE_URL: "http://localhost:8000/api"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

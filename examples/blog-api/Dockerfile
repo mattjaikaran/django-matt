@@ -4,13 +4,17 @@ WORKDIR /app
 
 RUN pip install uv
 
-COPY pyproject.toml .
-RUN uv sync --no-dev
+# Copy the full monorepo so the local django-matt path dep resolves
+COPY pyproject.toml uv.lock README.md ./
+COPY django_matt/ ./django_matt/
+COPY examples/blog-api/ ./examples/blog-api/
 
-COPY . .
+WORKDIR /app/examples/blog-api
+
+RUN uv sync --frozen --no-dev
 
 RUN uv run python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "config.asgi:application", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uv run python manage.py migrate --noinput && uv run uvicorn config.asgi:application --host 0.0.0.0 --port 8000"]
