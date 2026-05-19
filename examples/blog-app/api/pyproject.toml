@@ -44,7 +44,7 @@ build-backend = "hatchling.build"
 packages = ["blog"]
 
 [tool.uv]
-sources = { django-matt = { path = "../..", editable = true } }
+sources = { django-matt = { path = "../../..", editable = true } }
 dev-dependencies = [
     "pytest>=8.0",
     "pytest-django>=4.8",

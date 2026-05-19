@@ -10,30 +10,37 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as FeedbackRouteImport } from './routes/feedback'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AboutRouteImport } from './routes/about'
-import { Route as SearchRouteImport } from './routes/search'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TodosIndexRouteImport } from './routes/todos/index'
 import { Route as TagsIndexRouteImport } from './routes/tags/index'
-import { Route as TagsSlugRouteImport } from './routes/tags/$slug'
-import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
-import { Route as CategoriesSlugRouteImport } from './routes/categories/$slug'
-import { Route as PostsSlugRouteImport } from './routes/posts/$slug'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
+import { Route as TodosCreateRouteImport } from './routes/todos/create'
+import { Route as TagsSlugRouteImport } from './routes/tags/$slug'
+import { Route as PostsSlugRouteImport } from './routes/posts/$slug'
 import { Route as DashboardNewRouteImport } from './routes/dashboard/new'
-import { Route as DashboardEditSlugRouteImport } from './routes/dashboard/edit.$slug'
+import { Route as CategoriesSlugRouteImport } from './routes/categories/$slug'
 import { Route as AuthRegisterRouteImport } from './routes/auth/register'
 import { Route as AuthMagicLinkRouteImport } from './routes/auth/magic-link'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as DashboardEditSlugRouteImport } from './routes/dashboard/edit.$slug'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -61,39 +68,19 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SearchRoute = SearchRouteImport.update({
-  id: '/search',
-  path: '/search',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TodosIndexRoute = TodosIndexRouteImport.update({
+  id: '/todos/',
+  path: '/todos/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TagsIndexRoute = TagsIndexRouteImport.update({
   id: '/tags/',
   path: '/tags/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TagsSlugRoute = TagsSlugRouteImport.update({
-  id: '/tags/$slug',
-  path: '/tags/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CategoriesIndexRoute = CategoriesIndexRouteImport.update({
-  id: '/categories/',
-  path: '/categories/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CategoriesSlugRoute = CategoriesSlugRouteImport.update({
-  id: '/categories/$slug',
-  path: '/categories/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PostsSlugRoute = PostsSlugRouteImport.update({
-  id: '/posts/$slug',
-  path: '/posts/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
@@ -111,14 +98,34 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/dashboard/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CategoriesIndexRoute = CategoriesIndexRouteImport.update({
+  id: '/categories/',
+  path: '/categories/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TodosCreateRoute = TodosCreateRouteImport.update({
+  id: '/todos/create',
+  path: '/todos/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TagsSlugRoute = TagsSlugRouteImport.update({
+  id: '/tags/$slug',
+  path: '/tags/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PostsSlugRoute = PostsSlugRouteImport.update({
+  id: '/posts/$slug',
+  path: '/posts/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardNewRoute = DashboardNewRouteImport.update({
   id: '/dashboard/new',
   path: '/dashboard/new',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardEditSlugRoute = DashboardEditSlugRouteImport.update({
-  id: '/dashboard/edit/$slug',
-  path: '/dashboard/edit/$slug',
+const CategoriesSlugRoute = CategoriesSlugRouteImport.update({
+  id: '/categories/$slug',
+  path: '/categories/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRegisterRoute = AuthRegisterRouteImport.update({
@@ -136,6 +143,11 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardEditSlugRoute = DashboardEditSlugRouteImport.update({
+  id: '/dashboard/edit/$slug',
+  path: '/dashboard/edit/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -144,21 +156,23 @@ export interface FileRoutesByFullPath {
   '/faq': typeof FaqRoute
   '/feedback': typeof FeedbackRoute
   '/privacy': typeof PrivacyRoute
-  '/terms': typeof TermsRoute
   '/search': typeof SearchRoute
+  '/terms': typeof TermsRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/register': typeof AuthRegisterRoute
-  '/posts/$slug': typeof PostsSlugRoute
-  '/tags': typeof TagsIndexRoute
-  '/tags/$slug': typeof TagsSlugRoute
-  '/categories': typeof CategoriesIndexRoute
   '/categories/$slug': typeof CategoriesSlugRoute
-  '/dashboard': typeof DashboardIndexRoute
   '/dashboard/new': typeof DashboardNewRoute
+  '/posts/$slug': typeof PostsSlugRoute
+  '/tags/$slug': typeof TagsSlugRoute
+  '/todos/create': typeof TodosCreateRoute
+  '/categories/': typeof CategoriesIndexRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/profile/': typeof ProfileIndexRoute
+  '/settings/': typeof SettingsIndexRoute
+  '/tags/': typeof TagsIndexRoute
+  '/todos/': typeof TodosIndexRoute
   '/dashboard/edit/$slug': typeof DashboardEditSlugRoute
-  '/profile': typeof ProfileIndexRoute
-  '/settings': typeof SettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -167,21 +181,23 @@ export interface FileRoutesByTo {
   '/faq': typeof FaqRoute
   '/feedback': typeof FeedbackRoute
   '/privacy': typeof PrivacyRoute
-  '/terms': typeof TermsRoute
   '/search': typeof SearchRoute
+  '/terms': typeof TermsRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/register': typeof AuthRegisterRoute
-  '/posts/$slug': typeof PostsSlugRoute
-  '/tags': typeof TagsIndexRoute
-  '/tags/$slug': typeof TagsSlugRoute
-  '/categories': typeof CategoriesIndexRoute
   '/categories/$slug': typeof CategoriesSlugRoute
-  '/dashboard': typeof DashboardIndexRoute
   '/dashboard/new': typeof DashboardNewRoute
-  '/dashboard/edit/$slug': typeof DashboardEditSlugRoute
+  '/posts/$slug': typeof PostsSlugRoute
+  '/tags/$slug': typeof TagsSlugRoute
+  '/todos/create': typeof TodosCreateRoute
+  '/categories': typeof CategoriesIndexRoute
+  '/dashboard': typeof DashboardIndexRoute
   '/profile': typeof ProfileIndexRoute
   '/settings': typeof SettingsIndexRoute
+  '/tags': typeof TagsIndexRoute
+  '/todos': typeof TodosIndexRoute
+  '/dashboard/edit/$slug': typeof DashboardEditSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -191,21 +207,23 @@ export interface FileRoutesById {
   '/faq': typeof FaqRoute
   '/feedback': typeof FeedbackRoute
   '/privacy': typeof PrivacyRoute
-  '/terms': typeof TermsRoute
   '/search': typeof SearchRoute
+  '/terms': typeof TermsRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/magic-link': typeof AuthMagicLinkRoute
   '/auth/register': typeof AuthRegisterRoute
-  '/posts/$slug': typeof PostsSlugRoute
-  '/tags/': typeof TagsIndexRoute
-  '/tags/$slug': typeof TagsSlugRoute
-  '/categories/': typeof CategoriesIndexRoute
   '/categories/$slug': typeof CategoriesSlugRoute
-  '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/new': typeof DashboardNewRoute
-  '/dashboard/edit/$slug': typeof DashboardEditSlugRoute
+  '/posts/$slug': typeof PostsSlugRoute
+  '/tags/$slug': typeof TagsSlugRoute
+  '/todos/create': typeof TodosCreateRoute
+  '/categories/': typeof CategoriesIndexRoute
+  '/dashboard/': typeof DashboardIndexRoute
   '/profile/': typeof ProfileIndexRoute
   '/settings/': typeof SettingsIndexRoute
+  '/tags/': typeof TagsIndexRoute
+  '/todos/': typeof TodosIndexRoute
+  '/dashboard/edit/$slug': typeof DashboardEditSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -216,21 +234,23 @@ export interface FileRouteTypes {
     | '/faq'
     | '/feedback'
     | '/privacy'
-    | '/terms'
     | '/search'
+    | '/terms'
     | '/auth/login'
     | '/auth/magic-link'
     | '/auth/register'
-    | '/posts/$slug'
-    | '/tags'
-    | '/tags/$slug'
-    | '/categories'
     | '/categories/$slug'
-    | '/dashboard'
     | '/dashboard/new'
+    | '/posts/$slug'
+    | '/tags/$slug'
+    | '/todos/create'
+    | '/categories/'
+    | '/dashboard/'
+    | '/profile/'
+    | '/settings/'
+    | '/tags/'
+    | '/todos/'
     | '/dashboard/edit/$slug'
-    | '/profile'
-    | '/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -239,21 +259,23 @@ export interface FileRouteTypes {
     | '/faq'
     | '/feedback'
     | '/privacy'
-    | '/terms'
     | '/search'
+    | '/terms'
     | '/auth/login'
     | '/auth/magic-link'
     | '/auth/register'
-    | '/posts/$slug'
-    | '/tags'
-    | '/tags/$slug'
-    | '/categories'
     | '/categories/$slug'
-    | '/dashboard'
     | '/dashboard/new'
-    | '/dashboard/edit/$slug'
+    | '/posts/$slug'
+    | '/tags/$slug'
+    | '/todos/create'
+    | '/categories'
+    | '/dashboard'
     | '/profile'
     | '/settings'
+    | '/tags'
+    | '/todos'
+    | '/dashboard/edit/$slug'
   id:
     | '__root__'
     | '/'
@@ -262,21 +284,23 @@ export interface FileRouteTypes {
     | '/faq'
     | '/feedback'
     | '/privacy'
-    | '/terms'
     | '/search'
+    | '/terms'
     | '/auth/login'
     | '/auth/magic-link'
     | '/auth/register'
-    | '/posts/$slug'
-    | '/tags/'
-    | '/tags/$slug'
-    | '/categories/'
     | '/categories/$slug'
-    | '/dashboard/'
     | '/dashboard/new'
-    | '/dashboard/edit/$slug'
+    | '/posts/$slug'
+    | '/tags/$slug'
+    | '/todos/create'
+    | '/categories/'
+    | '/dashboard/'
     | '/profile/'
     | '/settings/'
+    | '/tags/'
+    | '/todos/'
+    | '/dashboard/edit/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -286,21 +310,23 @@ export interface RootRouteChildren {
   FaqRoute: typeof FaqRoute
   FeedbackRoute: typeof FeedbackRoute
   PrivacyRoute: typeof PrivacyRoute
-  TermsRoute: typeof TermsRoute
   SearchRoute: typeof SearchRoute
+  TermsRoute: typeof TermsRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthMagicLinkRoute: typeof AuthMagicLinkRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
-  PostsSlugRoute: typeof PostsSlugRoute
-  TagsIndexRoute: typeof TagsIndexRoute
-  TagsSlugRoute: typeof TagsSlugRoute
-  CategoriesIndexRoute: typeof CategoriesIndexRoute
   CategoriesSlugRoute: typeof CategoriesSlugRoute
-  DashboardIndexRoute: typeof DashboardIndexRoute
   DashboardNewRoute: typeof DashboardNewRoute
-  DashboardEditSlugRoute: typeof DashboardEditSlugRoute
+  PostsSlugRoute: typeof PostsSlugRoute
+  TagsSlugRoute: typeof TagsSlugRoute
+  TodosCreateRoute: typeof TodosCreateRoute
+  CategoriesIndexRoute: typeof CategoriesIndexRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
   ProfileIndexRoute: typeof ProfileIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
+  TagsIndexRoute: typeof TagsIndexRoute
+  TodosIndexRoute: typeof TodosIndexRoute
+  DashboardEditSlugRoute: typeof DashboardEditSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -310,6 +336,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -347,13 +380,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/search': {
-      id: '/search'
-      path: '/search'
-      fullPath: '/search'
-      preLoaderRoute: typeof SearchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -361,11 +387,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/todos/': {
+      id: '/todos/'
+      path: '/todos'
+      fullPath: '/todos/'
+      preLoaderRoute: typeof TodosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tags/': {
       id: '/tags/'
       path: '/tags'
-      fullPath: '/tags'
+      fullPath: '/tags/'
       preLoaderRoute: typeof TagsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings/': {
+      id: '/settings/'
+      path: '/settings'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile/': {
+      id: '/profile/'
+      path: '/profile'
+      fullPath: '/profile/'
+      preLoaderRoute: typeof ProfileIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/dashboard'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/categories/': {
+      id: '/categories/'
+      path: '/categories'
+      fullPath: '/categories/'
+      preLoaderRoute: typeof CategoriesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/todos/create': {
+      id: '/todos/create'
+      path: '/todos/create'
+      fullPath: '/todos/create'
+      preLoaderRoute: typeof TodosCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tags/$slug': {
@@ -375,46 +443,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TagsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/categories/': {
-      id: '/categories/'
-      path: '/categories'
-      fullPath: '/categories'
-      preLoaderRoute: typeof CategoriesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/categories/$slug': {
-      id: '/categories/$slug'
-      path: '/categories/$slug'
-      fullPath: '/categories/$slug'
-      preLoaderRoute: typeof CategoriesSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/posts/$slug': {
       id: '/posts/$slug'
       path: '/posts/$slug'
       fullPath: '/posts/$slug'
       preLoaderRoute: typeof PostsSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings/': {
-      id: '/settings/'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile/': {
-      id: '/profile/'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard/': {
-      id: '/dashboard/'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard/new': {
@@ -424,11 +457,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardNewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard/edit/$slug': {
-      id: '/dashboard/edit/$slug'
-      path: '/dashboard/edit/$slug'
-      fullPath: '/dashboard/edit/$slug'
-      preLoaderRoute: typeof DashboardEditSlugRouteImport
+    '/categories/$slug': {
+      id: '/categories/$slug'
+      path: '/categories/$slug'
+      fullPath: '/categories/$slug'
+      preLoaderRoute: typeof CategoriesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/register': {
@@ -452,6 +485,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/edit/$slug': {
+      id: '/dashboard/edit/$slug'
+      path: '/dashboard/edit/$slug'
+      fullPath: '/dashboard/edit/$slug'
+      preLoaderRoute: typeof DashboardEditSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -462,21 +502,23 @@ const rootRouteChildren: RootRouteChildren = {
   FaqRoute: FaqRoute,
   FeedbackRoute: FeedbackRoute,
   PrivacyRoute: PrivacyRoute,
-  TermsRoute: TermsRoute,
   SearchRoute: SearchRoute,
+  TermsRoute: TermsRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthMagicLinkRoute: AuthMagicLinkRoute,
   AuthRegisterRoute: AuthRegisterRoute,
-  PostsSlugRoute: PostsSlugRoute,
-  TagsIndexRoute: TagsIndexRoute,
-  TagsSlugRoute: TagsSlugRoute,
-  CategoriesIndexRoute: CategoriesIndexRoute,
   CategoriesSlugRoute: CategoriesSlugRoute,
-  DashboardIndexRoute: DashboardIndexRoute,
   DashboardNewRoute: DashboardNewRoute,
-  DashboardEditSlugRoute: DashboardEditSlugRoute,
+  PostsSlugRoute: PostsSlugRoute,
+  TagsSlugRoute: TagsSlugRoute,
+  TodosCreateRoute: TodosCreateRoute,
+  CategoriesIndexRoute: CategoriesIndexRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
   ProfileIndexRoute: ProfileIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
+  TagsIndexRoute: TagsIndexRoute,
+  TodosIndexRoute: TodosIndexRoute,
+  DashboardEditSlugRoute: DashboardEditSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

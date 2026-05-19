@@ -7,9 +7,9 @@ RUN pip install uv
 # Copy the full monorepo so the local django-matt path dep resolves
 COPY pyproject.toml uv.lock README.md ./
 COPY django_matt/ ./django_matt/
-COPY examples/blog-api/ ./examples/blog-api/
+COPY examples/blog-app/api/ ./examples/blog-app/api/
 
-WORKDIR /app/examples/blog-api
+WORKDIR /app/examples/blog-app/api
 
 RUN uv sync --frozen --no-dev
 

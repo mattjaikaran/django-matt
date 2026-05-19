@@ -15,8 +15,8 @@ services:
 
   api:
     build:
-      context: ..          # repo root — needed for local django-matt path dep
-      dockerfile: examples/blog-api/Dockerfile
+      context: ../..          # repo root — needed for local django-matt path dep
+      dockerfile: examples/blog-app/api/Dockerfile
     environment:
       DEBUG: "True"
       SECRET_KEY: dev-secret-key
@@ -33,7 +33,7 @@ services:
 
   frontend:
     build:
-      context: ./blog-frontend
+      context: ./frontend
       dockerfile: Dockerfile.dev
     environment:
       VITE_API_BASE_URL: "http://localhost:8000/api"
