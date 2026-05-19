@@ -1,0 +1,20 @@
+"""URL configuration for blog API."""
+
+from django.conf import settings
+from django.conf.urls.static import static
+from django.contrib import admin
+from django.contrib.syndication.views import Feed
+from django.urls import include, path
+
+from blog.api import api
+from blog.posts.feeds import LatestPostsFeed
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("api/", include(api.urls)),
+    path("feed/rss/", LatestPostsFeed(), name="rss_feed"),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

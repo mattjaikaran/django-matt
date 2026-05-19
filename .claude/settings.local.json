@@ -147,7 +147,16 @@
       "Bash([ ! -f /Users/mattjaikaran/dev/django-matt/tests/test_review/test_reporters.py ])",
       "Bash(git stash:*)",
       "Bash(cargo check:*)",
-      "Bash(/usr/bin/find:*)"
+      "Bash(/usr/bin/find:*)",
+      "Bash(rtk ls *)",
+      "Bash(rtk read *)",
+      "Bash(rtk grep *)",
+      "Bash(rtk git *)",
+      "Bash(git -C /Users/mattjaikaran/dev/django-matt ls-files)",
+      "Bash(git *)",
+      "Bash(rtk gh *)",
+      "Bash(uv run *)",
+      "Bash(rtk diff *)"
     ]
   }
 }

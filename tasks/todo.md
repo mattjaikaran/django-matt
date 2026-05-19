@@ -1,13 +1,148 @@
 # Django Matt — Active Tasks
 
-## Open Source Launch
+## Launch Readiness — Public Release
 
-- [ ] Launch blog post / announcement — what it is, why it exists, what's different (for dev.to, Reddit, HN)
-- [ ] Social preview image for GitHub repo
+### Tier 1: Hard Blockers (must ship before announce)
+
+#### Example Apps — Blog (Priority: Start Here)
+- [x] `examples/blog-api/` — Django-matt backend ✅
+  - [x] Models: Post, Tag, Category, Comment, AuthorProfile, PostView
+  - [x] Draft/publish workflow with status field
+  - [x] RSS feed endpoint (`/feed/rss/`)
+  - [x] SEO metadata endpoint (`/api/posts/{slug}/seo`)
+  - [x] Full-text search endpoint (`/api/posts/search?q=`)
+  - [x] View count tracking (deduplicated per session)
+  - [x] JWT auth — author vs reader permissions, staff gates
+  - [x] Image upload for post cover (ImageField)
+  - [x] Pagination + filtering (by tag, category, author, status, featured)
+  - [x] `seed_blog` management command with realistic sample data
+  - [x] Docker + docker-compose + Makefile + README
+  - [ ] `sync_types` output committed to repo (run after confirming API boots)
+- [ ] `examples/blog-frontend/` — React+Vite frontend (from `react-vite-boilerplate`)
+  - [ ] Post listing page with filters
+  - [ ] Single post page with comments
+  - [ ] Author dashboard (create/edit/delete own posts)
+  - [ ] Tag/category browse pages
+  - [ ] Search UI
+  - [ ] Auth: login/logout, JWT refresh
+  - [ ] Uses generated types from `sync_types`
+  - [ ] `.env.example` pointing at blog-api
+
+#### Example Apps — Portfolio
+- [ ] `examples/portfolio-api/` — Django-matt backend
+  - [ ] Models: Project, Skill, WorkExperience, ContactSubmission, SiteConfig
+  - [ ] File upload: resume PDF, project images
+  - [ ] Contact form endpoint with email notification
+  - [ ] Visitor analytics (basic page view counts)
+  - [ ] Admin-only endpoints to manage content
+  - [ ] JWT auth for admin write operations
+  - [ ] `sync_types` output committed
+- [ ] `examples/portfolio-frontend/` — React+Vite frontend (from `react-vite-boilerplate`)
+  - [ ] Home, About, Projects, Experience, Contact pages
+  - [ ] Project detail page
+  - [ ] Contact form wired to API
+  - [ ] Admin dashboard (hidden route, JWT-protected)
+  - [ ] Dark mode (already in boilerplate via next-themes)
+  - [ ] Uses generated types from `sync_types`
+
+#### Example Apps — Ecommerce Frontend (backend exists in `ecommerce-api/`)
+- [ ] `examples/ecommerce-frontend/` — React+Vite or React+RSBuild frontend
+  - [ ] Product listing + filtering + search
+  - [ ] Product detail page
+  - [ ] Cart (Zustand store)
+  - [ ] Checkout flow with Stripe Elements
+  - [ ] Order history (authenticated)
+  - [ ] Auth: login/register/JWT
+  - [ ] Uses generated types from `sync_types`
+
+#### React+Vite Frontend Starter (standalone template)
+- [ ] `examples/react-vite-starter/` — generic API-agnostic starter
+  - [ ] Based on `~/dev/react-vite-boilerplate` (TanStack Router, React Query, Axios, shadcn, Zod, Zustand)
+  - [ ] Auth slice: login/logout/refresh with JWT interceptor
+  - [ ] Protected route wrapper
+  - [ ] API client with base URL from `.env`
+  - [ ] Sample CRUD page wired to a django-matt endpoint
+  - [ ] `sync_types` integration doc in README
+  - [ ] CORS setup guide in README
+- [ ] `examples/react-rsbuild-starter/` — same but RSBuild bundler
+  - [ ] Based on `~/dev/boilerplates/react-rsbuild-boilerplate`
+  - [ ] Same features as Vite starter
+
+#### Recipes / Cookbook — `docs/recipes/`
+- [ ] `auth-flows.md` — JWT login, refresh, logout, protected endpoints, magic links
+- [ ] `file-uploads.md` — S3/R2, validation, chunked, presigned URLs
+- [ ] `background-tasks.md` — native tasks vs Celery, retry patterns, scheduling
+- [ ] `pagination-filtering.md` — cursor, LimitOffset, search, ordering
+- [ ] `multi-tenancy.md` — org isolation, per-tenant queries, middleware
+- [ ] `webhooks.md` — inbound verification + outbound delivery
+- [ ] `rate-limiting.md` — per-user, per-endpoint, custom backends
+- [ ] `testing-patterns.md` — async tests, JWT fixtures, factories, live DB
+- [ ] `frontend-integration.md` — `sync_types`, React Query setup, Zod, CORS, dev proxy
+
+### Tier 2: Should Fix Before Announce
+
+#### Migration Guides
+- [ ] `docs/migrations/from-drf.md` — serializers→schemas, ViewSets→controllers, auth→JWT decorators, side-by-side
+- [ ] `docs/migrations/from-fastapi.md` — DI, Pydantic models, async patterns, routers
+- [ ] `docs/migrations/from-ninja.md` — already have codemods, need human-readable guide
+
+#### Packaging / PyPI Polish
+- [ ] `pyproject.toml` — add `[project.urls]`: Homepage, Documentation, Repository, Changelog
+- [ ] Confirm PyPI page renders correctly (long_description, classifiers, links)
+- [ ] Version decision: stay `0.9.0 Beta` or bump to `1.0.0 Stable`
+
+#### Frontend Integration Docs
+- [ ] `docs/frontend-integration.md` — single comprehensive guide
+  - [ ] Dev setup: CORS config, Vite proxy to django-matt backend
+  - [ ] `sync_types` walkthrough (generate → use in React)
+  - [ ] React Query + generated hooks example
+  - [ ] Auth flow: JWT storage, Axios interceptor, refresh
+  - [ ] Production: separate domains vs monorepo deploy
+
+#### `examples/` Root README
+- [ ] Table of all examples: name, stack, what it demonstrates, link
+- [ ] "Choose your stack" guide (API-only vs fullstack, Vite vs RSBuild)
+
+### Tier 3: Nice-to-Have for Launch Day
+
+- [ ] `matt startproject --template blog` — make blog template available via CLI
+- [ ] `matt startproject --template portfolio` — portfolio template via CLI
+- [ ] `docs/why.md` — "DRF + Ninja + simplejwt + dj-stripe + channels = django-matt" scannable comparison
+- [ ] `Deploy to Fly.io` badge on README pointing at blog-api or ecommerce-api
 - [ ] Short demo video — `startapi` → running API with auth, CRUD, admin in 2 minutes
+- [ ] Social preview image for GitHub repo
+- [ ] Launch blog post / announcement (dev.to, Reddit r/django, HN, ProductHunt)
 - [ ] Discord or GitHub Discussions for community
+
+### mattstack-cli Integration (after examples are complete)
+
+> Repo: https://github.com/mattjaikaran/mattstack-cli | Local: ~/dev/mattstack-cli
+> All new example apps should eventually be scaffoldable via `mattstack init`
+
+- [ ] Add `blog` preset to mattstack-cli (`django-matt` backend + `react-vite` frontend)
+- [ ] Add `portfolio` preset to mattstack-cli
+- [ ] Add `ecommerce` preset to mattstack-cli (wire to `ecommerce-api` + new frontend)
+- [ ] Confirm `django-matt` backend option in `mattstack init` interactive flow
+- [ ] Update mattstack-cli README with new presets
+- [ ] Sync boilerplates in `~/dev/boilerplates/` with any changes made during example app work
+
+### Boilerplate Notes (for reference during frontend work)
+
+> react-vite-boilerplate: ~/dev/react-vite-boilerplate (GitHub: mattjaikaran/react-vite-boilerplate)
+> Stack: TanStack Router, React Query, Axios, shadcn/ui, Tailwind, Zod, Zustand, Vitest
+
+> react-rsbuild-boilerplate: ~/dev/boilerplates/react-rsbuild-boilerplate (GitHub: mattjaikaran/react-rsbuild-kibo-boilerplate)
+> Stack: Same as above but RSBuild bundler (Rust-powered, faster builds)
+
+> Existing: ~/dev/boilerplates/django-matt-starter — minimal django-matt API template (reference this for blog-api)
+
+---
+
+## Open Source Launch (existing items)
+
 - [ ] `django-matt` landing page (single page, could be the docs index)
-- [ ] PyPI classifiers and metadata polish
+
+---
 
 ## Stage 17: Native Task Engine & AI Audits (Priority)
 
