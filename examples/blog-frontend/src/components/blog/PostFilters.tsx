@@ -21,16 +21,16 @@ export function PostFilters({ params, onChange }: PostFiltersProps) {
     <div className="flex flex-wrap gap-3 items-center">
       {/* Category filter */}
       <Select
-        value={params.category ?? ''}
+        value={params.category ?? 'all'}
         onValueChange={val =>
-          onChange({ ...params, category: val || undefined, page: 1 })
+          onChange({ ...params, category: val === 'all' ? undefined : val, page: 1 })
         }
       >
         <SelectTrigger className="w-44">
           <SelectValue placeholder="All categories" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All categories</SelectItem>
+          <SelectItem value="all">All categories</SelectItem>
           {categories.map(cat => (
             <SelectItem key={cat.id} value={cat.slug}>
               {cat.name}
@@ -41,16 +41,16 @@ export function PostFilters({ params, onChange }: PostFiltersProps) {
 
       {/* Tag filter */}
       <Select
-        value={params.tag ?? ''}
+        value={params.tag ?? 'all'}
         onValueChange={val =>
-          onChange({ ...params, tag: val || undefined, page: 1 })
+          onChange({ ...params, tag: val === 'all' ? undefined : val, page: 1 })
         }
       >
         <SelectTrigger className="w-44">
           <SelectValue placeholder="All tags" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All tags</SelectItem>
+          <SelectItem value="all">All tags</SelectItem>
           {tags.map(tag => (
             <SelectItem key={tag.id} value={tag.slug}>
               {tag.name}

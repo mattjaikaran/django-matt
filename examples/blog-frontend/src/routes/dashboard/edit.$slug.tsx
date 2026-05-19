@@ -143,16 +143,16 @@ function EditPostPage() {
         <div className="space-y-2">
           <Label>Category</Label>
           <Select
-            value={form.categoryId ?? ''}
+            value={form.categoryId ?? 'none'}
             onValueChange={val =>
-              setForm(f => ({ ...f, categoryId: val || null }))
+              setForm(f => ({ ...f, categoryId: val === 'none' ? null : val }))
             }
           >
             <SelectTrigger>
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No category</SelectItem>
+              <SelectItem value="none">No category</SelectItem>
               {categories.map(cat => (
                 <SelectItem key={cat.id} value={cat.id}>
                   {cat.name}
