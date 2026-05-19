@@ -2,7 +2,9 @@
 Zod validation schema generation from Pydantic schemas.
 """
 
+import sys
 from pathlib import Path
+from typing import get_type_hints
 from typing import Any
 
 from pydantic import BaseModel
@@ -138,9 +140,14 @@ class ZodGenerator:
         schema: type[BaseModel],
     ) -> str:
         """Generate Zod field declaration."""
-        # Get field type from annotation
-        annotations = schema.__annotations__
-        python_type = annotations.get(field_name, Any)
+        # Use get_type_hints to resolve inherited fields and forward references
+        module = sys.modules.get(schema.__module__, None)
+        module_ns = vars(module) if module else {}
+        try:
+            hints = get_type_hints(schema, localns=module_ns)
+        except Exception:
+            hints = {}
+        python_type = hints.get(field_name, Any)
 
         # Convert to Zod schema
         zod_type = python_type_to_zod(python_type, self._schema_names)

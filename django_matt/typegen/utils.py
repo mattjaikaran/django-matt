@@ -6,6 +6,7 @@ import datetime
 import decimal
 import importlib
 import inspect
+import types as _types
 import uuid
 from enum import Enum
 from typing import (
@@ -17,6 +18,11 @@ from typing import (
 )
 
 from pydantic import BaseModel
+
+try:
+    from pydantic import EmailStr as _EmailStr
+except ImportError:
+    _EmailStr = None
 
 # Python type to TypeScript type mapping
 PYTHON_TO_TYPESCRIPT: dict[type, str] = {
@@ -40,6 +46,13 @@ PYTHON_TO_TYPESCRIPT: dict[type, str] = {
     tuple: "any[]",
 }
 
+# Populated after import so EmailStr lookup works at runtime
+def _build_ts_map() -> dict:
+    m = dict(PYTHON_TO_TYPESCRIPT)
+    if _EmailStr is not None:
+        m[_EmailStr] = "string"
+    return m
+
 # Python type to Zod type mapping
 PYTHON_TO_ZOD: dict[type, str] = {
     str: "z.string()",
@@ -61,6 +74,12 @@ PYTHON_TO_ZOD: dict[type, str] = {
     set: "z.array(z.any())",
     tuple: "z.tuple([])",
 }
+
+def _build_zod_map() -> dict:
+    m = dict(PYTHON_TO_ZOD)
+    if _EmailStr is not None:
+        m[_EmailStr] = "z.string().email()"
+    return m
 
 
 def get_type_name(python_type: type) -> str:
@@ -121,14 +140,15 @@ def python_type_to_typescript(
         TypeScript type string
     """
     schema_names = schema_names or set()
+    _ts_map = _build_ts_map()
 
     # Handle None type
     if python_type is None or python_type is type(None):
         return "null"
 
-    # Handle basic types
-    if python_type in PYTHON_TO_TYPESCRIPT:
-        return PYTHON_TO_TYPESCRIPT[python_type]
+    # Handle basic types (including EmailStr)
+    if python_type in _ts_map:
+        return _ts_map[python_type]
 
     # Handle Pydantic models
     if inspect.isclass(python_type) and issubclass(python_type, BaseModel):
@@ -139,6 +159,15 @@ def python_type_to_typescript(
         # Return union of literal values
         values = [f'"{m.value}"' if isinstance(m.value, str) else str(m.value) for m in python_type]
         return " | ".join(values)
+
+    # Handle Python 3.10+ `X | None` union syntax (types.UnionType)
+    if isinstance(python_type, _types.UnionType):
+        args = get_args(python_type)
+        non_none_args = [a for a in args if a is not type(None)]
+        if len(non_none_args) == 1:
+            inner_type = python_type_to_typescript(non_none_args[0], schema_names)
+            return f"{inner_type} | null"
+        return " | ".join(python_type_to_typescript(a, schema_names) for a in args)
 
     # Handle generic types
     origin = get_origin(python_type)
@@ -223,14 +252,15 @@ def python_type_to_zod(
         Zod schema string
     """
     schema_names = schema_names or set()
+    _zod_map = _build_zod_map()
 
     # Handle None type
     if python_type is None or python_type is type(None):
         return "z.null()"
 
-    # Handle basic types
-    if python_type in PYTHON_TO_ZOD:
-        return PYTHON_TO_ZOD[python_type]
+    # Handle basic types (including EmailStr)
+    if python_type in _zod_map:
+        return _zod_map[python_type]
 
     # Handle Pydantic models (reference to schema)
     if inspect.isclass(python_type) and issubclass(python_type, BaseModel):
@@ -240,6 +270,18 @@ def python_type_to_zod(
     if inspect.isclass(python_type) and issubclass(python_type, Enum):
         values = [f'"{m.value}"' if isinstance(m.value, str) else str(m.value) for m in python_type]
         return f"z.enum([{', '.join(values)}])"
+
+    # Handle Python 3.10+ `X | None` union syntax (types.UnionType)
+    if isinstance(python_type, _types.UnionType):
+        args = get_args(python_type)
+        non_none_args = [a for a in args if a is not type(None)]
+        has_none = type(None) in args
+        if len(non_none_args) == 1:
+            inner_schema = python_type_to_zod(non_none_args[0], schema_names)
+            return f"{inner_schema}.nullable()" if has_none else inner_schema
+        schemas = [python_type_to_zod(a, schema_names) for a in non_none_args]
+        result = f"z.union([{', '.join(schemas)}])"
+        return f"{result}.nullable()" if has_none else result
 
     # Handle generic types
     origin = get_origin(python_type)

@@ -2,8 +2,9 @@
 TypeScript code generation from Pydantic schemas and Django models.
 """
 
+import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, get_type_hints
 
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo
@@ -172,9 +173,14 @@ class TypeScriptGenerator:
         schema: type[BaseModel],
     ) -> str:
         """Generate TypeScript field declaration."""
-        # Get field type from annotation
-        annotations = schema.__annotations__
-        python_type = annotations.get(field_name, Any)
+        # Use get_type_hints to resolve inherited fields and forward references
+        module = sys.modules.get(schema.__module__, None)
+        module_ns = vars(module) if module else {}
+        try:
+            hints = get_type_hints(schema, localns=module_ns)
+        except Exception:
+            hints = {}
+        python_type = hints.get(field_name, Any)
 
         # Convert to TypeScript type
         ts_type = python_type_to_typescript(python_type, self._schema_names)
