@@ -7,6 +7,7 @@ from django_matt.core.errors import APIError, NotFoundAPIError
 from apps.cart.models import Cart, CartItem
 from apps.cart.schemas import (
     AddToCartSchema,
+    CartItemProductSchema,
     CartItemSchema,
     UpdateCartItemSchema,
 )
@@ -43,6 +44,15 @@ class CartController(APIController):
 
         items = []
         async for item in cart.items.select_related("product", "variant").all():
+            product_data = None
+            if item.product:
+                product_data = CartItemProductSchema(
+                    id=str(item.product.id),
+                    name=item.product.name,
+                    price=str(item.product.price),
+                    image_url=item.product.image_url,
+                    slug=item.product.slug,
+                )
             items.append(
                 CartItemSchema(
                     id=str(item.id),
@@ -50,6 +60,7 @@ class CartController(APIController):
                     variant_id=str(item.variant_id) if item.variant_id else None,
                     quantity=item.quantity,
                     created_at=item.created_at,
+                    product=product_data,
                 ).model_dump()
             )
 

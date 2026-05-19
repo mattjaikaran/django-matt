@@ -5,12 +5,21 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
+class CartItemProductSchema(BaseModel):
+    id: str
+    name: str
+    price: str
+    image_url: str | None = None
+    slug: str
+
+
 class CartItemSchema(BaseModel):
     id: str
     product_id: str
     variant_id: str | None
     quantity: int
     created_at: datetime
+    product: CartItemProductSchema | None = None
 
     model_config = {"from_attributes": True}
 

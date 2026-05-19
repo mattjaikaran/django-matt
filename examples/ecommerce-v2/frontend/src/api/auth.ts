@@ -3,8 +3,9 @@ import { api } from './client';
 
 export const authApi = {
   register: async (data: RegisterCredentials): Promise<AuthResponse> => {
-    const res = await api.post<User>('/auth/register', data);
-    return { user: res.data, tokens: { accessToken: '', refreshToken: '', tokenType: 'bearer' } };
+    const res = await api.post<{ user: User; accessToken: string; refreshToken: string }>('/auth/register', data);
+    const { user, accessToken, refreshToken } = res.data;
+    return { user, tokens: { accessToken, refreshToken, tokenType: 'bearer' } };
   },
 
   login: async (data: LoginCredentials): Promise<AuthResponse> => {

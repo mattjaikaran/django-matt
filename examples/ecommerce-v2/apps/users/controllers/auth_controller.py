@@ -33,7 +33,12 @@ class AuthController(APIController):
             first_name=body.first_name,
             last_name=body.last_name,
         )
-        return UserSchema.model_validate(user).model_dump(mode="json")
+        tokens = await acreate_token_pair(user)
+        return {
+            "user": UserSchema.model_validate(user).model_dump(mode="json"),
+            "access_token": tokens.access_token,
+            "refresh_token": tokens.refresh_token,
+        }
 
     @staticmethod
     async def login(request, body: LoginSchema) -> dict:

@@ -17,8 +17,9 @@ import { formatPrice } from '@/lib/utils';
 import { Package, CreditCard, CheckCircle, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 
 export const Route = createFileRoute('/checkout')({
-  beforeLoad: ({ context }: { context: { isAuthenticated?: boolean } }) => {
-    if (context && !context.isAuthenticated) {
+  beforeLoad: () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
       throw redirect({ to: '/auth/login' });
     }
   },
