@@ -10,6 +10,7 @@ api = MattAPI(
     title="Blog API",
     version="1.0.0",
     description="Full-featured blog API built with django-matt. JWT auth, full-text search, RSS, SEO endpoints.",
+    prefix="/api",
     docs_url="/docs",
     openapi_url="/openapi.json",
 )
