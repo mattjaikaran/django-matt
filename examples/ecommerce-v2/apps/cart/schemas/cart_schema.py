@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 class CartItemProductSchema(BaseModel):
     id: str
+    store_id: str
     name: str
     price: str
     image_url: str | None = None

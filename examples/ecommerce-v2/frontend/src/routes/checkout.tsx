@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useCart } from '@/hooks/use-cart';
+import { useCart, useClearCart } from '@/hooks/use-cart';
 import { useCreateOrder } from '@/hooks/use-orders';
 import { useAuth } from '@/lib/store';
 import { paymentsApi } from '@/api/payments';
@@ -40,11 +40,13 @@ function CheckoutPage() {
   const { isAuthenticated } = useAuth();
   const [step, setStep] = useState<CheckoutStep>('address');
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [orderTotal, setOrderTotal] = useState<number>(0);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
 
   const { data: cart, isLoading: cartLoading } = useCart();
   const createOrder = useCreateOrder();
+  const clearCart = useClearCart();
 
   const {
     register,
@@ -87,6 +89,8 @@ function CheckoutPage() {
       {
         onSuccess: (order) => {
           setOrderId(order.id);
+          setOrderTotal(parseFloat(order.total));
+          clearCart.mutate();
           setStep('payment');
         },
       }
@@ -253,7 +257,7 @@ function CheckoutPage() {
             <div className="bg-slate-50 rounded-lg p-4 mb-6">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-slate-600">Order total</span>
-                <span className="font-bold text-lg">{formatPrice(subtotal)}</span>
+                <span className="font-bold text-lg">{formatPrice(orderTotal)}</span>
               </div>
               {orderId && (
                 <p className="text-xs text-slate-400 mt-1">
@@ -292,7 +296,7 @@ function CheckoutPage() {
                 onClick={handlePayment}
               >
                 <CreditCard className="w-4 h-4" />
-                {paymentLoading ? 'Processing...' : `Pay ${formatPrice(subtotal)}`}
+                {paymentLoading ? 'Processing...' : `Pay ${formatPrice(orderTotal)}`}
               </Button>
             </div>
           </div>

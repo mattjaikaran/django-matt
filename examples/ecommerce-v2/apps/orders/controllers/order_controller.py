@@ -14,6 +14,7 @@ from apps.orders.schemas import (
     OrderItemSchema,
     OrderUpdateSchema,
 )
+from apps.orders.schemas.order_schema import OrderItemProductSchema
 from apps.stores.models import Store
 
 # Valid status transitions
@@ -34,6 +35,16 @@ async def _get_inventory(variant: Variant) -> Inventory | None:
         return await Inventory.objects.aget(variant=variant)
     except Inventory.DoesNotExist:
         return None
+
+
+def _item_product_schema(product: Product) -> OrderItemProductSchema:
+    return OrderItemProductSchema(
+        id=str(product.id),
+        name=product.name,
+        slug=product.slug,
+        price=str(product.price),
+        image_url=product.image_url,
+    )
 
 
 class OrderController(APIController):
@@ -60,7 +71,7 @@ class OrderController(APIController):
         orders = []
         async for order in queryset[offset : offset + page_size]:
             items = []
-            async for item in order.items.all():
+            async for item in order.items.select_related("product").all():
                 items.append(
                     OrderItemSchema(
                         id=str(item.id),
@@ -69,6 +80,7 @@ class OrderController(APIController):
                         quantity=item.quantity,
                         unit_price=item.unit_price,
                         total_price=item.total_price,
+                        product=_item_product_schema(item.product),
                     ).model_dump()
                 )
 
@@ -200,6 +212,7 @@ class OrderController(APIController):
                     quantity=order_item.quantity,
                     unit_price=order_item.unit_price,
                     total_price=order_item.total_price,
+                    product=_item_product_schema(item_data["product"]),
                 ).model_dump()
             )
 
@@ -248,6 +261,7 @@ class OrderController(APIController):
                     quantity=item.quantity,
                     unit_price=item.unit_price,
                     total_price=item.total_price,
+                    product=_item_product_schema(item.product),
                 ).model_dump()
             )
 

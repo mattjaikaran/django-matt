@@ -48,6 +48,7 @@ class CartController(APIController):
             if item.product:
                 product_data = CartItemProductSchema(
                     id=str(item.product.id),
+                    store_id=str(item.product.store_id),
                     name=item.product.name,
                     price=str(item.product.price),
                     image_url=item.product.image_url,

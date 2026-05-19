@@ -6,6 +6,16 @@ from decimal import Decimal
 from pydantic import BaseModel, Field
 
 
+class OrderItemProductSchema(BaseModel):
+    id: str
+    name: str
+    slug: str
+    price: str
+    image_url: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
 class OrderItemSchema(BaseModel):
     id: str
     product_id: str
@@ -13,6 +23,7 @@ class OrderItemSchema(BaseModel):
     quantity: int
     unit_price: Decimal
     total_price: Decimal
+    product: OrderItemProductSchema | None = None
 
     model_config = {"from_attributes": True}
 
