@@ -69,15 +69,15 @@
   - [ ] Same features as Vite starter
 
 #### Recipes / Cookbook — `docs/recipes/`
-- [ ] `auth-flows.md` — JWT login, refresh, logout, protected endpoints, magic links
-- [ ] `file-uploads.md` — S3/R2, validation, chunked, presigned URLs
-- [ ] `background-tasks.md` — native tasks vs Celery, retry patterns, scheduling
-- [ ] `pagination-filtering.md` — cursor, LimitOffset, search, ordering
-- [ ] `multi-tenancy.md` — org isolation, per-tenant queries, middleware
-- [ ] `webhooks.md` — inbound verification + outbound delivery
-- [ ] `rate-limiting.md` — per-user, per-endpoint, custom backends
-- [ ] `testing-patterns.md` — async tests, JWT fixtures, factories, live DB
-- [ ] `frontend-integration.md` — `sync_types`, React Query setup, Zod, CORS, dev proxy
+- [x] `auth-flows.md` — JWT login, refresh, logout, protected endpoints, magic links
+- [x] `file-uploads.md` — S3/R2, validation, chunked, presigned URLs
+- [x] `background-tasks.md` — native tasks vs Celery, retry patterns, scheduling
+- [x] `pagination-filtering.md` — cursor, LimitOffset, search, ordering
+- [x] `multi-tenancy.md` — org isolation, per-tenant queries, middleware
+- [x] `webhooks.md` — inbound verification + outbound delivery
+- [x] `rate-limiting.md` — per-user, per-endpoint, custom backends
+- [x] `testing-patterns.md` — async tests, JWT fixtures, factories, live DB
+- [x] `frontend-integration.md` — `sync_types`, React Query setup, Zod, CORS, dev proxy
 
 ### Tier 2: Should Fix Before Announce
 
