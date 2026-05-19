@@ -87,27 +87,21 @@
 - [x] `docs/migrations/from-ninja.md` — already have codemods, need human-readable guide
 
 #### Packaging / PyPI Polish
-- [ ] `pyproject.toml` — add `[project.urls]`: Homepage, Documentation, Repository, Changelog
+- [x] `pyproject.toml` — `[project.urls]` already has Homepage, Documentation, Issues, Changelog
 - [ ] Confirm PyPI page renders correctly (long_description, classifiers, links)
 - [ ] Version decision: stay `0.9.0 Beta` or bump to `1.0.0 Stable`
 
 #### Frontend Integration Docs
-- [ ] `docs/frontend-integration.md` — single comprehensive guide
-  - [ ] Dev setup: CORS config, Vite proxy to django-matt backend
-  - [ ] `sync_types` walkthrough (generate → use in React)
-  - [ ] React Query + generated hooks example
-  - [ ] Auth flow: JWT storage, Axios interceptor, refresh
-  - [ ] Production: separate domains vs monorepo deploy
+- [x] `docs/recipes/frontend-integration.md` covers this (CORS, sync_types, React Query, JWT, CORS, deploy)
 
 #### `examples/` Root README
-- [ ] Table of all examples: name, stack, what it demonstrates, link
-- [ ] "Choose your stack" guide (API-only vs fullstack, Vite vs RSBuild)
+- [x] Rewrote with full table of all 14 examples + "Choose your starting point" guide
 
 ### Tier 3: Nice-to-Have for Launch Day
 
 - [ ] `matt startproject --template blog` — make blog template available via CLI
 - [ ] `matt startproject --template portfolio` — portfolio template via CLI
-- [ ] `docs/why.md` — "DRF + Ninja + simplejwt + dj-stripe + channels = django-matt" scannable comparison
+- [x] `docs/why.md` — created: 19 packages → 1, side-by-side feature table vs DRF/Ninja/FastAPI
 - [ ] `Deploy to Fly.io` badge on README pointing at blog-api or ecommerce-api
 - [ ] Short demo video — `startapi` → running API with auth, CRUD, admin in 2 minutes
 - [ ] Social preview image for GitHub repo
