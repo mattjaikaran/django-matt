@@ -124,9 +124,7 @@ class AuthorController(APIController):
     @get("/<str:username>")
     async def get_author(username: str) -> UserPublicResponse:
         user = (
-            await User.objects.select_related("author_profile")
-            .filter(username=username)
-            .afirst()
+            await User.objects.select_related("author_profile").filter(username=username).afirst()
         )
         if user is None:
             raise NotFoundAPIError(f"Author '{username}' not found.")

@@ -28,6 +28,7 @@ from django_matt.interceptors.decorators import intercept, intercept_controller
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_request(method: str = "GET", path: str = "/test", body: bytes = b"") -> HttpRequest:
     factory = RequestFactory()
     fn = getattr(factory, method.lower())
@@ -48,6 +49,7 @@ async def _error_handler(request: HttpRequest, *args: Any, **kwargs: Any) -> Htt
 # Base Interceptor
 # ---------------------------------------------------------------------------
 
+
 class TestBaseInterceptor:
     @pytest.mark.asyncio
     async def test_defaults(self) -> None:
@@ -63,6 +65,7 @@ class TestBaseInterceptor:
     def test_subclass_override(self) -> None:
         class Custom(Interceptor):
             order = 10
+
             def enabled(self, request: HttpRequest) -> bool:
                 return request.method == "POST"
 
@@ -75,6 +78,7 @@ class TestBaseInterceptor:
 # ---------------------------------------------------------------------------
 # InterceptorChain
 # ---------------------------------------------------------------------------
+
 
 class TestInterceptorChain:
     @pytest.mark.asyncio
@@ -89,12 +93,14 @@ class TestInterceptorChain:
 
         class A(Interceptor):
             order = 10
+
             async def before_request(self, request: HttpRequest, **kw: Any) -> Any:
                 calls.append("A")
                 return None
 
         class B(Interceptor):
             order = 5
+
             async def before_request(self, request: HttpRequest, **kw: Any) -> Any:
                 calls.append("B")
                 return None
@@ -121,13 +127,19 @@ class TestInterceptorChain:
 
         class A(Interceptor):
             order = 1
-            async def after_response(self, request: HttpRequest, response: HttpResponse, **kw: Any) -> HttpResponse:
+
+            async def after_response(
+                self, request: HttpRequest, response: HttpResponse, **kw: Any
+            ) -> HttpResponse:
                 calls.append("A")
                 return response
 
         class B(Interceptor):
             order = 2
-            async def after_response(self, request: HttpRequest, response: HttpResponse, **kw: Any) -> HttpResponse:
+
+            async def after_response(
+                self, request: HttpRequest, response: HttpResponse, **kw: Any
+            ) -> HttpResponse:
                 calls.append("B")
                 return response
 
@@ -138,7 +150,9 @@ class TestInterceptorChain:
     @pytest.mark.asyncio
     async def test_on_error_handling(self) -> None:
         class ErrorCatcher(Interceptor):
-            async def on_error(self, request: HttpRequest, exc: Exception, **kw: Any) -> HttpResponse | None:
+            async def on_error(
+                self, request: HttpRequest, exc: Exception, **kw: Any
+            ) -> HttpResponse | None:
                 return JsonResponse({"error": str(exc)}, status=500)
 
         chain = InterceptorChain([ErrorCatcher()])
@@ -158,6 +172,7 @@ class TestInterceptorChain:
         class Disabled(Interceptor):
             def enabled(self, request: HttpRequest) -> bool:
                 return False
+
             async def before_request(self, request: HttpRequest, **kw: Any) -> Any:
                 return JsonResponse({"blocked": True}, status=403)
 
@@ -181,6 +196,7 @@ class TestInterceptorChain:
 # Decorators
 # ---------------------------------------------------------------------------
 
+
 class TestDecorators:
     @pytest.mark.asyncio
     async def test_intercept_decorator(self) -> None:
@@ -190,7 +206,10 @@ class TestDecorators:
             async def before_request(self, request: HttpRequest, **kw: Any) -> Any:
                 calls.append("before")
                 return None
-            async def after_response(self, request: HttpRequest, response: HttpResponse, **kw: Any) -> HttpResponse:
+
+            async def after_response(
+                self, request: HttpRequest, response: HttpResponse, **kw: Any
+            ) -> HttpResponse:
                 calls.append("after")
                 return response
 
@@ -232,6 +251,7 @@ class TestDecorators:
 # Built-in: TimingInterceptor
 # ---------------------------------------------------------------------------
 
+
 class TestTimingInterceptor:
     @pytest.mark.asyncio
     async def test_adds_timing_header(self) -> None:
@@ -250,6 +270,7 @@ class TestTimingInterceptor:
 # ---------------------------------------------------------------------------
 # Built-in: CachingInterceptor
 # ---------------------------------------------------------------------------
+
 
 class TestCachingInterceptor:
     @pytest.mark.asyncio
@@ -286,6 +307,7 @@ class TestCachingInterceptor:
 # Built-in: LoggingInterceptor
 # ---------------------------------------------------------------------------
 
+
 class TestLoggingInterceptor:
     @pytest.mark.asyncio
     async def test_logs_request_and_response(self, caplog: pytest.LogCaptureFixture) -> None:
@@ -299,8 +321,13 @@ class TestLoggingInterceptor:
     @pytest.mark.asyncio
     async def test_logs_error(self, caplog: pytest.LogCaptureFixture) -> None:
         class ErrorCatcher(Interceptor):
-            order = -200  # lower order than LoggingInterceptor so it runs first in forward, last in reverse
-            async def on_error(self, request: HttpRequest, exc: Exception, **kw: Any) -> HttpResponse | None:
+            order = (
+                -200
+            )  # lower order than LoggingInterceptor so it runs first in forward, last in reverse
+
+            async def on_error(
+                self, request: HttpRequest, exc: Exception, **kw: Any
+            ) -> HttpResponse | None:
                 return JsonResponse({"error": str(exc)}, status=500)
 
         chain = InterceptorChain([LoggingInterceptor(), ErrorCatcher()])
@@ -313,6 +340,7 @@ class TestLoggingInterceptor:
 # ---------------------------------------------------------------------------
 # Built-in: TransformInterceptor
 # ---------------------------------------------------------------------------
+
 
 class TestTransformInterceptor:
     @pytest.mark.asyncio
@@ -347,6 +375,7 @@ class TestTransformInterceptor:
 # ---------------------------------------------------------------------------
 # Built-in: RateLimitInterceptor
 # ---------------------------------------------------------------------------
+
 
 class TestRateLimitInterceptor:
     @pytest.mark.asyncio
@@ -385,6 +414,7 @@ class TestRateLimitInterceptor:
 # Built-in: RetryInterceptor
 # ---------------------------------------------------------------------------
 
+
 class TestRetryInterceptor:
     @pytest.mark.asyncio
     async def test_sets_retry_count(self) -> None:
@@ -404,13 +434,16 @@ class TestRetryInterceptor:
 # Integration: multiple interceptors composing
 # ---------------------------------------------------------------------------
 
+
 class TestComposition:
     @pytest.mark.asyncio
     async def test_timing_and_caching_together(self) -> None:
-        chain = InterceptorChain([
-            TimingInterceptor(),
-            CachingInterceptor(ttl=60),
-        ])
+        chain = InterceptorChain(
+            [
+                TimingInterceptor(),
+                CachingInterceptor(ttl=60),
+            ]
+        )
         resp1 = await chain.execute(_make_request(), _dummy_handler)
         assert "X-Interceptor-Time" in resp1
         assert resp1["X-Cache"] == "MISS"
@@ -437,13 +470,19 @@ class TestComposition:
 
         class AfterTracker(Interceptor):
             order = 1
-            async def after_response(self, request: HttpRequest, response: HttpResponse, **kw: Any) -> HttpResponse:
+
+            async def after_response(
+                self, request: HttpRequest, response: HttpResponse, **kw: Any
+            ) -> HttpResponse:
                 calls.append("after")
                 return response
 
         class ErrorCatcher(Interceptor):
             order = 2
-            async def on_error(self, request: HttpRequest, exc: Exception, **kw: Any) -> HttpResponse | None:
+
+            async def on_error(
+                self, request: HttpRequest, exc: Exception, **kw: Any
+            ) -> HttpResponse | None:
                 return JsonResponse({"caught": True}, status=500)
 
         chain = InterceptorChain([AfterTracker(), ErrorCatcher()])
@@ -455,6 +494,7 @@ class TestComposition:
 # ---------------------------------------------------------------------------
 # Public API imports
 # ---------------------------------------------------------------------------
+
 
 class TestPublicAPI:
     def test_all_exports(self) -> None:
@@ -470,9 +510,19 @@ class TestPublicAPI:
             intercept,
             intercept_controller,
         )
+
         # all imported successfully
-        assert all([
-            Interceptor, InterceptorChain, intercept, intercept_controller,
-            LoggingInterceptor, TimingInterceptor, CachingInterceptor,
-            TransformInterceptor, RetryInterceptor, RateLimitInterceptor,
-        ])
+        assert all(
+            [
+                Interceptor,
+                InterceptorChain,
+                intercept,
+                intercept_controller,
+                LoggingInterceptor,
+                TimingInterceptor,
+                CachingInterceptor,
+                TransformInterceptor,
+                RetryInterceptor,
+                RateLimitInterceptor,
+            ]
+        )

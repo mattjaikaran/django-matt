@@ -264,9 +264,7 @@ class TestMemoryBackend:
         assert self.backend.is_enabled("x") is False
 
     def test_percentage_rollout(self):
-        self.backend.set_flag(
-            "rollout", flag_type="percentage", rollout_percentage=50
-        )
+        self.backend.set_flag("rollout", flag_type="percentage", rollout_percentage=50)
         # Deterministic: check some users
         results = set()
         for i in range(100):
@@ -537,7 +535,9 @@ class TestFeatureFlagModel:
 
     def test_targeting_rule_contains(self):
         flag = MagicMock(spec=FeatureFlag)
-        flag.targeting_rules = [{"attribute": "email", "operator": "contains", "value": "@example.com"}]
+        flag.targeting_rules = [
+            {"attribute": "email", "operator": "contains", "value": "@example.com"}
+        ]
         result = FeatureFlag._evaluate_targeting_rules(flag, {"email": "user@example.com"})
         assert result is True
 
@@ -674,7 +674,9 @@ class TestDatabaseBackend:
         backend = DatabaseBackend(use_cache=False)
         # The local import in _get_flag() fetches FeatureFlag from django_matt.flags.models
         with patch("django_matt.flags.models.FeatureFlag") as mock_model:
-            mock_model.objects.prefetch_related.return_value.get.side_effect = FeatureFlag.DoesNotExist
+            mock_model.objects.prefetch_related.return_value.get.side_effect = (
+                FeatureFlag.DoesNotExist
+            )
             mock_model.DoesNotExist = FeatureFlag.DoesNotExist
             result = backend.is_enabled("missing_flag", default=True)
             assert result is True
@@ -761,8 +763,12 @@ class TestDatabaseBackend:
         mock_flag.targeting_rules = []
 
         # Bind real methods to the mock
-        mock_flag._is_in_percentage_rollout = lambda u: FeatureFlag._is_in_percentage_rollout(mock_flag, u)
-        mock_flag.is_enabled_for_user = lambda **kwargs: FeatureFlag.is_enabled_for_user(mock_flag, **kwargs)
+        mock_flag._is_in_percentage_rollout = lambda u: FeatureFlag._is_in_percentage_rollout(
+            mock_flag, u
+        )
+        mock_flag.is_enabled_for_user = lambda **kwargs: FeatureFlag.is_enabled_for_user(
+            mock_flag, **kwargs
+        )
 
         with patch("django_matt.flags.models.FeatureFlag") as mock_model:
             mock_model.objects.prefetch_related.return_value.get.return_value = mock_flag
@@ -808,7 +814,9 @@ class TestDatabaseBackend:
         mock_flag.overrides.filter.return_value.first.return_value = mock_override
 
         # Bind real is_enabled_for_user
-        mock_flag.is_enabled_for_user = lambda **kwargs: FeatureFlag.is_enabled_for_user(mock_flag, **kwargs)
+        mock_flag.is_enabled_for_user = lambda **kwargs: FeatureFlag.is_enabled_for_user(
+            mock_flag, **kwargs
+        )
 
         with patch("django_matt.flags.models.FeatureFlag") as mock_model:
             mock_model.objects.prefetch_related.return_value.get.return_value = mock_flag
@@ -882,9 +890,17 @@ class TestRedisBackend:
         backend._client = mock_client
         return backend, mock_client
 
-    def _make_flag_data(self, key="pct-flag", percentage=50, flag_type="percentage", status="active", enabled_by_default=False):
+    def _make_flag_data(
+        self,
+        key="pct-flag",
+        percentage=50,
+        flag_type="percentage",
+        status="active",
+        enabled_by_default=False,
+    ):
         """Return serialized flag data dict as RedisBackend._get_flag_data() returns it."""
         import orjson
+
         data = {
             "key": key,
             "flag_type": flag_type,
@@ -908,6 +924,7 @@ class TestRedisBackend:
         backend, mock_client = self._make_redis_backend()
         flag_data = self._make_flag_data(key="pct-flag", percentage=50)
         import orjson
+
         serialized = orjson.dumps(flag_data).decode()
         # Redis returns bytes
         mock_client.get.return_value = serialized.encode()
@@ -926,6 +943,7 @@ class TestRedisBackend:
         backend, mock_client = self._make_redis_backend()
         flag_data = self._make_flag_data(key="stable-flag", percentage=50)
         import orjson
+
         serialized = orjson.dumps(flag_data).decode()
         mock_client.get.return_value = serialized.encode()
 
@@ -943,6 +961,7 @@ class TestRedisBackend:
         backend, mock_client = self._make_redis_backend()
         flag_data = self._make_flag_data(key="half-flag", percentage=50)
         import orjson
+
         serialized = orjson.dumps(flag_data).decode()
         mock_client.get.return_value = serialized.encode()
 
@@ -961,6 +980,7 @@ class TestRedisBackend:
         backend, mock_client = self._make_redis_backend()
         flag_data = self._make_flag_data(key="zero-flag", percentage=0)
         import orjson
+
         serialized = orjson.dumps(flag_data).decode()
         mock_client.get.return_value = serialized.encode()
 
@@ -974,6 +994,7 @@ class TestRedisBackend:
         backend, mock_client = self._make_redis_backend()
         flag_data = self._make_flag_data(key="full-flag", percentage=100)
         import orjson
+
         serialized = orjson.dumps(flag_data).decode()
         mock_client.get.return_value = serialized.encode()
 
@@ -1007,7 +1028,10 @@ class TestLaunchDarklyBackend:
 
         # Patch Context builder so we don't need a live SDK
         mock_context = MagicMock()
-        with patch("django_matt.flags.backends.LaunchDarklyBackend._build_context", return_value=mock_context):
+        with patch(
+            "django_matt.flags.backends.LaunchDarklyBackend._build_context",
+            return_value=mock_context,
+        ):
             result = backend.is_enabled("flag-key", user=user)
 
         assert result is True
@@ -1028,7 +1052,10 @@ class TestLaunchDarklyBackend:
 
         user = make_mock_user(pk=1)
         mock_context = MagicMock()
-        with patch("django_matt.flags.backends.LaunchDarklyBackend._build_context", return_value=mock_context):
+        with patch(
+            "django_matt.flags.backends.LaunchDarklyBackend._build_context",
+            return_value=mock_context,
+        ):
             result = backend.get_variant("flag-key", user=user, default="control")
 
         assert result == "treatment_a"
@@ -1056,8 +1083,9 @@ class TestLaunchDarklyBackend:
         backend._config = {}
         backend._client = None
 
-        with patch.dict("sys.modules", {"ldclient": None, "ldclient.config": None}), pytest.raises(
-            ImportError, match="launchdarkly-server-sdk is required"
+        with (
+            patch.dict("sys.modules", {"ldclient": None, "ldclient.config": None}),
+            pytest.raises(ImportError, match="launchdarkly-server-sdk is required"),
         ):
             _ = backend.client
 
@@ -1140,8 +1168,9 @@ class TestUnleashBackend:
         backend.custom_headers = {}
         backend._client = None
 
-        with patch.dict("sys.modules", {"UnleashClient": None}), pytest.raises(
-            ImportError, match="UnleashClient is required"
+        with (
+            patch.dict("sys.modules", {"UnleashClient": None}),
+            pytest.raises(ImportError, match="UnleashClient is required"),
         ):
             _ = backend.client
 
@@ -1161,6 +1190,7 @@ class TestFlagMiddleware:
             assert hasattr(request, "flag_context")
             assert isinstance(request.flag_context, FlagContext)
             from django.http import HttpResponse
+
             return HttpResponse("ok")
 
         middleware = FlagMiddleware(get_response)
@@ -1180,6 +1210,7 @@ class TestFlagMiddleware:
             ctx = request.flag_context
             assert ctx.user is None  # anonymous → no user on context
             from django.http import HttpResponse
+
             return HttpResponse("ok")
 
         middleware = FlagMiddleware(get_response)
@@ -1198,6 +1229,7 @@ class TestFlagMiddleware:
             ctx = get_current_context()
             captured_ctx.append(ctx)
             from django.http import HttpResponse
+
             return HttpResponse("ok")
 
         middleware = FlagMiddleware(get_response)
@@ -1218,6 +1250,7 @@ class TestFlagMiddleware:
         def get_response(request):
             captured_ctx.append(request.flag_context)
             from django.http import HttpResponse
+
             return HttpResponse("ok")
 
         middleware = FlagMiddleware(get_response)
@@ -1240,6 +1273,7 @@ class TestFlagMiddleware:
 
         def get_response(request):
             from django.http import HttpResponse
+
             return HttpResponse("ok")
 
         middleware = FlagMiddleware(get_response)

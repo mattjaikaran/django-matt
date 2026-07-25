@@ -41,6 +41,7 @@ from django_matt.schema_designer.visualizer import (
 # Test models — defined inline so we don't pollute the main codebase
 # ---------------------------------------------------------------------------
 
+
 class Category(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True)
@@ -69,7 +70,9 @@ class Article(models.Model):
     title = models.CharField(max_length=300)
     body = models.TextField()
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name="articles")
+    category = models.ForeignKey(
+        Category, on_delete=models.SET_NULL, null=True, related_name="articles"
+    )
     tags = models.ManyToManyField("Tag", blank=True)
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)
@@ -93,6 +96,7 @@ class Tag(models.Model):
 
 class LargeModel(models.Model):
     """Model with many issues for testing."""
+
     big_name = models.CharField(max_length=1000)
     nullable_no_default = models.IntegerField(null=True)
     is_active = models.BooleanField(default=True)
@@ -104,6 +108,7 @@ class LargeModel(models.Model):
 # ---------------------------------------------------------------------------
 # Analyzer tests
 # ---------------------------------------------------------------------------
+
 
 class TestSchemaAnalyzer:
     def test_analyze_model_returns_model_report(self):
@@ -183,7 +188,9 @@ class TestSchemaAnalyzer:
         assert isinstance(report, SchemaReport)
         assert len(report.models) > 0
         assert report.total_issues >= 0
-        assert report.total_issues == report.total_errors + report.total_warnings + report.total_info
+        assert (
+            report.total_issues == report.total_errors + report.total_warnings + report.total_info
+        )
 
     def test_analyze_with_app_filter(self):
         analyzer = SchemaAnalyzer(app_labels=["auth"])
@@ -222,6 +229,7 @@ class TestSchemaAnalyzer:
 # ---------------------------------------------------------------------------
 # Visualizer tests
 # ---------------------------------------------------------------------------
+
 
 class TestVisualizer:
     def test_generate_mermaid_output(self):
@@ -274,6 +282,7 @@ class TestVisualizer:
 # ---------------------------------------------------------------------------
 # Optimizer tests
 # ---------------------------------------------------------------------------
+
 
 class TestSchemaOptimizer:
     def test_suggest_indexes_returns_list(self):
@@ -346,7 +355,9 @@ class TestSchemaOptimizer:
     def test_suggest_indexes_for_datetime(self):
         optimizer = SchemaOptimizer()
         suggestions = optimizer.suggest_indexes(Article)
-        dt_suggestions = [s for s in suggestions if s.field_name in ("created_at", "updated_at", "published_at")]
+        dt_suggestions = [
+            s for s in suggestions if s.field_name in ("created_at", "updated_at", "published_at")
+        ]
         # These may or may not have auto-indexes depending on Django version
         assert isinstance(dt_suggestions, list)
 
@@ -354,6 +365,7 @@ class TestSchemaOptimizer:
 # ---------------------------------------------------------------------------
 # Prompt generation tests
 # ---------------------------------------------------------------------------
+
 
 class TestPrompts:
     def test_generate_schema_prompt(self):
@@ -392,9 +404,11 @@ class TestPrompts:
 # Views tests (unit, no HTTP)
 # ---------------------------------------------------------------------------
 
+
 class TestViews:
     def test_include_schema_designer_returns_urlpatterns(self):
         from django_matt.schema_designer.views import include_schema_designer
+
         urls = include_schema_designer()
         assert isinstance(urls, list)
         assert len(urls) >= 5
@@ -407,6 +421,7 @@ class TestViews:
 
     def test_dashboard_html_rendered(self):
         from django_matt.schema_designer.views import SchemaDesignerView
+
         view = SchemaDesignerView()
         html = view._render_dashboard()
         assert "Schema Designer" in html
@@ -418,19 +433,19 @@ class TestViews:
 # CLI tests (unit, no actual invocation)
 # ---------------------------------------------------------------------------
 
+
 class TestCLI:
     def test_cli_app_exists(self):
         from django_matt.schema_designer.cli import app
+
         assert app is not None
         assert app.info.name == "schema"
 
     def test_cli_has_commands(self):
         from django_matt.schema_designer.cli import app
+
         # Typer uses callback.__name__ when cmd.name is None
-        command_names = [
-            cmd.name or cmd.callback.__name__
-            for cmd in app.registered_commands
-        ]
+        command_names = [cmd.name or cmd.callback.__name__ for cmd in app.registered_commands]
         assert "analyze" in command_names
         assert "diagram" in command_names
         assert "optimize" in command_names
@@ -442,9 +457,11 @@ class TestCLI:
 # Module exports test
 # ---------------------------------------------------------------------------
 
+
 class TestModuleExports:
     def test_all_exports_available(self):
         from django_matt import schema_designer
+
         assert hasattr(schema_designer, "SchemaAnalyzer")
         assert hasattr(schema_designer, "SchemaOptimizer")
         assert hasattr(schema_designer, "generate_mermaid")

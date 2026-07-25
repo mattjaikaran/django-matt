@@ -191,9 +191,7 @@ class TestCacheInvalidationMixin:
         """Subclassing with CacheMeta should call register_cache_invalidation."""
         from django_matt.utils.cache_invalidation import CacheInvalidationMixin
 
-        with patch(
-            "django_matt.utils.cache_invalidation.register_cache_invalidation"
-        ) as mock_reg:
+        with patch("django_matt.utils.cache_invalidation.register_cache_invalidation") as mock_reg:
             # Build a fake subclass that has _meta (simulates a concrete model)
             meta = MagicMock()
             meta.abstract = False
@@ -220,9 +218,7 @@ class TestCacheInvalidationMixin:
         """Abstract models should NOT be registered."""
         from django_matt.utils.cache_invalidation import CacheInvalidationMixin
 
-        with patch(
-            "django_matt.utils.cache_invalidation.register_cache_invalidation"
-        ) as mock_reg:
+        with patch("django_matt.utils.cache_invalidation.register_cache_invalidation") as mock_reg:
             meta = MagicMock()
             meta.abstract = True
 

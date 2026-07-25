@@ -243,9 +243,7 @@ class TestDB:
         # Verify tables exist
         tables = {
             row[0]
-            for row in db.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            ).fetchall()
+            for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
         }
         assert "source_blocks" in tables
         assert "test_deps" in tables
@@ -254,9 +252,7 @@ class TestDB:
         assert "meta" in tables
 
         # Verify schema version
-        row = db.execute(
-            "SELECT value FROM meta WHERE key='schema_version'"
-        ).fetchone()
+        row = db.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()
         assert row is not None
         assert int(row["value"]) == 1
         db.close()
@@ -268,9 +264,7 @@ class TestDB:
         ensure_schema(db)
 
         # Insert some data
-        db.execute(
-            "INSERT INTO failures (test_id, exc_repr) VALUES ('test_a', 'err')"
-        )
+        db.execute("INSERT INTO failures (test_id, exc_repr) VALUES ('test_a', 'err')")
         db.commit()
         assert db.execute("SELECT COUNT(*) FROM failures").fetchone()[0] == 1
 
@@ -325,13 +319,15 @@ class TestDependencyTracker:
 
         # Create a source file to track
         src = tmp_path / "module.py"
-        src.write_text(textwrap.dedent("""\
+        src.write_text(
+            textwrap.dedent("""\
             def func_a():
                 return 1
 
             def func_b():
                 return 2
-        """))
+        """)
+        )
 
         # Record that test_x covers func_a (lines 1-2)
         tracker.record_test_coverage(
@@ -342,13 +338,15 @@ class TestDependencyTracker:
         assert tracker.has_data()
 
         # Modify func_a
-        src.write_text(textwrap.dedent("""\
+        src.write_text(
+            textwrap.dedent("""\
             def func_a():
                 return 99
 
             def func_b():
                 return 2
-        """))
+        """)
+        )
 
         affected = tracker.get_affected_tests(changed_files=[src])
         assert "tests/test_mod.py::test_x" in affected
@@ -407,9 +405,7 @@ class TestDependencyTracker:
         tracker = self._make_tracker(tmp_path)
         tracker.record_run("run1", "abc123", 100, 95, 5)
 
-        row = tracker.conn.execute(
-            "SELECT * FROM run_meta WHERE run_id = 'run1'"
-        ).fetchone()
+        row = tracker.conn.execute("SELECT * FROM run_meta WHERE run_id = 'run1'").fetchone()
         assert row is not None
         assert row["total_tests"] == 100
         assert row["passed"] == 95
@@ -555,21 +551,25 @@ class TestIntegration:
         tracker = TestDependencyTracker(tmp_path / "test.db")
 
         src = tmp_path / "service.py"
-        src.write_text(textwrap.dedent("""\
+        src.write_text(
+            textwrap.dedent("""\
             def process(data):
                 result = transform(data)
                 return result
-        """))
+        """)
+        )
 
         tracker.record_test_coverage("test_process", {str(src): {1, 2, 3}})
 
         # Add a comment — should NOT invalidate
-        src.write_text(textwrap.dedent("""\
+        src.write_text(
+            textwrap.dedent("""\
             def process(data):
                 # important transformation step
                 result = transform(data)
                 return result
-        """))
+        """)
+        )
 
         affected = tracker.get_affected_tests(changed_files=[src])
         assert affected == []
@@ -582,16 +582,20 @@ class TestIntegration:
         tracker = TestDependencyTracker(tmp_path / "test.db")
 
         src_a = tmp_path / "module_a.py"
-        src_a.write_text(textwrap.dedent("""\
+        src_a.write_text(
+            textwrap.dedent("""\
             def func_a():
                 return 1
-        """))
+        """)
+        )
 
         src_b = tmp_path / "module_b.py"
-        src_b.write_text(textwrap.dedent("""\
+        src_b.write_text(
+            textwrap.dedent("""\
             def func_b():
                 return 2
-        """))
+        """)
+        )
 
         # test_1 uses module_a, test_2 uses module_b, test_3 uses both
         tracker.record_test_coverage("test_1", {str(src_a): {1, 2}})
@@ -599,10 +603,12 @@ class TestIntegration:
         tracker.record_test_coverage("test_3", {str(src_a): {1, 2}, str(src_b): {1, 2}})
 
         # Change module_a only
-        src_a.write_text(textwrap.dedent("""\
+        src_a.write_text(
+            textwrap.dedent("""\
             def func_a():
                 return 99
-        """))
+        """)
+        )
 
         affected = tracker.get_affected_tests(changed_files=[src_a])
         assert "test_1" in affected
@@ -617,21 +623,25 @@ class TestIntegration:
         tracker = TestDependencyTracker(tmp_path / "test.db")
 
         src = tmp_path / "module.py"
-        src.write_text(textwrap.dedent("""\
+        src.write_text(
+            textwrap.dedent("""\
             def existing():
                 return 1
-        """))
+        """)
+        )
 
         tracker.record_test_coverage("test_existing", {str(src): {1, 2}})
 
         # Add a brand new function
-        src.write_text(textwrap.dedent("""\
+        src.write_text(
+            textwrap.dedent("""\
             def existing():
                 return 1
 
             def brand_new():
                 return 2
-        """))
+        """)
+        )
 
         affected = tracker.get_affected_tests(changed_files=[src])
         # Conservative: existing tests for this file should be marked

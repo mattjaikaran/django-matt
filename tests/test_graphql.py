@@ -141,7 +141,7 @@ class TestComplexityRegistry:
             pass
 
         # The registry stores the original unwrapped function
-        original = getattr(my_mutation, '__wrapped__', my_mutation)
+        original = getattr(my_mutation, "__wrapped__", my_mutation)
         limit = get_rate_limit(original)
         assert limit == (10, 60)
 
@@ -625,6 +625,7 @@ class TestDataLoaderBatching:
         assert loader.lookup_field == "pk"
         # The _batch_load method applies {lookup_field}__in: keys
         import inspect
+
         source = inspect.getsource(loader._batch_load)
         assert "__in" in source
 

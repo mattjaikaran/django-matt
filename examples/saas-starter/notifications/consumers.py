@@ -33,26 +33,22 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
         self.room_group_name = f"user_{self.user_id}"
 
         # Join user group
-        await self.channel_layer.group_add(
-            self.room_group_name,
-            self.channel_name
-        )
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
         await self.accept()
 
         # Send connection confirmation
-        await self.send_json({
-            "type": "connected",
-            "user_id": self.user_id,
-        })
+        await self.send_json(
+            {
+                "type": "connected",
+                "user_id": self.user_id,
+            }
+        )
 
     async def disconnect(self, close_code):
         """Handle WebSocket disconnection."""
         if hasattr(self, "room_group_name"):
-            await self.channel_layer.group_discard(
-                self.room_group_name,
-                self.channel_name
-            )
+            await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     async def receive_json(self, content):
         """Handle incoming messages."""
@@ -66,18 +62,22 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
 
     async def notification(self, event):
         """Send notification to WebSocket."""
-        await self.send_json({
-            "type": "notification",
-            "notification": event["notification"],
-        })
+        await self.send_json(
+            {
+                "type": "notification",
+                "notification": event["notification"],
+            }
+        )
 
     async def presence(self, event):
         """Send presence update to WebSocket."""
-        await self.send_json({
-            "type": "presence",
-            "user_id": event["user_id"],
-            "status": event["status"],
-        })
+        await self.send_json(
+            {
+                "type": "presence",
+                "user_id": event["user_id"],
+                "status": event["status"],
+            }
+        )
 
     @database_sync_to_async
     def mark_notification_read(self, notification_id):
@@ -121,10 +121,7 @@ class ProjectConsumer(AsyncJsonWebsocketConsumer):
         self.room_group_name = f"project_{project_id}"
 
         # Join project group
-        await self.channel_layer.group_add(
-            self.room_group_name,
-            self.channel_name
-        )
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
         await self.accept()
 
@@ -134,7 +131,7 @@ class ProjectConsumer(AsyncJsonWebsocketConsumer):
             {
                 "type": "user_joined",
                 "user_id": self.user_id,
-            }
+            },
         )
 
     async def disconnect(self, close_code):
@@ -146,13 +143,10 @@ class ProjectConsumer(AsyncJsonWebsocketConsumer):
                 {
                     "type": "user_left",
                     "user_id": self.user_id,
-                }
+                },
             )
 
-            await self.channel_layer.group_discard(
-                self.room_group_name,
-                self.channel_name
-            )
+            await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     async def receive_json(self, content):
         """Handle incoming messages (e.g., cursor position for collaboration)."""
@@ -166,41 +160,49 @@ class ProjectConsumer(AsyncJsonWebsocketConsumer):
                     "type": "cursor_update",
                     "user_id": self.user_id,
                     "position": content.get("position"),
-                }
+                },
             )
 
     async def task_update(self, event):
         """Send task update to WebSocket."""
-        await self.send_json({
-            "type": "task_update",
-            "action": event["action"],
-            "task_id": event["task_id"],
-            "data": event.get("data", {}),
-        })
+        await self.send_json(
+            {
+                "type": "task_update",
+                "action": event["action"],
+                "task_id": event["task_id"],
+                "data": event.get("data", {}),
+            }
+        )
 
     async def user_joined(self, event):
         """Notify user joined."""
-        await self.send_json({
-            "type": "user_joined",
-            "user_id": event["user_id"],
-        })
+        await self.send_json(
+            {
+                "type": "user_joined",
+                "user_id": event["user_id"],
+            }
+        )
 
     async def user_left(self, event):
         """Notify user left."""
-        await self.send_json({
-            "type": "user_left",
-            "user_id": event["user_id"],
-        })
+        await self.send_json(
+            {
+                "type": "user_left",
+                "user_id": event["user_id"],
+            }
+        )
 
     async def cursor_update(self, event):
         """Send cursor update (for collaboration)."""
         # Don't send to self
         if event["user_id"] != self.user_id:
-            await self.send_json({
-                "type": "cursor_update",
-                "user_id": event["user_id"],
-                "position": event["position"],
-            })
+            await self.send_json(
+                {
+                    "type": "cursor_update",
+                    "user_id": event["user_id"],
+                    "position": event["position"],
+                }
+            )
 
     @database_sync_to_async
     def check_project_access(self, user_id, project_id):
@@ -266,10 +268,7 @@ class TaskConsumer(AsyncJsonWebsocketConsumer):
         self.room_group_name = f"task_{task_id}"
 
         # Join task group
-        await self.channel_layer.group_add(
-            self.room_group_name,
-            self.channel_name
-        )
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
 
         await self.accept()
 
@@ -283,13 +282,10 @@ class TaskConsumer(AsyncJsonWebsocketConsumer):
                     "type": "typing_indicator",
                     "user_id": self.user_id,
                     "is_typing": False,
-                }
+                },
             )
 
-            await self.channel_layer.group_discard(
-                self.room_group_name,
-                self.channel_name
-            )
+            await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
 
     async def receive_json(self, content):
         """Handle incoming messages."""
@@ -303,40 +299,48 @@ class TaskConsumer(AsyncJsonWebsocketConsumer):
                     "type": "typing_indicator",
                     "user_id": self.user_id,
                     "is_typing": content.get("is_typing", False),
-                }
+                },
             )
 
     async def comment_added(self, event):
         """Send new comment notification."""
-        await self.send_json({
-            "type": "comment_added",
-            "comment_id": event["comment_id"],
-            "author_id": event["author_id"],
-        })
+        await self.send_json(
+            {
+                "type": "comment_added",
+                "comment_id": event["comment_id"],
+                "author_id": event["author_id"],
+            }
+        )
 
     async def comment_updated(self, event):
         """Send comment update notification."""
-        await self.send_json({
-            "type": "comment_updated",
-            "comment_id": event["comment_id"],
-        })
+        await self.send_json(
+            {
+                "type": "comment_updated",
+                "comment_id": event["comment_id"],
+            }
+        )
 
     async def comment_deleted(self, event):
         """Send comment deletion notification."""
-        await self.send_json({
-            "type": "comment_deleted",
-            "comment_id": event["comment_id"],
-        })
+        await self.send_json(
+            {
+                "type": "comment_deleted",
+                "comment_id": event["comment_id"],
+            }
+        )
 
     async def typing_indicator(self, event):
         """Send typing indicator."""
         # Don't send to self
         if event["user_id"] != self.user_id:
-            await self.send_json({
-                "type": "typing",
-                "user_id": event["user_id"],
-                "is_typing": event["is_typing"],
-            })
+            await self.send_json(
+                {
+                    "type": "typing",
+                    "user_id": event["user_id"],
+                    "is_typing": event["is_typing"],
+                }
+            )
 
     @database_sync_to_async
     def check_task_access(self, user_id, task_id):

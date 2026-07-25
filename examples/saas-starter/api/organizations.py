@@ -197,10 +197,14 @@ class OrganizationController(APIController):
             if not is_member:
                 return {"error": "Not a member of this organization"}, 403
 
-            memberships = Membership.objects.filter(
-                organization=org,
-                is_active=True,
-            ).select_related("user", "invited_by").prefetch_related("teams")
+            memberships = (
+                Membership.objects.filter(
+                    organization=org,
+                    is_active=True,
+                )
+                .select_related("user", "invited_by")
+                .prefetch_related("teams")
+            )
 
             result = []
             async for membership in memberships:
@@ -213,7 +217,9 @@ class OrganizationController(APIController):
 
     @patch("/<str:org_slug>/members/<str:member_id>")
     @jwt_required
-    async def update_member(self, request, org_slug: str, member_id: str, data: MembershipUpdate) -> dict:
+    async def update_member(
+        self, request, org_slug: str, member_id: str, data: MembershipUpdate
+    ) -> dict:
         """Update member role or team assignments. Requires admin permission."""
         try:
             org = await Organization.objects.aget(slug=org_slug)
@@ -289,7 +295,9 @@ class OrganizationController(APIController):
             # Self-removal is allowed
             is_self_removal = membership.user_id == request.user.id
 
-            if not is_self_removal and (not requester_membership or not requester_membership.is_admin):
+            if not is_self_removal and (
+                not requester_membership or not requester_membership.is_admin
+            ):
                 return {"error": "Admin permission required"}, 403
 
             # Cannot remove owner
@@ -429,11 +437,13 @@ class OrganizationController(APIController):
     async def accept_invitation(self, request, data: InvitationAccept) -> dict:
         """Accept an invitation to join an organization."""
         try:
-            invitation = await Invitation.objects.select_related(
-                "organization"
-            ).prefetch_related("teams").aget(
-                token=data.token,
-                status="pending",
+            invitation = (
+                await Invitation.objects.select_related("organization")
+                .prefetch_related("teams")
+                .aget(
+                    token=data.token,
+                    status="pending",
+                )
             )
 
             if not invitation.is_valid:

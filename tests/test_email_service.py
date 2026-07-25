@@ -243,11 +243,14 @@ class TestSendGridProvider:
         mock_helpers = MagicMock()
         mock_mail = MagicMock()
 
-        with patch.dict(sys.modules, {
-            "sendgrid": mock_sg_module,
-            "sendgrid.helpers": mock_helpers,
-            "sendgrid.helpers.mail": mock_mail,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "sendgrid": mock_sg_module,
+                "sendgrid.helpers": mock_helpers,
+                "sendgrid.helpers.mail": mock_mail,
+            },
+        ):
             provider = SendGridProvider()
             mock_response = MagicMock()
             mock_response.status_code = 202
@@ -271,11 +274,14 @@ class TestSendGridProvider:
     def test_send_failure_status(self):
         import sys
 
-        with patch.dict(sys.modules, {
-            "sendgrid": MagicMock(),
-            "sendgrid.helpers": MagicMock(),
-            "sendgrid.helpers.mail": MagicMock(),
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "sendgrid": MagicMock(),
+                "sendgrid.helpers": MagicMock(),
+                "sendgrid.helpers.mail": MagicMock(),
+            },
+        ):
             provider = SendGridProvider()
             mock_response = MagicMock()
             mock_response.status_code = 400
@@ -299,11 +305,14 @@ class TestSendGridProvider:
     def test_send_all_suppressed(self):
         import sys
 
-        with patch.dict(sys.modules, {
-            "sendgrid": MagicMock(),
-            "sendgrid.helpers": MagicMock(),
-            "sendgrid.helpers.mail": MagicMock(),
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "sendgrid": MagicMock(),
+                "sendgrid.helpers": MagicMock(),
+                "sendgrid.helpers.mail": MagicMock(),
+            },
+        ):
             provider = SendGridProvider()
             with patch.object(provider, "filter_suppressed", return_value=[]):
                 result = provider.send(
@@ -318,13 +327,18 @@ class TestSendGridProvider:
     def test_send_exception_handling(self):
         import sys
 
-        with patch.dict(sys.modules, {
-            "sendgrid": MagicMock(),
-            "sendgrid.helpers": MagicMock(),
-            "sendgrid.helpers.mail": MagicMock(),
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "sendgrid": MagicMock(),
+                "sendgrid.helpers": MagicMock(),
+                "sendgrid.helpers.mail": MagicMock(),
+            },
+        ):
             provider = SendGridProvider()
-            with patch.object(provider, "filter_suppressed", side_effect=Exception("Network error")):
+            with patch.object(
+                provider, "filter_suppressed", side_effect=Exception("Network error")
+            ):
                 result = provider.send(
                     to=["user@example.com"],
                     subject="Test",
@@ -1120,11 +1134,14 @@ class TestEmailRequirements:
         """EMAIL-01: SendGrid email backend sends via mock HTTP and returns success."""
         import sys
 
-        with patch.dict(sys.modules, {
-            "sendgrid": MagicMock(),
-            "sendgrid.helpers": MagicMock(),
-            "sendgrid.helpers.mail": MagicMock(),
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "sendgrid": MagicMock(),
+                "sendgrid.helpers": MagicMock(),
+                "sendgrid.helpers.mail": MagicMock(),
+            },
+        ):
             provider = SendGridProvider()
             mock_response = MagicMock()
             mock_response.status_code = 202

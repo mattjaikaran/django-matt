@@ -122,8 +122,14 @@ def sync_user_stats():
     logger.info("Syncing user stats...")
 
     users = User.objects.annotate(
-        order_count=Count("orders", filter=models.Q(orders__status__in=["confirmed", "processing", "shipped", "delivered"])),
-        total_spent=Sum("orders__total", filter=models.Q(orders__status__in=["confirmed", "processing", "shipped", "delivered"])),
+        order_count=Count(
+            "orders",
+            filter=models.Q(orders__status__in=["confirmed", "processing", "shipped", "delivered"]),
+        ),
+        total_spent=Sum(
+            "orders__total",
+            filter=models.Q(orders__status__in=["confirmed", "processing", "shipped", "delivered"]),
+        ),
     )
 
     from django.core.cache import cache

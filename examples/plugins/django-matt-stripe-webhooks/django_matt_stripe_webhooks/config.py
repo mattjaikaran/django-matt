@@ -18,8 +18,7 @@ class StripeConfig:
         errors: list[str] = []
         if not self.webhook_secret:
             errors.append(
-                "MATT_STRIPE.WEBHOOK_SECRET is required for signature "
-                "verification"
+                "MATT_STRIPE.WEBHOOK_SECRET is required for signature verification"
             )
         if not self.api_key:
             errors.append("MATT_STRIPE.API_KEY is required")

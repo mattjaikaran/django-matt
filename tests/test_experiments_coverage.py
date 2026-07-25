@@ -651,12 +651,20 @@ class TestStatisticalAnalyzerExtended:
     def test_compare_variants_zero_control_rate(self):
         analyzer = StatisticalAnalyzer()
         treatment = VariantStats(
-            variant_id="t", variant_key="treatment", is_control=False,
-            sample_size=100, conversions=10, conversion_rate=0.1,
+            variant_id="t",
+            variant_key="treatment",
+            is_control=False,
+            sample_size=100,
+            conversions=10,
+            conversion_rate=0.1,
         )
         control = VariantStats(
-            variant_id="c", variant_key="control", is_control=True,
-            sample_size=100, conversions=0, conversion_rate=0.0,
+            variant_id="c",
+            variant_key="control",
+            is_control=True,
+            sample_size=100,
+            conversions=0,
+            conversion_rate=0.0,
         )
         result = analyzer._compare_variants(treatment, control)
         assert result.relative_lift == float("inf")
@@ -697,8 +705,10 @@ class TestExperimentAnalysisDB:
             )
             if i < 5:  # 10% conversion rate
                 ExperimentResult.objects.create(
-                    assignment=a, variant=control,
-                    metric_name="conversion", metric_type="conversion",
+                    assignment=a,
+                    variant=control,
+                    metric_name="conversion",
+                    metric_type="conversion",
                     value=Decimal("1.0"),
                 )
 
@@ -708,8 +718,10 @@ class TestExperimentAnalysisDB:
             )
             if i < 15:  # 30% conversion rate
                 ExperimentResult.objects.create(
-                    assignment=a, variant=treatment,
-                    metric_name="conversion", metric_type="conversion",
+                    assignment=a,
+                    variant=treatment,
+                    metric_name="conversion",
+                    metric_type="conversion",
                     value=Decimal("1.0"),
                 )
 
@@ -727,9 +739,7 @@ class TestExperimentAnalysisDB:
     def test_analyze_no_variants(self):
         from django_matt.experiments.models import Experiment
 
-        exp = Experiment.objects.create(
-            key="empty-analysis", name="Empty", status="running"
-        )
+        exp = Experiment.objects.create(key="empty-analysis", name="Empty", status="running")
         result = analyze_experiment(exp)
         assert result.total_participants == 0
         assert result.total_conversions == 0
@@ -781,68 +791,96 @@ class TestExperimentAuditLog:
 class TestRuleEvaluation:
     def test_eq_operator(self):
         mgr = ExperimentManager()
-        assert mgr._evaluate_rule(
-            {"attribute": "x", "operator": "eq", "value": 5},
-            {"x": 5},
-        ) is True
-        assert mgr._evaluate_rule(
-            {"attribute": "x", "operator": "eq", "value": 5},
-            {"x": 6},
-        ) is False
+        assert (
+            mgr._evaluate_rule(
+                {"attribute": "x", "operator": "eq", "value": 5},
+                {"x": 5},
+            )
+            is True
+        )
+        assert (
+            mgr._evaluate_rule(
+                {"attribute": "x", "operator": "eq", "value": 5},
+                {"x": 6},
+            )
+            is False
+        )
 
     def test_neq_operator(self):
         mgr = ExperimentManager()
-        assert mgr._evaluate_rule(
-            {"attribute": "x", "operator": "neq", "value": 5},
-            {"x": 6},
-        ) is True
+        assert (
+            mgr._evaluate_rule(
+                {"attribute": "x", "operator": "neq", "value": 5},
+                {"x": 6},
+            )
+            is True
+        )
 
     def test_gt_gte_lt_lte(self):
         mgr = ExperimentManager()
-        assert mgr._evaluate_rule(
-            {"attribute": "age", "operator": "gt", "value": 18}, {"age": 21}
-        ) is True
-        assert mgr._evaluate_rule(
-            {"attribute": "age", "operator": "gte", "value": 18}, {"age": 18}
-        ) is True
-        assert mgr._evaluate_rule(
-            {"attribute": "age", "operator": "lt", "value": 18}, {"age": 10}
-        ) is True
-        assert mgr._evaluate_rule(
-            {"attribute": "age", "operator": "lte", "value": 18}, {"age": 18}
-        ) is True
+        assert (
+            mgr._evaluate_rule({"attribute": "age", "operator": "gt", "value": 18}, {"age": 21})
+            is True
+        )
+        assert (
+            mgr._evaluate_rule({"attribute": "age", "operator": "gte", "value": 18}, {"age": 18})
+            is True
+        )
+        assert (
+            mgr._evaluate_rule({"attribute": "age", "operator": "lt", "value": 18}, {"age": 10})
+            is True
+        )
+        assert (
+            mgr._evaluate_rule({"attribute": "age", "operator": "lte", "value": 18}, {"age": 18})
+            is True
+        )
 
     def test_in_operator(self):
         mgr = ExperimentManager()
-        assert mgr._evaluate_rule(
-            {"attribute": "country", "operator": "in", "value": ["US", "CA"]},
-            {"country": "US"},
-        ) is True
-        assert mgr._evaluate_rule(
-            {"attribute": "country", "operator": "not_in", "value": ["US", "CA"]},
-            {"country": "UK"},
-        ) is True
+        assert (
+            mgr._evaluate_rule(
+                {"attribute": "country", "operator": "in", "value": ["US", "CA"]},
+                {"country": "US"},
+            )
+            is True
+        )
+        assert (
+            mgr._evaluate_rule(
+                {"attribute": "country", "operator": "not_in", "value": ["US", "CA"]},
+                {"country": "UK"},
+            )
+            is True
+        )
 
     def test_contains_operator(self):
         mgr = ExperimentManager()
-        assert mgr._evaluate_rule(
-            {"attribute": "email", "operator": "contains", "value": "@example.com"},
-            {"email": "user@example.com"},
-        ) is True
+        assert (
+            mgr._evaluate_rule(
+                {"attribute": "email", "operator": "contains", "value": "@example.com"},
+                {"email": "user@example.com"},
+            )
+            is True
+        )
 
     def test_missing_attribute_passes(self):
         mgr = ExperimentManager()
-        assert mgr._evaluate_rule(
-            {"attribute": "missing", "operator": "eq", "value": 5},
-            {},
-        ) is True
+        assert (
+            mgr._evaluate_rule(
+                {"attribute": "missing", "operator": "eq", "value": 5},
+                {},
+            )
+            is True
+        )
 
     def test_unknown_operator_passes(self):
         mgr = ExperimentManager()
-        assert mgr._evaluate_rule(
-            {"attribute": "x", "operator": "unknown_op", "value": 5},
-            {"x": 5},
-        ) is True
+        assert (
+            mgr._evaluate_rule(
+                {"attribute": "x", "operator": "unknown_op", "value": 5},
+                {"x": 5},
+            )
+            is True
+        )
 
 
 # ===========================================================================
@@ -851,7 +889,9 @@ class TestRuleEvaluation:
 
 
 class TestBanditAlgorithms:
-    def _make_mock_variant(self, key, conversion_rate=0.0, assignment_count=0, conversion_count=0, weight=1):
+    def _make_mock_variant(
+        self, key, conversion_rate=0.0, assignment_count=0, conversion_count=0, weight=1
+    ):
         v = MagicMock()
         v.key = key
         v.id = key
@@ -1077,9 +1117,7 @@ class TestEdgeCases:
         exp = Experiment.objects.create(
             key="single-var", name="Single", status=ExperimentStatus.RUNNING.value
         )
-        only = Variant.objects.create(
-            experiment=exp, key="only", name="Only", weight=1
-        )
+        only = Variant.objects.create(experiment=exp, key="only", name="Only", weight=1)
         mgr = ExperimentManager()
         assignment = mgr.get_assignment("single-var", anonymous_id="user-1")
         assert assignment is not None

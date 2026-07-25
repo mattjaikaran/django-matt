@@ -83,7 +83,12 @@ def handle_task_changes(sender, instance, created, **kwargs):
         )
 
         # Notify reporter when task is completed
-        if instance.status == TaskStatus.DONE and instance.reporter and instance.assignee and instance.assignee != instance.reporter:
+        if (
+            instance.status == TaskStatus.DONE
+            and instance.reporter
+            and instance.assignee
+            and instance.assignee != instance.reporter
+        ):
             Notification.objects.create(
                 user=instance.reporter,
                 organization=instance.organization,
@@ -152,9 +157,9 @@ def handle_new_comment(sender, instance, created, **kwargs):
             memberships__organization=instance.organization,
             memberships__is_active=True,
         ).filter(
-            models.Q(email__istartswith=name) |
-            models.Q(first_name__iexact=name) |
-            models.Q(last_name__iexact=name)
+            models.Q(email__istartswith=name)
+            | models.Q(first_name__iexact=name)
+            | models.Q(last_name__iexact=name)
         )[:5]  # Limit matches
 
         for user in users:
@@ -177,7 +182,11 @@ def handle_new_comment(sender, instance, created, **kwargs):
         )
 
     # Notify task assignee about new comment (if not the author)
-    if instance.task.assignee and instance.task.assignee != instance.author and instance.task.assignee not in mentioned_users:
+    if (
+        instance.task.assignee
+        and instance.task.assignee != instance.author
+        and instance.task.assignee not in mentioned_users
+    ):
         Notification.objects.create(
             user=instance.task.assignee,
             organization=instance.organization,

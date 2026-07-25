@@ -605,7 +605,12 @@ class TestTaskMeta:
         """Test TaskMeta terminal state detection."""
         from django_matt.tasks_native.types import TaskMeta
 
-        for state in [TaskState.COMPLETED, TaskState.FAILED, TaskState.CANCELLED, TaskState.DEAD_LETTER]:
+        for state in [
+            TaskState.COMPLETED,
+            TaskState.FAILED,
+            TaskState.CANCELLED,
+            TaskState.DEAD_LETTER,
+        ]:
             meta = TaskMeta(task_id="term-test", task_name="test", state=state)
             assert meta.is_terminal is True
 

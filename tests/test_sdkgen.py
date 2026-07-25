@@ -31,6 +31,7 @@ from django_matt.sdkgen.template_engine import (
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def sample_openapi_schema() -> dict[str, Any]:
     """A minimal but realistic OpenAPI 3.1 schema."""
@@ -194,6 +195,7 @@ def sdk_config(tmp_path: Path) -> SDKConfig:
 # Schema Parser Tests
 # ---------------------------------------------------------------------------
 
+
 class TestSchemaParser:
     def test_parse_endpoints(self, sample_openapi_schema: dict) -> None:
         parser = SchemaParser(sample_openapi_schema)
@@ -320,6 +322,7 @@ class TestSchemaParser:
 # Naming Convention Tests
 # ---------------------------------------------------------------------------
 
+
 class TestNamingConventions:
     def test_to_camel_case(self) -> None:
         assert to_camel_case("list_pets") == "listPets"
@@ -345,6 +348,7 @@ class TestNamingConventions:
 # ---------------------------------------------------------------------------
 # Type Mapping Tests
 # ---------------------------------------------------------------------------
+
 
 class TestTypeMapping:
     def test_openapi_to_ts_string(self) -> None:
@@ -414,10 +418,9 @@ class TestTypeMapping:
 # TypeScript Generator Tests
 # ---------------------------------------------------------------------------
 
+
 class TestTypeScriptGenerator:
-    def test_generates_all_files(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_generates_all_files(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = TypeScriptSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         assert "src/client.ts" in output.files
@@ -475,18 +478,14 @@ class TestTypeScriptGenerator:
         assert "uploadFile" in client
         assert "FormData" in client
 
-    def test_client_has_websocket(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_client_has_websocket(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = TypeScriptSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         client = output.files["src/client.ts"]
         assert "createWebSocket" in client
         assert "WebSocket" in client
 
-    def test_errors_file(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_errors_file(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = TypeScriptSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         errors = output.files["src/errors.ts"]
@@ -495,9 +494,7 @@ class TestTypeScriptGenerator:
         assert "class AuthenticationError" in errors
         assert "class RateLimitError" in errors
 
-    def test_auth_providers(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_auth_providers(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = TypeScriptSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         auth = output.files["src/auth.ts"]
@@ -505,9 +502,7 @@ class TestTypeScriptGenerator:
         assert "class APIKeyAuth" in auth
         assert "interface AuthProvider" in auth
 
-    def test_package_json_valid(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_package_json_valid(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = TypeScriptSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         pkg = json.loads(output.files["package.json"])
@@ -515,17 +510,13 @@ class TestTypeScriptGenerator:
         assert pkg["version"] == "1.0.0"
         assert "typescript" in pkg.get("devDependencies", {})
 
-    def test_tsconfig_strict(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_tsconfig_strict(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = TypeScriptSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         tsconfig = json.loads(output.files["tsconfig.json"])
         assert tsconfig["compilerOptions"]["strict"] is True
 
-    def test_index_barrel_exports(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_index_barrel_exports(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = TypeScriptSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         index = output.files["src/index.ts"]
@@ -533,9 +524,7 @@ class TestTypeScriptGenerator:
         assert "APIError" in index
         assert "JWTAuth" in index
 
-    def test_client_has_retry(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_client_has_retry(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = TypeScriptSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         client = output.files["src/client.ts"]
@@ -566,10 +555,9 @@ class TestTypeScriptGenerator:
 # Python Generator Tests
 # ---------------------------------------------------------------------------
 
+
 class TestPythonGenerator:
-    def test_generates_all_files(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_generates_all_files(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = PythonSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         pkg = "petstore_client"
@@ -619,26 +607,20 @@ class TestPythonGenerator:
         assert "def get_pet" in client
         assert "async def list_pets" in client
 
-    def test_client_file_upload(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_client_file_upload(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = PythonSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         client = output.files["petstore_client/client.py"]
         assert "upload_file" in client
 
-    def test_client_retry(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_client_retry(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = PythonSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         client = output.files["petstore_client/client.py"]
         assert "max_retries" in client
         assert "retry_backoff" in client
 
-    def test_errors_file(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_errors_file(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = PythonSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         errors = output.files["petstore_client/errors.py"]
@@ -647,18 +629,14 @@ class TestPythonGenerator:
         assert "class AuthenticationError" in errors
         assert "class RateLimitError" in errors
 
-    def test_auth_providers(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_auth_providers(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = PythonSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         auth = output.files["petstore_client/auth.py"]
         assert "class JWTAuth" in auth
         assert "class APIKeyAuth" in auth
 
-    def test_pyproject_toml(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_pyproject_toml(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = PythonSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         pyproject = output.files["pyproject.toml"]
@@ -666,9 +644,7 @@ class TestPythonGenerator:
         assert "httpx" in pyproject
         assert "pydantic" in pyproject
 
-    def test_init_exports(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_init_exports(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = PythonSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         init = output.files["petstore_client/__init__.py"]
@@ -691,10 +667,9 @@ class TestPythonGenerator:
 # Swift Generator Tests
 # ---------------------------------------------------------------------------
 
+
 class TestSwiftGenerator:
-    def test_generates_all_files(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_generates_all_files(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = SwiftSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         assert any("Models.swift" in k for k in output.files)
@@ -712,17 +687,13 @@ class TestSwiftGenerator:
         assert "struct Pet: Codable" in models
         assert "struct PetCreate: Codable" in models
 
-    def test_models_enum(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_models_enum(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = SwiftSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         models = [v for k, v in output.files.items() if "Models.swift" in k][0]
         assert "enum PetStatus" in models
 
-    def test_client_has_methods(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_client_has_methods(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = SwiftSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         client = [v for k, v in output.files.items() if "Client.swift" in k][0]
@@ -730,26 +701,20 @@ class TestSwiftGenerator:
         assert "func createPet" in client
         assert "func getPet" in client
 
-    def test_client_actor(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_client_actor(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = SwiftSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         client = [v for k, v in output.files.items() if "Client.swift" in k][0]
         assert "public actor Client" in client
 
-    def test_package_swift(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_package_swift(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = SwiftSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         pkg = output.files["Package.swift"]
         assert "swift-tools-version" in pkg
         assert "PetstoreClient" in pkg
 
-    def test_auth_providers(
-        self, sample_openapi_schema: dict, sdk_config: SDKConfig
-    ) -> None:
+    def test_auth_providers(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
         gen = SwiftSDKGenerator()
         output = gen.generate(sample_openapi_schema, sdk_config)
         auth = [v for k, v in output.files.items() if "Auth.swift" in k][0]
@@ -761,6 +726,7 @@ class TestSwiftGenerator:
 # ---------------------------------------------------------------------------
 # SDKOutput Tests
 # ---------------------------------------------------------------------------
+
 
 class TestSDKOutput:
     def test_target_set(self, sample_openapi_schema: dict, sdk_config: SDKConfig) -> None:
@@ -777,6 +743,7 @@ class TestSDKOutput:
 # ---------------------------------------------------------------------------
 # SDKConfig Tests
 # ---------------------------------------------------------------------------
+
 
 class TestSDKConfig:
     def test_defaults(self) -> None:
@@ -795,9 +762,11 @@ class TestSDKConfig:
 # Management Command Argument Parsing
 # ---------------------------------------------------------------------------
 
+
 class TestManagementCommand:
     def test_command_importable(self) -> None:
         from django_matt.management.commands.matt_sdk import Command
+
         cmd = Command()
         assert cmd.help
 
@@ -805,6 +774,7 @@ class TestManagementCommand:
         from django.core.management import BaseCommand
 
         from django_matt.management.commands.matt_sdk import Command
+
         cmd = Command()
         parser = cmd.create_parser("manage.py", "matt_sdk")
         # Just verify it doesn't blow up when creating the parser

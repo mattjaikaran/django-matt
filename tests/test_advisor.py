@@ -26,6 +26,7 @@ from django_matt.review.findings import (
 
 # -- Helpers ---------------------------------------------------------------
 
+
 def _f(
     *,
     rule_id: str = "TST001",
@@ -50,6 +51,7 @@ def _f(
 
 # -- Grade tests -----------------------------------------------------------
 
+
 class TestScoreToGrade:
     def test_perfect_score(self) -> None:
         assert _score_to_grade(10.0) == "A+"
@@ -69,6 +71,7 @@ class TestScoreToGrade:
 
 
 # -- CodeHealthScorer tests ------------------------------------------------
+
 
 class TestCodeHealthScorer:
     def setup_method(self) -> None:
@@ -175,14 +178,19 @@ class TestProjectHealth:
 
 # -- HealthTrend tests -----------------------------------------------------
 
+
 class TestHealthTrend:
     def test_record_and_trend(self, tmp_path: Path) -> None:
         db_path = tmp_path / "test.db"
         trend = HealthTrend(db_path=db_path)
 
         health = ProjectHealth(
-            score=7.5, grade="B", file_scores=[], total_findings=10,
-            total_files=5, total_loc=500,
+            score=7.5,
+            grade="B",
+            file_scores=[],
+            total_findings=10,
+            total_files=5,
+            total_loc=500,
         )
         sid = trend.record("abc123", health)
         assert sid == 1
@@ -199,8 +207,12 @@ class TestHealthTrend:
 
         for i, sha in enumerate(["aaa", "bbb", "ccc"]):
             health = ProjectHealth(
-                score=float(7 + i), grade="B", file_scores=[], total_findings=0,
-                total_files=1, total_loc=100,
+                score=float(7 + i),
+                grade="B",
+                file_scores=[],
+                total_findings=0,
+                total_files=1,
+                total_loc=100,
             )
             trend.record(sha, health)
 
@@ -220,15 +232,17 @@ class TestHealthTrend:
             FileHealth(file="b.py", score=5.0, grade="D+", loc=200, finding_count=5),
         ]
         health = ProjectHealth(
-            score=6.3, grade="C+", file_scores=files, total_findings=6,
-            total_files=2, total_loc=300,
+            score=6.3,
+            grade="C+",
+            file_scores=files,
+            total_findings=6,
+            total_files=2,
+            total_loc=300,
         )
         trend.record("abc", health)
 
         # Verify file scores were stored
-        rows = trend.db.execute(
-            "SELECT file, score FROM file_health ORDER BY file"
-        ).fetchall()
+        rows = trend.db.execute("SELECT file, score FROM file_health ORDER BY file").fetchall()
         assert len(rows) == 2
         assert rows[0] == ("a.py", 9.0)
         assert rows[1] == ("b.py", 5.0)
@@ -244,20 +258,34 @@ class TestHealthTrend:
             FileHealth(file="b.py", score=7.0, grade="B-", loc=200, finding_count=3),
         ]
         health_v1 = ProjectHealth(
-            score=7.7, grade="B+", file_scores=files_v1, total_findings=4,
-            total_files=2, total_loc=300,
+            score=7.7,
+            grade="B+",
+            file_scores=files_v1,
+            total_findings=4,
+            total_files=2,
+            total_loc=300,
         )
         trend.record("v1", health_v1)
 
         # Current health: b.py regressed
         files_v2 = [
             FileHealth(file="a.py", score=9.0, grade="A", loc=100, finding_count=1),
-            FileHealth(file="b.py", score=4.0, grade="D-", loc=200, finding_count=8,
-                       deductions={"CX003": 2.0, "SEC001": 1.0}),
+            FileHealth(
+                file="b.py",
+                score=4.0,
+                grade="D-",
+                loc=200,
+                finding_count=8,
+                deductions={"CX003": 2.0, "SEC001": 1.0},
+            ),
         ]
         health_v2 = ProjectHealth(
-            score=5.7, grade="C-", file_scores=files_v2, total_findings=9,
-            total_files=2, total_loc=300,
+            score=5.7,
+            grade="C-",
+            file_scores=files_v2,
+            total_findings=9,
+            total_files=2,
+            total_loc=300,
         )
 
         regs = trend.regressions(health_v2)
@@ -272,8 +300,12 @@ class TestHealthTrend:
         db_path = tmp_path / "test.db"
         trend = HealthTrend(db_path=db_path)
         health = ProjectHealth(
-            score=5.0, grade="D+", file_scores=[], total_findings=0,
-            total_files=0, total_loc=0,
+            score=5.0,
+            grade="D+",
+            file_scores=[],
+            total_findings=0,
+            total_files=0,
+            total_loc=0,
         )
         regs = trend.regressions(health)
         assert regs == []
@@ -281,6 +313,7 @@ class TestHealthTrend:
 
 
 # -- RefactorPromptGenerator tests -----------------------------------------
+
 
 class TestRefactorPromptGenerator:
     def setup_method(self) -> None:
@@ -374,10 +407,7 @@ class TestRefactorPromptBatch:
         assert ids == {"B", "C"}
 
     def test_batch_max_count(self) -> None:
-        findings = [
-            _f(rule_id=f"R{i}", severity=Severity.WARNING, file="a.py")
-            for i in range(10)
-        ]
+        findings = [_f(rule_id=f"R{i}", severity=Severity.WARNING, file="a.py") for i in range(10)]
         sources = {"a.py": "x = 1\n" * 20}
         prompts = self.gen.generate_batch(findings, sources, max_count=3)
         assert len(prompts) == 3
@@ -428,6 +458,7 @@ class TestRefactorPromptFormatting:
 
 # -- Bug fix regression tests ----------------------------------------------
 
+
 class TestBugFixes:
     """Regression tests for the 4 review/ bugs fixed in this session."""
 
@@ -439,27 +470,30 @@ class TestBugFixes:
         reviewer = AIReviewer(ReviewConfig())
         # Simulate response with unknown category
         import orjson
-        response_json = orjson.dumps({
-            "findings": [
-                {
-                    "rule_id": "AIR-001",
-                    "file": "test.py",
-                    "line": 1,
-                    "severity": "warning",
-                    "message": "test",
-                    "category": "completely_unknown_category",
-                },
-                {
-                    "rule_id": "AIR-002",
-                    "file": "test.py",
-                    "line": 2,
-                    "severity": "warning",
-                    "message": "valid",
-                    "category": "security",
-                },
-            ],
-            "summary": "test",
-        }).decode()
+
+        response_json = orjson.dumps(
+            {
+                "findings": [
+                    {
+                        "rule_id": "AIR-001",
+                        "file": "test.py",
+                        "line": 1,
+                        "severity": "warning",
+                        "message": "test",
+                        "category": "completely_unknown_category",
+                    },
+                    {
+                        "rule_id": "AIR-002",
+                        "file": "test.py",
+                        "line": 2,
+                        "severity": "warning",
+                        "message": "valid",
+                        "category": "security",
+                    },
+                ],
+                "summary": "test",
+            }
+        ).decode()
         result = reviewer._parse_response(response_json, 100)
         # Unknown category finding should be skipped
         assert len(result.findings) == 1
@@ -473,7 +507,7 @@ class TestBugFixes:
         from django_matt.review.analyzers.api_design import APIDesignAnalyzer
         from django_matt.review.config import ReviewConfig
 
-        source = '''
+        source = """
 class PublicAPI:
     @api.post("/public")
     def create_public(self):
@@ -485,7 +519,7 @@ class ProtectedAPI:
     @api.post("/protected")
     def create_protected(self):
         pass
-'''
+"""
         tree = ast.parse(source)
         analyzer = APIDesignAnalyzer(ReviewConfig())
         findings = analyzer.analyze_file(Path("test.py"), tree, source)

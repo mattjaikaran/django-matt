@@ -15,7 +15,9 @@ from django_matt.review.config import ReviewConfig
 from django_matt.review.findings import Category, Severity
 
 
-def _analyze(analyzer_cls: type, source: str, *, file_path: str = "test.py", **config_kwargs) -> list:
+def _analyze(
+    analyzer_cls: type, source: str, *, file_path: str = "test.py", **config_kwargs
+) -> list:
     tree = ast.parse(source)
     config = ReviewConfig(**config_kwargs)
     analyzer = analyzer_cls(config)

@@ -82,9 +82,12 @@ class CategoryController(APIController):
                     )
             return tree
 
-        categories = await Category.objects.filter(is_active=True).annotate(
-            product_count=Count("products", filter=Q(products__status="active"))
-        ).order_by("tree_id", "lft").alist()
+        categories = (
+            await Category.objects.filter(is_active=True)
+            .annotate(product_count=Count("products", filter=Q(products__status="active")))
+            .order_by("tree_id", "lft")
+            .alist()
+        )
 
         result = build_tree(list(categories))
         cache.set(cache_key, result, timeout=300)
@@ -93,9 +96,7 @@ class CategoryController(APIController):
     @staticmethod
     async def get_category(category_slug: str) -> CategoryResponse:
         """Get category by slug."""
-        category = await Category.objects.filter(
-            slug=category_slug, is_active=True
-        ).afirst()
+        category = await Category.objects.filter(slug=category_slug, is_active=True).afirst()
         if not category:
             raise NotFoundAPIError("Category not found")
         return CategoryResponse.model_validate(category)
@@ -122,9 +123,7 @@ class CategoryController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_category(
-        request, category_id: UUID, data: CategoryUpdate
-    ) -> CategoryResponse:
+    async def update_category(request, category_id: UUID, data: CategoryUpdate) -> CategoryResponse:
         """Update a category (admin only)."""
         if not request.user.is_staff:
             raise ValidationAPIError("Admin access required")
@@ -305,11 +304,12 @@ class ProductController(APIController):
     @staticmethod
     async def get_product(product_slug: str) -> ProductDetailResponse:
         """Get product details."""
-        product = await Product.objects.filter(
-            slug=product_slug, status="active"
-        ).select_related("category").prefetch_related(
-            "images", "variants", "inventory"
-        ).afirst()
+        product = (
+            await Product.objects.filter(slug=product_slug, status="active")
+            .select_related("category")
+            .prefetch_related("images", "variants", "inventory")
+            .afirst()
+        )
 
         if not product:
             raise NotFoundAPIError("Product not found")
@@ -342,9 +342,8 @@ class ProductController(APIController):
 
         # Get review stats
         from ecommerce.reviews.models import Review
-        review_stats = await Review.objects.filter(
-            product=product, status="approved"
-        ).aggregate(
+
+        review_stats = await Review.objects.filter(product=product, status="approved").aggregate(
             rating_avg=Avg("rating"),
             count=Count("id"),
         )
@@ -370,9 +369,7 @@ class ProductController(APIController):
             attributes=product.attributes,
             tags=product.tags,
             category=(
-                CategoryResponse.model_validate(product.category)
-                if product.category
-                else None
+                CategoryResponse.model_validate(product.category) if product.category else None
             ),
             is_on_sale=product.is_on_sale,
             discount_percentage=product.discount_percentage,
@@ -451,9 +448,11 @@ class ProductController(APIController):
 
         # Check SKU uniqueness
         if "sku" in update_data:
-            existing = await Product.objects.filter(sku=update_data["sku"]).exclude(
-                id=product_id
-            ).aexists()
+            existing = (
+                await Product.objects.filter(sku=update_data["sku"])
+                .exclude(id=product_id)
+                .aexists()
+            )
             if existing:
                 raise ValidationAPIError("SKU already exists")
 
@@ -488,9 +487,11 @@ class ProductController(APIController):
         if cached:
             return cached
 
-        queryset = Product.objects.filter(
-            status="active", is_featured=True
-        ).select_related("category").prefetch_related("images")[:12]
+        queryset = (
+            Product.objects.filter(status="active", is_featured=True)
+            .select_related("category")
+            .prefetch_related("images")[:12]
+        )
 
         items = []
         async for p in queryset:
@@ -519,11 +520,15 @@ class ProductController(APIController):
     @staticmethod
     async def get_on_sale() -> list[ProductListResponse]:
         """Get products on sale."""
-        queryset = Product.objects.filter(
-            status="active",
-            compare_at_price__isnull=False,
-            compare_at_price__gt=F("price"),
-        ).select_related("category").prefetch_related("images")[:20]
+        queryset = (
+            Product.objects.filter(
+                status="active",
+                compare_at_price__isnull=False,
+                compare_at_price__gt=F("price"),
+            )
+            .select_related("category")
+            .prefetch_related("images")[:20]
+        )
 
         items = []
         async for p in queryset:

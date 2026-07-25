@@ -169,9 +169,7 @@ class TestCreateTypeFromModel:
         from django_matt.experiments.models import Experiment
         from django_matt.graphql.types import create_type_from_model
 
-        LimitedType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        LimitedType = create_type_from_model(Experiment, fields=["key", "name", "status"])
         annotations = LimitedType.__annotations__
         assert "key" in annotations
         assert "name" in annotations
@@ -192,9 +190,7 @@ class TestCreateTypeFromModel:
         from django_matt.experiments.models import Experiment
         from django_matt.graphql.types import create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
         exp = Experiment.objects.create(key="gql-test", name="GQL Test")
         instance = ExperimentType.from_orm(exp)
         assert instance.key == "gql-test"
@@ -258,9 +254,7 @@ class TestConnectionType:
         from django_matt.experiments.models import Experiment
         from django_matt.graphql.types import ConnectionType, create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
 
         # Create test data
         for i in range(5):
@@ -278,9 +272,7 @@ class TestConnectionType:
         from django_matt.experiments.models import Experiment
         from django_matt.graphql.types import ConnectionType, create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
 
         for i in range(5):
             Experiment.objects.create(key=f"cafter-{i}", name=f"CAfter {i}")
@@ -296,9 +288,7 @@ class TestConnectionType:
         from django_matt.experiments.models import Experiment
         from django_matt.graphql.types import ConnectionType, create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
 
         for i in range(5):
             Experiment.objects.create(key=f"clast-{i}", name=f"CLast {i}")
@@ -312,9 +302,7 @@ class TestConnectionType:
         from django_matt.experiments.models import Experiment
         from django_matt.graphql.types import ConnectionType, create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
 
         queryset = Experiment.objects.none()
         connection = ConnectionType.from_queryset(queryset, ExperimentType)
@@ -327,9 +315,7 @@ class TestConnectionType:
         from django_matt.experiments.models import Experiment
         from django_matt.graphql.types import ConnectionType, create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
 
         Experiment.objects.create(key="badc", name="Bad cursor")
         queryset = Experiment.objects.all()
@@ -396,9 +382,7 @@ class TestQueryGenerator:
         from django_matt.graphql.queries import QueryGenerator
         from django_matt.graphql.types import create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
         gen = QueryGenerator(Experiment, ExperimentType)
         field = gen.list_query()
         assert field is not None
@@ -408,9 +392,7 @@ class TestQueryGenerator:
         from django_matt.graphql.queries import QueryGenerator
         from django_matt.graphql.types import create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
         gen = QueryGenerator(Experiment, ExperimentType)
         field = gen.detail_query()
         assert field is not None
@@ -420,9 +402,7 @@ class TestQueryGenerator:
         from django_matt.graphql.queries import QueryGenerator
         from django_matt.graphql.types import create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
         gen = QueryGenerator(Experiment, ExperimentType)
         field = gen.connection_query()
         assert field is not None
@@ -493,9 +473,7 @@ class TestMutationGenerator:
         from django_matt.graphql.mutations import MutationGenerator
         from django_matt.graphql.types import create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
         gen = MutationGenerator(Experiment, ExperimentType)
         mutation = gen.create_mutation()
         assert mutation is not None
@@ -505,9 +483,7 @@ class TestMutationGenerator:
         from django_matt.graphql.mutations import MutationGenerator
         from django_matt.graphql.types import create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
         gen = MutationGenerator(Experiment, ExperimentType)
         mutation = gen.update_mutation()
         assert mutation is not None
@@ -517,9 +493,7 @@ class TestMutationGenerator:
         from django_matt.graphql.mutations import MutationGenerator
         from django_matt.graphql.types import create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
         gen = MutationGenerator(Experiment, ExperimentType)
         mutation = gen.delete_mutation()
         assert mutation is not None
@@ -698,9 +672,7 @@ class TestSubscriptionManager:
         SubscriptionManager._instance = None
         manager = SubscriptionManager()
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
         manager.register(Experiment, ExperimentType)
         assert Experiment in manager._type_map
 
@@ -719,9 +691,7 @@ class TestSubscriptionGenerator:
         from django_matt.graphql.types import create_type_from_model
 
         SubscriptionManager._instance = None
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
         gen = SubscriptionGenerator(Experiment, ExperimentType)
         sub = gen.created_subscription()
         assert sub is not None
@@ -734,9 +704,7 @@ class TestSubscriptionGenerator:
         from django_matt.graphql.types import create_type_from_model
 
         SubscriptionManager._instance = None
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
         gen = SubscriptionGenerator(Experiment, ExperimentType)
         sub = gen.all_events_subscription()
         assert sub is not None
@@ -829,9 +797,7 @@ class TestConvenienceFunctions:
         from django_matt.graphql.queries import generate_list_query
         from django_matt.graphql.types import create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
         field = generate_list_query(Experiment, ExperimentType)
         assert field is not None
 
@@ -840,9 +806,7 @@ class TestConvenienceFunctions:
         from django_matt.graphql.queries import generate_detail_query
         from django_matt.graphql.types import create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
         field = generate_detail_query(Experiment, ExperimentType)
         assert field is not None
 
@@ -851,9 +815,7 @@ class TestConvenienceFunctions:
         from django_matt.graphql.queries import generate_connection_query
         from django_matt.graphql.types import create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
         field = generate_connection_query(Experiment, ExperimentType)
         assert field is not None
 
@@ -862,9 +824,7 @@ class TestConvenienceFunctions:
         from django_matt.graphql.mutations import generate_create_mutation
         from django_matt.graphql.types import create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
         mutation = generate_create_mutation(Experiment, ExperimentType)
         assert mutation is not None
 
@@ -873,9 +833,7 @@ class TestConvenienceFunctions:
         from django_matt.graphql.mutations import generate_delete_mutation
         from django_matt.graphql.types import create_type_from_model
 
-        ExperimentType = create_type_from_model(
-            Experiment, fields=["key", "name", "status"]
-        )
+        ExperimentType = create_type_from_model(Experiment, fields=["key", "name", "status"])
         mutation = generate_delete_mutation(Experiment, ExperimentType)
         assert mutation is not None
 
@@ -890,9 +848,7 @@ class TestCreateFilterInput:
         from django_matt.experiments.models import Experiment
         from django_matt.graphql.types import create_filter_input_from_model
 
-        FilterInput = create_filter_input_from_model(
-            Experiment, fields=["key", "status"]
-        )
+        FilterInput = create_filter_input_from_model(Experiment, fields=["key", "status"])
         assert FilterInput is not None
         annotations = FilterInput.__annotations__
         assert "key" in annotations
@@ -904,9 +860,7 @@ class TestCreateFilterInput:
         from django_matt.experiments.models import Experiment
         from django_matt.graphql.types import create_filter_input_from_model
 
-        FilterInput = create_filter_input_from_model(
-            Experiment, name="ExpFilter", fields=["key"]
-        )
+        FilterInput = create_filter_input_from_model(Experiment, name="ExpFilter", fields=["key"])
         assert FilterInput.__name__ == "ExpFilter"
 
 

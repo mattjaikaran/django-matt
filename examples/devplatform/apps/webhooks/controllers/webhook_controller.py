@@ -25,9 +25,7 @@ class WebhookController(APIController):
         """List all webhooks for a project."""
         await get_membership(request.user, org_id)
 
-        project = await Project.objects.filter(
-            id=project_id, organization_id=org_id
-        ).afirst()
+        project = await Project.objects.filter(id=project_id, organization_id=org_id).afirst()
         if not project:
             raise NotFoundAPIError("Project not found")
 
@@ -52,13 +50,13 @@ class WebhookController(APIController):
 
     @staticmethod
     @jwt_required
-    async def create_webhook(request, org_id: str, project_id: str, body: WebhookCreateSchema) -> dict:
+    async def create_webhook(
+        request, org_id: str, project_id: str, body: WebhookCreateSchema
+    ) -> dict:
         """Create a new webhook. Requires admin role."""
         await require_admin(request.user, org_id)
 
-        project = await Project.objects.filter(
-            id=project_id, organization_id=org_id
-        ).afirst()
+        project = await Project.objects.filter(id=project_id, organization_id=org_id).afirst()
         if not project:
             raise NotFoundAPIError("Project not found")
 
@@ -83,9 +81,7 @@ class WebhookController(APIController):
 
     @staticmethod
     @jwt_required
-    async def get_webhook(
-        request, org_id: str, project_id: str, webhook_id: str
-    ) -> dict:
+    async def get_webhook(request, org_id: str, project_id: str, webhook_id: str) -> dict:
         """Get a specific webhook."""
         await get_membership(request.user, org_id)
 
@@ -149,9 +145,7 @@ class WebhookController(APIController):
 
     @staticmethod
     @jwt_required
-    async def delete_webhook(
-        request, org_id: str, project_id: str, webhook_id: str
-    ) -> dict:
+    async def delete_webhook(request, org_id: str, project_id: str, webhook_id: str) -> dict:
         """Delete a webhook. Requires admin role."""
         await require_admin(request.user, org_id)
 
@@ -169,9 +163,7 @@ class WebhookController(APIController):
 
     @staticmethod
     @jwt_required
-    async def list_deliveries(
-        request, org_id: str, project_id: str, webhook_id: str
-    ) -> dict:
+    async def list_deliveries(request, org_id: str, project_id: str, webhook_id: str) -> dict:
         """List deliveries for a webhook."""
         await get_membership(request.user, org_id)
 
@@ -184,9 +176,7 @@ class WebhookController(APIController):
         if not webhook:
             raise NotFoundAPIError("Webhook not found")
 
-        deliveries = WebhookDelivery.objects.filter(
-            webhook_id=webhook_id
-        ).order_by("-attempted_at")
+        deliveries = WebhookDelivery.objects.filter(webhook_id=webhook_id).order_by("-attempted_at")
 
         items = []
         async for delivery in deliveries[:50]:

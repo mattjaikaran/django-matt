@@ -1,4 +1,5 @@
 """Tests for SSO authentication (SAML, OIDC, base provider, models)."""
+
 from __future__ import annotations
 
 import base64
@@ -30,6 +31,7 @@ User = get_user_model()
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_mock_connection(**overrides) -> MagicMock:
     """Build a MagicMock SSOConnection with sensible SAML/OIDC defaults."""
@@ -81,6 +83,7 @@ def _make_sso_config(**overrides) -> SSOConfig:
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def _clear_cache():
     """Clear the Django cache before and after each test."""
@@ -110,6 +113,7 @@ def sso_config():
 # ===================================================================
 # Base SSOProvider Tests
 # ===================================================================
+
 
 class TestBaseProvider:
     """Tests for SSOProvider base class (generate_state, verify_state, map_attributes)."""
@@ -189,9 +193,7 @@ class TestBaseProvider:
         assert info.roles == ["admin"]
 
     def test_map_attributes_custom_mapping(self):
-        conn = _make_mock_connection(
-            attribute_mapping={"email": "custom_email", "name": "display"}
-        )
+        conn = _make_mock_connection(attribute_mapping={"email": "custom_email", "name": "display"})
         provider = self._make_provider(connection=conn)
         raw = {
             "sub": "u-1",
@@ -232,6 +234,7 @@ class TestBaseProvider:
 # ===================================================================
 # OIDC Provider Tests
 # ===================================================================
+
 
 class TestOIDCProvider:
     """Tests for OIDCProvider (login URL, PKCE, token decode, callback)."""
@@ -319,6 +322,7 @@ class TestOIDCProvider:
     @pytest.mark.asyncio
     async def test_decode_id_token_valid(self):
         import hmac as _hmac
+
         provider = self._make_provider()
         payload = {"sub": "user-42", "email": "alice@acme.com", "nonce": "n-123"}
 
@@ -377,15 +381,16 @@ class TestOIDCProvider:
         mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.post = AsyncMock(return_value=token_response)
 
-        request = RequestFactory().get(
-            "/callback", {"code": "auth-code-123", "state": state}
-        )
+        request = RequestFactory().get("/callback", {"code": "auth-code-123", "state": state})
 
         # Mock _decode_id_token to return the payload directly (skips signature verification)
         async def mock_decode(token):
             return id_payload
 
-        with patch("httpx.AsyncClient", return_value=mock_client),              patch.object(provider, "_decode_id_token", side_effect=mock_decode):
+        with (
+            patch("httpx.AsyncClient", return_value=mock_client),
+            patch.object(provider, "_decode_id_token", side_effect=mock_decode),
+        ):
             user_info = await provider.process_callback(request)
 
         assert isinstance(user_info, SSOUserInfo)
@@ -419,16 +424,18 @@ class TestOIDCProvider:
         mock_client.__aexit__ = AsyncMock(return_value=False)
         mock_client.post = AsyncMock(return_value=token_response)
 
-        request = RequestFactory().get(
-            "/callback", {"code": "code", "state": state}
-        )
+        request = RequestFactory().get("/callback", {"code": "code", "state": state})
 
         # Mock _decode_id_token to return payload with wrong nonce
         async def mock_decode(token):
             return id_payload
 
         # SSOAuthenticationError is now re-raised on nonce mismatch
-        with patch("httpx.AsyncClient", return_value=mock_client),              patch.object(provider, "_decode_id_token", side_effect=mock_decode),              pytest.raises(SSOAuthenticationError, match="Invalid nonce"):
+        with (
+            patch("httpx.AsyncClient", return_value=mock_client),
+            patch.object(provider, "_decode_id_token", side_effect=mock_decode),
+            pytest.raises(SSOAuthenticationError, match="Invalid nonce"),
+        ):
             await provider.process_callback(request)
 
     @pytest.mark.asyncio
@@ -460,9 +467,7 @@ class TestOIDCProvider:
         mock_client.post = AsyncMock(return_value=token_response)
         mock_client.get = AsyncMock(return_value=userinfo_response)
 
-        request = RequestFactory().get(
-            "/callback", {"code": "code", "state": state}
-        )
+        request = RequestFactory().get("/callback", {"code": "code", "state": state})
 
         with patch("httpx.AsyncClient", return_value=mock_client):
             user_info = await provider.process_callback(request)
@@ -547,6 +552,7 @@ class TestOIDCProvider:
 # ===================================================================
 # SAML Provider Tests
 # ===================================================================
+
 
 class TestSAMLProvider:
     """Tests for SAMLProvider (settings build, login URL, prepare_request)."""
@@ -646,11 +652,14 @@ class TestSAMLProvider:
         mock_authn_request = MagicMock()
         mock_authn_request.get_request.return_value = "base64EncodedRequest=="
 
-        with patch(
-            "django_matt.auth.sso.providers.saml.OneLogin_Saml2_AuthnRequest",
-            return_value=mock_authn_request,
-        ), patch(
-            "django_matt.auth.sso.providers.saml.OneLogin_Saml2_Settings",
+        with (
+            patch(
+                "django_matt.auth.sso.providers.saml.OneLogin_Saml2_AuthnRequest",
+                return_value=mock_authn_request,
+            ),
+            patch(
+                "django_matt.auth.sso.providers.saml.OneLogin_Saml2_Settings",
+            ),
         ):
             url = provider.get_login_url()
 
@@ -689,6 +698,7 @@ class TestSAMLProvider:
 # ===================================================================
 # Model Tests (require DB)
 # ===================================================================
+
 
 @pytest.mark.django_db
 class TestSSOConnectionModel:
@@ -864,8 +874,10 @@ class TestOIDCIntegration:
 
         request = RF().post("/auth/sso/oidc-org/login")
 
-        with patch("django_matt.auth.sso.controllers.get_sso_config", return_value=sso_cfg), \
-             patch("django_matt.auth.sso.config.get_sso_config", return_value=sso_cfg):
+        with (
+            patch("django_matt.auth.sso.controllers.get_sso_config", return_value=sso_cfg),
+            patch("django_matt.auth.sso.config.get_sso_config", return_value=sso_cfg),
+        ):
             response = await SSOController.login(request, org_id="oidc-org")
 
         assert response.organization_id == "oidc-org"

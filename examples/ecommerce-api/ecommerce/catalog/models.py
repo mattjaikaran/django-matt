@@ -89,12 +89,8 @@ class Product(models.Model):
 
     # Pricing
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    compare_at_price = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
-    )
-    cost_price = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
-    )
+    compare_at_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    cost_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     # SKU and inventory
     sku = models.CharField(max_length=100, unique=True)
@@ -116,9 +112,7 @@ class Product(models.Model):
     meta_description = models.TextField(blank=True)
 
     # Product attributes (for filtering)
-    attributes = models.JSONField(
-        default=dict, blank=True
-    )  # {"color": "red", "size": "L"}
+    attributes = models.JSONField(default=dict, blank=True)  # {"color": "red", "size": "L"}
 
     # Full-text search vector
     search_vector = SearchVectorField(null=True, blank=True)
@@ -157,9 +151,7 @@ class Product(models.Model):
         """Calculate discount percentage."""
         if not self.is_on_sale or not self.compare_at_price:
             return 0
-        return int(
-            ((self.compare_at_price - self.price) / self.compare_at_price) * 100
-        )
+        return int(((self.compare_at_price - self.price) / self.compare_at_price) * 100)
 
     @property
     def primary_image(self) -> "ProductImage | None":
@@ -181,9 +173,7 @@ class ProductImage(models.Model):
     """Product image model."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    product = models.ForeignKey(
-        Product, on_delete=models.CASCADE, related_name="images"
-    )
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
     image = models.ImageField(upload_to="products/")
     alt_text = models.CharField(max_length=255, blank=True)
     is_primary = models.BooleanField(default=False)
@@ -213,9 +203,7 @@ class ProductVariant(models.Model):
     """Product variant model (e.g., different sizes, colors)."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    product = models.ForeignKey(
-        Product, on_delete=models.CASCADE, related_name="variants"
-    )
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variants")
 
     # Variant details
     name = models.CharField(max_length=255)  # e.g., "Red - Large"
@@ -265,9 +253,7 @@ class Inventory(models.Model):
     """Inventory tracking model."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    product = models.ForeignKey(
-        Product, on_delete=models.CASCADE, related_name="inventory"
-    )
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="inventory")
     variant = models.ForeignKey(
         ProductVariant,
         on_delete=models.CASCADE,
@@ -345,9 +331,7 @@ class InventoryMovement(models.Model):
         TRANSFERRED = "transferred", "Transferred"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    inventory = models.ForeignKey(
-        Inventory, on_delete=models.CASCADE, related_name="movements"
-    )
+    inventory = models.ForeignKey(Inventory, on_delete=models.CASCADE, related_name="movements")
 
     # Movement details
     movement_type = models.CharField(max_length=20, choices=MovementType.choices)

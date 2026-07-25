@@ -23,9 +23,7 @@ class TenantInterceptor(Interceptor):
     async def before(self, request: HttpRequest):
         slug = request.headers.get("X-Tenant-Slug")
         if not slug:
-            return JsonResponse(
-                {"detail": "X-Tenant-Slug header required"}, status=400
-            )
+            return JsonResponse({"detail": "X-Tenant-Slug header required"}, status=400)
         try:
             request.tenant = await Organization.objects.aget(slug=slug)
         except Organization.DoesNotExist:

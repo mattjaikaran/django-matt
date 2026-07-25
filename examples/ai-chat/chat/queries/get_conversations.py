@@ -18,8 +18,5 @@ class GetConversationsHandler(QueryHandler[GetConversationsQuery, dict]):
     async def execute(self, query: GetConversationsQuery) -> dict:
         qs = Conversation.objects.annotate(message_count=Count("messages"))
         total = await qs.acount()
-        conversations = [
-            conv
-            async for conv in qs[query.offset : query.offset + query.limit]
-        ]
+        conversations = [conv async for conv in qs[query.offset : query.offset + query.limit]]
         return {"items": conversations, "total": total}

@@ -163,26 +163,42 @@ class AnalyticsController(APIController):
         metrics = []
 
         # Active users
-        current_users = await AnalyticsEvent.objects.filter(
-            organization=org,
-            timestamp__gte=period_start,
-            user__isnull=False,
-        ).values("user").distinct().acount()
+        current_users = (
+            await AnalyticsEvent.objects.filter(
+                organization=org,
+                timestamp__gte=period_start,
+                user__isnull=False,
+            )
+            .values("user")
+            .distinct()
+            .acount()
+        )
 
-        previous_users = await AnalyticsEvent.objects.filter(
-            organization=org,
-            timestamp__gte=previous_period_start,
-            timestamp__lt=period_start,
-            user__isnull=False,
-        ).values("user").distinct().acount()
+        previous_users = (
+            await AnalyticsEvent.objects.filter(
+                organization=org,
+                timestamp__gte=previous_period_start,
+                timestamp__lt=period_start,
+                user__isnull=False,
+            )
+            .values("user")
+            .distinct()
+            .acount()
+        )
 
-        metrics.append(MetricSummary(
-            metric_name="active_users",
-            current_value=current_users,
-            previous_value=previous_users,
-            change_percentage=self._calc_change(current_users, previous_users),
-            trend="up" if current_users > previous_users else "down" if current_users < previous_users else "neutral",
-        ))
+        metrics.append(
+            MetricSummary(
+                metric_name="active_users",
+                current_value=current_users,
+                previous_value=previous_users,
+                change_percentage=self._calc_change(current_users, previous_users),
+                trend="up"
+                if current_users > previous_users
+                else "down"
+                if current_users < previous_users
+                else "neutral",
+            )
+        )
 
         # Total events
         current_events = await AnalyticsEvent.objects.filter(
@@ -196,13 +212,19 @@ class AnalyticsController(APIController):
             timestamp__lt=period_start,
         ).acount()
 
-        metrics.append(MetricSummary(
-            metric_name="total_events",
-            current_value=current_events,
-            previous_value=previous_events,
-            change_percentage=self._calc_change(current_events, previous_events),
-            trend="up" if current_events > previous_events else "down" if current_events < previous_events else "neutral",
-        ))
+        metrics.append(
+            MetricSummary(
+                metric_name="total_events",
+                current_value=current_events,
+                previous_value=previous_events,
+                change_percentage=self._calc_change(current_events, previous_events),
+                trend="up"
+                if current_events > previous_events
+                else "down"
+                if current_events < previous_events
+                else "neutral",
+            )
+        )
 
         # Page views
         current_pageviews = await AnalyticsEvent.objects.filter(
@@ -211,10 +233,12 @@ class AnalyticsController(APIController):
             event_name="page_view",
         ).acount()
 
-        metrics.append(MetricSummary(
-            metric_name="page_views",
-            current_value=current_pageviews,
-        ))
+        metrics.append(
+            MetricSummary(
+                metric_name="page_views",
+                current_value=current_pageviews,
+            )
+        )
 
         # Time series data
         time_series = {}
@@ -224,12 +248,17 @@ class AnalyticsController(APIController):
         for i in range(days):
             day_start = period_start + timedelta(days=i)
             day_end = day_start + timedelta(days=1)
-            count = await AnalyticsEvent.objects.filter(
-                organization=org,
-                timestamp__gte=day_start,
-                timestamp__lt=day_end,
-                user__isnull=False,
-            ).values("user").distinct().acount()
+            count = (
+                await AnalyticsEvent.objects.filter(
+                    organization=org,
+                    timestamp__gte=day_start,
+                    timestamp__lt=day_end,
+                    user__isnull=False,
+                )
+                .values("user")
+                .distinct()
+                .acount()
+            )
             daily_users.append(TimeSeriesDataPoint(timestamp=day_start, value=count))
 
         time_series["daily_active_users"] = daily_users
@@ -274,18 +303,25 @@ class AnalyticsController(APIController):
         period_start = timezone.now() - timedelta(days=days)
 
         events = []
-        async for item in AnalyticsEvent.objects.filter(
-            organization=org,
-            timestamp__gte=period_start,
-        ).values("event_name").annotate(
-            count=models.Count("id"),
-            unique_users=models.Count("user", distinct=True),
-        ).order_by("-count")[:limit]:
-            events.append(EventCountResponse(
-                event_name=item["event_name"],
-                count=item["count"],
-                unique_users=item["unique_users"],
-            ))
+        async for item in (
+            AnalyticsEvent.objects.filter(
+                organization=org,
+                timestamp__gte=period_start,
+            )
+            .values("event_name")
+            .annotate(
+                count=models.Count("id"),
+                unique_users=models.Count("user", distinct=True),
+            )
+            .order_by("-count")[:limit]
+        ):
+            events.append(
+                EventCountResponse(
+                    event_name=item["event_name"],
+                    count=item["count"],
+                    unique_users=item["unique_users"],
+                )
+            )
 
         return TopEventsResponse(
             period_start=period_start,
@@ -339,12 +375,16 @@ class AnalyticsController(APIController):
 
         # Aggregate results by variant
         variants = {}
-        async for item in AnalyticsEvent.objects.filter(
-            organization=org,
-            experiment_id=experiment_id,
-        ).values("variant").annotate(
-            count=models.Count("id"),
-            unique_users=models.Count("user", distinct=True),
+        async for item in (
+            AnalyticsEvent.objects.filter(
+                organization=org,
+                experiment_id=experiment_id,
+            )
+            .values("variant")
+            .annotate(
+                count=models.Count("id"),
+                unique_users=models.Count("user", distinct=True),
+            )
         ):
             variant = item["variant"]
             count = item["count"]

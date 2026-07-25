@@ -26,10 +26,7 @@ class ProjectService(CRUDService["Project"]):
 
     def get_queryset(self):
         return (
-            super()
-            .get_queryset()
-            .select_related("organization", "owner")
-            .prefetch_related("teams")
+            super().get_queryset().select_related("organization", "owner").prefetch_related("teams")
         )
 
     # ------------------------------------------------------------------
@@ -49,10 +46,12 @@ class ProjectService(CRUDService["Project"]):
         """
         return [
             p
-            async for p in self.get_queryset().filter(
+            async for p in self.get_queryset()
+            .filter(
                 organization__memberships__user=user,
                 organization__memberships__is_active=True,
-            ).distinct()
+            )
+            .distinct()
         ]
 
 

@@ -880,7 +880,9 @@ class TestMattMigrateFromCommand:
         for suggestion in data["suggestions"]:
             all_steps.extend(suggestion.get("steps", []))
         # Should include a step about replacing ninja imports
-        assert any("ninja" in step.lower() and "django_matt" in step.lower() for step in all_steps), (
+        assert any(
+            "ninja" in step.lower() and "django_matt" in step.lower() for step in all_steps
+        ), (
             "Expected a suggestion step about replacing ninja imports with django_matt. "
             f"Got steps: {all_steps}"
         )
@@ -895,17 +897,23 @@ class TestMattMigrateFromCommand:
     def test_migrate_from_ninja_adds_todo_markers_in_guide(self, tmp_path):
         """_generate_migration_guide includes review/TODO language for ambiguous patterns."""
         cmd = self._get_command()
-        analysis = {"framework": "ninja", "items": [], "schemas": [], "routers": [], "suggestions": [
-            {
-                "title": "Update Import Statements",
-                "description": "Replace ninja imports with django_matt imports",
-                "priority": "high",
-                "steps": [
-                    "Replace 'from ninja import ...' with 'from django_matt import ...'",
-                    "# TODO: Review this migration — manual verification needed",
-                ],
-            }
-        ]}
+        analysis = {
+            "framework": "ninja",
+            "items": [],
+            "schemas": [],
+            "routers": [],
+            "suggestions": [
+                {
+                    "title": "Update Import Statements",
+                    "description": "Replace ninja imports with django_matt imports",
+                    "priority": "high",
+                    "steps": [
+                        "Replace 'from ninja import ...' with 'from django_matt import ...'",
+                        "# TODO: Review this migration — manual verification needed",
+                    ],
+                }
+            ],
+        }
         guide = cmd._generate_migration_guide(analysis)
         # Guide should include review/TODO language indicating manual verification
         assert "TODO" in guide or "Review" in guide, (
@@ -1174,9 +1182,7 @@ class TestAnalyzeHealthScore:
         analysis = {
             "models": {
                 "total": 0,
-                "issues": [
-                    {"type": "issue", "severity": "high"} for _ in range(5)
-                ],
+                "issues": [{"type": "issue", "severity": "high"} for _ in range(5)],
             },
             "queries": {
                 "loop_queries": [
@@ -1185,9 +1191,7 @@ class TestAnalyzeHealthScore:
             },
             "tests": {
                 "total_test_methods": 0,
-                "missing_tests": [
-                    {"name": f"test_{j}"} for j in range(10)
-                ],
+                "missing_tests": [{"name": f"test_{j}"} for j in range(10)],
             },
         }
         summary = cmd._generate_summary(analysis)
@@ -1269,7 +1273,12 @@ class TestGenerateCrudCommand:
         assert "async def delete" in content
 
         # Must use async ORM calls
-        assert "acount()" in content or "aget(" in content or "acreate(" in content or "adelete()" in content
+        assert (
+            "acount()" in content
+            or "aget(" in content
+            or "acreate(" in content
+            or "adelete()" in content
+        )
 
         # Must NOT have top-level sync transaction import (only used in comments)
         lines = [ln for ln in content.splitlines() if not ln.strip().startswith("#")]
@@ -1348,7 +1357,9 @@ class TestStartapiCommand:
             )
 
             # Check CLAUDE.md was created
-            assert (project_dir / "CLAUDE.md").exists(), "CLAUDE.md must be created for b2b template"
+            assert (project_dir / "CLAUDE.md").exists(), (
+                "CLAUDE.md must be created for b2b template"
+            )
 
             # Check CI config was created
             ci_path = project_dir / ".github" / "workflows" / "ci.yml"

@@ -147,46 +147,50 @@ def serialize_post_list(post) -> PostListResponse:
     """Serialize a Post ORM object, resolving M2M tags from prefetch cache."""
     cache = getattr(post, "_prefetched_objects_cache", {})
     tags = list(cache.get("tags", []))
-    return PostListResponse.model_validate({
-        "id": post.id,
-        "title": post.title,
-        "slug": post.slug,
-        "excerpt": post.excerpt,
-        "cover_image_url": post.cover_image.url if post.cover_image else None,
-        "author": post.author,
-        "category": post.category,
-        "tags": tags,
-        "status": post.status,
-        "featured": post.featured,
-        "published_at": post.published_at,
-        "view_count": post.view_count,
-        "reading_time_minutes": post.reading_time_minutes,
-        "created_at": post.created_at,
-        "updated_at": post.updated_at,
-    })
+    return PostListResponse.model_validate(
+        {
+            "id": post.id,
+            "title": post.title,
+            "slug": post.slug,
+            "excerpt": post.excerpt,
+            "cover_image_url": post.cover_image.url if post.cover_image else None,
+            "author": post.author,
+            "category": post.category,
+            "tags": tags,
+            "status": post.status,
+            "featured": post.featured,
+            "published_at": post.published_at,
+            "view_count": post.view_count,
+            "reading_time_minutes": post.reading_time_minutes,
+            "created_at": post.created_at,
+            "updated_at": post.updated_at,
+        }
+    )
 
 
 def serialize_post_detail(post) -> "PostDetailResponse":
     """Serialize a Post ORM object to detail schema, resolving M2M tags."""
     cache = getattr(post, "_prefetched_objects_cache", {})
     tags = list(cache.get("tags", []))
-    return PostDetailResponse.model_validate({
-        "id": post.id,
-        "title": post.title,
-        "slug": post.slug,
-        "excerpt": post.excerpt,
-        "cover_image_url": post.cover_image.url if post.cover_image else None,
-        "author": post.author,
-        "category": post.category,
-        "tags": tags,
-        "status": post.status,
-        "featured": post.featured,
-        "published_at": post.published_at,
-        "view_count": post.view_count,
-        "reading_time_minutes": post.reading_time_minutes,
-        "created_at": post.created_at,
-        "updated_at": post.updated_at,
-        "content": post.content,
-        "seo_title": post.seo_title,
-        "seo_description": post.seo_description,
-    })
+    return PostDetailResponse.model_validate(
+        {
+            "id": post.id,
+            "title": post.title,
+            "slug": post.slug,
+            "excerpt": post.excerpt,
+            "cover_image_url": post.cover_image.url if post.cover_image else None,
+            "author": post.author,
+            "category": post.category,
+            "tags": tags,
+            "status": post.status,
+            "featured": post.featured,
+            "published_at": post.published_at,
+            "view_count": post.view_count,
+            "reading_time_minutes": post.reading_time_minutes,
+            "created_at": post.created_at,
+            "updated_at": post.updated_at,
+            "content": post.content,
+            "seo_title": post.seo_title,
+            "seo_description": post.seo_description,
+        }
+    )

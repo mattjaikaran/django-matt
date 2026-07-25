@@ -39,9 +39,7 @@ class TestStripeConfig:
         assert "API_KEY" in errors[0]
 
     def test_config_validation_passes(self) -> None:
-        config = StripeConfig(
-            webhook_secret="whsec_test", api_key="sk_test_123"
-        )
+        config = StripeConfig(webhook_secret="whsec_test", api_key="sk_test_123")
         assert config.validate() == []
 
 

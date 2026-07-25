@@ -713,9 +713,7 @@ class TestMattCommand:
 
     def test_fail_model_not_found(self):
         self.cmd.fail_model_not_found("auth.Bogus", ["auth.User"])
-        self.cmd.error_handler.model_not_found.assert_called_once_with(
-            "auth.Bogus", ["auth.User"]
-        )
+        self.cmd.error_handler.model_not_found.assert_called_once_with("auth.Bogus", ["auth.User"])
 
     def test_fail_file_not_found(self):
         self.cmd.fail_file_not_found("/tmp/missing")
@@ -1076,7 +1074,9 @@ class TestDoctorTiers:
 
         from django_matt.cli.commands.status import _collect_errors
 
-        with override_settings(SECRET_KEY="", INSTALLED_APPS=["django_matt"], DATABASES={"default": {}}):
+        with override_settings(
+            SECRET_KEY="", INSTALLED_APPS=["django_matt"], DATABASES={"default": {}}
+        ):
             results = _collect_errors()
         tiers = [r.tier for r in results]
         names = [r.name for r in results]
@@ -1089,7 +1089,9 @@ class TestDoctorTiers:
 
         from django_matt.cli.commands.status import _collect_errors
 
-        with override_settings(SECRET_KEY="change-me", INSTALLED_APPS=["django_matt"], DATABASES={"default": {}}):
+        with override_settings(
+            SECRET_KEY="change-me", INSTALLED_APPS=["django_matt"], DATABASES={"default": {}}
+        ):
             results = _collect_errors()
         tiers = [r.tier for r in results]
         names = [r.name for r in results]
@@ -1102,7 +1104,9 @@ class TestDoctorTiers:
 
         from django_matt.cli.commands.status import _collect_errors
 
-        with override_settings(SECRET_KEY="real-secret-key-abc123", INSTALLED_APPS=[], DATABASES={"default": {}}):
+        with override_settings(
+            SECRET_KEY="real-secret-key-abc123", INSTALLED_APPS=[], DATABASES={"default": {}}
+        ):
             results = _collect_errors()
         names = [r.name for r in results]
         assert any("django_matt" in n.lower() for n in names)
@@ -1113,7 +1117,9 @@ class TestDoctorTiers:
 
         from django_matt.cli.commands.status import _collect_errors
 
-        with override_settings(SECRET_KEY="real-secret-key-abc123", INSTALLED_APPS=["django_matt"], DATABASES={}):
+        with override_settings(
+            SECRET_KEY="real-secret-key-abc123", INSTALLED_APPS=["django_matt"], DATABASES={}
+        ):
             results = _collect_errors()
         names = [r.name for r in results]
         assert any("DATABASES" in n for n in names)
@@ -1128,7 +1134,9 @@ class TestDoctorTiers:
         from django_matt.cli.commands.status import _collect_warnings
 
         with override_settings(DEBUG=True, ALLOWED_HOSTS=["example.com"]):
-            with patch.dict(os.environ, {"DJANGO_SETTINGS_MODULE": "myproject.settings.production"}):
+            with patch.dict(
+                os.environ, {"DJANGO_SETTINGS_MODULE": "myproject.settings.production"}
+            ):
                 results = _collect_warnings()
         names = [r.name for r in results]
         assert any("DEBUG" in n for n in names)
@@ -1139,7 +1147,10 @@ class TestDoctorTiers:
 
         from django_matt.cli.commands.status import _collect_warnings
 
-        with override_settings(ALLOWED_HOSTS=[], CACHES={"default": {"BACKEND": "django.core.cache.backends.redis.RedisCache"}}):
+        with override_settings(
+            ALLOWED_HOSTS=[],
+            CACHES={"default": {"BACKEND": "django.core.cache.backends.redis.RedisCache"}},
+        ):
             results = _collect_warnings()
         names = [r.name for r in results]
         assert any("ALLOWED_HOSTS" in n for n in names)
@@ -1239,5 +1250,7 @@ class TestRoutesCommand:
             return  # No routes configured in test settings — skip
 
         # Filter by something that won't match
-        filtered = collect_routes_data(filter_pattern="__nonexistent_xyz__", method_filter=None, verbose=False)
+        filtered = collect_routes_data(
+            filter_pattern="__nonexistent_xyz__", method_filter=None, verbose=False
+        )
         assert filtered == []

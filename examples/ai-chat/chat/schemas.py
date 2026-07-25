@@ -2,7 +2,6 @@
 Pydantic schemas for the chat API.
 """
 
-
 from django_matt.core.schema import ModelSchema
 
 from chat.models import Conversation, Message

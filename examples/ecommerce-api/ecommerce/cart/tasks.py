@@ -21,11 +21,15 @@ def check_abandoned_carts():
 
     # Find carts abandoned for more than 1 hour with items
     threshold = timezone.now() - timedelta(hours=1)
-    abandoned_carts = Cart.objects.filter(
-        user__isnull=False,
-        updated_at__lt=threshold,
-        items__isnull=False,
-    ).distinct().select_related("user")
+    abandoned_carts = (
+        Cart.objects.filter(
+            user__isnull=False,
+            updated_at__lt=threshold,
+            items__isnull=False,
+        )
+        .distinct()
+        .select_related("user")
+    )
 
     emails_sent = 0
     for cart in abandoned_carts:
@@ -115,9 +119,7 @@ def merge_user_carts(user_id: str, session_key: str):
     user_cart = Cart.objects.filter(user_id=user_id).first()
 
     # Get session cart
-    session_cart = Cart.objects.filter(
-        session_key=session_key, user__isnull=True
-    ).first()
+    session_cart = Cart.objects.filter(session_key=session_key, user__isnull=True).first()
 
     if not session_cart:
         return
@@ -131,9 +133,7 @@ def merge_user_carts(user_id: str, session_key: str):
 
     # Merge items
     for item in session_cart.items.all():
-        existing = user_cart.items.filter(
-            product=item.product, variant=item.variant
-        ).first()
+        existing = user_cart.items.filter(product=item.product, variant=item.variant).first()
         if existing:
             existing.quantity += item.quantity
             existing.save()

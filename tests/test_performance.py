@@ -448,6 +448,7 @@ class TestNoGetTypeHintsPerRequest(TestCase):
             ),
         )
 
+
 # ---------------------------------------------------------------------------
 # CORE-10: Verify no stdlib json in hot-path files
 # ---------------------------------------------------------------------------
@@ -568,9 +569,7 @@ class TestStreamingMemoryThreshold(TestCase):
                 yield {"id": i, "name": f"Item {i}", "value": i * 1.5}
 
         tracemalloc.start()
-        response = StreamingJsonResponse(
-            streaming_content=stream_json_list(generate_records())
-        )
+        response = StreamingJsonResponse(streaming_content=stream_json_list(generate_records()))
         # Consume the entire streaming response to measure actual peak memory
         content = b"".join(
             chunk.encode("utf-8") if isinstance(chunk, str) else chunk
@@ -593,9 +592,7 @@ class TestStreamingMemoryThreshold(TestCase):
 # ---------------------------------------------------------------------------
 
 
-@override_settings(
-    CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
-)
+@override_settings(CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}})
 class TestCacheResponseDecorator(TestCase):
     """PERF-06: cache_response decorator must cache view responses."""
 

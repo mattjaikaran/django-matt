@@ -26,9 +26,7 @@ class Payment(models.Model):
         GOOGLE_PAY = "google_pay", "Google Pay"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    order = models.ForeignKey(
-        "orders.Order", on_delete=models.CASCADE, related_name="payments"
-    )
+    order = models.ForeignKey("orders.Order", on_delete=models.CASCADE, related_name="payments")
 
     # Status
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
@@ -108,9 +106,7 @@ class Refund(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name="refunds")
-    order = models.ForeignKey(
-        "orders.Order", on_delete=models.CASCADE, related_name="refunds"
-    )
+    order = models.ForeignKey("orders.Order", on_delete=models.CASCADE, related_name="refunds")
 
     # Status
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)

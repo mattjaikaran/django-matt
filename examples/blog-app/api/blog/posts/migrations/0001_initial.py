@@ -8,7 +8,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = []
@@ -53,9 +52,7 @@ class Migration(migrations.Migration):
                 ("view_count", models.PositiveIntegerField(default=0)),
                 (
                     "search_vector",
-                    django.contrib.postgres.search.SearchVectorField(
-                        blank=True, null=True
-                    ),
+                    django.contrib.postgres.search.SearchVectorField(blank=True, null=True),
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),

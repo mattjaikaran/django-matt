@@ -16,7 +16,12 @@ class TestNewDataclasses:
             name="UserService",
             module="myapp.services",
             methods=[
-                {"name": "create_user", "is_async": True, "params": [{"name": "data", "type": "dict"}], "return_type": "User"},
+                {
+                    "name": "create_user",
+                    "is_async": True,
+                    "params": [{"name": "data", "type": "dict"}],
+                    "return_type": "User",
+                },
             ],
             is_async=True,
             docstring="User management service.",
@@ -111,8 +116,20 @@ class TestFormatFunctions:
         from django_matt.ai.context.templates import format_async_safety_section
 
         warnings = [
-            {"file": "views.py", "line": 10, "function": "list_users", "issue": "Sync .get()", "suggestion": "Use .aget()"},
-            {"file": "views.py", "line": 20, "function": "create_user", "issue": "Sync .save()", "suggestion": "Use .asave()"},
+            {
+                "file": "views.py",
+                "line": 10,
+                "function": "list_users",
+                "issue": "Sync .get()",
+                "suggestion": "Use .aget()",
+            },
+            {
+                "file": "views.py",
+                "line": 20,
+                "function": "create_user",
+                "issue": "Sync .save()",
+                "suggestion": "Use .asave()",
+            },
         ]
         result = format_async_safety_section(warnings, [])
         assert "2 detected" in result
@@ -146,8 +163,18 @@ class TestFormatFunctions:
                 "is_async": True,
                 "docstring": "Handles user operations.",
                 "methods": [
-                    {"name": "create_user", "is_async": True, "params": [{"name": "data"}], "return_type": "User"},
-                    {"name": "get_user", "is_async": True, "params": [{"name": "pk"}], "return_type": "User"},
+                    {
+                        "name": "create_user",
+                        "is_async": True,
+                        "params": [{"name": "data"}],
+                        "return_type": "User",
+                    },
+                    {
+                        "name": "get_user",
+                        "is_async": True,
+                        "params": [{"name": "pk"}],
+                        "return_type": "User",
+                    },
                 ],
             }
         ]
@@ -193,7 +220,9 @@ class TestFormatFunctions:
         """Async safety rules should note detected issues."""
         from django_matt.ai.context.templates import format_async_safety_rules
 
-        warnings = [{"file": "views.py", "line": 1, "function": "f", "issue": "x", "suggestion": "y"}]
+        warnings = [
+            {"file": "views.py", "line": 1, "function": "f", "issue": "x", "suggestion": "y"}
+        ]
         result = format_async_safety_rules(warnings)
         assert "1 async safety issue(s)" in result
 
@@ -236,7 +265,7 @@ class TestGeneratorWiring:
         )
         generator = ClaudeMdGenerator()
         # Mock the structure generation since it needs Django apps
-        with patch.object(generator, '_generate_structure', return_value="## Structure"):
+        with patch.object(generator, "_generate_structure", return_value="## Structure"):
             content = generator.generate(project_info=info)
         assert "Async Safety Guide" in content
         assert "Error Handling" in content

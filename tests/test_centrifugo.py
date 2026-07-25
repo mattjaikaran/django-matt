@@ -163,9 +163,7 @@ class TestCentrifugoClient:
 
     def _make_error_response(self, code: int, message: str) -> MagicMock:
         resp = MagicMock()
-        resp.content = __import__("orjson").dumps(
-            {"error": {"code": code, "message": message}}
-        )
+        resp.content = __import__("orjson").dumps({"error": {"code": code, "message": message}})
         resp.raise_for_status = MagicMock()
         return resp
 
@@ -226,12 +224,15 @@ class TestCentrifugoClient:
         client = CentrifugoClient()
         resp = self._make_error_response(102, "channel not found")
 
-        with patch.object(
-            client._get_http(),
-            "post",
-            new_callable=AsyncMock,
-            return_value=resp,
-        ), pytest.raises(CentrifugoAPIError) as exc_info:
+        with (
+            patch.object(
+                client._get_http(),
+                "post",
+                new_callable=AsyncMock,
+                return_value=resp,
+            ),
+            pytest.raises(CentrifugoAPIError) as exc_info,
+        ):
             await client.presence("nonexistent")
 
         assert exc_info.value.code == 102

@@ -56,53 +56,43 @@ class DashboardController(APIController):
                 "total_requests": recent_requests,
                 "errors": recent_errors,
                 "error_rate": (
-                    round(recent_errors / recent_requests * 100, 2)
-                    if recent_requests > 0
-                    else 0.0
+                    round(recent_errors / recent_requests * 100, 2) if recent_requests > 0 else 0.0
                 ),
             },
         }
 
     @staticmethod
     @jwt_required
-    async def get_project_dashboard(
-        request, org_id: str, project_id: str
-    ) -> dict:
+    async def get_project_dashboard(request, org_id: str, project_id: str) -> dict:
         """Dashboard for a specific project."""
         await get_membership(request.user, org_id)
 
         try:
-            project = await Project.objects.aget(
-                id=project_id, organization_id=org_id
-            )
+            project = await Project.objects.aget(id=project_id, organization_id=org_id)
         except Project.DoesNotExist:
             raise APIError(status_code=404, message="Project not found")
 
-        key_count = await APIKey.objects.filter(
-            project=project, is_active=True
-        ).acount()
+        key_count = await APIKey.objects.filter(project=project, is_active=True).acount()
 
-        webhook_count = await Webhook.objects.filter(
-            project=project, is_active=True
-        ).acount()
+        webhook_count = await Webhook.objects.filter(project=project, is_active=True).acount()
 
         # Recent request logs
         since = timezone.now() - timedelta(hours=24)
-        logs_qs = RequestLog.objects.filter(
-            project=project, created_at__gte=since
-        )
+        logs_qs = RequestLog.objects.filter(project=project, created_at__gte=since)
         total = await logs_qs.acount()
         errors = await logs_qs.filter(status_code__gte=400).acount()
 
         # Recent daily metrics
         recent_metrics = []
         async for m in DailyMetric.objects.filter(project=project).order_by("-date")[:7]:
-            recent_metrics.append({
-                "date": m.date.isoformat(),
-                "total_requests": m.total_requests,
-                "failed_requests": m.failed_requests,
-                "avg_response_time_ms": m.avg_response_time_ms,
-            })
+            recent_metrics.append(
+                {
+                    "date": m.date.isoformat(),
+                    "total_requests": m.total_requests,
+                    "failed_requests": m.failed_requests,
+                    "avg_response_time_ms": m.avg_response_time_ms,
+                }
+            )
 
         return {
             "project": {

@@ -29,12 +29,8 @@ class Coupon(models.Model):
     discount_value = models.DecimalField(max_digits=10, decimal_places=2)
 
     # Constraints
-    minimum_purchase = models.DecimalField(
-        max_digits=10, decimal_places=2, default=Decimal("0.00")
-    )
-    maximum_discount = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
-    )
+    minimum_purchase = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    maximum_discount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     # Usage limits
     usage_limit = models.PositiveIntegerField(null=True, blank=True)

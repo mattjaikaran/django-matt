@@ -130,10 +130,14 @@ class TestBulkCreateView:
     @pytest.mark.asyncio
     async def test_bulk_create_basic(self, rf, viewset):
         """Create multiple users in one request."""
-        request = _make_request(rf, "POST", [
-            {"username": "bulk_alice", "email": "bulk_alice@example.com"},
-            {"username": "bulk_bob", "email": "bulk_bob@example.com"},
-        ])
+        request = _make_request(
+            rf,
+            "POST",
+            [
+                {"username": "bulk_alice", "email": "bulk_alice@example.com"},
+                {"username": "bulk_bob", "email": "bulk_bob@example.com"},
+            ],
+        )
 
         view = BulkCreateView(
             request_schema=UserCreateSchema,
@@ -225,10 +229,14 @@ class TestBulkUpdateView:
 
         pk1, pk2 = await _create_users()
 
-        request = _make_request(rf, "PUT", [
-            {"id": pk1, "email": "alice@new.com"},
-            {"id": pk2, "email": "bob@new.com"},
-        ])
+        request = _make_request(
+            rf,
+            "PUT",
+            [
+                {"id": pk1, "email": "alice@new.com"},
+                {"id": pk2, "email": "bob@new.com"},
+            ],
+        )
 
         view = BulkUpdateView(
             request_schema=UserUpdateSchema,
@@ -371,9 +379,13 @@ class TestBulkViewSetIntegration:
         vs = BulkUserViewSet()
         bound = vs.bulk_create  # triggers __get__ -> BoundView
 
-        request = _make_request(rf, "POST", [
-            {"username": "carol", "email": "carol@example.com"},
-        ])
+        request = _make_request(
+            rf,
+            "POST",
+            [
+                {"username": "carol", "email": "carol@example.com"},
+            ],
+        )
 
         response = await bound(request)
         assert response.status_code == 200

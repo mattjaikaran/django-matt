@@ -8,6 +8,7 @@ from blog.posts.models import Post
 class TestCommentModel:
     def setup_method(self):
         from django.contrib.auth import get_user_model
+
         User = get_user_model()
         self.user = User.objects.create_user(
             username="commenter", email="commenter@example.com", password="pass"
@@ -55,6 +56,7 @@ class TestCommentModel:
 class TestCommentAPI:
     def setup_method(self):
         from django.contrib.auth import get_user_model
+
         User = get_user_model()
         self.user = User.objects.create_user(
             username="apicommenter", email="apicommenter@example.com", password="pass"

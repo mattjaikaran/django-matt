@@ -184,9 +184,7 @@ class Team(models.Model):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    organization = models.ForeignKey(
-        Organization, on_delete=models.CASCADE, related_name="teams"
-    )
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="teams")
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=100, db_index=True)
     description = models.TextField(blank=True)
@@ -212,6 +210,7 @@ class Team(models.Model):
 
 class MembershipRole(models.TextChoices):
     """Membership roles with hierarchy."""
+
     OWNER = "owner", "Owner"
     ADMIN = "admin", "Admin"
     MEMBER = "member", "Member"
@@ -393,9 +392,7 @@ class AuditLog(models.Model):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, related_name="audit_logs"
-    )
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="audit_logs")
     organization = models.ForeignKey(
         Organization, on_delete=models.CASCADE, null=True, related_name="audit_logs"
     )

@@ -68,9 +68,7 @@ class Command(BaseCommand):
         phones, _ = Category.objects.get_or_create(
             slug="phones", defaults={"name": "Phones", "parent": electronics}
         )
-        books, _ = Category.objects.get_or_create(
-            slug="books", defaults={"name": "Books"}
-        )
+        books, _ = Category.objects.get_or_create(slug="books", defaults={"name": "Books"})
 
         # Products
         products_data = [

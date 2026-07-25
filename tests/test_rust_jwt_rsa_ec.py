@@ -22,6 +22,7 @@ from django_matt.auth.jwt_builtin import (
 # Key fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(scope="module")
 def rsa_keypair():
     """Generate a 2048-bit RSA key pair."""
@@ -31,10 +32,14 @@ def rsa_keypair():
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption(),
     ).decode("utf-8")
-    public_pem = private_key.public_key().public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo,
-    ).decode("utf-8")
+    public_pem = (
+        private_key.public_key()
+        .public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        .decode("utf-8")
+    )
     return private_pem, public_pem
 
 
@@ -47,10 +52,14 @@ def ec_p256_keypair():
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption(),
     ).decode("utf-8")
-    public_pem = private_key.public_key().public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo,
-    ).decode("utf-8")
+    public_pem = (
+        private_key.public_key()
+        .public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        .decode("utf-8")
+    )
     return private_pem, public_pem
 
 
@@ -63,16 +72,21 @@ def ec_p384_keypair():
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption(),
     ).decode("utf-8")
-    public_pem = private_key.public_key().public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo,
-    ).decode("utf-8")
+    public_pem = (
+        private_key.public_key()
+        .public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        .decode("utf-8")
+    )
     return private_pem, public_pem
 
 
 # ---------------------------------------------------------------------------
 # RSA roundtrip tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.parametrize("algorithm", ["RS256", "RS384", "RS512"])
 def test_rsa_encode_decode_roundtrip(rsa_keypair, algorithm):
@@ -91,6 +105,7 @@ def test_rsa_encode_decode_roundtrip(rsa_keypair, algorithm):
 # ---------------------------------------------------------------------------
 # EC roundtrip tests
 # ---------------------------------------------------------------------------
+
 
 def test_es256_encode_decode_roundtrip(ec_p256_keypair):
     private_pem, public_pem = ec_p256_keypair
@@ -117,6 +132,7 @@ def test_es384_encode_decode_roundtrip(ec_p384_keypair):
 # ---------------------------------------------------------------------------
 # Invalid signature detection
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.parametrize("algorithm", ["RS256", "RS384", "RS512"])
 def test_rsa_invalid_signature(rsa_keypair, algorithm):
@@ -146,6 +162,7 @@ def test_ec_invalid_signature(ec_p256_keypair):
 # Wrong key detection
 # ---------------------------------------------------------------------------
 
+
 def test_rsa_wrong_key():
     """Decoding with a different RSA key pair should fail."""
     key1 = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -154,9 +171,11 @@ def test_rsa_wrong_key():
     priv1 = key1.private_bytes(
         serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()
     ).decode()
-    pub2 = key2.public_key().public_bytes(
-        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
-    ).decode()
+    pub2 = (
+        key2.public_key()
+        .public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo)
+        .decode()
+    )
 
     token = encode_jwt({"sub": "a"}, secret=priv1, algorithm="RS256", expires_in=300)
 
@@ -172,9 +191,11 @@ def test_ec_wrong_key():
     priv1 = key1.private_bytes(
         serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()
     ).decode()
-    pub2 = key2.public_key().public_bytes(
-        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
-    ).decode()
+    pub2 = (
+        key2.public_key()
+        .public_bytes(serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo)
+        .decode()
+    )
 
     token = encode_jwt({"sub": "a"}, secret=priv1, algorithm="ES256", expires_in=300)
 
@@ -186,10 +207,14 @@ def test_ec_wrong_key():
 # Expired token tests
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("algorithm,fixture_name", [
-    ("RS256", "rsa_keypair"),
-    ("ES256", "ec_p256_keypair"),
-])
+
+@pytest.mark.parametrize(
+    "algorithm,fixture_name",
+    [
+        ("RS256", "rsa_keypair"),
+        ("ES256", "ec_p256_keypair"),
+    ],
+)
 def test_expired_token_asymmetric(algorithm, fixture_name, request):
     private_pem, public_pem = request.getfixturevalue(fixture_name)
 
@@ -208,6 +233,7 @@ def test_expired_token_asymmetric(algorithm, fixture_name, request):
 # Rust acceleration detection
 # ---------------------------------------------------------------------------
 
+
 def test_rust_acceleration_available():
     """Verify whether Rust acceleration is detected (informational)."""
     from django_matt._accel import HAS_RUST
@@ -222,6 +248,7 @@ def test_rust_acceleration_available():
 # ---------------------------------------------------------------------------
 # Direct Rust function tests (when available)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.skipif(not HAS_RUST, reason="Rust extensions not available")
 def test_rust_jwt_encode_decode_rsa_direct(rsa_keypair):

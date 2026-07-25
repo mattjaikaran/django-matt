@@ -81,10 +81,12 @@ class TestCompositeHook:
         events_a: list[AgentEvent] = []
         events_b: list[AgentEvent] = []
 
-        hook = CompositeHook([
-            CallbackHook(lambda e: events_a.append(e)),
-            CallbackHook(lambda e: events_b.append(e)),
-        ])
+        hook = CompositeHook(
+            [
+                CallbackHook(lambda e: events_a.append(e)),
+                CallbackHook(lambda e: events_b.append(e)),
+            ]
+        )
 
         await hook.on_event(
             AgentEvent(
@@ -103,10 +105,12 @@ class TestCompositeHook:
         def bad_hook(e: AgentEvent) -> None:
             raise RuntimeError("oops")
 
-        hook = CompositeHook([
-            CallbackHook(bad_hook),
-            CallbackHook(lambda e: events.append(e)),
-        ])
+        hook = CompositeHook(
+            [
+                CallbackHook(bad_hook),
+                CallbackHook(lambda e: events.append(e)),
+            ]
+        )
 
         await hook.on_event(
             AgentEvent(
@@ -174,13 +178,15 @@ class TestAgentObservability:
             """A tool."""
             return "result"
 
-        provider = FakeProvider(responses=[
-            CompletionResponse(
-                content="",
-                tool_calls=[ToolCall(id="tc1", name="my_tool", arguments={})],
-            ),
-            "Done.",
-        ])
+        provider = FakeProvider(
+            responses=[
+                CompletionResponse(
+                    content="",
+                    tool_calls=[ToolCall(id="tc1", name="my_tool", arguments={})],
+                ),
+                "Done.",
+            ]
+        )
 
         class MyAgent(Agent):
             system_prompt = "Test"

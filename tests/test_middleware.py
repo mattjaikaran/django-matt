@@ -35,6 +35,7 @@ from django_matt.middleware.timing import TimingMiddleware
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _ok_response(request):
     """Simple 200 OK response callable for middleware get_response."""
     return HttpResponse("OK", status=200)
@@ -47,6 +48,7 @@ def _json_response(request):
 def _slow_response(request):
     """Response that takes a tiny bit of time."""
     import time
+
     time.sleep(0.005)
     return HttpResponse("slow", status=200)
 
@@ -68,6 +70,7 @@ def rf():
 # ---------------------------------------------------------------------------
 # CORSMiddleware
 # ---------------------------------------------------------------------------
+
 
 class TestCORSMiddleware:
     """Test CORS header injection and preflight handling."""
@@ -130,10 +133,14 @@ class TestCORSMiddleware:
         response = mw(request)
         assert response.status_code == 204
 
-    @override_settings(DJANGO_MATT={"CORS": {
-        "ALLOWED_ORIGINS": ["https://app.example.com"],
-        "ALLOW_METHODS": ["GET", "POST"],
-    }})
+    @override_settings(
+        DJANGO_MATT={
+            "CORS": {
+                "ALLOWED_ORIGINS": ["https://app.example.com"],
+                "ALLOW_METHODS": ["GET", "POST"],
+            }
+        }
+    )
     def test_preflight_allow_methods(self, rf):
         mw = CORSMiddleware(_ok_response)
         request = rf.options("/api/", HTTP_ORIGIN="https://app.example.com")
@@ -141,10 +148,14 @@ class TestCORSMiddleware:
         assert "GET" in response["Access-Control-Allow-Methods"]
         assert "POST" in response["Access-Control-Allow-Methods"]
 
-    @override_settings(DJANGO_MATT={"CORS": {
-        "ALLOWED_ORIGINS": ["https://app.example.com"],
-        "ALLOW_HEADERS": ["Authorization", "Content-Type"],
-    }})
+    @override_settings(
+        DJANGO_MATT={
+            "CORS": {
+                "ALLOWED_ORIGINS": ["https://app.example.com"],
+                "ALLOW_HEADERS": ["Authorization", "Content-Type"],
+            }
+        }
+    )
     def test_preflight_allow_headers(self, rf):
         mw = CORSMiddleware(_ok_response)
         request = rf.options("/api/", HTTP_ORIGIN="https://app.example.com")
@@ -152,10 +163,14 @@ class TestCORSMiddleware:
         assert "Authorization" in response["Access-Control-Allow-Headers"]
         assert "Content-Type" in response["Access-Control-Allow-Headers"]
 
-    @override_settings(DJANGO_MATT={"CORS": {
-        "ALLOWED_ORIGINS": ["https://app.example.com"],
-        "MAX_AGE": 3600,
-    }})
+    @override_settings(
+        DJANGO_MATT={
+            "CORS": {
+                "ALLOWED_ORIGINS": ["https://app.example.com"],
+                "MAX_AGE": 3600,
+            }
+        }
+    )
     def test_preflight_max_age(self, rf):
         mw = CORSMiddleware(_ok_response)
         request = rf.options("/api/", HTTP_ORIGIN="https://app.example.com")
@@ -172,20 +187,28 @@ class TestCORSMiddleware:
 
     # -- Credentials --------------------------------------------------------
 
-    @override_settings(DJANGO_MATT={"CORS": {
-        "ALLOWED_ORIGINS": ["https://app.example.com"],
-        "ALLOW_CREDENTIALS": True,
-    }})
+    @override_settings(
+        DJANGO_MATT={
+            "CORS": {
+                "ALLOWED_ORIGINS": ["https://app.example.com"],
+                "ALLOW_CREDENTIALS": True,
+            }
+        }
+    )
     def test_credentials_header(self, rf):
         mw = CORSMiddleware(_ok_response)
         request = rf.get("/api/", HTTP_ORIGIN="https://app.example.com")
         response = mw(request)
         assert response["Access-Control-Allow-Credentials"] == "true"
 
-    @override_settings(DJANGO_MATT={"CORS": {
-        "ALLOWED_ORIGINS": ["https://app.example.com"],
-        "ALLOW_CREDENTIALS": False,
-    }})
+    @override_settings(
+        DJANGO_MATT={
+            "CORS": {
+                "ALLOWED_ORIGINS": ["https://app.example.com"],
+                "ALLOW_CREDENTIALS": False,
+            }
+        }
+    )
     def test_no_credentials_header_when_disabled(self, rf):
         mw = CORSMiddleware(_ok_response)
         request = rf.get("/api/", HTTP_ORIGIN="https://app.example.com")
@@ -194,10 +217,14 @@ class TestCORSMiddleware:
 
     # -- Expose headers -----------------------------------------------------
 
-    @override_settings(DJANGO_MATT={"CORS": {
-        "ALLOWED_ORIGINS": ["https://app.example.com"],
-        "EXPOSE_HEADERS": ["X-Custom", "X-Request-ID"],
-    }})
+    @override_settings(
+        DJANGO_MATT={
+            "CORS": {
+                "ALLOWED_ORIGINS": ["https://app.example.com"],
+                "EXPOSE_HEADERS": ["X-Custom", "X-Request-ID"],
+            }
+        }
+    )
     def test_expose_headers(self, rf):
         mw = CORSMiddleware(_ok_response)
         request = rf.get("/api/", HTTP_ORIGIN="https://app.example.com")
@@ -230,6 +257,7 @@ class TestCORSMiddleware:
 # ---------------------------------------------------------------------------
 # RequestIDMiddleware
 # ---------------------------------------------------------------------------
+
 
 class TestRequestIDMiddleware:
     """Test unique request ID generation and propagation."""
@@ -311,6 +339,7 @@ class TestRequestIDMiddleware:
 # SecurityHeadersMiddleware
 # ---------------------------------------------------------------------------
 
+
 class TestSecurityHeadersMiddleware:
     """Test security header injection."""
 
@@ -333,11 +362,15 @@ class TestSecurityHeadersMiddleware:
         assert "max-age=31536000" in hsts
         assert "includeSubDomains" in hsts
 
-    @override_settings(DJANGO_MATT={"SECURITY_HEADERS": {
-        "HSTS_MAX_AGE": 7200,
-        "HSTS_INCLUDE_SUBDOMAINS": False,
-        "HSTS_PRELOAD": True,
-    }})
+    @override_settings(
+        DJANGO_MATT={
+            "SECURITY_HEADERS": {
+                "HSTS_MAX_AGE": 7200,
+                "HSTS_INCLUDE_SUBDOMAINS": False,
+                "HSTS_PRELOAD": True,
+            }
+        }
+    )
     def test_hsts_custom_config(self, rf):
         mw = SecurityHeadersMiddleware(_ok_response)
         response = mw(rf.get("/"))
@@ -346,9 +379,13 @@ class TestSecurityHeadersMiddleware:
         assert "includeSubDomains" not in hsts
         assert "preload" in hsts
 
-    @override_settings(DJANGO_MATT={"SECURITY_HEADERS": {
-        "CONTENT_SECURITY_POLICY": "default-src 'none'",
-    }})
+    @override_settings(
+        DJANGO_MATT={
+            "SECURITY_HEADERS": {
+                "CONTENT_SECURITY_POLICY": "default-src 'none'",
+            }
+        }
+    )
     def test_custom_csp(self, rf):
         mw = SecurityHeadersMiddleware(_ok_response)
         response = mw(rf.get("/"))
@@ -403,6 +440,7 @@ class TestSecurityHeadersMiddleware:
 # ---------------------------------------------------------------------------
 # TimingMiddleware
 # ---------------------------------------------------------------------------
+
 
 class TestTimingMiddleware:
     """Test response timing header."""
@@ -461,6 +499,7 @@ class TestTimingMiddleware:
 # RequestLoggingMiddleware
 # ---------------------------------------------------------------------------
 
+
 class TestRequestLoggingMiddleware:
     """Test structured request logging."""
 
@@ -514,6 +553,7 @@ class TestRequestLoggingMiddleware:
 # JSONResponseMiddleware
 # ---------------------------------------------------------------------------
 
+
 class TestJSONResponseMiddleware:
     """Test dict-to-JsonResponse conversion."""
 
@@ -534,6 +574,7 @@ class TestJSONResponseMiddleware:
 # ---------------------------------------------------------------------------
 # APIExceptionMiddleware
 # ---------------------------------------------------------------------------
+
 
 class TestAPIExceptionMiddleware:
     """Test API exception handling middleware."""
@@ -563,6 +604,7 @@ class TestAPIExceptionMiddleware:
 # ---------------------------------------------------------------------------
 # Middleware stacks (module-level constants)
 # ---------------------------------------------------------------------------
+
 
 class TestMiddlewareStacks:
     """Test the predefined middleware stack constants."""
@@ -599,12 +641,15 @@ class TestMiddlewareStacks:
 # Middleware chaining integration
 # ---------------------------------------------------------------------------
 
+
 class TestMiddlewareChaining:
     """Test that multiple middleware chain correctly."""
 
-    @override_settings(DJANGO_MATT={
-        "CORS": {"ALLOWED_ORIGINS": ["https://app.example.com"]},
-    })
+    @override_settings(
+        DJANGO_MATT={
+            "CORS": {"ALLOWED_ORIGINS": ["https://app.example.com"]},
+        }
+    )
     def test_request_id_then_cors(self, rf):
         """Chain RequestID -> CORS and verify both headers appear."""
         inner = CORSMiddleware(_ok_response)
@@ -632,13 +677,17 @@ class TestMiddlewareChaining:
         assert "X-Content-Type-Options" in response
         assert "X-Response-Time" in response
 
-    @override_settings(DJANGO_MATT={
-        "CORS": {"ALLOWED_ORIGINS": True},
-    })
+    @override_settings(
+        DJANGO_MATT={
+            "CORS": {"ALLOWED_ORIGINS": True},
+        }
+    )
     def test_full_production_chain(self, rf):
         """Chain Security -> RequestID -> CORS -> Timing (minimal production)."""
         chain = _ok_response
-        for mw_cls in reversed([SecurityHeadersMiddleware, RequestIDMiddleware, CORSMiddleware, TimingMiddleware]):
+        for mw_cls in reversed(
+            [SecurityHeadersMiddleware, RequestIDMiddleware, CORSMiddleware, TimingMiddleware]
+        ):
             chain = mw_cls(chain)
 
         request = rf.get("/api/", HTTP_ORIGIN="https://test.com")
@@ -654,6 +703,7 @@ class TestMiddlewareChaining:
 # ---------------------------------------------------------------------------
 # DjangoMattMiddleware (chaining.py)
 # ---------------------------------------------------------------------------
+
 
 class TestDjangoMattMiddleware:
     """Test the main DjangoMattMiddleware with auto-chaining."""
@@ -682,9 +732,13 @@ class TestDjangoMattMiddleware:
         assert "X-Request-ID" in response
         assert "X-Response-Time" in response
 
-    @override_settings(DJANGO_MATT={"MIDDLEWARE_STACK": [
-        "django_matt.middleware.timing.TimingMiddleware",
-    ]})
+    @override_settings(
+        DJANGO_MATT={
+            "MIDDLEWARE_STACK": [
+                "django_matt.middleware.timing.TimingMiddleware",
+            ]
+        }
+    )
     def test_custom_stack_with_class_list(self, rf):
         """Custom stack using actual class references."""
         # Build with actual classes instead of strings

@@ -70,9 +70,7 @@ class ChatController(APIController):
     async def list(self, request: HttpRequest) -> dict:
         """GET / — list conversations."""
         result = await self.query_bus.execute(GetConversationsQuery())
-        items = [
-            ConversationSchema.from_orm_fast(conv) for conv in result["items"]
-        ]
+        items = [ConversationSchema.from_orm_fast(conv) for conv in result["items"]]
         return {"items": [item.model_dump() for item in items], "total": result["total"]}
 
     async def create(self, request: HttpRequest, body: CreateConversationInput) -> dict:
@@ -88,12 +86,12 @@ class ChatController(APIController):
             GetConversationQuery(conversation_id=conversation_id)
         )
         schema = ConversationDetailSchema.from_orm_fast(conversation)
-        schema.messages = [
-            MessageSchema.from_orm_fast(msg) for msg in conversation.messages_list
-        ]
+        schema.messages = [MessageSchema.from_orm_fast(msg) for msg in conversation.messages_list]
         return schema.model_dump()
 
-    async def send_message(self, request: HttpRequest, conversation_id: UUID, body: SendMessageInput) -> dict:
+    async def send_message(
+        self, request: HttpRequest, conversation_id: UUID, body: SendMessageInput
+    ) -> dict:
         """POST /{conversation_id}/messages — send message (non-streaming)."""
         # Save user message via command bus
         user_msg = await self.command_bus.execute(
@@ -120,7 +118,9 @@ class ChatController(APIController):
 
         return MessageSchema.from_orm_fast(assistant_msg).model_dump()
 
-    async def stream_message(self, request: HttpRequest, conversation_id: UUID, body: SendMessageInput):
+    async def stream_message(
+        self, request: HttpRequest, conversation_id: UUID, body: SendMessageInput
+    ):
         """POST /{conversation_id}/stream — send message with SSE streaming response.
 
         This is the main showcase endpoint: user sends a message, and the AI

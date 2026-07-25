@@ -433,9 +433,7 @@ class TestMessageModel:
         user = self._make_user("uploader")
         conv = Conversation.objects.create(conversation_type=ConversationType.DIRECT)
         conv.add_member(user)
-        msg = Message.objects.create(
-            conversation=conv, sender=user, content="See attached"
-        )
+        msg = Message.objects.create(conversation=conv, sender=user, content="See attached")
         attachment = Attachment.objects.create(
             message=msg,
             uploaded_by=user,
@@ -522,17 +520,13 @@ class TestMessageService:
 
         from django_matt.messaging.services.message import MessageService
 
-        conv, users = await sync_to_async(self._make_conversation_with_members)(
-            "as_s2", "as_r2"
-        )
+        conv, users = await sync_to_async(self._make_conversation_with_members)("as_s2", "as_r2")
         msg = await MessageService.asend_message(conv, users[0], "Read async")
         await MessageService.amark_as_read(conv, users[1], up_to_message=msg)
 
         from django_matt.messaging.models import MessageStatus
 
-        status = await sync_to_async(MessageStatus.objects.get)(
-            message=msg, user=users[1]
-        )
+        status = await sync_to_async(MessageStatus.objects.get)(message=msg, user=users[1])
         assert status.status == DeliveryStatus.READ
 
 

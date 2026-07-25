@@ -192,9 +192,7 @@ class TestTargetingRules:
         assert flag._evaluate_targeting_rules({"score": 51}) is False
 
     def test_in_operator(self):
-        flag = self._make_flag(
-            [{"attribute": "country", "operator": "in", "value": ["US", "UK"]}]
-        )
+        flag = self._make_flag([{"attribute": "country", "operator": "in", "value": ["US", "UK"]}])
         assert flag._evaluate_targeting_rules({"country": "US"}) is True
         assert flag._evaluate_targeting_rules({"country": "FR"}) is False
 
@@ -213,16 +211,12 @@ class TestTargetingRules:
         assert flag._evaluate_targeting_rules({"email": "user@gmail.com"}) is False
 
     def test_starts_with_operator(self):
-        flag = self._make_flag(
-            [{"attribute": "name", "operator": "starts_with", "value": "Admin"}]
-        )
+        flag = self._make_flag([{"attribute": "name", "operator": "starts_with", "value": "Admin"}])
         assert flag._evaluate_targeting_rules({"name": "AdminUser"}) is True
         assert flag._evaluate_targeting_rules({"name": "User"}) is False
 
     def test_ends_with_operator(self):
-        flag = self._make_flag(
-            [{"attribute": "domain", "operator": "ends_with", "value": ".com"}]
-        )
+        flag = self._make_flag([{"attribute": "domain", "operator": "ends_with", "value": ".com"}])
         assert flag._evaluate_targeting_rules({"domain": "example.com"}) is True
         assert flag._evaluate_targeting_rules({"domain": "example.org"}) is False
 
@@ -242,9 +236,7 @@ class TestTargetingRules:
         assert flag._evaluate_targeting_rules({"plan": "pro"}) is False
 
     def test_unknown_operator_returns_false(self):
-        flag = self._make_flag(
-            [{"attribute": "plan", "operator": "unknown_op", "value": "pro"}]
-        )
+        flag = self._make_flag([{"attribute": "plan", "operator": "unknown_op", "value": "pro"}])
         assert flag._evaluate_targeting_rules({"plan": "pro"}) is False
 
 

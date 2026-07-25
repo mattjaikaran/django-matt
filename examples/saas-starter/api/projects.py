@@ -7,7 +7,6 @@ Includes:
 - Kanban board view
 """
 
-
 from django.db import models
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
@@ -194,10 +193,12 @@ class ProjectController(APIController):
 
         # Emit domain event
         bus = get_event_bus()
-        await bus.emit(Event(
-            name="project.created",
-            data={"project_id": str(project.id), "org_slug": org_slug, "name": project.name},
-        ))
+        await bus.emit(
+            Event(
+                name="project.created",
+                data={"project_id": str(project.id), "org_slug": org_slug, "name": project.name},
+            )
+        )
 
         return ProjectDetailResponse.model_validate(project)
 
@@ -210,9 +211,13 @@ class ProjectController(APIController):
             return error
 
         try:
-            project = await Project.objects.select_related("owner").prefetch_related("teams").aget(
-                organization=org,
-                slug=project_slug,
+            project = (
+                await Project.objects.select_related("owner")
+                .prefetch_related("teams")
+                .aget(
+                    organization=org,
+                    slug=project_slug,
+                )
             )
 
             if not await self.check_project_access(request, org, project):
@@ -225,7 +230,9 @@ class ProjectController(APIController):
 
     @patch("/<str:project_slug>")
     @jwt_required
-    async def update_project(self, request, org_slug: str, project_slug: str, data: ProjectUpdate) -> dict:
+    async def update_project(
+        self, request, org_slug: str, project_slug: str, data: ProjectUpdate
+    ) -> dict:
         """Update project details. Requires edit permission on the project."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
@@ -310,10 +317,12 @@ class ProjectController(APIController):
 
             # Emit domain event
             bus = get_event_bus()
-            await bus.emit(Event(
-                name="project.archived",
-                data={"project_id": str(project.id), "org_slug": org_slug},
-            ))
+            await bus.emit(
+                Event(
+                    name="project.archived",
+                    data={"project_id": str(project.id), "org_slug": org_slug},
+                )
+            )
 
             return {"message": "Project archived"}
 
@@ -351,7 +360,9 @@ class ProjectController(APIController):
 
     @post("/<str:project_slug>/members")
     @jwt_required
-    async def add_project_member(self, request, org_slug: str, project_slug: str, data: ProjectMemberCreate) -> dict:
+    async def add_project_member(
+        self, request, org_slug: str, project_slug: str, data: ProjectMemberCreate
+    ) -> dict:
         """Add member to project. Requires edit permission on the project."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
@@ -393,7 +404,9 @@ class ProjectController(APIController):
 
     @patch("/<str:project_slug>/members/<str:member_id>")
     @jwt_required
-    async def update_project_member(self, request, org_slug: str, project_slug: str, member_id: str, data: ProjectMemberUpdate) -> dict:
+    async def update_project_member(
+        self, request, org_slug: str, project_slug: str, member_id: str, data: ProjectMemberUpdate
+    ) -> dict:
         """Update project member role."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
@@ -422,7 +435,9 @@ class ProjectController(APIController):
 
     @delete("/<str:project_slug>/members/<str:member_id>")
     @jwt_required
-    async def remove_project_member(self, request, org_slug: str, project_slug: str, member_id: str) -> dict:
+    async def remove_project_member(
+        self, request, org_slug: str, project_slug: str, member_id: str
+    ) -> dict:
         """Remove member from project."""
         org, membership, error = await self.get_org_and_check_access(request, org_slug)
         if error:
@@ -469,21 +484,27 @@ class ProjectController(APIController):
             # Define column order
             columns = []
             for status in TaskStatus.values:
-                tasks = project.tasks.filter(
-                    status=status,
-                    parent__isnull=True,  # Top-level tasks only
-                ).select_related("assignee").order_by("position")
+                tasks = (
+                    project.tasks.filter(
+                        status=status,
+                        parent__isnull=True,  # Top-level tasks only
+                    )
+                    .select_related("assignee")
+                    .order_by("position")
+                )
 
                 task_list = []
                 async for task in tasks:
                     task_list.append(TaskMiniResponse.model_validate(task))
 
-                columns.append(KanbanColumn(
-                    status=status,
-                    title=TaskStatus(status).label,
-                    tasks=task_list,
-                    task_count=len(task_list),
-                ))
+                columns.append(
+                    KanbanColumn(
+                        status=status,
+                        title=TaskStatus(status).label,
+                        tasks=task_list,
+                        task_count=len(task_list),
+                    )
+                )
 
             return KanbanBoardResponse(
                 project=ProjectMiniResponse.model_validate(project),

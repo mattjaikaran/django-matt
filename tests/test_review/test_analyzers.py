@@ -15,7 +15,9 @@ from django_matt.review.analyzers.solid import SolidAnalyzer
 from django_matt.review.config import ReviewConfig
 
 
-def _analyze(analyzer_cls: type, source: str, *, file_path: str = "test.py", **config_kwargs) -> list:
+def _analyze(
+    analyzer_cls: type, source: str, *, file_path: str = "test.py", **config_kwargs
+) -> list:
     tree = ast.parse(source)
     config = ReviewConfig(**config_kwargs)
     analyzer = analyzer_cls(config)
@@ -133,6 +135,7 @@ def simple(x: int) -> int:
         cx001 = [f for f in findings if f.rule_id == "CX001"]
         assert len(cx001) >= 1
         from django_matt.review.findings import Severity
+
         assert cx001[0].severity == Severity.ERROR
 
 
@@ -265,6 +268,7 @@ def get_data():
         dj004 = [f for f in findings if f.rule_id == "DJ004"]
         assert len(dj004) >= 1
         from django_matt.review.findings import Severity
+
         assert dj004[0].severity == Severity.WARNING
 
     def test_dj005_missing_auth_on_view_class(self):

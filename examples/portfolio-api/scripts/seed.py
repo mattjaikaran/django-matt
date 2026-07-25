@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Seed the portfolio database with sample data."""
+
 import os
 import sys
 
@@ -115,11 +116,29 @@ def seed_skills() -> None:
         {"name": "Rust", "category": "backend", "level": 3, "icon": "rust", "order": 4},
         # Frontend
         {"name": "React", "category": "frontend", "level": 4, "icon": "react", "order": 1},
-        {"name": "TypeScript", "category": "frontend", "level": 4, "icon": "typescript", "order": 2},
-        {"name": "Tailwind CSS", "category": "frontend", "level": 4, "icon": "tailwind", "order": 3},
+        {
+            "name": "TypeScript",
+            "category": "frontend",
+            "level": 4,
+            "icon": "typescript",
+            "order": 2,
+        },
+        {
+            "name": "Tailwind CSS",
+            "category": "frontend",
+            "level": 4,
+            "icon": "tailwind",
+            "order": 3,
+        },
         # DevOps
         {"name": "Docker", "category": "devops", "level": 4, "icon": "docker", "order": 1},
-        {"name": "PostgreSQL", "category": "database", "level": 4, "icon": "postgresql", "order": 1},
+        {
+            "name": "PostgreSQL",
+            "category": "database",
+            "level": 4,
+            "icon": "postgresql",
+            "order": 1,
+        },
         {"name": "Swift", "category": "mobile", "level": 3, "icon": "swift", "order": 1},
     ]
 
@@ -171,9 +190,7 @@ def seed_experience() -> None:
     ]
 
     for data in experiences:
-        existing = Experience.objects.filter(
-            company=data["company"], role=data["role"]
-        ).first()
+        existing = Experience.objects.filter(company=data["company"], role=data["role"]).first()
         if not existing:
             Experience.objects.create(**data)
             print(f"Created: Experience '{data['role']} at {data['company']}'")

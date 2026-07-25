@@ -208,15 +208,13 @@ MATT_JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", SECRET_KEY)
 MATT_JWT_ACCESS_TOKEN_LIFETIME = int(
     os.environ.get("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", 60)
 )  # minutes
-MATT_JWT_REFRESH_TOKEN_LIFETIME = int(
-    os.environ.get("JWT_REFRESH_TOKEN_LIFETIME_DAYS", 7)
-) * 24 * 60  # days to minutes
+MATT_JWT_REFRESH_TOKEN_LIFETIME = (
+    int(os.environ.get("JWT_REFRESH_TOKEN_LIFETIME_DAYS", 7)) * 24 * 60
+)  # days to minutes
 
 
 # Email Configuration
-EMAIL_BACKEND = os.environ.get(
-    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
-)
+EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 587))
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() == "true"

@@ -25,9 +25,7 @@ class TodoListController(APIController):
             TodoList.objects.filter(organization_id=org_id)
             .annotate(
                 todo_count=Coalesce(Count("todos"), Value(0)),
-                completed_count=Coalesce(
-                    Count("todos", filter=Q(todos__status="done")), Value(0)
-                ),
+                completed_count=Coalesce(Count("todos", filter=Q(todos__status="done")), Value(0)),
             )
             .order_by("-created_at")
         )
@@ -101,7 +99,9 @@ class TodoListController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_todo_list(request, org_id: str, list_id: str, body: TodoListUpdateSchema) -> dict:
+    async def update_todo_list(
+        request, org_id: str, list_id: str, body: TodoListUpdateSchema
+    ) -> dict:
         await get_membership(request.user, org_id)
 
         try:

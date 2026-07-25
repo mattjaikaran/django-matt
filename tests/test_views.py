@@ -122,9 +122,14 @@ def rf():
     return RequestFactory()
 
 
-def _make_request(rf: RequestFactory, method: str = "GET", path: str = "/",
-                  data: dict | None = None, query: dict | None = None,
-                  user=None) -> HttpRequest:
+def _make_request(
+    rf: RequestFactory,
+    method: str = "GET",
+    path: str = "/",
+    data: dict | None = None,
+    query: dict | None = None,
+    user=None,
+) -> HttpRequest:
     """Build an HttpRequest with optional JSON body and query params."""
     factory_method = getattr(rf, method.lower())
     kwargs: dict[str, Any] = {}
@@ -448,7 +453,9 @@ class TestListView:
         await User.objects.acreate_user(username="nopag_bob", password="pass123")
 
         view = ListView(pagination=False, response_schema=UserReadSchema)
-        vs = SimpleViewSet(queryset_fn=lambda req: User.objects.filter(username__startswith="nopag_"))
+        vs = SimpleViewSet(
+            queryset_fn=lambda req: User.objects.filter(username__startswith="nopag_")
+        )
         view._viewset = vs
 
         request = _make_request(rf, "GET", path="/items/")
@@ -468,7 +475,9 @@ class TestListView:
             ordering_fields=["username"],
             pagination=False,
         )
-        vs = SimpleViewSet(queryset_fn=lambda req: User.objects.filter(username__endswith="_order_test"))
+        vs = SimpleViewSet(
+            queryset_fn=lambda req: User.objects.filter(username__endswith="_order_test")
+        )
         view._viewset = vs
 
         request = _make_request(rf, "GET", path="/items/", query={"ordering": "username"})
@@ -480,20 +489,24 @@ class TestListView:
     @pytest.mark.asyncio
     async def test_list_filtering(self, rf):
         """Filtering by query parameters filters results."""
-        await User.objects.acreate_user(username="filter_active", password="pass123", is_active=True)
-        await User.objects.acreate_user(username="filter_inactive", password="pass123", is_active=False)
+        await User.objects.acreate_user(
+            username="filter_active", password="pass123", is_active=True
+        )
+        await User.objects.acreate_user(
+            username="filter_inactive", password="pass123", is_active=False
+        )
 
         view = ListView(
             response_schema=UserReadSchema,
             filter_fields=["is_active", "username"],
             pagination=False,
         )
-        vs = SimpleViewSet(queryset_fn=lambda req: User.objects.filter(username__startswith="filter_"))
+        vs = SimpleViewSet(
+            queryset_fn=lambda req: User.objects.filter(username__startswith="filter_")
+        )
         view._viewset = vs
 
-        request = _make_request(
-            rf, "GET", path="/items/", query={"is_active": "True"}
-        )
+        request = _make_request(rf, "GET", path="/items/", query={"is_active": "True"})
         result = await view.handle(request)
 
         assert result["count"] >= 1
@@ -513,7 +526,9 @@ class TestListView:
             search_fields=["username"],
             pagination=False,
         )
-        vs = SimpleViewSet(queryset_fn=lambda req: User.objects.filter(username__startswith="searchable_"))
+        vs = SimpleViewSet(
+            queryset_fn=lambda req: User.objects.filter(username__startswith="searchable_")
+        )
         view._viewset = vs
 
         request = _make_request(rf, "GET", path="/items/", query={"search": "foo"})
@@ -533,7 +548,9 @@ class TestListView:
             ordering="-username",
             pagination=False,
         )
-        vs = SimpleViewSet(queryset_fn=lambda req: User.objects.filter(username__startswith="dord_"))
+        vs = SimpleViewSet(
+            queryset_fn=lambda req: User.objects.filter(username__startswith="dord_")
+        )
         view._viewset = vs
 
         request = _make_request(rf, "GET", path="/items/")
@@ -704,9 +721,7 @@ class TestUpdateView:
         vs = SimpleViewSet()
         view._viewset = vs
 
-        request = _make_request(
-            rf, "PUT", data={"name": "updated_name"}
-        )
+        request = _make_request(rf, "PUT", data={"name": "updated_name"})
         result = await view.handle(request, id=user.id)
 
         assert result["id"] == user.id
@@ -851,7 +866,9 @@ class TestPatchView:
                 ),
             ):
                 data = view.validate_request(args[0])
-                data_dict = {k: v for k, v in data.model_dump().items() if k in data.model_fields_set}
+                data_dict = {
+                    k: v for k, v in data.model_dump().items() if k in data.model_fields_set
+                }
                 for k, v in data_dict.items():
                     original_setattr(inst, k, v)
                     captured_setattrs.append((k, v))
@@ -1040,6 +1057,7 @@ class TestBoundView:
 
         # Anonymous user
         from django.contrib.auth.models import AnonymousUser
+
         request = _make_request(rf, "GET", path="/items/")
         request.user = AnonymousUser()
 
@@ -1079,6 +1097,7 @@ class TestBoundView:
         bound = viewset.list_items
 
         from django.contrib.auth.models import AnonymousUser
+
         request = _make_request(rf, "GET", path="/items/")
         request.user = AnonymousUser()
 
@@ -1289,7 +1308,6 @@ class TestViewSet:
 
     @pytest.mark.django_db
     def test_get_queryset_returns_all(self):
-
         class UserVS(ViewSet):
             model = User
 
@@ -1339,7 +1357,6 @@ class TestAPIViewSet:
         assert issubclass(APIViewSet, ViewSet)
 
     def test_default_attributes(self):
-
         class MyViewSet(APIViewSet):
             model = User
 
@@ -1357,6 +1374,7 @@ class TestAPIViewSet:
 
         vs = UserVS()
         from django.test import RequestFactory
+
         rf = RequestFactory()
         request = rf.get("/")
 
@@ -1614,6 +1632,7 @@ class TestPermissionOverrides:
 
         # list_items should be public (AllowAny override)
         from django.contrib.auth.models import AnonymousUser
+
         request = _make_request(rf, "GET", path="/items/")
         request.user = AnonymousUser()
 
@@ -1841,7 +1860,9 @@ class TestFullCRUDLifecycle:
             list_items = ListView(pagination=False)
             create_item = CreateView(request_schema=ItemCreateSchema, response_schema=ItemSchema)
             read_item = ReadView()
-            update_item = UpdateView(request_schema=ItemUpdateSchema, response_schema=UserReadSchema)
+            update_item = UpdateView(
+                request_schema=ItemUpdateSchema, response_schema=UserReadSchema
+            )
             delete_item = DeleteView()
 
             async def perform_create(self, data_dict, request):
@@ -1879,15 +1900,11 @@ class TestFullCRUDLifecycle:
         assert list_resp.status_code == 200
         list_data = orjson.loads(list_resp.content)
         assert list_data["total"] >= 1
-        found = any(
-            item["username"] == "lifecycle_item" for item in list_data["items"]
-        )
+        found = any(item["username"] == "lifecycle_item" for item in list_data["items"])
         assert found
 
         # 4) UPDATE
-        update_req = _make_request(
-            rf, "PUT", data={"name": "updated_lifecycle"}
-        )
+        update_req = _make_request(rf, "PUT", data={"name": "updated_lifecycle"})
         update_resp = await viewset.update_item(update_req, id=user_id)
         assert update_resp.status_code == 200
 
@@ -2114,9 +2131,7 @@ class TestListViewInternals:
         vs = SimpleViewSet()
         view._viewset = vs
 
-        request = _make_request(
-            rf, "GET", query={"page": "2", "page_size": "10", "ordering": "id"}
-        )
+        request = _make_request(rf, "GET", query={"page": "2", "page_size": "10", "ordering": "id"})
         qs = User.objects.all()
         filtered = view._apply_filters(qs, request)
         # No actual filters applied - queryset where clause should be unchanged
@@ -2224,8 +2239,10 @@ class TestOptimizeQuerysetPreventsNPlus1:
         qs = Permission.objects.all()
 
         # Patch select_related and prefetch_related to track calls
-        with patch.object(qs, "select_related", wraps=qs.select_related) as mock_sr, \
-             patch.object(qs, "prefetch_related", wraps=qs.prefetch_related) as mock_pr:
+        with (
+            patch.object(qs, "select_related", wraps=qs.select_related) as mock_sr,
+            patch.object(qs, "prefetch_related", wraps=qs.prefetch_related) as mock_pr,
+        ):
             result = view.optimize_queryset(qs)
 
         # Since PermissionSchema has no FK field names matching exactly,
@@ -2317,6 +2334,7 @@ class TestOptimizeQuerysetPreventsNPlus1:
 
 class UserCreateForValidation(BaseModel):
     """Schema for creating users in validate_model tests."""
+
     username: str
 
 
@@ -2373,7 +2391,9 @@ class TestValidateModel:
             validate_model = True
             default_response_schema = UserReadSchema
 
-            create = CreateView(request_schema=UserCreateForValidation, response_schema=UserReadSchema)
+            create = CreateView(
+                request_schema=UserCreateForValidation, response_schema=UserReadSchema
+            )
 
         vs = ValidatingViewSet()
         view = ValidatingViewSet.create
@@ -2398,7 +2418,9 @@ class TestValidateModel:
             validate_model = True
             default_response_schema = UserReadSchema
 
-            create = CreateView(request_schema=UserCreateForValidation, response_schema=UserReadSchema)
+            create = CreateView(
+                request_schema=UserCreateForValidation, response_schema=UserReadSchema
+            )
 
         vs = ValidatingViewSet()
         view = ValidatingViewSet.create
@@ -2424,7 +2446,9 @@ class TestValidateModel:
             model = User
             default_response_schema = UserReadSchema
 
-            create = CreateView(request_schema=UserCreateForValidation, response_schema=UserReadSchema)
+            create = CreateView(
+                request_schema=UserCreateForValidation, response_schema=UserReadSchema
+            )
 
         vs = DefaultViewSet()
         view = DefaultViewSet.create
@@ -2477,7 +2501,9 @@ class TestValidateModel:
             assert response.status_code == 422
             body = orjson.loads(response.content)
             assert body["detail"] == "Model validation failed"
-            assert {"field": "__all__", "message": "Start date must be before end date."} in body["errors"]
+            assert {"field": "__all__", "message": "Start date must be before end date."} in body[
+                "errors"
+            ]
 
     @pytest.mark.django_db
     @pytest.mark.asyncio
@@ -2530,7 +2556,9 @@ class TestValidateModel:
             validate_model = True
             default_response_schema = UserReadSchema
 
-            create = CreateView(request_schema=UserCreateForValidation, response_schema=UserReadSchema)
+            create = CreateView(
+                request_schema=UserCreateForValidation, response_schema=UserReadSchema
+            )
 
         vs = ValidatingViewSet()
         view = ValidatingViewSet.create
@@ -2539,10 +2567,12 @@ class TestValidateModel:
         request = _make_request(rf, "POST", "/", data={"username": "x"})
         bound = BoundView(view, vs)
 
-        error = DjangoValidationError({
-            "email": ["Enter a valid email address."],
-            "username": ["This field cannot be blank."],
-        })
+        error = DjangoValidationError(
+            {
+                "email": ["Enter a valid email address."],
+                "username": ["This field cannot be blank."],
+            }
+        )
         with patch.object(User, "full_clean", side_effect=error):
             response = await bound(request)
             assert response.status_code == 422

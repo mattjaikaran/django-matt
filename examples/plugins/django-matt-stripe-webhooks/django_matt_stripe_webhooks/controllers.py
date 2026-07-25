@@ -77,9 +77,7 @@ class StripeWebhookController(Controller):
         return JsonResponse(resp.model_dump(), status=200)
 
 
-async def _emit_bus_event(
-    event_type: str, event_data: dict[str, Any]
-) -> None:
+async def _emit_bus_event(event_type: str, event_data: dict[str, Any]) -> None:
     """Emit the Stripe event on the django-matt event bus."""
     try:
         from django_matt.events import Event, get_event_bus

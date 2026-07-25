@@ -294,9 +294,7 @@ class TestJWTBuiltin:
 
         payload = {"sub": "123"}
         secret = "test-secret"
-        token = encode_jwt(
-            payload, secret, expires_in=3600, headers={"kid": "key-1"}
-        )
+        token = encode_jwt(payload, secret, expires_in=3600, headers={"kid": "key-1"})
         header = get_unverified_header(token)
         assert header["kid"] == "key-1"
         assert header["alg"] == "HS256"
@@ -402,9 +400,7 @@ class TestJWTGeneration:
         assert pair.access_token
         assert pair.refresh_token
         assert pair.expires_in == int(jwt_config.access_token_lifetime.total_seconds())
-        assert pair.refresh_expires_in == int(
-            jwt_config.refresh_token_lifetime.total_seconds()
-        )
+        assert pair.refresh_expires_in == int(jwt_config.refresh_token_lifetime.total_seconds())
 
     @pytest.mark.django_db
     def test_access_token_contains_roles(self, user_with_groups):
@@ -2116,9 +2112,7 @@ class TestAPIKeyModel:
         """Should correctly check scoped permissions."""
         from django_matt.auth.api_keys.utils import create_api_key
 
-        api_key, _ = create_api_key(
-            user, name="Scoped Key", scopes=["read:users", "write:posts"]
-        )
+        api_key, _ = create_api_key(user, name="Scoped Key", scopes=["read:users", "write:posts"])
         assert api_key.has_scope("read:users") is True
         assert api_key.has_scope("write:posts") is True
         assert api_key.has_scope("delete:users") is False
@@ -2218,9 +2212,7 @@ class TestAPIKeyModel:
         """Rotating should revoke old key and create new one."""
         from django_matt.auth.api_keys.utils import create_api_key, rotate_api_key
 
-        old_key, old_raw = create_api_key(
-            user, name="To Rotate", scopes=["read:*"]
-        )
+        old_key, old_raw = create_api_key(user, name="To Rotate", scopes=["read:*"])
         new_key, new_raw = rotate_api_key(old_key)
 
         old_key.refresh_from_db()
@@ -2462,9 +2454,7 @@ class TestAuthControllerLogin:
         )
 
         controller = AuthController()
-        body = json.dumps(
-            {"email": "wrongpw@example.com", "password": "WrongPassword1"}
-        )
+        body = json.dumps({"email": "wrongpw@example.com", "password": "WrongPassword1"})
         request = rf.post(
             "/auth/login",
             data=body,
@@ -2504,9 +2494,7 @@ class TestAuthControllerLogin:
         )
 
         controller = AuthController()
-        body = json.dumps(
-            {"email": "inactivelogin@example.com", "password": "TestPass123!"}
-        )
+        body = json.dumps({"email": "inactivelogin@example.com", "password": "TestPass123!"})
         request = rf.post(
             "/auth/login",
             data=body,
@@ -2705,9 +2693,7 @@ class TestMinimalAuthController:
         )
 
         controller = MinimalAuthController()
-        body = json.dumps(
-            {"email": "minimal@example.com", "password": "TestPass123!"}
-        )
+        body = json.dumps({"email": "minimal@example.com", "password": "TestPass123!"})
         request = rf.post(
             "/auth/login",
             data=body,
@@ -2760,6 +2746,7 @@ class TestOrgPermissionClasses:
     @pytest.fixture
     def org(self):
         from django_matt.multitenancy.models import Organization
+
         return Organization.objects.create(
             name="Test Org",
             slug="test-org",
@@ -2800,6 +2787,7 @@ class TestOrgPermissionClasses:
     @pytest.fixture
     def member_membership(self, org, member_user):
         from django_matt.multitenancy.models import Membership
+
         return Membership.objects.create(
             organization=org,
             user=member_user,
@@ -2809,6 +2797,7 @@ class TestOrgPermissionClasses:
     @pytest.fixture
     def admin_membership(self, org, admin_user):
         from django_matt.multitenancy.models import Membership
+
         return Membership.objects.create(
             organization=org,
             user=admin_user,
@@ -2818,6 +2807,7 @@ class TestOrgPermissionClasses:
     @pytest.fixture
     def owner_membership(self, org, owner_user):
         from django_matt.multitenancy.models import Membership
+
         return Membership.objects.create(
             organization=org,
             user=owner_user,
@@ -2840,18 +2830,21 @@ class TestOrgPermissionClasses:
     def test_is_org_member_true_for_member(self, rf, org, member_user, member_membership):
         """IsOrgMember returns True for a user with any membership in request.organization."""
         from django_matt.permissions.common import IsOrgMember
+
         request = self._make_request(rf, user=member_user, organization=org)
         assert IsOrgMember().has_permission(request) is True
 
     def test_is_org_member_false_when_no_membership(self, rf, org, member_user):
         """IsOrgMember returns False when user has no membership in request.organization."""
         from django_matt.permissions.common import IsOrgMember
+
         request = self._make_request(rf, user=member_user, organization=org)
         assert IsOrgMember().has_permission(request) is False
 
     def test_is_org_member_false_when_no_organization(self, rf, member_user):
         """IsOrgMember returns False when request has no organization attribute."""
         from django_matt.permissions.common import IsOrgMember
+
         request = self._make_request(rf, user=member_user)
         # No organization set on request
         assert IsOrgMember().has_permission(request) is False
@@ -2859,12 +2852,14 @@ class TestOrgPermissionClasses:
     def test_is_org_member_false_for_unauthenticated(self, rf, org):
         """IsOrgMember returns False for unauthenticated user."""
         from django_matt.permissions.common import IsOrgMember
+
         request = self._make_request(rf, user=AnonymousUser(), organization=org)
         assert IsOrgMember().has_permission(request) is False
 
     def test_is_org_member_superuser_bypass_true(self, rf, org, superuser):
         """Superuser passes IsOrgMember even without membership when TENANT_SUPERUSER_BYPASS=True."""
         from django_matt.permissions.common import IsOrgMember
+
         request = self._make_request(rf, user=superuser, organization=org)
         with patch("django.conf.settings.TENANT_SUPERUSER_BYPASS", True, create=True):
             # No membership created for superuser, should still pass
@@ -2873,6 +2868,7 @@ class TestOrgPermissionClasses:
     def test_is_org_member_superuser_bypass_false(self, rf, org, superuser):
         """Superuser FAILS IsOrgMember when TENANT_SUPERUSER_BYPASS=False and no membership."""
         from django_matt.permissions.common import IsOrgMember
+
         request = self._make_request(rf, user=superuser, organization=org)
         with patch("django.conf.settings.TENANT_SUPERUSER_BYPASS", False, create=True):
             # No membership, bypass disabled — should fail
@@ -2885,24 +2881,28 @@ class TestOrgPermissionClasses:
     def test_is_org_admin_false_for_member_role(self, rf, org, member_user, member_membership):
         """IsOrgAdmin returns False for member role."""
         from django_matt.permissions.common import IsOrgAdmin
+
         request = self._make_request(rf, user=member_user, organization=org)
         assert IsOrgAdmin().has_permission(request) is False
 
     def test_is_org_admin_true_for_admin_role(self, rf, org, admin_user, admin_membership):
         """IsOrgAdmin returns True for admin role."""
         from django_matt.permissions.common import IsOrgAdmin
+
         request = self._make_request(rf, user=admin_user, organization=org)
         assert IsOrgAdmin().has_permission(request) is True
 
     def test_is_org_admin_true_for_owner_role(self, rf, org, owner_user, owner_membership):
         """IsOrgAdmin returns True for owner role (owners are also admins)."""
         from django_matt.permissions.common import IsOrgAdmin
+
         request = self._make_request(rf, user=owner_user, organization=org)
         assert IsOrgAdmin().has_permission(request) is True
 
     def test_is_org_admin_false_for_unauthenticated(self, rf, org):
         """IsOrgAdmin returns False for unauthenticated user."""
         from django_matt.permissions.common import IsOrgAdmin
+
         request = self._make_request(rf, user=AnonymousUser(), organization=org)
         assert IsOrgAdmin().has_permission(request) is False
 
@@ -2913,24 +2913,28 @@ class TestOrgPermissionClasses:
     def test_is_org_owner_true_for_owner_role(self, rf, org, owner_user, owner_membership):
         """IsOrgOwner returns True only for owner role."""
         from django_matt.permissions.common import IsOrgOwner
+
         request = self._make_request(rf, user=owner_user, organization=org)
         assert IsOrgOwner().has_permission(request) is True
 
     def test_is_org_owner_false_for_admin_role(self, rf, org, admin_user, admin_membership):
         """IsOrgOwner returns False for admin role."""
         from django_matt.permissions.common import IsOrgOwner
+
         request = self._make_request(rf, user=admin_user, organization=org)
         assert IsOrgOwner().has_permission(request) is False
 
     def test_is_org_owner_false_for_member_role(self, rf, org, member_user, member_membership):
         """IsOrgOwner returns False for member role."""
         from django_matt.permissions.common import IsOrgOwner
+
         request = self._make_request(rf, user=member_user, organization=org)
         assert IsOrgOwner().has_permission(request) is False
 
     def test_is_org_owner_false_for_unauthenticated(self, rf, org):
         """IsOrgOwner returns False for unauthenticated user."""
         from django_matt.permissions.common import IsOrgOwner
+
         request = self._make_request(rf, user=AnonymousUser(), organization=org)
         assert IsOrgOwner().has_permission(request) is False
 

@@ -417,10 +417,7 @@ class TestZodGenerator:
 
         gen = ZodGenerator()
         result = gen.generate([SimpleSchema])
-        assert (
-            "export type SimpleSchema = z.infer<typeof SimpleSchemaSchema>;"
-            in result
-        )
+        assert "export type SimpleSchema = z.infer<typeof SimpleSchemaSchema>;" in result
 
     def test_default_values(self):
         from django_matt.typegen.zod import ZodGenerator
@@ -452,10 +449,7 @@ class TestZodGenerator:
         gen = ZodGenerator(schema_suffix="Validator")
         result = gen.generate([SimpleSchema])
         assert "export const SimpleSchemaValidator = z.object({" in result
-        assert (
-            "export type SimpleSchema = z.infer<typeof SimpleSchemaValidator>;"
-            in result
-        )
+        assert "export type SimpleSchema = z.infer<typeof SimpleSchemaValidator>;" in result
 
 
 # ---------------------------------------------------------------------------

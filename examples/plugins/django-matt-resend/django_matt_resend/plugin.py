@@ -33,17 +33,9 @@ class ResendPlugin(MattPlugin):
             from django.conf import settings
 
             current = getattr(settings, "EMAIL_BACKEND", "")
-            if (
-                not current
-                or current
-                == "django.core.mail.backends.smtp.EmailBackend"
-            ):
-                settings.EMAIL_BACKEND = (
-                    "django_matt_resend.backend.ResendEmailBackend"
-                )
-                logger.info(
-                    "Set EMAIL_BACKEND to ResendEmailBackend"
-                )
+            if not current or current == "django.core.mail.backends.smtp.EmailBackend":
+                settings.EMAIL_BACKEND = "django_matt_resend.backend.ResendEmailBackend"
+                logger.info("Set EMAIL_BACKEND to ResendEmailBackend")
         except Exception:
             pass
 
@@ -66,8 +58,7 @@ class ResendPlugin(MattPlugin):
                 "DEFAULT_FROM": {
                     "type": "string",
                     "description": (
-                        "Default sender email address "
-                        "(e.g. noreply@yourdomain.com)"
+                        "Default sender email address (e.g. noreply@yourdomain.com)"
                     ),
                 },
                 "REPLY_TO": {

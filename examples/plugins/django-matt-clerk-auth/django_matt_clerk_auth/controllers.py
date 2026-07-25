@@ -53,14 +53,10 @@ class ClerkWebhookController(Controller):
         # emit on event bus
         await _emit_bus_event(event_type, payload)
 
-        return JsonResponse(
-            {"status": "ok", "event_type": event_type}, status=200
-        )
+        return JsonResponse({"status": "ok", "event_type": event_type}, status=200)
 
     @staticmethod
-    def _verify_signature(
-        request: HttpRequest, webhook_secret: str
-    ) -> bool:
+    def _verify_signature(request: HttpRequest, webhook_secret: str) -> bool:
         """Verify the Svix webhook signature.
 
         Clerk webhooks are signed by Svix using HMAC-SHA256. The
@@ -68,9 +64,7 @@ class ClerkWebhookController(Controller):
         svix-signature headers.
         """
         if not webhook_secret:
-            logger.warning(
-                "Clerk webhook secret not configured, skipping verification"
-            )
+            logger.warning("Clerk webhook secret not configured, skipping verification")
             return True  # allow in dev mode
 
         svix_id = request.META.get("HTTP_SVIX_ID", "")
@@ -111,9 +105,7 @@ class ClerkWebhookController(Controller):
         return False
 
 
-async def _emit_bus_event(
-    event_type: str, event_data: dict[str, Any]
-) -> None:
+async def _emit_bus_event(event_type: str, event_data: dict[str, Any]) -> None:
     try:
         from django_matt.events import Event, get_event_bus
 

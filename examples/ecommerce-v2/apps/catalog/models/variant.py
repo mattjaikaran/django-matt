@@ -14,9 +14,7 @@ class Variant(BaseModel):
     )
     name = models.CharField(max_length=255)  # e.g. "Size: L"
     sku = models.CharField(max_length=100, unique=True)
-    price_override = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
-    )
+    price_override = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
     class Meta:

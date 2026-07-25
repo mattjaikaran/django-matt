@@ -82,9 +82,7 @@ class ClerkAuthMiddleware:
             try:
                 from asgiref.sync import sync_to_async
 
-                user = await sync_to_async(
-                    User.objects.get
-                )(username=clerk_id)
+                user = await sync_to_async(User.objects.get)(username=clerk_id)
                 request.user = user  # type: ignore[assignment]
             except User.DoesNotExist:
                 request.user = AnonymousUser()  # type: ignore[assignment]

@@ -575,24 +575,28 @@ class TestComplexDependencies:
 
         class Base(MattModule):
             name = "base"
+
             async def on_ready(self):
                 loaded.append("base")
 
         class Mid1(MattModule):
             name = "mid1"
             dependencies = ["base"]
+
             async def on_ready(self):
                 loaded.append("mid1")
 
         class Mid2(MattModule):
             name = "mid2"
             dependencies = ["base"]
+
             async def on_ready(self):
                 loaded.append("mid2")
 
         class Top(MattModule):
             name = "top"
             dependencies = ["mid1", "mid2"]
+
             async def on_ready(self):
                 loaded.append("top")
 

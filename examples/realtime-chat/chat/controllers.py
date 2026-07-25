@@ -82,9 +82,7 @@ class AuthController(APIController):
             expires_in=3600,
         )
 
-    async def register(
-        self, request: HttpRequest, data: LoginRequest
-    ) -> TokenResponse:
+    async def register(self, request: HttpRequest, data: LoginRequest) -> TokenResponse:
         """Register a new user."""
         # Check if email exists
         if await User.objects.filter(email=data.email).aexists():
@@ -157,9 +155,7 @@ class WorkspaceController(APIController):
         return [WorkspaceService.to_response(w) for w in workspaces]
 
     @jwt_required
-    async def create(
-        self, request: HttpRequest, data: WorkspaceCreate
-    ) -> WorkspaceResponse:
+    async def create(self, request: HttpRequest, data: WorkspaceCreate) -> WorkspaceResponse:
         """Create a new workspace."""
         workspace = await WorkspaceService.create(
             user=request.user,
@@ -214,9 +210,7 @@ class WorkspaceController(APIController):
         return {"deleted": True}
 
     @jwt_required
-    async def invite(
-        self, request: HttpRequest, workspace_id: UUID, data: WorkspaceInvite
-    ) -> dict:
+    async def invite(self, request: HttpRequest, workspace_id: UUID, data: WorkspaceInvite) -> dict:
         """Invite user to workspace."""
         workspace = await WorkspaceService.get_workspace(workspace_id, request.user)
         if not workspace:
@@ -238,9 +232,7 @@ class WorkspaceController(APIController):
         return {"invited": True, "email": data.email}
 
     @jwt_required
-    async def channels(
-        self, request: HttpRequest, workspace_id: UUID
-    ) -> list[ChannelResponse]:
+    async def channels(self, request: HttpRequest, workspace_id: UUID) -> list[ChannelResponse]:
         """List channels in workspace."""
         workspace = await WorkspaceService.get_workspace(workspace_id, request.user)
         if not workspace:
@@ -339,8 +331,7 @@ class ChannelController(APIController):
                     and m.user.chat_profile.display_name,
                     avatar_url=getattr(m.user, "chat_profile", None)
                     and m.user.chat_profile.avatar_url,
-                    status=(getattr(m.user, "chat_profile", None)
-                    and m.user.chat_profile.status)
+                    status=(getattr(m.user, "chat_profile", None) and m.user.chat_profile.status)
                     or "offline",
                 ),
                 joined_at=m.joined_at,
@@ -350,9 +341,7 @@ class ChannelController(APIController):
         ]
 
     @jwt_required
-    async def add_member(
-        self, request: HttpRequest, channel_id: UUID, user_id: int
-    ) -> dict:
+    async def add_member(self, request: HttpRequest, channel_id: UUID, user_id: int) -> dict:
         """Add member to channel."""
         channel = await ChannelService.get_channel(channel_id, request.user)
         if not channel:
@@ -366,9 +355,7 @@ class ChannelController(APIController):
         return {"added": True}
 
     @jwt_required
-    async def remove_member(
-        self, request: HttpRequest, channel_id: UUID, user_id: int
-    ) -> dict:
+    async def remove_member(self, request: HttpRequest, channel_id: UUID, user_id: int) -> dict:
         """Remove member from channel."""
         channel = await ChannelService.get_channel(channel_id, request.user)
         if not channel:
@@ -484,9 +471,7 @@ class MessageController(APIController):
         )
 
     @jwt_required
-    async def add_reaction(
-        self, request: HttpRequest, message_id: UUID, emoji: str
-    ) -> dict:
+    async def add_reaction(self, request: HttpRequest, message_id: UUID, emoji: str) -> dict:
         """Add reaction to message."""
         message = await MessageService.get_message(message_id)
         if not message:
@@ -496,9 +481,7 @@ class MessageController(APIController):
         return {"added": reaction is not None}
 
     @jwt_required
-    async def remove_reaction(
-        self, request: HttpRequest, message_id: UUID, emoji: str
-    ) -> dict:
+    async def remove_reaction(self, request: HttpRequest, message_id: UUID, emoji: str) -> dict:
         """Remove reaction from message."""
         message = await MessageService.get_message(message_id)
         if not message:
@@ -517,9 +500,7 @@ class DirectMessageController(APIController):
     """Direct message endpoints."""
 
     @jwt_required
-    async def list(
-        self, request: HttpRequest, workspace_id: UUID
-    ) -> list[DMThreadResponse]:
+    async def list(self, request: HttpRequest, workspace_id: UUID) -> list[DMThreadResponse]:
         """List DM threads for user in workspace."""
         workspace = await WorkspaceService.get_workspace(workspace_id, request.user)
         if not workspace:
@@ -606,14 +587,13 @@ class DirectMessageController(APIController):
         if not thread:
             raise NotFoundAPIError("DM thread not found")
 
-        messages = await Message.objects.filter(
-            dm_thread=thread, is_deleted=False
-        ).select_related("author").order_by("-created_at")[:limit]
+        messages = (
+            await Message.objects.filter(dm_thread=thread, is_deleted=False)
+            .select_related("author")
+            .order_by("-created_at")[:limit]
+        )
 
-        return [
-            MessageService.to_response(m, request.user)
-            for m in reversed(list(messages))
-        ]
+        return [MessageService.to_response(m, request.user) for m in reversed(list(messages))]
 
     @jwt_required
     async def send_message(
@@ -661,9 +641,7 @@ class FileController(APIController):
         if not workspace_id:
             raise ValidationAPIError("workspace_id required")
 
-        workspace = await WorkspaceService.get_workspace(
-            UUID(workspace_id), request.user
-        )
+        workspace = await WorkspaceService.get_workspace(UUID(workspace_id), request.user)
         if not workspace:
             raise NotFoundAPIError("Workspace not found")
 

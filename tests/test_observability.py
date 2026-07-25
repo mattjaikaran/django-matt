@@ -129,8 +129,13 @@ class TestJSONFormatter:
         set_correlation_id("corr-789")
 
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname="", lineno=0,
-            msg="ctx test", args=(), exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="ctx test",
+            args=(),
+            exc_info=None,
         )
         data = orjson.loads(json_formatter.format(record))
 
@@ -140,8 +145,13 @@ class TestJSONFormatter:
 
     def test_format_without_context_vars(self, json_formatter):
         record = logging.LogRecord(
-            name="test", level=logging.DEBUG, pathname="", lineno=0,
-            msg="no ctx", args=(), exc_info=None,
+            name="test",
+            level=logging.DEBUG,
+            pathname="",
+            lineno=0,
+            msg="no ctx",
+            args=(),
+            exc_info=None,
         )
         data = orjson.loads(json_formatter.format(record))
 
@@ -151,8 +161,13 @@ class TestJSONFormatter:
 
     def test_format_sanitizes_sensitive_fields(self, json_formatter):
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname="", lineno=0,
-            msg="sensitive", args=(), exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="sensitive",
+            args=(),
+            exc_info=None,
         )
         record.extra = {"password": "secret123", "username": "matt"}
         data = orjson.loads(json_formatter.format(record))
@@ -162,8 +177,13 @@ class TestJSONFormatter:
 
     def test_format_sanitizes_nested_sensitive_fields(self, json_formatter):
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname="", lineno=0,
-            msg="nested", args=(), exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="nested",
+            args=(),
+            exc_info=None,
         )
         record.extra = {"data": {"api_token": "xyz", "name": "test"}}
         data = orjson.loads(json_formatter.format(record))
@@ -174,8 +194,13 @@ class TestJSONFormatter:
     def test_format_sanitizes_list_values_in_dict(self, json_formatter):
         """Sanitize lists nested inside dict extra fields."""
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname="", lineno=0,
-            msg="list", args=(), exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="list",
+            args=(),
+            exc_info=None,
         )
         record.extra = {"items": [{"password": "bad"}, {"name": "ok"}]}
         data = orjson.loads(json_formatter.format(record))
@@ -188,11 +213,17 @@ class TestJSONFormatter:
             raise ValueError("test error")
         except ValueError:
             import sys
+
             exc_info = sys.exc_info()
 
         record = logging.LogRecord(
-            name="test", level=logging.ERROR, pathname="", lineno=0,
-            msg="error occurred", args=(), exc_info=exc_info,
+            name="test",
+            level=logging.ERROR,
+            pathname="",
+            lineno=0,
+            msg="error occurred",
+            args=(),
+            exc_info=exc_info,
         )
         data = orjson.loads(json_formatter.format(record))
 
@@ -210,8 +241,13 @@ class TestJSONFormatter:
             extra_fields={"service": "test-svc", "env": "test"},
         )
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname="", lineno=0,
-            msg="extra", args=(), exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="extra",
+            args=(),
+            exc_info=None,
         )
         data = orjson.loads(formatter.format(record))
 
@@ -223,8 +259,13 @@ class TestJSONFormatter:
 
         formatter = JSONFormatter(include_hostname=True, include_timestamp=False)
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname="", lineno=0,
-            msg="host", args=(), exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="host",
+            args=(),
+            exc_info=None,
         )
         data = orjson.loads(formatter.format(record))
 
@@ -232,8 +273,13 @@ class TestJSONFormatter:
 
     def test_format_with_custom_record_attributes(self, json_formatter):
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname="", lineno=0,
-            msg="custom", args=(), exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="custom",
+            args=(),
+            exc_info=None,
         )
         record.custom_field = "custom_value"
         data = orjson.loads(json_formatter.format(record))
@@ -251,8 +297,13 @@ class TestPrettyJSONFormatter:
 
     def test_produces_indented_json(self, pretty_formatter):
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname="", lineno=0,
-            msg="pretty test", args=(), exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="pretty test",
+            args=(),
+            exc_info=None,
         )
         output = pretty_formatter.format(record)
         data = json.loads(output)
@@ -268,8 +319,13 @@ class TestPrettyJSONFormatter:
         set_request_id("pretty-req-1")
 
         record = logging.LogRecord(
-            name="test", level=logging.WARNING, pathname="", lineno=0,
-            msg="warning", args=(), exc_info=None,
+            name="test",
+            level=logging.WARNING,
+            pathname="",
+            lineno=0,
+            msg="warning",
+            args=(),
+            exc_info=None,
         )
         data = json.loads(pretty_formatter.format(record))
 
@@ -287,8 +343,13 @@ class TestColoredTextFormatter:
 
     def test_basic_format(self, colored_formatter):
         record = logging.LogRecord(
-            name="test.logger", level=logging.INFO, pathname="", lineno=0,
-            msg="colored message", args=(), exc_info=None,
+            name="test.logger",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="colored message",
+            args=(),
+            exc_info=None,
         )
         output = colored_formatter.format(record)
 
@@ -303,8 +364,13 @@ class TestColoredTextFormatter:
         correlation_id_var.set("abcdef123456")
 
         record = logging.LogRecord(
-            name="test", level=logging.DEBUG, pathname="", lineno=0,
-            msg="with correlation", args=(), exc_info=None,
+            name="test",
+            level=logging.DEBUG,
+            pathname="",
+            lineno=0,
+            msg="with correlation",
+            args=(),
+            exc_info=None,
         )
         output = colored_formatter.format(record)
 
@@ -316,8 +382,13 @@ class TestColoredTextFormatter:
         outputs = []
         for level in levels:
             record = logging.LogRecord(
-                name="test", level=level, pathname="", lineno=0,
-                msg="level test", args=(), exc_info=None,
+                name="test",
+                level=level,
+                pathname="",
+                lineno=0,
+                msg="level test",
+                args=(),
+                exc_info=None,
             )
             outputs.append(colored_formatter.format(record))
 
@@ -329,11 +400,17 @@ class TestColoredTextFormatter:
             raise RuntimeError("color error")
         except RuntimeError:
             import sys
+
             exc_info = sys.exc_info()
 
         record = logging.LogRecord(
-            name="test", level=logging.ERROR, pathname="", lineno=0,
-            msg="error", args=(), exc_info=exc_info,
+            name="test",
+            level=logging.ERROR,
+            pathname="",
+            lineno=0,
+            msg="error",
+            args=(),
+            exc_info=exc_info,
         )
         output = colored_formatter.format(record)
 
@@ -587,14 +664,16 @@ class TestLoggingConfig:
         assert isinstance(config.exclude_loggers, list)
         assert "password" in config.sensitive_fields
 
-    @override_settings(DJANGO_MATT_LOGGING={
-        "ENABLED": False,
-        "FORMAT": "text",
-        "LEVEL": "DEBUG",
-        "INCLUDE_TIMESTAMP": False,
-        "INCLUDE_HOSTNAME": False,
-        "EXTRA_FIELDS": {"service": "test"},
-    })
+    @override_settings(
+        DJANGO_MATT_LOGGING={
+            "ENABLED": False,
+            "FORMAT": "text",
+            "LEVEL": "DEBUG",
+            "INCLUDE_TIMESTAMP": False,
+            "INCLUDE_HOSTNAME": False,
+            "EXTRA_FIELDS": {"service": "test"},
+        }
+    )
     def test_custom_values(self):
         from django_matt.observability.logging import LoggingConfig
 
@@ -836,9 +915,7 @@ class TestMetricsManager:
         assert "text/plain" in ct or "openmetrics" in ct or "text" in ct
 
     def test_counter_with_labels(self, fresh_metrics_manager):
-        counter = fresh_metrics_manager.counter(
-            "labeled_counter", "Labeled", labelnames=["method"]
-        )
+        counter = fresh_metrics_manager.counter("labeled_counter", "Labeled", labelnames=["method"])
         labeled = counter.labels(method="GET")
         labeled.inc()
         assert counter is not None
@@ -879,11 +956,13 @@ class TestMetricsConfig:
         assert config.include_status is True
         assert isinstance(config.exclude_paths, list)
 
-    @override_settings(DJANGO_MATT_METRICS={
-        "ENABLED": False,
-        "PREFIX": "myapp",
-        "INCLUDE_HOST": False,
-    })
+    @override_settings(
+        DJANGO_MATT_METRICS={
+            "ENABLED": False,
+            "PREFIX": "myapp",
+            "INCLUDE_HOST": False,
+        }
+    )
     def test_custom_values(self):
         from django_matt.observability.metrics import MetricsConfig
 
@@ -1073,15 +1152,17 @@ class TestTracingConfig:
         assert config.debug is False
         assert config.headers is None
 
-    @override_settings(DJANGO_MATT_TRACING={
-        "ENABLED": True,
-        "SERVICE_NAME": "myapp",
-        "EXPORTER": "otlp",
-        "ENDPOINT": "http://localhost:4317",
-        "SAMPLE_RATE": 0.5,
-        "DEBUG": True,
-        "HEADERS": {"api-key": "abc"},
-    })
+    @override_settings(
+        DJANGO_MATT_TRACING={
+            "ENABLED": True,
+            "SERVICE_NAME": "myapp",
+            "EXPORTER": "otlp",
+            "ENDPOINT": "http://localhost:4317",
+            "SAMPLE_RATE": 0.5,
+            "DEBUG": True,
+            "HEADERS": {"api-key": "abc"},
+        }
+    )
     def test_custom_values(self):
         from django_matt.observability.tracing import TracingConfig
 
@@ -1908,9 +1989,7 @@ class TestLoggingMiddleware:
             return HttpResponse("OK")
 
         middleware = LoggingMiddleware(get_response)
-        ip = middleware._get_client_ip(
-            rf.get("/", HTTP_X_FORWARDED_FOR="1.2.3.4, 5.6.7.8")
-        )
+        ip = middleware._get_client_ip(rf.get("/", HTTP_X_FORWARDED_FOR="1.2.3.4, 5.6.7.8"))
         assert ip == "1.2.3.4"
 
     def test_client_ip_from_remote_addr(self, rf):
@@ -1973,13 +2052,16 @@ class TestDatabaseQueryMiddleware:
         from django.conf import settings
 
         from django_matt.observability.middleware import DatabaseQueryMiddleware
+
         # Temporarily enable DEBUG to track queries
         original_debug = settings.DEBUG
         settings.DEBUG = True
 
         try:
+
             def get_response(request):
                 from django.contrib.auth.models import User
+
                 list(User.objects.all()[:1])
                 return HttpResponse("OK")
 
@@ -2407,16 +2489,26 @@ class TestEdgeCases:
 
     def test_json_formatter_with_none_exc_info(self, json_formatter):
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname="", lineno=0,
-            msg="no exc", args=(), exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="no exc",
+            args=(),
+            exc_info=None,
         )
         data = orjson.loads(json_formatter.format(record))
         assert "exception" not in data
 
     def test_json_formatter_with_partial_exc_info(self, json_formatter):
         record = logging.LogRecord(
-            name="test", level=logging.ERROR, pathname="", lineno=0,
-            msg="partial exc", args=(), exc_info=(None, None, None),
+            name="test",
+            level=logging.ERROR,
+            pathname="",
+            lineno=0,
+            msg="partial exc",
+            args=(),
+            exc_info=(None, None, None),
         )
         data = orjson.loads(json_formatter.format(record))
         assert data["exception"]["type"] is None
@@ -2563,8 +2655,13 @@ class TestStructuredLoggingSuccessCriteria:
             ("CRITICAL", logging.CRITICAL),
         ]:
             record = logging.LogRecord(
-                name="test", level=level_num, pathname="", lineno=0,
-                msg="msg", args=(), exc_info=None,
+                name="test",
+                level=level_num,
+                pathname="",
+                lineno=0,
+                msg="msg",
+                args=(),
+                exc_info=None,
             )
             data = orjson.loads(formatter.format(record))
             assert data["level"] == level_name
@@ -2575,8 +2672,13 @@ class TestStructuredLoggingSuccessCriteria:
 
         formatter = PrettyJSONFormatter()
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname="", lineno=0,
-            msg="pretty test", args=(), exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="pretty test",
+            args=(),
+            exc_info=None,
         )
         output = formatter.format(record)
 
@@ -2593,8 +2695,13 @@ class TestStructuredLoggingSuccessCriteria:
 
         formatter = ColoredTextFormatter()
         record = logging.LogRecord(
-            name="test.app", level=logging.ERROR, pathname="", lineno=0,
-            msg="error msg", args=(), exc_info=None,
+            name="test.app",
+            level=logging.ERROR,
+            pathname="",
+            lineno=0,
+            msg="error msg",
+            args=(),
+            exc_info=None,
         )
         output = formatter.format(record)
 
@@ -2615,9 +2722,7 @@ class TestPrometheusMetricsSuccessCriteria:
         from django_matt.observability.metrics import MetricsManager
 
         mgr = MetricsManager()
-        counter = mgr.counter(
-            "test_req_total", "Total requests", labelnames=["method", "status"]
-        )
+        counter = mgr.counter("test_req_total", "Total requests", labelnames=["method", "status"])
         counter.labels(method="GET", status="200").inc()
         counter.labels(method="GET", status="200").inc()
         counter.labels(method="POST", status="201").inc()

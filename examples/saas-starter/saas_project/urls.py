@@ -18,10 +18,8 @@ from api.main import api
 urlpatterns = [
     # Django Admin
     path("admin/", admin.site.urls),
-
     # API endpoints (handled by django-matt)
     path("api/", include(api.urls)),
-
     # Health check endpoint
     path("health/", include("core.healthcheck")),
 ]

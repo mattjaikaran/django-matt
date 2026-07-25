@@ -24,9 +24,7 @@ class StoreController(APIController):
         qs = Store.objects.filter(is_active=True)
 
         if search:
-            qs = qs.filter(
-                Q(name__icontains=search) | Q(description__icontains=search)
-            )
+            qs = qs.filter(Q(name__icontains=search) | Q(description__icontains=search))
 
         total = await qs.acount()
         stores = qs.order_by("-created_at")[offset : offset + limit]

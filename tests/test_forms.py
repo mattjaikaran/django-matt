@@ -433,21 +433,13 @@ class TestFormBuilder:
         assert isinstance(field.widget, django_forms.Textarea)
 
     def test_select(self):
-        form_cls = (
-            FormBuilder("t")
-            .select("dept", choices=[("e", "Eng"), ("s", "Sales")])
-            .build()
-        )
+        form_cls = FormBuilder("t").select("dept", choices=[("e", "Eng"), ("s", "Sales")]).build()
         field = form_cls().fields["dept"]
         assert isinstance(field, django_forms.ChoiceField)
         assert len(list(field.choices)) == 2
 
     def test_multiselect(self):
-        form_cls = (
-            FormBuilder("t")
-            .multiselect("tags", choices=[("a", "A"), ("b", "B")])
-            .build()
-        )
+        form_cls = FormBuilder("t").multiselect("tags", choices=[("a", "A"), ("b", "B")]).build()
         field = form_cls().fields["tags"]
         assert isinstance(field, django_forms.MultipleChoiceField)
 
@@ -457,11 +449,7 @@ class TestFormBuilder:
         assert isinstance(field, django_forms.BooleanField)
 
     def test_radio(self):
-        form_cls = (
-            FormBuilder("t")
-            .radio("size", choices=[("s", "S"), ("m", "M")])
-            .build()
-        )
+        form_cls = FormBuilder("t").radio("size", choices=[("s", "S"), ("m", "M")]).build()
         field = form_cls().fields["size"]
         assert isinstance(field, django_forms.ChoiceField)
         assert isinstance(field.widget, django_forms.RadioSelect)
@@ -486,8 +474,7 @@ class TestFormBuilder:
         """All builder methods return self for chaining."""
         builder = FormBuilder("chain")
         result = (
-            builder
-            .text("a")
+            builder.text("a")
             .email("b")
             .password("c")
             .number("d")
@@ -982,7 +969,18 @@ class TestThemeClasses:
         assert "bootstrap" in THEME_CLASSES
 
     def test_all_themes_have_required_keys(self):
-        required = {"form", "field_wrapper", "label", "input", "textarea", "select",
-                     "checkbox", "help_text", "error", "submit", "error_list"}
+        required = {
+            "form",
+            "field_wrapper",
+            "label",
+            "input",
+            "textarea",
+            "select",
+            "checkbox",
+            "help_text",
+            "error",
+            "submit",
+            "error_list",
+        }
         for theme, classes in THEME_CLASSES.items():
             assert required.issubset(classes.keys()), f"{theme} missing keys"

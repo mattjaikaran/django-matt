@@ -17,6 +17,7 @@ async def create_payment_intent(
 ) -> dict[str, Any]:
     """Create a Stripe PaymentIntent for an order."""
     import stripe
+
     stripe.api_key = settings.STRIPE_SECRET_KEY
 
     # Convert to cents
@@ -57,35 +58,40 @@ async def create_checkout_session(
 ) -> dict[str, Any]:
     """Create a Stripe Checkout Session."""
     import stripe
+
     stripe.api_key = settings.STRIPE_SECRET_KEY
 
     # Build line items
     line_items = []
     for item in await order.items.alist():
-        line_items.append({
-            "price_data": {
-                "currency": order.currency.lower(),
-                "product_data": {
-                    "name": item.product_name,
-                    "description": item.variant_name or None,
+        line_items.append(
+            {
+                "price_data": {
+                    "currency": order.currency.lower(),
+                    "product_data": {
+                        "name": item.product_name,
+                        "description": item.variant_name or None,
+                    },
+                    "unit_amount": int(item.unit_price * 100),
                 },
-                "unit_amount": int(item.unit_price * 100),
-            },
-            "quantity": item.quantity,
-        })
+                "quantity": item.quantity,
+            }
+        )
 
     # Add shipping as line item if applicable
     if order.shipping_amount > 0:
-        line_items.append({
-            "price_data": {
-                "currency": order.currency.lower(),
-                "product_data": {
-                    "name": "Shipping",
+        line_items.append(
+            {
+                "price_data": {
+                    "currency": order.currency.lower(),
+                    "product_data": {
+                        "name": "Shipping",
+                    },
+                    "unit_amount": int(order.shipping_amount * 100),
                 },
-                "unit_amount": int(order.shipping_amount * 100),
-            },
-            "quantity": 1,
-        })
+                "quantity": 1,
+            }
+        )
 
     # Create checkout session
     session = stripe.checkout.Session.create(
@@ -115,6 +121,7 @@ async def create_refund(
 ) -> Refund:
     """Create a Stripe refund."""
     import stripe
+
     stripe.api_key = settings.STRIPE_SECRET_KEY
 
     # Create Stripe refund
@@ -132,7 +139,9 @@ async def create_refund(
         reason=reason,
         notes=notes,
         stripe_refund_id=stripe_refund.id,
-        status=Refund.Status.SUCCEEDED if stripe_refund.status == "succeeded" else Refund.Status.PENDING,
+        status=Refund.Status.SUCCEEDED
+        if stripe_refund.status == "succeeded"
+        else Refund.Status.PENDING,
         created_by=created_by,
         refunded_at=timezone.now() if stripe_refund.status == "succeeded" else None,
     )
@@ -180,9 +189,11 @@ async def _handle_payment_succeeded(data) -> None:
     """Handle successful payment."""
     payment_intent_id = data.id
 
-    payment = await Payment.objects.filter(
-        stripe_payment_intent_id=payment_intent_id
-    ).select_related("order").afirst()
+    payment = (
+        await Payment.objects.filter(stripe_payment_intent_id=payment_intent_id)
+        .select_related("order")
+        .afirst()
+    )
 
     if not payment:
         return
@@ -212,6 +223,7 @@ async def _handle_payment_succeeded(data) -> None:
     # Commit inventory
     for item in await order.items.select_related("product", "variant").alist():
         from ecommerce.catalog.models import Inventory
+
         if item.variant:
             inv = await Inventory.objects.filter(variant=item.variant).afirst()
         else:
@@ -223,6 +235,7 @@ async def _handle_payment_succeeded(data) -> None:
 
     # Send confirmation email
     from ecommerce.orders.tasks import send_order_confirmation_email
+
     send_order_confirmation_email.delay(str(order.id))
 
 
@@ -230,9 +243,7 @@ async def _handle_payment_failed(data) -> None:
     """Handle failed payment."""
     payment_intent_id = data.id
 
-    payment = await Payment.objects.filter(
-        stripe_payment_intent_id=payment_intent_id
-    ).afirst()
+    payment = await Payment.objects.filter(stripe_payment_intent_id=payment_intent_id).afirst()
 
     if not payment:
         return
@@ -249,6 +260,7 @@ async def _handle_payment_failed(data) -> None:
     if order:
         for item in await order.items.select_related("product", "variant").alist():
             from ecommerce.catalog.models import Inventory
+
             if item.variant:
                 inv = await Inventory.objects.filter(variant=item.variant).afirst()
             else:
@@ -288,4 +300,3 @@ async def _handle_checkout_completed(data) -> None:
     # Update order
     order.status = Order.Status.CONFIRMED
     await order.asave()
-

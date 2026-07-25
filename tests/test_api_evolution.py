@@ -53,18 +53,22 @@ class TestRemoveField:
 
 class TestTransformChain:
     def test_forward_applies_in_order(self):
-        chain = TransformChain([
-            RenameField(old="username", new="handle"),
-            AddField(field="verified", default=False),
-        ])
+        chain = TransformChain(
+            [
+                RenameField(old="username", new="handle"),
+                AddField(field="verified", default=False),
+            ]
+        )
         result = chain.forward({"username": "matt"})
         assert result == {"handle": "matt", "verified": False}
 
     def test_backward_applies_in_reverse(self):
-        chain = TransformChain([
-            RenameField(old="username", new="handle"),
-            AddField(field="verified", default=False),
-        ])
+        chain = TransformChain(
+            [
+                RenameField(old="username", new="handle"),
+                AddField(field="verified", default=False),
+            ]
+        )
         result = chain.backward({"handle": "matt", "verified": True})
         assert result == {"username": "matt"}
 
@@ -103,8 +107,7 @@ class TestAPIEvolutionTracker:
         )
         # Client on 2026-02 sees both transforms reversed
         data = tracker.transform_response(
-            "/users/{id}", "2026-02",
-            {"primary_email": "m@e.com", "avatar": "http://..."}
+            "/users/{id}", "2026-02", {"primary_email": "m@e.com", "avatar": "http://..."}
         )
         assert "email" in data
         assert "primary_email" not in data
@@ -121,9 +124,7 @@ class TestAPIEvolutionTracker:
 
     def test_none_version_is_noop(self):
         tracker = APIEvolutionTracker()
-        tracker.register_schema_change(
-            "/users/{id}", "2026-04", [RenameField(old="a", new="b")]
-        )
+        tracker.register_schema_change("/users/{id}", "2026-04", [RenameField(old="a", new="b")])
         data = tracker.transform_response("/users/{id}", None, {"b": 1})
         assert data == {"b": 1}
 
@@ -141,9 +142,7 @@ class TestAPIEvolutionTracker:
 
     def test_path_normalization(self):
         tracker = APIEvolutionTracker()
-        tracker.register_schema_change(
-            "/users/{id}", "2026-04", [RenameField(old="a", new="b")]
-        )
+        tracker.register_schema_change("/users/{id}", "2026-04", [RenameField(old="a", new="b")])
         # Different param name should still match
         data = tracker.transform_response("/users/{user_id}", "2026-03", {"b": 1})
         assert data == {"a": 1}

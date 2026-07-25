@@ -223,9 +223,7 @@ class TestInterpolation:
 
     def test_nested_dict_interpolation(self):
         results = {"a": {"user": {"id": 5}}}
-        val = interpolate_value(
-            {"data": {"user_id": "{result=a:$.user.id}"}}, results
-        )
+        val = interpolate_value({"data": {"user_id": "{result=a:$.user.id}"}}, results)
         assert val == {"data": {"user_id": 5}}
 
     def test_no_interpolation_passthrough(self):
@@ -319,9 +317,7 @@ class TestBatchEndpointValidation:
     async def test_accepts_bare_array(self, endpoint, factory):
         """Bare array [...] should be accepted as shorthand for {requests: [...]}."""
         with patch.object(endpoint, "_execute_waves", new_callable=AsyncMock):
-            request = _make_batch_request(
-                factory, [{"method": "GET", "path": "/foo"}]
-            )
+            request = _make_batch_request(factory, [{"method": "GET", "path": "/foo"}])
             resp = await endpoint.handle(request)
             # Should not fail validation
             assert resp.status_code == 200

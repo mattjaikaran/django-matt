@@ -16,9 +16,5 @@ def register_auth_routes(api: MattAPI) -> None:
         AuthController.refresh
     )
     api.get("auth/me", response_model=UserSchema, tags=["Auth"])(AuthController.me)
-    api.patch("auth/me", response_model=UserSchema, tags=["Auth"])(
-        AuthController.update_me
-    )
-    api.post("auth/change-password", status_code=200, tags=["Auth"])(
-        AuthController.change_password
-    )
+    api.patch("auth/me", response_model=UserSchema, tags=["Auth"])(AuthController.update_me)
+    api.post("auth/change-password", status_code=200, tags=["Auth"])(AuthController.change_password)

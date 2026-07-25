@@ -18,6 +18,7 @@ from core.models import Organization, User
 
 class NotificationType(models.TextChoices):
     """Notification type categories."""
+
     # Task notifications
     TASK_ASSIGNED = "task_assigned", "Task Assigned"
     TASK_COMPLETED = "task_completed", "Task Completed"
@@ -64,8 +65,7 @@ class Notification(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
     organization = models.ForeignKey(
-        Organization, on_delete=models.CASCADE, null=True, blank=True,
-        related_name="notifications"
+        Organization, on_delete=models.CASCADE, null=True, blank=True, related_name="notifications"
     )
 
     # Notification content
@@ -79,8 +79,11 @@ class Notification(models.Model):
 
     # Actor (who triggered the notification)
     actor = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name="triggered_notifications"
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="triggered_notifications",
     )
 
     # Related object
@@ -253,12 +256,14 @@ class AnalyticsEvent(models.Model):
 
     # User context
     user = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name="analytics_events"
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="analytics_events"
     )
     organization = models.ForeignKey(
-        Organization, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name="analytics_events"
+        Organization,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="analytics_events",
     )
     session_id = models.CharField(max_length=255, blank=True, db_index=True)
     anonymous_id = models.CharField(max_length=255, blank=True, db_index=True)
@@ -349,9 +354,7 @@ class AggregatedMetric(models.Model):
         db_table = "aggregated_metrics"
         ordering = ["-period_start"]
         indexes = [
-            models.Index(
-                fields=["organization", "metric_name", "period_type", "-period_start"]
-            ),
+            models.Index(fields=["organization", "metric_name", "period_type", "-period_start"]),
         ]
         unique_together = [
             ["organization", "metric_name", "period_type", "period_start", "dimensions"]

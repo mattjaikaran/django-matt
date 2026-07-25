@@ -47,9 +47,7 @@ class UserService(CRUDService["User"]):
 
         async with transaction.atomic():
             # Unset all current defaults for this user
-            await Address.objects.filter(user=user, is_default=True).aupdate(
-                is_default=False
-            )
+            await Address.objects.filter(user=user, is_default=True).aupdate(is_default=False)
             address.is_default = True
             await address.asave(update_fields=["is_default", "updated_at"])
 
@@ -91,9 +89,7 @@ class AddressService(CRUDService["Address"]):
             raise ValidationError("Address does not belong to this user")
 
         async with transaction.atomic():
-            await Address.objects.filter(user=user, is_default=True).aupdate(
-                is_default=False
-            )
+            await Address.objects.filter(user=user, is_default=True).aupdate(is_default=False)
             address.is_default = True
             await address.asave(update_fields=["is_default", "updated_at"])
 

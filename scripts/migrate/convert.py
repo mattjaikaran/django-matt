@@ -100,9 +100,7 @@ def extract_drf_serializers(tree: ast.Module) -> list[SerializerInfo]:
 
         bases = [extract_name(b) for b in node.bases]
         if not any(
-            b in ("ModelSerializer", "Serializer", "HyperlinkedModelSerializer")
-            for b in bases
-            if b
+            b in ("ModelSerializer", "Serializer", "HyperlinkedModelSerializer") for b in bases if b
         ):
             continue
 
@@ -118,7 +116,10 @@ def extract_drf_serializers(tree: ast.Module) -> list[SerializerInfo]:
                             if tname == "model":
                                 info.model = extract_name(meta_item.value)
                             elif tname == "fields":
-                                if isinstance(meta_item.value, ast.Constant) and meta_item.value.value == "__all__":
+                                if (
+                                    isinstance(meta_item.value, ast.Constant)
+                                    and meta_item.value.value == "__all__"
+                                ):
                                     info.fields = "__all__"
                                 else:
                                     info.fields = extract_list_strings(meta_item.value)
@@ -130,7 +131,7 @@ def extract_drf_serializers(tree: ast.Module) -> list[SerializerInfo]:
             # Detect validate_* methods
             if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 if item.name.startswith("validate_"):
-                    field_name = item.name[len("validate_"):]
+                    field_name = item.name[len("validate_") :]
                     info.validators.append(field_name)
                 elif item.name == "validate":
                     info.validators.append("__root__")
@@ -161,10 +162,19 @@ def extract_drf_viewsets(tree: ast.Module) -> list[ViewSetInfo]:
         base_names = [b for b in bases if b]
 
         viewset_bases = {
-            "ModelViewSet", "ViewSet", "GenericViewSet", "ReadOnlyModelViewSet",
-            "APIView", "GenericAPIView", "ListAPIView", "CreateAPIView",
-            "RetrieveAPIView", "UpdateAPIView", "DestroyAPIView",
-            "ListCreateAPIView", "RetrieveUpdateAPIView",
+            "ModelViewSet",
+            "ViewSet",
+            "GenericViewSet",
+            "ReadOnlyModelViewSet",
+            "APIView",
+            "GenericAPIView",
+            "ListAPIView",
+            "CreateAPIView",
+            "RetrieveAPIView",
+            "UpdateAPIView",
+            "DestroyAPIView",
+            "ListCreateAPIView",
+            "RetrieveUpdateAPIView",
             "RetrieveUpdateDestroyAPIView",
         }
 
@@ -189,7 +199,9 @@ def extract_drf_viewsets(tree: ast.Module) -> list[ViewSetInfo]:
                         info.serializer = extract_name(item.value)
                     elif tname == "permission_classes":
                         if isinstance(item.value, ast.List):
-                            info.permission_classes = [extract_name(e) for e in item.value.elts if extract_name(e)]
+                            info.permission_classes = [
+                                extract_name(e) for e in item.value.elts if extract_name(e)
+                            ]
                     elif tname == "filterset_fields":
                         info.filter_fields = extract_list_strings(item.value) or []
                     elif tname == "search_fields":
@@ -242,7 +254,9 @@ def generate_schema_from_serializer(s: SerializerInfo) -> str:
         lines.append("")
         lines.append(f"    @model_validator('{field_name}')")
         lines.append(f"    def validate_{field_name}(cls, v):")
-        lines.append(f"        # TODO: migrate validation logic from {s.name}.validate_{field_name}")
+        lines.append(
+            f"        # TODO: migrate validation logic from {s.name}.validate_{field_name}"
+        )
         lines.append("        return v")
 
     lines.append("")
@@ -333,11 +347,28 @@ def generate_controller_from_viewset(vs: ViewSetInfo) -> str:
         crud_ops.add("list")
     if vs.base_class in ("ModelViewSet", "ListCreateAPIView", "CreateAPIView"):
         crud_ops.add("create")
-    if vs.base_class in ("ModelViewSet", "RetrieveAPIView", "RetrieveUpdateAPIView", "RetrieveDestroyAPIView", "RetrieveUpdateDestroyAPIView", "ReadOnlyModelViewSet"):
+    if vs.base_class in (
+        "ModelViewSet",
+        "RetrieveAPIView",
+        "RetrieveUpdateAPIView",
+        "RetrieveDestroyAPIView",
+        "RetrieveUpdateDestroyAPIView",
+        "ReadOnlyModelViewSet",
+    ):
         crud_ops.add("retrieve")
-    if vs.base_class in ("ModelViewSet", "UpdateAPIView", "RetrieveUpdateAPIView", "RetrieveUpdateDestroyAPIView"):
+    if vs.base_class in (
+        "ModelViewSet",
+        "UpdateAPIView",
+        "RetrieveUpdateAPIView",
+        "RetrieveUpdateDestroyAPIView",
+    ):
         crud_ops.add("update")
-    if vs.base_class in ("ModelViewSet", "DestroyAPIView", "RetrieveDestroyAPIView", "RetrieveUpdateDestroyAPIView"):
+    if vs.base_class in (
+        "ModelViewSet",
+        "DestroyAPIView",
+        "RetrieveDestroyAPIView",
+        "RetrieveUpdateDestroyAPIView",
+    ):
         crud_ops.add("delete")
     if vs.base_class == "ReadOnlyModelViewSet":
         crud_ops.add("list")
@@ -349,7 +380,9 @@ def generate_controller_from_viewset(vs: ViewSetInfo) -> str:
         lines.append("        page = int(request.GET.get('page', 1))")
         lines.append("        items, total = await self.service.list(page=page)")
         lines.append("        return {")
-        lines.append(f'            "items": [{schema_name}.from_orm_fast(i).model_dump() for i in items],')
+        lines.append(
+            f'            "items": [{schema_name}.from_orm_fast(i).model_dump() for i in items],'
+        )
         lines.append('            "total": total,')
         lines.append("        }")
 
@@ -357,7 +390,9 @@ def generate_controller_from_viewset(vs: ViewSetInfo) -> str:
         lines.append("")
         lines.append('    @post("/")')
         lines.append(f"    async def create_{model.lower()}(self, request, data: {create_schema}):")
-        lines.append("        instance = await self.service.create(data.model_dump(), user=request.user)")
+        lines.append(
+            "        instance = await self.service.create(data.model_dump(), user=request.user)"
+        )
         lines.append(f"        return {schema_name}.from_orm(instance).model_dump()")
 
     if "retrieve" in crud_ops:
@@ -370,8 +405,12 @@ def generate_controller_from_viewset(vs: ViewSetInfo) -> str:
     if "update" in crud_ops:
         lines.append("")
         lines.append('    @put("/{id}")')
-        lines.append(f"    async def update_{model.lower()}(self, request, id: int, data: {update_schema}):")
-        lines.append("        instance = await self.service.update(id, data.model_dump(), user=request.user)")
+        lines.append(
+            f"    async def update_{model.lower()}(self, request, id: int, data: {update_schema}):"
+        )
+        lines.append(
+            "        instance = await self.service.update(id, data.model_dump(), user=request.user)"
+        )
         lines.append(f"        return {schema_name}.from_orm(instance).model_dump()")
 
     if "delete" in crud_ops:
@@ -532,8 +571,14 @@ def convert_ninja(app_path: Path) -> dict[str, str]:
 
         # Simple text replacements for Ninja -> django-matt
         converted = source
-        converted = re.sub(r"from ninja import", "from django_matt.core.schema import ModelSchema\nfrom django_matt.core.router import", converted)
-        converted = re.sub(r"from ninja\.schema import", "from django_matt.core.schema import", converted)
+        converted = re.sub(
+            r"from ninja import",
+            "from django_matt.core.schema import ModelSchema\nfrom django_matt.core.router import",
+            converted,
+        )
+        converted = re.sub(
+            r"from ninja\.schema import", "from django_matt.core.schema import", converted
+        )
         converted = converted.replace("NinjaAPI(", "MattAPI(")
         converted = converted.replace("class Meta:", "class Config:")
         converted = re.sub(r"(\s+)fields\s*=", r"\1include =", converted)
@@ -542,8 +587,7 @@ def convert_ninja(app_path: Path) -> dict[str, str]:
         if converted != source:
             rel_path = py_file.relative_to(app_path)
             outputs[str(rel_path)] = (
-                "# AUTO-CONVERTED from Django Ninja -- review and fix\n"
-                + converted
+                "# AUTO-CONVERTED from Django Ninja -- review and fix\n" + converted
             )
 
     return outputs
@@ -574,10 +618,16 @@ def convert_fastapi(app_path: Path) -> dict[str, str]:
             continue
 
         converted = source
-        converted = re.sub(r"from fastapi import.*\n", "from django_matt.core.controller import APIController\nfrom django_matt.core.router import get, post, put, patch, delete\n", converted)
+        converted = re.sub(
+            r"from fastapi import.*\n",
+            "from django_matt.core.controller import APIController\nfrom django_matt.core.router import get, post, put, patch, delete\n",
+            converted,
+        )
         converted = re.sub(r"from fastapi.routing import.*\n", "", converted)
         converted = re.sub(r"db:\s*Session\s*=\s*Depends\(get_db\),?\s*", "", converted)
-        converted = re.sub(r"current_user:\s*\w+\s*=\s*Depends\(get_current_user\),?\s*", "", converted)
+        converted = re.sub(
+            r"current_user:\s*\w+\s*=\s*Depends\(get_current_user\),?\s*", "", converted
+        )
 
         if converted != source:
             rel_path = py_file.relative_to(app_path)
@@ -587,9 +637,7 @@ def convert_fastapi(app_path: Path) -> dict[str, str]:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Convert existing API code to django-matt stubs"
-    )
+    parser = argparse.ArgumentParser(description="Convert existing API code to django-matt stubs")
     parser.add_argument("path", help="Path to the app directory")
     parser.add_argument(
         "--framework",

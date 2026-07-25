@@ -611,9 +611,10 @@ class TestAuditLogContext:
         with patch("django_matt.audit.models.AuditLog.objects") as mock_objects:
             mock_objects.create.return_value = create_mock_audit_log()
 
-            with pytest.raises(ValueError), AuditLogContext(
-                action=AuditAction.CUSTOM, description="Test operation"
-            ) as ctx:
+            with (
+                pytest.raises(ValueError),
+                AuditLogContext(action=AuditAction.CUSTOM, description="Test operation") as ctx,
+            ):
                 ctx.add_change("model", 1, {"field": "value"})
                 raise ValueError("Something went wrong")
 
@@ -726,7 +727,9 @@ class TestAuditLogModel:
                 mock_objects.create.assert_called_once()
                 call_kwargs = mock_objects.create.call_args[1]
                 assert call_kwargs["object_id"] == "123"
-                assert call_kwargs["changes"] == {"email": {"old": "old@example.com", "new": "new@example.com"}}
+                assert call_kwargs["changes"] == {
+                    "email": {"old": "old@example.com", "new": "new@example.com"}
+                }
 
     def test_log_with_severity(self):
         """Test AuditLog.log with custom severity."""
@@ -749,7 +752,10 @@ class TestAuditLogModel:
         log = create_mock_audit_log(
             action=AuditAction.UPDATE,
             severity=AuditSeverity.WARNING,
-            changes={"name": {"old": "Old", "new": "New"}, "status": {"old": "inactive", "new": "active"}},
+            changes={
+                "name": {"old": "Old", "new": "New"},
+                "status": {"old": "inactive", "new": "active"},
+            },
         )
 
         assert log.action_enum == AuditAction.UPDATE
@@ -857,13 +863,16 @@ class TestAuditUtils:
         mock_obj._meta.model_name = "mymodel"
 
         with patch("django_matt.audit.models.AuditLog.objects") as mock_manager:
-            with patch("django.contrib.contenttypes.models.ContentType.objects.get_for_model") as mock_ct:
+            with patch(
+                "django.contrib.contenttypes.models.ContentType.objects.get_for_model"
+            ) as mock_ct:
                 mock_ct.return_value = Mock(id=1)
                 mock_qs = Mock()
                 mock_qs.order_by.return_value = mock_qs
                 mock_manager.filter.return_value = mock_qs
 
                 from django_matt.audit.utils import get_audit_history
+
                 get_audit_history(mock_obj)
 
                 mock_manager.filter.assert_called_once()
@@ -880,6 +889,7 @@ class TestAuditUtils:
             mock_manager.filter.return_value = mock_qs
 
             from django_matt.audit.utils import get_user_actions
+
             get_user_actions(mock_user)
 
             mock_manager.filter.assert_called_once_with(user=mock_user)
@@ -895,6 +905,7 @@ class TestAuditUtils:
             mock_manager.filter.return_value = mock_qs
 
             from django_matt.audit.utils import get_user_actions
+
             result = get_user_actions(mock_user, limit=2)
 
             # Should slice the queryset
@@ -912,6 +923,7 @@ class TestAuditUtils:
             mock_manager.filter.return_value = mock_qs
 
             from django_matt.audit.utils import get_activity_summary
+
             summary = get_activity_summary(days=7, group_by="action")
 
             assert summary == {"create": 5, "update": 10}
@@ -924,6 +936,7 @@ class TestAuditUtils:
             mock_manager.filter.return_value = mock_qs
 
             from django_matt.audit.utils import cleanup_old_logs
+
             deleted = cleanup_old_logs(days=90, dry_run=True)
 
             assert deleted == 100
@@ -937,6 +950,7 @@ class TestAuditUtils:
             mock_manager.filter.return_value = mock_qs
 
             from django_matt.audit.utils import cleanup_old_logs
+
             deleted = cleanup_old_logs(days=90, dry_run=False)
 
             assert deleted == 100
@@ -971,6 +985,7 @@ class TestAuditUtils:
             mock_manager.all.return_value = mock_qs
 
             from django_matt.audit.utils import export_audit_logs
+
             export = export_audit_logs(format="json", days=7)
             data = json.loads(export)
 
@@ -1001,6 +1016,7 @@ class TestAuditUtils:
             mock_manager.all.return_value = mock_qs
 
             from django_matt.audit.utils import export_audit_logs
+
             export = export_audit_logs(format="csv", days=7)
 
             lines = export.strip().split("\n")
@@ -1016,6 +1032,7 @@ class TestAuditUtils:
             mock_manager.all.return_value = mock_qs
 
             from django_matt.audit.utils import export_audit_logs
+
             with pytest.raises(ValueError, match="Unknown export format"):
                 export_audit_logs(format="xml")
 
@@ -1049,11 +1066,13 @@ class TestAuditSignals:
         # Connect
         connect_audit_signals()
         from django_matt.audit.signals import _signals_connected as connected
+
         assert connected is True
 
         # Disconnect
         disconnect_audit_signals()
         from django_matt.audit.signals import _signals_connected as disconnected
+
         assert disconnected is False
 
 
@@ -1113,9 +1132,7 @@ class TestAuditMiddleware:
         from django_matt.audit.middleware import AuditMiddleware
 
         factory = RequestFactory()
-        request = factory.get(
-            "/api/test", HTTP_X_FORWARDED_FOR="203.0.113.50, 70.41.3.18"
-        )
+        request = factory.get("/api/test", HTTP_X_FORWARDED_FOR="203.0.113.50, 70.41.3.18")
 
         captured_ctx = None
 
@@ -1312,7 +1329,9 @@ class TestSoftDeleteAuditIntegration:
         mock_obj._meta.model_name = "testmodel"
 
         with patch("django_matt.audit.models.AuditLog.objects") as mock_manager:
-            with patch("django.contrib.contenttypes.models.ContentType.objects.get_for_model") as mock_ct:
+            with patch(
+                "django.contrib.contenttypes.models.ContentType.objects.get_for_model"
+            ) as mock_ct:
                 mock_ct.return_value = Mock(id=5)
                 mock_qs = Mock()
                 mock_qs.order_by.return_value = mock_qs

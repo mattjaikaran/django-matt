@@ -7,9 +7,7 @@ from django.db import models
 
 class Comment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    post = models.ForeignKey(
-        "posts.Post", on_delete=models.CASCADE, related_name="comments"
-    )
+    post = models.ForeignKey("posts.Post", on_delete=models.CASCADE, related_name="comments")
 
     # Authenticated or anonymous
     author = models.ForeignKey(

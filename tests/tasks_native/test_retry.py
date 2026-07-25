@@ -30,9 +30,7 @@ class TestExponentialBackoff:
 
     def test_max_delay_cap(self):
         """Test max delay is respected."""
-        policy = ExponentialBackoff(
-            base_delay=100.0, multiplier=2.0, max_delay=150.0, jitter=False
-        )
+        policy = ExponentialBackoff(base_delay=100.0, multiplier=2.0, max_delay=150.0, jitter=False)
 
         assert policy.get_delay(1) == 100.0
         assert policy.get_delay(2) == 150.0  # Capped
@@ -244,10 +242,12 @@ class TestRetryFactory:
 
     def test_composite_factory(self):
         """Test retry.composite factory."""
-        policy = retry.composite([
-            retry.exponential(max_retries=3),
-            retry.fixed(delay=60.0),
-        ])
+        policy = retry.composite(
+            [
+                retry.exponential(max_retries=3),
+                retry.fixed(delay=60.0),
+            ]
+        )
 
         assert isinstance(policy, CompositePolicy)
         assert len(policy.policies) == 2

@@ -308,12 +308,20 @@ class TestStatisticalAnalyzerMath:
 
     def test_compare_variants(self):
         control = VariantStats(
-            variant_id="v1", variant_key="control", is_control=True,
-            sample_size=1000, conversions=100, conversion_rate=0.10,
+            variant_id="v1",
+            variant_key="control",
+            is_control=True,
+            sample_size=1000,
+            conversions=100,
+            conversion_rate=0.10,
         )
         treatment = VariantStats(
-            variant_id="v2", variant_key="treatment", is_control=False,
-            sample_size=1000, conversions=150, conversion_rate=0.15,
+            variant_id="v2",
+            variant_key="treatment",
+            is_control=False,
+            sample_size=1000,
+            conversions=150,
+            conversion_rate=0.15,
         )
         result = self.analyzer._compare_variants(treatment, control)
         assert isinstance(result, ComparisonResult)
@@ -372,8 +380,11 @@ class TestExperimentManagerBandits:
         variants = [self._make_variant("a"), self._make_variant("b")]
         exp = self._make_experiment(strategy="epsilon_greedy", epsilon=1.0)
         random.seed(42)
-        results = {v.key for _ in range(50)
-                   for v in [self.manager._epsilon_greedy_assignment(variants, exp)]}
+        results = {
+            v.key
+            for _ in range(50)
+            for v in [self.manager._epsilon_greedy_assignment(variants, exp)]
+        }
         assert len(results) == 2  # both should be selected
 
     def test_epsilon_greedy_exploit(self):
@@ -453,64 +464,94 @@ class TestTargetingRules:
         self.manager = ExperimentManager()
 
     def test_evaluate_eq(self):
-        assert self.manager._evaluate_rule(
-            {"attribute": "plan", "operator": "eq", "value": "pro"},
-            {"plan": "pro"},
-        ) is True
+        assert (
+            self.manager._evaluate_rule(
+                {"attribute": "plan", "operator": "eq", "value": "pro"},
+                {"plan": "pro"},
+            )
+            is True
+        )
 
     def test_evaluate_neq(self):
-        assert self.manager._evaluate_rule(
-            {"attribute": "plan", "operator": "neq", "value": "free"},
-            {"plan": "pro"},
-        ) is True
+        assert (
+            self.manager._evaluate_rule(
+                {"attribute": "plan", "operator": "neq", "value": "free"},
+                {"plan": "pro"},
+            )
+            is True
+        )
 
     def test_evaluate_gt(self):
-        assert self.manager._evaluate_rule(
-            {"attribute": "age", "operator": "gt", "value": 18},
-            {"age": 25},
-        ) is True
+        assert (
+            self.manager._evaluate_rule(
+                {"attribute": "age", "operator": "gt", "value": 18},
+                {"age": 25},
+            )
+            is True
+        )
 
     def test_evaluate_gte(self):
-        assert self.manager._evaluate_rule(
-            {"attribute": "age", "operator": "gte", "value": 25},
-            {"age": 25},
-        ) is True
+        assert (
+            self.manager._evaluate_rule(
+                {"attribute": "age", "operator": "gte", "value": 25},
+                {"age": 25},
+            )
+            is True
+        )
 
     def test_evaluate_lt(self):
-        assert self.manager._evaluate_rule(
-            {"attribute": "age", "operator": "lt", "value": 30},
-            {"age": 25},
-        ) is True
+        assert (
+            self.manager._evaluate_rule(
+                {"attribute": "age", "operator": "lt", "value": 30},
+                {"age": 25},
+            )
+            is True
+        )
 
     def test_evaluate_lte(self):
-        assert self.manager._evaluate_rule(
-            {"attribute": "age", "operator": "lte", "value": 25},
-            {"age": 25},
-        ) is True
+        assert (
+            self.manager._evaluate_rule(
+                {"attribute": "age", "operator": "lte", "value": 25},
+                {"age": 25},
+            )
+            is True
+        )
 
     def test_evaluate_in(self):
-        assert self.manager._evaluate_rule(
-            {"attribute": "country", "operator": "in", "value": ["US", "CA"]},
-            {"country": "US"},
-        ) is True
+        assert (
+            self.manager._evaluate_rule(
+                {"attribute": "country", "operator": "in", "value": ["US", "CA"]},
+                {"country": "US"},
+            )
+            is True
+        )
 
     def test_evaluate_not_in(self):
-        assert self.manager._evaluate_rule(
-            {"attribute": "country", "operator": "not_in", "value": ["US", "CA"]},
-            {"country": "UK"},
-        ) is True
+        assert (
+            self.manager._evaluate_rule(
+                {"attribute": "country", "operator": "not_in", "value": ["US", "CA"]},
+                {"country": "UK"},
+            )
+            is True
+        )
 
     def test_evaluate_contains(self):
-        assert self.manager._evaluate_rule(
-            {"attribute": "email", "operator": "contains", "value": "@example.com"},
-            {"email": "user@example.com"},
-        ) is True
+        assert (
+            self.manager._evaluate_rule(
+                {"attribute": "email", "operator": "contains", "value": "@example.com"},
+                {"email": "user@example.com"},
+            )
+            is True
+        )
 
     def test_evaluate_missing_attribute_passes(self):
-        assert self.manager._evaluate_rule(
-            {"attribute": "missing", "operator": "eq", "value": "x"},
-            {},
-        ) is True
+        assert (
+            self.manager._evaluate_rule(
+                {"attribute": "missing", "operator": "eq", "value": "x"},
+                {},
+            )
+            is True
+        )
 
 
 # ===========================================================================

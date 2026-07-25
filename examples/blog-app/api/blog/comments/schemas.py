@@ -31,6 +31,7 @@ class CommentResponse(BaseModel):
         if hasattr(v, "all"):
             return list(v.all())
         return v
+
     created_at: datetime
     updated_at: datetime
 

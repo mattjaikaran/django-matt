@@ -242,7 +242,6 @@ def subscription(billing_customer, billing_price):
 
 @pytest.mark.django_db
 class TestConnectedAccountModel:
-
     def test_create_connected_account(self, test_user):
         acct = ConnectedAccount.objects.create(
             user=test_user,
@@ -332,7 +331,6 @@ class TestConnectedAccountModel:
 
 @pytest.mark.django_db
 class TestTransferModel:
-
     def test_create_transfer(self, connected_account):
         transfer = Transfer.objects.create(
             connected_account=connected_account,
@@ -419,7 +417,6 @@ class TestTransferModel:
 
 @pytest.mark.django_db
 class TestApplicationFeeModel:
-
     def test_create_application_fee(self, connected_account):
         fee = ApplicationFee.objects.create(
             connected_account=connected_account,
@@ -476,7 +473,6 @@ class TestApplicationFeeModel:
 
 
 class TestParseTimestamp:
-
     def test_unix_timestamp_int(self):
         result = _parse_timestamp(1700000000)
         assert isinstance(result, datetime)
@@ -509,7 +505,6 @@ class TestParseTimestamp:
 
 
 class TestConnectSchemas:
-
     def test_connected_account_create_defaults(self):
         schema = ConnectedAccountCreate()
         assert schema.type == SchemaConnectAccountType.STANDARD
@@ -615,7 +610,6 @@ class TestConnectSchemas:
 
 
 class TestStripeConnectProvider:
-
     def test_connect_config_properties(self, stripe_config):
         assert stripe_config.is_connect_configured is True
         assert stripe_config.connect_client_id == "ca_test_abc123"
@@ -676,9 +670,7 @@ class TestStripeConnectProvider:
 
     @patch("stripe.Account.retrieve")
     async def test_get_connected_account_not_found(self, mock_retrieve, stripe_config):
-        mock_retrieve.side_effect = stripe_lib.error.InvalidRequestError(
-            "No such account", "id"
-        )
+        mock_retrieve.side_effect = stripe_lib.error.InvalidRequestError("No such account", "id")
         provider = StripeProvider(stripe_config)
         result = await provider.get_connected_account("acct_nonexistent")
         assert result is None
@@ -861,7 +853,6 @@ class TestStripeConnectProvider:
 
 @pytest.mark.django_db
 class TestConnectController:
-
     @patch("django_matt.billing.connect_controller._get_stripe_provider")
     async def test_create_account_success(self, mock_provider_fn, rf):
         mock_provider = MagicMock()
@@ -1038,9 +1029,7 @@ class TestConnectController:
     @patch("django_matt.billing.connect_controller._get_stripe_provider")
     async def test_reverse_transfer(self, mock_provider_fn, rf):
         mock_provider = MagicMock()
-        mock_provider.reverse_transfer = AsyncMock(
-            return_value={"id": "trr_ctrl", "amount": 2500}
-        )
+        mock_provider.reverse_transfer = AsyncMock(return_value={"id": "trr_ctrl", "amount": 2500})
         mock_provider_fn.return_value = mock_provider
 
         request = rf.post("/connect/transfers/tr_123/reverse")
@@ -1072,9 +1061,7 @@ class TestConnectController:
         response = await ConnectController.handle_webhook(request)
         assert response.status_code == 200
 
-        assert await WebhookEventModel.objects.filter(
-            provider_event_id="evt_connect_wh"
-        ).aexists()
+        assert await WebhookEventModel.objects.filter(provider_event_id="evt_connect_wh").aexists()
 
     @patch("django_matt.billing.connect_controller._get_stripe_provider")
     async def test_handle_webhook_invalid_signature(self, mock_provider_fn, rf):
@@ -1112,11 +1099,8 @@ class TestConnectController:
 
 @pytest.mark.django_db
 class TestInvoiceWebhookSync:
-
     @patch("django_matt.billing.controllers.get_provider")
-    async def test_invoice_paid_updates_local_record(
-        self, mock_get_provider, rf
-    ):
+    async def test_invoice_paid_updates_local_record(self, mock_get_provider, rf):
         user = await User.objects.acreate_user(
             username="inv_sync_user",
             email="inv_sync@example.com",
@@ -1171,9 +1155,7 @@ class TestInvoiceWebhookSync:
         assert inv.paid_at is not None
 
     @patch("django_matt.billing.controllers.get_provider")
-    async def test_invoice_paid_missing_local_record_no_crash(
-        self, mock_get_provider, rf
-    ):
+    async def test_invoice_paid_missing_local_record_no_crash(self, mock_get_provider, rf):
         mock_provider = MagicMock()
         mock_provider.verify_webhook = AsyncMock(
             return_value=WebhookEvent(
@@ -1207,7 +1189,6 @@ class TestInvoiceWebhookSync:
 
 
 class TestMockEventHelpers:
-
     def test_mock_stripe_event_structure(self):
         payload, sig_header = mock_stripe_event(
             "customer.subscription.created",
@@ -1247,9 +1228,7 @@ class TestMockEventHelpers:
         sig_str = sig_header.split(",")[1].split("=")[1]
 
         signed_payload = f"{ts_str}.".encode() + payload
-        expected = hmac.new(
-            secret.encode(), signed_payload, hashlib.sha256
-        ).hexdigest()
+        expected = hmac.new(secret.encode(), signed_payload, hashlib.sha256).hexdigest()
         assert sig_str == expected
 
     def test_mock_paypal_event_structure(self):
@@ -1298,9 +1277,7 @@ class TestMockEventHelpers:
             secret=secret,
         )
         sig = sig_header.replace("sha256=", "")
-        expected = hmac.new(
-            secret.encode(), payload, hashlib.sha256
-        ).hexdigest()
+        expected = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
         assert sig == expected
 
 
@@ -1310,7 +1287,6 @@ class TestMockEventHelpers:
 
 
 class TestPayPalWebhookEdgeCases:
-
     async def test_verify_webhook_missing_headers(self, paypal_config):
         provider = PayPalProvider(paypal_config)
         import orjson
@@ -1400,7 +1376,6 @@ class TestPayPalWebhookEdgeCases:
 
 @pytest.mark.django_db
 class TestSubscriptionEdgeCases:
-
     def test_expired_subscription_not_active(self, billing_customer, billing_price):
         past = timezone.now() - timedelta(days=60)
         sub = Subscription.objects.create(
@@ -1456,7 +1431,6 @@ class TestSubscriptionEdgeCases:
 
 @pytest.mark.django_db
 class TestWebhookIdempotency:
-
     async def test_different_providers_same_event_id_stored_separately(self):
         await WebhookEventModel.objects.acreate(
             provider="stripe",
@@ -1470,9 +1444,7 @@ class TestWebhookIdempotency:
             event_type="test.event",
             payload={"source": "polar"},
         )
-        count = await WebhookEventModel.objects.filter(
-            provider_event_id="evt_shared_id"
-        ).acount()
+        count = await WebhookEventModel.objects.filter(provider_event_id="evt_shared_id").acount()
         assert count == 2
 
     async def test_webhook_amark_processed_sets_timestamp(self):
@@ -1510,7 +1482,6 @@ class TestWebhookIdempotency:
 
 @pytest.mark.django_db
 class TestBillingSignals:
-
     @patch("django_matt.billing.controllers.get_provider")
     async def test_invoice_paid_signal_fires(self, mock_get_provider, rf):
         from django_matt.billing.signals import invoice_paid
@@ -1601,9 +1572,7 @@ class TestBillingSignals:
             subscription_canceled.disconnect(signal_handler)
 
     @patch("django_matt.billing.controllers.get_provider")
-    async def test_webhook_received_signal_fires_before_processing(
-        self, mock_get_provider, rf
-    ):
+    async def test_webhook_received_signal_fires_before_processing(self, mock_get_provider, rf):
         from django_matt.billing.signals import webhook_received
 
         received_signals = []
@@ -1646,7 +1615,6 @@ class TestBillingSignals:
 
 
 class TestPayPalTrackSubscriptions:
-
     def test_track_subscription(self, paypal_config):
         provider = PayPalProvider(paypal_config)
         provider.track_subscription("cus_1", "sub_1")
@@ -1677,7 +1645,6 @@ class TestPayPalTrackSubscriptions:
 
 
 class TestBaseProviderMethods:
-
     def test_add_provider_tag(self, stripe_config):
         provider = StripeProvider(stripe_config)
         data = CustomerData(id="cus_1", email="test@test.com")
@@ -1718,7 +1685,6 @@ class TestBaseProviderMethods:
 
 @pytest.mark.django_db
 class TestConnectModelRelationships:
-
     def test_connected_account_transfers(self, connected_account):
         Transfer.objects.create(
             connected_account=connected_account,

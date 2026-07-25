@@ -92,9 +92,7 @@ def send_refund_notification(refund_id: str):
     """Send refund notification email."""
     from ecommerce.payments.models import Refund
 
-    refund = Refund.objects.filter(id=refund_id).select_related(
-        "payment__order"
-    ).first()
+    refund = Refund.objects.filter(id=refund_id).select_related("payment__order").first()
 
     if not refund:
         return

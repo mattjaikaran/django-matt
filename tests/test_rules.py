@@ -42,6 +42,7 @@ from django_matt.rules.predicates import Predicate, predicate
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _user(
     *,
     authenticated: bool = True,
@@ -92,6 +93,7 @@ def _request(user: Any | None = None) -> Any:
 # 1. Predicate base class
 # ---------------------------------------------------------------------------
 
+
 class TestPredicateBase:
     def test_create_from_function(self) -> None:
         p = Predicate(lambda u: True, name="always")
@@ -134,6 +136,7 @@ class TestPredicateBase:
 # 2. @predicate decorator
 # ---------------------------------------------------------------------------
 
+
 class TestPredicateDecorator:
     def test_bare_decorator(self) -> None:
         @predicate
@@ -170,6 +173,7 @@ class TestPredicateDecorator:
 # ---------------------------------------------------------------------------
 # 3. Composition — AND, OR, NOT
 # ---------------------------------------------------------------------------
+
 
 class TestComposition:
     def test_and_both_true(self) -> None:
@@ -294,6 +298,7 @@ class TestComposition:
 # 4. Constant predicates
 # ---------------------------------------------------------------------------
 
+
 class TestConstants:
     def test_always_true(self) -> None:
         assert always_true.test(_user()) is True
@@ -309,6 +314,7 @@ class TestConstants:
 # ---------------------------------------------------------------------------
 # 5. Built-in predicates
 # ---------------------------------------------------------------------------
+
 
 class TestBuiltins:
     def test_is_authenticated(self) -> None:
@@ -395,6 +401,7 @@ class TestBuiltins:
 # 6. Permission registry
 # ---------------------------------------------------------------------------
 
+
 class TestPermissionRegistry:
     def setup_method(self) -> None:
         clear()
@@ -457,6 +464,7 @@ class TestPermissionRegistry:
 # 7. RulesBackend
 # ---------------------------------------------------------------------------
 
+
 class TestRulesBackend:
     def setup_method(self) -> None:
         clear()
@@ -492,6 +500,7 @@ class TestRulesBackend:
 # ---------------------------------------------------------------------------
 # 8. Decorators
 # ---------------------------------------------------------------------------
+
 
 class TestDecorators:
     def setup_method(self) -> None:
@@ -590,6 +599,7 @@ class TestDecorators:
 # ---------------------------------------------------------------------------
 # 9. Mixins
 # ---------------------------------------------------------------------------
+
 
 class TestPermissionRequiredMixin:
     def setup_method(self) -> None:
@@ -725,6 +735,7 @@ class TestObjectPermissionMixin:
 # ---------------------------------------------------------------------------
 # 10. PredicatePermission (controller integration)
 # ---------------------------------------------------------------------------
+
 
 class TestPredicatePermission:
     def test_has_permission_authenticated(self) -> None:

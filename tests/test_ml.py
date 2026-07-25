@@ -391,8 +391,9 @@ class TestLlamaCppEmbeddings:
         mock_llama = MagicMock()
         mock_llama.embed.return_value = [0.1, 0.2, 0.3]
 
-        with patch.object(llamacpp, "LLAMA_CPP_AVAILABLE", True), patch.object(
-            llamacpp, "Llama", return_value=mock_llama
+        with (
+            patch.object(llamacpp, "LLAMA_CPP_AVAILABLE", True),
+            patch.object(llamacpp, "Llama", return_value=mock_llama),
         ):
             emb = llamacpp.LlamaCppEmbeddings(model_path="/emb.gguf")
             # Force load
@@ -755,9 +756,7 @@ class TestLocalAIDataclasses:
         assert info.owned_by == "localai"
 
     def test_image_generation_response(self):
-        resp = localai_mod.ImageGenerationResponse(
-            images=["base64data"], model="sd", created=123
-        )
+        resp = localai_mod.ImageGenerationResponse(images=["base64data"], model="sd", created=123)
         assert len(resp.images) == 1
 
     def test_transcription_response(self):

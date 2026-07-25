@@ -1,4 +1,3 @@
-
 from django.utils.dateparse import parse_datetime
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
@@ -19,9 +18,7 @@ class GatewayController(APIController):
 
     @staticmethod
     @jwt_required
-    async def list_request_logs(
-        request, org_id: str, project_id: str
-    ) -> dict:
+    async def list_request_logs(request, org_id: str, project_id: str) -> dict:
         """List request logs for a project with filtering and pagination."""
         await get_membership(request.user, org_id)
 
@@ -83,9 +80,7 @@ class GatewayController(APIController):
 
     @staticmethod
     @jwt_required
-    async def get_request_log(
-        request, org_id: str, project_id: str, log_id: str
-    ) -> dict:
+    async def get_request_log(request, org_id: str, project_id: str, log_id: str) -> dict:
         """Get a single request log entry."""
         await get_membership(request.user, org_id)
 
@@ -94,9 +89,7 @@ class GatewayController(APIController):
         except Project.DoesNotExist:
             raise NotFoundAPIError("Project not found")
 
-        log = await RequestLog.objects.filter(
-            id=log_id, project_id=project_id
-        ).afirst()
+        log = await RequestLog.objects.filter(id=log_id, project_id=project_id).afirst()
         if not log:
             raise NotFoundAPIError("Request log not found")
 
@@ -104,9 +97,7 @@ class GatewayController(APIController):
 
     @staticmethod
     @jwt_required
-    async def get_error_logs(
-        request, org_id: str, project_id: str
-    ) -> dict:
+    async def get_error_logs(request, org_id: str, project_id: str) -> dict:
         """Get error logs (status_code >= 400) for a project."""
         await get_membership(request.user, org_id)
 
@@ -115,9 +106,7 @@ class GatewayController(APIController):
         except Project.DoesNotExist:
             raise NotFoundAPIError("Project not found")
 
-        qs = RequestLog.objects.filter(
-            project_id=project_id, status_code__gte=400
-        )
+        qs = RequestLog.objects.filter(project_id=project_id, status_code__gte=400)
 
         # Pagination
         limit = int(request.GET.get("limit", "50"))

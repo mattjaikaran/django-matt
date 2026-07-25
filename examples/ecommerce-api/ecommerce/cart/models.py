@@ -78,9 +78,7 @@ class Cart(models.Model):
     def shipping_amount(self) -> Decimal:
         """Calculate shipping amount (placeholder)."""
         subtotal_after_discount = self.subtotal - self.discount_amount
-        free_shipping_threshold = Decimal(
-            str(getattr(settings, "FREE_SHIPPING_THRESHOLD", 50.00))
-        )
+        free_shipping_threshold = Decimal(str(getattr(settings, "FREE_SHIPPING_THRESHOLD", 50.00)))
         if subtotal_after_discount >= free_shipping_threshold:
             return Decimal("0.00")
         return Decimal(str(getattr(settings, "SHIPPING_FLAT_RATE", 5.99)))
@@ -88,12 +86,7 @@ class Cart(models.Model):
     @property
     def total(self) -> Decimal:
         """Calculate cart total."""
-        return (
-            self.subtotal
-            - self.discount_amount
-            + self.tax_amount
-            + self.shipping_amount
-        )
+        return self.subtotal - self.discount_amount + self.tax_amount + self.shipping_amount
 
     def add_item(
         self,
@@ -135,9 +128,7 @@ class CartItem(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
-    product = models.ForeignKey(
-        Product, on_delete=models.CASCADE, related_name="cart_items"
-    )
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="cart_items")
     variant = models.ForeignKey(
         ProductVariant,
         on_delete=models.CASCADE,
@@ -150,9 +141,7 @@ class CartItem(models.Model):
     quantity = models.PositiveIntegerField(default=1)
 
     # Price snapshot (optional, for price comparison)
-    price_at_add = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
-    )
+    price_at_add = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)

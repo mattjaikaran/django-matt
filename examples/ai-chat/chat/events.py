@@ -14,7 +14,9 @@ logger = logging.getLogger(__name__)
 @on("chat.message.sent")
 async def log_message_sent(*, conversation_id: str, message_id: str, role: str, **kwargs):
     """Log every message for analytics."""
-    logger.info("Message sent: conversation=%s message=%s role=%s", conversation_id, message_id, role)
+    logger.info(
+        "Message sent: conversation=%s message=%s role=%s", conversation_id, message_id, role
+    )
 
 
 @on("chat.stream.complete")

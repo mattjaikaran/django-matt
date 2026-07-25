@@ -19,9 +19,7 @@ async def sync_clerk_user(claims: dict[str, Any]) -> Any:
     """
     User = get_user_model()  # noqa: N806
     clerk_id = claims.get("sub", "")
-    email = claims.get("email", "") or claims.get(
-        "primary_email_address", ""
-    )
+    email = claims.get("email", "") or claims.get("primary_email_address", "")
     first_name = claims.get("first_name", "") or ""
     last_name = claims.get("last_name", "") or ""
 
@@ -67,9 +65,7 @@ async def sync_clerk_user_from_webhook(
             await sync_to_async(user.save)(update_fields=["is_active"])
             logger.info("Deactivated user for Clerk ID: %s", clerk_id)
         except User.DoesNotExist:
-            logger.debug(
-                "No user to deactivate for Clerk ID: %s", clerk_id
-            )
+            logger.debug("No user to deactivate for Clerk ID: %s", clerk_id)
         return None
 
     # user.created or user.updated

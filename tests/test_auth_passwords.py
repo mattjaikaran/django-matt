@@ -413,9 +413,7 @@ class TestGetResetUrl:
         with patch.object(
             type(password_reset_config),
             "reset_url_template",
-            new_callable=lambda: property(
-                lambda self: "https://app.com/reset?token={token}"
-            ),
+            new_callable=lambda: property(lambda self: "https://app.com/reset?token={token}"),
         ):
             url = get_reset_url("abc123")
             assert url == "https://app.com/reset?token=abc123"

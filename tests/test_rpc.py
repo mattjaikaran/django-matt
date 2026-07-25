@@ -53,17 +53,13 @@ class ItemSchema(BaseModel):
 class FakeController:
     prefix = "/users"
 
-    def list_users(self) -> list[UserSchema]:
-        ...
+    def list_users(self) -> list[UserSchema]: ...
 
-    def create_user(self, data: UserCreate) -> UserSchema:
-        ...
+    def create_user(self, data: UserCreate) -> UserSchema: ...
 
-    def get_user(self, pk: int) -> UserSchema:
-        ...
+    def get_user(self, pk: int) -> UserSchema: ...
 
-    def delete_user(self, pk: int) -> None:
-        ...
+    def delete_user(self, pk: int) -> None: ...
 
 
 # Attach _route_info to simulate decorated methods
@@ -264,10 +260,12 @@ class TestRPCClient:
         import orjson
 
         client = RPCClient("http://example.com")
-        response_bytes = orjson.dumps([
-            {"id": 1, "name": "Alice", "email": "a@b.com"},
-            {"id": 2, "name": "Bob", "email": "b@b.com"},
-        ])
+        response_bytes = orjson.dumps(
+            [
+                {"id": 1, "name": "Alice", "email": "a@b.com"},
+                {"id": 2, "name": "Bob", "email": "b@b.com"},
+            ]
+        )
         client._do_request = AsyncMock(return_value=(200, response_bytes))
 
         result = await client.request("GET", "/users/", response_model=UserSchema)
@@ -325,9 +323,7 @@ class TestRPCClient:
 
         client = RPCClient("http://example.com", retry_backoff=0.01)
         success = (200, orjson.dumps({"ok": True}))
-        client._do_request = AsyncMock(
-            side_effect=[RPCConnectionError("fail"), success]
-        )
+        client._do_request = AsyncMock(side_effect=[RPCConnectionError("fail"), success])
 
         result = await client.request("GET", "/health/")
         assert result == {"ok": True}
@@ -336,9 +332,7 @@ class TestRPCClient:
     @pytest.mark.asyncio
     async def test_retry_exhausted(self):
         client = RPCClient("http://example.com", max_retries=2, retry_backoff=0.01)
-        client._do_request = AsyncMock(
-            side_effect=RPCConnectionError("fail")
-        )
+        client._do_request = AsyncMock(side_effect=RPCConnectionError("fail"))
 
         with pytest.raises(RPCConnectionError):
             await client.request("GET", "/health/")

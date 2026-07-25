@@ -27,10 +27,14 @@ from projects.schemas import (
 
 
 class CommentController(APIController):
-    prefix = "/organizations/<str:org_slug>/projects/<str:project_slug>/tasks/<str:task_id>/comments"
+    prefix = (
+        "/organizations/<str:org_slug>/projects/<str:project_slug>/tasks/<str:task_id>/comments"
+    )
     tags = ["Comments"]
 
-    async def get_task_and_check_access(self, request, org_slug: str, project_slug: str, task_id: str, require_edit: bool = False):
+    async def get_task_and_check_access(
+        self, request, org_slug: str, project_slug: str, task_id: str, require_edit: bool = False
+    ):
         """Helper to get task and check user access."""
         try:
             org = await Organization.objects.aget(slug=org_slug)
@@ -78,9 +82,9 @@ class CommentController(APIController):
                 memberships__organization=org,
                 memberships__is_active=True,
             ).filter(
-                models.Q(email__istartswith=f"{name}@") |
-                models.Q(first_name__iexact=name) |
-                models.Q(last_name__iexact=name)
+                models.Q(email__istartswith=f"{name}@")
+                | models.Q(first_name__iexact=name)
+                | models.Q(last_name__iexact=name)
             )[:5]
 
             async for user in users:
@@ -103,10 +107,14 @@ class CommentController(APIController):
         if error:
             return error
 
-        comments = Comment.objects.filter(
-            task=task,
-            parent__isnull=True,  # Top-level comments only
-        ).select_related("author").prefetch_related("mentions", "replies")
+        comments = (
+            Comment.objects.filter(
+                task=task,
+                parent__isnull=True,  # Top-level comments only
+            )
+            .select_related("author")
+            .prefetch_related("mentions", "replies")
+        )
 
         result = []
         async for comment in comments.order_by("created_at"):
@@ -122,6 +130,7 @@ class CommentController(APIController):
             mentions = []
             async for user in comment.mentions.all():
                 from core.schemas import UserMiniResponse
+
                 mentions.append(UserMiniResponse.model_validate(user))
             comment_data.mentions = mentions
 
@@ -131,7 +140,9 @@ class CommentController(APIController):
 
     @post("/")
     @jwt_required
-    async def create_comment(self, request, org_slug: str, project_slug: str, task_id: str, data: CommentCreate) -> dict:
+    async def create_comment(
+        self, request, org_slug: str, project_slug: str, task_id: str, data: CommentCreate
+    ) -> dict:
         """Add a comment to a task."""
         org, project, task, membership, error = await self.get_task_and_check_access(
             request, org_slug, project_slug, task_id
@@ -172,6 +183,7 @@ class CommentController(APIController):
 
         # Broadcast to WebSocket
         from channels.layers import get_channel_layer
+
         channel_layer = get_channel_layer()
         if channel_layer:
             await channel_layer.group_send(
@@ -180,14 +192,22 @@ class CommentController(APIController):
                     "type": "comment_added",
                     "comment_id": str(comment.id),
                     "author_id": str(request.user.id),
-                }
+                },
             )
 
         return CommentDetailResponse.model_validate(comment)
 
     @patch("/<str:comment_id>")
     @jwt_required
-    async def update_comment(self, request, org_slug: str, project_slug: str, task_id: str, comment_id: str, data: CommentUpdate) -> dict:
+    async def update_comment(
+        self,
+        request,
+        org_slug: str,
+        project_slug: str,
+        task_id: str,
+        comment_id: str,
+        data: CommentUpdate,
+    ) -> dict:
         """Update a comment. Only the comment author can edit."""
         org, project, task, membership, error = await self.get_task_and_check_access(
             request, org_slug, project_slug, task_id
@@ -221,7 +241,9 @@ class CommentController(APIController):
 
     @delete("/<str:comment_id>")
     @jwt_required
-    async def delete_comment(self, request, org_slug: str, project_slug: str, task_id: str, comment_id: str) -> dict:
+    async def delete_comment(
+        self, request, org_slug: str, project_slug: str, task_id: str, comment_id: str
+    ) -> dict:
         """Delete a comment. Only the comment author or admins can delete."""
         org, project, task, membership, error = await self.get_task_and_check_access(
             request, org_slug, project_slug, task_id
@@ -249,7 +271,15 @@ class CommentController(APIController):
 
     @post("/<str:comment_id>/reactions")
     @jwt_required
-    async def add_reaction(self, request, org_slug: str, project_slug: str, task_id: str, comment_id: str, data: ReactionRequest) -> dict:
+    async def add_reaction(
+        self,
+        request,
+        org_slug: str,
+        project_slug: str,
+        task_id: str,
+        comment_id: str,
+        data: ReactionRequest,
+    ) -> dict:
         """Add a reaction to a comment."""
         org, project, task, membership, error = await self.get_task_and_check_access(
             request, org_slug, project_slug, task_id
@@ -278,7 +308,15 @@ class CommentController(APIController):
 
     @delete("/<str:comment_id>/reactions/<str:reaction>")
     @jwt_required
-    async def remove_reaction(self, request, org_slug: str, project_slug: str, task_id: str, comment_id: str, reaction: str) -> dict:
+    async def remove_reaction(
+        self,
+        request,
+        org_slug: str,
+        project_slug: str,
+        task_id: str,
+        comment_id: str,
+        reaction: str,
+    ) -> dict:
         """Remove a reaction from a comment."""
         org, project, task, membership, error = await self.get_task_and_check_access(
             request, org_slug, project_slug, task_id

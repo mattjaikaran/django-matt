@@ -153,22 +153,16 @@ class AddressController(APIController):
     @jwt_required
     async def get_address(request, address_id: UUID) -> AddressResponse:
         """Get a specific address."""
-        address = await Address.objects.filter(
-            id=address_id, user=request.user
-        ).afirst()
+        address = await Address.objects.filter(id=address_id, user=request.user).afirst()
         if not address:
             raise NotFoundAPIError("Address not found")
         return AddressResponse.model_validate(address)
 
     @staticmethod
     @jwt_required
-    async def update_address(
-        request, address_id: UUID, data: AddressUpdate
-    ) -> AddressResponse:
+    async def update_address(request, address_id: UUID, data: AddressUpdate) -> AddressResponse:
         """Update an address."""
-        address = await Address.objects.filter(
-            id=address_id, user=request.user
-        ).afirst()
+        address = await Address.objects.filter(id=address_id, user=request.user).afirst()
         if not address:
             raise NotFoundAPIError("Address not found")
 
@@ -183,9 +177,7 @@ class AddressController(APIController):
     @jwt_required
     async def delete_address(request, address_id: UUID) -> dict[str, str]:
         """Delete an address."""
-        deleted, _ = await Address.objects.filter(
-            id=address_id, user=request.user
-        ).adelete()
+        deleted, _ = await Address.objects.filter(id=address_id, user=request.user).adelete()
         if not deleted:
             raise NotFoundAPIError("Address not found")
         return {"message": "Address deleted successfully"}
@@ -194,9 +186,7 @@ class AddressController(APIController):
     @jwt_required
     async def set_default(request, address_id: UUID) -> AddressResponse:
         """Set an address as default."""
-        address = await Address.objects.filter(
-            id=address_id, user=request.user
-        ).afirst()
+        address = await Address.objects.filter(id=address_id, user=request.user).afirst()
         if not address:
             raise NotFoundAPIError("Address not found")
 
@@ -248,9 +238,11 @@ class WishlistController(APIController):
     @jwt_required
     async def get_wishlist(request, wishlist_id: UUID) -> WishlistDetailResponse:
         """Get wishlist with items."""
-        wishlist = await Wishlist.objects.filter(
-            id=wishlist_id, user=request.user
-        ).prefetch_related("items__product").afirst()
+        wishlist = (
+            await Wishlist.objects.filter(id=wishlist_id, user=request.user)
+            .prefetch_related("items__product")
+            .afirst()
+        )
         if not wishlist:
             raise NotFoundAPIError("Wishlist not found")
 
@@ -263,9 +255,7 @@ class WishlistController(APIController):
                     product_name=item.product.name,
                     product_price=float(item.product.price),
                     product_image=(
-                        item.product.primary_image.image.url
-                        if item.product.primary_image
-                        else None
+                        item.product.primary_image.image.url if item.product.primary_image else None
                     ),
                     notes=item.notes,
                     priority=item.priority,
@@ -285,13 +275,9 @@ class WishlistController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_wishlist(
-        request, wishlist_id: UUID, data: WishlistUpdate
-    ) -> WishlistResponse:
+    async def update_wishlist(request, wishlist_id: UUID, data: WishlistUpdate) -> WishlistResponse:
         """Update a wishlist."""
-        wishlist = await Wishlist.objects.filter(
-            id=wishlist_id, user=request.user
-        ).afirst()
+        wishlist = await Wishlist.objects.filter(id=wishlist_id, user=request.user).afirst()
         if not wishlist:
             raise NotFoundAPIError("Wishlist not found")
 
@@ -309,9 +295,7 @@ class WishlistController(APIController):
     @jwt_required
     async def delete_wishlist(request, wishlist_id: UUID) -> dict[str, str]:
         """Delete a wishlist."""
-        deleted, _ = await Wishlist.objects.filter(
-            id=wishlist_id, user=request.user
-        ).adelete()
+        deleted, _ = await Wishlist.objects.filter(id=wishlist_id, user=request.user).adelete()
         if not deleted:
             raise NotFoundAPIError("Wishlist not found")
         return {"message": "Wishlist deleted successfully"}
@@ -322,9 +306,7 @@ class WishlistController(APIController):
         request, wishlist_id: UUID, data: WishlistItemCreate
     ) -> WishlistItemResponse:
         """Add item to wishlist."""
-        wishlist = await Wishlist.objects.filter(
-            id=wishlist_id, user=request.user
-        ).afirst()
+        wishlist = await Wishlist.objects.filter(id=wishlist_id, user=request.user).afirst()
         if not wishlist:
             raise NotFoundAPIError("Wishlist not found")
 
@@ -333,9 +315,7 @@ class WishlistController(APIController):
             raise NotFoundAPIError("Product not found")
 
         # Check if already in wishlist
-        existing = await WishlistItem.objects.filter(
-            wishlist=wishlist, product=product
-        ).afirst()
+        existing = await WishlistItem.objects.filter(wishlist=wishlist, product=product).afirst()
         if existing:
             raise ValidationAPIError("Product already in wishlist")
 
@@ -351,9 +331,7 @@ class WishlistController(APIController):
             product_id=product.id,
             product_name=product.name,
             product_price=float(product.price),
-            product_image=(
-                product.primary_image.image.url if product.primary_image else None
-            ),
+            product_image=(product.primary_image.image.url if product.primary_image else None),
             notes=item.notes,
             priority=item.priority,
             added_at=item.added_at,

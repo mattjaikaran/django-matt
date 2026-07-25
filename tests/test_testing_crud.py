@@ -126,9 +126,7 @@ class TestCRUDTestCasePass:
     def test_body_check_passes(self):
         """expected_body keys/values are verified against the response."""
         client = MagicMock(spec=Client)
-        client.post.return_value = _json_response(
-            {"id": 1, "name": "Widget", "price": 9.99}, 201
-        )
+        client.post.return_value = _json_response({"id": 1, "name": "Widget", "price": 9.99}, 201)
 
         case = CRUDTestCase(
             scenarios=[

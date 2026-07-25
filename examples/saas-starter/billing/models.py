@@ -18,6 +18,7 @@ from core.models import Organization, User
 
 class SubscriptionStatus(models.TextChoices):
     """Subscription status choices."""
+
     ACTIVE = "active", "Active"
     PAST_DUE = "past_due", "Past Due"
     CANCELED = "canceled", "Canceled"
@@ -114,6 +115,7 @@ class Subscription(models.Model):
 
 class InvoiceStatus(models.TextChoices):
     """Invoice status choices."""
+
     DRAFT = "draft", "Draft"
     OPEN = "open", "Open"
     PAID = "paid", "Paid"
@@ -253,9 +255,9 @@ class PaymentMethod(models.Model):
     def save(self, *args, **kwargs):
         # Ensure only one default payment method per org
         if self.is_default:
-            PaymentMethod.objects.filter(
-                organization=self.organization, is_default=True
-            ).exclude(pk=self.pk).update(is_default=False)
+            PaymentMethod.objects.filter(organization=self.organization, is_default=True).exclude(
+                pk=self.pk
+            ).update(is_default=False)
         super().save(*args, **kwargs)
 
 

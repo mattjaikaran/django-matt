@@ -60,9 +60,7 @@ class ResendEmailBackend(BaseEmailBackend):
 
         return sent_count
 
-    async def asend_messages(
-        self, email_messages: list[EmailMessage]
-    ) -> int:
+    async def asend_messages(self, email_messages: list[EmailMessage]) -> int:
         """Async variant — Resend's Python SDK is sync, so we use
         sync_to_async under the hood. For true async, use httpx directly.
         """
@@ -148,9 +146,7 @@ class ResendEmailBackend(BaseEmailBackend):
                 # MIMEBase attachment
                 result.append(
                     {
-                        "filename": (
-                            attachment.get_filename() or "attachment"
-                        ),
+                        "filename": (attachment.get_filename() or "attachment"),
                         "content": attachment.get_payload(decode=True),
                         "type": attachment.get_content_type(),
                     }

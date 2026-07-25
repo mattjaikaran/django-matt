@@ -91,9 +91,7 @@ class ReviewController(APIController):
             raise NotFoundAPIError("Product not found")
 
         # Check user hasn't already reviewed this product
-        existing = await Review.objects.filter(
-            user=request.user, product_id=product_id
-        ).aexists()
+        existing = await Review.objects.filter(user=request.user, product_id=product_id).aexists()
         if existing:
             raise ValidationAPIError("You have already reviewed this product")
 
@@ -129,9 +127,7 @@ class ReviewController(APIController):
     @jwt_required
     async def update_review(request, review_id: str, body: ReviewUpdateSchema) -> dict:
         """Update a review. Must be author."""
-        review = await Review.objects.filter(
-            id=review_id, user=request.user
-        ).afirst()
+        review = await Review.objects.filter(id=review_id, user=request.user).afirst()
         if not review:
             raise NotFoundAPIError("Review not found")
 
@@ -157,9 +153,7 @@ class ReviewController(APIController):
     @jwt_required
     async def delete_review(request, review_id: str) -> dict:
         """Delete a review. Must be author."""
-        deleted, _ = await Review.objects.filter(
-            id=review_id, user=request.user
-        ).adelete()
+        deleted, _ = await Review.objects.filter(id=review_id, user=request.user).adelete()
         if not deleted:
             raise NotFoundAPIError("Review not found")
         return {"message": "Review deleted"}

@@ -24,7 +24,9 @@ class TestMiddlewareChain:
 
     def test_header_injection(self):
         chain = MiddlewareChainRust()
-        chain.add_rust_layer("sec", '{"type": "headers", "X-Frame-Options": "DENY", "X-XSS-Protection": "1"}')
+        chain.add_rust_layer(
+            "sec", '{"type": "headers", "X-Frame-Options": "DENY", "X-XSS-Protection": "1"}'
+        )
         result = chain.process({})
         assert result.headers["X-Frame-Options"] == "DENY"
         assert result.headers["X-XSS-Protection"] == "1"
@@ -78,9 +80,7 @@ class TestMiddlewareChain:
 
 class TestBuildSelect:
     def test_basic_select(self):
-        sql, params = build_select_rust(
-            "users", ["id", "name"], [], [], None, None
-        )
+        sql, params = build_select_rust("users", ["id", "name"], [], [], None, None)
         assert sql == 'SELECT "id", "name" FROM "users"'
         assert params == []
 
@@ -89,9 +89,7 @@ class TestBuildSelect:
         assert "SELECT *" in sql
 
     def test_with_filters(self):
-        sql, params = build_select_rust(
-            "users", ["id"], [("age", "gte", "18")], [], None, None
-        )
+        sql, params = build_select_rust("users", ["id"], [("age", "gte", "18")], [], None, None)
         assert "WHERE" in sql
         assert '"age" >=' in sql
         assert params == ["18"]
@@ -151,10 +149,12 @@ class TestBuildFilterClause:
         assert "IS NOT NULL" in clause
 
     def test_multiple_filters(self):
-        clause, params = build_filter_clause_rust([
-            ("age", "gte", "18"),
-            ("status", "eq", "active"),
-        ])
+        clause, params = build_filter_clause_rust(
+            [
+                ("age", "gte", "18"),
+                ("status", "eq", "active"),
+            ]
+        )
         assert "AND" in clause
         assert len(params) == 2
 

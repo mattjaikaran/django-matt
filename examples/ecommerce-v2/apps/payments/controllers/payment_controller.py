@@ -20,9 +20,7 @@ class PaymentController(APIController):
     @jwt_required
     async def create_payment_intent(request, body: CreatePaymentIntentSchema) -> dict:
         """Create a Stripe PaymentIntent for an order."""
-        order = await Order.objects.filter(
-            id=body.order_id, user=request.user
-        ).afirst()
+        order = await Order.objects.filter(id=body.order_id, user=request.user).afirst()
         if not order:
             raise NotFoundAPIError("Order not found")
 
@@ -74,9 +72,7 @@ class PaymentController(APIController):
             stripe.api_key = getattr(settings, "STRIPE_SECRET_KEY", "")
             webhook_secret = getattr(settings, "STRIPE_WEBHOOK_SECRET", "")
 
-            event = stripe.Webhook.construct_event(
-                raw_body, sig_header, webhook_secret
-            )
+            event = stripe.Webhook.construct_event(raw_body, sig_header, webhook_secret)
         except ImportError:
             # Stripe not installed — parse raw body as JSON fallback
             import json

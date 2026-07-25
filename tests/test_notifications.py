@@ -400,42 +400,36 @@ class TestNotificationManager:
 
     @pytest.mark.django_db
     def test_unread(self, user):
-        Notification.objects.create(
-            recipient=user, title="Unread", message="msg"
-        )
-        n2 = Notification.objects.create(
-            recipient=user, title="Read", message="msg"
-        )
+        Notification.objects.create(recipient=user, title="Unread", message="msg")
+        n2 = Notification.objects.create(recipient=user, title="Read", message="msg")
         n2.mark_as_read()
 
         assert Notification.objects.unread().count() == 1
 
     @pytest.mark.django_db
     def test_read(self, user):
-        n = Notification.objects.create(
-            recipient=user, title="Test", message="msg"
-        )
+        n = Notification.objects.create(recipient=user, title="Test", message="msg")
         n.mark_as_read()
         assert Notification.objects.read().count() == 1
 
     @pytest.mark.django_db
     def test_for_user(self, user, sender):
-        Notification.objects.create(
-            recipient=user, title="For User", message="msg"
-        )
-        Notification.objects.create(
-            recipient=sender, title="For Sender", message="msg"
-        )
+        Notification.objects.create(recipient=user, title="For User", message="msg")
+        Notification.objects.create(recipient=sender, title="For Sender", message="msg")
         assert Notification.objects.for_user(user).count() == 1
 
     @pytest.mark.django_db
     def test_by_type(self, user):
         Notification.objects.create(
-            recipient=user, title="System", message="msg",
+            recipient=user,
+            title="System",
+            message="msg",
             notification_type=NotificationType.SYSTEM,
         )
         Notification.objects.create(
-            recipient=user, title="Mention", message="msg",
+            recipient=user,
+            title="Mention",
+            message="msg",
             notification_type=NotificationType.MENTION,
         )
         assert Notification.objects.by_type(NotificationType.SYSTEM).count() == 1
@@ -488,23 +482,15 @@ class TestNotificationService:
 
     @pytest.mark.django_db
     def test_get_notifications(self, user):
-        Notification.objects.create(
-            recipient=user, title="N1", message="msg"
-        )
-        Notification.objects.create(
-            recipient=user, title="N2", message="msg"
-        )
+        Notification.objects.create(recipient=user, title="N1", message="msg")
+        Notification.objects.create(recipient=user, title="N2", message="msg")
         results = NotificationService.get_notifications(user)
         assert len(results) == 2
 
     @pytest.mark.django_db
     def test_get_notifications_unread_only(self, user):
-        n1 = Notification.objects.create(
-            recipient=user, title="Unread", message="msg"
-        )
-        n2 = Notification.objects.create(
-            recipient=user, title="Read", message="msg"
-        )
+        n1 = Notification.objects.create(recipient=user, title="Unread", message="msg")
+        n2 = Notification.objects.create(recipient=user, title="Read", message="msg")
         n2.mark_as_read()
         results = NotificationService.get_notifications(user, unread_only=True)
         assert len(results) == 1
@@ -512,15 +498,9 @@ class TestNotificationService:
 
     @pytest.mark.django_db
     def test_get_unread_count(self, user):
-        Notification.objects.create(
-            recipient=user, title="N1", message="msg"
-        )
-        Notification.objects.create(
-            recipient=user, title="N2", message="msg"
-        )
-        n3 = Notification.objects.create(
-            recipient=user, title="N3", message="msg"
-        )
+        Notification.objects.create(recipient=user, title="N1", message="msg")
+        Notification.objects.create(recipient=user, title="N2", message="msg")
+        n3 = Notification.objects.create(recipient=user, title="N3", message="msg")
         n3.mark_as_read()
         assert NotificationService.get_unread_count(user) == 2
 
@@ -532,12 +512,8 @@ class TestNotificationService:
 
     @pytest.mark.django_db
     def test_mark_all_as_read(self, user):
-        Notification.objects.create(
-            recipient=user, title="N1", message="msg"
-        )
-        Notification.objects.create(
-            recipient=user, title="N2", message="msg"
-        )
+        Notification.objects.create(recipient=user, title="N1", message="msg")
+        Notification.objects.create(recipient=user, title="N2", message="msg")
         count = NotificationService.mark_all_as_read(user)
         assert count == 2
         assert Notification.objects.filter(recipient=user, read_at__isnull=True).count() == 0
@@ -550,20 +526,14 @@ class TestNotificationService:
 
     @pytest.mark.django_db
     def test_dismiss_all(self, user):
-        Notification.objects.create(
-            recipient=user, title="N1", message="msg"
-        )
-        Notification.objects.create(
-            recipient=user, title="N2", message="msg"
-        )
+        Notification.objects.create(recipient=user, title="N1", message="msg")
+        Notification.objects.create(recipient=user, title="N2", message="msg")
         count = NotificationService.dismiss_all(user)
         assert count == 2
 
     @pytest.mark.django_db
     def test_delete_old_notifications(self, user):
-        old_notif = Notification.objects.create(
-            recipient=user, title="Old", message="msg"
-        )
+        old_notif = Notification.objects.create(recipient=user, title="Old", message="msg")
         # Manually set created_at to 100 days ago
         Notification.objects.filter(pk=old_notif.pk).update(
             created_at=timezone.now() - timedelta(days=100)
@@ -574,15 +544,21 @@ class TestNotificationService:
     @pytest.mark.django_db
     def test_get_unread_counts_by_type(self, user):
         Notification.objects.create(
-            recipient=user, title="S1", message="msg",
+            recipient=user,
+            title="S1",
+            message="msg",
             notification_type=NotificationType.SYSTEM,
         )
         Notification.objects.create(
-            recipient=user, title="S2", message="msg",
+            recipient=user,
+            title="S2",
+            message="msg",
             notification_type=NotificationType.SYSTEM,
         )
         Notification.objects.create(
-            recipient=user, title="M1", message="msg",
+            recipient=user,
+            title="M1",
+            message="msg",
             notification_type=NotificationType.MENTION,
         )
         counts = NotificationService.get_unread_counts_by_type(user)
@@ -617,7 +593,9 @@ class TestDeliveryService:
         )
         mock_msg = MagicMock()
         mock_msg.id = 42
-        with patch("django_matt.email.service.EmailService.send", return_value=mock_msg) as mock_send:
+        with patch(
+            "django_matt.email.service.EmailService.send", return_value=mock_msg
+        ) as mock_send:
             results = DeliveryService.deliver_notification(notification)
         assert results.get(NotificationChannel.EMAIL) is True
         mock_send.assert_called_once()
@@ -728,9 +706,7 @@ class TestEmailDeliveryHandler:
 
     @pytest.mark.django_db
     def test_deliver_with_never_email_frequency(self, user, notification):
-        prefs = NotificationPreferences.objects.create(
-            user=user, email_frequency="never"
-        )
+        prefs = NotificationPreferences.objects.create(user=user, email_frequency="never")
         delivery = NotificationDelivery.objects.create(
             notification=notification,
             channel=NotificationChannel.EMAIL,
@@ -772,6 +748,7 @@ class TestNotificationController:
     @pytest.mark.django_db
     def test_controller_imports(self):
         from django_matt.notifications.controllers import NotificationController
+
         assert NotificationController is not None
 
     @pytest.mark.django_db
@@ -779,7 +756,9 @@ class TestNotificationController:
         from django_matt.notifications.controllers.notification import NotificationController
 
         Notification.objects.create(
-            recipient=user, title="N1", message="msg",
+            recipient=user,
+            title="N1",
+            message="msg",
         )
         request = rf.get("/notifications/", {"limit": "10"})
         request.user = user
@@ -805,7 +784,9 @@ class TestNotificationController:
         from django_matt.notifications.controllers.notification import NotificationController
 
         Notification.objects.create(
-            recipient=user, title="N1", message="msg",
+            recipient=user,
+            title="N1",
+            message="msg",
         )
         request = rf.get("/notifications/unread-count/")
         request.user = user
@@ -868,12 +849,8 @@ class TestNotificationMarkRead:
     @pytest.mark.django_db
     def test_unread_manager_query(self, user):
         """Create 2 notifications (one read, one unread), verify for_user + unread filtering works."""
-        n1 = Notification.objects.create(
-            recipient=user, title="Unread One", message="msg"
-        )
-        n2 = Notification.objects.create(
-            recipient=user, title="Read One", message="msg"
-        )
+        n1 = Notification.objects.create(recipient=user, title="Unread One", message="msg")
+        n2 = Notification.objects.create(recipient=user, title="Read One", message="msg")
         n2.mark_as_read()
 
         # Use manager's for_user and filter for unread
@@ -914,13 +891,9 @@ class TestPushTokenModel:
         """Create duplicate (user, token), verify IntegrityError."""
         from django.db import IntegrityError
 
-        PushToken.objects.create(
-            user=user, token="dup-token", platform="fcm"
-        )
+        PushToken.objects.create(user=user, token="dup-token", platform="fcm")
         with pytest.raises(IntegrityError):
-            PushToken.objects.create(
-                user=user, token="dup-token", platform="apns"
-            )
+            PushToken.objects.create(user=user, token="dup-token", platform="apns")
 
 
 # ---------------------------------------------------------------------------
@@ -934,9 +907,7 @@ class TestPushDeliveryHandler:
     @pytest.mark.django_db
     def test_deliver_with_push_tokens(self, user, notification):
         """Create PushToken, deliver push notification, verify delivery marked sent."""
-        PushToken.objects.create(
-            user=user, token="test-fcm-token", platform="fcm"
-        )
+        PushToken.objects.create(user=user, token="test-fcm-token", platform="fcm")
         delivery = NotificationDelivery.objects.create(
             notification=notification,
             channel=NotificationChannel.PUSH,
@@ -984,9 +955,7 @@ class TestPushDeliveryHandler:
     @pytest.mark.django_db
     def test_deliver_inactive_tokens_ignored(self, user, notification):
         """Inactive PushTokens are not returned by _get_push_tokens."""
-        PushToken.objects.create(
-            user=user, token="inactive-token", platform="fcm", active=False
-        )
+        PushToken.objects.create(user=user, token="inactive-token", platform="fcm", active=False)
         delivery = NotificationDelivery.objects.create(
             notification=notification,
             channel=NotificationChannel.PUSH,
@@ -1018,7 +987,9 @@ class TestEmailDeliveryViaEmailService:
         mock_msg.id = 99
         handler = EmailDeliveryHandler()
 
-        with patch("django_matt.email.service.EmailService.send", return_value=mock_msg) as mock_send:
+        with patch(
+            "django_matt.email.service.EmailService.send", return_value=mock_msg
+        ) as mock_send:
             result = handler.deliver(delivery)
 
         assert result is True
@@ -1052,7 +1023,9 @@ class TestEmailDeliveryViaEmailService:
         mock_msg.id = 100
         handler = EmailDeliveryHandler()
 
-        with patch("django_matt.email.service.EmailService.send", return_value=mock_msg) as mock_send:
+        with patch(
+            "django_matt.email.service.EmailService.send", return_value=mock_msg
+        ) as mock_send:
             handler.deliver(delivery)
 
         text = mock_send.call_args.kwargs["text"]

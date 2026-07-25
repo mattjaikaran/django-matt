@@ -21,9 +21,7 @@ def index(request):
     """
     workspaces = []
     if request.user.is_authenticated:
-        workspaces = Workspace.objects.filter(
-            memberships__user=request.user
-        ).order_by("name")
+        workspaces = Workspace.objects.filter(memberships__user=request.user).order_by("name")
 
     return render(
         request,
@@ -48,12 +46,15 @@ def workspace(request, workspace_id: UUID):
 
     channels = []
     if is_member:
-        channels = Channel.objects.filter(
-            workspace=workspace,
-            is_archived=False,
-        ).filter(
-            models.Q(is_private=False) | models.Q(memberships__user=request.user)
-        ).distinct().order_by("name")
+        channels = (
+            Channel.objects.filter(
+                workspace=workspace,
+                is_archived=False,
+            )
+            .filter(models.Q(is_private=False) | models.Q(memberships__user=request.user))
+            .distinct()
+            .order_by("name")
+        )
 
     return render(
         request,

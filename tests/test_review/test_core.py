@@ -20,6 +20,7 @@ from django_matt.review.findings import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_finding(
     *,
     severity: Severity = Severity.WARNING,
@@ -66,6 +67,7 @@ class CrashingAnalyzer(BaseAnalyzer):
 # Finding / Location
 # ---------------------------------------------------------------------------
 
+
 class TestFinding:
     def test_creation_and_str(self) -> None:
         f = _make_finding(severity=Severity.ERROR, rule_id="E001", message="bad code")
@@ -109,6 +111,7 @@ class TestLocation:
 # Severity ordering
 # ---------------------------------------------------------------------------
 
+
 class TestSeverity:
     def test_ordering(self) -> None:
         assert Severity.INFO < Severity.HINT < Severity.WARNING < Severity.ERROR < Severity.CRITICAL
@@ -126,6 +129,7 @@ class TestSeverity:
 # ReviewSummary
 # ---------------------------------------------------------------------------
 
+
 class TestReviewSummary:
     def test_empty_summary(self) -> None:
         s = ReviewSummary()
@@ -137,27 +141,33 @@ class TestReviewSummary:
         assert s.exit_code == 0
 
     def test_by_severity(self) -> None:
-        s = ReviewSummary(findings=[
-            _make_finding(severity=Severity.WARNING),
-            _make_finding(severity=Severity.WARNING),
-            _make_finding(severity=Severity.ERROR),
-        ])
+        s = ReviewSummary(
+            findings=[
+                _make_finding(severity=Severity.WARNING),
+                _make_finding(severity=Severity.WARNING),
+                _make_finding(severity=Severity.ERROR),
+            ]
+        )
         assert s.by_severity == {Severity.WARNING: 2, Severity.ERROR: 1}
 
     def test_by_category(self) -> None:
-        s = ReviewSummary(findings=[
-            _make_finding(category=Category.COMPLEXITY),
-            _make_finding(category=Category.SECURITY),
-            _make_finding(category=Category.COMPLEXITY),
-        ])
+        s = ReviewSummary(
+            findings=[
+                _make_finding(category=Category.COMPLEXITY),
+                _make_finding(category=Category.SECURITY),
+                _make_finding(category=Category.COMPLEXITY),
+            ]
+        )
         assert s.by_category == {Category.COMPLEXITY: 2, Category.SECURITY: 1}
 
     def test_by_file(self) -> None:
-        s = ReviewSummary(findings=[
-            _make_finding(file="a.py"),
-            _make_finding(file="b.py"),
-            _make_finding(file="a.py"),
-        ])
+        s = ReviewSummary(
+            findings=[
+                _make_finding(file="a.py"),
+                _make_finding(file="b.py"),
+                _make_finding(file="a.py"),
+            ]
+        )
         assert len(s.by_file["a.py"]) == 2
         assert len(s.by_file["b.py"]) == 1
 
@@ -182,39 +192,47 @@ class TestReviewSummary:
         assert s.exit_code == 2
 
     def test_filter_min_severity(self) -> None:
-        s = ReviewSummary(findings=[
-            _make_finding(severity=Severity.INFO),
-            _make_finding(severity=Severity.WARNING),
-            _make_finding(severity=Severity.ERROR),
-        ])
+        s = ReviewSummary(
+            findings=[
+                _make_finding(severity=Severity.INFO),
+                _make_finding(severity=Severity.WARNING),
+                _make_finding(severity=Severity.ERROR),
+            ]
+        )
         result = s.filter(min_severity=Severity.WARNING)
         assert len(result) == 2
         assert all(f.severity >= Severity.WARNING for f in result)
 
     def test_filter_categories(self) -> None:
-        s = ReviewSummary(findings=[
-            _make_finding(category=Category.COMPLEXITY),
-            _make_finding(category=Category.SECURITY),
-            _make_finding(category=Category.STYLE),
-        ])
+        s = ReviewSummary(
+            findings=[
+                _make_finding(category=Category.COMPLEXITY),
+                _make_finding(category=Category.SECURITY),
+                _make_finding(category=Category.STYLE),
+            ]
+        )
         result = s.filter(categories={Category.SECURITY, Category.STYLE})
         assert len(result) == 2
 
     def test_filter_files(self) -> None:
-        s = ReviewSummary(findings=[
-            _make_finding(file="a.py"),
-            _make_finding(file="b.py"),
-            _make_finding(file="c.py"),
-        ])
+        s = ReviewSummary(
+            findings=[
+                _make_finding(file="a.py"),
+                _make_finding(file="b.py"),
+                _make_finding(file="c.py"),
+            ]
+        )
         result = s.filter(files={"a.py", "c.py"})
         assert len(result) == 2
 
     def test_filter_combined(self) -> None:
-        s = ReviewSummary(findings=[
-            _make_finding(severity=Severity.INFO, category=Category.STYLE, file="a.py"),
-            _make_finding(severity=Severity.ERROR, category=Category.STYLE, file="a.py"),
-            _make_finding(severity=Severity.ERROR, category=Category.SECURITY, file="b.py"),
-        ])
+        s = ReviewSummary(
+            findings=[
+                _make_finding(severity=Severity.INFO, category=Category.STYLE, file="a.py"),
+                _make_finding(severity=Severity.ERROR, category=Category.STYLE, file="a.py"),
+                _make_finding(severity=Severity.ERROR, category=Category.SECURITY, file="b.py"),
+            ]
+        )
         result = s.filter(
             min_severity=Severity.WARNING,
             categories={Category.STYLE},
@@ -227,6 +245,7 @@ class TestReviewSummary:
 # ---------------------------------------------------------------------------
 # ReviewConfig
 # ---------------------------------------------------------------------------
+
 
 class TestReviewConfig:
     def test_should_analyze_file_includes_py(self) -> None:
@@ -277,6 +296,7 @@ class TestReviewConfig:
 # ---------------------------------------------------------------------------
 # ReviewEngine
 # ---------------------------------------------------------------------------
+
 
 class TestReviewEngineSingleAnalyzer:
     def test_single_analyzer_produces_findings(self, tmp_path: Path) -> None:

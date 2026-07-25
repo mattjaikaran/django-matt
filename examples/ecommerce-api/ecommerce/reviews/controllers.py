@@ -137,9 +137,7 @@ class ReviewController(APIController):
             raise NotFoundAPIError("Product not found")
 
         # Check if user already reviewed this product
-        existing = await Review.objects.filter(
-            product=product, user=request.user
-        ).afirst()
+        existing = await Review.objects.filter(product=product, user=request.user).afirst()
         if existing:
             raise ValidationAPIError("You have already reviewed this product")
 
@@ -185,13 +183,13 @@ class ReviewController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_review(
-        request, review_id: UUID, data: ReviewUpdate
-    ) -> ReviewResponse:
+    async def update_review(request, review_id: UUID, data: ReviewUpdate) -> ReviewResponse:
         """Update a review."""
-        review = await Review.objects.filter(
-            id=review_id, user=request.user
-        ).select_related("product").afirst()
+        review = (
+            await Review.objects.filter(id=review_id, user=request.user)
+            .select_related("product")
+            .afirst()
+        )
 
         if not review:
             raise NotFoundAPIError("Review not found")
@@ -229,9 +227,7 @@ class ReviewController(APIController):
     @jwt_required
     async def delete_review(request, review_id: UUID) -> dict[str, str]:
         """Delete a review."""
-        deleted, _ = await Review.objects.filter(
-            id=review_id, user=request.user
-        ).adelete()
+        deleted, _ = await Review.objects.filter(id=review_id, user=request.user).adelete()
 
         if not deleted:
             raise NotFoundAPIError("Review not found")
@@ -240,9 +236,7 @@ class ReviewController(APIController):
 
     @staticmethod
     @jwt_required
-    async def vote_review(
-        request, review_id: UUID, data: ReviewVoteRequest
-    ) -> ReviewVoteResponse:
+    async def vote_review(request, review_id: UUID, data: ReviewVoteRequest) -> ReviewVoteResponse:
         """Vote on a review's helpfulness."""
         review = await Review.objects.filter(id=review_id).afirst()
         if not review:
@@ -253,9 +247,7 @@ class ReviewController(APIController):
             raise ValidationAPIError("Cannot vote on your own review")
 
         # Check existing vote
-        existing = await ReviewVote.objects.filter(
-            review=review, user=request.user
-        ).afirst()
+        existing = await ReviewVote.objects.filter(review=review, user=request.user).afirst()
 
         if existing:
             # Update vote if different
@@ -296,9 +288,11 @@ class ReviewController(APIController):
     @jwt_required
     async def get_my_reviews(request) -> list[ReviewResponse]:
         """Get current user's reviews."""
-        reviews = Review.objects.filter(user=request.user).select_related(
-            "product"
-        ).order_by("-created_at")
+        reviews = (
+            Review.objects.filter(user=request.user)
+            .select_related("product")
+            .order_by("-created_at")
+        )
 
         result = []
         async for review in reviews:
@@ -336,9 +330,9 @@ class ReviewController(APIController):
         if not request.user.is_staff:
             raise ValidationAPIError("Admin access required")
 
-        review = await Review.objects.filter(id=review_id).select_related(
-            "product", "user"
-        ).afirst()
+        review = (
+            await Review.objects.filter(id=review_id).select_related("product", "user").afirst()
+        )
 
         if not review:
             raise NotFoundAPIError("Review not found")

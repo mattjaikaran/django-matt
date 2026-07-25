@@ -142,9 +142,7 @@ class TestErrorDetail:
 
     def test_to_dict_snippet_excluded_by_default(self):
         """to_dict excludes code_snippet unless include_snippet=True."""
-        detail = ErrorDetail(
-            message="err", error_type="E", code_snippet=["1: x = 1"]
-        )
+        detail = ErrorDetail(message="err", error_type="E", code_snippet=["1: x = 1"])
         d_no = detail.to_dict(include_snippet=False)
         assert "code_snippet" not in d_no
 
@@ -166,9 +164,7 @@ class TestErrorDetail:
             traceback_str="TB",
             code_snippet=["line"],
         )
-        parsed_debug = json.loads(
-            detail.to_json(include_traceback=True, include_snippet=True)
-        )
+        parsed_debug = json.loads(detail.to_json(include_traceback=True, include_snippet=True))
         assert "traceback" in parsed_debug
         assert "code_snippet" in parsed_debug
 

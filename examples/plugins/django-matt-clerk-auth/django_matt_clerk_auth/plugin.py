@@ -18,10 +18,7 @@ logger = logging.getLogger("django_matt.plugins.clerk")
 class ClerkAuthPlugin(MattPlugin):
     name = "clerk_auth"
     version = "0.1.0"
-    description = (
-        "Clerk authentication — JWT verification, user sync, "
-        "webhook handling"
-    )
+    description = "Clerk authentication — JWT verification, user sync, webhook handling"
     author = "Matt Jaikaran"
     django_matt_version = "0.9.0"
     settings_prefix = "MATT_CLERK"
@@ -57,9 +54,7 @@ class ClerkAuthPlugin(MattPlugin):
                 },
                 "WEBHOOK_SECRET": {
                     "type": "string",
-                    "description": (
-                        "Clerk webhook signing secret (whsec_...)"
-                    ),
+                    "description": ("Clerk webhook signing secret (whsec_...)"),
                 },
                 "JWKS_URL": {
                     "type": "string",

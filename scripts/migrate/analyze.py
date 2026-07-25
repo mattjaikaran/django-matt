@@ -223,20 +223,38 @@ def analyze_file(filepath: Path) -> FileAnalysis | None:
                 analysis.models.append(node.name)
 
             # DRF serializers
-            if any(b in ("ModelSerializer", "Serializer", "HyperlinkedModelSerializer", "ListSerializer") for b in bases):
+            if any(
+                b
+                in ("ModelSerializer", "Serializer", "HyperlinkedModelSerializer", "ListSerializer")
+                for b in bases
+            ):
                 analysis.serializers.append(node.name)
 
             # DRF viewsets
-            if any(b in ("ModelViewSet", "ViewSet", "GenericViewSet", "ReadOnlyModelViewSet") for b in bases):
+            if any(
+                b in ("ModelViewSet", "ViewSet", "GenericViewSet", "ReadOnlyModelViewSet")
+                for b in bases
+            ):
                 analysis.viewsets.append(node.name)
 
             # DRF generic views
-            if any(b in (
-                "APIView", "GenericAPIView", "ListAPIView", "CreateAPIView",
-                "RetrieveAPIView", "UpdateAPIView", "DestroyAPIView",
-                "ListCreateAPIView", "RetrieveUpdateAPIView",
-                "RetrieveDestroyAPIView", "RetrieveUpdateDestroyAPIView",
-            ) for b in bases):
+            if any(
+                b
+                in (
+                    "APIView",
+                    "GenericAPIView",
+                    "ListAPIView",
+                    "CreateAPIView",
+                    "RetrieveAPIView",
+                    "UpdateAPIView",
+                    "DestroyAPIView",
+                    "ListCreateAPIView",
+                    "RetrieveUpdateAPIView",
+                    "RetrieveDestroyAPIView",
+                    "RetrieveUpdateDestroyAPIView",
+                )
+                for b in bases
+            ):
                 analysis.views.append(node.name)
 
             # DRF permissions
@@ -244,7 +262,10 @@ def analyze_file(filepath: Path) -> FileAnalysis | None:
                 analysis.permissions.append(node.name)
 
             # DRF pagination
-            if any(b in ("PageNumberPagination", "LimitOffsetPagination", "CursorPagination") for b in bases):
+            if any(
+                b in ("PageNumberPagination", "LimitOffsetPagination", "CursorPagination")
+                for b in bases
+            ):
                 analysis.filters.append(f"pagination:{node.name}")
 
             # DRF filters
@@ -297,7 +318,14 @@ def analyze_file(filepath: Path) -> FileAnalysis | None:
                             name = func.id
                         elif isinstance(func, ast.Attribute):
                             name = func.attr
-                        if name in ("DefaultRouter", "SimpleRouter", "Router", "NinjaAPI", "FastAPI", "APIRouter"):
+                        if name in (
+                            "DefaultRouter",
+                            "SimpleRouter",
+                            "Router",
+                            "NinjaAPI",
+                            "FastAPI",
+                            "APIRouter",
+                        ):
                             analysis.routers.append(target.id)
 
     # Detect auth patterns
@@ -331,9 +359,21 @@ def analyze_project(root: Path) -> ProjectAnalysis:
 
     # Find all Python files (skip common non-project directories)
     skip_dirs = {
-        ".venv", "venv", "env", ".env", "node_modules", "__pycache__",
-        ".git", ".tox", ".mypy_cache", ".pytest_cache", "dist", "build",
-        ".eggs", "*.egg-info", "migrations",
+        ".venv",
+        "venv",
+        "env",
+        ".env",
+        "node_modules",
+        "__pycache__",
+        ".git",
+        ".tox",
+        ".mypy_cache",
+        ".pytest_cache",
+        "dist",
+        "build",
+        ".eggs",
+        "*.egg-info",
+        "migrations",
     }
 
     py_files = []
@@ -410,10 +450,14 @@ def generate_notes(project: ProjectAnalysis) -> list[str]:
     if project.framework == "drf":
         notes.append("Framework: Django REST Framework")
         notes.append(f"  {project.total_serializers} serializer(s) -> ModelSchema conversions")
-        notes.append(f"  {project.total_viewsets} viewset(s) -> Controller or APIViewSet conversions")
+        notes.append(
+            f"  {project.total_viewsets} viewset(s) -> Controller or APIViewSet conversions"
+        )
         notes.append(f"  {project.total_views} view(s) -> controller method conversions")
         if project.total_permissions > 0:
-            notes.append(f"  {project.total_permissions} custom permission(s) -> BasePermission subclasses")
+            notes.append(
+                f"  {project.total_permissions} custom permission(s) -> BasePermission subclasses"
+            )
         notes.append("")
         notes.append("Recommended approach:")
         notes.append("  1. Convert serializers to ModelSchema (schemas.py)")
@@ -424,7 +468,9 @@ def generate_notes(project: ProjectAnalysis) -> list[str]:
 
     elif project.framework == "ninja":
         notes.append("Framework: Django Ninja")
-        notes.append(f"  {project.total_schemas} schema(s) -> ModelSchema conversions (mostly compatible)")
+        notes.append(
+            f"  {project.total_schemas} schema(s) -> ModelSchema conversions (mostly compatible)"
+        )
         notes.append(f"  {project.total_views} view(s)/controller(s) -> Controller conversions")
         notes.append("")
         notes.append("Recommended approach:")
@@ -580,9 +626,7 @@ def format_json(project: ProjectAnalysis) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Analyze a project for migration to django-matt"
-    )
+    parser = argparse.ArgumentParser(description="Analyze a project for migration to django-matt")
     parser.add_argument("path", help="Path to the project root")
     parser.add_argument(
         "--format",

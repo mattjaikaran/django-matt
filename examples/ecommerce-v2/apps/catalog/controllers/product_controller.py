@@ -31,9 +31,7 @@ class ProductController(APIController):
         if max_price := params.get("max_price"):
             qs = qs.filter(price__lte=Decimal(max_price))
         if search := params.get("search"):
-            qs = qs.filter(
-                Q(name__icontains=search) | Q(description__icontains=search)
-            )
+            qs = qs.filter(Q(name__icontains=search) | Q(description__icontains=search))
 
         # Pagination
         total = await qs.acount()

@@ -661,7 +661,8 @@ class TestAverifyAccessTokenBulkRevocation:
             patch(
                 "django_matt.auth.blacklist.core.ais_user_tokens_revoked",
                 side_effect=_mock_ais_revoked,
-            ),pytest.raises(InvalidTokenError, match="revoked")
+            ),
+            pytest.raises(InvalidTokenError, match="revoked"),
         ):
             await averify_access_token("fake.token.here")
 

@@ -18,6 +18,7 @@ from core.models import Organization, Team, User
 
 class ProjectStatus(models.TextChoices):
     """Project status choices."""
+
     ACTIVE = "active", "Active"
     ON_HOLD = "on_hold", "On Hold"
     COMPLETED = "completed", "Completed"
@@ -98,6 +99,7 @@ class Project(models.Model):
 
 class TaskStatus(models.TextChoices):
     """Task status choices (Kanban-style)."""
+
     BACKLOG = "backlog", "Backlog"
     TODO = "todo", "To Do"
     IN_PROGRESS = "in_progress", "In Progress"
@@ -108,6 +110,7 @@ class TaskStatus(models.TextChoices):
 
 class TaskPriority(models.TextChoices):
     """Task priority levels."""
+
     URGENT = "urgent", "Urgent"
     HIGH = "high", "High"
     MEDIUM = "medium", "Medium"
@@ -162,12 +165,8 @@ class Task(models.Model):
     position = models.IntegerField(default=0)  # For drag-and-drop ordering
 
     # Time tracking
-    estimated_hours = models.DecimalField(
-        max_digits=6, decimal_places=2, null=True, blank=True
-    )
-    actual_hours = models.DecimalField(
-        max_digits=6, decimal_places=2, null=True, blank=True
-    )
+    estimated_hours = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    actual_hours = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
 
     # Dates
     start_date = models.DateField(null=True, blank=True)
@@ -334,9 +333,7 @@ class Label(models.Model):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    organization = models.ForeignKey(
-        Organization, on_delete=models.CASCADE, related_name="labels"
-    )
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name="labels")
     project = models.ForeignKey(
         Project, on_delete=models.CASCADE, null=True, blank=True, related_name="labels"
     )

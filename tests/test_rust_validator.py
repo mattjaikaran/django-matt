@@ -41,9 +41,7 @@ class TestSchemaValidatorBasic:
         assert "email" in error_fields
 
     def test_wrong_type_str(self, validator):
-        valid, errors = validator.validate(
-            "User", {"name": 123, "email": "x@y.com"}
-        )
+        valid, errors = validator.validate("User", {"name": 123, "email": "x@y.com"})
         assert valid is False
         assert any(e["field"] == "name" and e["type"] == "type" for e in errors)
 
@@ -62,23 +60,17 @@ class TestSchemaValidatorBasic:
         assert any(e["field"] == "active" for e in errors)
 
     def test_max_length(self, validator):
-        valid, errors = validator.validate(
-            "User", {"name": "A" * 100, "email": "x@y.com"}
-        )
+        valid, errors = validator.validate("User", {"name": "A" * 100, "email": "x@y.com"})
         assert valid is False
         assert any(e["type"] == "max_length" for e in errors)
 
     def test_min_value(self, validator):
-        valid, errors = validator.validate(
-            "User", {"name": "Matt", "email": "x@y.com", "age": -5}
-        )
+        valid, errors = validator.validate("User", {"name": "Matt", "email": "x@y.com", "age": -5})
         assert valid is False
         assert any(e["type"] == "min_value" for e in errors)
 
     def test_max_value(self, validator):
-        valid, errors = validator.validate(
-            "User", {"name": "Matt", "email": "x@y.com", "age": 200}
-        )
+        valid, errors = validator.validate("User", {"name": "Matt", "email": "x@y.com", "age": 200})
         assert valid is False
         assert any(e["type"] == "max_value" for e in errors)
 
@@ -109,9 +101,7 @@ class TestSchemaValidatorBasic:
         assert valid is True
 
     def test_non_nullable_field_rejects_none(self, validator):
-        valid, errors = validator.validate(
-            "User", {"name": None, "email": "x@y.com"}
-        )
+        valid, errors = validator.validate("User", {"name": None, "email": "x@y.com"})
         assert valid is False
         assert any(e["type"] == "null" for e in errors)
 
@@ -131,9 +121,7 @@ class TestSchemaValidatorParseAndValidate:
             validator.parse_and_validate("User", b"not json")
 
     def test_invalid_data(self, validator):
-        valid, data, errors = validator.parse_and_validate(
-            "User", b'{"age": -1}'
-        )
+        valid, data, errors = validator.parse_and_validate("User", b'{"age": -1}')
         assert valid is False
         assert len(errors) > 0
 

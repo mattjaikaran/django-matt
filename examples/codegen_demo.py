@@ -119,15 +119,35 @@ def demo_typescript_interface():
     print_header("1. TypeScript Interface Generation")
 
     # Create a mock User model
-    user_model = create_mock_model("User", "users", [
-        {"name": "id", "type": "AutoField", "primary_key": True, "editable": False},
-        {"name": "email", "type": "EmailField", "unique": True, "max_length": 255},
-        {"name": "first_name", "type": "CharField", "max_length": 100, "verbose_name": "first name"},
-        {"name": "last_name", "type": "CharField", "max_length": 100, "verbose_name": "last name"},
-        {"name": "is_active", "type": "BooleanField", "has_default": True, "default": True},
-        {"name": "bio", "type": "TextField", "null": True, "blank": True, "verbose_name": "biography"},
-        {"name": "created_at", "type": "DateTimeField", "editable": False},
-    ])
+    user_model = create_mock_model(
+        "User",
+        "users",
+        [
+            {"name": "id", "type": "AutoField", "primary_key": True, "editable": False},
+            {"name": "email", "type": "EmailField", "unique": True, "max_length": 255},
+            {
+                "name": "first_name",
+                "type": "CharField",
+                "max_length": 100,
+                "verbose_name": "first name",
+            },
+            {
+                "name": "last_name",
+                "type": "CharField",
+                "max_length": 100,
+                "verbose_name": "last name",
+            },
+            {"name": "is_active", "type": "BooleanField", "has_default": True, "default": True},
+            {
+                "name": "bio",
+                "type": "TextField",
+                "null": True,
+                "blank": True,
+                "verbose_name": "biography",
+            },
+            {"name": "created_at", "type": "DateTimeField", "editable": False},
+        ],
+    )
 
     print_subheader("Generated TypeScript Interface for User model")
     ts_code = generate_typescript_interface(user_model)
@@ -143,17 +163,29 @@ def demo_zod_schema():
     print_header("2. Zod Schema Generation")
 
     # Create a mock Product model
-    product_model = create_mock_model("Product", "catalog", [
-        {"name": "id", "type": "AutoField", "primary_key": True, "editable": False},
-        {"name": "name", "type": "CharField", "max_length": 200},
-        {"name": "description", "type": "TextField", "blank": True},
-        {"name": "price", "type": "DecimalField"},
-        {"name": "stock", "type": "IntegerField", "has_default": True, "default": 0},
-        {"name": "is_available", "type": "BooleanField", "has_default": True, "default": True},
-        {"name": "category", "type": "CharField", "max_length": 50,
-         "choices": [("electronics", "Electronics"), ("clothing", "Clothing"), ("books", "Books")]},
-        {"name": "sku", "type": "CharField", "max_length": 50, "unique": True},
-    ])
+    product_model = create_mock_model(
+        "Product",
+        "catalog",
+        [
+            {"name": "id", "type": "AutoField", "primary_key": True, "editable": False},
+            {"name": "name", "type": "CharField", "max_length": 200},
+            {"name": "description", "type": "TextField", "blank": True},
+            {"name": "price", "type": "DecimalField"},
+            {"name": "stock", "type": "IntegerField", "has_default": True, "default": 0},
+            {"name": "is_available", "type": "BooleanField", "has_default": True, "default": True},
+            {
+                "name": "category",
+                "type": "CharField",
+                "max_length": 50,
+                "choices": [
+                    ("electronics", "Electronics"),
+                    ("clothing", "Clothing"),
+                    ("books", "Books"),
+                ],
+            },
+            {"name": "sku", "type": "CharField", "max_length": 50, "unique": True},
+        ],
+    )
 
     print_subheader("Generated Zod Schema for Product model")
     zod_code = generate_zod_schema(product_model, "ProductSchema")
@@ -180,15 +212,27 @@ def demo_react_hooks():
     print_header("3. React Query (TanStack Query) Hooks Generation")
 
     # Create a mock Order model
-    order_model = create_mock_model("Order", "orders", [
-        {"name": "id", "type": "AutoField", "primary_key": True, "editable": False},
-        {"name": "customer_email", "type": "EmailField"},
-        {"name": "status", "type": "CharField", "max_length": 20,
-         "choices": [("pending", "Pending"), ("processing", "Processing"),
-                    ("shipped", "Shipped"), ("delivered", "Delivered")]},
-        {"name": "total", "type": "DecimalField"},
-        {"name": "created_at", "type": "DateTimeField", "editable": False},
-    ])
+    order_model = create_mock_model(
+        "Order",
+        "orders",
+        [
+            {"name": "id", "type": "AutoField", "primary_key": True, "editable": False},
+            {"name": "customer_email", "type": "EmailField"},
+            {
+                "name": "status",
+                "type": "CharField",
+                "max_length": 20,
+                "choices": [
+                    ("pending", "Pending"),
+                    ("processing", "Processing"),
+                    ("shipped", "Shipped"),
+                    ("delivered", "Delivered"),
+                ],
+            },
+            {"name": "total", "type": "DecimalField"},
+            {"name": "created_at", "type": "DateTimeField", "editable": False},
+        ],
+    )
 
     print_subheader("Generated TanStack Query Hooks for Order model")
     hooks_code = generate_react_hooks(order_model, api_base="/api/v1")
@@ -209,16 +253,40 @@ def demo_react_components():
     print_header("4. React Component Generation")
 
     # Create a mock Task model
-    task_model = create_mock_model("Task", "tasks", [
-        {"name": "id", "type": "AutoField", "primary_key": True, "editable": False},
-        {"name": "title", "type": "CharField", "max_length": 200, "verbose_name": "title"},
-        {"name": "description", "type": "TextField", "blank": True, "verbose_name": "description"},
-        {"name": "priority", "type": "CharField", "max_length": 20,
-         "choices": [("low", "Low"), ("medium", "Medium"), ("high", "High")]},
-        {"name": "completed", "type": "BooleanField", "has_default": True, "default": False,
-         "verbose_name": "completed"},
-        {"name": "due_date", "type": "DateField", "null": True, "blank": True, "verbose_name": "due date"},
-    ])
+    task_model = create_mock_model(
+        "Task",
+        "tasks",
+        [
+            {"name": "id", "type": "AutoField", "primary_key": True, "editable": False},
+            {"name": "title", "type": "CharField", "max_length": 200, "verbose_name": "title"},
+            {
+                "name": "description",
+                "type": "TextField",
+                "blank": True,
+                "verbose_name": "description",
+            },
+            {
+                "name": "priority",
+                "type": "CharField",
+                "max_length": 20,
+                "choices": [("low", "Low"), ("medium", "Medium"), ("high", "High")],
+            },
+            {
+                "name": "completed",
+                "type": "BooleanField",
+                "has_default": True,
+                "default": False,
+                "verbose_name": "completed",
+            },
+            {
+                "name": "due_date",
+                "type": "DateField",
+                "null": True,
+                "blank": True,
+                "verbose_name": "due date",
+            },
+        ],
+    )
 
     print_subheader("Generated Form Component (with shadcn/ui)")
     form_code = generate_react_form(task_model, ui_library="shadcn")
@@ -242,20 +310,28 @@ def demo_full_generation():
     print_header("5. Full React Generation (ReactGenerator)")
 
     # Create mock models
-    user_model = create_mock_model("User", "users", [
-        {"name": "id", "type": "AutoField", "primary_key": True, "editable": False},
-        {"name": "email", "type": "EmailField", "unique": True},
-        {"name": "name", "type": "CharField", "max_length": 100},
-        {"name": "is_active", "type": "BooleanField", "has_default": True, "default": True},
-    ])
+    user_model = create_mock_model(
+        "User",
+        "users",
+        [
+            {"name": "id", "type": "AutoField", "primary_key": True, "editable": False},
+            {"name": "email", "type": "EmailField", "unique": True},
+            {"name": "name", "type": "CharField", "max_length": 100},
+            {"name": "is_active", "type": "BooleanField", "has_default": True, "default": True},
+        ],
+    )
 
-    post_model = create_mock_model("Post", "blog", [
-        {"name": "id", "type": "AutoField", "primary_key": True, "editable": False},
-        {"name": "title", "type": "CharField", "max_length": 200},
-        {"name": "content", "type": "TextField"},
-        {"name": "published", "type": "BooleanField", "has_default": True, "default": False},
-        {"name": "created_at", "type": "DateTimeField", "editable": False},
-    ])
+    post_model = create_mock_model(
+        "Post",
+        "blog",
+        [
+            {"name": "id", "type": "AutoField", "primary_key": True, "editable": False},
+            {"name": "title", "type": "CharField", "max_length": 200},
+            {"name": "content", "type": "TextField"},
+            {"name": "published", "type": "BooleanField", "has_default": True, "default": False},
+            {"name": "created_at", "type": "DateTimeField", "editable": False},
+        ],
+    )
 
     print_subheader("Generating full React codebase for User and Post models...")
 
@@ -302,16 +378,20 @@ def demo_typescript_generator_class():
     print_header("6. TypeScriptGenerator Class")
 
     # Create mock models
-    article_model = create_mock_model("Article", "news", [
-        {"name": "id", "type": "AutoField", "primary_key": True, "editable": False},
-        {"name": "title", "type": "CharField", "max_length": 300},
-        {"name": "slug", "type": "SlugField", "max_length": 300, "unique": True},
-        {"name": "content", "type": "TextField"},
-        {"name": "author_name", "type": "CharField", "max_length": 100},
-        {"name": "view_count", "type": "IntegerField", "has_default": True, "default": 0},
-        {"name": "is_featured", "type": "BooleanField", "has_default": True, "default": False},
-        {"name": "published_at", "type": "DateTimeField", "null": True, "blank": True},
-    ])
+    article_model = create_mock_model(
+        "Article",
+        "news",
+        [
+            {"name": "id", "type": "AutoField", "primary_key": True, "editable": False},
+            {"name": "title", "type": "CharField", "max_length": 300},
+            {"name": "slug", "type": "SlugField", "max_length": 300, "unique": True},
+            {"name": "content", "type": "TextField"},
+            {"name": "author_name", "type": "CharField", "max_length": 100},
+            {"name": "view_count", "type": "IntegerField", "has_default": True, "default": 0},
+            {"name": "is_featured", "type": "BooleanField", "has_default": True, "default": False},
+            {"name": "published_at", "type": "DateTimeField", "null": True, "blank": True},
+        ],
+    )
 
     print_subheader("Using TypeScriptGenerator for types and schemas")
 
@@ -335,11 +415,15 @@ def demo_write_to_disk():
         output_dir = Path(tmpdir) / "generated"
 
         # Create mock models
-        user_model = create_mock_model("User", "users", [
-            {"name": "id", "type": "AutoField", "primary_key": True, "editable": False},
-            {"name": "email", "type": "EmailField", "unique": True},
-            {"name": "name", "type": "CharField", "max_length": 100},
-        ])
+        user_model = create_mock_model(
+            "User",
+            "users",
+            [
+                {"name": "id", "type": "AutoField", "primary_key": True, "editable": False},
+                {"name": "email", "type": "EmailField", "unique": True},
+                {"name": "name", "type": "CharField", "max_length": 100},
+            ],
+        )
 
         print(f"Output directory: {output_dir}")
         print_subheader("Generating and writing files...")
@@ -494,6 +578,7 @@ For more details, see the documentation at:
     except Exception as e:
         print(f"\nError: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

@@ -70,19 +70,21 @@ def make_support_agent(provider: FakeProvider, **kwargs) -> Agent:
 @pytest.mark.asyncio
 async def test_simple_query_with_one_tool_call():
     """Agent calls get_order_status, feeds result back, gets final answer."""
-    provider = FakeProvider(responses=[
-        # 1st call: LLM decides to call get_order_status
-        CompletionResponse(
-            content="",
-            model="fake-model",
-            tool_calls=[
-                ToolCall(id="call_1", name="get_order_status", arguments={"order_id": "O100"}),
-            ],
-            usage=Usage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
-        ),
-        # 2nd call: LLM produces final answer after seeing tool result
-        "Your order O100 has been shipped.",
-    ])
+    provider = FakeProvider(
+        responses=[
+            # 1st call: LLM decides to call get_order_status
+            CompletionResponse(
+                content="",
+                model="fake-model",
+                tool_calls=[
+                    ToolCall(id="call_1", name="get_order_status", arguments={"order_id": "O100"}),
+                ],
+                usage=Usage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            ),
+            # 2nd call: LLM produces final answer after seeing tool result
+            "Your order O100 has been shipped.",
+        ]
+    )
 
     agent = make_support_agent(provider)
     response = await agent.ahandle("What is the status of order O100?")
@@ -102,42 +104,46 @@ async def test_simple_query_with_one_tool_call():
 @pytest.mark.asyncio
 async def test_multi_step_workflow():
     """Agent chains 3 tool calls: get_customer -> get_order_status -> cancel_order."""
-    provider = FakeProvider(responses=[
-        # Step 1: look up customer
-        CompletionResponse(
-            content="",
-            model="fake-model",
-            tool_calls=[
-                ToolCall(id="call_1", name="get_customer", arguments={"customer_id": "C001"}),
-            ],
-            usage=Usage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
-        ),
-        # Step 2: check order status
-        CompletionResponse(
-            content="",
-            model="fake-model",
-            tool_calls=[
-                ToolCall(id="call_2", name="get_order_status", arguments={"order_id": "O200"}),
-            ],
-            usage=Usage(prompt_tokens=20, completion_tokens=5, total_tokens=25),
-        ),
-        # Step 3: cancel the order
-        CompletionResponse(
-            content="",
-            model="fake-model",
-            tool_calls=[
-                ToolCall(id="call_3", name="cancel_order", arguments={"order_id": "O200"}),
-            ],
-            usage=Usage(prompt_tokens=30, completion_tokens=5, total_tokens=35),
-        ),
-        # Step 4: final answer
-        "Done! Customer Alice's order O200 (was processing) has been cancelled.",
-    ])
+    provider = FakeProvider(
+        responses=[
+            # Step 1: look up customer
+            CompletionResponse(
+                content="",
+                model="fake-model",
+                tool_calls=[
+                    ToolCall(id="call_1", name="get_customer", arguments={"customer_id": "C001"}),
+                ],
+                usage=Usage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            ),
+            # Step 2: check order status
+            CompletionResponse(
+                content="",
+                model="fake-model",
+                tool_calls=[
+                    ToolCall(id="call_2", name="get_order_status", arguments={"order_id": "O200"}),
+                ],
+                usage=Usage(prompt_tokens=20, completion_tokens=5, total_tokens=25),
+            ),
+            # Step 3: cancel the order
+            CompletionResponse(
+                content="",
+                model="fake-model",
+                tool_calls=[
+                    ToolCall(id="call_3", name="cancel_order", arguments={"order_id": "O200"}),
+                ],
+                usage=Usage(prompt_tokens=30, completion_tokens=5, total_tokens=35),
+            ),
+            # Step 4: final answer
+            "Done! Customer Alice's order O200 (was processing) has been cancelled.",
+        ]
+    )
 
     agent = make_support_agent(provider)
     response = await agent.ahandle("Cancel order O200 for customer C001")
 
-    assert response.content == "Done! Customer Alice's order O200 (was processing) has been cancelled."
+    assert (
+        response.content == "Done! Customer Alice's order O200 (was processing) has been cancelled."
+    )
     assert len(response.tool_calls_made) == 3
 
     names = [tc.name for tc in response.tool_calls_made]
@@ -159,17 +165,19 @@ async def test_with_observability():
     """Agent emits AGENT_START, LLM_CALL_START/END, TOOL_CALL_START/END, AGENT_END."""
     events: list = []
 
-    provider = FakeProvider(responses=[
-        CompletionResponse(
-            content="",
-            model="fake-model",
-            tool_calls=[
-                ToolCall(id="call_1", name="get_order_status", arguments={"order_id": "O300"}),
-            ],
-            usage=Usage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
-        ),
-        "Order O300 has been delivered.",
-    ])
+    provider = FakeProvider(
+        responses=[
+            CompletionResponse(
+                content="",
+                model="fake-model",
+                tool_calls=[
+                    ToolCall(id="call_1", name="get_order_status", arguments={"order_id": "O300"}),
+                ],
+                usage=Usage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            ),
+            "Order O300 has been delivered.",
+        ]
+    )
 
     agent = make_support_agent(
         provider,
@@ -220,19 +228,21 @@ async def test_structured_output():
         status: str
         customer: str
 
-    provider = FakeProvider(responses=[
-        # LLM calls a tool first
-        CompletionResponse(
-            content="",
-            model="fake-model",
-            tool_calls=[
-                ToolCall(id="call_1", name="get_order_status", arguments={"order_id": "O100"}),
-            ],
-            usage=Usage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
-        ),
-        # Then returns structured JSON
-        '{"order_id": "O100", "status": "shipped", "customer": "Alice"}',
-    ])
+    provider = FakeProvider(
+        responses=[
+            # LLM calls a tool first
+            CompletionResponse(
+                content="",
+                model="fake-model",
+                tool_calls=[
+                    ToolCall(id="call_1", name="get_order_status", arguments={"order_id": "O100"}),
+                ],
+                usage=Usage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            ),
+            # Then returns structured JSON
+            '{"order_id": "O100", "status": "shipped", "customer": "Alice"}',
+        ]
+    )
 
     agent = make_support_agent(provider, output_schema=OrderSummary)
     response = await agent.ahandle("Summarize order O100")
@@ -248,17 +258,19 @@ async def test_structured_output():
 @pytest.mark.asyncio
 async def test_fake_provider_assertions():
     """FakeProvider assertion helpers work end-to-end with the agent."""
-    provider = FakeProvider(responses=[
-        CompletionResponse(
-            content="",
-            model="fake-model",
-            tool_calls=[
-                ToolCall(id="call_1", name="get_customer", arguments={"customer_id": "C002"}),
-            ],
-            usage=Usage(prompt_tokens=5, completion_tokens=5, total_tokens=10),
-        ),
-        "Bob is customer C002.",
-    ])
+    provider = FakeProvider(
+        responses=[
+            CompletionResponse(
+                content="",
+                model="fake-model",
+                tool_calls=[
+                    ToolCall(id="call_1", name="get_customer", arguments={"customer_id": "C002"}),
+                ],
+                usage=Usage(prompt_tokens=5, completion_tokens=5, total_tokens=10),
+            ),
+            "Bob is customer C002.",
+        ]
+    )
 
     agent = make_support_agent(provider)
     await agent.ahandle("Who is customer C002?")
@@ -304,17 +316,19 @@ async def test_tool_error_handling():
         """A tool that always fails."""
         raise ValueError("Something went wrong")
 
-    provider = FakeProvider(responses=[
-        CompletionResponse(
-            content="",
-            model="fake-model",
-            tool_calls=[
-                ToolCall(id="call_1", name="failing_tool", arguments={"x": "test"}),
-            ],
-            usage=Usage(prompt_tokens=5, completion_tokens=5, total_tokens=10),
-        ),
-        "Sorry, I encountered an error.",
-    ])
+    provider = FakeProvider(
+        responses=[
+            CompletionResponse(
+                content="",
+                model="fake-model",
+                tool_calls=[
+                    ToolCall(id="call_1", name="failing_tool", arguments={"x": "test"}),
+                ],
+                usage=Usage(prompt_tokens=5, completion_tokens=5, total_tokens=10),
+            ),
+            "Sorry, I encountered an error.",
+        ]
+    )
 
     agent = Agent(
         provider=provider,

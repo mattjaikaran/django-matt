@@ -495,23 +495,26 @@ class TestDateRangeFilter:
     """Test DateRangeFilter."""
 
     def test_lookups_contains_all_ranges(self):
-        f = DateRangeFilter(
-            request=MagicMock(), params={}, model=User, model_admin=MagicMock()
-        )
+        f = DateRangeFilter(request=MagicMock(), params={}, model=User, model_admin=MagicMock())
         choices = f.lookups(MagicMock(), MagicMock())
         keys = [c[0] for c in choices]
         expected = [
-            "today", "yesterday", "this_week", "last_week",
-            "this_month", "last_month", "this_year",
-            "last_7_days", "last_30_days", "last_90_days",
+            "today",
+            "yesterday",
+            "this_week",
+            "last_week",
+            "this_month",
+            "last_month",
+            "this_year",
+            "last_7_days",
+            "last_30_days",
+            "last_90_days",
         ]
         for k in expected:
             assert k in keys, f"{k!r} missing from lookups"
 
     def test_queryset_returns_unfiltered_when_no_value(self):
-        f = DateRangeFilter(
-            request=MagicMock(), params={}, model=User, model_admin=MagicMock()
-        )
+        f = DateRangeFilter(request=MagicMock(), params={}, model=User, model_admin=MagicMock())
         qs = MagicMock()
         result = f.queryset(MagicMock(), qs)
         assert result is qs
@@ -548,9 +551,7 @@ class TestBooleanFilter:
     """Test BooleanFilter."""
 
     def test_lookups(self):
-        f = BooleanFilter(
-            request=MagicMock(), params={}, model=User, model_admin=MagicMock()
-        )
+        f = BooleanFilter(request=MagicMock(), params={}, model=User, model_admin=MagicMock())
         choices = f.lookups(MagicMock(), MagicMock())
         keys = [c[0] for c in choices]
         assert "yes" in keys
@@ -580,9 +581,7 @@ class TestBooleanFilter:
 
     def test_queryset_unfiltered_when_empty(self):
         """No value selected -- queryset returned unmodified."""
-        f = BooleanFilter(
-            request=MagicMock(), params={}, model=User, model_admin=MagicMock()
-        )
+        f = BooleanFilter(request=MagicMock(), params={}, model=User, model_admin=MagicMock())
         qs = MagicMock()
         result = f.queryset(MagicMock(), qs)
         assert result is qs
@@ -604,12 +603,8 @@ class TestCreateBooleanFilter:
         assert cls.title == "is active"
 
     def test_custom_labels(self):
-        cls = create_boolean_filter(
-            "is_active", true_label="Active", false_label="Inactive"
-        )
-        inst = cls(
-            request=MagicMock(), params={}, model=User, model_admin=MagicMock()
-        )
+        cls = create_boolean_filter("is_active", true_label="Active", false_label="Inactive")
+        inst = cls(request=MagicMock(), params={}, model=User, model_admin=MagicMock())
         choices = inst.lookups(MagicMock(), MagicMock())
         labels = {c[0]: c[1] for c in choices}
         assert labels["yes"] == "Active"
@@ -655,9 +650,7 @@ class TestChoicesFilterQueryset:
         qs.filter.assert_called_once_with(status="active")
 
     def test_unfiltered_when_no_value(self):
-        f = ChoicesFilter(
-            request=MagicMock(), params={}, model=User, model_admin=MagicMock()
-        )
+        f = ChoicesFilter(request=MagicMock(), params={}, model=User, model_admin=MagicMock())
         qs = MagicMock()
         result = f.queryset(MagicMock(), qs)
         assert result is qs
@@ -691,9 +684,7 @@ class TestNullFilter:
     """Test NullFilter."""
 
     def test_lookups(self):
-        f = NullFilter(
-            request=MagicMock(), params={}, model=User, model_admin=MagicMock()
-        )
+        f = NullFilter(request=MagicMock(), params={}, model=User, model_admin=MagicMock())
         choices = f.lookups(MagicMock(), MagicMock())
         keys = [c[0] for c in choices]
         assert "yes" in keys
@@ -722,9 +713,7 @@ class TestNullFilter:
         qs.filter.assert_called_once_with(deleted_at__isnull=True)
 
     def test_queryset_unfiltered_when_no_value(self):
-        f = NullFilter(
-            request=MagicMock(), params={}, model=User, model_admin=MagicMock()
-        )
+        f = NullFilter(request=MagicMock(), params={}, model=User, model_admin=MagicMock())
         qs = MagicMock()
         result = f.queryset(MagicMock(), qs)
         assert result is qs
@@ -742,12 +731,8 @@ class TestCreateNullFilter:
         assert cls.parameter_name == "deleted_at_null"
 
     def test_custom_labels(self):
-        cls = create_null_filter(
-            "deleted_at", has_label="Deleted", empty_label="Active"
-        )
-        inst = cls(
-            request=MagicMock(), params={}, model=User, model_admin=MagicMock()
-        )
+        cls = create_null_filter("deleted_at", has_label="Deleted", empty_label="Active")
+        inst = cls(request=MagicMock(), params={}, model=User, model_admin=MagicMock())
         choices = inst.lookups(MagicMock(), MagicMock())
         labels = {c[0]: c[1] for c in choices}
         assert labels["yes"] == "Deleted"
@@ -770,9 +755,7 @@ class TestTenantFilter:
         """User without organization attributes returns empty."""
         request = MagicMock()
         request.user = MagicMock(spec=[])  # no org attributes
-        f = TenantFilter(
-            request=request, params={}, model=User, model_admin=MagicMock()
-        )
+        f = TenantFilter(request=request, params={}, model=User, model_admin=MagicMock())
         choices = f.lookups(request, MagicMock())
         assert choices == []
 
@@ -788,9 +771,7 @@ class TestTenantFilter:
         qs.filter.assert_called_once_with(organization_id="42")
 
     def test_queryset_unfiltered_when_no_value(self):
-        f = TenantFilter(
-            request=MagicMock(), params={}, model=User, model_admin=MagicMock()
-        )
+        f = TenantFilter(request=MagicMock(), params={}, model=User, model_admin=MagicMock())
         qs = MagicMock()
         result = f.queryset(MagicMock(), qs)
         assert result is qs
@@ -1176,9 +1157,7 @@ class TestSoftDeleteAdminMixin:
         with patch.object(MattModelAdmin, "get_queryset") as mock_qs:
             mock_qs.return_value = MagicMock()
             ma.get_queryset(request)
-            mock_qs.return_value.filter.assert_called_once_with(
-                deleted_at__isnull=True
-            )
+            mock_qs.return_value.filter.assert_called_once_with(deleted_at__isnull=True)
 
     def test_get_queryset_includes_deleted_when_param(self):
         ma = self._make_admin()
@@ -1363,9 +1342,7 @@ class TestMultiTenantAdminMixin:
         ma = TenantUserAdmin(User, site)
         request = _make_request()
 
-        with patch.object(
-            MattModelAdmin, "get_exclude", return_value=["organization"]
-        ):
+        with patch.object(MattModelAdmin, "get_exclude", return_value=["organization"]):
             excluded = ma.get_exclude(request)
         assert excluded.count("organization") == 1
 

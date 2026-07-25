@@ -2,7 +2,6 @@
 Pydantic schemas for multi-tenant resources.
 """
 
-
 from django_matt.core.schema import ModelSchema
 
 from tenants.models import Membership, Organization, Project

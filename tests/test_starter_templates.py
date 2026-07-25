@@ -96,9 +96,7 @@ class TestTemplateStructure:
 
     @pytest.mark.parametrize("name", TEMPLATE_NAMES)
     def test_app_has_controllers(self, name: str) -> None:
-        controllers_path = (
-            STARTERS_DIR / name / "project_template" / "app" / "controllers.py"
-        )
+        controllers_path = STARTERS_DIR / name / "project_template" / "app" / "controllers.py"
         assert controllers_path.exists(), f"app/controllers.py missing in {name}"
 
     @pytest.mark.parametrize("name", TEMPLATE_NAMES)
@@ -151,9 +149,7 @@ class TestTemplateVariableSubstitution:
         assert not (output / "app").exists(), "Template app/ dir should be renamed"
 
     @pytest.mark.parametrize("name", TEMPLATE_NAMES)
-    def test_render_app_config_uses_project_name(
-        self, name: str, tmp_path: Path
-    ) -> None:
+    def test_render_app_config_uses_project_name(self, name: str, tmp_path: Path) -> None:
         project_name = "configtest"
         output = render_template(name, project_name, tmp_path / project_name)
 

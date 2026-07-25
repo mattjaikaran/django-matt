@@ -90,9 +90,7 @@ class CategoryController(APIController):
 
     @patch("/<str:slug>")
     @jwt_required
-    async def update_category(
-        self, request, slug: str, body: CategoryUpdate
-    ) -> CategoryResponse:
+    async def update_category(self, request, slug: str, body: CategoryUpdate) -> CategoryResponse:
         if not request.user.is_staff:
             raise PermissionAPIError("Only staff can update categories.")
         cat = await Category.objects.filter(slug=slug).afirst()
@@ -234,8 +232,20 @@ class PostController(APIController):
             raise PermissionAPIError("You don't have permission to edit this post.")
 
         fields = []
-        for field in ("title", "content", "excerpt", "featured", "category_id", "seo_title", "seo_description"):
-            val = getattr(data, field.replace("_id", ""), None) if field == "category_id" else getattr(data, field, None)
+        for field in (
+            "title",
+            "content",
+            "excerpt",
+            "featured",
+            "category_id",
+            "seo_title",
+            "seo_description",
+        ):
+            val = (
+                getattr(data, field.replace("_id", ""), None)
+                if field == "category_id"
+                else getattr(data, field, None)
+            )
             if field == "category_id":
                 val = body.category_id
             if val is not None:

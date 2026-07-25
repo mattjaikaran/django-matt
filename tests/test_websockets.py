@@ -231,6 +231,7 @@ class TestWebSocketConfig:
 
     def test_get_websocket_config_returns_instance(self):
         import django_matt.websockets.config as mod
+
         mod._websocket_config = None
         cfg = get_websocket_config()
         assert isinstance(cfg, WebSocketConfig)

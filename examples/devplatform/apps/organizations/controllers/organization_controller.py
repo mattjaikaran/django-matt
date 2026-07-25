@@ -19,9 +19,9 @@ class OrganizationController(APIController):
     @staticmethod
     @jwt_required
     async def list_organizations(request) -> list[dict]:
-        memberships = Membership.objects.filter(
-            user=request.user, is_active=True
-        ).select_related("organization")
+        memberships = Membership.objects.filter(user=request.user, is_active=True).select_related(
+            "organization"
+        )
         result = []
         async for m in memberships:
             org_data = OrganizationWithRoleSchema(

@@ -157,9 +157,7 @@ class TestHookManager:
         async def my_hook(context, value):
             return value
 
-        hook = hook_mgr.register(
-            HookType.AFTER_CREATE, my_hook, viewset_class=MockViewSet
-        )
+        hook = hook_mgr.register(HookType.AFTER_CREATE, my_hook, viewset_class=MockViewSet)
 
         assert hook.func == my_hook
         assert hook.viewset_class == MockViewSet
@@ -213,9 +211,7 @@ class TestHookManager:
             return value
 
         hook_mgr.register(HookType.BEFORE_CREATE, global_hook)
-        hook_mgr.register(
-            HookType.BEFORE_CREATE, viewset_hook, viewset_class=MockViewSet
-        )
+        hook_mgr.register(HookType.BEFORE_CREATE, viewset_hook, viewset_class=MockViewSet)
 
         # Without viewset_class, only global hooks
         hooks = hook_mgr.get_hooks(HookType.BEFORE_CREATE)
@@ -241,9 +237,7 @@ class TestHookManager:
         hook_mgr.register(HookType.BEFORE_CREATE, hook1)
         hook_mgr.register(HookType.BEFORE_CREATE, hook2)
 
-        result = await hook_mgr.execute(
-            HookType.BEFORE_CREATE, mock_context, {"original": True}
-        )
+        result = await hook_mgr.execute(HookType.BEFORE_CREATE, mock_context, {"original": True})
 
         assert calls[0] == ("hook1", {"original": True})
         assert calls[1] == ("hook2", {"modified": True, "original": True})
@@ -322,18 +316,14 @@ class TestHookManager:
             return value
 
         hook_mgr.register(HookType.BEFORE_CREATE, hook)  # Global
-        hook_mgr.register(
-            HookType.BEFORE_CREATE, hook, viewset_class=MockViewSet
-        )  # Viewset
+        hook_mgr.register(HookType.BEFORE_CREATE, hook, viewset_class=MockViewSet)  # Viewset
 
         hook_mgr.clear(viewset_class=MockViewSet)
 
         # Global hook should remain
         assert len(hook_mgr.get_hooks(HookType.BEFORE_CREATE)) == 1
         # Viewset hook should be cleared
-        hooks_with_viewset = hook_mgr.get_hooks(
-            HookType.BEFORE_CREATE, viewset_class=MockViewSet
-        )
+        hooks_with_viewset = hook_mgr.get_hooks(HookType.BEFORE_CREATE, viewset_class=MockViewSet)
         # Only global hook should be returned
         assert len(hooks_with_viewset) == 1
 
@@ -862,12 +852,8 @@ class TestRegisteredHook:
         def sync_hook(context, value):
             return value
 
-        async_registered = RegisteredHook(
-            func=async_hook, hook_type=HookType.BEFORE_CREATE
-        )
-        sync_registered = RegisteredHook(
-            func=sync_hook, hook_type=HookType.BEFORE_CREATE
-        )
+        async_registered = RegisteredHook(func=async_hook, hook_type=HookType.BEFORE_CREATE)
+        sync_registered = RegisteredHook(func=sync_hook, hook_type=HookType.BEFORE_CREATE)
 
         assert async_registered.is_async is True
         assert sync_registered.is_async is False

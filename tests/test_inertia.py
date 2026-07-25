@@ -45,12 +45,16 @@ def rf():
     return RequestFactory()
 
 
-def _make_request(rf: RequestFactory, method: str = "GET", path: str = "/test/", **headers) -> HttpRequest:
+def _make_request(
+    rf: RequestFactory, method: str = "GET", path: str = "/test/", **headers
+) -> HttpRequest:
     factory_method = getattr(rf, method.lower())
     return factory_method(path, **headers)
 
 
-def _inertia_request(rf: RequestFactory, method: str = "GET", path: str = "/test/", **extra_headers) -> HttpRequest:
+def _inertia_request(
+    rf: RequestFactory, method: str = "GET", path: str = "/test/", **extra_headers
+) -> HttpRequest:
     headers = {"HTTP_X_INERTIA": "true", **extra_headers}
     return _make_request(rf, method, path, **headers)
 
@@ -474,11 +478,15 @@ class TestInertiaHelper:
         request = _inertia_request(rf)
         request._inertia_shared = {}
 
-        response = inertia(request, "Page", {
-            "title": "Home",
-            "sidebar": defer(lambda: "sidebar_data", group="sidebar"),
-            "feed": defer(lambda: "feed_data"),
-        })
+        response = inertia(
+            request,
+            "Page",
+            {
+                "title": "Home",
+                "sidebar": defer(lambda: "sidebar_data", group="sidebar"),
+                "feed": defer(lambda: "feed_data"),
+            },
+        )
         data = orjson.loads(response.content)
 
         assert "sidebar" not in data["props"]
@@ -501,17 +509,22 @@ class TestInertiaHelper:
 
     @override_settings(
         INERTIA={"root_template": "inertia_test.html"},
-        TEMPLATES=[{
-            "BACKEND": "django.template.backends.django.DjangoTemplates",
-            "DIRS": [],
-            "OPTIONS": {
-                "loaders": [
-                    ("django.template.loaders.locmem.Loader", {
-                        "inertia_test.html": '<!DOCTYPE html><html><body><div id="app" data-page="{{ page }}"></div></body></html>',
-                    }),
-                ],
-            },
-        }],
+        TEMPLATES=[
+            {
+                "BACKEND": "django.template.backends.django.DjangoTemplates",
+                "DIRS": [],
+                "OPTIONS": {
+                    "loaders": [
+                        (
+                            "django.template.loaders.locmem.Loader",
+                            {
+                                "inertia_test.html": '<!DOCTYPE html><html><body><div id="app" data-page="{{ page }}"></div></body></html>',
+                            },
+                        ),
+                    ],
+                },
+            }
+        ],
     )
     def test_full_page_html_for_non_inertia_request(self, rf):
         request = _make_request(rf)
@@ -721,10 +734,12 @@ class TestSSR:
         import httpx as httpx_mod
 
         mock_response = MagicMock()
-        mock_response.content = orjson.dumps({
-            "head": ["<title>Test</title>"],
-            "body": '<div id="app">SSR content</div>',
-        })
+        mock_response.content = orjson.dumps(
+            {
+                "head": ["<title>Test</title>"],
+                "body": '<div id="app">SSR content</div>',
+            }
+        )
         mock_response.raise_for_status = MagicMock()
 
         mock_client = AsyncMock()

@@ -735,9 +735,7 @@ class TestPluginConfig:
 class TestPluginScaffolder:
     def test_scaffold_creates_files(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            scaffolder = PluginScaffolder(
-                "my-plugin", author="Test", description="Test plugin"
-            )
+            scaffolder = PluginScaffolder("my-plugin", author="Test", description="Test plugin")
             created = scaffolder.generate(tmpdir)
             assert len(created) == 10
 
@@ -765,9 +763,7 @@ class TestPluginScaffolder:
         with tempfile.TemporaryDirectory() as tmpdir:
             scaffolder = PluginScaffolder("my-plugin")
             scaffolder.generate(tmpdir)
-            content = (
-                Path(tmpdir) / "my-plugin" / "my_plugin" / "plugin.py"
-            ).read_text()
+            content = (Path(tmpdir) / "my-plugin" / "my_plugin" / "plugin.py").read_text()
             assert "class MyPluginPlugin(MattPlugin):" in content
             assert 'name = "my_plugin"' in content
 

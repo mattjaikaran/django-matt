@@ -155,6 +155,7 @@ class TestTask:
     def test_task_creation(self):
         def add(x, y):
             return x + y
+
         t = Task(func=add, name="test.add")
         assert t.name == "test.add"
         assert t.func is add
@@ -163,18 +164,21 @@ class TestTask:
     def test_task_auto_name(self):
         def my_func():
             pass
+
         t = Task(func=my_func)
         assert "my_func" in t.name
 
     def test_task_call(self):
         def add(x, y):
             return x + y
+
         t = Task(func=add, name="test.task_call_add")
         assert t(2, 3) == 5
 
     def test_task_bind(self):
         def bound_task(self, x):
             return f"{self.name}:{x}"
+
         t = Task(func=bound_task, name="test.bound", bind=True)
         result = t(10)
         assert result == "test.bound:10"
@@ -182,6 +186,7 @@ class TestTask:
     def test_task_apply_success(self):
         def add(x, y):
             return x + y
+
         t = Task(func=add, name="test.apply_add")
         result = t.apply(args=(3, 4))
         assert result.status == TaskStatus.SUCCESS
@@ -192,6 +197,7 @@ class TestTask:
     def test_task_apply_failure_throw(self):
         def fail():
             raise ValueError("bad")
+
         t = Task(func=fail, name="test.apply_fail")
         with pytest.raises(ValueError, match="bad"):
             t.apply(throw=True)
@@ -199,6 +205,7 @@ class TestTask:
     def test_task_apply_failure_no_throw(self):
         def fail():
             raise ValueError("bad")
+
         t = Task(func=fail, name="test.apply_fail_nothrow")
         result = t.apply(throw=False)
         assert result.status == TaskStatus.FAILURE
@@ -338,6 +345,7 @@ class TestTaskDecorator:
         @task
         def simple(x):
             return x + 1
+
         assert isinstance(simple, Task)
         assert simple(5) == 6
 
@@ -345,6 +353,7 @@ class TestTaskDecorator:
         @task(retry=3, queue="high", timeout=60)
         def configured():
             return "ok"
+
         assert isinstance(configured, Task)
         assert configured.options.retry == 3
         assert configured.options.queue == "high"
@@ -357,6 +366,7 @@ class TestTaskDecorator:
         @task(bind=True)
         def bound(self, x):
             return self.name
+
         assert isinstance(bound, Task)
         result = bound(10)
         assert "bound" in result
@@ -757,6 +767,7 @@ class TestSyncBackend:
     def test_send_task_failure(self):
         def fail():
             raise RuntimeError("boom")
+
         t = Task(func=fail, name="sync.fail")
         result = self.backend.send_task(t, args=())
         assert result.status == TaskStatus.FAILURE
@@ -765,6 +776,7 @@ class TestSyncBackend:
     def test_send_task_with_bind(self):
         def bound(self, x):
             return f"{self.name}={x}"
+
         t = Task(func=bound, name="sync.bound", bind=True)
         result = self.backend.send_task(t, args=(7,))
         assert result.status == TaskStatus.SUCCESS
@@ -804,6 +816,7 @@ class TestSyncBackend:
     def test_send_chain_stops_on_failure(self):
         def fail(x):
             raise ValueError("stop")
+
         t1 = Task(func=lambda: 1, name="sync.chain_ok")
         t2 = Task(func=fail, name="sync.chain_stop")
         t3 = Task(func=lambda x: x, name="sync.chain_never")
@@ -842,6 +855,7 @@ class TestTaskConfig:
 
     def test_get_backend_sync(self):
         from django_matt.tasks.config import get_backend, set_backend
+
         cfg = TaskConfig(backend="sync")
         set_task_config(cfg)
         set_backend(None)
@@ -964,6 +978,7 @@ class TestTaskExecution:
 
     def test_task_decorator_execute_returns_success(self):
         """Test: @task function executes with .apply() and returns SUCCESS."""
+
         @task
         def add_numbers(x, y):
             return x + y
@@ -977,6 +992,7 @@ class TestTaskExecution:
 
     def test_task_result_contains_return_value(self):
         """Test: TaskResult.result contains the function's return value."""
+
         @task
         def make_greeting(name):
             return f"Hello, {name}!"
@@ -1008,6 +1024,7 @@ class TestTaskExecution:
 
     def test_task_apply_timestamps_use_utc(self):
         """Test: Task.apply() uses datetime.now(UTC) for timestamps."""
+
         @task
         def noop():
             return None
@@ -1022,6 +1039,7 @@ class TestTaskExecution:
 
     def test_task_failure_status_retrievable(self):
         """Test: Failed task has FAILURE status with error message."""
+
         @task
         def failing_task():
             raise ValueError("something went wrong")

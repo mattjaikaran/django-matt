@@ -66,7 +66,17 @@ class TestValidationRule:
         """Test all validation rule types."""
         from django_matt.components.base import ValidationRule
 
-        types = ["required", "min", "max", "minLength", "maxLength", "pattern", "email", "url", "custom"]
+        types = [
+            "required",
+            "min",
+            "max",
+            "minLength",
+            "maxLength",
+            "pattern",
+            "email",
+            "url",
+            "custom",
+        ]
         for rule_type in types:
             rule = ValidationRule(type=rule_type)
             assert rule.type == rule_type

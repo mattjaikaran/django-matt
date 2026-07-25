@@ -86,9 +86,7 @@ class TestStatefulReloader:
     def test_save_and_load(self, reloader):
         snapshot = ReloadSnapshot(
             timestamp=1.0,
-            consumers=[
-                ConsumerState(consumer_class="app.C", channel_name="ch")
-            ],
+            consumers=[ConsumerState(consumer_class="app.C", channel_name="ch")],
         )
         reloader.save_snapshot(snapshot)
         loaded = reloader.load_snapshot()
@@ -150,6 +148,7 @@ class TestStatefulReloader:
 
     def test_reload_module(self, reloader):
         import os
+
         reloader.reload_module("os")
         # Should not raise — os is always in sys.modules
 

@@ -17,6 +17,7 @@ from pydantic import BaseModel, EmailStr, Field
 # User Schemas
 # =============================================================================
 
+
 class UserBase(BaseModel):
     email: EmailStr
     first_name: str = ""
@@ -51,6 +52,7 @@ class UserResponse(UserBase):
 
 class UserProfileResponse(UserResponse):
     """Extended user profile with preferences."""
+
     notification_preferences: dict = {}
     last_login_at: datetime | None = None
     last_activity_at: datetime | None = None
@@ -58,6 +60,7 @@ class UserProfileResponse(UserResponse):
 
 class UserMiniResponse(BaseModel):
     """Minimal user info for references."""
+
     id: UUID
     email: EmailStr
     first_name: str = ""
@@ -77,6 +80,7 @@ class UserMiniResponse(BaseModel):
 # =============================================================================
 # Organization Schemas
 # =============================================================================
+
 
 class OrganizationBase(BaseModel):
     name: str = Field(min_length=1, max_length=255)
@@ -114,6 +118,7 @@ class OrganizationResponse(OrganizationBase):
 
 class OrganizationDetailResponse(OrganizationResponse):
     """Detailed organization with settings."""
+
     owner: UserMiniResponse
     settings: dict = {}
     plan_limits: dict = {}
@@ -122,6 +127,7 @@ class OrganizationDetailResponse(OrganizationResponse):
 
 class OrganizationMiniResponse(BaseModel):
     """Minimal organization info."""
+
     id: UUID
     name: str
     slug: str
@@ -134,6 +140,7 @@ class OrganizationMiniResponse(BaseModel):
 # =============================================================================
 # Team Schemas
 # =============================================================================
+
 
 class TeamBase(BaseModel):
     name: str = Field(min_length=1, max_length=255)
@@ -163,12 +170,14 @@ class TeamResponse(TeamBase):
 
 class TeamDetailResponse(TeamResponse):
     """Team with member count."""
+
     member_count: int = 0
 
 
 # =============================================================================
 # Membership Schemas
 # =============================================================================
+
 
 class MembershipCreate(BaseModel):
     user_id: UUID | None = None
@@ -196,6 +205,7 @@ class MembershipResponse(BaseModel):
 
 class MembershipDetailResponse(MembershipResponse):
     """Membership with teams."""
+
     teams: list[TeamResponse] = []
     invited_by: UserMiniResponse | None = None
     invited_at: datetime | None = None
@@ -205,6 +215,7 @@ class MembershipDetailResponse(MembershipResponse):
 # =============================================================================
 # Invitation Schemas
 # =============================================================================
+
 
 class InvitationCreate(BaseModel):
     email: EmailStr
@@ -235,6 +246,7 @@ class InvitationAccept(BaseModel):
 # =============================================================================
 # Authentication Schemas
 # =============================================================================
+
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -297,6 +309,7 @@ class PasswordChangeRequest(BaseModel):
 # OAuth Schemas
 # =============================================================================
 
+
 class OAuthAuthorizationRequest(BaseModel):
     redirect_uri: str | None = None
     state: str | None = None
@@ -316,6 +329,7 @@ class OAuthConnectResponse(BaseModel):
 # =============================================================================
 # Audit Log Schemas
 # =============================================================================
+
 
 class AuditLogResponse(BaseModel):
     id: UUID

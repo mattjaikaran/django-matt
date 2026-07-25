@@ -448,6 +448,7 @@ class TestTemplates:
 # Plan 03-02: --depth flag and --include-examples tests
 # ---------------------------------------------------------------------------
 
+
 class TestGenerateAiContextDepthFlag:
     """Tests for generate_ai_context --depth flag."""
 
@@ -472,9 +473,7 @@ class TestGenerateAiContextDepthFlag:
         cmd = Command()
         parser = argparse.ArgumentParser()
         cmd.add_arguments(parser)
-        depth_action = next(
-            a for a in parser._actions if a.dest == "depth"
-        )
+        depth_action = next(a for a in parser._actions if a.dest == "depth")
         assert "minimal" in depth_action.choices
         assert "standard" in depth_action.choices
         assert "full" in depth_action.choices
@@ -499,6 +498,7 @@ class TestGenerateAiContextDepthFlag:
             )
             # Command should run without error
             import os
+
             assert os.path.exists(os.path.join(tmpdir, "CLAUDE.md"))
 
     def test_depth_standard_default(self):
@@ -510,9 +510,7 @@ class TestGenerateAiContextDepthFlag:
         cmd = Command()
         parser = argparse.ArgumentParser()
         cmd.add_arguments(parser)
-        depth_action = next(
-            a for a in parser._actions if a.dest == "depth"
-        )
+        depth_action = next(a for a in parser._actions if a.dest == "depth")
         assert depth_action.default == "standard"
 
     def test_depth_full_runs_without_error(self):
@@ -534,6 +532,7 @@ class TestGenerateAiContextDepthFlag:
                 stderr=err,
             )
             import os
+
             assert os.path.exists(os.path.join(tmpdir, "CLAUDE.md"))
 
     def test_format_all_produces_all_files(self):
@@ -555,6 +554,7 @@ class TestGenerateAiContextDepthFlag:
                 stderr=err,
             )
             import os
+
             assert os.path.exists(os.path.join(tmpdir, "CLAUDE.md"))
             assert os.path.exists(os.path.join(tmpdir, ".cursorrules"))
             assert os.path.exists(os.path.join(tmpdir, ".copilot-instructions"))
@@ -580,6 +580,7 @@ class TestGenerateAiContextDepthFlag:
                 stderr=err,
             )
             import os
+
             assert os.path.exists(os.path.join(tmpdir, "CLAUDE.md"))
 
 
@@ -689,9 +690,9 @@ class TestEmbeddingHelpers:
 
         query = [1.0, 0.0, 0.0]
         embeddings = [
-            [0.0, 1.0, 0.0],   # orthogonal
-            [0.9, 0.1, 0.0],   # close
-            [1.0, 0.0, 0.0],   # identical
+            [0.0, 1.0, 0.0],  # orthogonal
+            [0.9, 0.1, 0.0],  # close
+            [1.0, 0.0, 0.0],  # identical
         ]
         results = find_most_similar(query, embeddings, top_k=2)
         assert len(results) == 2
@@ -820,10 +821,12 @@ class TestVectorStoreOperations:
         store = InMemoryVectorStore(embedding_provider=mock_embedder)
 
         # Add documents
-        ids = await store.add([
-            Document(id="1", text="Hello world"),
-            Document(id="2", text="Goodbye world"),
-        ])
+        ids = await store.add(
+            [
+                Document(id="1", text="Hello world"),
+                Document(id="2", text="Goodbye world"),
+            ]
+        )
         assert len(ids) == 2
 
         # Search with a vector similar to "Hello world"
@@ -839,10 +842,12 @@ class TestVectorStoreOperations:
         from django_matt.ai.vectorstore import Document, InMemoryVectorStore
 
         store = InMemoryVectorStore(dimensions=3)
-        await store.add([
-            Document(id="1", text="doc1", embedding=[1.0, 0.0, 0.0]),
-            Document(id="2", text="doc2", embedding=[0.0, 1.0, 0.0]),
-        ])
+        await store.add(
+            [
+                Document(id="1", text="doc1", embedding=[1.0, 0.0, 0.0]),
+                Document(id="2", text="doc2", embedding=[0.0, 1.0, 0.0]),
+            ]
+        )
 
         deleted = await store.delete(["1"])
         assert deleted == 1
@@ -857,10 +862,16 @@ class TestVectorStoreOperations:
         from django_matt.ai.vectorstore import Document, InMemoryVectorStore
 
         store = InMemoryVectorStore(dimensions=3)
-        await store.add([
-            Document(id="1", text="doc1", embedding=[1.0, 0.0, 0.0], metadata={"category": "A"}),
-            Document(id="2", text="doc2", embedding=[0.9, 0.1, 0.0], metadata={"category": "B"}),
-        ])
+        await store.add(
+            [
+                Document(
+                    id="1", text="doc1", embedding=[1.0, 0.0, 0.0], metadata={"category": "A"}
+                ),
+                Document(
+                    id="2", text="doc2", embedding=[0.9, 0.1, 0.0], metadata={"category": "B"}
+                ),
+            ]
+        )
 
         results = await store.search([1.0, 0.0, 0.0], filter={"category": "B"})
         assert len(results) == 1

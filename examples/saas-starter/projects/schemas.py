@@ -20,6 +20,7 @@ from core.schemas import TeamResponse, UserMiniResponse
 # Label Schemas
 # =============================================================================
 
+
 class LabelBase(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     color: str = Field(default="#6B7280", pattern=r"^#[0-9A-Fa-f]{6}$")
@@ -50,6 +51,7 @@ class LabelResponse(LabelBase):
 # =============================================================================
 # Project Schemas
 # =============================================================================
+
 
 class ProjectBase(BaseModel):
     name: str = Field(min_length=1, max_length=255)
@@ -100,6 +102,7 @@ class ProjectResponse(ProjectBase):
 
 class ProjectDetailResponse(ProjectResponse):
     """Project with owner, teams, and members."""
+
     owner: UserMiniResponse | None = None
     teams: list[TeamResponse] = []
     settings: dict = {}
@@ -107,6 +110,7 @@ class ProjectDetailResponse(ProjectResponse):
 
 class ProjectMiniResponse(BaseModel):
     """Minimal project info for references."""
+
     id: UUID
     name: str
     slug: str
@@ -120,6 +124,7 @@ class ProjectMiniResponse(BaseModel):
 # =============================================================================
 # Project Member Schemas
 # =============================================================================
+
 
 class ProjectMemberCreate(BaseModel):
     user_id: UUID
@@ -144,6 +149,7 @@ class ProjectMemberResponse(BaseModel):
 # =============================================================================
 # Task Schemas
 # =============================================================================
+
 
 class TaskBase(BaseModel):
     title: str = Field(min_length=1, max_length=500)
@@ -179,6 +185,7 @@ class TaskUpdate(BaseModel):
 
 class TaskBulkUpdate(BaseModel):
     """Update multiple tasks at once."""
+
     task_ids: list[UUID]
     status: str | None = None
     priority: str | None = None
@@ -189,6 +196,7 @@ class TaskBulkUpdate(BaseModel):
 
 class TaskMove(BaseModel):
     """Move task to different status/position."""
+
     status: str
     position: int
 
@@ -221,6 +229,7 @@ class TaskResponse(TaskBase):
 
 class TaskDetailResponse(TaskResponse):
     """Task with full details including custom fields."""
+
     project: ProjectMiniResponse
     custom_fields: dict = {}
     subtasks: list["TaskMiniResponse"] = []
@@ -228,6 +237,7 @@ class TaskDetailResponse(TaskResponse):
 
 class TaskMiniResponse(BaseModel):
     """Minimal task info for lists and references."""
+
     id: UUID
     title: str
     status: str
@@ -243,6 +253,7 @@ class TaskMiniResponse(BaseModel):
 # =============================================================================
 # Comment Schemas
 # =============================================================================
+
 
 class CommentCreate(BaseModel):
     content: str = Field(min_length=1)
@@ -274,6 +285,7 @@ class CommentResponse(BaseModel):
 
 class CommentDetailResponse(CommentResponse):
     """Comment with mentions and replies."""
+
     mentions: list[UserMiniResponse] = []
     replies: list["CommentResponse"] = []
 
@@ -285,6 +297,7 @@ class ReactionRequest(BaseModel):
 # =============================================================================
 # Activity Schemas
 # =============================================================================
+
 
 class TaskActivityResponse(BaseModel):
     id: UUID
@@ -305,8 +318,10 @@ class TaskActivityResponse(BaseModel):
 # Filter and List Schemas
 # =============================================================================
 
+
 class TaskFilter(BaseModel):
     """Task list filters."""
+
     project_id: UUID | None = None
     status: list[str] | None = None
     priority: list[str] | None = None
@@ -323,6 +338,7 @@ class TaskFilter(BaseModel):
 
 class TaskListResponse(BaseModel):
     """Paginated task list."""
+
     items: list[TaskResponse]
     total: int
     page: int
@@ -333,6 +349,7 @@ class TaskListResponse(BaseModel):
 
 class ProjectFilter(BaseModel):
     """Project list filters."""
+
     status: list[str] | None = None
     team_id: UUID | None = None
     owner_id: UUID | None = None
@@ -341,6 +358,7 @@ class ProjectFilter(BaseModel):
 
 class ProjectListResponse(BaseModel):
     """Paginated project list."""
+
     items: list[ProjectResponse]
     total: int
     page: int
@@ -353,8 +371,10 @@ class ProjectListResponse(BaseModel):
 # Board/Kanban Schemas
 # =============================================================================
 
+
 class KanbanColumn(BaseModel):
     """Column in Kanban board."""
+
     status: str
     title: str
     tasks: list[TaskMiniResponse]
@@ -363,5 +383,6 @@ class KanbanColumn(BaseModel):
 
 class KanbanBoardResponse(BaseModel):
     """Full Kanban board."""
+
     project: ProjectMiniResponse
     columns: list[KanbanColumn]

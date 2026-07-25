@@ -29,6 +29,7 @@ from django_matt.core.schema import (
 
 # ---- Helpers ----
 
+
 def _enable_camel_case():
     """Enable camelCase in settings and reset cache."""
     settings.DJANGO_MATT = {**getattr(settings, "DJANGO_MATT", {}), "CAMEL_CASE_API": True}
@@ -51,6 +52,7 @@ def reset_config():
 
 # ---- Tests: config helper ----
 
+
 class TestCamelCaseConfig:
     def test_default_disabled(self):
         _reset_camel_case_config()
@@ -68,6 +70,7 @@ class TestCamelCaseConfig:
 
 
 # ---- Tests: model_dump_response ----
+
 
 class TestModelDumpResponse:
     """Test the model_dump_response() convenience method."""
@@ -139,6 +142,7 @@ class TestModelDumpResponse:
 
 # ---- Tests: ModelSchema metaclass integration ----
 
+
 class TestModelSchemaMetaclassIntegration:
     """Test that the metaclass applies alias_generator when CAMEL_CASE_API is enabled."""
 
@@ -168,6 +172,7 @@ class TestModelSchemaMetaclassIntegration:
 
 
 # ---- Tests: apply_to_model stays snake_case ----
+
 
 class TestApplyToModelSnakeCase:
     """Ensure model_dump() for Django model operations always uses snake_case."""

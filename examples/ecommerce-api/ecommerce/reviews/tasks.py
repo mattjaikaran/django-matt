@@ -17,9 +17,7 @@ def notify_new_review(review_id: str):
     """Notify admin of new review for moderation."""
     from ecommerce.reviews.models import Review
 
-    review = Review.objects.filter(id=review_id).select_related(
-        "product", "user"
-    ).first()
+    review = Review.objects.filter(id=review_id).select_related("product", "user").first()
 
     if not review:
         return
@@ -53,9 +51,7 @@ def notify_review_approved(review_id: str):
     """Notify user that their review was approved."""
     from ecommerce.reviews.models import Review
 
-    review = Review.objects.filter(id=review_id).select_related(
-        "product", "user"
-    ).first()
+    review = Review.objects.filter(id=review_id).select_related("product", "user").first()
 
     if not review or not review.user:
         return
@@ -95,9 +91,7 @@ def auto_moderate_reviews():
     approved_count = 0
     for review in pending_reviews:
         # Auto-approve if user has multiple approved reviews already
-        approved_reviews = Review.objects.filter(
-            user=review.user, status="approved"
-        ).count()
+        approved_reviews = Review.objects.filter(user=review.user, status="approved").count()
 
         if approved_reviews >= 3:
             # User is trusted
@@ -129,9 +123,7 @@ def calculate_product_ratings():
     from django.core.cache import cache
 
     for product in products:
-        stats = Review.objects.filter(
-            product=product, status="approved"
-        ).aggregate(
+        stats = Review.objects.filter(product=product, status="approved").aggregate(
             avg_rating=Avg("rating"),
             count=Count("id"),
         )

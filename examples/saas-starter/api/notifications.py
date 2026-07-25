@@ -75,7 +75,9 @@ class NotificationController(APIController):
 
         # Paginate
         offset = (page - 1) * page_size
-        queryset = queryset.select_related("actor").order_by("-created_at")[offset:offset + page_size]
+        queryset = queryset.select_related("actor").order_by("-created_at")[
+            offset : offset + page_size
+        ]
 
         items = []
         async for notification in queryset:
@@ -108,7 +110,9 @@ class NotificationController(APIController):
 
         # Count by type
         by_type = {}
-        async for item in queryset.filter(is_read=False).values("type").annotate(count=models.Count("id")):
+        async for item in (
+            queryset.filter(is_read=False).values("type").annotate(count=models.Count("id"))
+        ):
             by_type[item["type"]] = item["count"]
 
         return NotificationCountResponse(
@@ -177,6 +181,7 @@ class NotificationController(APIController):
     @jwt_required
     async def stream_notifications(self, request):
         """Stream new notifications via SSE."""
+
         async def generate():
             last_check = timezone.now()
             while True:
@@ -186,13 +191,15 @@ class NotificationController(APIController):
                     created_at__gt=last_check,
                     is_read=False,
                 ).order_by("-created_at")[:10]:
-                    new_notifs.append({
-                        "id": str(n.id),
-                        "title": n.title,
-                        "message": n.message,
-                        "type": n.type,
-                        "created_at": n.created_at.isoformat(),
-                    })
+                    new_notifs.append(
+                        {
+                            "id": str(n.id),
+                            "title": n.title,
+                            "message": n.message,
+                            "type": n.type,
+                            "created_at": n.created_at.isoformat(),
+                        }
+                    )
                 if new_notifs:
                     yield sse_event(new_notifs, event_type="notifications")
                 last_check = timezone.now()

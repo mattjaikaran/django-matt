@@ -66,7 +66,9 @@ class TeamController(APIController):
     @jwt_required
     async def create_team(self, request, org_slug: str, data: TeamCreate) -> dict:
         """Create a new team. Requires admin permission."""
-        org, membership, error = await self.get_org_and_check_access(request, org_slug, require_admin=True)
+        org, membership, error = await self.get_org_and_check_access(
+            request, org_slug, require_admin=True
+        )
         if error:
             return error
 
@@ -119,7 +121,9 @@ class TeamController(APIController):
     @jwt_required
     async def update_team(self, request, org_slug: str, team_slug: str, data: TeamUpdate) -> dict:
         """Update team details. Requires admin permission."""
-        org, membership, error = await self.get_org_and_check_access(request, org_slug, require_admin=True)
+        org, membership, error = await self.get_org_and_check_access(
+            request, org_slug, require_admin=True
+        )
         if error:
             return error
 
@@ -150,7 +154,9 @@ class TeamController(APIController):
     @jwt_required
     async def delete_team(self, request, org_slug: str, team_slug: str) -> dict:
         """Delete team. Requires admin permission."""
-        org, membership, error = await self.get_org_and_check_access(request, org_slug, require_admin=True)
+        org, membership, error = await self.get_org_and_check_access(
+            request, org_slug, require_admin=True
+        )
         if error:
             return error
 
@@ -204,7 +210,9 @@ class TeamController(APIController):
     @jwt_required
     async def add_team_member(self, request, org_slug: str, team_slug: str, member_id: str) -> dict:
         """Add member to team. Requires admin permission."""
-        org, req_membership, error = await self.get_org_and_check_access(request, org_slug, require_admin=True)
+        org, req_membership, error = await self.get_org_and_check_access(
+            request, org_slug, require_admin=True
+        )
         if error:
             return error
 
@@ -237,9 +245,13 @@ class TeamController(APIController):
 
     @delete("/<str:team_slug>/members/<str:member_id>")
     @jwt_required
-    async def remove_team_member(self, request, org_slug: str, team_slug: str, member_id: str) -> dict:
+    async def remove_team_member(
+        self, request, org_slug: str, team_slug: str, member_id: str
+    ) -> dict:
         """Remove member from team. Requires admin permission."""
-        org, req_membership, error = await self.get_org_and_check_access(request, org_slug, require_admin=True)
+        org, req_membership, error = await self.get_org_and_check_access(
+            request, org_slug, require_admin=True
+        )
         if error:
             return error
 

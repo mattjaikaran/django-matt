@@ -64,7 +64,6 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-
         # Increase counts for full mode
         if options["full"]:
             options["users"] = max(options["users"], 20)
@@ -85,9 +84,7 @@ class Command(BaseCommand):
         demo_users = self.create_demo_users(admin_user, options["users"])
 
         # Create organizations
-        organizations = self.create_organizations(
-            admin_user, demo_users, options["orgs"]
-        )
+        organizations = self.create_organizations(admin_user, demo_users, options["orgs"])
 
         # Create projects, tasks, and comments for each org
         for org in organizations:
@@ -95,14 +92,10 @@ class Command(BaseCommand):
             org_user_objects = [u for u in demo_users if u.id in org_users]
 
             labels = self.create_labels(org)
-            projects = self.create_projects(
-                org, org_user_objects, options["projects"]
-            )
+            projects = self.create_projects(org, org_user_objects, options["projects"])
 
             for project in projects:
-                self.create_tasks(
-                    project, org_user_objects, labels, options["tasks"]
-                )
+                self.create_tasks(project, org_user_objects, labels, options["tasks"])
 
             # Create subscription and billing data
             self.create_subscription(org)
@@ -175,9 +168,9 @@ class Command(BaseCommand):
         if created:
             admin_user.set_password("admin123")
             admin_user.save()
-            self.stdout.write(self.style.SUCCESS(
-                "Created admin user: admin@saas-starter.local / admin123"
-            ))
+            self.stdout.write(
+                self.style.SUCCESS("Created admin user: admin@saas-starter.local / admin123")
+            )
         return admin_user
 
     def create_demo_users(self, admin_user, count):
@@ -187,15 +180,50 @@ class Command(BaseCommand):
 
         demo_users = [admin_user]
         first_names = [
-            "Alice", "Bob", "Charlie", "Diana", "Eve", "Frank", "Grace", "Henry",
-            "Ivy", "Jack", "Kate", "Leo", "Mia", "Noah", "Olivia", "Paul",
-            "Quinn", "Rose", "Sam", "Tara"
+            "Alice",
+            "Bob",
+            "Charlie",
+            "Diana",
+            "Eve",
+            "Frank",
+            "Grace",
+            "Henry",
+            "Ivy",
+            "Jack",
+            "Kate",
+            "Leo",
+            "Mia",
+            "Noah",
+            "Olivia",
+            "Paul",
+            "Quinn",
+            "Rose",
+            "Sam",
+            "Tara",
         ]
         last_names = [
-            "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller",
-            "Davis", "Martinez", "Wilson", "Anderson", "Taylor", "Thomas", "Moore"
+            "Smith",
+            "Johnson",
+            "Williams",
+            "Brown",
+            "Jones",
+            "Garcia",
+            "Miller",
+            "Davis",
+            "Martinez",
+            "Wilson",
+            "Anderson",
+            "Taylor",
+            "Thomas",
+            "Moore",
         ]
-        timezones = ["America/New_York", "America/Los_Angeles", "Europe/London", "Asia/Tokyo", "UTC"]
+        timezones = [
+            "America/New_York",
+            "America/Los_Angeles",
+            "Europe/London",
+            "Asia/Tokyo",
+            "UTC",
+        ]
 
         for i in range(count):
             first_name = first_names[i % len(first_names)]
@@ -226,7 +254,7 @@ class Command(BaseCommand):
                         "email_enabled": True,
                         "push_enabled": random.choice([True, False]),
                         "in_app_enabled": True,
-                    }
+                    },
                 )
 
             demo_users.append(user)
@@ -305,7 +333,12 @@ class Command(BaseCommand):
         """Create memberships for users in an organization."""
         from core.models import Membership, MembershipRole
 
-        roles = [MembershipRole.ADMIN, MembershipRole.MEMBER, MembershipRole.MEMBER, MembershipRole.VIEWER]
+        roles = [
+            MembershipRole.ADMIN,
+            MembershipRole.MEMBER,
+            MembershipRole.MEMBER,
+            MembershipRole.VIEWER,
+        ]
 
         # Add admin as owner
         owner_membership, _ = Membership.objects.get_or_create(
@@ -377,8 +410,18 @@ class Command(BaseCommand):
         from projects.models import Project, ProjectMember, ProjectStatus
 
         projects_data = [
-            ("Website Redesign", "website-redesign", "Redesign the company website with modern UI", "#3B82F6"),
-            ("Mobile App", "mobile-app", "Native mobile application for iOS and Android", "#EF4444"),
+            (
+                "Website Redesign",
+                "website-redesign",
+                "Redesign the company website with modern UI",
+                "#3B82F6",
+            ),
+            (
+                "Mobile App",
+                "mobile-app",
+                "Native mobile application for iOS and Android",
+                "#EF4444",
+            ),
             ("API Platform", "api-platform", "Build the new API platform", "#10B981"),
             ("Marketing Campaign", "marketing-q1", "Q1 Marketing initiatives", "#F59E0B"),
             ("Internal Tools", "internal-tools", "Developer productivity tools", "#8B5CF6"),
@@ -500,20 +543,26 @@ class Command(BaseCommand):
                 title=title,
                 defaults={
                     "description": f"Detailed description for task: {title}\n\n"
-                                   f"This task involves implementing {title.lower()} "
-                                   f"for the {project.name} project.",
+                    f"This task involves implementing {title.lower()} "
+                    f"for the {project.name} project.",
                     "assignee": assignee,
                     "reporter": reporter,
                     "status": status,
                     "priority": random.choice(priorities),
                     "position": i,
                     "labels": random.sample(label_names, k=random.randint(0, 3)),
-                    "estimated_hours": random.choice([1, 2, 4, 8, 16, 24, 40]) if random.random() > 0.3 else None,
-                    "actual_hours": random.choice([1, 2, 3, 5, 8, 12, 20]) if status == TaskStatus.DONE else None,
-                    "due_date": (
-                        timezone.now() + timedelta(days=random.randint(-5, 30))
-                    ).date() if random.random() > 0.3 else None,
-                    "completed_at": timezone.now() - timedelta(days=random.randint(0, 10)) if status == TaskStatus.DONE else None,
+                    "estimated_hours": random.choice([1, 2, 4, 8, 16, 24, 40])
+                    if random.random() > 0.3
+                    else None,
+                    "actual_hours": random.choice([1, 2, 3, 5, 8, 12, 20])
+                    if status == TaskStatus.DONE
+                    else None,
+                    "due_date": (timezone.now() + timedelta(days=random.randint(-5, 30))).date()
+                    if random.random() > 0.3
+                    else None,
+                    "completed_at": timezone.now() - timedelta(days=random.randint(0, 10))
+                    if status == TaskStatus.DONE
+                    else None,
                     "custom_fields": {
                         "sprint": f"Sprint {random.randint(1, 10)}",
                         "story_points": random.choice([1, 2, 3, 5, 8, 13]),
@@ -598,7 +647,9 @@ class Command(BaseCommand):
                 "stripe_product_id": f"prod_{secrets.token_hex(12)}",
                 "plan_name": plan_name,
                 "plan_interval": random.choice(["month", "year"]),
-                "status": SubscriptionStatus.ACTIVE if org.plan != "free" else SubscriptionStatus.TRIALING,
+                "status": SubscriptionStatus.ACTIVE
+                if org.plan != "free"
+                else SubscriptionStatus.TRIALING,
                 "current_period_start": timezone.now() - timedelta(days=15),
                 "current_period_end": timezone.now() + timedelta(days=15),
                 "quantity": org.memberships.count() if quantity else 1,
@@ -642,10 +693,22 @@ class Command(BaseCommand):
         from notifications.models import Notification, NotificationType
 
         notification_types = [
-            (NotificationType.TASK_ASSIGNED, "New task assigned", "You have been assigned to a new task"),
+            (
+                NotificationType.TASK_ASSIGNED,
+                "New task assigned",
+                "You have been assigned to a new task",
+            ),
             (NotificationType.TASK_COMMENTED, "New comment", "Someone commented on your task"),
-            (NotificationType.PROJECT_MEMBER_ADDED, "Added to project", "You've been added to a project"),
-            (NotificationType.ORG_MEMBER_JOINED, "New team member", "A new member joined your organization"),
+            (
+                NotificationType.PROJECT_MEMBER_ADDED,
+                "Added to project",
+                "You've been added to a project",
+            ),
+            (
+                NotificationType.ORG_MEMBER_JOINED,
+                "New team member",
+                "A new member joined your organization",
+            ),
         ]
 
         for user in users[:5]:
@@ -692,11 +755,23 @@ class Command(BaseCommand):
 
             flags_data = [
                 ("new_dashboard", "New Dashboard", "Enable the new dashboard UI", True, "boolean"),
-                ("beta_features", "Beta Features", "Enable beta features for testing", False, "boolean"),
+                (
+                    "beta_features",
+                    "Beta Features",
+                    "Enable beta features for testing",
+                    False,
+                    "boolean",
+                ),
                 ("dark_mode", "Dark Mode", "Enable dark mode support", True, "boolean"),
                 ("ai_assistant", "AI Assistant", "Enable AI-powered assistant", False, "boolean"),
                 ("checkout_v2", "Checkout V2", "New checkout flow", True, "percentage", 50),
-                ("onboarding_ab", "Onboarding A/B", "A/B test for onboarding flow", True, "variant"),
+                (
+                    "onboarding_ab",
+                    "Onboarding A/B",
+                    "A/B test for onboarding flow",
+                    True,
+                    "variant",
+                ),
             ]
 
             for name, _display_name, description, enabled, flag_type, *args in flags_data:
@@ -720,8 +795,13 @@ class Command(BaseCommand):
         from notifications.models import AnalyticsEvent
 
         event_names = [
-            "page_view", "button_click", "form_submit", "feature_used",
-            "task_created", "project_viewed", "search_performed"
+            "page_view",
+            "button_click",
+            "form_submit",
+            "feature_used",
+            "task_created",
+            "project_viewed",
+            "search_performed",
         ]
 
         for user in users[:5]:
@@ -739,10 +819,8 @@ class Command(BaseCommand):
                         page_url=f"/app/{random.choice(['dashboard', 'projects', 'tasks', 'settings'])}",
                         device_type=random.choice(["desktop", "mobile", "tablet"]),
                         browser=random.choice(["Chrome", "Firefox", "Safari"]),
-                        timestamp=timezone.now() - timedelta(
-                            days=random.randint(0, 30),
-                            hours=random.randint(0, 23)
-                        ),
+                        timestamp=timezone.now()
+                        - timedelta(days=random.randint(0, 30), hours=random.randint(0, 23)),
                     )
 
     def create_coupons(self):

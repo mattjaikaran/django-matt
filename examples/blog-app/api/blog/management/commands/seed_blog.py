@@ -4,7 +4,16 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.utils.text import slugify
 
-TAGS = ["python", "django", "web-development", "api", "tutorial", "open-source", "react", "typescript"]
+TAGS = [
+    "python",
+    "django",
+    "web-development",
+    "api",
+    "tutorial",
+    "open-source",
+    "react",
+    "typescript",
+]
 CATEGORIES = [
     {"name": "Engineering", "description": "Technical deep-dives and architecture posts"},
     {"name": "Tutorials", "description": "Step-by-step guides"},
@@ -344,7 +353,10 @@ class Command(BaseCommand):
         for cat_data in CATEGORIES:
             cat, _ = Category.objects.get_or_create(
                 name=cat_data["name"],
-                defaults={"slug": slugify(cat_data["name"]), "description": cat_data["description"]},
+                defaults={
+                    "slug": slugify(cat_data["name"]),
+                    "description": cat_data["description"],
+                },
             )
             cats[cat_data["name"]] = cat
             if _:

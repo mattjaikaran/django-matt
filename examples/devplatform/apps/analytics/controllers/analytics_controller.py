@@ -19,9 +19,7 @@ class AnalyticsController(APIController):
 
     @staticmethod
     @jwt_required
-    async def get_usage_summary(
-        request, org_id: str, project_id: str
-    ) -> dict:
+    async def get_usage_summary(request, org_id: str, project_id: str) -> dict:
         """Aggregate usage summary for a project over a given period."""
         await get_membership(request.user, org_id)
 
@@ -50,11 +48,7 @@ class AnalyticsController(APIController):
 
         total_requests = aggregates["total_requests"] or 0
         total_failed = aggregates["total_failed"] or 0
-        error_rate = (
-            round(total_failed / total_requests * 100, 2)
-            if total_requests > 0
-            else 0.0
-        )
+        error_rate = round(total_failed / total_requests * 100, 2) if total_requests > 0 else 0.0
 
         return {
             "total_requests": total_requests,
@@ -67,9 +61,7 @@ class AnalyticsController(APIController):
 
     @staticmethod
     @jwt_required
-    async def get_daily_metrics(
-        request, org_id: str, project_id: str
-    ) -> dict:
+    async def get_daily_metrics(request, org_id: str, project_id: str) -> dict:
         """Return daily metric entries for a project within a date range."""
         await get_membership(request.user, org_id)
 
@@ -100,9 +92,7 @@ class AnalyticsController(APIController):
 
     @staticmethod
     @jwt_required
-    async def get_time_series(
-        request, org_id: str, project_id: str
-    ) -> dict:
+    async def get_time_series(request, org_id: str, project_id: str) -> dict:
         """Return time series data for a specific metric."""
         await get_membership(request.user, org_id)
 
@@ -140,10 +130,12 @@ class AnalyticsController(APIController):
 
         data = []
         async for m in qs:
-            data.append({
-                "timestamp": m.date.isoformat(),
-                "value": float(getattr(m, metric)),
-            })
+            data.append(
+                {
+                    "timestamp": m.date.isoformat(),
+                    "value": float(getattr(m, metric)),
+                }
+            )
 
         return {
             "metric": metric,
@@ -155,6 +147,7 @@ class AnalyticsController(APIController):
     async def stream_metrics(request, org_id: str, project_id: str):
         """Stream live metrics updates via SSE."""
         import asyncio
+
         await get_membership(request.user, org_id)
 
         try:

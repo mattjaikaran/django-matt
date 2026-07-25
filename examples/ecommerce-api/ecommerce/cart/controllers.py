@@ -128,9 +128,7 @@ class CartController(APIController):
         cart = await CartController._get_or_create_cart(request)
 
         # Get product
-        product = await Product.objects.filter(
-            id=data.product_id, status="active"
-        ).afirst()
+        product = await Product.objects.filter(id=data.product_id, status="active").afirst()
         if not product:
             raise NotFoundAPIError("Product not found")
 
@@ -147,9 +145,7 @@ class CartController(APIController):
         if variant:
             inv = await Inventory.objects.filter(variant=variant).afirst()
         else:
-            inv = await Inventory.objects.filter(
-                product=product, variant__isnull=True
-            ).afirst()
+            inv = await Inventory.objects.filter(product=product, variant__isnull=True).afirst()
 
         if not inv or inv.available_quantity < data.quantity:
             raise ValidationAPIError("Insufficient inventory")
@@ -162,9 +158,7 @@ class CartController(APIController):
         if existing:
             new_quantity = existing.quantity + data.quantity
             if inv and new_quantity > inv.available_quantity:
-                raise ValidationAPIError(
-                    f"Only {inv.available_quantity} items available"
-                )
+                raise ValidationAPIError(f"Only {inv.available_quantity} items available")
             existing.quantity = new_quantity
             await existing.asave()
         else:
@@ -179,15 +173,15 @@ class CartController(APIController):
 
     @staticmethod
     @jwt_optional
-    async def update_item(
-        request, item_id: UUID, data: CartItemUpdate
-    ) -> CartResponse:
+    async def update_item(request, item_id: UUID, data: CartItemUpdate) -> CartResponse:
         """Update cart item quantity."""
         cart = await CartController._get_or_create_cart(request)
 
-        item = await CartItem.objects.filter(id=item_id, cart=cart).select_related(
-            "product", "variant"
-        ).afirst()
+        item = (
+            await CartItem.objects.filter(id=item_id, cart=cart)
+            .select_related("product", "variant")
+            .afirst()
+        )
         if not item:
             raise NotFoundAPIError("Cart item not found")
 
@@ -200,9 +194,7 @@ class CartController(APIController):
             ).afirst()
 
         if inv and data.quantity > inv.available_quantity:
-            raise ValidationAPIError(
-                f"Only {inv.available_quantity} items available"
-            )
+            raise ValidationAPIError(f"Only {inv.available_quantity} items available")
 
         item.quantity = data.quantity
         await item.asave()

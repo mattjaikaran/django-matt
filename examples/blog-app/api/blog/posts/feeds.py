@@ -13,9 +13,11 @@ class LatestPostsFeed(Feed):
     link = "/"
 
     def items(self):
-        return Post.objects.filter(status="published").select_related("author").order_by(
-            "-published_at"
-        )[:20]
+        return (
+            Post.objects.filter(status="published")
+            .select_related("author")
+            .order_by("-published_at")[:20]
+        )
 
     def item_title(self, item: Post) -> str:
         return item.title

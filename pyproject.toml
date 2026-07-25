@@ -217,6 +217,8 @@ dev = [
     "twine>=6.0.0",
     "pre-commit>=4.0.0",
     "cryptography>=46.0.3",
+    "bandit>=1.8.0",
+    "pip-audit>=2.8.0",
 ]
 
 docs = [
@@ -619,3 +621,27 @@ precision = 2
 
 [tool.coverage.html]
 directory = "htmlcov"
+
+# =============================================================================
+# Bandit Configuration (Security Linter)
+# =============================================================================
+[tool.bandit]
+exclude_dirs = [
+    "tests",
+    "examples",
+    ".venv",
+    "venv",
+    "node_modules",
+    ".mypy_cache",
+    ".ruff_cache",
+]
+skips = ["B101", "B104", "B105", "B110", "B311", "B324", "B403", "B404", "B603", "B607", "B608", "B701"]
+level = "medium"
+confidence = "medium"
+
+# =============================================================================
+# File Length Enforcement
+# =============================================================================
+[tool.file-length]
+max_lines = 500
+per_file_max = { "scripts/gauntlet.py" = 600, "django_matt/core/router.py" = 750, "django_matt/core/controller.py" = 900 }

@@ -160,8 +160,7 @@ class ChatConsumer(RoomConsumer):
         # Get recent messages
         messages = await MessageService.get_channel_messages(channel, limit=50)
         message_responses = [
-            MessageService.to_response(m, self.user).model_dump(mode="json")
-            for m in messages
+            MessageService.to_response(m, self.user).model_dump(mode="json") for m in messages
         ]
 
         # Get online members
@@ -281,9 +280,7 @@ class ChatConsumer(RoomConsumer):
             )
 
             # Convert to response
-            message_data = MessageService.to_response(message, self.user).model_dump(
-                mode="json"
-            )
+            message_data = MessageService.to_response(message, self.user).model_dump(mode="json")
 
             # Broadcast to channel
             await self.broadcast_to_group(
@@ -328,9 +325,7 @@ class ChatConsumer(RoomConsumer):
             message = await MessageService.update(message, content)
 
             # Convert to response
-            message_data = MessageService.to_response(message, self.user).model_dump(
-                mode="json"
-            )
+            message_data = MessageService.to_response(message, self.user).model_dump(mode="json")
 
             # Broadcast update
             channel_id = message.channel_id or message.dm_thread_id
@@ -429,9 +424,7 @@ class ChatConsumer(RoomConsumer):
                 # In production, cache this lookup
                 user = await User.objects.filter(id=user_id).afirst()
                 if user:
-                    users.append(
-                        {"id": user.id, "username": user.username}
-                    )
+                    users.append({"id": user.id, "username": user.username})
 
         await self.broadcast_to_group(
             f"channel_{self.current_channel_id}",

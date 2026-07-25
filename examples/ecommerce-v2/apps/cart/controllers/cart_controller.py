@@ -104,9 +104,7 @@ class CartController(APIController):
 
         # Create or update cart item
         try:
-            item = await CartItem.objects.aget(
-                cart=cart, product=product, variant=variant
-            )
+            item = await CartItem.objects.aget(cart=cart, product=product, variant=variant)
             item.quantity += body.quantity
             # Re-check stock for total quantity
             if variant:
@@ -171,9 +169,7 @@ class CartController(APIController):
     async def remove_cart_item(self, request, item_id: str):
         """DELETE /cart/items/{item_id} — Remove item from cart."""
         try:
-            item = await CartItem.objects.aget(
-                id=item_id, cart__user=request.user
-            )
+            item = await CartItem.objects.aget(id=item_id, cart__user=request.user)
         except CartItem.DoesNotExist:
             raise NotFoundAPIError("Cart item not found")
 

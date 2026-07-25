@@ -40,9 +40,7 @@ class OrganizationController(APIController):
         """GET / — list all organizations."""
         orgs = [
             org
-            async for org in Organization.objects.annotate(
-                member_count=Count("memberships")
-            ).all()
+            async for org in Organization.objects.annotate(member_count=Count("memberships")).all()
         ]
         return {
             "items": [OrganizationSchema.from_orm_fast(org).model_dump() for org in orgs],
@@ -84,9 +82,7 @@ class ProjectController(APIController):
         """GET / — list projects for the current tenant."""
         projects = [
             proj
-            async for proj in Project.objects.filter(
-                organization=request.tenant, is_archived=False
-            )
+            async for proj in Project.objects.filter(organization=request.tenant, is_archived=False)
         ]
         return {
             "items": [ProjectSchema.from_orm_fast(p).model_dump() for p in projects],
@@ -111,17 +107,13 @@ class ProjectController(APIController):
 
     async def read(self, request: HttpRequest, project_id: UUID) -> dict:
         """GET /{project_id} — get project details."""
-        project = await Project.objects.aget(
-            id=project_id, organization=request.tenant
-        )
+        project = await Project.objects.aget(id=project_id, organization=request.tenant)
         return ProjectSchema.from_orm_fast(project).model_dump()
 
     @intercept(FeatureGateInterceptor(required_plans=["pro", "enterprise"]))
     async def archive(self, request: HttpRequest, project_id: UUID) -> dict:
         """POST /{project_id}/archive — archive a project (Pro+ only)."""
-        project = await Project.objects.aget(
-            id=project_id, organization=request.tenant
-        )
+        project = await Project.objects.aget(id=project_id, organization=request.tenant)
         project.is_archived = True
         await project.asave(update_fields=["is_archived", "updated_at"])
         return ProjectSchema.from_orm_fast(project).model_dump()

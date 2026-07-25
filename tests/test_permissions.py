@@ -55,6 +55,7 @@ from django_matt.permissions.decorators.role import requires_role
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_user(
     *,
     authenticated: bool = True,

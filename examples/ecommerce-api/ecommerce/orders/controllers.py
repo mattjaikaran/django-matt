@@ -50,9 +50,11 @@ class OrderController(APIController):
     async def checkout(request, data: CheckoutRequest) -> OrderCreateResponse:
         """Create order from cart."""
         # Get user's cart
-        cart = await Cart.objects.filter(user=request.user).prefetch_related(
-            "items__product", "items__variant"
-        ).afirst()
+        cart = (
+            await Cart.objects.filter(user=request.user)
+            .prefetch_related("items__product", "items__variant")
+            .afirst()
+        )
 
         if not cart or cart.item_count == 0:
             raise ValidationAPIError("Cart is empty")
@@ -75,9 +77,7 @@ class OrderController(APIController):
                 ).afirst()
 
             if not inv or not inv.reserve(item.quantity):
-                raise ValidationAPIError(
-                    f"Insufficient inventory for {item.product.name}"
-                )
+                raise ValidationAPIError(f"Insufficient inventory for {item.product.name}")
 
         # Apply coupon if provided
         coupon = None
@@ -148,6 +148,7 @@ class OrderController(APIController):
 
         # Trigger order confirmation email (async)
         from ecommerce.orders.tasks import send_order_confirmation_email
+
         send_order_confirmation_email.delay(str(order.id))
 
         return OrderCreateResponse(
@@ -205,9 +206,11 @@ class OrderController(APIController):
     @jwt_required
     async def get_order(request, order_id: UUID) -> OrderDetailResponse:
         """Get order details."""
-        order = await Order.objects.filter(
-            id=order_id, user=request.user
-        ).prefetch_related("items").afirst()
+        order = (
+            await Order.objects.filter(id=order_id, user=request.user)
+            .prefetch_related("items")
+            .afirst()
+        )
 
         if not order:
             raise NotFoundAPIError("Order not found")
@@ -261,9 +264,11 @@ class OrderController(APIController):
         if not order:
             raise NotFoundAPIError("Order not found")
 
-        history = OrderStatusHistory.objects.filter(order=order).select_related(
-            "changed_by"
-        ).order_by("-created_at")
+        history = (
+            OrderStatusHistory.objects.filter(order=order)
+            .select_related("changed_by")
+            .order_by("-created_at")
+        )
 
         return [
             OrderStatusHistoryResponse(
@@ -346,6 +351,7 @@ class OrderController(APIController):
 
         # Trigger notifications
         from ecommerce.orders.tasks import send_order_status_update_email
+
         send_order_status_update_email.delay(str(order.id), data.status)
 
         return await OrderController.get_order(request, order_id)
@@ -420,9 +426,7 @@ class CouponController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_coupon(
-        request, coupon_id: UUID, data: CouponUpdate
-    ) -> CouponResponse:
+    async def update_coupon(request, coupon_id: UUID, data: CouponUpdate) -> CouponResponse:
         """Update a coupon (admin only)."""
         if not request.user.is_staff:
             raise ValidationAPIError("Admin access required")

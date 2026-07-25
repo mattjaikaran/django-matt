@@ -38,9 +38,7 @@ class Order(BaseModel):
     shipping_address = models.TextField()
     billing_address = models.TextField(blank=True, default="")
     notes = models.TextField(blank=True, default="")
-    stripe_payment_intent_id = models.CharField(
-        max_length=255, blank=True, null=True
-    )
+    stripe_payment_intent_id = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         verbose_name = "Order"

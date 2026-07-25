@@ -29,6 +29,7 @@ from django_matt.middleware.scoped import (
 
 # --- Test helpers ---
 
+
 class TrackingMiddleware(RouteMiddleware):
     calls: list[str] = []
 
@@ -39,9 +40,7 @@ class TrackingMiddleware(RouteMiddleware):
         TrackingMiddleware.calls.append("request")
         return None
 
-    async def process_response(
-        self, request: HttpRequest, response: HttpResponse
-    ) -> HttpResponse:
+    async def process_response(self, request: HttpRequest, response: HttpResponse) -> HttpResponse:
         TrackingMiddleware.calls.append("response")
         return response
 
@@ -57,9 +56,7 @@ class ExceptionCatchMiddleware(RouteMiddleware):
     def __init__(self) -> None:
         ExceptionCatchMiddleware.caught = None
 
-    async def process_exception(
-        self, request: HttpRequest, exc: Exception
-    ) -> HttpResponse | None:
+    async def process_exception(self, request: HttpRequest, exc: Exception) -> HttpResponse | None:
         ExceptionCatchMiddleware.caught = exc
         return JsonResponse({"detail": "caught"}, status=500)
 
@@ -74,9 +71,7 @@ class OrderTracker(RouteMiddleware):
         OrderTracker.order.append((self._name, "request"))
         return None
 
-    async def process_response(
-        self, request: HttpRequest, response: HttpResponse
-    ) -> HttpResponse:
+    async def process_response(self, request: HttpRequest, response: HttpResponse) -> HttpResponse:
         OrderTracker.order.append((self._name, "response"))
         return response
 
@@ -87,6 +82,7 @@ def rf():
 
 
 # --- RouteMiddleware base ---
+
 
 class TestRouteMiddlewareBase:
     @pytest.mark.asyncio
@@ -110,6 +106,7 @@ class TestRouteMiddlewareBase:
 
 
 # --- MiddlewareStack ---
+
 
 class TestMiddlewareStack:
     @pytest.mark.asyncio
@@ -216,6 +213,7 @@ class TestMiddlewareStack:
 
 # --- _resolve_middleware_stack ---
 
+
 class TestResolveMiddlewareStack:
     def test_empty_returns_none(self):
         result = _resolve_middleware_stack([], None, None)
@@ -227,9 +225,7 @@ class TestResolveMiddlewareStack:
         assert len(result._middlewares) == 1
 
     def test_method_add(self):
-        result = _resolve_middleware_stack(
-            [TrackingMiddleware], [BlockingMiddleware], None
-        )
+        result = _resolve_middleware_stack([TrackingMiddleware], [BlockingMiddleware], None)
         assert len(result._middlewares) == 2
 
     def test_method_skip(self):
@@ -240,19 +236,16 @@ class TestResolveMiddlewareStack:
         assert isinstance(result._middlewares[0], TrackingMiddleware)
 
     def test_skip_all_returns_none(self):
-        result = _resolve_middleware_stack(
-            [TrackingMiddleware], None, [TrackingMiddleware]
-        )
+        result = _resolve_middleware_stack([TrackingMiddleware], None, [TrackingMiddleware])
         assert result is None
 
     def test_add_deduplicates(self):
-        result = _resolve_middleware_stack(
-            [TrackingMiddleware], [TrackingMiddleware], None
-        )
+        result = _resolve_middleware_stack([TrackingMiddleware], [TrackingMiddleware], None)
         assert len(result._middlewares) == 1
 
 
 # --- Decorators ---
+
 
 class TestDecorators:
     def test_use_middleware_sets_attr(self):
@@ -279,6 +272,7 @@ class TestDecorators:
 
 
 # --- Builtin middleware ---
+
 
 class TestScopedCorsMiddleware:
     @pytest.mark.asyncio
@@ -382,6 +376,7 @@ class TestScopedAuthMiddleware:
 
 
 # --- Controller integration ---
+
 
 class TestControllerIntegration:
     def test_controller_middleware_classes_default_empty(self):

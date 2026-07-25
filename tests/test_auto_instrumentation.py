@@ -416,10 +416,12 @@ class TestMultiExporter:
     def test_multi_export(self):
         s1 = io.StringIO()
         s2 = io.StringIO()
-        multi = MultiExporter([
-            ConsoleExporter(stream=s1, color=False),
-            ConsoleExporter(stream=s2, color=False),
-        ])
+        multi = MultiExporter(
+            [
+                ConsoleExporter(stream=s1, color=False),
+                ConsoleExporter(stream=s2, color=False),
+            ]
+        )
         s = Span(name="multi")
         s.finish()
         multi.export(s)
@@ -430,6 +432,7 @@ class TestMultiExporter:
         class BadExporter:
             def export(self, s):
                 raise RuntimeError("export failed")
+
             def shutdown(self):
                 pass
 
@@ -534,6 +537,7 @@ class TestSpanExporterIntegration:
         exporter = ConsoleExporter(stream=stream, color=False)
         add_span_listener(exporter.export)
         try:
+
             @traced("decorated-op")
             def do_work():
                 return 42

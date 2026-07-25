@@ -34,9 +34,7 @@ class TestRequestTrace:
             body=b'{"name": "Matt"}',
             status_code=201,
             response_body=b'{"id": 1}',
-            queries=[
-                QueryRecord(sql="SELECT 1", params=[], duration_ms=0.5)
-            ],
+            queries=[QueryRecord(sql="SELECT 1", params=[], duration_ms=0.5)],
             timing=TimingRecord(total_ms=42.0, db_ms=0.5),
         )
         data = trace.to_json()
@@ -90,6 +88,7 @@ class TestQueryTracker:
 
         def slow_execute(sql, params, many, context):
             import time
+
             time.sleep(0.01)
 
         tracker(slow_execute, "SELECT 1", None, False, None)

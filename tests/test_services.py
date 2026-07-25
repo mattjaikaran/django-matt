@@ -101,9 +101,7 @@ class TestBaseServiceReadHelpers:
         from django_matt.services.base import BaseService, NotFoundError
 
         model = _make_mock_model()
-        model.objects.all.return_value.aget = AsyncMock(
-            side_effect=ObjectDoesNotExist
-        )
+        model.objects.all.return_value.aget = AsyncMock(side_effect=ObjectDoesNotExist)
 
         class S(BaseService):
             pass
@@ -121,9 +119,7 @@ class TestBaseServiceReadHelpers:
         from django_matt.services.base import BaseService
 
         model = _make_mock_model()
-        model.objects.all.return_value.aget = AsyncMock(
-            side_effect=ObjectDoesNotExist
-        )
+        model.objects.all.return_value.aget = AsyncMock(side_effect=ObjectDoesNotExist)
 
         class S(BaseService):
             pass
@@ -137,9 +133,7 @@ class TestBaseServiceReadHelpers:
         from django_matt.services.base import BaseService
 
         model = _make_mock_model()
-        model.objects.all.return_value.filter.return_value.aexists = AsyncMock(
-            return_value=True
-        )
+        model.objects.all.return_value.filter.return_value.aexists = AsyncMock(return_value=True)
 
         class S(BaseService):
             pass
@@ -153,9 +147,7 @@ class TestBaseServiceReadHelpers:
         from django_matt.services.base import BaseService
 
         model = _make_mock_model()
-        model.objects.all.return_value.filter.return_value.acount = AsyncMock(
-            return_value=42
-        )
+        model.objects.all.return_value.filter.return_value.acount = AsyncMock(return_value=42)
 
         class S(BaseService):
             pass

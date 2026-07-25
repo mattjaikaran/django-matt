@@ -112,7 +112,9 @@ class TestMarkdownReporter:
         assert "Break into smaller functions" in result
         assert "Use environment variable" in result
 
-    def test_includes_finding_details(self, sample_summary: ReviewSummary, config: ReviewConfig) -> None:
+    def test_includes_finding_details(
+        self, sample_summary: ReviewSummary, config: ReviewConfig
+    ) -> None:
         result = report_markdown(sample_summary, config)
         assert "CX001" in result
         assert "SEC001" in result
@@ -124,12 +126,16 @@ class TestMarkdownReporter:
         assert "# Code Review" in result
         assert "No findings" in result
 
-    def test_single_finding(self, single_finding_summary: ReviewSummary, config: ReviewConfig) -> None:
+    def test_single_finding(
+        self, single_finding_summary: ReviewSummary, config: ReviewConfig
+    ) -> None:
         result = report_markdown(single_finding_summary, config)
         assert "DJ001" in result
         assert "1 finding" in result
 
-    def test_function_name_in_output(self, sample_summary: ReviewSummary, config: ReviewConfig) -> None:
+    def test_function_name_in_output(
+        self, sample_summary: ReviewSummary, config: ReviewConfig
+    ) -> None:
         result = report_markdown(sample_summary, config)
         assert "process" in result
 
@@ -165,10 +171,22 @@ class TestJSONReporter:
         assert summary["duration_ms"] == pytest.approx(123.4)
         assert "exit_code" in summary
 
-    def test_finding_fields_present(self, sample_summary: ReviewSummary, config: ReviewConfig) -> None:
+    def test_finding_fields_present(
+        self, sample_summary: ReviewSummary, config: ReviewConfig
+    ) -> None:
         parsed = orjson.loads(report_json(sample_summary, config))
         finding = parsed["findings"][0]
-        expected_keys = {"rule_id", "message", "severity", "severity_level", "category", "location", "suggestion", "context", "metadata"}
+        expected_keys = {
+            "rule_id",
+            "message",
+            "severity",
+            "severity_level",
+            "category",
+            "location",
+            "suggestion",
+            "context",
+            "metadata",
+        }
         assert expected_keys <= set(finding.keys())
 
     def test_location_fields(self, sample_summary: ReviewSummary, config: ReviewConfig) -> None:
@@ -194,12 +212,16 @@ class TestJSONReporter:
         assert parsed["findings"] == []
         assert parsed["summary"]["total_findings"] == 0
 
-    def test_single_finding(self, single_finding_summary: ReviewSummary, config: ReviewConfig) -> None:
+    def test_single_finding(
+        self, single_finding_summary: ReviewSummary, config: ReviewConfig
+    ) -> None:
         parsed = orjson.loads(report_json(single_finding_summary, config))
         assert len(parsed["findings"]) == 1
         assert parsed["findings"][0]["rule_id"] == "DJ001"
 
-    def test_by_severity_in_summary(self, sample_summary: ReviewSummary, config: ReviewConfig) -> None:
+    def test_by_severity_in_summary(
+        self, sample_summary: ReviewSummary, config: ReviewConfig
+    ) -> None:
         parsed = orjson.loads(report_json(sample_summary, config))
         by_sev = parsed["summary"]["by_severity"]
         assert by_sev["CRITICAL"] == 1
@@ -217,19 +239,25 @@ class TestGitHubReporter:
         parsed = orjson.loads(result)
         assert isinstance(parsed, dict)
 
-    def test_has_body_and_comments(self, sample_summary: ReviewSummary, config: ReviewConfig) -> None:
+    def test_has_body_and_comments(
+        self, sample_summary: ReviewSummary, config: ReviewConfig
+    ) -> None:
         parsed = orjson.loads(report_github(sample_summary, config))
         assert "body" in parsed
         assert "comments" in parsed
         assert "event" in parsed
 
-    def test_body_has_summary_section(self, sample_summary: ReviewSummary, config: ReviewConfig) -> None:
+    def test_body_has_summary_section(
+        self, sample_summary: ReviewSummary, config: ReviewConfig
+    ) -> None:
         parsed = orjson.loads(report_github(sample_summary, config))
         body = parsed["body"]
         assert "Code Review Summary" in body
         assert "Files analyzed" in body
 
-    def test_comments_have_file_and_line(self, sample_summary: ReviewSummary, config: ReviewConfig) -> None:
+    def test_comments_have_file_and_line(
+        self, sample_summary: ReviewSummary, config: ReviewConfig
+    ) -> None:
         parsed = orjson.loads(report_github(sample_summary, config))
         comments = parsed["comments"]
         assert len(comments) == 2
@@ -240,18 +268,24 @@ class TestGitHubReporter:
             if c["path"] == "app/views.py":
                 assert c["line"] == 42
 
-    def test_suggestion_in_comment_body(self, sample_summary: ReviewSummary, config: ReviewConfig) -> None:
+    def test_suggestion_in_comment_body(
+        self, sample_summary: ReviewSummary, config: ReviewConfig
+    ) -> None:
         parsed = orjson.loads(report_github(sample_summary, config))
         bodies = [c["body"] for c in parsed["comments"]]
         all_text = "\n".join(bodies)
         assert "Break into smaller functions" in all_text
         assert "Use environment variable" in all_text
 
-    def test_event_request_changes_on_critical(self, sample_summary: ReviewSummary, config: ReviewConfig) -> None:
+    def test_event_request_changes_on_critical(
+        self, sample_summary: ReviewSummary, config: ReviewConfig
+    ) -> None:
         parsed = orjson.loads(report_github(sample_summary, config))
         assert parsed["event"] == "REQUEST_CHANGES"
 
-    def test_event_comment_when_no_errors(self, single_finding_summary: ReviewSummary, config: ReviewConfig) -> None:
+    def test_event_comment_when_no_errors(
+        self, single_finding_summary: ReviewSummary, config: ReviewConfig
+    ) -> None:
         parsed = orjson.loads(report_github(single_finding_summary, config))
         assert parsed["event"] == "COMMENT"
 
@@ -260,11 +294,15 @@ class TestGitHubReporter:
         assert parsed["comments"] == []
         assert "No findings" in parsed["body"]
 
-    def test_single_finding(self, single_finding_summary: ReviewSummary, config: ReviewConfig) -> None:
+    def test_single_finding(
+        self, single_finding_summary: ReviewSummary, config: ReviewConfig
+    ) -> None:
         parsed = orjson.loads(report_github(single_finding_summary, config))
         assert len(parsed["comments"]) == 1
 
-    def test_critical_warning_in_body(self, sample_summary: ReviewSummary, config: ReviewConfig) -> None:
+    def test_critical_warning_in_body(
+        self, sample_summary: ReviewSummary, config: ReviewConfig
+    ) -> None:
         parsed = orjson.loads(report_github(sample_summary, config))
         assert "Critical issues found" in parsed["body"]
 
@@ -278,8 +316,12 @@ class TestConsoleReporter:
     def test_runs_without_error(self, sample_summary: ReviewSummary, config: ReviewConfig) -> None:
         report_console(sample_summary, config)
 
-    def test_empty_findings_no_error(self, empty_summary: ReviewSummary, config: ReviewConfig) -> None:
+    def test_empty_findings_no_error(
+        self, empty_summary: ReviewSummary, config: ReviewConfig
+    ) -> None:
         report_console(empty_summary, config)
 
-    def test_single_finding_no_error(self, single_finding_summary: ReviewSummary, config: ReviewConfig) -> None:
+    def test_single_finding_no_error(
+        self, single_finding_summary: ReviewSummary, config: ReviewConfig
+    ) -> None:
         report_console(single_finding_summary, config)

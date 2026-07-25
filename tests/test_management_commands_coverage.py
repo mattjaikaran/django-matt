@@ -112,9 +112,7 @@ class TestConfigCommand:
         with tempfile.TemporaryDirectory() as tmpdir:
             # config init generates configuration files
             try:
-                stdout = run_command_stdout(
-                    "config", "init", force=True
-                )
+                stdout = run_command_stdout("config", "init", force=True)
             except (SystemExit, Exception):
                 # May fail if it tries to write to project root
                 pass
@@ -131,7 +129,8 @@ class TestConfigCommand:
             output_path = str(Path(tmpdir) / "settings.py")
             try:
                 stdout = run_command_stdout(
-                    "config", "generate",
+                    "config",
+                    "generate",
                     env="development",
                     output=output_path,
                 )
@@ -148,9 +147,7 @@ class TestDeployCommand:
     def test_dry_run_fly(self):
         """Deploy --dry-run should generate config without deploying."""
         try:
-            stdout = run_command_stdout(
-                "deploy", platform="fly", dry_run=True
-            )
+            stdout = run_command_stdout("deploy", platform="fly", dry_run=True)
             assert isinstance(stdout, str)
         except (SystemExit, CommandError):
             pass  # OK if no platform config
@@ -159,7 +156,8 @@ class TestDeployCommand:
         with tempfile.TemporaryDirectory() as tmpdir:
             try:
                 stdout = run_command_stdout(
-                    "deploy", "config",
+                    "deploy",
+                    "config",
                     platform="docker",
                     output=tmpdir,
                 )
@@ -177,7 +175,8 @@ class TestDeployCommand:
         with tempfile.TemporaryDirectory() as tmpdir:
             try:
                 stdout = run_command_stdout(
-                    "deploy", "docker",
+                    "deploy",
+                    "docker",
                     mode="production",
                     output=tmpdir,
                 )
@@ -307,9 +306,7 @@ class TestBenchmarkCommand:
         with tempfile.TemporaryDirectory() as tmpdir:
             output_path = str(Path(tmpdir) / "results.json")
             try:
-                stdout = run_command_stdout(
-                    "benchmark", output=output_path
-                )
+                stdout = run_command_stdout("benchmark", output=output_path)
             except (SystemExit, CommandError, Exception):
                 pass
 
@@ -367,7 +364,10 @@ class TestSyncTypesCommand:
     def test_camel_case_flag(self):
         try:
             stdout = run_command_stdout(
-                "sync_types", target="typescript", camel_case=True, from_openapi=True,
+                "sync_types",
+                target="typescript",
+                camel_case=True,
+                from_openapi=True,
             )
         except (SystemExit, CommandError):
             pass
@@ -383,7 +383,8 @@ class TestStartapiCommand:
         with tempfile.TemporaryDirectory() as tmpdir:
             try:
                 stdout = run_command_stdout(
-                    "startapi", "testproj",
+                    "startapi",
+                    "testproj",
                     template="b2b",
                     auth="jwt",
                     directory=tmpdir,
@@ -398,7 +399,8 @@ class TestStartapiCommand:
         with tempfile.TemporaryDirectory() as tmpdir:
             try:
                 stdout = run_command_stdout(
-                    "startapi", "testproj2",
+                    "startapi",
+                    "testproj2",
                     template="b2c",
                     directory=tmpdir,
                 )
@@ -409,7 +411,8 @@ class TestStartapiCommand:
         with tempfile.TemporaryDirectory() as tmpdir:
             try:
                 stdout = run_command_stdout(
-                    "startapi", "testproj3",
+                    "startapi",
+                    "testproj3",
                     template="saas",
                     directory=tmpdir,
                 )
@@ -420,7 +423,8 @@ class TestStartapiCommand:
         with tempfile.TemporaryDirectory() as tmpdir:
             try:
                 stdout = run_command_stdout(
-                    "startapi", "dockerproj",
+                    "startapi",
+                    "dockerproj",
                     docker=True,
                     directory=tmpdir,
                 )
@@ -431,7 +435,8 @@ class TestStartapiCommand:
         with tempfile.TemporaryDirectory() as tmpdir:
             try:
                 stdout = run_command_stdout(
-                    "startapi", "reactproj",
+                    "startapi",
+                    "reactproj",
                     frontend="react-vite",
                     directory=tmpdir,
                 )
@@ -442,7 +447,8 @@ class TestStartapiCommand:
         with tempfile.TemporaryDirectory() as tmpdir:
             try:
                 stdout = run_command_stdout(
-                    "startapi", "swiftproj",
+                    "startapi",
+                    "swiftproj",
                     frontend="swift",
                     directory=tmpdir,
                 )
@@ -453,7 +459,8 @@ class TestStartapiCommand:
         with tempfile.TemporaryDirectory() as tmpdir:
             try:
                 stdout = run_command_stdout(
-                    "startapi", "mlproj",
+                    "startapi",
+                    "mlproj",
                     auth="magic-link",
                     directory=tmpdir,
                 )
@@ -464,7 +471,8 @@ class TestStartapiCommand:
         with tempfile.TemporaryDirectory() as tmpdir:
             try:
                 stdout = run_command_stdout(
-                    "startapi", "allproj",
+                    "startapi",
+                    "allproj",
                     auth="all",
                     directory=tmpdir,
                 )
@@ -475,7 +483,8 @@ class TestStartapiCommand:
         with tempfile.TemporaryDirectory() as tmpdir:
             try:
                 stdout = run_command_stdout(
-                    "startapi", "mysqlproj",
+                    "startapi",
+                    "mysqlproj",
                     db="mysql",
                     directory=tmpdir,
                 )

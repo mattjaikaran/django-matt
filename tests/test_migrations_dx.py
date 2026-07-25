@@ -202,10 +202,12 @@ class TestMigrationGraphRenderer:
         return _FakeGraph(nodes_and_parents)
 
     def test_render_ascii_simple(self):
-        graph = self._make_graph([
-            (("myapp", "0001_initial"), []),
-            (("myapp", "0002_add_email"), [("myapp", "0001_initial")]),
-        ])
+        graph = self._make_graph(
+            [
+                (("myapp", "0001_initial"), []),
+                (("myapp", "0002_add_email"), [("myapp", "0001_initial")]),
+            ]
+        )
         renderer = MigrationGraphRenderer()
         output = renderer.render_ascii(graph)
         assert "myapp" in output
@@ -213,19 +215,23 @@ class TestMigrationGraphRenderer:
         assert "0002_add_email" in output
 
     def test_render_ascii_cross_app(self):
-        graph = self._make_graph([
-            (("auth", "0001_initial"), []),
-            (("myapp", "0001_initial"), [("auth", "0001_initial")]),
-        ])
+        graph = self._make_graph(
+            [
+                (("auth", "0001_initial"), []),
+                (("myapp", "0001_initial"), [("auth", "0001_initial")]),
+            ]
+        )
         renderer = MigrationGraphRenderer()
         output = renderer.render_ascii(graph)
         assert "depends on" in output
 
     def test_render_dot(self):
-        graph = self._make_graph([
-            (("myapp", "0001_initial"), []),
-            (("myapp", "0002_add_email"), [("myapp", "0001_initial")]),
-        ])
+        graph = self._make_graph(
+            [
+                (("myapp", "0001_initial"), []),
+                (("myapp", "0002_add_email"), [("myapp", "0001_initial")]),
+            ]
+        )
         renderer = MigrationGraphRenderer()
         output = renderer.render_dot(graph)
         assert "digraph" in output
@@ -233,20 +239,24 @@ class TestMigrationGraphRenderer:
         assert "->" in output
 
     def test_render_mermaid(self):
-        graph = self._make_graph([
-            (("myapp", "0001_initial"), []),
-            (("myapp", "0002_add_email"), [("myapp", "0001_initial")]),
-        ])
+        graph = self._make_graph(
+            [
+                (("myapp", "0001_initial"), []),
+                (("myapp", "0002_add_email"), [("myapp", "0001_initial")]),
+            ]
+        )
         renderer = MigrationGraphRenderer()
         output = renderer.render_mermaid(graph)
         assert "graph BT" in output
         assert "-->" in output
 
     def test_filter_by_app(self):
-        graph = self._make_graph([
-            (("auth", "0001_initial"), []),
-            (("myapp", "0001_initial"), []),
-        ])
+        graph = self._make_graph(
+            [
+                (("auth", "0001_initial"), []),
+                (("myapp", "0001_initial"), []),
+            ]
+        )
         renderer = MigrationGraphRenderer()
         output = renderer.render_ascii(graph, app_label="myapp")
         assert "myapp" in output
@@ -259,40 +269,48 @@ class TestMigrationGraphRenderer:
         assert "no migrations" in output
 
     def test_detect_cycles_none(self):
-        graph = self._make_graph([
-            (("app", "0001"), []),
-            (("app", "0002"), [("app", "0001")]),
-        ])
+        graph = self._make_graph(
+            [
+                (("app", "0001"), []),
+                (("app", "0002"), [("app", "0001")]),
+            ]
+        )
         renderer = MigrationGraphRenderer()
         cycles = renderer.detect_cycles(graph)
         assert cycles == []
 
     def test_detect_cycles_found(self):
         # Simulate a cycle: 0001 → 0002 → 0001
-        graph = self._make_graph([
-            (("app", "0001"), [("app", "0002")]),
-            (("app", "0002"), [("app", "0001")]),
-        ])
+        graph = self._make_graph(
+            [
+                (("app", "0001"), [("app", "0002")]),
+                (("app", "0002"), [("app", "0001")]),
+            ]
+        )
         renderer = MigrationGraphRenderer()
         cycles = renderer.detect_cycles(graph)
         assert len(cycles) > 0
 
     def test_find_conflicts_none(self):
-        graph = self._make_graph([
-            (("app", "0001"), []),
-            (("app", "0002"), [("app", "0001")]),
-        ])
+        graph = self._make_graph(
+            [
+                (("app", "0001"), []),
+                (("app", "0002"), [("app", "0001")]),
+            ]
+        )
         renderer = MigrationGraphRenderer()
         conflicts = renderer.find_conflicts(graph)
         assert conflicts == []
 
     def test_find_conflicts_detected(self):
         # Two leaf nodes in same app = conflict
-        graph = self._make_graph([
-            (("app", "0001"), []),
-            (("app", "0002_alice"), [("app", "0001")]),
-            (("app", "0002_bob"), [("app", "0001")]),
-        ])
+        graph = self._make_graph(
+            [
+                (("app", "0001"), []),
+                (("app", "0002_alice"), [("app", "0001")]),
+                (("app", "0002_bob"), [("app", "0001")]),
+            ]
+        )
         renderer = MigrationGraphRenderer()
         conflicts = renderer.find_conflicts(graph)
         assert len(conflicts) == 1

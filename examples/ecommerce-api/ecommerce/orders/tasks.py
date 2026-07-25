@@ -192,9 +192,7 @@ def process_pending_orders():
 
     for order in pending_orders:
         # Check if payment was successful
-        payment = Payment.objects.filter(
-            order=order, status=Payment.Status.SUCCEEDED
-        ).first()
+        payment = Payment.objects.filter(order=order, status=Payment.Status.SUCCEEDED).first()
 
         if payment:
             # Payment succeeded but order not updated - fix it

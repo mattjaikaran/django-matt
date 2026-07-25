@@ -46,12 +46,8 @@ class ProjectController(APIController):
         """Create a new project in an organization. Requires admin role."""
         await require_admin(request.user, org_id)
 
-        if await Project.objects.filter(
-            organization_id=org_id, slug=body.slug
-        ).aexists():
-            raise ValidationAPIError(
-                "A project with this slug already exists in this organization"
-            )
+        if await Project.objects.filter(organization_id=org_id, slug=body.slug).aexists():
+            raise ValidationAPIError("A project with this slug already exists in this organization")
 
         project = await Project.objects.acreate(
             organization_id=org_id,
@@ -101,7 +97,9 @@ class ProjectController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_project(request, org_id: str, project_id: str, body: ProjectUpdateSchema) -> dict:
+    async def update_project(
+        request, org_id: str, project_id: str, body: ProjectUpdateSchema
+    ) -> dict:
         """Update a project. Requires admin role."""
         await require_admin(request.user, org_id)
 

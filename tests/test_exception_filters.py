@@ -149,9 +149,7 @@ async def test_function_filter_sync_handler(request_):
     def handler(exc: Exception, request: HttpRequest) -> HttpResponse:
         return HttpResponse(f"sync: {exc}", status=422)
 
-    f = FunctionExceptionFilter(
-        exception_types=(ValueError,), handler=handler, order=0
-    )
+    f = FunctionExceptionFilter(exception_types=(ValueError,), handler=handler, order=0)
     assert f.can_handle(ValueError("x"))
     resp = await f.catch(ValueError("bad"), request_)
     assert resp.status_code == 422
@@ -163,9 +161,7 @@ async def test_function_filter_async_handler(request_):
     async def handler(exc: Exception, request: HttpRequest) -> HttpResponse:
         return HttpResponse(f"async: {exc}", status=418)
 
-    f = FunctionExceptionFilter(
-        exception_types=(TypeError,), handler=handler, order=0
-    )
+    f = FunctionExceptionFilter(exception_types=(TypeError,), handler=handler, order=0)
     resp = await f.catch(TypeError("tea"), request_)
     assert resp.status_code == 418
     assert b"async: tea" in resp.content
@@ -191,9 +187,7 @@ async def test_registry_global_scope(registry, request_):
 @pytest.mark.asyncio
 async def test_registry_controller_scope(registry, request_):
     registry.register_controller_filter(_Controller, DummyFilter())
-    resp = await registry.handle(
-        ValueError("ctrl"), request_, controller_cls=_Controller
-    )
+    resp = await registry.handle(ValueError("ctrl"), request_, controller_cls=_Controller)
     assert resp is not None
     assert b"caught: ctrl" in resp.content
 
@@ -201,9 +195,7 @@ async def test_registry_controller_scope(registry, request_):
 @pytest.mark.asyncio
 async def test_registry_route_scope(registry, request_):
     registry.register_route_filter("GET:/api/test", DummyFilter())
-    resp = await registry.handle(
-        ValueError("route"), request_, route_key="GET:/api/test"
-    )
+    resp = await registry.handle(ValueError("route"), request_, route_key="GET:/api/test")
     assert resp is not None
     assert b"caught: route" in resp.content
 
@@ -227,9 +219,7 @@ async def test_registry_route_takes_precedence(registry, request_):
     registry.register_global_filter(GlobalFilter())
     registry.register_route_filter("GET:/api/x", RouteFilter())
 
-    resp = await registry.handle(
-        ValueError("x"), request_, route_key="GET:/api/x"
-    )
+    resp = await registry.handle(ValueError("x"), request_, route_key="GET:/api/x")
     assert b"route wins" in resp.content
 
 
@@ -250,9 +240,7 @@ async def test_registry_controller_before_global(registry, request_):
     registry.register_global_filter(GlobalFilter())
     registry.register_controller_filter(_Controller, CtrlFilter())
 
-    resp = await registry.handle(
-        ValueError("x"), request_, controller_cls=_Controller
-    )
+    resp = await registry.handle(ValueError("x"), request_, controller_cls=_Controller)
     assert b"ctrl wins" in resp.content
 
 
@@ -262,9 +250,7 @@ async def test_registry_fallthrough_to_global(registry, request_):
     registry.register_route_filter("GET:/api/x", TypeErrorFilter())
     registry.register_global_filter(DummyFilter())
 
-    resp = await registry.handle(
-        ValueError("fallthrough"), request_, route_key="GET:/api/x"
-    )
+    resp = await registry.handle(ValueError("fallthrough"), request_, route_key="GET:/api/x")
     assert b"caught: fallthrough" in resp.content
 
 

@@ -201,7 +201,7 @@ class TestKeyGeneration:
     def test_generate_key_length(self):
         """Generated key should have prefix + 43 chars (32 bytes base64)."""
         key = generate_api_key(is_test=False)
-        random_part = key[len("sk_live_"):]
+        random_part = key[len("sk_live_") :]
         # secrets.token_urlsafe(32) produces a 43-char string
         assert len(random_part) == 43
 
@@ -640,9 +640,7 @@ class TestKeyScopes:
     @pytest.mark.django_db
     def test_exact_scope_match(self, user):
         """Exact scope should match."""
-        api_key, _ = create_api_key(
-            user, name="Exact Scope", scopes=["read:users", "write:posts"]
-        )
+        api_key, _ = create_api_key(user, name="Exact Scope", scopes=["read:users", "write:posts"])
         assert api_key.has_scope("read:users") is True
         assert api_key.has_scope("write:posts") is True
         assert api_key.has_scope("delete:users") is False
@@ -675,9 +673,7 @@ class TestKeyScopes:
     @pytest.mark.django_db
     def test_multiple_partial_wildcards(self, user):
         """Multiple partial wildcards should each match their action."""
-        api_key, _ = create_api_key(
-            user, name="Multi Wildcard", scopes=["read:*", "write:*"]
-        )
+        api_key, _ = create_api_key(user, name="Multi Wildcard", scopes=["read:*", "write:*"])
         assert api_key.has_scope("read:users") is True
         assert api_key.has_scope("write:posts") is True
         assert api_key.has_scope("delete:users") is False
@@ -887,9 +883,7 @@ class TestAPIKeyUsageModel:
         """Multiple records in same hour should increment existing."""
         api_key, _ = live_key
         APIKeyUsage.record(api_key=api_key, endpoint="/api/a", response_time_ms=10.0)
-        usage = APIKeyUsage.record(
-            api_key=api_key, endpoint="/api/b", response_time_ms=30.0
-        )
+        usage = APIKeyUsage.record(api_key=api_key, endpoint="/api/b", response_time_ms=30.0)
         assert usage.request_count == 2
         assert "/api/a" in usage.endpoint_counts
         assert "/api/b" in usage.endpoint_counts
@@ -898,9 +892,7 @@ class TestAPIKeyUsageModel:
     def test_record_error_count(self, live_key):
         """Errors should increment error_count."""
         api_key, _ = live_key
-        usage = APIKeyUsage.record(
-            api_key=api_key, endpoint="/api/fail", is_error=True
-        )
+        usage = APIKeyUsage.record(api_key=api_key, endpoint="/api/fail", is_error=True)
         assert usage.error_count == 1
 
     @pytest.mark.django_db
@@ -921,9 +913,7 @@ class TestAPIKeyUsageModel:
         """Should track maximum response time."""
         api_key, _ = live_key
         APIKeyUsage.record(api_key=api_key, endpoint="/api/a", response_time_ms=10.0)
-        usage = APIKeyUsage.record(
-            api_key=api_key, endpoint="/api/b", response_time_ms=100.0
-        )
+        usage = APIKeyUsage.record(api_key=api_key, endpoint="/api/b", response_time_ms=100.0)
         assert usage.max_response_time_ms == 100.0
 
     @pytest.mark.django_db
@@ -1036,9 +1026,7 @@ class TestAsyncCreation:
             email="acreate2@example.com",
             password="TestPass123!",
         )
-        api_key, raw_key = await acreate_api_key(
-            user, name="Async Test Key", is_test=True
-        )
+        api_key, raw_key = await acreate_api_key(user, name="Async Test Key", is_test=True)
         assert api_key.is_test is True
         assert raw_key.startswith("sk_test_")
 
@@ -1119,8 +1107,10 @@ class TestAPIKeyAuthenticationMiddleware:
 
     def _make_middleware(self):
         """Create middleware with a simple pass-through response."""
+
         def get_response(request):
             return HttpResponse("OK")
+
         return APIKeyAuthenticationMiddleware(get_response)
 
     @pytest.mark.django_db
@@ -1205,8 +1195,10 @@ class TestAPIKeyRateLimitMiddleware:
 
     def _make_middleware(self):
         """Create rate limit middleware."""
+
         def get_response(request):
             return HttpResponse("OK")
+
         return APIKeyRateLimitMiddleware(get_response)
 
     @pytest.mark.django_db
@@ -1293,6 +1285,7 @@ class TestAPIKeyRateLimitMiddleware:
         response = middleware(request)
 
         import json as stdlib_json
+
         body = stdlib_json.loads(response.content)
         assert body["code"] == "rate_limit_exceeded"
         assert body["limit"] == 1
@@ -1322,8 +1315,10 @@ class TestAPIKeyUsageTrackingMiddleware:
 
     def _make_middleware(self):
         """Create usage tracking middleware."""
+
         def get_response(request):
             return HttpResponse("OK")
+
         return APIKeyUsageTrackingMiddleware(get_response)
 
     @pytest.mark.django_db
@@ -1411,6 +1406,7 @@ class TestAPIKeyRequiredDecoratorSync:
     @pytest.mark.django_db
     def test_missing_key_returns_401(self, rf, db):
         """Missing key should return 401."""
+
         @api_key_required
         def my_view(request):
             return JsonResponse({"ok": True})
@@ -1420,12 +1416,14 @@ class TestAPIKeyRequiredDecoratorSync:
         assert response.status_code == 401
 
         import json as stdlib_json
+
         body = stdlib_json.loads(response.content)
         assert body["code"] == "api_key_required"
 
     @pytest.mark.django_db
     def test_invalid_key_returns_401(self, rf, db):
         """Invalid key should return 401."""
+
         @api_key_required
         def my_view(request):
             return JsonResponse({"ok": True})
@@ -1435,6 +1433,7 @@ class TestAPIKeyRequiredDecoratorSync:
         assert response.status_code == 401
 
         import json as stdlib_json
+
         body = stdlib_json.loads(response.content)
         assert body["code"] == "invalid_api_key"
 
@@ -1492,6 +1491,7 @@ class TestAPIKeyRequiredDecoratorSync:
         assert response.status_code == 403
 
         import json as stdlib_json
+
         body = stdlib_json.loads(response.content)
         assert body["code"] == "ip_not_allowed"
 
@@ -1508,6 +1508,7 @@ class TestAPIKeyRequiredDecoratorSync:
         response = my_view(request)
         assert response.status_code == 200
         import json as stdlib_json
+
         body = stdlib_json.loads(response.content)
         assert body["key_name"] == "Check Api Key Attr"
 
@@ -1523,6 +1524,7 @@ class TestAPIKeyRequiredDecoratorSync:
         request = rf.get("/", HTTP_X_API_KEY=raw_key)
         response = my_view(request)
         import json as stdlib_json
+
         body = stdlib_json.loads(response.content)
         assert body["user_pk"] == user.pk
 
@@ -1602,12 +1604,14 @@ class TestAPIKeyOptionalDecorator:
         request = rf.get("/", HTTP_X_API_KEY=raw_key)
         response = my_view(request)
         import json as stdlib_json
+
         body = stdlib_json.loads(response.content)
         assert body["has_key"] is True
 
     @pytest.mark.django_db
     def test_no_key_still_works(self, rf, db):
         """No key should still allow the view to run."""
+
         @api_key_optional
         def my_view(request):
             has_key = hasattr(request, "api_key")
@@ -1616,12 +1620,14 @@ class TestAPIKeyOptionalDecorator:
         request = rf.get("/")
         response = my_view(request)
         import json as stdlib_json
+
         body = stdlib_json.loads(response.content)
         assert body["has_key"] is False
 
     @pytest.mark.django_db
     def test_invalid_key_still_works(self, rf, db):
         """Invalid key should not block the view."""
+
         @api_key_optional
         def my_view(request):
             has_key = hasattr(request, "api_key")
@@ -1630,6 +1636,7 @@ class TestAPIKeyOptionalDecorator:
         request = rf.get("/", HTTP_X_API_KEY="sk_live_invalid")
         response = my_view(request)
         import json as stdlib_json
+
         body = stdlib_json.loads(response.content)
         assert body["has_key"] is False
 
@@ -1646,6 +1653,7 @@ class TestAPIKeyOptionalDecorator:
         request = rf.get("/", HTTP_X_API_KEY=raw_key)
         response = my_view(request)
         import json as stdlib_json
+
         body = stdlib_json.loads(response.content)
         assert body["has_key"] is False
 
@@ -1668,6 +1676,7 @@ class TestAPIKeyOptionalDecorator:
         request = rf.get("/", HTTP_X_API_KEY=raw_key)
         response = await my_view(request)
         import json as stdlib_json
+
         body = stdlib_json.loads(response.content)
         assert body["has_key"] is True
 
@@ -1696,9 +1705,7 @@ class TestRequiresScopeDecorator:
     @pytest.mark.django_db
     def test_has_required_scope(self, user, rf):
         """View should proceed if key has required scope."""
-        _, raw_key = create_api_key(
-            user, name="Scoped View", scopes=["read:users", "write:posts"]
-        )
+        _, raw_key = create_api_key(user, name="Scoped View", scopes=["read:users", "write:posts"])
 
         @api_key_required
         @requires_scope("read:users")
@@ -1712,9 +1719,7 @@ class TestRequiresScopeDecorator:
     @pytest.mark.django_db
     def test_missing_required_scope(self, user, rf):
         """View should return 403 if key lacks required scope."""
-        _, raw_key = create_api_key(
-            user, name="Limited", scopes=["read:users"]
-        )
+        _, raw_key = create_api_key(user, name="Limited", scopes=["read:users"])
 
         @api_key_required
         @requires_scope("write:posts")
@@ -1726,15 +1731,14 @@ class TestRequiresScopeDecorator:
         assert response.status_code == 403
 
         import json as stdlib_json
+
         body = stdlib_json.loads(response.content)
         assert body["code"] == "insufficient_scope"
 
     @pytest.mark.django_db
     def test_any_of_multiple_scopes(self, user, rf):
         """Should succeed if key has any of the required scopes."""
-        _, raw_key = create_api_key(
-            user, name="Multi Scope", scopes=["delete:posts"]
-        )
+        _, raw_key = create_api_key(user, name="Multi Scope", scopes=["delete:posts"])
 
         @api_key_required
         @requires_scope("write:posts", "delete:posts")
@@ -1748,9 +1752,7 @@ class TestRequiresScopeDecorator:
     @pytest.mark.django_db
     def test_wildcard_scope_passes(self, user, rf):
         """Key with * scope should pass any scope check."""
-        _, raw_key = create_api_key(
-            user, name="Wildcard", scopes=["*"]
-        )
+        _, raw_key = create_api_key(user, name="Wildcard", scopes=["*"])
 
         @api_key_required
         @requires_scope("admin:nuke")
@@ -1764,6 +1766,7 @@ class TestRequiresScopeDecorator:
     @pytest.mark.django_db
     def test_no_api_key_returns_401(self, rf, db):
         """requires_scope without api_key should return 401."""
+
         @requires_scope("read:users")
         def my_view(request):
             return JsonResponse({"ok": True})
@@ -1810,12 +1813,14 @@ class TestRequiresLiveKeyDecorator:
         assert response.status_code == 403
 
         import json as stdlib_json
+
         body = stdlib_json.loads(response.content)
         assert body["code"] == "live_key_required"
 
     @pytest.mark.django_db
     def test_no_api_key_returns_401(self, rf, db):
         """No api_key should return 401."""
+
         @requires_live_key
         def my_view(request):
             return JsonResponse({"ok": True})
@@ -1902,6 +1907,7 @@ class TestRequiresPlanDecorator:
         assert response.status_code == 403
 
         import json as stdlib_json
+
         body = stdlib_json.loads(response.content)
         assert body["code"] == "plan_required"
         assert body["current_plan"] == "free"
@@ -1910,6 +1916,7 @@ class TestRequiresPlanDecorator:
     @pytest.mark.django_db
     def test_no_api_key_returns_401(self, rf, db):
         """No api_key should return 401."""
+
         @requires_plan("pro")
         def my_view(request):
             return JsonResponse({"ok": True})

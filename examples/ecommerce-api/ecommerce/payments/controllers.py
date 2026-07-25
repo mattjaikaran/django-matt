@@ -50,9 +50,7 @@ class PaymentController(APIController):
         request, data: PaymentIntentCreateRequest
     ) -> PaymentIntentResponse:
         """Create a payment intent for an order."""
-        order = await Order.objects.filter(
-            id=data.order_id, user=request.user
-        ).afirst()
+        order = await Order.objects.filter(id=data.order_id, user=request.user).afirst()
 
         if not order:
             raise NotFoundAPIError("Order not found")
@@ -68,10 +66,9 @@ class PaymentController(APIController):
         if existing_payment and existing_payment.stripe_payment_intent_id:
             # Return existing payment intent
             import stripe
+
             stripe.api_key = settings.STRIPE_SECRET_KEY
-            intent = stripe.PaymentIntent.retrieve(
-                existing_payment.stripe_payment_intent_id
-            )
+            intent = stripe.PaymentIntent.retrieve(existing_payment.stripe_payment_intent_id)
             return PaymentIntentResponse(
                 payment_id=existing_payment.id,
                 client_secret=intent.client_secret,
@@ -97,9 +94,7 @@ class PaymentController(APIController):
         request, data: CheckoutSessionCreateRequest
     ) -> CheckoutSessionResponse:
         """Create a Stripe checkout session."""
-        order = await Order.objects.filter(
-            id=data.order_id, user=request.user
-        ).afirst()
+        order = await Order.objects.filter(id=data.order_id, user=request.user).afirst()
 
         if not order:
             raise NotFoundAPIError("Order not found")
@@ -122,9 +117,11 @@ class PaymentController(APIController):
     @jwt_required
     async def list_payments(request) -> list[PaymentListResponse]:
         """List user's payments."""
-        payments = Payment.objects.filter(
-            order__user=request.user
-        ).select_related("order").order_by("-created_at")
+        payments = (
+            Payment.objects.filter(order__user=request.user)
+            .select_related("order")
+            .order_by("-created_at")
+        )
 
         return [
             PaymentListResponse(
@@ -147,9 +144,7 @@ class PaymentController(APIController):
     @jwt_required
     async def get_payment(request, payment_id: UUID) -> PaymentResponse:
         """Get payment details."""
-        payment = await Payment.objects.filter(
-            id=payment_id, order__user=request.user
-        ).afirst()
+        payment = await Payment.objects.filter(id=payment_id, order__user=request.user).afirst()
 
         if not payment:
             raise NotFoundAPIError("Payment not found")
@@ -202,9 +197,7 @@ class PaymentController(APIController):
     @jwt_required
     async def list_refunds(request, payment_id: UUID) -> list[RefundResponse]:
         """List refunds for a payment."""
-        payment = await Payment.objects.filter(
-            id=payment_id, order__user=request.user
-        ).afirst()
+        payment = await Payment.objects.filter(id=payment_id, order__user=request.user).afirst()
 
         if not payment:
             raise NotFoundAPIError("Payment not found")
@@ -232,6 +225,7 @@ class WebhookController(APIController):
 
         try:
             import stripe
+
             stripe.api_key = settings.STRIPE_SECRET_KEY
 
             event = stripe.Webhook.construct_event(
@@ -268,9 +262,7 @@ class WebhookController(APIController):
             )
         except Exception as e:
             # Log error but still return 200 to prevent retries
-            await PaymentWebhookLog.objects.filter(event_id=event.id).aupdate(
-                error_message=str(e)
-            )
+            await PaymentWebhookLog.objects.filter(event_id=event.id).aupdate(error_message=str(e))
             return WebhookResponse(
                 received=True,
                 processed=False,

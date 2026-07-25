@@ -94,9 +94,7 @@ class WorkspaceMembership(models.Model):
     """User membership in a workspace."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    workspace = models.ForeignKey(
-        Workspace, on_delete=models.CASCADE, related_name="memberships"
-    )
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="memberships")
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -137,9 +135,7 @@ class Channel(models.Model):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    workspace = models.ForeignKey(
-        Workspace, on_delete=models.CASCADE, related_name="channels"
-    )
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="channels")
     name = models.CharField(max_length=100)
     slug = models.SlugField()
     description = models.TextField(blank=True)
@@ -173,9 +169,7 @@ class ChannelMembership(models.Model):
     """User membership in a channel."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    channel = models.ForeignKey(
-        Channel, on_delete=models.CASCADE, related_name="memberships"
-    )
+    channel = models.ForeignKey(Channel, on_delete=models.CASCADE, related_name="memberships")
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -202,9 +196,7 @@ class DirectMessageThread(models.Model):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    workspace = models.ForeignKey(
-        Workspace, on_delete=models.CASCADE, related_name="dm_threads"
-    )
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="dm_threads")
     participants = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         related_name="dm_threads",
@@ -312,9 +304,7 @@ class Reaction(models.Model):
     """Emoji reaction on a message."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    message = models.ForeignKey(
-        Message, on_delete=models.CASCADE, related_name="reactions"
-    )
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name="reactions")
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -384,9 +374,7 @@ class FileAttachment(models.Model):
         blank=True,
         related_name="attachments",
     )
-    workspace = models.ForeignKey(
-        Workspace, on_delete=models.CASCADE, related_name="files"
-    )
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="files")
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

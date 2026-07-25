@@ -38,7 +38,8 @@
         run db gen quality setup \
         rust-dev rust-build rust-test rust-bench rust-clean \
         bench-compare bench-servers \
-        release-patch release-minor release-major changelog
+        release-patch release-minor release-major changelog \
+        gauntlet gauntlet-quick gauntlet-ci gauntlet-gate
 
 # Colors for terminal output
 BLUE := \033[34m
@@ -195,6 +196,36 @@ check: lint typecheck ## Run all code quality checks
 
 fix: lint-fix format ## Fix all auto-fixable issues
 	@echo "$(GREEN)$(BOLD)All fixes applied!$(RESET)"
+
+# ============================================================================
+## Gauntlet (Quality Gates)
+# ============================================================================
+
+gauntlet: ## Run full quality gauntlet (all gates)
+	@echo "$(CYAN)Running full gauntlet...$(RESET)"
+	uv run python scripts/gauntlet.py
+	@echo "$(GREEN)Gauntlet passed!$(RESET)"
+
+gauntlet-quick: ## Run quick gauntlet (skip audit)
+	@echo "$(CYAN)Running quick gauntlet...$(RESET)"
+	uv run python scripts/gauntlet.py --quick
+	@echo "$(GREEN)Quick gauntlet passed!$(RESET)"
+
+gauntlet-ci: ## Run gauntlet in CI mode with JSON report
+	@echo "$(CYAN)Running CI gauntlet...$(RESET)"
+	uv run python scripts/gauntlet.py --ci
+	@echo "$(GREEN)CI gauntlet passed!$(RESET)"
+
+gauntlet-gate: ## Run a single gauntlet gate (usage: make gauntlet-gate GATE=lint)
+	@if [ -z "$(GATE)" ]; then \
+		echo "$(RED)Error: GATE is required$(RESET)"; \
+		echo "Usage: make gauntlet-gate GATE=lint"; \
+		uv run python scripts/gauntlet.py --list; \
+		exit 1; \
+	fi
+	@echo "$(CYAN)Running gauntlet gate: $(GATE)...$(RESET)"
+	uv run python scripts/gauntlet.py --gate $(GATE)
+	@echo "$(GREEN)Gate passed!$(RESET)"
 
 # ============================================================================
 ## Testing

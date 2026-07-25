@@ -20,6 +20,7 @@ from core.schemas import OrganizationMiniResponse
 # Plan Schemas
 # =============================================================================
 
+
 class PlanLimits(BaseModel):
     projects: int = -1
     members_per_org: int = -1
@@ -44,6 +45,7 @@ class PlansListResponse(BaseModel):
 # =============================================================================
 # Subscription Schemas
 # =============================================================================
+
 
 class SubscriptionResponse(BaseModel):
     id: UUID
@@ -70,6 +72,7 @@ class SubscriptionResponse(BaseModel):
 
 class SubscriptionDetailResponse(SubscriptionResponse):
     """Subscription with organization and metadata."""
+
     organization: OrganizationMiniResponse
     metadata: dict = {}
     cancellation_reason: str = ""
@@ -88,12 +91,14 @@ class SubscriptionCancelRequest(BaseModel):
 
 class SubscriptionReactivateRequest(BaseModel):
     """Reactivate a canceled subscription."""
+
     pass
 
 
 # =============================================================================
 # Invoice Schemas
 # =============================================================================
+
 
 class InvoiceLineItem(BaseModel):
     description: str
@@ -129,6 +134,7 @@ class InvoiceResponse(BaseModel):
 
 class InvoiceDetailResponse(InvoiceResponse):
     """Invoice with line items."""
+
     line_items: list[InvoiceLineItem] = []
     subscription_id: UUID | None = None
     metadata: dict = {}
@@ -144,6 +150,7 @@ class InvoiceListResponse(BaseModel):
 # =============================================================================
 # Payment Method Schemas
 # =============================================================================
+
 
 class PaymentMethodResponse(BaseModel):
     id: UUID
@@ -189,6 +196,7 @@ class PaymentMethodUpdateRequest(BaseModel):
 # Checkout Schemas
 # =============================================================================
 
+
 class CheckoutSessionRequest(BaseModel):
     price_id: str  # Stripe price ID
     quantity: int = 1
@@ -205,6 +213,7 @@ class CheckoutSessionResponse(BaseModel):
 
 class SetupIntentRequest(BaseModel):
     """Create a SetupIntent for adding payment method without immediate payment."""
+
     pass
 
 
@@ -217,6 +226,7 @@ class SetupIntentResponse(BaseModel):
 # Billing Portal Schemas
 # =============================================================================
 
+
 class BillingPortalRequest(BaseModel):
     return_url: str
 
@@ -228,6 +238,7 @@ class BillingPortalResponse(BaseModel):
 # =============================================================================
 # Usage Schemas
 # =============================================================================
+
 
 class UsageRecordCreate(BaseModel):
     metric: str
@@ -266,6 +277,7 @@ class UsageDashboardResponse(BaseModel):
 # Coupon Schemas
 # =============================================================================
 
+
 class CouponResponse(BaseModel):
     id: UUID
     code: str
@@ -296,6 +308,7 @@ class CouponApplyResponse(BaseModel):
 # Webhook Schemas
 # =============================================================================
 
+
 class WebhookEventResponse(BaseModel):
     event_type: str
     processed: bool
@@ -306,8 +319,10 @@ class WebhookEventResponse(BaseModel):
 # Billing Overview Schemas
 # =============================================================================
 
+
 class BillingOverviewResponse(BaseModel):
     """Complete billing overview for organization."""
+
     subscription: SubscriptionResponse | None = None
     upcoming_invoice: InvoiceResponse | None = None
     default_payment_method: PaymentMethodResponse | None = None

@@ -33,7 +33,9 @@ class MemberController(APIController):
 
     @staticmethod
     @jwt_required
-    async def update_member(request, org_id: str, member_id: str, body: MembershipUpdateSchema) -> dict:
+    async def update_member(
+        request, org_id: str, member_id: str, body: MembershipUpdateSchema
+    ) -> dict:
         await require_admin(request.user, org_id)
 
         try:
@@ -63,9 +65,7 @@ class MemberController(APIController):
     async def remove_member(request, org_id: str, member_id: str) -> dict:
         await require_admin(request.user, org_id)
         try:
-            membership = await Membership.objects.aget(
-                id=member_id, organization_id=org_id
-            )
+            membership = await Membership.objects.aget(id=member_id, organization_id=org_id)
         except Membership.DoesNotExist:
             raise APIError(message="Member not found", status_code=404)
 

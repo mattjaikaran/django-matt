@@ -145,20 +145,29 @@ def _series_to_dataset(s: Series, color: str) -> dict:
 
 
 _PALETTE = [
-    "#6366f1", "#22c55e", "#f97316", "#0ea5e9", "#eab308",
-    "#ec4899", "#14b8a6", "#a855f7", "#f43f5e", "#84cc16",
+    "#6366f1",
+    "#22c55e",
+    "#f97316",
+    "#0ea5e9",
+    "#eab308",
+    "#ec4899",
+    "#14b8a6",
+    "#a855f7",
+    "#f43f5e",
+    "#84cc16",
 ]
 
 
-def _render_html(scenario_series: dict[str, Series], server_series: dict[str, dict[str, Series]]) -> str:
+def _render_html(
+    scenario_series: dict[str, Series], server_series: dict[str, dict[str, Series]]
+) -> str:
     scenario_datasets = [
         _series_to_dataset(s, _PALETTE[i % len(_PALETTE)])
         for i, s in enumerate(scenario_series.values())
     ]
 
     backend_palette = {
-        name: _PALETTE[i % len(_PALETTE)]
-        for i, name in enumerate(sorted(server_series))
+        name: _PALETTE[i % len(_PALETTE)] for i, name in enumerate(sorted(server_series))
     }
 
     def _per_metric_datasets(metric: str) -> list[dict]:

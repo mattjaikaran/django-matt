@@ -64,6 +64,7 @@ User = get_user_model()
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_response(data: dict | list | str, status_code: int = 200) -> HttpResponse:
     """Build a minimal HttpResponse with JSON content for assertion tests."""
     if isinstance(data, (dict, list)):
@@ -78,6 +79,7 @@ def _make_response(data: dict | list | str, status_code: int = 200) -> HttpRespo
 # ===========================================================================
 # 1. ModelFactory tests
 # ===========================================================================
+
 
 class TestModelFactory:
     """Tests for the core ModelFactory, Field, Sequence, etc."""
@@ -223,6 +225,7 @@ class TestModelFactory:
 # 2. factory_for_model() tests
 # ===========================================================================
 
+
 class TestFactoryForModel:
     """Tests for the dynamic factory_for_model() helper."""
 
@@ -270,6 +273,7 @@ class TestFactoryForModel:
 # ===========================================================================
 # 3. APITestClient tests
 # ===========================================================================
+
 
 class TestAPITestClient:
     """Tests for the sync APITestClient."""
@@ -460,6 +464,7 @@ class TestAPITestClient:
 # 4. AsyncAPITestClient tests
 # ===========================================================================
 
+
 class TestAsyncAPITestClient:
     """Tests for the async AsyncAPITestClient."""
 
@@ -588,6 +593,7 @@ class TestAsyncAPITestClient:
 # 5. Assertion helpers tests
 # ===========================================================================
 
+
 class TestAssertionHelpers:
     """Tests for the custom assertion functions."""
 
@@ -673,13 +679,15 @@ class TestAssertionHelpers:
     # --- assert_pagination ---
 
     def test_assert_pagination_passes(self):
-        resp = _make_response({
-            "items": [],
-            "page": 1,
-            "page_size": 10,
-            "total": 0,
-            "total_pages": 0,
-        })
+        resp = _make_response(
+            {
+                "items": [],
+                "page": 1,
+                "page_size": 10,
+                "total": 0,
+                "total_pages": 0,
+            }
+        )
         assert_pagination(resp)
 
     def test_assert_pagination_fails_no_keys(self):
@@ -724,6 +732,7 @@ class TestAssertionHelpers:
 # ===========================================================================
 # 6. DataGenerator tests
 # ===========================================================================
+
 
 class TestDataGenerator:
     """Tests for the built-in DataGenerator (fake) instance."""

@@ -243,9 +243,7 @@ class TestDRFViewSetToController:
 class TestDRFApiViewDecorator:
     def test_detect(self):
         codemod = DRFApiViewDecorator()
-        assert codemod.detect(
-            "from rest_framework.decorators import api_view", "v.py"
-        )
+        assert codemod.detect("from rest_framework.decorators import api_view", "v.py")
 
     def test_api_view_transform(self):
         source = _dedent("""
@@ -574,21 +572,25 @@ class TestCodemodEngine:
         assert "BarSchema" in new_content
 
     def test_batch_processing(self, tmp_path):
-        (tmp_path / "views.py").write_text(_dedent("""
+        (tmp_path / "views.py").write_text(
+            _dedent("""
             from rest_framework.viewsets import ModelViewSet
 
             class UserViewSet(ModelViewSet):
                 queryset = User.objects.all()
                 serializer_class = UserSerializer
-        """))
-        (tmp_path / "serializers.py").write_text(_dedent("""
+        """)
+        )
+        (tmp_path / "serializers.py").write_text(
+            _dedent("""
             from rest_framework.serializers import ModelSerializer
 
             class UserSerializer(ModelSerializer):
                 class Meta:
                     model = User
                     fields = '__all__'
-        """))
+        """)
+        )
         (tmp_path / "utils.py").write_text("import os\n")
 
         engine = CodemodEngine()

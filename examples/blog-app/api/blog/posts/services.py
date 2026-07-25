@@ -52,7 +52,11 @@ async def get_post_by_slug(slug: str) -> Post | None:
 async def search_posts(query: str, page: int = 1, page_size: int = 10) -> tuple[list[Post], int]:
     """Full-text search across title, content, and excerpt."""
     search_query = SearchQuery(query)
-    search_vector = SearchVector("title", weight="A") + SearchVector("excerpt", weight="B") + SearchVector("content", weight="C")
+    search_vector = (
+        SearchVector("title", weight="A")
+        + SearchVector("excerpt", weight="B")
+        + SearchVector("content", weight="C")
+    )
 
     qs = (
         Post.objects.filter(status="published")

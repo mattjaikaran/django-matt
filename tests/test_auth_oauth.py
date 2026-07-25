@@ -1,4 +1,5 @@
 """Tests for OAuth authentication providers, config, model, and registry."""
+
 from __future__ import annotations
 
 import base64
@@ -41,6 +42,7 @@ User = get_user_model()
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_oauth_config(**overrides) -> OAuthConfig:
     """Build an OAuthConfig with sensible test defaults."""
@@ -438,7 +440,9 @@ class TestAppleOAuthProvider:
         with _patch_config():
             provider = AppleOAuthProvider()
 
-        with patch("django_matt.auth.jwt_builtin.encode_jwt", return_value="fake-jwt") as mock_encode:
+        with patch(
+            "django_matt.auth.jwt_builtin.encode_jwt", return_value="fake-jwt"
+        ) as mock_encode:
             secret = provider._generate_client_secret()
 
         assert secret == "fake-jwt"
@@ -699,20 +703,14 @@ class TestOAuthConnectionModel:
     def test_unique_together_constraint(self):
         """Cannot create two connections for same user + provider."""
         user = User.objects.create_user(username="unique_user", password="pass")
-        OAuthConnection.objects.create(
-            user=user, provider="github", provider_user_id="gh-1"
-        )
+        OAuthConnection.objects.create(user=user, provider="github", provider_user_id="gh-1")
         with pytest.raises(IntegrityError):
-            OAuthConnection.objects.create(
-                user=user, provider="github", provider_user_id="gh-2"
-            )
+            OAuthConnection.objects.create(user=user, provider="github", provider_user_id="gh-2")
 
     def test_get_or_none_found(self):
         """get_or_none returns the connection when it exists."""
         user = User.objects.create_user(username="found_user", password="pass")
-        OAuthConnection.objects.create(
-            user=user, provider="google", provider_user_id="goog-found"
-        )
+        OAuthConnection.objects.create(user=user, provider="google", provider_user_id="goog-found")
         result = OAuthConnection.get_or_none("google", "goog-found")
         assert result is not None
         assert result.user == user
@@ -725,9 +723,7 @@ class TestOAuthConnectionModel:
     def test_get_for_user_found(self):
         """get_for_user returns the connection for a user+provider pair."""
         user = User.objects.create_user(username="for_user", password="pass")
-        OAuthConnection.objects.create(
-            user=user, provider="microsoft", provider_user_id="ms-1"
-        )
+        OAuthConnection.objects.create(user=user, provider="microsoft", provider_user_id="ms-1")
         result = OAuthConnection.get_for_user(user, "microsoft")
         assert result is not None
         assert result.provider_user_id == "ms-1"
@@ -1000,11 +996,22 @@ class TestOAuthGoogleIntegration:
             state = provider.generate_state()
 
         # 2. Mock the token exchange response
-        token_response = base64.urlsafe_b64encode(
-            json.dumps({"sub": "google-user-1", "email": "guser@gmail.com",
-                        "email_verified": True, "name": "Google User",
-                        "given_name": "Google", "family_name": "User"}).encode()
-        ).decode().rstrip("=")
+        token_response = (
+            base64.urlsafe_b64encode(
+                json.dumps(
+                    {
+                        "sub": "google-user-1",
+                        "email": "guser@gmail.com",
+                        "email_verified": True,
+                        "name": "Google User",
+                        "given_name": "Google",
+                        "family_name": "User",
+                    }
+                ).encode()
+            )
+            .decode()
+            .rstrip("=")
+        )
         id_token = f"header.{token_response}.sig"
 
         mock_http_response = MagicMock()
@@ -1028,8 +1035,10 @@ class TestOAuthGoogleIntegration:
 
         with _patch_config(config), patch("httpx.AsyncClient", return_value=mock_client):
             response = await OAuthController.callback(
-                request, provider="google",
-                code="goog-code", state=state,
+                request,
+                provider="google",
+                code="goog-code",
+                state=state,
             )
 
         assert response.success is True
@@ -1069,15 +1078,19 @@ class TestOAuthGoogleIntegration:
             provider = GoogleOAuthProvider()
             state = provider.generate_state()
 
-        token_payload = json.dumps({
-            "sub": "google-link-user",
-            "email": "matched@gmail.com",
-            "email_verified": True,
-            "name": "Linked User",
-        })
+        token_payload = json.dumps(
+            {
+                "sub": "google-link-user",
+                "email": "matched@gmail.com",
+                "email_verified": True,
+                "name": "Linked User",
+            }
+        )
         id_token = (
-            base64.urlsafe_b64encode(b"hdr").decode().rstrip("=") + "." +
-            base64.urlsafe_b64encode(token_payload.encode()).decode().rstrip("=") + ".sig"
+            base64.urlsafe_b64encode(b"hdr").decode().rstrip("=")
+            + "."
+            + base64.urlsafe_b64encode(token_payload.encode()).decode().rstrip("=")
+            + ".sig"
         )
 
         mock_http_response = MagicMock()
@@ -1115,10 +1128,11 @@ class TestOAuthGoogleIntegration:
 
         request = RF().get("/auth/oauth/google/callback", {"code": "c", "state": "invalid"})
 
-        with _patch_config(config), pytest.raises(ValidationAPIError, match="Invalid or expired state"):
-            await OAuthController.callback(
-                request, provider="google", code="c", state="invalid"
-            )
+        with (
+            _patch_config(config),
+            pytest.raises(ValidationAPIError, match="Invalid or expired state"),
+        ):
+            await OAuthController.callback(request, provider="google", code="c", state="invalid")
 
     @pytest.mark.asyncio
     async def test_callback_missing_code_raises(self):
@@ -1132,9 +1146,7 @@ class TestOAuthGoogleIntegration:
         request = RF().get("/auth/oauth/google/callback", {})
 
         with _patch_config(config), pytest.raises(ValidationAPIError, match="Authorization code"):
-            await OAuthController.callback(
-                request, provider="google", code=None, state=None
-            )
+            await OAuthController.callback(request, provider="google", code=None, state=None)
 
 
 @pytest.mark.django_db(transaction=True)
@@ -1214,9 +1226,7 @@ class TestOAuthGitHubIntegration:
         assert response.access_token is not None
 
         # Verify OAuthConnection linked to GitHub provider user
-        conn = await OAuthConnection.objects.aget(
-            provider="github", provider_user_id="98765"
-        )
+        conn = await OAuthConnection.objects.aget(provider="github", provider_user_id="98765")
         assert conn is not None
         assert conn.email == "ghuser@github.com"
 

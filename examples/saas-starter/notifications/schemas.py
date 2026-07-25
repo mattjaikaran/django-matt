@@ -19,6 +19,7 @@ from core.schemas import UserMiniResponse
 # Notification Schemas
 # =============================================================================
 
+
 class NotificationResponse(BaseModel):
     id: UUID
     type: str
@@ -65,6 +66,7 @@ class NotificationCountResponse(BaseModel):
 # Notification Preference Schemas
 # =============================================================================
 
+
 class NotificationTypePreference(BaseModel):
     email: bool = True
     push: bool = True
@@ -103,6 +105,7 @@ class NotificationPreferenceResponse(BaseModel):
 # Analytics Event Schemas
 # =============================================================================
 
+
 class AnalyticsEventCreate(BaseModel):
     event_name: str = Field(min_length=1, max_length=100)
     event_category: str = ""
@@ -128,6 +131,7 @@ class AnalyticsEventResponse(BaseModel):
 
 class AnalyticsBatchCreate(BaseModel):
     """Batch create analytics events."""
+
     events: list[AnalyticsEventCreate]
     session_id: str | None = None
     anonymous_id: str | None = None
@@ -142,6 +146,7 @@ class AnalyticsBatchResponse(BaseModel):
 # =============================================================================
 # Analytics Dashboard Schemas
 # =============================================================================
+
 
 class TimeSeriesDataPoint(BaseModel):
     timestamp: datetime
@@ -158,6 +163,7 @@ class MetricSummary(BaseModel):
 
 class AnalyticsDashboardResponse(BaseModel):
     """Analytics dashboard data."""
+
     period_start: datetime
     period_end: datetime
     metrics: list[MetricSummary]
@@ -180,6 +186,7 @@ class TopEventsResponse(BaseModel):
 # A/B Testing Schemas
 # =============================================================================
 
+
 class ExperimentResponse(BaseModel):
     experiment_id: str
     variant: str
@@ -197,20 +204,24 @@ class ExperimentResultResponse(BaseModel):
 # Real-time Schemas (for WebSocket)
 # =============================================================================
 
+
 class WebSocketMessage(BaseModel):
     """Base WebSocket message."""
+
     type: str
     payload: dict = {}
 
 
 class NotificationPushMessage(BaseModel):
     """Real-time notification push."""
+
     type: str = "notification"
     notification: NotificationResponse
 
 
 class TaskUpdateMessage(BaseModel):
     """Real-time task update."""
+
     type: str = "task_update"
     action: str  # "created", "updated", "deleted"
     task_id: UUID
@@ -220,6 +231,7 @@ class TaskUpdateMessage(BaseModel):
 
 class PresenceMessage(BaseModel):
     """User presence update."""
+
     type: str = "presence"
     user_id: UUID
     status: str  # "online", "offline", "away"
@@ -228,6 +240,7 @@ class PresenceMessage(BaseModel):
 
 class TypingIndicatorMessage(BaseModel):
     """Typing indicator for comments."""
+
     type: str = "typing"
     user_id: UUID
     task_id: UUID

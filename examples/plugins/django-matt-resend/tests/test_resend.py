@@ -30,9 +30,7 @@ class TestResendConfig:
         assert "DEFAULT_FROM" in errors[0]
 
     def test_validation_passes(self) -> None:
-        config = ResendConfig(
-            api_key="re_test_123", default_from="test@example.com"
-        )
+        config = ResendConfig(api_key="re_test_123", default_from="test@example.com")
         assert config.validate() == []
 
 
@@ -183,9 +181,7 @@ class TestResendEmailBackend:
         mock_send.side_effect = Exception("API error")
 
         backend = ResendEmailBackend(fail_silently=False)
-        msg = EmailMessage(
-            subject="Fail", body="boom", to=["user@example.com"]
-        )
+        msg = EmailMessage(subject="Fail", body="boom", to=["user@example.com"])
         with pytest.raises(Exception, match="API error"):
             backend.send_messages([msg])
 
@@ -201,9 +197,7 @@ class TestResendEmailBackend:
         mock_send.side_effect = Exception("API error")
 
         backend = ResendEmailBackend(fail_silently=True)
-        msg = EmailMessage(
-            subject="Fail", body="boom", to=["user@example.com"]
-        )
+        msg = EmailMessage(subject="Fail", body="boom", to=["user@example.com"])
         sent = backend.send_messages([msg])
         assert sent == 0
 

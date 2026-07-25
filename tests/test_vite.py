@@ -88,15 +88,17 @@ class TestViteConfig:
         assert config.react_refresh is False
         assert config.static_url_prefix == "/static/dist/"
 
-    @override_settings(MATT_VITE={
-        "DEV_SERVER_URL": "http://localhost:3000",
-        "BUILD_DIR": "frontend/build",
-        "MANIFEST_PATH": "frontend/build/manifest.json",
-        "ENTRY_POINTS": ["src/app.tsx"],
-        "HMR_ENABLED": False,
-        "REACT_REFRESH": True,
-        "STATIC_URL_PREFIX": "/assets/",
-    })
+    @override_settings(
+        MATT_VITE={
+            "DEV_SERVER_URL": "http://localhost:3000",
+            "BUILD_DIR": "frontend/build",
+            "MANIFEST_PATH": "frontend/build/manifest.json",
+            "ENTRY_POINTS": ["src/app.tsx"],
+            "HMR_ENABLED": False,
+            "REACT_REFRESH": True,
+            "STATIC_URL_PREFIX": "/assets/",
+        }
+    )
     def test_from_settings_custom(self):
         config = ViteConfig.from_settings()
         assert config.dev_server_url == "http://localhost:3000"
@@ -342,7 +344,9 @@ class TestViteManifestSingleton:
 
 
 class TestViteDevMiddleware:
-    def _html_response(self, content: str = "<html><head></head><body></body></html>") -> HttpResponse:
+    def _html_response(
+        self, content: str = "<html><head></head><body></body></html>"
+    ) -> HttpResponse:
         resp = HttpResponse(content, content_type="text/html")
         return resp
 
@@ -558,7 +562,9 @@ class TestViteAssetTag:
 
 
 class TestViteHmrClientTag:
-    @override_settings(DEBUG=True, MATT_VITE={"HMR_ENABLED": True, "DEV_SERVER_URL": "http://localhost:5173"})
+    @override_settings(
+        DEBUG=True, MATT_VITE={"HMR_ENABLED": True, "DEV_SERVER_URL": "http://localhost:5173"}
+    )
     def test_dev_mode_renders_client(self):
         reset_vite_config()
         output = vite_hmr_client()
@@ -578,7 +584,9 @@ class TestViteHmrClientTag:
 
 
 class TestViteReactRefreshTag:
-    @override_settings(DEBUG=True, MATT_VITE={"REACT_REFRESH": True, "DEV_SERVER_URL": "http://localhost:5173"})
+    @override_settings(
+        DEBUG=True, MATT_VITE={"REACT_REFRESH": True, "DEV_SERVER_URL": "http://localhost:5173"}
+    )
     def test_renders_preamble(self):
         reset_vite_config()
         output = vite_react_refresh()

@@ -10,7 +10,6 @@ Includes:
 - Webhook handling
 """
 
-
 import stripe
 from django.conf import settings
 from django_matt.auth import jwt_required
@@ -78,15 +77,17 @@ class BillingController(APIController):
         """List available subscription plans."""
         plans = []
         for plan_id, plan_data in settings.BILLING_PRODUCTS.items():
-            plans.append(PlanResponse(
-                id=plan_id,
-                name=plan_data["name"],
-                price_monthly=0,  # Would come from Stripe
-                price_yearly=0,
-                limits=plan_data.get("limits", {}),
-                features=plan_data.get("features", []),
-                is_popular=plan_id == "pro",
-            ))
+            plans.append(
+                PlanResponse(
+                    id=plan_id,
+                    name=plan_data["name"],
+                    price_monthly=0,  # Would come from Stripe
+                    price_yearly=0,
+                    limits=plan_data.get("limits", {}),
+                    features=plan_data.get("features", []),
+                    is_popular=plan_id == "pro",
+                )
+            )
 
         return PlansListResponse(plans=plans)
 
@@ -112,7 +113,9 @@ class BillingController(APIController):
 
     @patch("/subscription")
     @jwt_required
-    async def update_subscription(self, request, org_slug: str, data: SubscriptionUpdateRequest) -> dict:
+    async def update_subscription(
+        self, request, org_slug: str, data: SubscriptionUpdateRequest
+    ) -> dict:
         """Update subscription (change plan)."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
@@ -124,10 +127,12 @@ class BillingController(APIController):
             # Update in Stripe
             stripe.Subscription.modify(
                 subscription.stripe_subscription_id,
-                items=[{
-                    "id": subscription.stripe_subscription_id,
-                    "price": data.plan_id,
-                }],
+                items=[
+                    {
+                        "id": subscription.stripe_subscription_id,
+                        "price": data.plan_id,
+                    }
+                ],
                 proration_behavior="create_prorations",
             )
 
@@ -154,7 +159,9 @@ class BillingController(APIController):
 
     @post("/subscription/cancel")
     @jwt_required
-    async def cancel_subscription(self, request, org_slug: str, data: SubscriptionCancelRequest) -> dict:
+    async def cancel_subscription(
+        self, request, org_slug: str, data: SubscriptionCancelRequest
+    ) -> dict:
         """Cancel subscription."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
@@ -182,7 +189,11 @@ class BillingController(APIController):
                 data={"reason": data.reason, "cancel_at_period_end": data.cancel_at_period_end},
             )
 
-            return {"message": "Subscription will be cancelled at period end" if data.cancel_at_period_end else "Subscription cancelled"}
+            return {
+                "message": "Subscription will be cancelled at period end"
+                if data.cancel_at_period_end
+                else "Subscription cancelled"
+            }
 
         except Subscription.DoesNotExist:
             return {"error": "No active subscription"}, 404
@@ -227,7 +238,9 @@ class BillingController(APIController):
 
     @post("/checkout")
     @jwt_required
-    async def create_checkout_session(self, request, org_slug: str, data: CheckoutSessionRequest) -> dict:
+    async def create_checkout_session(
+        self, request, org_slug: str, data: CheckoutSessionRequest
+    ) -> dict:
         """Create a Stripe Checkout session for new subscription."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
@@ -252,10 +265,12 @@ class BillingController(APIController):
             session_params = {
                 "customer": org.stripe_customer_id,
                 "payment_method_types": ["card"],
-                "line_items": [{
-                    "price": data.price_id,
-                    "quantity": data.quantity,
-                }],
+                "line_items": [
+                    {
+                        "price": data.price_id,
+                        "quantity": data.quantity,
+                    }
+                ],
                 "mode": "subscription",
                 "success_url": data.success_url + "?session_id={CHECKOUT_SESSION_ID}",
                 "cancel_url": data.cancel_url,
@@ -290,7 +305,9 @@ class BillingController(APIController):
 
     @post("/portal")
     @jwt_required
-    async def create_billing_portal_session(self, request, org_slug: str, data: BillingPortalRequest) -> dict:
+    async def create_billing_portal_session(
+        self, request, org_slug: str, data: BillingPortalRequest
+    ) -> dict:
         """Create a Stripe Billing Portal session."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
@@ -329,7 +346,7 @@ class BillingController(APIController):
         total = await invoices.acount()
 
         offset = (page - 1) * page_size
-        invoices = invoices.order_by("-invoice_date")[offset:offset + page_size]
+        invoices = invoices.order_by("-invoice_date")[offset : offset + page_size]
 
         items = []
         async for invoice in invoices:
@@ -368,7 +385,9 @@ class BillingController(APIController):
         if error:
             return error
 
-        methods = PaymentMethod.objects.filter(organization=org).order_by("-is_default", "-created_at")
+        methods = PaymentMethod.objects.filter(organization=org).order_by(
+            "-is_default", "-created_at"
+        )
 
         result = []
         async for method in methods:
@@ -378,7 +397,9 @@ class BillingController(APIController):
 
     @post("/payment-methods")
     @jwt_required
-    async def add_payment_method(self, request, org_slug: str, data: PaymentMethodCreateRequest) -> dict:
+    async def add_payment_method(
+        self, request, org_slug: str, data: PaymentMethodCreateRequest
+    ) -> dict:
         """Add a new payment method."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
@@ -423,7 +444,9 @@ class BillingController(APIController):
 
     @post("/payment-methods/default")
     @jwt_required
-    async def set_default_payment_method(self, request, org_slug: str, data: PaymentMethodSetDefaultRequest) -> dict:
+    async def set_default_payment_method(
+        self, request, org_slug: str, data: PaymentMethodSetDefaultRequest
+    ) -> dict:
         """Set default payment method."""
         org, membership, error = await self.get_org_and_check_billing_access(request, org_slug)
         if error:
@@ -438,7 +461,9 @@ class BillingController(APIController):
             # Set in Stripe
             stripe.Customer.modify(
                 org.stripe_customer_id,
-                invoice_settings={"default_payment_method": payment_method.stripe_payment_method_id},
+                invoice_settings={
+                    "default_payment_method": payment_method.stripe_payment_method_id
+                },
             )
 
             # Update local records

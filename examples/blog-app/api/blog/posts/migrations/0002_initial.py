@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -48,9 +47,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="post",
             name="tags",
-            field=models.ManyToManyField(
-                blank=True, related_name="posts", to="posts.tag"
-            ),
+            field=models.ManyToManyField(blank=True, related_name="posts", to="posts.tag"),
         ),
         migrations.AlterUniqueTogether(
             name="postview",
@@ -64,21 +61,15 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="post",
-            index=models.Index(
-                fields=["status", "featured"], name="posts_post_status_a86236_idx"
-            ),
+            index=models.Index(fields=["status", "featured"], name="posts_post_status_a86236_idx"),
         ),
         migrations.AddIndex(
             model_name="post",
-            index=models.Index(
-                fields=["author", "status"], name="posts_post_author__216072_idx"
-            ),
+            index=models.Index(fields=["author", "status"], name="posts_post_author__216072_idx"),
         ),
         migrations.AddIndex(
             model_name="post",
-            index=models.Index(
-                fields=["published_at"], name="posts_post_publish_04eb5b_idx"
-            ),
+            index=models.Index(fields=["published_at"], name="posts_post_publish_04eb5b_idx"),
         ),
         migrations.AddIndex(
             model_name="post",

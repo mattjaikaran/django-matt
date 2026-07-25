@@ -483,6 +483,7 @@ class TestPagesIntegration:
         # Render the response
         with patch("django_matt.pages.middleware.get_request_mode") as mock_mode:
             from django_matt.pages.middleware import RequestMode
+
             mock_mode.return_value = RequestMode.PAGE_XHR
 
             http_response = response.render(request)

@@ -89,6 +89,7 @@ def _reset_caches():
     # Reset login config cache (otherwise MATT_AUTH overrides leak between tests)
     try:
         from django_matt.auth.login_config import reset_login_config
+
         reset_login_config()
     except Exception:
         pass

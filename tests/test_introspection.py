@@ -86,7 +86,9 @@ class TestInfraRegistry:
     @pytest.mark.asyncio
     async def test_health_check_all_healthy(self):
         async def healthy():
-            return ComponentInfo(name="svc", component_type="service", status=ComponentStatus.HEALTHY)
+            return ComponentInfo(
+                name="svc", component_type="service", status=ComponentStatus.HEALTHY
+            )
 
         self.registry.register("svc1", "service", healthy)
         self.registry.register("svc2", "service", healthy)
@@ -98,7 +100,9 @@ class TestInfraRegistry:
     @pytest.mark.asyncio
     async def test_health_check_critical_unhealthy(self):
         async def unhealthy():
-            return ComponentInfo(name="db", component_type="database", status=ComponentStatus.UNHEALTHY)
+            return ComponentInfo(
+                name="db", component_type="database", status=ComponentStatus.UNHEALTHY
+            )
 
         self.registry.register("db", "database", unhealthy, critical=True)
         result = await self.registry.health_check()
@@ -107,10 +111,14 @@ class TestInfraRegistry:
     @pytest.mark.asyncio
     async def test_health_check_noncritical_unhealthy(self):
         async def healthy():
-            return ComponentInfo(name="db", component_type="database", status=ComponentStatus.HEALTHY)
+            return ComponentInfo(
+                name="db", component_type="database", status=ComponentStatus.HEALTHY
+            )
 
         async def unhealthy():
-            return ComponentInfo(name="email", component_type="email", status=ComponentStatus.UNHEALTHY)
+            return ComponentInfo(
+                name="email", component_type="email", status=ComponentStatus.UNHEALTHY
+            )
 
         self.registry.register("db", "database", healthy, critical=True)
         self.registry.register("email", "email", unhealthy, critical=False)
@@ -121,7 +129,9 @@ class TestInfraRegistry:
     @pytest.mark.asyncio
     async def test_health_check_degraded(self):
         async def degraded():
-            return ComponentInfo(name="cache", component_type="cache", status=ComponentStatus.DEGRADED)
+            return ComponentInfo(
+                name="cache", component_type="cache", status=ComponentStatus.DEGRADED
+            )
 
         self.registry.register("cache", "cache", degraded)
         result = await self.registry.health_check()
@@ -247,6 +257,7 @@ class TestHealthCheckMiddleware:
         response = self.middleware(request)
         assert response.status_code == 200
         import orjson
+
         data = orjson.loads(response.content)
         assert data["alive"] is True
 
@@ -274,7 +285,9 @@ class TestEndpoints:
         reg = InfraRegistry()
 
         async def healthy():
-            return ComponentInfo(name="db", component_type="database", status=ComponentStatus.HEALTHY)
+            return ComponentInfo(
+                name="db", component_type="database", status=ComponentStatus.HEALTHY
+            )
 
         reg.register("db", "database", healthy)
 
@@ -283,6 +296,7 @@ class TestEndpoints:
             response = await health_view(request)
             assert response.status_code == 200
             import orjson
+
             data = orjson.loads(response.content)
             assert data["status"] == "ok"
 
@@ -293,7 +307,9 @@ class TestEndpoints:
         reg = InfraRegistry()
 
         async def bad():
-            return ComponentInfo(name="db", component_type="database", status=ComponentStatus.UNHEALTHY)
+            return ComponentInfo(
+                name="db", component_type="database", status=ComponentStatus.UNHEALTHY
+            )
 
         reg.register("db", "database", bad, critical=True)
 
@@ -318,7 +334,9 @@ class TestEndpoints:
         reg = InfraRegistry()
 
         async def healthy():
-            return ComponentInfo(name="db", component_type="database", status=ComponentStatus.HEALTHY)
+            return ComponentInfo(
+                name="db", component_type="database", status=ComponentStatus.HEALTHY
+            )
 
         reg.register("db", "database", healthy)
 
@@ -328,6 +346,7 @@ class TestEndpoints:
             response = await health_detailed_view(request)
             assert response.status_code == 200
             import orjson
+
             data = orjson.loads(response.content)
             assert "components" in data
             assert "db" in data["components"]
@@ -339,7 +358,9 @@ class TestEndpoints:
         reg = InfraRegistry()
 
         async def healthy():
-            return ComponentInfo(name="db", component_type="database", status=ComponentStatus.HEALTHY)
+            return ComponentInfo(
+                name="db", component_type="database", status=ComponentStatus.HEALTHY
+            )
 
         reg.register("db", "database", healthy, critical=True)
 
@@ -355,7 +376,9 @@ class TestEndpoints:
         reg = InfraRegistry()
 
         async def bad():
-            return ComponentInfo(name="db", component_type="database", status=ComponentStatus.UNHEALTHY)
+            return ComponentInfo(
+                name="db", component_type="database", status=ComponentStatus.UNHEALTHY
+            )
 
         reg.register("db", "database", bad, critical=True)
 
@@ -372,6 +395,7 @@ class TestEndpoints:
         response = await health_live_view(request)
         assert response.status_code == 200
         import orjson
+
         data = orjson.loads(response.content)
         assert data["alive"] is True
 
@@ -384,6 +408,7 @@ class TestEndpoints:
         response = await info_view(request)
         assert response.status_code == 200
         import orjson
+
         data = orjson.loads(response.content)
         assert "framework_version" in data
         assert "python_version" in data

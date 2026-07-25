@@ -56,9 +56,7 @@ class CartService(BaseService["Cart"]):
         """
         Return the anonymous cart for ``session_key``, creating one if needed.
         """
-        cart, _ = await Cart.objects.aget_or_create(
-            session_key=session_key, user=None
-        )
+        cart, _ = await Cart.objects.aget_or_create(session_key=session_key, user=None)
         return cart
 
     # ------------------------------------------------------------------
@@ -185,13 +183,11 @@ class CartService(BaseService["Cart"]):
         worry about prefetch state.
         """
         # Reload with all related data so property calculations work
-        fresh = (
-            await Cart.objects.prefetch_related(
-                "items__product",
-                "items__variant",
-                "coupon",
-            ).aget(pk=cart.pk)
-        )
+        fresh = await Cart.objects.prefetch_related(
+            "items__product",
+            "items__variant",
+            "coupon",
+        ).aget(pk=cart.pk)
 
         items_data = []
         async for item in fresh.items.select_related("product", "variant").all():
@@ -209,9 +205,7 @@ class CartService(BaseService["Cart"]):
                 }
             )
 
-        subtotal: Decimal = sum(
-            (Decimal(i["line_total"]) for i in items_data), Decimal("0.00")
-        )
+        subtotal: Decimal = sum((Decimal(i["line_total"]) for i in items_data), Decimal("0.00"))
         coupon_code = fresh.coupon.code if fresh.coupon else None
         discount = fresh.coupon.calculate_discount(subtotal) if fresh.coupon else Decimal("0.00")
         tax_rate = Decimal("0.0875")  # placeholder — real apps read from settings
@@ -219,9 +213,7 @@ class CartService(BaseService["Cart"]):
         free_shipping_threshold = Decimal("50.00")
         shipping_flat = Decimal("5.99")
         shipping = (
-            Decimal("0.00")
-            if (subtotal - discount) >= free_shipping_threshold
-            else shipping_flat
+            Decimal("0.00") if (subtotal - discount) >= free_shipping_threshold else shipping_flat
         )
         total = subtotal - discount + tax + shipping
 

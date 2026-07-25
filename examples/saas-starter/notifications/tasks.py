@@ -233,9 +233,9 @@ def send_invitation_email(self, invitation_id: str):
     from core.models import Invitation
 
     try:
-        invitation = Invitation.objects.select_related(
-            "organization", "invited_by"
-        ).get(id=invitation_id)
+        invitation = Invitation.objects.select_related("organization", "invited_by").get(
+            id=invitation_id
+        )
 
         if invitation.status != "pending":
             return

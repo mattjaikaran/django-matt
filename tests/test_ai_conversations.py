@@ -38,16 +38,11 @@ class TestConversationModel:
     @pytest.mark.asyncio
     async def test_message_ordering(self):
         conv = await Conversation.objects.acreate(title="Test")
-        await ConversationMessage.objects.acreate(
-            conversation=conv, role="user", content="First"
-        )
+        await ConversationMessage.objects.acreate(conversation=conv, role="user", content="First")
         await ConversationMessage.objects.acreate(
             conversation=conv, role="assistant", content="Second"
         )
-        msgs = [
-            m
-            async for m in ConversationMessage.objects.filter(conversation=conv)
-        ]
+        msgs = [m async for m in ConversationMessage.objects.filter(conversation=conv)]
         assert msgs[0].content == "First"
         assert msgs[1].content == "Second"
 
@@ -56,9 +51,7 @@ class TestConversationModel:
         from django.contrib.auth import get_user_model
 
         User = get_user_model()
-        user = await User.objects.acreate_user(
-            username="ai_conv_testuser", password="pass"
-        )
+        user = await User.objects.acreate_user(username="ai_conv_testuser", password="pass")
         conv = await Conversation.objects.acreate(title="Test", user=user)
         assert conv.user_id == user.id
 
@@ -69,9 +62,7 @@ class TestConversationModel:
             conversation=conv,
             role="assistant",
             content="",
-            tool_calls=[
-                {"id": "tc1", "name": "get_order", "arguments": {"id": "123"}}
-            ],
+            tool_calls=[{"id": "tc1", "name": "get_order", "arguments": {"id": "123"}}],
         )
         await msg.arefresh_from_db()
         assert msg.tool_calls[0]["name"] == "get_order"
@@ -109,10 +100,7 @@ class TestAgentWithConversation:
         assert response.content == "Hello!"
         assert response.conversation_id == conv.id
 
-        msgs = [
-            m
-            async for m in ConversationMessage.objects.filter(conversation=conv)
-        ]
+        msgs = [m async for m in ConversationMessage.objects.filter(conversation=conv)]
         assert len(msgs) == 2  # user + assistant
         assert msgs[0].role == "user"
         assert msgs[0].content == "Hi"
@@ -122,9 +110,7 @@ class TestAgentWithConversation:
     @pytest.mark.asyncio
     async def test_conversation_history_sent(self):
         provider = AsyncMock()
-        provider.complete = AsyncMock(
-            return_value=CompletionResponse(content="OK")
-        )
+        provider.complete = AsyncMock(return_value=CompletionResponse(content="OK"))
 
         class MyAgent(Agent):
             system_prompt = "Test"

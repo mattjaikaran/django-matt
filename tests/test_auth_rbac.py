@@ -140,12 +140,8 @@ class TestResourceScopedPermissions:
     def test_circular_inheritance_protection(self):
         """Circular role inheritance should not cause infinite loop."""
         config = RBACConfig()
-        config.register_role(
-            Role(name="role_a", permissions=["perm_a"], inherits=["role_b"])
-        )
-        config.register_role(
-            Role(name="role_b", permissions=["perm_b"], inherits=["role_a"])
-        )
+        config.register_role(Role(name="role_a", permissions=["perm_a"], inherits=["role_b"]))
+        config.register_role(Role(name="role_b", permissions=["perm_b"], inherits=["role_a"]))
         config.clear_cache()
         perms = config.get_role_permissions("role_a")
         assert "perm_a" in perms
@@ -288,6 +284,7 @@ class TestRequiresRbacPermissionAsync:
     @pytest.mark.django_db
     async def test_async_with_resource_scope(self, rf, editor_user):
         """Editor has 'create' but not scoped to 'billing'."""
+
         @requires_rbac_permission("create", resource="billing")
         async def view(request):
             return JsonResponse({"ok": True})

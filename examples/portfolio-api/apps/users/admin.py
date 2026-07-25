@@ -12,8 +12,14 @@ class UserAdmin(BaseUserAdmin):
     ordering = ("-date_joined",)
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        ("Profile", {"fields": ("name", "bio", "avatar_url", "github_url", "linkedin_url", "website_url")}),
-        ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
+        (
+            "Profile",
+            {"fields": ("name", "bio", "avatar_url", "github_url", "linkedin_url", "website_url")},
+        ),
+        (
+            "Permissions",
+            {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")},
+        ),
         ("Dates", {"fields": ("last_login", "date_joined")}),
     )
     add_fieldsets = (

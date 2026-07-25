@@ -27,9 +27,7 @@ class SearchController(APIController):
 
         # Keyword search
         if query:
-            qs = qs.filter(
-                Q(name__icontains=query) | Q(description__icontains=query)
-            )
+            qs = qs.filter(Q(name__icontains=query) | Q(description__icontains=query))
 
         # Category filter
         if category_id:

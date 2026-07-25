@@ -22,8 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-saas-starter-example-change-in-production"
+    "DJANGO_SECRET_KEY", "django-insecure-saas-starter-example-change-in-production"
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -40,16 +39,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
     # Third-party apps
     "channels",
-
     # Django Matt modules — this example defines its own Organization/Membership
     # models in core.models, so we don't install django_matt.multitenancy.
     "django_matt",
     "django_matt.billing",
     "django_matt.flags",
-
     # Project apps
     "core.apps.CoreConfig",
     "projects.apps.ProjectsConfig",
@@ -65,7 +61,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-
     # Django Matt middleware
     "django_matt.flags.FlagMiddleware",
     "django_matt.negotiation.ContentNegotiationMiddleware",
@@ -164,12 +159,16 @@ MATT_OAUTH = {
     "GOOGLE": {
         "CLIENT_ID": os.environ.get("GOOGLE_CLIENT_ID", ""),
         "CLIENT_SECRET": os.environ.get("GOOGLE_CLIENT_SECRET", ""),
-        "REDIRECT_URI": os.environ.get("GOOGLE_REDIRECT_URI", "http://localhost:8000/api/auth/oauth/google/callback"),
+        "REDIRECT_URI": os.environ.get(
+            "GOOGLE_REDIRECT_URI", "http://localhost:8000/api/auth/oauth/google/callback"
+        ),
     },
     "GITHUB": {
         "CLIENT_ID": os.environ.get("GITHUB_CLIENT_ID", ""),
         "CLIENT_SECRET": os.environ.get("GITHUB_CLIENT_SECRET", ""),
-        "REDIRECT_URI": os.environ.get("GITHUB_REDIRECT_URI", "http://localhost:8000/api/auth/oauth/github/callback"),
+        "REDIRECT_URI": os.environ.get(
+            "GITHUB_REDIRECT_URI", "http://localhost:8000/api/auth/oauth/github/callback"
+        ),
     },
 }
 
@@ -269,10 +268,7 @@ BILLING_PRODUCTS = {
 # Email Configuration
 # =============================================================================
 
-EMAIL_BACKEND = os.environ.get(
-    "EMAIL_BACKEND",
-    "django.core.mail.backends.console.EmailBackend"
-)
+EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
 EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
@@ -345,8 +341,7 @@ if not DEBUG:
 # =============================================================================
 
 CORS_ALLOWED_ORIGINS = os.environ.get(
-    "CORS_ALLOWED_ORIGINS",
-    "http://localhost:3000,http://localhost:5173"
+    "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173"
 ).split(",")
 
 CORS_ALLOW_CREDENTIALS = True

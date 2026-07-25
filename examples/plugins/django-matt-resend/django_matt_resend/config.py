@@ -19,8 +19,7 @@ class ResendConfig:
             errors.append("MATT_RESEND.API_KEY is required")
         if not self.default_from:
             errors.append(
-                "MATT_RESEND.DEFAULT_FROM is required "
-                "(e.g. noreply@yourdomain.com)"
+                "MATT_RESEND.DEFAULT_FROM is required (e.g. noreply@yourdomain.com)"
             )
         return errors
 

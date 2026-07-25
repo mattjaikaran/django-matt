@@ -15,6 +15,7 @@ from django_matt.slim import (
 # SlimConfig unit tests
 # ---------------------------------------------------------------------------
 
+
 class TestSlimConfig:
     def test_defaults(self):
         cfg = SlimConfig()
@@ -97,9 +98,7 @@ class TestIsModuleEnabled:
         assert is_module_enabled("websockets")
 
     def test_full_mode_respects_disabled(self, settings):
-        settings.DJANGO_MATT = {
-            "SLIM_MODE": {"mode": "full", "disabled_modules": ["graphql"]}
-        }
+        settings.DJANGO_MATT = {"SLIM_MODE": {"mode": "full", "disabled_modules": ["graphql"]}}
         reset_slim_config()
         assert not is_module_enabled("graphql")
         assert is_module_enabled("billing")
@@ -139,6 +138,7 @@ class TestIsModuleEnabled:
 # ---------------------------------------------------------------------------
 # ModuleRegistry unit tests
 # ---------------------------------------------------------------------------
+
 
 class TestModuleRegistry:
     def test_default_mode_is_full(self):
@@ -299,9 +299,11 @@ class TestModuleRegistryAutoDetection:
 # LazyModuleProxy tests
 # ---------------------------------------------------------------------------
 
+
 class TestLazyModuleProxy:
     def test_deferred_import(self):
         from django_matt.loader import LazyModuleProxy
+
         proxy = LazyModuleProxy("json")
         assert not proxy._is_loaded
         # Access triggers import
@@ -311,11 +313,13 @@ class TestLazyModuleProxy:
 
     def test_repr_deferred(self):
         from django_matt.loader import LazyModuleProxy
+
         proxy = LazyModuleProxy("json")
         assert "deferred" in repr(proxy)
 
     def test_repr_loaded(self):
         from django_matt.loader import LazyModuleProxy
+
         proxy = LazyModuleProxy("json")
         proxy._load()
         assert "loaded" in repr(proxy)
@@ -348,6 +352,7 @@ class TestLazyModuleProxy:
 
     def test_invalid_module_raises(self):
         from django_matt.loader import LazyModuleProxy
+
         proxy = LazyModuleProxy("nonexistent_module_xyz")
         with pytest.raises(ModuleNotFoundError):
             proxy.some_attr
@@ -356,6 +361,7 @@ class TestLazyModuleProxy:
 class TestLazyImport:
     def test_returns_proxy(self):
         from django_matt.loader import lazy_import
+
         proxy = lazy_import("json")
         assert not proxy._is_loaded
         assert proxy.dumps({"x": 1}) == '{"x": 1}'
@@ -366,6 +372,7 @@ class TestLazyImport:
 # DeferredLoader tests
 # ---------------------------------------------------------------------------
 
+
 class TestDeferredLoader:
     def setup_method(self):
         reset_slim_config()
@@ -375,6 +382,7 @@ class TestDeferredLoader:
 
     def test_get_light_module(self):
         from django_matt.loader import DeferredLoader
+
         loader = DeferredLoader()
         mod = loader.get("core")
         # Light modules are eagerly loaded (real module, not proxy)
@@ -383,6 +391,7 @@ class TestDeferredLoader:
 
     def test_get_heavy_module_returns_proxy(self):
         from django_matt.loader import DeferredLoader, LazyModuleProxy
+
         loader = DeferredLoader()
         proxy = loader.get("billing")
         assert isinstance(proxy, LazyModuleProxy)
@@ -390,9 +399,8 @@ class TestDeferredLoader:
 
     def test_get_disabled_module_returns_none(self, settings):
         from django_matt.loader import DeferredLoader
-        settings.DJANGO_MATT = {
-            "SLIM_MODE": {"mode": "full", "disabled_modules": ["billing"]}
-        }
+
+        settings.DJANGO_MATT = {"SLIM_MODE": {"mode": "full", "disabled_modules": ["billing"]}}
         reset_slim_config()
         loader = DeferredLoader()
         result = loader.get("billing")
@@ -400,6 +408,7 @@ class TestDeferredLoader:
 
     def test_preload(self):
         from django_matt.loader import DeferredLoader
+
         loader = DeferredLoader()
         loader.get("billing")  # create proxy
         assert not loader.is_loaded("billing")
@@ -408,6 +417,7 @@ class TestDeferredLoader:
 
     def test_deferred_modules_list(self):
         from django_matt.loader import DeferredLoader
+
         loader = DeferredLoader()
         loader.get("billing")
         loader.get("analytics")
@@ -416,6 +426,7 @@ class TestDeferredLoader:
 
     def test_repr(self):
         from django_matt.loader import DeferredLoader
+
         loader = DeferredLoader()
         r = repr(loader)
         assert "DeferredLoader" in r
@@ -425,48 +436,57 @@ class TestDeferredLoader:
 # MattAPI integration tests
 # ---------------------------------------------------------------------------
 
+
 class TestMattAPISlimMode:
     def test_default_mode_is_full(self):
         from django_matt.api import MattAPI
+
         api = MattAPI()
         assert api.mode == "full"
 
     def test_minimal_mode(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="minimal")
         assert api.mode == "minimal"
 
     def test_slim_mode(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="slim")
         assert api.mode == "slim"
         assert "auth" in api.modules
 
     def test_auto_mode(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="auto")
         assert api.mode == "auto"
 
     def test_modules_property(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="minimal")
         assert isinstance(api.modules, frozenset)
         assert "core" in api.modules
 
     def test_activate_returns_self(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="minimal")
         result = api.activate("cors")
         assert result is api
 
     def test_activate_modules(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="minimal")
         api.activate("cors")
         assert "cors" in api.modules
 
     def test_deactivate_modules(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="minimal")
         api.activate("cors")
         api.deactivate("cors")
@@ -474,16 +494,19 @@ class TestMattAPISlimMode:
 
     def test_auth_param_activates_auth_module(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="minimal", auth="jwt")
         assert "auth" in api.modules
 
     def test_registry_property(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="minimal")
         assert isinstance(api.registry, ModuleRegistry)
 
     def test_slim_mode_activate_specific_modules(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="slim")
         api.activate("billing", "cors")
         assert "billing" in api.modules
@@ -492,6 +515,7 @@ class TestMattAPISlimMode:
 
     def test_full_mode_backwards_compatible(self):
         from django_matt.api import MattAPI
+
         api = MattAPI()
         assert api.mode == "full"
         assert api.registry.is_active("billing")
@@ -502,6 +526,7 @@ class TestMattAPISlimMode:
 class TestMattAPIURLsSlimMode:
     def test_full_mode_includes_health(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="full", health_url="/health")
         urls = api.get_urls()
         names = [u.name for u in urls if hasattr(u, "name")]
@@ -509,6 +534,7 @@ class TestMattAPIURLsSlimMode:
 
     def test_minimal_mode_excludes_health(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="minimal", health_url="/health")
         urls = api.get_urls()
         names = [u.name for u in urls if hasattr(u, "name")]
@@ -516,6 +542,7 @@ class TestMattAPIURLsSlimMode:
 
     def test_slim_mode_excludes_health(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="slim", health_url="/health")
         urls = api.get_urls()
         names = [u.name for u in urls if hasattr(u, "name")]
@@ -523,6 +550,7 @@ class TestMattAPIURLsSlimMode:
 
     def test_slim_mode_with_observability_includes_health(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="slim", health_url="/health")
         api.activate("observability")
         urls = api.get_urls()
@@ -531,6 +559,7 @@ class TestMattAPIURLsSlimMode:
 
     def test_minimal_mode_with_observability_includes_health(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="minimal", health_url="/health")
         api.activate("observability")
         urls = api.get_urls()
@@ -539,6 +568,7 @@ class TestMattAPIURLsSlimMode:
 
     def test_full_mode_includes_docs(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="full")
         urls = api.get_urls()
         names = [u.name for u in urls if hasattr(u, "name")]
@@ -548,6 +578,7 @@ class TestMattAPIURLsSlimMode:
 
     def test_minimal_mode_includes_docs(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="minimal")
         urls = api.get_urls()
         names = [u.name for u in urls if hasattr(u, "name")]
@@ -557,6 +588,7 @@ class TestMattAPIURLsSlimMode:
 
     def test_health_url_none_no_health(self):
         from django_matt.api import MattAPI
+
         api = MattAPI(mode="full", health_url=None)
         urls = api.get_urls()
         names = [u.name for u in urls if hasattr(u, "name")]
@@ -567,9 +599,11 @@ class TestMattAPIURLsSlimMode:
 # StartupProfiler tests
 # ---------------------------------------------------------------------------
 
+
 class TestStartupProfiler:
     def test_profile_imports_returns_dict(self):
         from django_matt.startup import profile_imports
+
         results = profile_imports()
         assert isinstance(results, dict)
         assert len(results) > 0
@@ -579,6 +613,7 @@ class TestStartupProfiler:
 
     def test_context_manager(self):
         from django_matt.startup import StartupProfiler
+
         with StartupProfiler() as profiler:
             pass
         assert profiler.total_ms >= 0
@@ -586,6 +621,7 @@ class TestStartupProfiler:
 
     def test_summary(self):
         from django_matt.startup import StartupProfiler
+
         with StartupProfiler() as profiler:
             pass
         summary = profiler.summary()
@@ -597,6 +633,7 @@ class TestStartupProfiler:
 
     def test_get_profile_results(self):
         from django_matt.startup import StartupProfiler, get_profile_results
+
         with StartupProfiler():
             pass
         results = get_profile_results()
@@ -607,6 +644,7 @@ class TestStartupProfiler:
 # ---------------------------------------------------------------------------
 # DjangoMattMiddleware integration
 # ---------------------------------------------------------------------------
+
 
 class TestDjangoMattMiddlewareSlimMode:
     def test_middleware_chain_filters_by_registry(self, settings):
@@ -622,6 +660,7 @@ class TestDjangoMattMiddlewareSlimMode:
 
         def dummy_response(request):
             from django.http import HttpResponse
+
             return HttpResponse("ok")
 
         mw = DjangoMattMiddleware(dummy_response)
@@ -647,6 +686,7 @@ class TestDjangoMattMiddlewareSlimMode:
 
         def dummy_response(request):
             from django.http import HttpResponse
+
             return HttpResponse("ok")
 
         mw = DjangoMattMiddleware(dummy_response)
@@ -663,6 +703,7 @@ class TestDjangoMattMiddlewareSlimMode:
 
         def dummy_response(request):
             from django.http import HttpResponse
+
             return HttpResponse("ok")
 
         mw = DjangoMattMiddleware(dummy_response)

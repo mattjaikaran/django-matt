@@ -101,9 +101,7 @@ def user_a():
 
 @pytest.fixture
 def user_b():
-    return User.objects.create_user(
-        username="bob", email="bob@example.com", password="password123"
-    )
+    return User.objects.create_user(username="bob", email="bob@example.com", password="password123")
 
 
 @pytest.fixture
@@ -115,23 +113,17 @@ def user_c():
 
 @pytest.fixture
 def org_a(user_a):
-    return create_organization_with_owner(
-        name="Org Alpha", slug="org-alpha", owner=user_a
-    )
+    return create_organization_with_owner(name="Org Alpha", slug="org-alpha", owner=user_a)
 
 
 @pytest.fixture
 def org_b(user_b):
-    return create_organization_with_owner(
-        name="Org Beta", slug="org-beta", owner=user_b
-    )
+    return create_organization_with_owner(name="Org Beta", slug="org-beta", owner=user_b)
 
 
 @pytest.fixture
 def team_a(org_a):
-    return Team.objects.create(
-        organization=org_a, name="Team Alpha", slug="team-alpha"
-    )
+    return Team.objects.create(organization=org_a, name="Team Alpha", slug="team-alpha")
 
 
 @pytest.fixture
@@ -260,9 +252,7 @@ class TestOrganizationModel:
 
 class TestTeamModel:
     def test_create(self, org_a):
-        team = Team.objects.create(
-            organization=org_a, name="Engineering", slug="engineering"
-        )
+        team = Team.objects.create(organization=org_a, name="Engineering", slug="engineering")
         assert team.pk is not None
         assert str(team) == "Org Alpha - Engineering"
 
@@ -270,15 +260,11 @@ class TestTeamModel:
         from django.db import IntegrityError
 
         with pytest.raises(IntegrityError):
-            Team.objects.create(
-                organization=org_a, name="Duplicate", slug="team-alpha"
-            )
+            Team.objects.create(organization=org_a, name="Duplicate", slug="team-alpha")
 
     def test_same_slug_different_org(self, org_a, org_b):
         Team.objects.create(organization=org_a, name="T1", slug="shared-slug")
-        team2 = Team.objects.create(
-            organization=org_b, name="T2", slug="shared-slug"
-        )
+        team2 = Team.objects.create(organization=org_b, name="T2", slug="shared-slug")
         assert team2.pk is not None
 
     def test_add_member_requires_org_membership(self, org_a, team_a, user_b):
@@ -324,9 +310,7 @@ class TestMembershipModel:
         from django.db import IntegrityError
 
         with pytest.raises(IntegrityError):
-            Membership.objects.create(
-                organization=org_a, user=user_a, role="member"
-            )
+            Membership.objects.create(organization=org_a, user=user_a, role="member")
 
     def test_is_owner_property(self, org_a, user_a, user_b):
         owner_m = Membership.objects.get(organization=org_a, user=user_a)
@@ -1071,9 +1055,7 @@ class TestAsyncDecorators:
         assert response.status_code == 200
         clear_current_tenant()
 
-    async def test_requires_team_membership_async(
-        self, rf, org_a, team_a, user_a, user_b
-    ):
+    async def test_requires_team_membership_async(self, rf, org_a, team_a, user_a, user_b):
         await sync_to_async(team_a.add_member)(user_a)
 
         @requires_team_membership("team_id")
@@ -1112,15 +1094,11 @@ class TestUtilsSync:
         teams = get_user_teams(user_a)
         assert teams.count() == 1
 
-    def test_get_user_teams_filtered_by_org(
-        self, org_a, org_b, user_a, user_b, team_a
-    ):
+    def test_get_user_teams_filtered_by_org(self, org_a, org_b, user_a, user_b, team_a):
         team_a.add_member(user_a)
         # user_a is in org_a's team; create team in org_b
         org_b.add_member(user_a, role="member")
-        team_b = Team.objects.create(
-            organization=org_b, name="Team Beta", slug="team-beta"
-        )
+        team_b = Team.objects.create(organization=org_b, name="Team Beta", slug="team-beta")
         team_b.add_member(user_a)
 
         teams = get_user_teams(user_a, organization=org_a)
@@ -1181,9 +1159,7 @@ class TestUtilsSync:
 
 class TestCreateOrganizationWithOwner:
     def test_creates_org_and_membership(self, user_a):
-        org = create_organization_with_owner(
-            name="New Org", slug="new-org", owner=user_a
-        )
+        org = create_organization_with_owner(name="New Org", slug="new-org", owner=user_a)
         assert org.pk is not None
         assert org.is_member(user_a) is True
         assert org.get_member_role(user_a) == "owner"
@@ -1318,12 +1294,8 @@ class TestCrossTenantIsolation:
         assert org_b.get_member_role(user_c) == "admin"
 
     def test_invitations_isolated(self, org_a, org_b, user_a, user_b):
-        Invitation.objects.create(
-            organization=org_a, email="x@example.com", invited_by=user_a
-        )
-        Invitation.objects.create(
-            organization=org_b, email="x@example.com", invited_by=user_b
-        )
+        Invitation.objects.create(organization=org_a, email="x@example.com", invited_by=user_a)
+        Invitation.objects.create(organization=org_b, email="x@example.com", invited_by=user_b)
         assert Invitation.objects.filter(organization=org_a).count() == 1
         assert Invitation.objects.filter(organization=org_b).count() == 1
 
@@ -1345,9 +1317,7 @@ class TestCrossTenantIsolation:
 
 class TestSchemas:
     def test_organization_create_valid(self):
-        schema = OrganizationCreate(
-            name="Test", slug="test-org", description="desc"
-        )
+        schema = OrganizationCreate(name="Test", slug="test-org", description="desc")
         assert schema.name == "Test"
         assert schema.slug == "test-org"
 
@@ -1400,9 +1370,7 @@ class TestSchemas:
             InvitationCreate(email="not-an-email", role="member")
 
     def test_tenant_context_properties(self):
-        ctx = TenantContext(
-            organization_id=uuid.uuid4(), organization_slug="test"
-        )
+        ctx = TenantContext(organization_id=uuid.uuid4(), organization_slug="test")
         assert ctx.has_organization is True
         assert ctx.has_team is False
 

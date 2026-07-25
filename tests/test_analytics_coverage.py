@@ -45,7 +45,6 @@ from django_matt.analytics.tracker import BatchContext, EventTracker, get_tracke
 pytestmark = pytest.mark.django_db
 
 
-
 # ============================================================================
 # Helpers
 # ============================================================================
@@ -220,11 +219,13 @@ class TestEventTracker:
 class TestAnalyticsDatabaseBackend:
     def test_track_event_creates_record(self):
         backend = AnalyticsDatabaseBackend()
-        event_id = backend.track_event({
-            "name": "test_event",
-            "category": "custom",
-            "properties": {"key": "value"},
-        })
+        event_id = backend.track_event(
+            {
+                "name": "test_event",
+                "category": "custom",
+                "properties": {"key": "value"},
+            }
+        )
 
         assert event_id
         event = AnalyticsEvent.objects.get(id=event_id)
@@ -233,20 +234,24 @@ class TestAnalyticsDatabaseBackend:
 
     def test_track_events_batch(self):
         backend = AnalyticsDatabaseBackend()
-        ids = backend.track_events_batch([
-            {"name": "batch1", "category": "custom"},
-            {"name": "batch2", "category": "custom"},
-        ])
+        ids = backend.track_events_batch(
+            [
+                {"name": "batch1", "category": "custom"},
+                {"name": "batch2", "category": "custom"},
+            ]
+        )
 
         assert len(ids) == 2
         assert AnalyticsEvent.objects.filter(name__startswith="batch").count() == 2
 
     def test_track_page_view_creates_record(self):
         backend = AnalyticsDatabaseBackend()
-        pv_id = backend.track_page_view({
-            "path": "/test",
-            "url": "https://example.com/test",
-        })
+        pv_id = backend.track_page_view(
+            {
+                "path": "/test",
+                "url": "https://example.com/test",
+            }
+        )
 
         assert pv_id
         pv = PageView.objects.get(id=pv_id)
@@ -254,13 +259,14 @@ class TestAnalyticsDatabaseBackend:
 
     def test_track_page_views_batch(self):
         backend = AnalyticsDatabaseBackend()
-        ids = backend.track_page_views_batch([
-            {"path": "/page1", "url": "https://example.com/page1"},
-            {"path": "/page2", "url": "https://example.com/page2"},
-        ])
+        ids = backend.track_page_views_batch(
+            [
+                {"path": "/page1", "url": "https://example.com/page1"},
+                {"path": "/page2", "url": "https://example.com/page2"},
+            ]
+        )
 
         assert len(ids) == 2
-
 
     def test_identify_links_anonymous(self):
         user = _create_user(username="id_user")
@@ -290,7 +296,6 @@ class TestAnalyticsDatabaseBackend:
         # Identity record should exist
         identity = UserIdentity.objects.get(anonymous_id="anon-123")
         assert identity.user == user
-
 
     def test_group_updates_sessions(self):
         user = _create_user(username="group_user")
@@ -479,7 +484,6 @@ class TestPageViewModel:
         )
         assert "pricing" in str(pv)
 
-
     def test_page_view_with_session(self):
         session = AnalyticsSession.objects.create(session_id="pv-sess")
         pv = PageView.objects.create(
@@ -579,15 +583,20 @@ class TestAggregator:
         def _setup():
             user = _create_user(username="agg_user")
             AnalyticsEvent.objects.create(
-                name="click", category="user_action", user=user,
+                name="click",
+                category="user_action",
+                user=user,
                 timestamp=now - timedelta(hours=1),
             )
             AnalyticsEvent.objects.create(
-                name="click", category="user_action",
+                name="click",
+                category="user_action",
                 timestamp=now - timedelta(hours=2),
             )
             AnalyticsEvent.objects.create(
-                name="purchase", category="conversion", user=user,
+                name="purchase",
+                category="conversion",
+                user=user,
                 timestamp=now - timedelta(hours=3),
             )
 
@@ -611,13 +620,16 @@ class TestAggregator:
         @sync_to_async
         def _setup():
             AnalyticsEvent.objects.create(
-                name="specific_event", timestamp=now - timedelta(hours=1),
+                name="specific_event",
+                timestamp=now - timedelta(hours=1),
             )
             AnalyticsEvent.objects.create(
-                name="specific_event", timestamp=now - timedelta(hours=2),
+                name="specific_event",
+                timestamp=now - timedelta(hours=2),
             )
             AnalyticsEvent.objects.create(
-                name="other_event", timestamp=now - timedelta(hours=1),
+                name="other_event",
+                timestamp=now - timedelta(hours=1),
             )
 
         await _setup()
@@ -652,12 +664,17 @@ class TestAggregator:
         def _setup():
             user = _create_user(username="page_user")
             PageView.objects.create(
-                path="/home", url="https://example.com/home",
-                user=user, timestamp=now - timedelta(hours=1), time_on_page=30,
+                path="/home",
+                url="https://example.com/home",
+                user=user,
+                timestamp=now - timedelta(hours=1),
+                time_on_page=30,
             )
             PageView.objects.create(
-                path="/pricing", url="https://example.com/pricing",
-                anonymous_id="anon-1", timestamp=now - timedelta(hours=2),
+                path="/pricing",
+                url="https://example.com/pricing",
+                anonymous_id="anon-1",
+                timestamp=now - timedelta(hours=2),
             )
 
         await _setup()
@@ -681,17 +698,18 @@ class TestAggregator:
         )
         assert metrics["total_sessions"] == 0
 
-
     @pytest.mark.asyncio
     async def test_get_session_metrics_with_data(self):
         now = timezone.now()
         await sync_to_async(AnalyticsSession.objects.create)(
             session_id="sess-metric-1",
-            page_views=5, duration_seconds=300,
+            page_views=5,
+            duration_seconds=300,
         )
         await sync_to_async(AnalyticsSession.objects.create)(
             session_id="sess-metric-2",
-            page_views=1, duration_seconds=10,
+            page_views=1,
+            duration_seconds=10,
         )
 
         aggregator = Aggregator()
@@ -728,18 +746,28 @@ class TestAggregator:
             user = _create_user(username="funnel_user")
             funnel = Funnel.objects.create(name="Signup Flow", strict_order=True)
             FunnelStep.objects.create(
-                funnel=funnel, order=1, name="Visit Landing",
-                match_type=FunnelStep.MatchType.EVENT, event_name="visit_landing",
+                funnel=funnel,
+                order=1,
+                name="Visit Landing",
+                match_type=FunnelStep.MatchType.EVENT,
+                event_name="visit_landing",
             )
             FunnelStep.objects.create(
-                funnel=funnel, order=2, name="Click Signup",
-                match_type=FunnelStep.MatchType.EVENT, event_name="click_signup",
+                funnel=funnel,
+                order=2,
+                name="Click Signup",
+                match_type=FunnelStep.MatchType.EVENT,
+                event_name="click_signup",
             )
             AnalyticsEvent.objects.create(
-                name="visit_landing", user=user, timestamp=now - timedelta(hours=2),
+                name="visit_landing",
+                user=user,
+                timestamp=now - timedelta(hours=2),
             )
             AnalyticsEvent.objects.create(
-                name="click_signup", user=user, timestamp=now - timedelta(hours=1),
+                name="click_signup",
+                user=user,
+                timestamp=now - timedelta(hours=1),
             )
             return funnel
 
@@ -747,7 +775,9 @@ class TestAggregator:
 
         aggregator = Aggregator()
         result = await aggregator.analyze_funnel(
-            funnel=funnel, start=now - timedelta(days=1), end=now,
+            funnel=funnel,
+            start=now - timedelta(days=1),
+            end=now,
         )
 
         assert result["total_started"] == 1
@@ -755,12 +785,12 @@ class TestAggregator:
         assert result["overall_conversion_rate"] == 100.0
         assert len(result["steps"]) == 2
 
-
     @pytest.mark.asyncio
     async def test_get_realtime_metrics(self):
         now = timezone.now()
         await sync_to_async(AnalyticsSession.objects.create)(
-            session_id="rt-sess-1", status=SessionStatus.ACTIVE.value,
+            session_id="rt-sess-1",
+            status=SessionStatus.ACTIVE.value,
             last_activity_at=now - timedelta(minutes=5),
         )
 
@@ -828,7 +858,6 @@ class TestAnalyticsMiddleware:
         middleware(request)
 
         assert not hasattr(request, "analytics_session")
-
 
     def test_timing_header_added(self):
         def get_response(request):

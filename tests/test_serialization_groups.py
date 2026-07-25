@@ -173,7 +173,9 @@ class TestSerializeFor:
     def test_sync_decorator_with_static_groups(self):
         @serialize_for(groups=["public"])
         def get_user():
-            return UserSchema(id=1, username="matt", email="m@x.com", ssn="123", display_name="Matt")
+            return UserSchema(
+                id=1, username="matt", email="m@x.com", ssn="123", display_name="Matt"
+            )
 
         result = get_user()
         assert "email" not in result
@@ -183,7 +185,9 @@ class TestSerializeFor:
     def test_sync_decorator_admin_groups(self):
         @serialize_for(groups=["admin"])
         def get_user():
-            return UserSchema(id=1, username="matt", email="m@x.com", ssn="123", display_name="Matt")
+            return UserSchema(
+                id=1, username="matt", email="m@x.com", ssn="123", display_name="Matt"
+            )
 
         result = get_user()
         assert "email" in result
@@ -192,7 +196,9 @@ class TestSerializeFor:
     def test_async_decorator(self):
         @serialize_for(groups=["public"])
         async def get_user():
-            return UserSchema(id=1, username="matt", email="m@x.com", ssn="123", display_name="Matt")
+            return UserSchema(
+                id=1, username="matt", email="m@x.com", ssn="123", display_name="Matt"
+            )
 
         result = asyncio.get_event_loop().run_until_complete(get_user())
         assert "email" not in result
@@ -219,7 +225,9 @@ class TestSerializeFor:
 
         @serialize_for(groups_from="user.role")
         def get_user(request):
-            return UserSchema(id=1, username="matt", email="m@x.com", ssn="123", display_name="Matt")
+            return UserSchema(
+                id=1, username="matt", email="m@x.com", ssn="123", display_name="Matt"
+            )
 
         result = get_user(request)
         assert "email" in result
@@ -228,7 +236,9 @@ class TestSerializeFor:
     def test_exclude_fields_in_decorator(self):
         @serialize_for(groups=["admin"], exclude_fields={"ssn"})
         def get_user():
-            return UserSchema(id=1, username="matt", email="m@x.com", ssn="123", display_name="Matt")
+            return UserSchema(
+                id=1, username="matt", email="m@x.com", ssn="123", display_name="Matt"
+            )
 
         result = get_user()
         assert "ssn" not in result

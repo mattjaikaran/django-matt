@@ -393,6 +393,7 @@ class TestBillingConfig:
         }
         # Reset the cached global config
         import django_matt.billing.config as config_module
+
         config_module._billing_config = None
 
         config = BillingConfig.from_settings()
@@ -1017,6 +1018,7 @@ class TestGetProvider:
             default_provider="stripe",
         )
         from django_matt.billing.providers import get_provider
+
         provider = get_provider("stripe")
         assert isinstance(provider, StripeProvider)
 
@@ -1028,6 +1030,7 @@ class TestGetProvider:
             default_provider="paypal",
         )
         from django_matt.billing.providers import get_provider
+
         provider = get_provider("paypal")
         assert isinstance(provider, PayPalProvider)
 
@@ -1039,6 +1042,7 @@ class TestGetProvider:
             default_provider="polar",
         )
         from django_matt.billing.providers import get_provider
+
         provider = get_provider("polar")
         assert isinstance(provider, PolarProvider)
 
@@ -1050,6 +1054,7 @@ class TestGetProvider:
             default_provider="stripe",
         )
         from django_matt.billing.providers import get_provider
+
         provider = get_provider(None)
         assert isinstance(provider, StripeProvider)
 
@@ -1058,6 +1063,7 @@ class TestGetProvider:
         """Should raise BillingConfigError for unconfigured provider."""
         mock_config.return_value = BillingConfig()
         from django_matt.billing.providers import get_provider
+
         with pytest.raises(BillingConfigError, match="not configured"):
             get_provider("stripe")
 
@@ -1211,9 +1217,7 @@ class TestStripeProvider:
         provider._stripe = MagicMock()
         provider._stripe.Subscription.modify.return_value = mock_sub
 
-        result = await provider.cancel_subscription(
-            "sub_cancel_123", cancel_at_period_end=True
-        )
+        result = await provider.cancel_subscription("sub_cancel_123", cancel_at_period_end=True)
 
         provider._stripe.Subscription.modify.assert_called_once_with(
             "sub_cancel_123", cancel_at_period_end=True
@@ -1247,9 +1251,7 @@ class TestStripeProvider:
         provider._stripe = MagicMock()
         provider._stripe.Subscription.cancel.return_value = mock_sub
 
-        result = await provider.cancel_subscription(
-            "sub_cancel_now", cancel_at_period_end=False
-        )
+        result = await provider.cancel_subscription("sub_cancel_now", cancel_at_period_end=False)
 
         provider._stripe.Subscription.cancel.assert_called_once_with("sub_cancel_now")
         assert result.status == SubscriptionStatus.CANCELED
@@ -1348,10 +1350,7 @@ class TestStripeProvider:
     def test_normalize_webhook_type_checkout_completed(self, stripe_config):
         """Should normalize Stripe checkout completed event."""
         provider = StripeProvider(stripe_config)
-        assert (
-            provider.normalize_webhook_type("checkout.session.completed")
-            == "checkout.completed"
-        )
+        assert provider.normalize_webhook_type("checkout.session.completed") == "checkout.completed"
 
     def test_normalize_webhook_type_unknown(self, stripe_config):
         """Should return original type for unknown events."""
@@ -1496,12 +1495,14 @@ class TestPayPalProvider:
         import hmac as hmac_mod
         import zlib
 
-        payload = json.dumps({
-            "id": "WH-123",
-            "event_type": "BILLING.SUBSCRIPTION.CREATED",
-            "resource": {"id": "sub_pp_123"},
-            "create_time": "2024-01-01T00:00:00Z",
-        }).encode()
+        payload = json.dumps(
+            {
+                "id": "WH-123",
+                "event_type": "BILLING.SUBSCRIPTION.CREATED",
+                "resource": {"id": "sub_pp_123"},
+                "create_time": "2024-01-01T00:00:00Z",
+            }
+        ).encode()
 
         provider = PayPalProvider(paypal_config)
         # Build valid HMAC signature matching PayPal's verification scheme
@@ -1549,22 +1550,13 @@ class TestPayPalProvider:
     def test_normalize_webhook_type_payment(self, paypal_config):
         """Should normalize PayPal payment events."""
         provider = PayPalProvider(paypal_config)
-        assert (
-            provider.normalize_webhook_type("PAYMENT.SALE.COMPLETED")
-            == "invoice.paid"
-        )
-        assert (
-            provider.normalize_webhook_type("PAYMENT.SALE.DENIED")
-            == "invoice.payment_failed"
-        )
+        assert provider.normalize_webhook_type("PAYMENT.SALE.COMPLETED") == "invoice.paid"
+        assert provider.normalize_webhook_type("PAYMENT.SALE.DENIED") == "invoice.payment_failed"
 
     def test_normalize_webhook_type_checkout(self, paypal_config):
         """Should normalize PayPal checkout events."""
         provider = PayPalProvider(paypal_config)
-        assert (
-            provider.normalize_webhook_type("CHECKOUT.ORDER.APPROVED")
-            == "checkout.completed"
-        )
+        assert provider.normalize_webhook_type("CHECKOUT.ORDER.APPROVED") == "checkout.completed"
 
     def test_normalize_webhook_type_unknown(self, paypal_config):
         """Should lowercase and underscore unknown PayPal events."""
@@ -1651,12 +1643,14 @@ class TestPolarProvider:
     @pytest.mark.asyncio
     async def test_verify_webhook_valid_signature(self, polar_config):
         """Should verify a valid Polar webhook signature (HMAC-SHA256)."""
-        payload = json.dumps({
-            "id": "polar_evt_123",
-            "type": "subscription.created",
-            "data": {"id": "sub_polar_123"},
-            "created_at": "2024-01-01T00:00:00Z",
-        }).encode()
+        payload = json.dumps(
+            {
+                "id": "polar_evt_123",
+                "type": "subscription.created",
+                "data": {"id": "sub_polar_123"},
+                "created_at": "2024-01-01T00:00:00Z",
+            }
+        ).encode()
 
         # Compute correct HMAC signature
         expected_sig = hmac.new(
@@ -1676,11 +1670,13 @@ class TestPolarProvider:
     @pytest.mark.asyncio
     async def test_verify_webhook_valid_signature_without_prefix(self, polar_config):
         """Should verify signature without sha256= prefix."""
-        payload = json.dumps({
-            "id": "polar_evt_456",
-            "type": "order.paid",
-            "data": {},
-        }).encode()
+        payload = json.dumps(
+            {
+                "id": "polar_evt_456",
+                "type": "order.paid",
+                "data": {},
+            }
+        ).encode()
 
         sig = hmac.new(
             polar_config.webhook_secret.encode(),
@@ -1898,6 +1894,7 @@ class TestBillingSchemas:
     def test_customer_create_invalid_email(self):
         """Should reject invalid email."""
         from pydantic import ValidationError
+
         with pytest.raises(ValidationError):
             CustomerCreate(email="not-an-email", name="Test")
 
@@ -1950,6 +1947,7 @@ class TestBillingSchemas:
     def test_subscription_response_schema(self):
         """Should serialize subscription response."""
         from django_matt.billing.schemas import SubscriptionStatus as SchemaSubStatus
+
         data = SubscriptionResponse(
             id="sub_123",
             customer_id="cus_123",
@@ -1962,6 +1960,7 @@ class TestBillingSchemas:
     def test_subscription_list_response_schema(self):
         """Should serialize subscription list response."""
         from django_matt.billing.schemas import SubscriptionStatus as SchemaSubStatus
+
         data = SubscriptionListResponse(
             items=[
                 SubscriptionResponse(
@@ -1984,6 +1983,7 @@ class TestBillingSchemas:
     def test_price_create_schema(self):
         """Should validate price creation input."""
         from django_matt.billing.schemas import PriceInterval as SchemaPriceInterval
+
         data = PriceCreate(
             product_id="prod_123",
             unit_amount=4999,
@@ -2004,6 +2004,7 @@ class TestBillingSchemas:
     def test_invoice_response_schema(self):
         """Should serialize invoice response."""
         from django_matt.billing.schemas import InvoiceStatus
+
         data = InvoiceResponse(
             id="inv_123",
             customer_id="cus_123",
@@ -2361,9 +2362,7 @@ class TestBillingController:
 
         controller = BillingController()
         request = rf.get("/billing/subscriptions?customer_id=cus_123")
-        response = await controller.list_subscriptions(
-            request, customer_id="cus_123"
-        )
+        response = await controller.list_subscriptions(request, customer_id="cus_123")
 
         assert isinstance(response, SubscriptionListResponse)
         assert response.total == 2
@@ -2485,9 +2484,7 @@ class TestWebhookController:
         )
         request.META["HTTP_STRIPE_SIGNATURE"] = "bad_sig"
 
-        response = await controller._handle_webhook(
-            request, "stripe", "stripe-signature"
-        )
+        response = await controller._handle_webhook(request, "stripe", "stripe-signature")
 
         assert response.status_code == 400
 
@@ -2525,9 +2522,7 @@ class TestWebhookController:
         )
         request.META["HTTP_STRIPE_SIGNATURE"] = "sig_test"
 
-        response = await controller._handle_webhook(
-            request, "stripe", "stripe-signature"
-        )
+        response = await controller._handle_webhook(request, "stripe", "stripe-signature")
 
         # Should return 200 without re-processing
         assert response.status_code == 200
@@ -2557,9 +2552,7 @@ class TestWebhookController:
         )
         request.META["HTTP_STRIPE_SIGNATURE"] = "sig_test"
 
-        response = await controller._handle_webhook(
-            request, "stripe", "stripe-signature"
-        )
+        response = await controller._handle_webhook(request, "stripe", "stripe-signature")
 
         # Should still return 200 to acknowledge receipt
         assert response.status_code == 200
@@ -3045,7 +3038,9 @@ class TestWebhookLifecycleSync:
 
         provider = PayPalProvider(paypal_config)
         # PayPal verify_webhook needs headers kwarg
-        event = await provider.verify_webhook(payload, headers.get("PAYPAL-TRANSMISSION-SIG", ""), headers=headers)
+        event = await provider.verify_webhook(
+            payload, headers.get("PAYPAL-TRANSMISSION-SIG", ""), headers=headers
+        )
         assert event.provider == "paypal"
 
     # ------------------------------------------------------------------
@@ -3053,7 +3048,9 @@ class TestWebhookLifecycleSync:
     # ------------------------------------------------------------------
 
     @patch("django_matt.billing.controllers.get_provider")
-    async def test_stripe_webhook_creates_subscription(self, mock_get_provider, billing_customer, rf):
+    async def test_stripe_webhook_creates_subscription(
+        self, mock_get_provider, billing_customer, rf
+    ):
         """Stripe subscription.created webhook should create a local Subscription record."""
         mock_provider = MagicMock()
         mock_provider.verify_webhook = AsyncMock(
@@ -3089,7 +3086,9 @@ class TestWebhookLifecycleSync:
             provider="stripe", provider_subscription_id="sub_stripe_new"
         ).aexists()
 
-        sub = await Subscription.objects.aget(provider="stripe", provider_subscription_id="sub_stripe_new")
+        sub = await Subscription.objects.aget(
+            provider="stripe", provider_subscription_id="sub_stripe_new"
+        )
         assert sub.status == Subscription.Status.ACTIVE
 
     # ------------------------------------------------------------------
@@ -3097,7 +3096,9 @@ class TestWebhookLifecycleSync:
     # ------------------------------------------------------------------
 
     @patch("django_matt.billing.controllers.get_provider")
-    async def test_subscription_updated_changes_status(self, mock_get_provider, billing_customer, billing_price, rf):
+    async def test_subscription_updated_changes_status(
+        self, mock_get_provider, billing_customer, billing_price, rf
+    ):
         """subscription.updated webhook should update existing subscription status."""
         # Pre-create a subscription
         sub = await Subscription.objects.acreate(
@@ -3143,7 +3144,9 @@ class TestWebhookLifecycleSync:
     # ------------------------------------------------------------------
 
     @patch("django_matt.billing.controllers.get_provider")
-    async def test_subscription_canceled_sets_canceled_at(self, mock_get_provider, billing_customer, billing_price, rf):
+    async def test_subscription_canceled_sets_canceled_at(
+        self, mock_get_provider, billing_customer, billing_price, rf
+    ):
         """subscription.canceled webhook should set status=canceled and canceled_at."""
         sub = await Subscription.objects.acreate(
             customer=billing_customer,
@@ -3224,8 +3227,18 @@ class TestWebhookLifecycleSync:
         assert r2.status_code == 200
 
         # Only ONE WebhookEvent and ONE Subscription should exist
-        assert await WebhookEventModel.objects.filter(provider="stripe", provider_event_id="evt_dup_test").acount() == 1
-        assert await Subscription.objects.filter(provider="stripe", provider_subscription_id="sub_dup").acount() == 1
+        assert (
+            await WebhookEventModel.objects.filter(
+                provider="stripe", provider_event_id="evt_dup_test"
+            ).acount()
+            == 1
+        )
+        assert (
+            await Subscription.objects.filter(
+                provider="stripe", provider_subscription_id="sub_dup"
+            ).acount()
+            == 1
+        )
 
     # ------------------------------------------------------------------
     # Invalid signature returns 400 (BILL-05)
@@ -3305,7 +3318,9 @@ class TestWebhookLifecycleSync:
     # ------------------------------------------------------------------
 
     @patch("django_matt.billing.controllers.get_provider")
-    async def test_paypal_webhook_creates_subscription(self, mock_get_provider, billing_customer, rf):
+    async def test_paypal_webhook_creates_subscription(
+        self, mock_get_provider, billing_customer, rf
+    ):
         """PayPal subscription.created webhook should create a local Subscription record."""
         mock_provider = MagicMock()
         mock_provider.verify_webhook = AsyncMock(
@@ -3344,7 +3359,9 @@ class TestWebhookLifecycleSync:
     # ------------------------------------------------------------------
 
     @patch("django_matt.billing.controllers.get_provider")
-    async def test_polar_webhook_creates_subscription(self, mock_get_provider, billing_customer, rf):
+    async def test_polar_webhook_creates_subscription(
+        self, mock_get_provider, billing_customer, rf
+    ):
         """Polar subscription.created webhook should create a local Subscription record."""
         mock_provider = MagicMock()
         mock_provider.verify_webhook = AsyncMock(

@@ -129,9 +129,7 @@ class OrderController(APIController):
                     id=item_data.product_id, store=store, is_active=True
                 )
             except Product.DoesNotExist:
-                raise NotFoundAPIError(
-                    f"Product {item_data.product_id} not found in store"
-                )
+                raise NotFoundAPIError(f"Product {item_data.product_id} not found in store")
 
             variant = None
             inventory = None
@@ -141,9 +139,7 @@ class OrderController(APIController):
                         id=item_data.variant_id, product=product, is_active=True
                     )
                 except Variant.DoesNotExist:
-                    raise NotFoundAPIError(
-                        f"Variant {item_data.variant_id} not found"
-                    )
+                    raise NotFoundAPIError(f"Variant {item_data.variant_id} not found")
 
                 # Check stock via Inventory
                 inventory = await _get_inventory(variant)
@@ -218,10 +214,16 @@ class OrderController(APIController):
 
         # Emit order created event
         bus = get_event_bus()
-        await bus.emit(Event(
-            name="order.created",
-            data={"order_id": str(order.id), "user_id": str(request.user.id), "total": str(total)},
-        ))
+        await bus.emit(
+            Event(
+                name="order.created",
+                data={
+                    "order_id": str(order.id),
+                    "user_id": str(request.user.id),
+                    "total": str(total),
+                },
+            )
+        )
 
         return {
             "id": str(order.id),
@@ -245,9 +247,7 @@ class OrderController(APIController):
     async def get_order(self, request, order_id: str):
         """GET /orders/{order_id} — Get order with items."""
         try:
-            order = await Order.objects.select_related("store").aget(
-                id=order_id, user=request.user
-            )
+            order = await Order.objects.select_related("store").aget(id=order_id, user=request.user)
         except Order.DoesNotExist:
             raise NotFoundAPIError("Order not found")
 
@@ -336,10 +336,12 @@ class OrderController(APIController):
 
         # Emit order cancelled event
         bus = get_event_bus()
-        await bus.emit(Event(
-            name="order.cancelled",
-            data={"order_id": str(order.id), "user_id": str(request.user.id)},
-        ))
+        await bus.emit(
+            Event(
+                name="order.cancelled",
+                data={"order_id": str(order.id), "user_id": str(request.user.id)},
+            )
+        )
 
         # Restore inventory stock
         async for item in order.items.select_related("variant").all():

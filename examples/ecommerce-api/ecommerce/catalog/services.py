@@ -74,10 +74,7 @@ class ProductService(CRUDService["Product"]):
 
     def get_queryset(self):
         return (
-            super()
-            .get_queryset()
-            .select_related("category")
-            .prefetch_related("images", "variants")
+            super().get_queryset().select_related("category").prefetch_related("images", "variants")
         )
 
     # ------------------------------------------------------------------
@@ -92,7 +89,9 @@ class ProductService(CRUDService["Product"]):
         **filters: Any,
     ) -> tuple[list[Product], int]:
         """Paginated list of active (status=active) products."""
-        return await self.list(page=page, page_size=page_size, status=Product.Status.ACTIVE, **filters)
+        return await self.list(
+            page=page, page_size=page_size, status=Product.Status.ACTIVE, **filters
+        )
 
     async def search(
         self,
@@ -144,9 +143,7 @@ class ProductService(CRUDService["Product"]):
         if is_featured is not None:
             qs = qs.filter(is_featured=is_featured)
         if is_on_sale is True:
-            qs = qs.filter(compare_at_price__isnull=False).filter(
-                compare_at_price__gt=F("price")
-            )
+            qs = qs.filter(compare_at_price__isnull=False).filter(compare_at_price__gt=F("price"))
 
         total = await qs.acount()
         offset = (page - 1) * page_size
@@ -208,9 +205,9 @@ class ProductVariantService(CRUDService["ProductVariant"]):
         """Return all active variants for a given product."""
         return [
             v
-            async for v in self.get_queryset().filter(
-                product_id=product_id, is_active=True
-            ).order_by("name")
+            async for v in self.get_queryset()
+            .filter(product_id=product_id, is_active=True)
+            .order_by("name")
         ]
 
 
@@ -233,9 +230,7 @@ class InventoryService(CRUDService["Inventory"]):
 
     async def for_product(self, product_id) -> list[Inventory]:
         """Return all inventory records for a given product."""
-        return [
-            i async for i in self.get_queryset().filter(product_id=product_id)
-        ]
+        return [i async for i in self.get_queryset().filter(product_id=product_id)]
 
     async def reserve(self, pk, qty: int) -> Inventory:
         """

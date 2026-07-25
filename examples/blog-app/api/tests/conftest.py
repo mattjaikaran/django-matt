@@ -26,6 +26,7 @@ def staff_user(db):
 @pytest.fixture
 def api_client():
     from django.test import Client
+
     return Client()
 
 

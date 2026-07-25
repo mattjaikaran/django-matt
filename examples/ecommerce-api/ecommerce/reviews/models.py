@@ -15,12 +15,8 @@ class Review(models.Model):
         REJECTED = "rejected", "Rejected"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    product = models.ForeignKey(
-        "catalog.Product", on_delete=models.CASCADE, related_name="reviews"
-    )
-    user = models.ForeignKey(
-        "users.User", on_delete=models.CASCADE, related_name="reviews"
-    )
+    product = models.ForeignKey("catalog.Product", on_delete=models.CASCADE, related_name="reviews")
+    user = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="reviews")
     order = models.ForeignKey(
         "orders.Order",
         on_delete=models.SET_NULL,
@@ -113,9 +109,7 @@ class ReviewVote(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     review = models.ForeignKey(Review, on_delete=models.CASCADE, related_name="votes")
-    user = models.ForeignKey(
-        "users.User", on_delete=models.CASCADE, related_name="review_votes"
-    )
+    user = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="review_votes")
     is_helpful = models.BooleanField()
 
     # Timestamps

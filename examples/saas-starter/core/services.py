@@ -103,17 +103,14 @@ class MembershipService(CRUDService["Membership"]):
         """Return all active memberships for an organization."""
         return [
             m
-            async for m in self.get_queryset().filter(
-                organization=org, is_active=True
-            ).order_by("user__email")
+            async for m in self.get_queryset()
+            .filter(organization=org, is_active=True)
+            .order_by("user__email")
         ]
 
     async def for_user(self, user: User) -> list[Membership]:
         """Return all active memberships for a user."""
-        return [
-            m
-            async for m in self.get_queryset().filter(user=user, is_active=True)
-        ]
+        return [m async for m in self.get_queryset().filter(user=user, is_active=True)]
 
     async def add_member(
         self,
@@ -136,9 +133,7 @@ class MembershipService(CRUDService["Membership"]):
                 membership.role = role
                 await membership.asave(update_fields=["is_active", "role", "updated_at"])
 
-        self._log.info(
-            "member %s added to org %s with role %s", user.pk, org.pk, role
-        )
+        self._log.info("member %s added to org %s with role %s", user.pk, org.pk, role)
         return membership
 
     async def change_role(self, pk, role: str) -> Membership:
@@ -201,9 +196,7 @@ class InvitationService(CRUDService["Invitation"]):
         ).aexists()
 
         if existing:
-            raise ValidationError(
-                f"A pending invitation for {email} already exists", field="email"
-            )
+            raise ValidationError(f"A pending invitation for {email} already exists", field="email")
 
         token = secrets.token_urlsafe(32)
         invitation = await Invitation.objects.acreate(
@@ -230,9 +223,7 @@ class InvitationService(CRUDService["Invitation"]):
         as accepted. Raises ValidationError for expired or already-used tokens.
         """
         try:
-            invitation = await Invitation.objects.select_related("organization").aget(
-                token=token
-            )
+            invitation = await Invitation.objects.select_related("organization").aget(token=token)
         except Invitation.DoesNotExist as exc:
             raise NotFoundError("Invitation not found") from exc
 

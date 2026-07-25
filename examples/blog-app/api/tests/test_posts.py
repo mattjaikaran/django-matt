@@ -38,6 +38,7 @@ class TestCategoryModel:
 class TestPostModel:
     def setup_method(self):
         from django.contrib.auth import get_user_model
+
         User = get_user_model()
         self.user = User.objects.create_user(
             username="author", email="author@example.com", password="pass"
@@ -62,6 +63,7 @@ class TestPostModel:
 
     def test_published_post(self):
         from django.utils import timezone
+
         post = Post.objects.create(
             title="Published",
             content="Content",

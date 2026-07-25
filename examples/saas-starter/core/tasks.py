@@ -24,9 +24,7 @@ def cleanup_expired_tokens():
     cutoff = timezone.now() - timedelta(hours=24)
 
     # Delete expired magic link tokens
-    deleted, _ = MagicLinkToken.objects.filter(
-        created_at__lt=cutoff
-    ).delete()
+    deleted, _ = MagicLinkToken.objects.filter(created_at__lt=cutoff).delete()
 
     return f"Deleted {deleted} expired tokens"
 
@@ -61,17 +59,17 @@ def update_user_activity_stats():
     yesterday = timezone.now().date() - timedelta(days=1)
 
     # Get active users from yesterday
-    active_users = AnalyticsEvent.objects.filter(
-        timestamp__date=yesterday,
-        user__isnull=False,
-    ).values("user").annotate(
-        event_count=Count("id")
+    active_users = (
+        AnalyticsEvent.objects.filter(
+            timestamp__date=yesterday,
+            user__isnull=False,
+        )
+        .values("user")
+        .annotate(event_count=Count("id"))
     )
 
     # Update last activity for these users
     for activity in active_users:
-        User.objects.filter(id=activity["user"]).update(
-            last_activity_at=timezone.now()
-        )
+        User.objects.filter(id=activity["user"]).update(last_activity_at=timezone.now())
 
     return f"Updated activity for {len(active_users)} users"

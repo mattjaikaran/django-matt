@@ -510,9 +510,7 @@ class TestControllerDIAutoWire:
 
         controller = TestController()
         request = rf.get("/test/items")
-        result = asyncio.get_event_loop().run_until_complete(
-            controller.list_items(request)
-        )
+        result = asyncio.get_event_loop().run_until_complete(controller.list_items(request))
         assert call_log["called"] is True
         assert result.status_code == 200
 
@@ -537,9 +535,7 @@ class TestControllerDIAutoWire:
 
             controller = TestController()
             request = rf.get("/test/items")
-            result = asyncio.get_event_loop().run_until_complete(
-                controller.list_items(request)
-            )
+            result = asyncio.get_event_loop().run_until_complete(controller.list_items(request))
 
             assert "svc" in call_log
             assert isinstance(call_log["svc"], FakeService)
@@ -566,9 +562,7 @@ class TestControllerDIAutoWire:
             request = rf.get("/test/fail")
 
             with pytest.raises(RuntimeError, match="boom"):
-                asyncio.get_event_loop().run_until_complete(
-                    controller.fail_endpoint(request)
-                )
+                asyncio.get_event_loop().run_until_complete(controller.fail_endpoint(request))
 
             # Scope should be cleaned up
             assert _scoped_instances.get() is None
@@ -591,9 +585,7 @@ class TestControllerDIAutoWire:
 
             controller = TestController()
             request = rf.get("/test/plain")
-            result = asyncio.get_event_loop().run_until_complete(
-                controller.plain_endpoint(request)
-            )
+            result = asyncio.get_event_loop().run_until_complete(controller.plain_endpoint(request))
 
             assert call_log["called"] is True
             assert result.status_code == 200
@@ -624,9 +616,7 @@ class TestControllerDIAutoWire:
 
             controller = TestController()
             request = rf.get("/test/multi")
-            asyncio.get_event_loop().run_until_complete(
-                controller.multi_endpoint(request)
-            )
+            asyncio.get_event_loop().run_until_complete(controller.multi_endpoint(request))
 
             assert isinstance(call_log["svc"], FakeService)
             assert isinstance(call_log["singleton"], FakeSingletonService)

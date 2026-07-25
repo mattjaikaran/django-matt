@@ -29,9 +29,7 @@ class BillingController(APIController):
         """Get the subscription for an organization. Creates a free one if none exists."""
         await get_membership(request.user, org_id)
 
-        subscription = await Subscription.objects.filter(
-            organization_id=org_id
-        ).afirst()
+        subscription = await Subscription.objects.filter(organization_id=org_id).afirst()
 
         if not subscription:
             subscription = await Subscription.objects.acreate(
@@ -60,9 +58,7 @@ class BillingController(APIController):
         """Update the subscription plan. Requires owner role."""
         await require_owner(request.user, org_id)
 
-        subscription = await Subscription.objects.filter(
-            organization_id=org_id
-        ).afirst()
+        subscription = await Subscription.objects.filter(organization_id=org_id).afirst()
 
         if not subscription:
             subscription = await Subscription.objects.acreate(
@@ -105,9 +101,7 @@ class BillingController(APIController):
         """Get current usage stats for an organization."""
         await get_membership(request.user, org_id)
 
-        subscription = await Subscription.objects.filter(
-            organization_id=org_id
-        ).afirst()
+        subscription = await Subscription.objects.filter(organization_id=org_id).afirst()
 
         if not subscription:
             return UsageSchema(
@@ -120,9 +114,7 @@ class BillingController(APIController):
 
         usage_pct = 0.0
         if subscription.api_calls_limit > 0:
-            usage_pct = round(
-                (subscription.api_calls_used / subscription.api_calls_limit) * 100, 2
-            )
+            usage_pct = round((subscription.api_calls_used / subscription.api_calls_limit) * 100, 2)
 
         return UsageSchema(
             api_calls_used=subscription.api_calls_used,
@@ -138,9 +130,7 @@ class BillingController(APIController):
         """List invoices for an organization."""
         await get_membership(request.user, org_id)
 
-        invoices = Invoice.objects.filter(
-            organization_id=org_id
-        ).order_by("-period_end")
+        invoices = Invoice.objects.filter(organization_id=org_id).order_by("-period_end")
 
         items = []
         async for invoice in invoices[:50]:

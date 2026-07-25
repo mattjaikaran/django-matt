@@ -80,9 +80,7 @@ class TestSvixSignatureVerification:
         secret = "whsec_" + base64.b64encode(b"testsecret123456").decode()
         body = '{"type":"user.created","data":{}}'
         sig = self._sign(body, secret)
-        request = self._make_request(
-            body=body.encode(), svix_signature=sig
-        )
+        request = self._make_request(body=body.encode(), svix_signature=sig)
 
         result = ClerkWebhookController._verify_signature(request, secret)
         assert result is True
@@ -90,9 +88,7 @@ class TestSvixSignatureVerification:
     def test_invalid_signature(self) -> None:
         secret = "whsec_" + base64.b64encode(b"testsecret123456").decode()
         body = '{"type":"user.created","data":{}}'
-        request = self._make_request(
-            body=body.encode(), svix_signature="v1,invalidsig"
-        )
+        request = self._make_request(body=body.encode(), svix_signature="v1,invalidsig")
 
         result = ClerkWebhookController._verify_signature(request, secret)
         assert result is False

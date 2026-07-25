@@ -24,7 +24,15 @@ class CategoryAdmin(ModelAdmin):
 
 @admin.register(Post)
 class PostAdmin(ModelAdmin):
-    list_display = ["title", "author", "status", "featured", "view_count", "published_at", "created_at"]
+    list_display = [
+        "title",
+        "author",
+        "status",
+        "featured",
+        "view_count",
+        "published_at",
+        "created_at",
+    ]
     list_filter = ["status", "featured", "category", "tags"]
     search_fields = ["title", "content", "excerpt"]
     prepopulated_fields = {"slug": ("title",)}

@@ -131,10 +131,12 @@ async def test_single_tool_call_dispatch():
     """Agent dispatches a single tool call and feeds result back."""
     tc = ToolCall(id="call_1", name="add_numbers", arguments={"a": 2, "b": 3})
 
-    provider = _make_provider([
-        _tool_call_response([tc]),
-        _text_response("The sum is 5"),
-    ])
+    provider = _make_provider(
+        [
+            _tool_call_response([tc]),
+            _text_response("The sum is 5"),
+        ]
+    )
     agent = Agent(provider=provider, tools=[add_numbers])
 
     result = await agent.ahandle("Add 2 and 3")
@@ -160,12 +162,14 @@ async def test_multi_step_tool_calls():
     tc2 = ToolCall(id="call_2", name="get_weather", arguments={"city": "London"})
     tc3 = ToolCall(id="call_3", name="add_numbers", arguments={"a": 1, "b": 2})
 
-    provider = _make_provider([
-        _tool_call_response([tc1]),
-        _tool_call_response([tc2]),
-        _tool_call_response([tc3]),
-        _text_response("Done comparing weather and math"),
-    ])
+    provider = _make_provider(
+        [
+            _tool_call_response([tc1]),
+            _tool_call_response([tc2]),
+            _tool_call_response([tc3]),
+            _text_response("Done comparing weather and math"),
+        ]
+    )
     agent = Agent(provider=provider, tools=[get_weather, add_numbers])
 
     result = await agent.ahandle("Compare weather and do math")
@@ -197,10 +201,12 @@ async def test_tool_error_handling():
     """Tool errors are caught and fed back to the LLM as error strings."""
     tc = ToolCall(id="call_err", name="failing_tool", arguments={"x": "oops"})
 
-    provider = _make_provider([
-        _tool_call_response([tc]),
-        _text_response("I see the tool failed"),
-    ])
+    provider = _make_provider(
+        [
+            _tool_call_response([tc]),
+            _text_response("I see the tool failed"),
+        ]
+    )
     agent = Agent(provider=provider, tools=[failing_tool])
 
     result = await agent.ahandle("Try the failing tool")
@@ -218,10 +224,12 @@ async def test_async_tool_dispatch():
     """Async tools are awaited correctly."""
     tc = ToolCall(id="call_async", name="async_multiply", arguments={"a": 4, "b": 5})
 
-    provider = _make_provider([
-        _tool_call_response([tc]),
-        _text_response("Result is 20"),
-    ])
+    provider = _make_provider(
+        [
+            _tool_call_response([tc]),
+            _text_response("Result is 20"),
+        ]
+    )
     agent = Agent(provider=provider, tools=[async_multiply])
 
     result = await agent.ahandle("Multiply 4 and 5")
@@ -262,9 +270,11 @@ async def test_structured_output():
 @pytest.mark.asyncio
 async def test_agent_response_fields():
     """AgentResponse has all expected fields populated."""
-    provider = _make_provider([
-        _text_response("Hello", model="gpt-4"),
-    ])
+    provider = _make_provider(
+        [
+            _text_response("Hello", model="gpt-4"),
+        ]
+    )
     agent = Agent(provider=provider)
 
     result = await agent.ahandle("Hi")
@@ -287,10 +297,12 @@ async def test_usage_accumulates_across_iterations():
     """Usage tokens accumulate across multiple LLM calls."""
     tc = ToolCall(id="call_1", name="add_numbers", arguments={"a": 1, "b": 2})
 
-    provider = _make_provider([
-        _tool_call_response([tc]),
-        _text_response("3"),
-    ])
+    provider = _make_provider(
+        [
+            _tool_call_response([tc]),
+            _text_response("3"),
+        ]
+    )
     agent = Agent(provider=provider, tools=[add_numbers])
 
     result = await agent.ahandle("Add")

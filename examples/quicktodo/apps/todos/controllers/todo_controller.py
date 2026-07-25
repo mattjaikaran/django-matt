@@ -17,9 +17,7 @@ class TodoController(APIController):
         """List todos with filtering and pagination."""
         await get_membership(request.user, org_id)
 
-        qs = Todo.objects.filter(
-            todo_list__organization_id=org_id
-        ).select_related("todo_list")
+        qs = Todo.objects.filter(todo_list__organization_id=org_id).select_related("todo_list")
 
         # Filtering
         params = request.GET
@@ -37,11 +35,16 @@ class TodoController(APIController):
         # Ordering
         ordering = params.get("ordering", "-created_at")
         allowed_orderings = {
-            "created_at", "-created_at",
-            "due_date", "-due_date",
-            "priority", "-priority",
-            "status", "-status",
-            "title", "-title",
+            "created_at",
+            "-created_at",
+            "due_date",
+            "-due_date",
+            "priority",
+            "-priority",
+            "status",
+            "-status",
+            "title",
+            "-title",
         }
         if ordering in allowed_orderings:
             qs = qs.order_by(ordering)
@@ -85,9 +88,7 @@ class TodoController(APIController):
         # Validate list belongs to org
         list_id = body.todo_list_id
         if list_id:
-            if not await TodoList.objects.filter(
-                id=list_id, organization_id=org_id
-            ).aexists():
+            if not await TodoList.objects.filter(id=list_id, organization_id=org_id).aexists():
                 raise APIError(status_code=404, message="Todo list not found in this organization")
         else:
             # Get or create a default list
@@ -152,9 +153,7 @@ class TodoController(APIController):
         await get_membership(request.user, org_id)
 
         try:
-            todo = await Todo.objects.aget(
-                id=todo_id, todo_list__organization_id=org_id
-            )
+            todo = await Todo.objects.aget(id=todo_id, todo_list__organization_id=org_id)
         except Todo.DoesNotExist:
             raise APIError(status_code=404, message="Todo not found")
 
@@ -189,9 +188,7 @@ class TodoController(APIController):
     async def delete_todo(request, org_id: str, todo_id: str) -> dict:
         await get_membership(request.user, org_id)
         try:
-            todo = await Todo.objects.aget(
-                id=todo_id, todo_list__organization_id=org_id
-            )
+            todo = await Todo.objects.aget(id=todo_id, todo_list__organization_id=org_id)
         except Todo.DoesNotExist:
             raise APIError(status_code=404, message="Todo not found")
         await todo.adelete()

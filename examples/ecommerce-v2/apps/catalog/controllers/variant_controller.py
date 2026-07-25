@@ -77,9 +77,7 @@ class VariantController(APIController):
     @staticmethod
     async def get_variant(request, product_id: str, variant_id: str) -> dict:
         """Get a variant by ID."""
-        variant = await Variant.objects.filter(
-            id=variant_id, product_id=product_id
-        ).afirst()
+        variant = await Variant.objects.filter(id=variant_id, product_id=product_id).afirst()
         if not variant:
             raise NotFoundAPIError("Variant not found")
 
@@ -100,9 +98,7 @@ class VariantController(APIController):
         request, product_id: str, variant_id: str, body: VariantUpdateSchema
     ) -> dict:
         """Update a variant. Must own the store."""
-        variant = await Variant.objects.filter(
-            id=variant_id, product_id=product_id
-        ).afirst()
+        variant = await Variant.objects.filter(id=variant_id, product_id=product_id).afirst()
         if not variant:
             raise NotFoundAPIError("Variant not found")
 
@@ -112,11 +108,7 @@ class VariantController(APIController):
         updates = body.model_dump(exclude_unset=True)
 
         if "sku" in updates and updates["sku"] != variant.sku:
-            if (
-                await Variant.objects.filter(sku=updates["sku"])
-                .exclude(id=variant_id)
-                .aexists()
-            ):
+            if await Variant.objects.filter(sku=updates["sku"]).exclude(id=variant_id).aexists():
                 raise ValidationAPIError("A variant with this SKU already exists")
 
         for field, value in updates.items():
@@ -138,9 +130,7 @@ class VariantController(APIController):
     @jwt_required
     async def delete_variant(request, product_id: str, variant_id: str) -> dict:
         """Delete a variant. Must own the store."""
-        variant = await Variant.objects.filter(
-            id=variant_id, product_id=product_id
-        ).afirst()
+        variant = await Variant.objects.filter(id=variant_id, product_id=product_id).afirst()
         if not variant:
             raise NotFoundAPIError("Variant not found")
 

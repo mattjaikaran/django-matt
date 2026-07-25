@@ -52,9 +52,9 @@ def check_low_inventory():
 
     logger.info("Checking low inventory...")
 
-    low_stock = Inventory.objects.filter(
-        quantity__lte=models.F("reorder_level")
-    ).select_related("product", "variant")
+    low_stock = Inventory.objects.filter(quantity__lte=models.F("reorder_level")).select_related(
+        "product", "variant"
+    )
 
     alerts = []
     for inv in low_stock:
@@ -62,12 +62,14 @@ def check_low_inventory():
         if inv.variant:
             product_name += f" - {inv.variant.name}"
 
-        alerts.append({
-            "product": product_name,
-            "location": inv.location,
-            "quantity": inv.quantity,
-            "reorder_level": inv.reorder_level,
-        })
+        alerts.append(
+            {
+                "product": product_name,
+                "location": inv.location,
+                "quantity": inv.quantity,
+                "reorder_level": inv.reorder_level,
+            }
+        )
 
     if alerts:
         # In production, send email/Slack notification
@@ -94,9 +96,7 @@ def sync_product_ratings():
     products = Product.objects.filter(status="active")
 
     for product in products:
-        stats = Review.objects.filter(
-            product=product, status="approved"
-        ).aggregate(
+        stats = Review.objects.filter(product=product, status="approved").aggregate(
             avg_rating=Avg("rating"),
             count=Count("id"),
         )

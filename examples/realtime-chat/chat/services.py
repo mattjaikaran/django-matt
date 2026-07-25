@@ -135,9 +135,7 @@ class WorkspaceService(CRUDService["Workspace"]):
             .order_by("name")
         ]
 
-    async def get_workspace(
-        self, workspace_id: UUID, user: User | None = None
-    ) -> Workspace | None:
+    async def get_workspace(self, workspace_id: UUID, user: User | None = None) -> Workspace | None:
         """Get workspace by ID, optionally scoped to a user's memberships."""
         qs = Workspace.objects.annotate(
             member_count=Count("memberships"),
@@ -202,9 +200,7 @@ class ChannelService(CRUDService["Channel"]):
             # Guarantee unique slug within the workspace
             counter = 1
             final_slug = base_slug
-            while await Channel.objects.filter(
-                workspace=workspace, slug=final_slug
-            ).aexists():
+            while await Channel.objects.filter(workspace=workspace, slug=final_slug).aexists():
                 final_slug = f"{base_slug}-{counter}"
                 counter += 1
 
@@ -230,9 +226,7 @@ class ChannelService(CRUDService["Channel"]):
         qs = Channel.objects.filter(workspace=workspace, is_archived=False)
 
         if not include_private:
-            qs = qs.filter(
-                Q(is_private=False) | Q(memberships__user=user)
-            ).distinct()
+            qs = qs.filter(Q(is_private=False) | Q(memberships__user=user)).distinct()
 
         return [
             c
@@ -265,16 +259,12 @@ class ChannelService(CRUDService["Channel"]):
 
     async def add_member(self, channel: Channel, user: User) -> ChannelMembership:
         """Add user to channel (idempotent)."""
-        membership, _ = await ChannelMembership.objects.aget_or_create(
-            channel=channel, user=user
-        )
+        membership, _ = await ChannelMembership.objects.aget_or_create(channel=channel, user=user)
         return membership
 
     async def remove_member(self, channel: Channel, user: User) -> bool:
         """Remove user from channel. Returns True if a row was deleted."""
-        deleted, _ = await ChannelMembership.objects.filter(
-            channel=channel, user=user
-        ).adelete()
+        deleted, _ = await ChannelMembership.objects.filter(channel=channel, user=user).adelete()
         return deleted > 0
 
     async def get_members(self, channel: Channel) -> list[ChannelMembership]:
@@ -353,9 +343,7 @@ class MessageService(CRUDService["Message"]):
 
             if mention_usernames:
                 mentioned_qs = User.objects.filter(username__in=mention_usernames)
-                await message.mentioned_users.aset(
-                    [u async for u in mentioned_qs]
-                )
+                await message.mentioned_users.aset([u async for u in mentioned_qs])
 
             if attachment_ids:
                 await FileAttachment.objects.filter(
@@ -371,9 +359,7 @@ class MessageService(CRUDService["Message"]):
                     parent.reply_users_count = await (
                         parent.replies.values("author").distinct().acount()
                     )
-                    await parent.asave(
-                        update_fields=["reply_count", "reply_users_count"]
-                    )
+                    await parent.asave(update_fields=["reply_count", "reply_users_count"])
 
             if dm_thread:
                 dm_thread.updated_at = timezone.now()
@@ -453,9 +439,7 @@ class MessageService(CRUDService["Message"]):
         message.content_html = self._render_content(content)
         message.is_edited = True
         message.edited_at = timezone.now()
-        await message.asave(
-            update_fields=["content", "content_html", "is_edited", "edited_at"]
-        )
+        await message.asave(update_fields=["content", "content_html", "is_edited", "edited_at"])
 
         mention_usernames = self.MENTION_PATTERN.findall(content)
         mentioned = [u async for u in User.objects.filter(username__in=mention_usernames)]

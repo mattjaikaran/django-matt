@@ -10,9 +10,7 @@ from typing import Any
 logger = logging.getLogger("django_matt.plugins.stripe")
 
 # Handler registry: event_type_pattern -> list of async callables
-_handlers: dict[str, list[Callable[..., Coroutine[Any, Any, None]]]] = (
-    defaultdict(list)
-)
+_handlers: dict[str, list[Callable[..., Coroutine[Any, Any, None]]]] = defaultdict(list)
 
 
 def on_stripe_event(
@@ -34,9 +32,7 @@ def on_stripe_event(
         func: Callable[..., Coroutine[Any, Any, None]],
     ) -> Callable[..., Coroutine[Any, Any, None]]:
         if not asyncio.iscoroutinefunction(func):
-            raise TypeError(
-                f"Stripe event handler {func.__name__} must be async"
-            )
+            raise TypeError(f"Stripe event handler {func.__name__} must be async")
         _handlers[event_type].append(func)
         func._stripe_event_type = event_type  # type: ignore[attr-defined]
         return func

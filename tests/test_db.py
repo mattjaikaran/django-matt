@@ -57,9 +57,7 @@ class SoftArticle(SoftDeleteMixin, models.Model):
 class SoftComment(SoftDeleteMixin, models.Model):
     """Test model that references SoftArticle for cascade tests."""
 
-    article = models.ForeignKey(
-        SoftArticle, on_delete=models.CASCADE, related_name="comments"
-    )
+    article = models.ForeignKey(SoftArticle, on_delete=models.CASCADE, related_name="comments")
     text = models.CharField(max_length=500)
 
     class Meta:
@@ -346,9 +344,7 @@ class TestSoftDeleteQuerySet:
         a2 = SoftArticle.objects.create(title="DeadQ")
         a2.delete()
 
-        alive_pks = set(
-            SoftArticle.all_objects.all().alive().values_list("pk", flat=True)
-        )
+        alive_pks = set(SoftArticle.all_objects.all().alive().values_list("pk", flat=True))
         assert a1.pk in alive_pks
         assert a2.pk not in alive_pks
 
@@ -358,9 +354,7 @@ class TestSoftDeleteQuerySet:
         a2 = SoftArticle.objects.create(title="DeadD")
         a2.delete()
 
-        dead_pks = set(
-            SoftArticle.all_objects.all().dead().values_list("pk", flat=True)
-        )
+        dead_pks = set(SoftArticle.all_objects.all().dead().values_list("pk", flat=True))
         assert a2.pk in dead_pks
         assert a1.pk not in dead_pks
 

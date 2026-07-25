@@ -29,6 +29,7 @@ from django_matt.core.router import get as route_get
 # Test Schemas using Pydantic BaseModel directly
 class UserSchema(BaseModel):
     """Simple user schema."""
+
     id: int | None = None
     username: str
     email: str
@@ -339,9 +340,12 @@ class TestStaticBeforeParameterizedOrdering:
 
     def _dummy_view(self):
         """Minimal async callable for route registration."""
+
         async def view(request, *args, **kwargs):
             from django.http import JsonResponse
+
             return JsonResponse({})
+
         return view
 
     def test_static_route_before_parameterized(self):
@@ -413,7 +417,9 @@ class TestStaticBeforeParameterizedOrdering:
 
     def test_is_parameterized_path_nested_param_returns_true(self):
         """_is_parameterized_path returns True for nested parameterized patterns."""
-        pattern = django_path("items/<int:id>/reviews/<int:review_id>", lambda r: None, name="review")
+        pattern = django_path(
+            "items/<int:id>/reviews/<int:review_id>", lambda r: None, name="review"
+        )
         assert APIRouter._is_parameterized_path(pattern) is True
 
     def test_all_static_routes_no_parameterized(self):
@@ -448,11 +454,13 @@ class TestStaticBeforeParameterizedOrdering:
         @router.get("users/<str:id>")
         async def get_user(request, id: str):
             from django.http import JsonResponse
+
             return JsonResponse({})
 
         @router.get("users/me")
         async def get_me(request):
             from django.http import JsonResponse
+
             return JsonResponse({})
 
         urls = router.get_urls()
@@ -536,6 +544,7 @@ class TestControllerPermissionClasses:
         urls = router.get_urls()
 
         from django.contrib.auth.models import AnonymousUser
+
         request = self._make_request(rf, user=AnonymousUser())
         response = await urls[0].callback(request)
         assert response.status_code == 200

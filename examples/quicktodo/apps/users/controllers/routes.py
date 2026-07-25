@@ -6,9 +6,7 @@ from .auth_controller import AuthController
 
 
 def register_auth_routes(api: MattAPI) -> None:
-    api.post("auth/register", response_model=UserSchema, tags=["Auth"])(
-        AuthController.register
-    )
+    api.post("auth/register", response_model=UserSchema, tags=["Auth"])(AuthController.register)
     api.post("auth/login", response_model=TokenSchema, status_code=200, tags=["Auth"])(
         AuthController.login
     )
@@ -16,7 +14,5 @@ def register_auth_routes(api: MattAPI) -> None:
         AuthController.refresh
     )
     api.get("auth/me", response_model=UserSchema, tags=["Auth"])(AuthController.me)
-    api.patch("auth/me", response_model=UserSchema, tags=["Auth"])(
-        AuthController.update_me
-    )
+    api.patch("auth/me", response_model=UserSchema, tags=["Auth"])(AuthController.update_me)
     api.post("auth/change-password", status_code=200, tags=["Auth"])(AuthController.change_password)

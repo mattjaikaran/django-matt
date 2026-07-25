@@ -393,11 +393,7 @@ class TestUnpolyResponse:
         assert events[0]["id"] == 1
 
     def test_emit_multiple_events(self):
-        resp = (
-            UnpolyResponse("ok")
-            .emit_event("a")
-            .emit_event("b", key="val")
-        )
+        resp = UnpolyResponse("ok").emit_event("a").emit_event("b", key="val")
         events = orjson.loads(resp["X-Up-Events"])
         assert len(events) == 2
         assert events[1]["key"] == "val"

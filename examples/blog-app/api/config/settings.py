@@ -46,9 +46,7 @@ MIDDLEWARE = [
 ]
 
 # CORS — only needed if you're using a separate frontend origin
-CORS_ALLOWED_ORIGINS = os.environ.get(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:3000"
-).split(",")
+CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = "config.urls"
@@ -125,15 +123,11 @@ DJANGO_MATT = {
     "JWT_ACCESS_TOKEN_LIFETIME_MINUTES": int(
         os.environ.get("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", "60")
     ),
-    "JWT_REFRESH_TOKEN_LIFETIME_DAYS": int(
-        os.environ.get("JWT_REFRESH_TOKEN_LIFETIME_DAYS", "7")
-    ),
+    "JWT_REFRESH_TOKEN_LIFETIME_DAYS": int(os.environ.get("JWT_REFRESH_TOKEN_LIFETIME_DAYS", "7")),
 }
 
 # Email
-EMAIL_BACKEND = os.environ.get(
-    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
-)
+EMAIL_BACKEND = os.environ.get("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
 EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
 EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "True").lower() == "true"

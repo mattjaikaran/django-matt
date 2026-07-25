@@ -27,9 +27,7 @@ except ImportError:
 
 
 # Quick-start development settings - unsuitable for production
-SECRET_KEY = os.getenv(
-    "SECRET_KEY", "django-insecure-example-key-change-in-production"
-)
+SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-example-key-change-in-production")
 
 DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
 
@@ -217,9 +215,7 @@ DJANGO_MATT_WEBSOCKETS = {
     "MAX_GROUPS_PER_USER": 50,  # Max channels a user can join
     "RATE_LIMIT": {
         "ENABLED": True,
-        "MESSAGES_PER_SECOND": int(
-            os.getenv("WS_RATE_LIMIT_MESSAGES_PER_SECOND", 10)
-        ),
+        "MESSAGES_PER_SECOND": int(os.getenv("WS_RATE_LIMIT_MESSAGES_PER_SECOND", 10)),
         "BURST_SIZE": 20,
     },
 }
@@ -233,9 +229,7 @@ DJANGO_MATT_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(
         minutes=int(os.getenv("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", 60))
     ),
-    "REFRESH_TOKEN_LIFETIME": timedelta(
-        days=int(os.getenv("JWT_REFRESH_TOKEN_LIFETIME_DAYS", 7))
-    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv("JWT_REFRESH_TOKEN_LIFETIME_DAYS", 7))),
     "ALGORITHM": "HS256",
     "SIGNING_KEY": SECRET_KEY,
     "AUTH_HEADER_TYPES": ("Bearer",),

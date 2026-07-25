@@ -386,9 +386,7 @@ class TestDockerfileGenerator(TestCase):
         config = DockerfileConfig(server_backend=ServerBackend.GUNICORN)
         dockerfile = DockerfileGenerator(config).generate("production")
 
-        self.assertIn(
-            "uv pip install --no-cache-dir gunicorn 'uvicorn[standard]'", dockerfile
-        )
+        self.assertIn("uv pip install --no-cache-dir gunicorn 'uvicorn[standard]'", dockerfile)
         self.assertIn("--worker-class uvicorn.workers.UvicornWorker", dockerfile)
 
     def test_backend_install_uvicorn_extras(self):
@@ -407,9 +405,9 @@ class TestDockerfileGenerator(TestCase):
 
         for backend in (ServerBackend.GRANIAN, ServerBackend.ROBYN, ServerBackend.UVICORN):
             with self.subTest(backend=backend):
-                dockerfile = DockerfileGenerator(
-                    DockerfileConfig(server_backend=backend)
-                ).generate("multistage")
+                dockerfile = DockerfileGenerator(DockerfileConfig(server_backend=backend)).generate(
+                    "multistage"
+                )
 
                 self.assertIn(backend.get_install_package(), dockerfile)
                 self.assertIn("AS builder", dockerfile)
@@ -1265,6 +1263,7 @@ class TestConnMaxAgeEnforcement(TestCase):
     def test_get_database_config_default_conn_max_age_zero(self):
         """get_database_config() with no env vars must return CONN_MAX_AGE=0."""
         import os
+
         # Clear relevant env vars to test defaults
         env_backup = {}
         for key in ["DB_CONN_MAX_AGE", "DJANGO_ENV"]:
@@ -1294,8 +1293,11 @@ class TestConnMaxAgeEnforcement(TestCase):
         for filename, content in configs.items():
             if "CONN_MAX_AGE" in content:
                 # If CONN_MAX_AGE appears, it must be 0
-                self.assertIn("CONN_MAX_AGE=0", content.replace(" ", "").replace('"', '').replace("'", ""),
-                              msg=f"{filename} sets CONN_MAX_AGE to non-zero")
+                self.assertIn(
+                    "CONN_MAX_AGE=0",
+                    content.replace(" ", "").replace('"', "").replace("'", ""),
+                    msg=f"{filename} sets CONN_MAX_AGE to non-zero",
+                )
 
     def test_railway_provider_no_nonzero_conn_max_age(self):
         """Railway provider config must not set CONN_MAX_AGE to a non-zero value."""
@@ -1308,8 +1310,11 @@ class TestConnMaxAgeEnforcement(TestCase):
         configs = provider.generate_config()
         for filename, content in configs.items():
             if "CONN_MAX_AGE" in content:
-                self.assertIn("CONN_MAX_AGE=0", content.replace(" ", "").replace('"', '').replace("'", ""),
-                              msg=f"{filename} sets CONN_MAX_AGE to non-zero")
+                self.assertIn(
+                    "CONN_MAX_AGE=0",
+                    content.replace(" ", "").replace('"', "").replace("'", ""),
+                    msg=f"{filename} sets CONN_MAX_AGE to non-zero",
+                )
 
     def test_render_provider_no_nonzero_conn_max_age(self):
         """Render provider config must not set CONN_MAX_AGE to a non-zero value."""
@@ -1322,8 +1327,11 @@ class TestConnMaxAgeEnforcement(TestCase):
         configs = provider.generate_config()
         for filename, content in configs.items():
             if "CONN_MAX_AGE" in content:
-                self.assertIn("CONN_MAX_AGE=0", content.replace(" ", "").replace('"', '').replace("'", ""),
-                              msg=f"{filename} sets CONN_MAX_AGE to non-zero")
+                self.assertIn(
+                    "CONN_MAX_AGE=0",
+                    content.replace(" ", "").replace('"', "").replace("'", ""),
+                    msg=f"{filename} sets CONN_MAX_AGE to non-zero",
+                )
 
     def test_aws_provider_no_nonzero_conn_max_age(self):
         """AWS provider config must not set CONN_MAX_AGE to a non-zero value."""
@@ -1336,5 +1344,8 @@ class TestConnMaxAgeEnforcement(TestCase):
         configs = provider.generate_config()
         for filename, content in configs.items():
             if "CONN_MAX_AGE" in content:
-                self.assertIn("CONN_MAX_AGE=0", content.replace(" ", "").replace('"', '').replace("'", ""),
-                              msg=f"{filename} sets CONN_MAX_AGE to non-zero")
+                self.assertIn(
+                    "CONN_MAX_AGE=0",
+                    content.replace(" ", "").replace('"', "").replace("'", ""),
+                    msg=f"{filename} sets CONN_MAX_AGE to non-zero",
+                )

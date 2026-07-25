@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Seed the ecommerce-v2 database with sample data."""
+
 import os
 import sys
 

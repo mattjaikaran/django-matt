@@ -13,9 +13,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
     list_filter = ["is_staff", "is_active", "date_joined"]
     search_fields = ["email", "username", "first_name", "last_name"]
     ordering = ["-date_joined"]
-    fieldsets = BaseUserAdmin.fieldsets + (
-        ("Profile", {"fields": ()}),
-    )
+    fieldsets = BaseUserAdmin.fieldsets + (("Profile", {"fields": ()}),)
 
 
 @admin.register(AuthorProfile)

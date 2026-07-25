@@ -23,9 +23,7 @@ class Product(BaseModel):
     slug = models.SlugField(max_length=255, unique=True)
     description = models.TextField(blank=True, default="")
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    compare_at_price = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
-    )
+    compare_at_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     image_url = models.URLField(blank=True, null=True)
 

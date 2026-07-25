@@ -189,13 +189,15 @@ class TestGranianBackend:
 
     def test_get_config(self):
         b = GranianBackend()
-        cfg = b.get_config({
-            "host": "0.0.0.0",
-            "port": 8000,
-            "workers": 4,
-            "http2": True,
-            "access_log": True,
-        })
+        cfg = b.get_config(
+            {
+                "host": "0.0.0.0",
+                "port": 8000,
+                "workers": 4,
+                "http2": True,
+                "access_log": True,
+            }
+        )
         assert cfg["interface"] == "asgi"
         assert cfg["workers"] == 4
         assert cfg["http2"] is True
@@ -224,12 +226,14 @@ class TestServerConfig:
         assert cfg.http2 is False
 
     def test_from_dict(self):
-        cfg = ServerConfig.from_dict({
-            "backend": "granian",
-            "port": 9000,
-            "http2": True,
-            "custom_option": "value",
-        })
+        cfg = ServerConfig.from_dict(
+            {
+                "backend": "granian",
+                "port": 9000,
+                "http2": True,
+                "custom_option": "value",
+            }
+        )
         assert cfg.backend == "granian"
         assert cfg.port == 9000
         assert cfg.http2 is True

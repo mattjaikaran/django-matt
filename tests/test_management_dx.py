@@ -765,8 +765,12 @@ class TestMattImport:
     def test_import_jsonl(self, tmp_path: Path) -> None:
         jsonl_file = tmp_path / "users.jsonl"
         lines = [
-            orjson.dumps({"username": "eve", "email": "eve@test.com", "password": "testpass123"}).decode(),
-            orjson.dumps({"username": "frank", "email": "frank@test.com", "password": "testpass123"}).decode(),
+            orjson.dumps(
+                {"username": "eve", "email": "eve@test.com", "password": "testpass123"}
+            ).decode(),
+            orjson.dumps(
+                {"username": "frank", "email": "frank@test.com", "password": "testpass123"}
+            ).decode(),
         ]
         jsonl_file.write_text("\n".join(lines) + "\n")
         call_command("matt_import", "auth.User", str(jsonl_file))
@@ -776,7 +780,9 @@ class TestMattImport:
     def test_import_create_only_skips_existing(self, tmp_path: Path) -> None:
         User.objects.create_user("existing", "existing@test.com")
         csv_file = tmp_path / "users.csv"
-        csv_file.write_text("username,email,password\nexisting,new@test.com,pass123\nnewuser,new2@test.com,pass123\n")
+        csv_file.write_text(
+            "username,email,password\nexisting,new@test.com,pass123\nnewuser,new2@test.com,pass123\n"
+        )
         call_command(
             "matt_import",
             "auth.User",

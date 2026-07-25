@@ -174,7 +174,9 @@ class TestSetReadOnly(TestCase):
         result = set_read_only()
         assert isinstance(result, bool)
 
-    @override_settings(DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}})
+    @override_settings(
+        DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}}
+    )
     def test_read_only_sqlite(self) -> None:
         # SQLite supports PRAGMA query_only — should return True or gracefully False
         result = set_read_only()
@@ -200,8 +202,6 @@ class TestExecuteQuery(TestCase):
     def test_multi_row_query(self) -> None:
         from django_matt.management.commands.matt_dbshell import execute_query
 
-        columns, rows = execute_query(
-            "SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3"
-        )
+        columns, rows = execute_query("SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3")
         assert columns == ["n"]
         assert len(rows) == 3

@@ -172,9 +172,7 @@ class ProductAdmin(ModelAdmin):
         if stock == 0:
             return format_html('<span style="color: red;">Out of Stock</span>')
         elif stock <= 10:
-            return format_html(
-                '<span style="color: orange;">{} (Low)</span>', stock
-            )
+            return format_html('<span style="color: orange;">{} (Low)</span>', stock)
         return stock
 
     @action(description="Mark as featured")

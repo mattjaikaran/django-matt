@@ -137,7 +137,9 @@ class TestReplayer_:
         path = tmp_path / "replay.zip"
         recorder = TestRecorder(path)
         recorder.record_pass("test::ok", duration_ms=10.0, stdout="all good")
-        recorder.record_fail("test::broken", duration_ms=50.0, traceback="AssertionError: bad", stderr="err")
+        recorder.record_fail(
+            "test::broken", duration_ms=50.0, traceback="AssertionError: bad", stderr="err"
+        )
         recorder.record_skip("test::skipped")
         recorder.save()
         return path

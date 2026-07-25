@@ -33,7 +33,9 @@ class TaskController(APIController):
     prefix = "/organizations/<str:org_slug>/projects/<str:project_slug>/tasks"
     tags = ["Tasks"]
 
-    async def get_project_and_check_access(self, request, org_slug: str, project_slug: str, require_edit: bool = False):
+    async def get_project_and_check_access(
+        self, request, org_slug: str, project_slug: str, require_edit: bool = False
+    ):
         """Helper to get project and check user access."""
         try:
             org = await Organization.objects.aget(slug=org_slug)
@@ -72,7 +74,9 @@ class TaskController(APIController):
 
         return org, project, membership, None
 
-    async def broadcast_task_update(self, org_id: str, project_id: str, action: str, task_id: str, data: dict | None = None) -> None:
+    async def broadcast_task_update(
+        self, org_id: str, project_id: str, action: str, task_id: str, data: dict | None = None
+    ) -> None:
         """Broadcast task update via WebSocket."""
         from channels.layers import get_channel_layer
 
@@ -85,7 +89,7 @@ class TaskController(APIController):
                     "action": action,
                     "task_id": str(task_id),
                     "data": data or {},
-                }
+                },
             )
 
     # =========================================================================
@@ -130,8 +134,7 @@ class TaskController(APIController):
 
         if search:
             queryset = queryset.filter(
-                models.Q(title__icontains=search) |
-                models.Q(description__icontains=search)
+                models.Q(title__icontains=search) | models.Q(description__icontains=search)
             )
 
         # Get total count
@@ -139,7 +142,7 @@ class TaskController(APIController):
 
         # Apply pagination
         offset = (page - 1) * page_size
-        queryset = queryset.order_by("position", "-created_at")[offset:offset + page_size]
+        queryset = queryset.order_by("position", "-created_at")[offset : offset + page_size]
 
         items = []
         async for task in queryset:
@@ -156,7 +159,9 @@ class TaskController(APIController):
 
     @post("/")
     @jwt_required
-    async def create_task(self, request, org_slug: str, project_slug: str, data: TaskCreate) -> dict:
+    async def create_task(
+        self, request, org_slug: str, project_slug: str, data: TaskCreate
+    ) -> dict:
         """Create a new task."""
         org, project, membership, error = await self.get_project_and_check_access(
             request, org_slug, project_slug, require_edit=True
@@ -212,8 +217,7 @@ class TaskController(APIController):
 
         # Broadcast update
         await self.broadcast_task_update(
-            str(org.id), str(project.id), "created", str(task.id),
-            {"status": task.status}
+            str(org.id), str(project.id), "created", str(task.id), {"status": task.status}
         )
 
         return TaskDetailResponse.model_validate(task)
@@ -229,11 +233,13 @@ class TaskController(APIController):
             return error
 
         try:
-            task = await Task.objects.select_related(
-                "assignee", "reporter", "project"
-            ).prefetch_related("subtasks").aget(
-                id=task_id,
-                project=project,
+            task = (
+                await Task.objects.select_related("assignee", "reporter", "project")
+                .prefetch_related("subtasks")
+                .aget(
+                    id=task_id,
+                    project=project,
+                )
             )
 
             response = TaskDetailResponse.model_validate(task)
@@ -251,7 +257,9 @@ class TaskController(APIController):
 
     @patch("/<str:task_id>")
     @jwt_required
-    async def update_task(self, request, org_slug: str, project_slug: str, task_id: str, data: TaskUpdate) -> dict:
+    async def update_task(
+        self, request, org_slug: str, project_slug: str, task_id: str, data: TaskUpdate
+    ) -> dict:
         """Update task details."""
         org, project, membership, error = await self.get_project_and_check_access(
             request, org_slug, project_slug, require_edit=True
@@ -298,8 +306,11 @@ class TaskController(APIController):
 
             # Broadcast update
             await self.broadcast_task_update(
-                str(org.id), str(project.id), "updated", str(task.id),
-                {"status": task.status, "fields": list(update_data.keys())}
+                str(org.id),
+                str(project.id),
+                "updated",
+                str(task.id),
+                {"status": task.status, "fields": list(update_data.keys())},
             )
 
             return TaskDetailResponse.model_validate(task)
@@ -333,9 +344,7 @@ class TaskController(APIController):
             )
 
             # Broadcast update
-            await self.broadcast_task_update(
-                str(org.id), str(project.id), "deleted", str(task_id)
-            )
+            await self.broadcast_task_update(str(org.id), str(project.id), "deleted", str(task_id))
 
             return {"message": "Task deleted"}
 
@@ -348,7 +357,9 @@ class TaskController(APIController):
 
     @post("/<str:task_id>/move")
     @jwt_required
-    async def move_task(self, request, org_slug: str, project_slug: str, task_id: str, data: TaskMove) -> dict:
+    async def move_task(
+        self, request, org_slug: str, project_slug: str, task_id: str, data: TaskMove
+    ) -> dict:
         """Move task to different status/position (for Kanban drag-and-drop)."""
         org, project, membership, error = await self.get_project_and_check_access(
             request, org_slug, project_slug, require_edit=True
@@ -421,8 +432,11 @@ class TaskController(APIController):
 
             # Broadcast update
             await self.broadcast_task_update(
-                str(org.id), str(project.id), "moved", str(task.id),
-                {"old_status": old_status, "new_status": new_status, "position": new_position}
+                str(org.id),
+                str(project.id),
+                "moved",
+                str(task.id),
+                {"old_status": old_status, "new_status": new_status, "position": new_position},
             )
 
             return TaskResponse.model_validate(task)
@@ -436,7 +450,9 @@ class TaskController(APIController):
 
     @post("/bulk")
     @jwt_required
-    async def bulk_update_tasks(self, request, org_slug: str, project_slug: str, data: TaskBulkUpdate) -> dict:
+    async def bulk_update_tasks(
+        self, request, org_slug: str, project_slug: str, data: TaskBulkUpdate
+    ) -> dict:
         """Bulk update multiple tasks."""
         org, project, membership, error = await self.get_project_and_check_access(
             request, org_slug, project_slug, require_edit=True
@@ -464,14 +480,15 @@ class TaskController(APIController):
                 if data.labels_add:
                     task.labels = list(set(task.labels + data.labels_add))
                 if data.labels_remove:
-                    task.labels = [label for label in task.labels if label not in data.labels_remove]
+                    task.labels = [
+                        label for label in task.labels if label not in data.labels_remove
+                    ]
                 await task.asave(update_fields=["labels"])
 
         # Broadcast updates
         for task_id in data.task_ids:
             await self.broadcast_task_update(
-                str(org.id), str(project.id), "updated", str(task_id),
-                {"bulk_update": True}
+                str(org.id), str(project.id), "updated", str(task_id), {"bulk_update": True}
             )
 
         return {"updated": updated, "task_ids": [str(t) for t in data.task_ids]}
@@ -482,7 +499,9 @@ class TaskController(APIController):
 
     @get("/<str:task_id>/activity")
     @jwt_required
-    async def get_task_activity(self, request, org_slug: str, project_slug: str, task_id: str) -> list:
+    async def get_task_activity(
+        self, request, org_slug: str, project_slug: str, task_id: str
+    ) -> list:
         """Get activity log for a task."""
         org, project, membership, error = await self.get_project_and_check_access(
             request, org_slug, project_slug
@@ -493,9 +512,11 @@ class TaskController(APIController):
         try:
             task = await Task.objects.aget(id=task_id, project=project)
 
-            activities = TaskActivity.objects.filter(
-                task=task
-            ).select_related("user").order_by("-created_at")[:50]
+            activities = (
+                TaskActivity.objects.filter(task=task)
+                .select_related("user")
+                .order_by("-created_at")[:50]
+            )
 
             result = []
             async for activity in activities:

@@ -312,7 +312,7 @@ class TestExportFunctions(TestCase):
         """Test JavaScript fetch export."""
         result = export_as_fetch(self.request)
         self.assertIn("fetch", result)
-        self.assertIn("method: \"POST\"", result)
+        self.assertIn('method: "POST"', result)
         self.assertIn("http://localhost:8000/api/users", result)
 
     def test_export_request_function(self):
@@ -399,12 +399,16 @@ class TestRequestCaptureMiddleware(TestCase):
             },
         ):
             # Create middleware
-            get_response = MagicMock(return_value=MagicMock(
-                status_code=200,
-                content=b'{"result": "ok"}',
-                items=lambda: [("Content-Type", "application/json")],
-            ))
-            get_response.return_value.get = lambda k, d=None: "application/json" if k == "Content-Type" else d
+            get_response = MagicMock(
+                return_value=MagicMock(
+                    status_code=200,
+                    content=b'{"result": "ok"}',
+                    items=lambda: [("Content-Type", "application/json")],
+                )
+            )
+            get_response.return_value.get = (
+                lambda k, d=None: "application/json" if k == "Content-Type" else d
+            )
             middleware = RequestCaptureMiddleware(get_response)
 
             # Make request

@@ -42,13 +42,15 @@ async def _send_notification(msg: ContactMessage) -> None:
             f"<hr>"
             f"<p>{msg.message.replace(chr(10), '<br>')}</p>"
         )
-        resend.Emails.send({
-            "from": settings.CONTACT_FROM_EMAIL,
-            "to": [settings.CONTACT_TO_EMAIL],
-            "reply_to": msg.email,
-            "subject": f"[Portfolio] {subject}",
-            "html": body,
-        })
+        resend.Emails.send(
+            {
+                "from": settings.CONTACT_FROM_EMAIL,
+                "to": [settings.CONTACT_TO_EMAIL],
+                "reply_to": msg.email,
+                "subject": f"[Portfolio] {subject}",
+                "html": body,
+            }
+        )
         logger.info("Contact notification sent for message %s", msg.id)
     except Exception:
         logger.exception("Failed to send Resend notification for message %s", msg.id)

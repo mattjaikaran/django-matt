@@ -38,7 +38,6 @@ class MoneyField(models.DecimalField):
     """Simulated custom money field."""
 
 
-
 class PhoneNumberField(models.CharField):
     """Simulated custom phone number field."""
 

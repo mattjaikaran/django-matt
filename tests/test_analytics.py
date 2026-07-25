@@ -359,9 +359,7 @@ class TestAnalyticsMiddleware:
 
     def test_parse_user_agent_desktop(self):
         mw = self._make_middleware()
-        result = mw._parse_user_agent(
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X) Chrome/91.0"
-        )
+        result = mw._parse_user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X) Chrome/91.0")
         assert result["device_type"] == "desktop"
         assert result["browser"] == "chrome"
         assert result["os"] == "macos"
@@ -378,17 +376,13 @@ class TestAnalyticsMiddleware:
 
     def test_parse_user_agent_firefox(self):
         mw = self._make_middleware()
-        result = mw._parse_user_agent(
-            "Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Firefox/91.0"
-        )
+        result = mw._parse_user_agent("Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Firefox/91.0")
         assert result["browser"] == "firefox"
         assert result["os"] == "linux"
 
     def test_parse_user_agent_android(self):
         mw = self._make_middleware()
-        result = mw._parse_user_agent(
-            "Mozilla/5.0 (Linux; Android 11; Pixel 5) Mobile Chrome/91.0"
-        )
+        result = mw._parse_user_agent("Mozilla/5.0 (Linux; Android 11; Pixel 5) Mobile Chrome/91.0")
         assert result["device_type"] == "mobile"
         assert result["os"] == "android"
 
@@ -458,10 +452,12 @@ class TestTrackEventDecorator:
         import django_matt.analytics.tracker as tracker_mod
         from django_matt.analytics.decorators import track_event
         from django_matt.analytics.tracker import _default_tracker, get_tracker
+
         old = tracker_mod._default_tracker
         tracker_mod._default_tracker = None
 
         try:
+
             @track_event("test_called")
             def my_view(request):
                 return "result"
@@ -689,6 +685,7 @@ class TestGetBackend:
     @override_settings(DJANGO_MATT_ANALYTICS={"BACKEND": "database"})
     def test_get_default_backend(self):
         from django_matt.analytics import backends as be_mod
+
         old = be_mod._default_backend
         be_mod._default_backend = None
         try:
@@ -708,21 +705,25 @@ class TestGetBackend:
 
     def test_segment_backend_requires_key(self):
         from django_matt.analytics.backends import SegmentBackend
+
         with pytest.raises(ValueError, match="write key"):
             SegmentBackend(write_key=None)
 
     def test_mixpanel_backend_requires_token(self):
         from django_matt.analytics.backends import MixpanelBackend
+
         with pytest.raises(ValueError, match="token"):
             MixpanelBackend(token=None)
 
     def test_posthog_backend_requires_api_key(self):
         from django_matt.analytics.backends import PostHogBackend
+
         with pytest.raises(ValueError, match="API key"):
             PostHogBackend(api_key=None)
 
     def test_amplitude_backend_requires_api_key(self):
         from django_matt.analytics.backends import AmplitudeBackend
+
         with pytest.raises(ValueError, match="API key"):
             AmplitudeBackend(api_key=None)
 
@@ -811,6 +812,7 @@ class TestConvenienceFunctions:
 
     def test_track_event_function(self):
         import django_matt.analytics.tracker as tracker_mod
+
         old = tracker_mod._default_tracker
         tracker_mod._default_tracker = None
         try:
@@ -820,6 +822,7 @@ class TestConvenienceFunctions:
                 MockTracker.return_value = mock_instance
 
                 from django_matt.analytics.tracker import track_event
+
                 result = track_event("test_event", properties={"k": "v"})
                 assert result == "evt-conv"
         finally:
@@ -827,6 +830,7 @@ class TestConvenienceFunctions:
 
     def test_track_page_view_function(self):
         import django_matt.analytics.tracker as tracker_mod
+
         old = tracker_mod._default_tracker
         tracker_mod._default_tracker = None
         try:
@@ -836,6 +840,7 @@ class TestConvenienceFunctions:
                 MockTracker.return_value = mock_instance
 
                 from django_matt.analytics.tracker import track_page_view
+
                 result = track_page_view("/test")
                 assert result == "pv-conv"
         finally:
@@ -945,9 +950,7 @@ class TestFunnelAnalysis:
             )
         return funnel
 
-    async def _create_events_async(
-        self, event_name: str, users: list, base_time=None
-    ) -> None:
+    async def _create_events_async(self, event_name: str, users: list, base_time=None) -> None:
         """Async helper to create AnalyticsEvent rows with real User FK."""
         from django_matt.analytics.models import AnalyticsEvent
 
@@ -970,8 +973,11 @@ class TestFunnelAnalysis:
         end = now + timedelta(hours=1)
 
         funnel = await self._create_funnel_async(
-            [("Signup", "signup_3step"), ("Onboarding", "onboarding_3step"),
-             ("Purchase", "purchase_3step")]
+            [
+                ("Signup", "signup_3step"),
+                ("Onboarding", "onboarding_3step"),
+                ("Purchase", "purchase_3step"),
+            ]
         )
 
         # Use 10 users to keep test fast: 10 signup, 6 onboard, 2 purchase

@@ -95,7 +95,13 @@ class TestMigrationProfiler:
             index_operations_count=20,
             estimated_pending_time=30.5,
             apps={"myapp": 50, "otherapp": 50},
-            complexity_breakdown={"trivial": 3, "simple": 1, "moderate": 1, "complex": 0, "extreme": 0},
+            complexity_breakdown={
+                "trivial": 3,
+                "simple": 1,
+                "moderate": 1,
+                "complex": 0,
+                "extreme": 0,
+            },
         )
 
         output = format_project_stats(stats)

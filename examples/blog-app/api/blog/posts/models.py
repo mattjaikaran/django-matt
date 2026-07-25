@@ -123,6 +123,7 @@ class Post(models.Model):
         if not self.excerpt and self.content:
             # Auto-generate excerpt from first 500 chars of content (stripped)
             import re
+
             text = re.sub(r"[#*`\[\]>]", "", self.content)
             self.excerpt = text[:497] + "..." if len(text) > 500 else text
         super().save(*args, **kwargs)
