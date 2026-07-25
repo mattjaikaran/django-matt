@@ -42,6 +42,7 @@ from django_matt.billing.schemas import (
     SubscriptionResponse,
     SubscriptionUpdate,
 )
+from django_matt.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +100,7 @@ class BillingController:
 
     prefix = "billing"
     tags = ["Billing"]
+    permission_classes = [IsAuthenticated]
 
     def _get_provider(self, provider: ProviderType | None = None):
         """Get billing provider instance."""

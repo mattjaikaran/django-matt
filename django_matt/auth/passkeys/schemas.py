@@ -100,8 +100,7 @@ class RegistrationVerifyRequest(BaseModel):
         description="Name for this credential",
     )
 
-    class Config:
-        populate_by_name = True
+    model_config = {"populate_by_name": True}
 
 
 class RegistrationVerifyResponse(BaseModel):
@@ -161,8 +160,7 @@ class AuthenticationVerifyRequest(BaseModel):
     type: Literal["public-key"] = "public-key"
     response: AuthenticatorAssertionResponse
 
-    class Config:
-        populate_by_name = True
+    model_config = {"populate_by_name": True}
 
 
 class AuthenticationVerifyResponse(BaseModel):
