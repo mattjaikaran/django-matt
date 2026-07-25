@@ -22,20 +22,19 @@ class AuthController(APIController):
     prefix = "/auth"
     tags = ["Auth"]
 
-    @staticmethod
     @post("/signup")
-    async def register(data: RegisterRequest) -> TokenResponse:
-        if await User.objects.filter(email=data.email).aexists():
+    async def register(self, request, body: RegisterRequest) -> TokenResponse:
+        if await User.objects.filter(email=body.email).aexists():
             raise ValidationAPIError("A user with this email already exists.")
-        if await User.objects.filter(username=data.username).aexists():
+        if await User.objects.filter(username=body.username).aexists():
             raise ValidationAPIError("A user with this username already exists.")
 
         user = await User.objects.acreate_user(
-            email=data.email,
-            username=data.username,
-            password=data.password,
-            first_name=data.first_name,
-            last_name=data.last_name,
+            email=body.email,
+            username=body.username,
+            password=body.password,
+            first_name=body.first_name,
+            last_name=body.last_name,
         )
         await AuthorProfile.objects.acreate(user=user)
 
@@ -43,16 +42,15 @@ class AuthController(APIController):
         refresh = create_refresh_token({"sub": str(user.id)})
         return TokenResponse(access=access, refresh=refresh, user=UserResponse.model_validate(user))
 
-    @staticmethod
     @post("/login")
-    async def login(data: LoginRequest) -> TokenResponse:
-        user = await User.objects.filter(email=data.email).select_related("author_profile").afirst()
+    async def login(self, request, body: LoginRequest) -> TokenResponse:
+        user = await User.objects.filter(email=body.email).select_related("author_profile").afirst()
         if user is None:
             raise AuthenticationAPIError("Invalid credentials.")
 
         from django.contrib.auth.hashers import check_password
 
-        if not check_password(data.password, user.password):
+        if not check_password(body.password, user.password):
             raise AuthenticationAPIError("Invalid credentials.")
 
         if not user.is_active:
@@ -62,13 +60,12 @@ class AuthController(APIController):
         refresh = create_refresh_token({"sub": str(user.id)})
         return TokenResponse(access=access, refresh=refresh, user=UserResponse.model_validate(user))
 
-    @staticmethod
     @post("/token/refresh")
-    async def refresh_token(data: RefreshRequest) -> RefreshResponse:
+    async def refresh_token(self, request, body: RefreshRequest) -> RefreshResponse:
         from django_matt.auth import decode_token
 
         try:
-            payload = decode_token(data.refresh)
+            payload = decode_token(body.refresh)
         except Exception:
             raise AuthenticationAPIError("Invalid or expired refresh token.")
 
@@ -87,13 +84,13 @@ class AuthController(APIController):
 
     @patch("/me")
     @jwt_required
-    async def update_profile(self, request, data: ProfileUpdateRequest) -> UserResponse:
+    async def update_profile(self, request, body: ProfileUpdateRequest) -> UserResponse:
         user = await User.objects.select_related("author_profile").aget(id=request.user.id)
 
-        if data.first_name is not None:
-            user.first_name = data.first_name
-        if data.last_name is not None:
-            user.last_name = data.last_name
+        if body.first_name is not None:
+            user.first_name = body.first_name
+        if body.last_name is not None:
+            user.last_name = body.last_name
         await user.asave(update_fields=["first_name", "last_name"])
 
         profile, _ = await AuthorProfile.objects.aget_or_create(user=user)
@@ -115,7 +112,6 @@ class AuthorController(APIController):
     prefix = "/authors"
     tags = ["Authors"]
 
-    @staticmethod
     @get("/")
     async def list_authors() -> list[UserPublicResponse]:
         users = (
@@ -125,7 +121,6 @@ class AuthorController(APIController):
         )
         return [UserPublicResponse.model_validate(u) async for u in users]
 
-    @staticmethod
     @get("/<str:username>")
     async def get_author(username: str) -> UserPublicResponse:
         user = (

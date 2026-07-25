@@ -2,8 +2,6 @@
 Pydantic schemas for the chat API.
 """
 
-from datetime import datetime
-from uuid import UUID
 
 from django_matt.core.schema import ModelSchema
 

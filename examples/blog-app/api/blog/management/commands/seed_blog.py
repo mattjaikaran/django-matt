@@ -4,7 +4,6 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.utils.text import slugify
 
-
 TAGS = ["python", "django", "web-development", "api", "tutorial", "open-source", "react", "typescript"]
 CATEGORIES = [
     {"name": "Engineering", "description": "Technical deep-dives and architecture posts"},

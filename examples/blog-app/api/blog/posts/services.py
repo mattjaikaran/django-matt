@@ -2,10 +2,10 @@
 
 from django.conf import settings
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
-from django.db.models import F, Q, QuerySet
+from django.db.models import F
 from django.utils import timezone
 
-from blog.posts.models import Category, Post, PostView, Tag
+from blog.posts.models import Post, PostView
 
 
 async def get_published_posts(

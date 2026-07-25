@@ -2,6 +2,7 @@
 """Seed the portfolio database with sample data."""
 import os
 import sys
+
 import django
 
 # Add the project root to sys.path
@@ -11,10 +12,10 @@ django.setup()
 
 from django.contrib.auth.hashers import make_password  # noqa: E402
 
-from apps.users.models import User  # noqa: E402
+from apps.experience.models import Experience  # noqa: E402
 from apps.projects.models import Project  # noqa: E402
 from apps.skills.models import Skill  # noqa: E402
-from apps.experience.models import Experience  # noqa: E402
+from apps.users.models import User  # noqa: E402
 
 
 def seed_users() -> User:

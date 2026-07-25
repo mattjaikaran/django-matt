@@ -1,5 +1,5 @@
-from django.contrib import admin
 from django.conf import settings
+from django.contrib import admin
 from django.http import FileResponse, HttpResponse
 from django.urls import include, path, re_path
 

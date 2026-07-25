@@ -2,6 +2,7 @@
 """Seed the ecommerce-v2 database with sample data."""
 import os
 import sys
+
 import django
 
 # Add the project root to the path
@@ -10,6 +11,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
 
 from django.contrib.auth import get_user_model
+
 from apps.catalog.models import Category, Product
 from apps.stores.models import Store
 
@@ -27,9 +29,9 @@ def seed():
     if created:
         admin.set_password("admin123")
         admin.save()
-        print(f"  Created admin: admin@example.com / admin123")
+        print("  Created admin: admin@example.com / admin123")
     else:
-        print(f"  Admin already exists")
+        print("  Admin already exists")
 
     # Test user
     user, created = User.objects.get_or_create(
@@ -39,7 +41,7 @@ def seed():
     if created:
         user.set_password("password123")
         user.save()
-        print(f"  Created user: user@example.com / password123")
+        print("  Created user: user@example.com / password123")
 
     # Store
     store, _ = Store.objects.get_or_create(

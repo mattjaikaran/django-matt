@@ -30,12 +30,14 @@ export const CategoryUpdateSchema = z.object({
   parent_id: z.string().uuid().nullable(),
 });
 
-export const PaginatedPostsResponseSchema = z.object({
-  items: z.array(PostListResponseSchema),
-  total: z.number().int(),
-  page: z.number().int(),
-  page_size: z.number().int(),
-  total_pages: z.number().int(),
+export const TagCreateSchema = z.object({
+  name: z.string(),
+});
+
+export const TagResponseSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  slug: z.string(),
 });
 
 export const PostCreateSchema = z.object({
@@ -49,6 +51,24 @@ export const PostCreateSchema = z.object({
   seo_title: z.string().default("").optional(),
   seo_description: z.string().default("").optional(),
   published_at: z.string().datetime().nullable(),
+});
+
+export const PostListResponseSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string(),
+  slug: z.string(),
+  excerpt: z.string(),
+  cover_image_url: z.string().nullable(),
+  author: AuthorSummarySchema,
+  category: CategoryResponseSchema.nullable(),
+  tags: z.array(TagResponseSchema).default([]).optional(),
+  status: z.string(),
+  featured: z.boolean(),
+  published_at: z.string().datetime().nullable(),
+  view_count: z.number().int(),
+  reading_time_minutes: z.number().int(),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
 });
 
 export const PostDetailResponseSchema = z.object({
@@ -72,22 +92,12 @@ export const PostDetailResponseSchema = z.object({
   seo_description: z.string(),
 });
 
-export const PostListResponseSchema = z.object({
-  id: z.string().uuid(),
-  title: z.string(),
-  slug: z.string(),
-  excerpt: z.string(),
-  cover_image_url: z.string().nullable(),
-  author: AuthorSummarySchema,
-  category: CategoryResponseSchema.nullable(),
-  tags: z.array(TagResponseSchema).default([]).optional(),
-  status: z.string(),
-  featured: z.boolean(),
-  published_at: z.string().datetime().nullable(),
-  view_count: z.number().int(),
-  reading_time_minutes: z.number().int(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+export const PaginatedPostsResponseSchema = z.object({
+  items: z.array(PostListResponseSchema),
+  total: z.number().int(),
+  page: z.number().int(),
+  page_size: z.number().int(),
+  total_pages: z.number().int(),
 });
 
 export const PostUpdateSchema = z.object({
@@ -112,16 +122,6 @@ export const SEOMetaResponseSchema = z.object({
   canonical_url: z.string(),
   published_at: z.string().datetime().nullable(),
   author: z.string(),
-});
-
-export const TagCreateSchema = z.object({
-  name: z.string(),
-});
-
-export const TagResponseSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string(),
-  slug: z.string(),
 });
 
 export const AuthorProfileResponseSchema = z.object({
@@ -166,6 +166,18 @@ export const RegisterRequestSchema = z.object({
   last_name: z.string().default("").optional(),
 });
 
+export const UserResponseSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string(),
+  username: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
+  full_name: z.string(),
+  is_staff: z.boolean(),
+  date_joined: z.string().datetime(),
+  author_profile: AuthorProfileResponseSchema.nullable(),
+});
+
 export const TokenResponseSchema = z.object({
   access: z.string(),
   refresh: z.string(),
@@ -176,18 +188,6 @@ export const UserPublicResponseSchema = z.object({
   id: z.string().uuid(),
   username: z.string(),
   full_name: z.string(),
-  author_profile: AuthorProfileResponseSchema.nullable(),
-});
-
-export const UserResponseSchema = z.object({
-  id: z.string().uuid(),
-  email: z.string(),
-  username: z.string(),
-  first_name: z.string(),
-  last_name: z.string(),
-  full_name: z.string(),
-  is_staff: z.boolean(),
-  date_joined: z.string().datetime(),
   author_profile: AuthorProfileResponseSchema.nullable(),
 });
 
@@ -205,18 +205,33 @@ export const CommentCreateSchema = z.object({
   author_email: z.string().default("").optional(),
 });
 
-export const CommentResponseSchema = z.object({
-  id: z.string().uuid(),
-  post_id: z.string().uuid(),
-  author: CommentAuthorSummarySchema.nullable(),
-  display_name: z.string(),
-  content: z.string(),
-  parent_id: z.string().uuid().nullable(),
-  replies: z.array(CommentResponseSchema).default([]).optional(),
-  is_approved: z.boolean(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
-});
+export type CommentResponse = {
+  id: string;
+  post_id: string;
+  author: { id: string; username: string; full_name: string } | null;
+  display_name: string;
+  content: string;
+  parent_id: string | null;
+  replies?: CommentResponse[];
+  is_approved: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export const CommentResponseSchema: z.ZodType<CommentResponse> = z.lazy(() =>
+  z.object({
+    id: z.string().uuid(),
+    post_id: z.string().uuid(),
+    author: CommentAuthorSummarySchema.nullable(),
+    display_name: z.string(),
+    content: z.string(),
+    parent_id: z.string().uuid().nullable(),
+    replies: z.array(CommentResponseSchema).default([]).optional(),
+    is_approved: z.boolean(),
+    created_at: z.string().datetime(),
+    updated_at: z.string().datetime(),
+  })
+);
 
 export const CommentUpdateSchema = z.object({
   content: z.string(),
@@ -246,5 +261,4 @@ export type UserPublicResponse = z.infer<typeof UserPublicResponseSchema>;
 export type UserResponse = z.infer<typeof UserResponseSchema>;
 export type CommentAuthorSummary = z.infer<typeof CommentAuthorSummarySchema>;
 export type CommentCreate = z.infer<typeof CommentCreateSchema>;
-export type CommentResponse = z.infer<typeof CommentResponseSchema>;
 export type CommentUpdate = z.infer<typeof CommentUpdateSchema>;

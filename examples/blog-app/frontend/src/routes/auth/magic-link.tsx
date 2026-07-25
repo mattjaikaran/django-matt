@@ -12,7 +12,7 @@ function MagicLinkPage() {
 
   // Redirect if already authenticated
   if (isAuthenticated) {
-    return <Navigate to="/todos" />;
+    return <Navigate to="/dashboard" />;
   }
 
   return (

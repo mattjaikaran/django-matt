@@ -18,11 +18,10 @@ from django_matt.events.bus import EventBus
 from django_matt.interceptors.decorators import intercept, intercept_controller
 
 from api.interceptors import FeatureGateInterceptor, TenantInterceptor
-from tenants.models import Membership, Organization, Project
+from tenants.models import Organization, Project
 from tenants.schemas import (
     CreateOrganizationInput,
     CreateProjectInput,
-    MembershipSchema,
     OrganizationSchema,
     ProjectSchema,
 )

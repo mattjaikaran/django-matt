@@ -2,7 +2,6 @@
 Pydantic schemas for multi-tenant resources.
 """
 
-from uuid import UUID
 
 from django_matt.core.schema import ModelSchema
 

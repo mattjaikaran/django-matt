@@ -46,7 +46,7 @@ function DashboardPage() {
           <p className="text-muted-foreground mt-1">Manage your posts.</p>
         </div>
         <Button asChild>
-          <Link to="/dashboard/new" as any>
+          <Link to="/dashboard/new">
             <Plus className="h-4 w-4 mr-2" />
             New post
           </Link>

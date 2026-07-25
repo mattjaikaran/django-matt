@@ -4,7 +4,7 @@ from uuid import UUID
 
 from django_matt.auth import jwt_required
 from django_matt.core import APIController
-from django_matt.core.errors import PermissionAPIError, NotFoundAPIError, ValidationAPIError
+from django_matt.core.errors import NotFoundAPIError, PermissionAPIError, ValidationAPIError
 from django_matt.core.router import delete, get, patch, post
 
 from blog.comments.models import Comment
@@ -16,7 +16,6 @@ class CommentController(APIController):
     prefix = "/comments"
     tags = ["Comments"]
 
-    @staticmethod
     @get("/")
     async def list_comments(request) -> list[CommentResponse]:
         """Return top-level approved comments for a post (by post UUID)."""
@@ -34,30 +33,30 @@ class CommentController(APIController):
         return [CommentResponse.model_validate(c) async for c in top_level]
 
     @post("/")
-    async def create_comment(self, request, data: CommentCreate) -> CommentResponse:
+    async def create_comment(self, request, body: CommentCreate) -> CommentResponse:
         """Create a comment. Auth optional — unauthenticated users supply name/email."""
-        post = await Post.objects.filter(id=data.post_id, status="published").afirst()
+        post = await Post.objects.filter(id=body.post_id, status="published").afirst()
         if post is None:
             raise NotFoundAPIError("Post not found.")
 
         user = getattr(request, "user", None)
         is_authenticated = user is not None and user.is_authenticated
 
-        if not is_authenticated and not data.author_name:
+        if not is_authenticated and not body.author_name:
             raise ValidationAPIError("author_name is required for unauthenticated comments.")
 
         parent = None
-        if data.parent_id:
-            parent = await Comment.objects.filter(id=data.parent_id, post=post).afirst()
+        if body.parent_id:
+            parent = await Comment.objects.filter(id=body.parent_id, post=post).afirst()
             if parent is None:
                 raise NotFoundAPIError("Parent comment not found.")
 
         comment = await Comment.objects.acreate(
             post=post,
             author=user if is_authenticated else None,
-            author_name="" if is_authenticated else data.author_name,
-            author_email="" if is_authenticated else (data.author_email or ""),
-            content=data.content,
+            author_name="" if is_authenticated else body.author_name,
+            author_email="" if is_authenticated else (body.author_email or ""),
+            content=body.content,
             parent=parent,
             is_approved=True,
         )
@@ -67,7 +66,7 @@ class CommentController(APIController):
     @patch("/<uuid:comment_id>")
     @jwt_required
     async def update_comment(
-        self, request, comment_id: UUID, data: CommentUpdate
+        self, request, comment_id: UUID, body: CommentUpdate
     ) -> CommentResponse:
         """Edit your own comment."""
         comment = await Comment.objects.select_related("author").filter(id=comment_id).afirst()
@@ -75,7 +74,7 @@ class CommentController(APIController):
             raise NotFoundAPIError("Comment not found.")
         if comment.author_id != request.user.id and not request.user.is_staff:
             raise PermissionAPIError("You can only edit your own comments.")
-        comment.content = data.content
+        comment.content = body.content
         await comment.asave(update_fields=["content", "updated_at"])
         return CommentResponse.model_validate(comment)
 

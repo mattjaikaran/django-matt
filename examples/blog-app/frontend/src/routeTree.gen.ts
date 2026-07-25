@@ -17,13 +17,11 @@ import { Route as FaqRouteImport } from './routes/faq'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as TodosIndexRouteImport } from './routes/todos/index'
 import { Route as TagsIndexRouteImport } from './routes/tags/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as ProfileIndexRouteImport } from './routes/profile/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as CategoriesIndexRouteImport } from './routes/categories/index'
-import { Route as TodosCreateRouteImport } from './routes/todos/create'
 import { Route as TagsSlugRouteImport } from './routes/tags/$slug'
 import { Route as PostsSlugRouteImport } from './routes/posts/$slug'
 import { Route as DashboardNewRouteImport } from './routes/dashboard/new'
@@ -73,11 +71,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TodosIndexRoute = TodosIndexRouteImport.update({
-  id: '/todos/',
-  path: '/todos/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TagsIndexRoute = TagsIndexRouteImport.update({
   id: '/tags/',
   path: '/tags/',
@@ -101,11 +94,6 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
 const CategoriesIndexRoute = CategoriesIndexRouteImport.update({
   id: '/categories/',
   path: '/categories/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TodosCreateRoute = TodosCreateRouteImport.update({
-  id: '/todos/create',
-  path: '/todos/create',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TagsSlugRoute = TagsSlugRouteImport.update({
@@ -165,13 +153,11 @@ export interface FileRoutesByFullPath {
   '/dashboard/new': typeof DashboardNewRoute
   '/posts/$slug': typeof PostsSlugRoute
   '/tags/$slug': typeof TagsSlugRoute
-  '/todos/create': typeof TodosCreateRoute
   '/categories/': typeof CategoriesIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/profile/': typeof ProfileIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/tags/': typeof TagsIndexRoute
-  '/todos/': typeof TodosIndexRoute
   '/dashboard/edit/$slug': typeof DashboardEditSlugRoute
 }
 export interface FileRoutesByTo {
@@ -190,13 +176,11 @@ export interface FileRoutesByTo {
   '/dashboard/new': typeof DashboardNewRoute
   '/posts/$slug': typeof PostsSlugRoute
   '/tags/$slug': typeof TagsSlugRoute
-  '/todos/create': typeof TodosCreateRoute
   '/categories': typeof CategoriesIndexRoute
   '/dashboard': typeof DashboardIndexRoute
   '/profile': typeof ProfileIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/tags': typeof TagsIndexRoute
-  '/todos': typeof TodosIndexRoute
   '/dashboard/edit/$slug': typeof DashboardEditSlugRoute
 }
 export interface FileRoutesById {
@@ -216,13 +200,11 @@ export interface FileRoutesById {
   '/dashboard/new': typeof DashboardNewRoute
   '/posts/$slug': typeof PostsSlugRoute
   '/tags/$slug': typeof TagsSlugRoute
-  '/todos/create': typeof TodosCreateRoute
   '/categories/': typeof CategoriesIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/profile/': typeof ProfileIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/tags/': typeof TagsIndexRoute
-  '/todos/': typeof TodosIndexRoute
   '/dashboard/edit/$slug': typeof DashboardEditSlugRoute
 }
 export interface FileRouteTypes {
@@ -243,13 +225,11 @@ export interface FileRouteTypes {
     | '/dashboard/new'
     | '/posts/$slug'
     | '/tags/$slug'
-    | '/todos/create'
     | '/categories/'
     | '/dashboard/'
     | '/profile/'
     | '/settings/'
     | '/tags/'
-    | '/todos/'
     | '/dashboard/edit/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -268,13 +248,11 @@ export interface FileRouteTypes {
     | '/dashboard/new'
     | '/posts/$slug'
     | '/tags/$slug'
-    | '/todos/create'
     | '/categories'
     | '/dashboard'
     | '/profile'
     | '/settings'
     | '/tags'
-    | '/todos'
     | '/dashboard/edit/$slug'
   id:
     | '__root__'
@@ -293,13 +271,11 @@ export interface FileRouteTypes {
     | '/dashboard/new'
     | '/posts/$slug'
     | '/tags/$slug'
-    | '/todos/create'
     | '/categories/'
     | '/dashboard/'
     | '/profile/'
     | '/settings/'
     | '/tags/'
-    | '/todos/'
     | '/dashboard/edit/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -319,13 +295,11 @@ export interface RootRouteChildren {
   DashboardNewRoute: typeof DashboardNewRoute
   PostsSlugRoute: typeof PostsSlugRoute
   TagsSlugRoute: typeof TagsSlugRoute
-  TodosCreateRoute: typeof TodosCreateRoute
   CategoriesIndexRoute: typeof CategoriesIndexRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
   ProfileIndexRoute: typeof ProfileIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
   TagsIndexRoute: typeof TagsIndexRoute
-  TodosIndexRoute: typeof TodosIndexRoute
   DashboardEditSlugRoute: typeof DashboardEditSlugRoute
 }
 
@@ -387,13 +361,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/todos/': {
-      id: '/todos/'
-      path: '/todos'
-      fullPath: '/todos/'
-      preLoaderRoute: typeof TodosIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/tags/': {
       id: '/tags/'
       path: '/tags'
@@ -427,13 +394,6 @@ declare module '@tanstack/react-router' {
       path: '/categories'
       fullPath: '/categories/'
       preLoaderRoute: typeof CategoriesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/todos/create': {
-      id: '/todos/create'
-      path: '/todos/create'
-      fullPath: '/todos/create'
-      preLoaderRoute: typeof TodosCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tags/$slug': {
@@ -511,13 +471,11 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardNewRoute: DashboardNewRoute,
   PostsSlugRoute: PostsSlugRoute,
   TagsSlugRoute: TagsSlugRoute,
-  TodosCreateRoute: TodosCreateRoute,
   CategoriesIndexRoute: CategoriesIndexRoute,
   DashboardIndexRoute: DashboardIndexRoute,
   ProfileIndexRoute: ProfileIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
   TagsIndexRoute: TagsIndexRoute,
-  TodosIndexRoute: TodosIndexRoute,
   DashboardEditSlugRoute: DashboardEditSlugRoute,
 }
 export const routeTree = rootRouteImport

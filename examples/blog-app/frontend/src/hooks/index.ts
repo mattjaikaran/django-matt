@@ -40,19 +40,6 @@ export {
 } from './use-auth';
 
 // ============================================
-// Domain Hooks - Todos
-// ============================================
-export {
-  useCreateTodo,
-  useDeleteTodo,
-  useTodo,
-  useTodos,
-  useTodoStats,
-  useToggleTodo,
-  useUpdateTodo,
-} from './use-todo';
-
-// ============================================
 // Utility Hooks - Common utilities
 // ============================================
 export {
@@ -89,7 +76,6 @@ export {
   useIsStandalone,
   useSetTheme,
   useTheme,
-  useTodos as useTodosStore,
   useToggleTheme,
   useUI,
 } from '@/lib/store';

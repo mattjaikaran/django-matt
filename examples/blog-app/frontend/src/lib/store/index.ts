@@ -2,11 +2,9 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { createAuthSlice, type AuthSlice } from './slices/authSlice';
 import { createConfigSlice, type ConfigSlice } from './slices/configSlice';
-import { createTodoSlice, type TodoSlice } from './slices/todoSlice';
 import { createUISlice, type UISlice } from './slices/uiSlice';
 
-// Combined store type
-export type AppStore = AuthSlice & TodoSlice & UISlice & ConfigSlice;
+export type AppStore = AuthSlice & UISlice & ConfigSlice;
 
 // Create the store with all slices
 export const useStore = create<AppStore>()(
@@ -14,18 +12,13 @@ export const useStore = create<AppStore>()(
     persist(
       (...args) => ({
         ...createAuthSlice(...args),
-        ...createTodoSlice(...args),
         ...createUISlice(...args),
         ...createConfigSlice(...args),
       }),
       {
         name: 'app-store',
         partialize: state => ({
-          // Only persist UI theme
           theme: state.theme,
-          // Don't persist auth state as it's handled separately in localStorage
-          // Don't persist todos as they should be fetched fresh
-          // Don't persist config as it comes from env
         }),
       }
     ),
@@ -54,24 +47,6 @@ export const useAuth = () =>
     setError: state.setError,
     clearError: state.clearError,
     initializeAuth: state.initializeAuth,
-  }));
-
-export const useTodos = () =>
-  useStore(state => ({
-    todos: state.todos,
-    isLoading: state.isLoading,
-    error: state.error,
-    filters: state.filters,
-    fetchTodos: state.fetchTodos,
-    createTodo: state.createTodo,
-    updateTodo: state.updateTodo,
-    deleteTodo: state.deleteTodo,
-    toggleTodo: state.toggleTodo,
-    setFilters: state.setFilters,
-    clearFilters: state.clearFilters,
-    setLoading: state.setLoading,
-    setError: state.setError,
-    clearError: state.clearError,
   }));
 
 export const useUI = () =>

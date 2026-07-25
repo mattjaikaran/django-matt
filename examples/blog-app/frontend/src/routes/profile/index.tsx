@@ -1,8 +1,3 @@
-/**
- * Profile Page
- * User profile view and quick stats
- */
-
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,7 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { useTodoStats } from '@/hooks';
+import { usePosts } from '@/hooks/use-blog';
+import type { Post } from '@/types';
 import { useAuth } from '@/lib/store';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { Calendar, Edit, Mail, MapPin, Settings } from 'lucide-react';
@@ -23,21 +19,21 @@ export const Route = createFileRoute('/profile/')({
 
 function ProfilePage() {
   const { user } = useAuth();
-  const { data: stats } = useTodoStats();
+  const { data: postsData } = usePosts({ author: user?.id?.toString() });
+  const posts: Post[] = postsData?.items ?? [];
+  const publishedCount = posts.filter((p: Post) => p.status === 'published').length;
+  const draftCount = posts.filter((p: Post) => p.status === 'draft').length;
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Profile header */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
-              {/* Avatar */}
               <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/50 text-3xl font-bold text-primary-foreground">
                 {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
               </div>
 
-              {/* Info */}
               <div className="flex-1">
                 <h1 className="text-2xl font-bold">
                   {user?.firstName && user?.lastName
@@ -60,7 +56,6 @@ function ProfilePage() {
                 </div>
               </div>
 
-              {/* Actions */}
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" asChild>
                   <Link to={'/settings' as any}>
@@ -78,101 +73,66 @@ function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Total Tasks</CardDescription>
+              <CardDescription>Total Posts</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{stats?.total || 0}</div>
+              <div className="text-3xl font-bold">{posts.length}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Completed</CardDescription>
+              <CardDescription>Published</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-emerald-500">
-                {stats?.completed || 0}
+                {publishedCount}
               </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Pending</CardDescription>
+              <CardDescription>Drafts</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-amber-500">
-                {stats?.pending || 0}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Completion Rate</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {stats?.total
-                  ? Math.round((stats.completed / stats.total) * 100)
-                  : 0}
-                %
+                {draftCount}
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Activity section */}
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Your latest actions and updates</CardDescription>
+            <CardTitle>Recent Posts</CardTitle>
+            <CardDescription>Your latest articles</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {[
-                {
-                  action: 'Completed task',
-                  item: 'Review documentation',
-                  time: '2 hours ago',
-                },
-                {
-                  action: 'Created task',
-                  item: 'Update dependencies',
-                  time: '5 hours ago',
-                },
-                {
-                  action: 'Updated profile',
-                  item: 'Changed email',
-                  time: '1 day ago',
-                },
-                {
-                  action: 'Completed task',
-                  item: 'Fix login bug',
-                  time: '2 days ago',
-                },
-              ].map((activity, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-4 rounded-lg p-3 transition-colors hover:bg-muted/50"
-                >
-                  <div className="h-2 w-2 rounded-full bg-primary" />
-                  <div className="flex-1">
-                    <p className="text-sm">
-                      <span className="font-medium">{activity.action}</span>
-                      {' · '}
-                      <span className="text-muted-foreground">
-                        {activity.item}
-                      </span>
-                    </p>
+            {posts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No posts yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {posts.slice(0, 5).map(post => (
+                  <div
+                    key={post.id}
+                    className="flex items-center gap-4 rounded-lg p-3 transition-colors hover:bg-muted/50"
+                  >
+                    <div className="h-2 w-2 rounded-full bg-primary" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{post.title}</p>
+                      <p className="text-xs text-muted-foreground capitalize">
+                        {post.status}
+                      </p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(post.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {activity.time}
-                  </span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
