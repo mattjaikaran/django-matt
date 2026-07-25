@@ -88,7 +88,7 @@ from pydantic import BaseModel
 # Initialize the API
 api = MattAPI(
     title="My First API",
-    version="1.0.0",
+    version="0.9.0",
     description="A modern Django API built with django-matt",
 )
 

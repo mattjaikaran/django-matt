@@ -11,64 +11,39 @@
 
 The Django meta-framework for production APIs. 54+ modules, async-first, Pydantic v2, optional Rust acceleration -- one package replaces your entire Django API stack.
 
-```mermaid
-graph LR
-    A[Django Matt] --> B[Core API]
-    A --> C[Authentication]
-    A --> D[Real-time]
-    A --> E[Billing]
-    A --> F[Deployment]
-    A --> G[Request Pipeline]
-    A --> H[Architecture]
-    A --> I[Operations]
 
-    B --> B1[Controllers]
-    B --> B2[Schemas]
-    B --> B3[CRUD Views]
+### Architecture
 
-    C --> C1[JWT]
-    C --> C2[OAuth]
-    C --> C3[Passkeys]
-
-    D --> D1[WebSockets]
-    D --> D2[SSE/Streaming]
-    D --> D3[Notifications]
-
-    E --> E1[Stripe]
-    E --> E2[Subscriptions]
-
-    F --> F1[Docker]
-    F --> F2[Fly.io]
-    F --> F3[AWS]
-
-    G --> G1[Interceptors]
-    G --> G2[Exception Filters]
-    G --> G3[Scoped Middleware]
-    G --> G4[Event Bus]
-
-    H --> H1[CQRS]
-    H --> H2[Module System]
-    H --> H3[RPC Client]
-
-    I --> I1[Secrets]
-    I --> I2[Introspection]
-    I --> I3[Observability]
-```
+| Category | Modules |
+|----------|---------|
+| **Core API** | Controllers, Schemas (Pydantic v2), CRUD ViewSets, OpenAPI 3.1 |
+| **Authentication** | JWT (symmetric + asymmetric), OAuth (Google/GitHub/Apple/Microsoft), Passkeys/WebAuthn, SSO (SAML/OIDC), Magic Links, API Keys, RBAC |
+| **Real-time** | WebSockets, SSE Streaming, Notifications, Centrifugo |
+| **Billing** | Stripe, PayPal, Polar — subscriptions, invoices, checkout |
+| **Data** | Services (CRUDService), CQRS (commands/queries), Pagination, Filtering, Search (full-text + Elasticsearch) |
+| **Frontend** | Vite, Inertia.js, HTMX, LiveWire, Unpoly, Tailwind |
+| **Developer XP** | CLI (startapi, generate_crud), TypeScript/Swift codegen, Hot Reload, AI context generation, Error overlays |
+| **Operations** | Secrets (Vault/AWS/GCP), Observability (OTEL), Introspection (health checks), Feature Flags, A/B Experiments |
+| **Deployment** | Docker, Kubernetes, Fly.io, AWS, Render, Railway, Hetzner |
+| **Performance** | Rust extensions (optional), orjson (base dep), connection pooling, N+1 detection, cache invalidation |
 
 ---
 
 ## Why Django Matt?
 
-Django Matt consolidates the Django API ecosystem into a single, cohesive framework:
+Django Matt replaces your entire Django API stack — whether you're coming from
+Django REST Framework, django-ninja, or a patchwork of packages:
 
-| Before (5+ packages) | After (1 package) |
-|---------------------|-------------------|
-| Django Ninja | `django-matt` |
-| Django Ninja Extra | |
-| Django Ninja JWT | |
-| ninja-schema | |
-| django-ninja-crud | |
-
+| Before (DRF stack — 5+ packages) | Before (django-ninja stack — 5 packages) | After (1 package) |
+|----------------------------------|------------------------------------------|-------------------|
+| Django REST Framework | Django Ninja | **django-matt** |
+| djangorestframework-simplejwt | Django Ninja Extra | |
+| drf-spectacular | Django Ninja JWT | |
+| django-filter | ninja-schema | |
+| drf-nested-routers | django-ninja-crud | |
+| factory-boy + faker | — | |
+| celery | — | |
+| django-storages | — | |
 **One import. One API. Everything works together.**
 
 - **Unified** -- routing, auth, schemas, billing, real-time, observability in one package

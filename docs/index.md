@@ -24,19 +24,18 @@
 
     ---
 
-    54+ modules replace 5+ packages with one cohesive, production-ready framework.
+    60+ modules replace 5-10 packages. One `pip install`, zero dependency hell.
 
 </div>
 
 ## Why django-matt?
 
-**django-matt** consolidates the fragmented Django Ninja ecosystem into a single, cohesive framework. No more juggling `django-ninja`, `django-ninja-extra`, `django-ninja-jwt`, `ninja-schema`, and `django-ninja-crud`.
-
+**django-matt** is the Django meta-framework. It replaces Django REST Framework, django-ninja, django-ninja-extra, and their entire ecosystems with a single, cohesive package. No more juggling a dozen packages just to build a production API.
 ```python
 from django_matt import MattAPI, APIController, IsAuthenticated
 from django_matt.auth import jwt_required
 
-api = MattAPI(title="My API", version="1.0.0")
+api = MattAPI(title="My API", version="0.9.0")
 
 @api.controller("/users", tags=["Users"])
 class UserController(APIController):
@@ -100,7 +99,7 @@ python manage.py startapi myproject --template b2b --auth jwt
 # myproject/api.py
 from django_matt import MattAPI
 
-api = MattAPI(title="My API", version="1.0.0")
+api = MattAPI(title="My API", version="0.9.0")
 
 @api.get("/hello")
 async def hello(request):
