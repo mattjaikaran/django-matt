@@ -15,18 +15,18 @@ import django
 django.setup()
 
 # Force-import models so Django's model registry sees them.
-import django_matt.multitenancy.models  # noqa: F401, E402
-import django_matt.auth.passkeys.models  # noqa: F401, E402
-import django_matt.auth.api_keys.models  # noqa: F401, E402
-import django_matt.auth.blacklist.models  # noqa: F401, E402
-import django_matt.messaging.models  # noqa: F401, E402
-import django_matt.auth.sso.models  # noqa: F401, E402
-import django_matt.ai.models  # noqa: F401, E402
-
 # Now we can safely import pytest and other fixtures
 from django.test import RequestFactory
 
 import pytest
+
+import django_matt.ai.models
+import django_matt.auth.api_keys.models
+import django_matt.auth.blacklist.models
+import django_matt.auth.passkeys.models
+import django_matt.auth.sso.models
+import django_matt.messaging.models
+import django_matt.multitenancy.models
 
 
 @pytest.fixture(scope="session")
@@ -69,7 +69,6 @@ def _create_matt_tables(django_db_setup, django_db_blocker):
 @pytest.fixture(autouse=True)
 def _ensure_matt_tables(_create_matt_tables):
     """Ensure django_matt tables exist for every test (autouse)."""
-    pass
 
 
 @pytest.fixture
@@ -82,3 +81,14 @@ def request_factory():
 def rf():
     """Alias for request_factory fixture."""
     return RequestFactory()
+
+
+@pytest.fixture(autouse=True)
+def _reset_caches():
+    """Reset module-level caches to prevent cross-test state leaks."""
+    # Reset login config cache (otherwise MATT_AUTH overrides leak between tests)
+    try:
+        from django_matt.auth.login_config import reset_login_config
+        reset_login_config()
+    except Exception:
+        pass

@@ -10,6 +10,7 @@ from django_matt.middleware import (
     DEVELOPMENT_STACK,
     PRODUCTION_STACK,
     CORSMiddleware,
+    QueryStringParserMiddleware,
     RequestIDMiddleware,
     RequestLoggingMiddleware,
     SecurityHeadersMiddleware,
@@ -489,22 +490,24 @@ class TestStacks:
         assert SecurityHeadersMiddleware in PRODUCTION_STACK
         assert RequestIDMiddleware in PRODUCTION_STACK
         assert CORSMiddleware in PRODUCTION_STACK
+        assert QueryStringParserMiddleware in PRODUCTION_STACK
         assert RequestLoggingMiddleware in PRODUCTION_STACK
         assert TimingMiddleware in PRODUCTION_STACK
 
     def test_production_stack_length(self):
-        assert len(PRODUCTION_STACK) == 6
+        assert len(PRODUCTION_STACK) == 7
 
     def test_development_stack_no_security(self):
         assert SecurityHeadersMiddleware not in DEVELOPMENT_STACK
         assert ErrorEnhancementMiddleware in DEVELOPMENT_STACK
         assert RequestIDMiddleware in DEVELOPMENT_STACK
         assert CORSMiddleware in DEVELOPMENT_STACK
+        assert QueryStringParserMiddleware in DEVELOPMENT_STACK
         assert RequestLoggingMiddleware in DEVELOPMENT_STACK
         assert TimingMiddleware in DEVELOPMENT_STACK
 
     def test_development_stack_length(self):
-        assert len(DEVELOPMENT_STACK) == 5
+        assert len(DEVELOPMENT_STACK) == 6
 
     def test_production_stack_order(self):
         # ErrorEnhancement must be first (outermost) so it catches everything.
@@ -512,15 +515,17 @@ class TestStacks:
         assert PRODUCTION_STACK[1] is SecurityHeadersMiddleware
         assert PRODUCTION_STACK[2] is RequestIDMiddleware
         assert PRODUCTION_STACK[3] is CORSMiddleware
-        assert PRODUCTION_STACK[4] is RequestLoggingMiddleware
-        assert PRODUCTION_STACK[5] is TimingMiddleware
+        assert PRODUCTION_STACK[4] is QueryStringParserMiddleware
+        assert PRODUCTION_STACK[5] is RequestLoggingMiddleware
+        assert PRODUCTION_STACK[6] is TimingMiddleware
 
     def test_development_stack_order(self):
         assert DEVELOPMENT_STACK[0] is ErrorEnhancementMiddleware
         assert DEVELOPMENT_STACK[1] is RequestIDMiddleware
         assert DEVELOPMENT_STACK[2] is CORSMiddleware
-        assert DEVELOPMENT_STACK[3] is RequestLoggingMiddleware
-        assert DEVELOPMENT_STACK[4] is TimingMiddleware
+        assert DEVELOPMENT_STACK[3] is QueryStringParserMiddleware
+        assert DEVELOPMENT_STACK[4] is RequestLoggingMiddleware
+        assert DEVELOPMENT_STACK[5] is TimingMiddleware
 
 
 # ---------------------------------------------------------------

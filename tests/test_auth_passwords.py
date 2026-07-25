@@ -6,8 +6,9 @@ import time
 from datetime import timedelta
 from unittest.mock import patch
 
-import pytest
 from django.contrib.auth import get_user_model
+
+import pytest
 
 from django_matt.auth.passwords import (
     PasswordStrengthResult,
@@ -299,7 +300,7 @@ class TestPasswordResetToken:
         token = create_password_reset_token(user)
         # Flip last char of signature
         payload, sig = token.rsplit(".", 1)
-        tampered = f"{payload}.{'a' if sig[-1] != 'a' else 'b'}{sig[1:]}"
+        tampered = f"{payload}.{sig[:-1]}{'a' if sig[-1] != 'a' else 'b'}"
         result = verify_password_reset_token(tampered)
         assert result.valid is False
         assert "signature" in result.error.lower()
@@ -387,11 +388,12 @@ class TestPasswordResetToken:
 
     @pytest.mark.django_db
     async def test_async_verify_roundtrip(self, db):
+        from asgiref.sync import sync_to_async
+
         from django_matt.auth.password_reset import (
             averify_password_reset_token,
             create_password_reset_token,
         )
-        from asgiref.sync import sync_to_async
 
         user = await sync_to_async(User.objects.create_user)(
             username="asyncreset",
