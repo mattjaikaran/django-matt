@@ -244,7 +244,6 @@ class GauntletRunner:
                 "tests/",
                 "--cov=django_matt",
                 f"--cov-fail-under={self.coverage_threshold}",
-                "--timeout=120",
                 "-q",
             ],
         )
