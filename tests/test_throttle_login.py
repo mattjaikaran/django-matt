@@ -226,25 +226,25 @@ class TestGetLoginConfig:
         assert config.login_field == "username"
         assert config.case_insensitive is False
 
-    def test_caches_config(self, settings):
+    def test_no_cache_picks_up_settings_changes(self, settings):
         settings.MATT_AUTH = {"login_field": "email"}
         config1 = get_login_config()
         settings.MATT_AUTH = {"login_field": "username"}
         config2 = get_login_config()
-        # Should return cached value
-        assert config1 is config2
-        assert config2.login_field == "email"
+        # Config is not cached — changes are reflected immediately
+        assert config1.login_field == "email"
+        assert config2.login_field == "username"
 
 
 class TestResetLoginConfig:
-    def test_reset_clears_cache(self, settings):
+    def test_reset_is_noop(self, settings):
+        """reset_login_config is a no-op since config is no longer cached."""
         settings.MATT_AUTH = {"login_field": "email"}
         config1 = get_login_config()
         reset_login_config()
-        settings.MATT_AUTH = {"login_field": "username"}
         config2 = get_login_config()
         assert config1.login_field == "email"
-        assert config2.login_field == "username"
+        assert config2.login_field == "email"
         reset_login_config()
 
 

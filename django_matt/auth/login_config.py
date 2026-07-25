@@ -35,15 +35,10 @@ class LoginConfig:
     lockout_duration: int = 300  # seconds
 
 
-_config: LoginConfig | None = None
 
 
 def get_login_config() -> LoginConfig:
     """Get login configuration from Django settings."""
-    global _config
-    if _config is not None:
-        return _config
-
     try:
         from django.conf import settings
 
@@ -51,7 +46,7 @@ def get_login_config() -> LoginConfig:
     except Exception:
         raw = {}
 
-    _config = LoginConfig(
+    return LoginConfig(
         login_field=raw.get("login_field", "email"),
         case_insensitive=raw.get("case_insensitive", True),
         strip_whitespace=raw.get("strip_whitespace", True),
@@ -60,13 +55,11 @@ def get_login_config() -> LoginConfig:
         max_login_attempts=raw.get("max_login_attempts", 0),
         lockout_duration=raw.get("lockout_duration", 300),
     )
-    return _config
 
 
 def reset_login_config() -> None:
-    """Reset cached config (for testing)."""
-    global _config
-    _config = None
+    """Reset cached config (for testing). No-op — config is no longer cached."""
+    pass
 
 
 class EmailOrUsernameBackend(ModelBackend):
