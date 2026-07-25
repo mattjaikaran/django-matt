@@ -23,8 +23,8 @@ The fastest, most developer-friendly way to build Django APIs — if you can't s
 ### Active
 
 - [x] BillingController auth guards — added `permission_classes = [IsAuthenticated]` (2026-07)
-- [ ] startapi middleware auto-wiring — TenantMiddlewareAsync and ObservabilityMiddleware in generated templates
-- [ ] Experiments → Analytics bridge — ExperimentManager.get_assignment() should emit analytics events
+- [x] startapi middleware auto-wiring — TenantMiddlewareAsync and ObservabilityMiddleware in all 4 templates (2026-07)
+- [x] Experiments → Analytics bridge — ExperimentManager.get_assignment() emits analytics events (2026-07)
 - [x] Pydantic v2 migration — passkeys/schemas.py `class Config` replaced with `model_config` (2026-07)
 
 ### Out of Scope
