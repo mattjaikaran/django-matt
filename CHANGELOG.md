@@ -8,20 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- LLM-optimized error responses: `code`, `hint`, `docs_url` fields in error envelope
-- Starter templates: `--template ai-saas` and `--template marketplace`
-- Benchmark CI job with PR commenting
-- Docs version switcher (mike plugin)
+- **Gauntlet quality gate system** — 8-gate pipeline inspired by Uncle Bob's constraint philosophy
+  - FORMAT (ruff), LINT (ruff), TYPECHECK (pyright), SECURITY (bandit)
+  - ARCHITECTURE (layer dependency enforcement), FILELENGTH (per-file limits)
+  - TEST (pytest with coverage threshold), AUDIT (pip-audit)
+  - `make gauntlet`, `gauntlet-quick`, `gauntlet-ci`, `gauntlet-gate`
+- **Architecture enforcement** — 5-layer system (foundation/infrastructure/domain/interface/tooling)
+  - Catches layer violations, cross-domain coupling, and test imports
+  - 629 files checked, intentional exemptions for testing, facades, integration bridges
+- **Constraint tools documentation** (`docs/CONSTRAINT_TOOLS.md`) — philosophy, template, checklist
+- Example app CI smoke tests (7 apps verified with `manage.py check`)
+- CI security scanning (bandit + pip-audit)
+- `EmailOrUsernameBackend` now accepts optional `config` parameter for testability
 
 ### Fixed
-- Deprecated `datetime.utcnow()` → `datetime.now(UTC)` across tasks, livewire, files
-- Deprecated `asyncio.get_event_loop()` → `asyncio.get_running_loop()` / `async_to_sync()` in ml, files
-- Public API docstring example corrected (`api.register_controller()` pattern)
-- `matt_analyze` command handles missing `BASE_DIR` setting gracefully
-- All broken documentation links resolved
-- Ruff lint warnings fixed (quoted annotations, unused imports)
-
----
+- 12 test failures resolved: middleware stack assertions, password tamper race condition,
+  token bucket ZeroDivisionError, throttle login cross-test state leaks
+- Deprecated `class Config` in passkeys schemas → Pydantic v2 `model_config`
+- BillingController now protected with `IsAuthenticated` permission class
+- Experiments→Analytics bridge: `get_assignment()` emits analytics events
+- startapi templates include `TenantMiddlewareAsync` and `ObservabilityMiddleware`
+- `get_login_config()` caching removed — eliminates cross-test state contamination
 
 ## [0.9.0] - 2026-05-19
 
