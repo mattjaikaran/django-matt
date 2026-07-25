@@ -76,10 +76,10 @@ INSTALLED_APPS = [
 
 ```python
 # api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from pydantic import BaseModel
 
-api = MattAPI(title="My API", version="1.0.0")
+api = DjangoMattAPI(title="My API", version="1.0.0")
 
 class HelloResponse(BaseModel):
     message: str

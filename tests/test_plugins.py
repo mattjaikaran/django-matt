@@ -41,7 +41,7 @@ from django_matt.plugins.testing import (
 )
 
 if TYPE_CHECKING:
-    from django_matt.api import MattAPI
+    from django_matt.api import DjangoMattAPI
 
 
 # ---------------------------------------------------------------------------
@@ -58,7 +58,7 @@ class SamplePlugin(MattPlugin):
     dependencies: list[str] = []
     settings_prefix = "MATT_SAMPLE"
 
-    def setup(self, api: MattAPI) -> None:
+    def setup(self, api: DjangoMattAPI) -> None:
         pass
 
     def get_settings_schema(self) -> dict[str, Any]:
@@ -77,7 +77,7 @@ class DependentPlugin(MattPlugin):
     version = "0.1.0"
     dependencies = ["sample"]
 
-    def setup(self, api: MattAPI) -> None:
+    def setup(self, api: DjangoMattAPI) -> None:
         pass
 
 
@@ -86,7 +86,7 @@ class AnotherPlugin(MattPlugin):
     version = "0.2.0"
     dependencies: list[str] = []
 
-    def setup(self, api: MattAPI) -> None:
+    def setup(self, api: DjangoMattAPI) -> None:
         pass
 
 
@@ -94,7 +94,7 @@ class CircularA(MattPlugin):
     name = "circular_a"
     dependencies = ["circular_b"]
 
-    def setup(self, api: MattAPI) -> None:
+    def setup(self, api: DjangoMattAPI) -> None:
         pass
 
 
@@ -102,21 +102,21 @@ class CircularB(MattPlugin):
     name = "circular_b"
     dependencies = ["circular_a"]
 
-    def setup(self, api: MattAPI) -> None:
+    def setup(self, api: DjangoMattAPI) -> None:
         pass
 
 
 class FailingPlugin(MattPlugin):
     name = "failing"
 
-    def setup(self, api: MattAPI) -> None:
+    def setup(self, api: DjangoMattAPI) -> None:
         raise RuntimeError("Setup failed")
 
 
 class CheckPlugin(MattPlugin):
     name = "checker"
 
-    def setup(self, api: MattAPI) -> None:
+    def setup(self, api: DjangoMattAPI) -> None:
         pass
 
     def check(self) -> list[CheckMessage]:
@@ -144,7 +144,7 @@ def _clean_registry():
 class TestMattPluginBase:
     def test_auto_name_from_class(self):
         class MyCustomPlugin(MattPlugin):
-            def setup(self, api: MattAPI) -> None:
+            def setup(self, api: DjangoMattAPI) -> None:
                 pass
 
         p = MyCustomPlugin()
@@ -370,7 +370,7 @@ class TestConflictDetection:
         class PluginA(MattPlugin):
             name = "plugin_a"
 
-            def setup(self, api: MattAPI) -> None:
+            def setup(self, api: DjangoMattAPI) -> None:
                 pass
 
             def get_urls(self) -> list:
@@ -379,7 +379,7 @@ class TestConflictDetection:
         class PluginB(MattPlugin):
             name = "plugin_b"
 
-            def setup(self, api: MattAPI) -> None:
+            def setup(self, api: DjangoMattAPI) -> None:
                 pass
 
             def get_urls(self) -> list:
@@ -456,7 +456,7 @@ class TestPluginLoading:
             name = "needs_failing"
             dependencies = ["failing"]
 
-            def setup(self, api: MattAPI) -> None:
+            def setup(self, api: DjangoMattAPI) -> None:
                 pass
 
         registry.register(NeedsFailing)
@@ -489,7 +489,7 @@ class TestVersionCompatibility:
             name = "future"
             django_matt_version = "99.0.0"
 
-            def setup(self, api: MattAPI) -> None:
+            def setup(self, api: DjangoMattAPI) -> None:
                 pass
 
         registry.register(FuturePlugin)

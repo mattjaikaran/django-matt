@@ -16,9 +16,9 @@ Async views provide significant benefits:
 ### Defining Async Views
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 @api.get("/users")
 async def list_users(request):

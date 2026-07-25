@@ -60,9 +60,9 @@ INSTALLED_APPS = [
 
 ```python
 # api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
-api = MattAPI(title="My API", version="0.9.0")
+api = DjangoMattAPI(title="My API", version="0.9.0")
 
 @api.get("/hello")
 async def hello(request):

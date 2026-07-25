@@ -180,10 +180,10 @@ class UserView(APIView):
 ### django-matt Controller
 
 ```python
-from django_matt import MattAPI, APIController, IsAuthenticated
+from django_matt import DjangoMattAPI, APIController, IsAuthenticated
 from django_matt.core.errors import NotFoundError
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 
 @api.controller("/users", tags=["Users"])
@@ -561,9 +561,9 @@ urlpatterns = [
 ### django-matt URLs
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
-api = MattAPI(title="My API", version="1.0.0")
+api = DjangoMattAPI(title="My API", version="1.0.0")
 
 # Controllers auto-register their routes
 @api.controller("/products")
@@ -749,10 +749,10 @@ class TaskCreateSchema(ModelSchema):
         fields = ['title']
 
 # api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth import AuthController
 
-api = MattAPI(title="Task API", version="1.0.0")
+api = DjangoMattAPI(title="Task API", version="1.0.0")
 api.register_controller(AuthController)
 
 # views.py

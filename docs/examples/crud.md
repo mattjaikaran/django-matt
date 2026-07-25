@@ -46,7 +46,7 @@ class PostUpdate(ModelSchema):
 
 ```python
 # api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.core import CRUDController
 from django_matt.permissions import IsAuthenticated, IsOwner
 from django_matt.auth import jwt_required
@@ -54,7 +54,7 @@ from django_matt.auth import jwt_required
 from .models import Post
 from .schemas import PostSchema, PostCreate, PostUpdate
 
-api = MattAPI(title="Blog API", version="1.0.0")
+api = DjangoMattAPI(title="Blog API", version="1.0.0")
 
 @api.controller("/posts", tags=["Posts"])
 class PostController(CRUDController):

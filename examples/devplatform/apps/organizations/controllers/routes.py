@@ -1,4 +1,4 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from apps.organizations.schemas import (
     MembershipSchema,
@@ -10,7 +10,7 @@ from .member_controller import MemberController
 from .organization_controller import OrganizationController
 
 
-def register_org_routes(api: MattAPI) -> None:
+def register_org_routes(api: DjangoMattAPI) -> None:
     # Organizations
     api.get(
         "organizations",

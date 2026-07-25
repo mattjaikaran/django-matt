@@ -3066,13 +3066,13 @@ class TestChangePasswordRevokesOldTokens:
 
 
 class TestCSRFExemption:
-    """Test that MattAPI sets _csrf_exempt on registered view functions."""
+    """Test that DjangoMattAPI sets _csrf_exempt on registered view functions."""
 
     def test_csrf_false_sets_exempt_on_view_funcs(self):
-        """MattAPI(csrf=False) marks all view functions as _csrf_exempt."""
-        from django_matt import MattAPI
+        """DjangoMattAPI(csrf=False) marks all view functions as _csrf_exempt."""
+        from django_matt import DjangoMattAPI
 
-        api = MattAPI(csrf=False)
+        api = DjangoMattAPI(csrf=False)
 
         @api.get("/test-endpoint")
         def my_view(request):
@@ -3090,10 +3090,10 @@ class TestCSRFExemption:
         assert getattr(view_func, "_csrf_exempt", False) is True
 
     def test_csrf_true_does_not_set_exempt(self):
-        """MattAPI(csrf=True) does NOT set _csrf_exempt on view functions."""
-        from django_matt import MattAPI
+        """DjangoMattAPI(csrf=True) does NOT set _csrf_exempt on view functions."""
+        from django_matt import DjangoMattAPI
 
-        api = MattAPI(csrf=True)
+        api = DjangoMattAPI(csrf=True)
 
         @api.get("/test-csrf-endpoint")
         def my_view(request):
@@ -3110,12 +3110,12 @@ class TestCSRFExemption:
         assert getattr(view_func, "_csrf_exempt", False) is False
 
     def test_csrf_exempt_on_controller_view_funcs(self):
-        """MattAPI(csrf=False) marks controller-registered views as _csrf_exempt."""
-        from django_matt import MattAPI
+        """DjangoMattAPI(csrf=False) marks controller-registered views as _csrf_exempt."""
+        from django_matt import DjangoMattAPI
         from django_matt.core.controller import APIController
         from django_matt.core.router import post
 
-        api = MattAPI(csrf=False)
+        api = DjangoMattAPI(csrf=False)
 
         class MyController(APIController):
             prefix = "myctrl"

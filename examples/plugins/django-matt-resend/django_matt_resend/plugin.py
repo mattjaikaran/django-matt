@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from django_matt.plugins import MattPlugin
 
 if TYPE_CHECKING:
-    from django_matt.api import MattAPI
+    from django_matt.api import DjangoMattAPI
 
 from django_matt_resend.config import get_resend_config
 
@@ -21,7 +21,7 @@ class ResendPlugin(MattPlugin):
     django_matt_version = "0.9.0"
     settings_prefix = "MATT_RESEND"
 
-    def setup(self, api: MattAPI) -> None:
+    def setup(self, api: DjangoMattAPI) -> None:
         config = get_resend_config()
         errors = config.validate()
         if errors:

@@ -1,5 +1,5 @@
 """
-Tests for MattAPI lifecycle hooks (@api.on_startup / @api.on_shutdown).
+Tests for DjangoMattAPI lifecycle hooks (@api.on_startup / @api.on_shutdown).
 
 Tests cover:
 - Registering sync and async startup/shutdown handlers
@@ -14,12 +14,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from django_matt.api import MattAPI
+from django_matt.api import DjangoMattAPI
 
 
 @pytest.fixture()
-def api() -> MattAPI:
-    return MattAPI(title="Test API")
+def api() -> DjangoMattAPI:
+    return DjangoMattAPI(title="Test API")
 
 
 # ------------------------------------------------------------------
@@ -28,7 +28,7 @@ def api() -> MattAPI:
 
 
 class TestRegistration:
-    def test_on_startup_registers_handler(self, api: MattAPI) -> None:
+    def test_on_startup_registers_handler(self, api: DjangoMattAPI) -> None:
         @api.on_startup
         async def handler() -> None:
             pass
@@ -36,7 +36,7 @@ class TestRegistration:
         assert handler in api._startup_handlers
         assert len(api._startup_handlers) == 1
 
-    def test_on_shutdown_registers_handler(self, api: MattAPI) -> None:
+    def test_on_shutdown_registers_handler(self, api: DjangoMattAPI) -> None:
         @api.on_shutdown
         async def handler() -> None:
             pass
@@ -44,14 +44,14 @@ class TestRegistration:
         assert handler in api._shutdown_handlers
         assert len(api._shutdown_handlers) == 1
 
-    def test_decorator_returns_original_function(self, api: MattAPI) -> None:
+    def test_decorator_returns_original_function(self, api: DjangoMattAPI) -> None:
         async def my_func() -> None:
             pass
 
         result = api.on_startup(my_func)
         assert result is my_func
 
-    def test_multiple_handlers_registered(self, api: MattAPI) -> None:
+    def test_multiple_handlers_registered(self, api: DjangoMattAPI) -> None:
         @api.on_startup
         async def first() -> None:
             pass
@@ -72,21 +72,21 @@ class TestRegistration:
 
 class TestStartup:
     @pytest.mark.asyncio
-    async def test_async_handler_called(self, api: MattAPI) -> None:
+    async def test_async_handler_called(self, api: DjangoMattAPI) -> None:
         mock = AsyncMock()
         api.on_startup(mock)
         await api.startup()
         mock.assert_awaited_once()
 
     @pytest.mark.asyncio
-    async def test_sync_handler_called(self, api: MattAPI) -> None:
+    async def test_sync_handler_called(self, api: DjangoMattAPI) -> None:
         mock = MagicMock()
         api.on_startup(mock)
         await api.startup()
         mock.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_execution_order(self, api: MattAPI) -> None:
+    async def test_execution_order(self, api: DjangoMattAPI) -> None:
         order: list[int] = []
 
         @api.on_startup
@@ -105,7 +105,7 @@ class TestStartup:
         assert order == [1, 2, 3]
 
     @pytest.mark.asyncio
-    async def test_idempotent(self, api: MattAPI) -> None:
+    async def test_idempotent(self, api: DjangoMattAPI) -> None:
         mock = AsyncMock()
         api.on_startup(mock)
         await api.startup()
@@ -113,7 +113,7 @@ class TestStartup:
         mock.assert_awaited_once()
 
     @pytest.mark.asyncio
-    async def test_error_propagates(self, api: MattAPI) -> None:
+    async def test_error_propagates(self, api: DjangoMattAPI) -> None:
         @api.on_startup
         async def bad_handler() -> None:
             raise RuntimeError("init failed")
@@ -124,21 +124,21 @@ class TestStartup:
 
 class TestShutdown:
     @pytest.mark.asyncio
-    async def test_async_handler_called(self, api: MattAPI) -> None:
+    async def test_async_handler_called(self, api: DjangoMattAPI) -> None:
         mock = AsyncMock()
         api.on_shutdown(mock)
         await api.shutdown()
         mock.assert_awaited_once()
 
     @pytest.mark.asyncio
-    async def test_sync_handler_called(self, api: MattAPI) -> None:
+    async def test_sync_handler_called(self, api: DjangoMattAPI) -> None:
         mock = MagicMock()
         api.on_shutdown(mock)
         await api.shutdown()
         mock.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_idempotent(self, api: MattAPI) -> None:
+    async def test_idempotent(self, api: DjangoMattAPI) -> None:
         mock = AsyncMock()
         api.on_shutdown(mock)
         await api.shutdown()
@@ -146,7 +146,7 @@ class TestShutdown:
         mock.assert_awaited_once()
 
     @pytest.mark.asyncio
-    async def test_error_propagates(self, api: MattAPI) -> None:
+    async def test_error_propagates(self, api: DjangoMattAPI) -> None:
         @api.on_shutdown
         async def bad_handler() -> None:
             raise RuntimeError("cleanup failed")
@@ -162,7 +162,7 @@ class TestShutdown:
 
 class TestMixedHandlers:
     @pytest.mark.asyncio
-    async def test_mixed_startup(self, api: MattAPI) -> None:
+    async def test_mixed_startup(self, api: DjangoMattAPI) -> None:
         order: list[str] = []
 
         @api.on_startup
@@ -177,7 +177,7 @@ class TestMixedHandlers:
         assert order == ["async", "sync"]
 
     @pytest.mark.asyncio
-    async def test_mixed_shutdown(self, api: MattAPI) -> None:
+    async def test_mixed_shutdown(self, api: DjangoMattAPI) -> None:
         order: list[str] = []
 
         @api.on_shutdown
@@ -198,22 +198,22 @@ class TestMixedHandlers:
 
 
 class TestStateFlags:
-    def test_initial_state(self, api: MattAPI) -> None:
+    def test_initial_state(self, api: DjangoMattAPI) -> None:
         assert api._startup_complete is False
         assert api._shutdown_complete is False
 
     @pytest.mark.asyncio
-    async def test_startup_sets_flag(self, api: MattAPI) -> None:
+    async def test_startup_sets_flag(self, api: DjangoMattAPI) -> None:
         await api.startup()
         assert api._startup_complete is True
 
     @pytest.mark.asyncio
-    async def test_shutdown_sets_flag(self, api: MattAPI) -> None:
+    async def test_shutdown_sets_flag(self, api: DjangoMattAPI) -> None:
         await api.shutdown()
         assert api._shutdown_complete is True
 
     @pytest.mark.asyncio
-    async def test_failed_startup_does_not_set_flag(self, api: MattAPI) -> None:
+    async def test_failed_startup_does_not_set_flag(self, api: DjangoMattAPI) -> None:
         @api.on_startup
         async def fail() -> None:
             raise RuntimeError("boom")

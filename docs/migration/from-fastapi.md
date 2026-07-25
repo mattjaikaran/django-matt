@@ -75,7 +75,7 @@ project/
     myapp/
         models.py      # Django models
         schemas.py     # Pydantic schemas (same as FastAPI)
-        api.py         # MattAPI + controllers
+        api.py         # DjangoMattAPI + controllers
         admin.py       # Admin panel (free!)
         tests.py       # Tests
 ```
@@ -261,11 +261,11 @@ async def delete_post(
 ### django-matt (Controller style)
 
 ```python
-from django_matt import MattAPI, APIController, IsAuthenticated
+from django_matt import DjangoMattAPI, APIController, IsAuthenticated
 from django_matt.auth import jwt_required
 from django_matt.core.errors import NotFoundError, ForbiddenError
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 @api.controller("/posts", tags=["Posts"])
 class PostController(APIController):
@@ -666,7 +666,7 @@ DJANGO_MATT = {
 
 ```python
 # FastAPI                              # django-matt
-from fastapi import FastAPI            from django_matt import MattAPI
+from fastapi import FastAPI            from django_matt import DjangoMattAPI
 from fastapi import APIRouter          from django_matt import APIRouter
 from fastapi import Depends            from django_matt.di import Depends
 from fastapi import HTTPException      from django_matt.core.errors import NotFoundError

@@ -1,6 +1,6 @@
 """Main API configuration for e-commerce."""
 
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from ecommerce.cart.controllers import CartController
 from ecommerce.catalog.controllers import CategoryController, ProductController
@@ -10,13 +10,11 @@ from ecommerce.reviews.controllers import ReviewController
 from ecommerce.users.controllers import AddressController, AuthController, WishlistController
 
 # Initialize the API
-api = MattAPI(
-    title="E-Commerce API",
-    version="1.0.0",
-    description="Production-quality e-commerce backend API built with django-matt",
-    docs_url="/docs",
-    openapi_url="/openapi.json",
-)
+api = DjangoMattAPI(title="E-Commerce API",
+version="1.0.0",
+description="Production-quality e-commerce backend API built with django-matt",
+docs_url="/docs",
+openapi_url="/openapi.json",)
 
 # Register controllers
 api.register_controller(AuthController)

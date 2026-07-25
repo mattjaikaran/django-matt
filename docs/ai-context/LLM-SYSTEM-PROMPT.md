@@ -31,7 +31,7 @@ Lint: ruff (line-length 88, target py313)
 
 ```
 django_matt/
-  api.py              → MattAPI entry point (like FastAPI() or NinjaAPI())
+  api.py              → DjangoMattAPI entry point (like FastAPI() or NinjaAPI())
   core/
     router.py         → Router, route decorators: get, post, put, patch, delete
     controller.py     → APIController base class
@@ -92,9 +92,9 @@ django_matt/
 
 ```python
 # config/api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
-api = MattAPI(
+api = DjangoMattAPI(
     title="My API",
     version="1.0.0",
     description="Built with Django Matt",
@@ -639,7 +639,7 @@ MIDDLEWARE = [
 
 ```python
 # Core
-from django_matt import MattAPI, APIController, get, post, put, patch, delete
+from django_matt import DjangoMattAPI, APIController, get, post, put, patch, delete
 from django_matt import ModelSchema, Schema, APIRouter
 
 # Views

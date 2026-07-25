@@ -10,10 +10,10 @@ Register the built-in `AuthController` to get all auth endpoints at `/auth/*`:
 
 ```python
 # urls.py or api setup
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth.controllers import AuthController
 
-api = MattAPI()
+api = DjangoMattAPI()
 api.register_controller(AuthController)
 ```
 

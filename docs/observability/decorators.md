@@ -461,11 +461,11 @@ def create_user(request):
 With Django Matt controllers:
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.core import APIController
 from django_matt.observability import trace, metric, timed
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 @api.controller("/orders", tags=["Orders"])
 class OrderController(APIController):

@@ -17,10 +17,10 @@ from chat.controllers import (
     WorkspaceController,
 )
 
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 # Create the API instance
-api = MattAPI(
+api = DjangoMattAPI(
     title="Real-Time Chat API",
     version="1.0.0",
     description="Slack-like chat application API with WebSocket support",

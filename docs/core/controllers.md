@@ -1,18 +1,44 @@
 # Controllers
 
-Controllers are class-based API handlers that group related endpoints together.
+django-matt gives you multiple ways to build API endpoints — pick the approach that fits your use case.
 
-## APIController
+## Ways to Build Controllers
 
-The base class for all controllers. Route methods are decorated with the route decorators imported from `django_matt.core.router`, then the controller class is registered with the API via `api.register_controller()`:
+| Approach | Best for | Boilerplate |
+|----------|----------|-------------|
+| **Function-based** | Quick endpoints, simple logic | Minimal |
+| **APIController** | Grouped endpoints, middleware, DI | Low |
+| **CRUDController** | Full CRUD around a Django model | None |
+| **APIViewSet** | Composable, testable CRUD | Low |
+| **Service layer** | Business logic separation | Medium |
+
+### 1. Function-based (quick endpoints)
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
+from pydantic import BaseModel
+
+api = DjangoMattAPI()
+
+class HelloResponse(BaseModel):
+    message: str
+
+@api.get("/hello", response=HelloResponse)
+async def hello(request):
+    return {"message": "Hello, World!"}
+```
+
+### 2. Class-based APIController
+
+Group endpoints under a shared prefix with unified middleware, permissions, and tags:
+
+```python
+from django_matt import DjangoMattAPI
 from django_matt.core.controller import APIController
 from django_matt.core.router import get, post, put, delete
 from django_matt.permissions import IsAuthenticated
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 class UserController(APIController):
     """User management endpoints."""
@@ -53,12 +79,12 @@ api.register_controller(UserController)
 Pre-built CRUD operations with async ORM support and automatic query optimization. Extends `APIController` with `list`, `retrieve`, `create`, `update`, `partial_update`, `delete`, `bulk_create`, `bulk_update`, `exists`, and `count` methods:
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.core.controller import CRUDController
 from django_matt.core.router import get, post
 from django_matt.permissions import IsAuthenticated
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 class ProductController(CRUDController):
     prefix = "/products"
@@ -161,7 +187,76 @@ class ProductController(CRUDController):
         return self._model_to_dict(instance)
 ```
 
-## Controller Options
+### 4. APIViewSet (composable CRUD)
+
+Pick and choose which CRUD operations you need by composing individual view classes:
+
+```python
+from django_matt import DjangoMattAPI
+from django_matt.views import APIViewSet, ListView, CreateView, ReadView, UpdateView, DeleteView
+
+api = DjangoMattAPI()
+
+class ProductViewSet(APIViewSet):
+    api = api
+    model = Product
+    list = ListView()
+    create = CreateView()
+    read = ReadView()
+    update = UpdateView()
+    delete = DeleteView()
+    # Auto-generates: GET /, POST /, GET /{id}, PATCH /{id}, DELETE /{id}
+```
+
+Each view component (`ListView`, `CreateView`, etc.) can be customized independently:
+
+```python
+class ProductViewSet(APIViewSet):
+    api = api
+    model = Product
+
+    list = ListView(
+        pagination_class=CursorPagination,
+        filter_backends=[DjangoFilterBackend, SearchBackend],
+    )
+    read = ReadView(serializer_class=ProductDetailSchema)
+```
+
+### 5. Service Layer (separate business logic)
+
+Keep controllers thin — delegate business logic to services:
+
+```python
+from django_matt.services import CRUDService
+
+class ProductService(CRUDService["Product"]):
+    model = Product
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("category")
+
+    async def get_featured(self) -> list[Product]:
+        return [p async for p in self.get_queryset().filter(featured=True)]
+
+# Controller: thin HTTP adapter
+class ProductController(APIController):
+    prefix = "/products"
+
+    def __init__(self):
+        self.service = ProductService()
+        super().__init__()
+
+    @api.get("/")
+    async def list_products(self, request):
+        items, total = await self.service.list()
+        return {"items": items, "total": total}
+
+    @api.post("/")
+    async def create_product(self, request, data: ProductCreateSchema):
+        return await self.service.create(data.model_dump(), user=request.user)
+```
+
+## CRUDController
 
 ### Prefix and Tags
 

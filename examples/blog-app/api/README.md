@@ -114,7 +114,7 @@ This generates:
 ```
 blog-api/
 ├── blog/
-│   ├── api.py              # MattAPI entry point + controller registration
+│   ├── api.py              # DjangoMattAPI entry point + controller registration
 │   ├── posts/
 │   │   ├── models.py       # Post, Tag, Category, PostView
 │   │   ├── schemas.py      # Pydantic request/response schemas

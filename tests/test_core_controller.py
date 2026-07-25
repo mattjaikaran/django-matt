@@ -755,15 +755,15 @@ class TestLoginNotRequired:
             assert getattr(view_func, "login_required", None) is False
 
     def test_matt_api_urls_have_login_not_required(self):
-        """MattAPI utility views (docs, openapi) should also be exempt."""
+        """DjangoMattAPI utility views (docs, openapi) should also be exempt."""
         from django_matt.core.router import _login_not_required
 
         if _login_not_required is None:
             pytest.skip("Django < 5.1, login_not_required not available")
 
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(title="Test API")
+        api = DjangoMattAPI(title="Test API")
         urls = api.urls
 
         # Find the openapi-schema view

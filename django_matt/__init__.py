@@ -8,9 +8,9 @@ JWT authentication, and type synchronization - all in one package.
 No need for django-ninja, django-ninja-extra, django-ninja-jwt, or ninja-schema.
 
 Usage:
-    from django_matt import MattAPI, APIController, get, post
+    from django_matt import DjangoMattAPI, APIController, get, post
 
-    api = MattAPI()
+    api = DjangoMattAPI()
 
     class UserController(APIController):
         prefix = "/users"
@@ -35,9 +35,9 @@ __version__ = "0.9.1"
 # This allows Django to fully load apps before we import model-heavy modules
 
 _LAZY_IMPORTS = {
+    "DjangoMattAPI": "django_matt.api",
     # Main API
-    "MattAPI": "django_matt.api",
-    "api": "django_matt.api",
+    "DjangoMattAPI": "django_matt.api",
     # Core components
     "APIRouter": "django_matt.core.router",
     "Controller": "django_matt.core.controller",
@@ -272,7 +272,7 @@ def __getattr__(name: str):
 
             # Special case for 'api' - it's an instance, not a class
             if name == "api":
-                _imported[name] = getattr(module, "api", module.MattAPI())
+                _imported[name] = getattr(module, "api", module.DjangoMattAPI())
             else:
                 try:
                     _imported[name] = getattr(module, name)
@@ -300,8 +300,7 @@ def __dir__():
 __all__ = [
     "__version__",
     # Main API class
-    "MattAPI",
-    "api",
+    "DjangoMattAPI",
     # Core components
     "APIRouter",
     "Controller",

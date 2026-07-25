@@ -283,7 +283,7 @@ class TestDRFRouterToRegistration:
         result = codemod.transform(source, "urls.py")
 
         assert result.has_changes
-        _assert_in_output(result, "MattAPI")
+        _assert_in_output(result, "DjangoMattAPI")
         _assert_in_output(result, "register_controller")
         _assert_not_in_output(result, "DefaultRouter")
 
@@ -309,7 +309,7 @@ class TestNinjaAPIToMattAPI:
         result = codemod.transform(source, "api.py")
 
         assert result.has_changes
-        _assert_in_output(result, "MattAPI")
+        _assert_in_output(result, "DjangoMattAPI")
         _assert_not_in_output(result, "NinjaAPI")
 
 
@@ -389,7 +389,7 @@ class TestFastAPIAppToMattAPI:
         result = codemod.transform(source, "main.py")
 
         assert result.has_changes
-        _assert_in_output(result, "MattAPI")
+        _assert_in_output(result, "DjangoMattAPI")
         _assert_not_in_output(result, "FastAPI")
 
 
@@ -510,7 +510,7 @@ class TestCodemodEngine:
         """)
         result = engine.run(source, "api.py", framework="ninja")
         assert result.has_changes
-        _assert_in_output(result, "MattAPI")
+        _assert_in_output(result, "DjangoMattAPI")
 
     def test_run_fastapi(self):
         engine = CodemodEngine()
@@ -521,7 +521,7 @@ class TestCodemodEngine:
         """)
         result = engine.run(source, "main.py", framework="fastapi")
         assert result.has_changes
-        _assert_in_output(result, "MattAPI")
+        _assert_in_output(result, "DjangoMattAPI")
 
     def test_run_no_changes(self):
         engine = CodemodEngine()
@@ -627,7 +627,7 @@ class TestCodemodEngine:
         assert "---" in diff
         assert "+++" in diff
         assert "NinjaAPI" in diff
-        assert "MattAPI" in diff
+        assert "DjangoMattAPI" in diff
 
     def test_generate_report(self):
         engine = CodemodEngine()

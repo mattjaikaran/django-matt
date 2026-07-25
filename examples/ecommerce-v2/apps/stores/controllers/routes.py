@@ -1,11 +1,11 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from apps.stores.schemas import StoreSchema
 
 from .store_controller import StoreController
 
 
-def register_store_routes(api: MattAPI) -> None:
+def register_store_routes(api: DjangoMattAPI) -> None:
     api.get(
         "stores",
         tags=["Stores"],

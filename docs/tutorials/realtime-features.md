@@ -521,7 +521,7 @@ ws.onmessage = (event) => {
 ```
 Client (Browser/Mobile)
   |
-  |--- HTTP ---------> MattAPI (Controllers/ViewSets)
+  |--- HTTP ---------> DjangoMattAPI (Controllers/ViewSets)
   |                         |
   |                         |--> EventBus.emit(PostPublished(...))
   |                         |        |

@@ -46,7 +46,7 @@ The cookbook contains practical recipes and patterns for common tasks in django-
 
 ```python
 # Core
-from django_matt import MattAPI, APIController, ModelSchema, Schema
+from django_matt import DjangoMattAPI, APIController, ModelSchema, Schema
 
 # Authentication
 from django_matt.auth import jwt_required, jwt_optional, create_token_pair

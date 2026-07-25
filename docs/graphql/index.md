@@ -35,10 +35,10 @@ GraphQL offers several advantages over traditional REST APIs:
 === "REST"
 
     ```python
-    from django_matt import MattAPI
+    from django_matt import DjangoMattAPI
     from django_matt.views import APIViewSet, ListView, ReadView
 
-    api = MattAPI()
+    api = DjangoMattAPI()
 
     # Multiple endpoints for each resource
     class UserViewSet(APIViewSet):
@@ -270,16 +270,16 @@ DJANGO_MATT_GRAPHQL = {
 - Team is more familiar with REST
 - Third-party API consumers expect REST
 
-## Integration with MattAPI
+## Integration with DjangoMattAPI
 
 GraphQL can be added alongside REST endpoints:
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.graphql import GraphQLAPI, generate_schema
 
 # REST API
-api = MattAPI()
+api = DjangoMattAPI()
 
 @api.get("/health")
 def health_check(request):

@@ -43,16 +43,16 @@ api = NinjaAPI(
 ### django-matt
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
-api = MattAPI(
+api = DjangoMattAPI(
     title="My API",
     version="1.0.0",
     description="My API description",
 )
 ```
 
-The API classes are nearly identical. `MattAPI` adds built-in auth controller registration, billing, OpenAPI, and more.
+The API classes are nearly identical. `DjangoMattAPI` adds built-in auth controller registration, billing, OpenAPI, and more.
 
 ---
 
@@ -179,9 +179,9 @@ api.register_controllers(UserController)
 ### django-matt
 
 ```python
-from django_matt import MattAPI, APIController, IsAuthenticated
+from django_matt import DjangoMattAPI, APIController, IsAuthenticated
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 @api.controller("/users", tags=["Users"])
 class UserController(APIController):
@@ -245,10 +245,10 @@ MIDDLEWARE = [
 ]
 
 # api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth import AuthController
 
-api = MattAPI()
+api = DjangoMattAPI()
 api.register_controller(AuthController)
 ```
 
@@ -580,11 +580,11 @@ class NoteCreateSchema(Schema):
     content: str
 
 # api.py
-from django_matt import MattAPI, APIController, IsAuthenticated
+from django_matt import DjangoMattAPI, APIController, IsAuthenticated
 from django_matt.auth import AuthController
 from django_matt.core.errors import NotFoundError
 
-api = MattAPI()
+api = DjangoMattAPI()
 api.register_controller(AuthController)
 
 @api.controller("/notes", tags=["Notes"])
@@ -625,7 +625,7 @@ class NoteController(APIController):
 
 ## Migration Checklist
 
-- [ ] Replace `NinjaAPI` / `NinjaExtraAPI` with `MattAPI`
+- [ ] Replace `NinjaAPI` / `NinjaExtraAPI` with `DjangoMattAPI`
 - [ ] Replace `ninja` imports with `django_matt` imports
 - [ ] Replace `@api_controller` with `@api.controller` + `APIController` base class
 - [ ] Replace `@http_get`/`@http_post` with `@api.get`/`@api.post`
@@ -652,7 +652,7 @@ from ninja_jwt.authentication import JWTAuth
 
 # New imports
 from django_matt import (
-    MattAPI,
+    DjangoMattAPI,
     Schema,
     ModelSchema,
     APIRouter,

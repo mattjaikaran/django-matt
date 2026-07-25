@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from django_matt.plugins import MattPlugin
 
 if TYPE_CHECKING:
-    from django_matt.api import MattAPI
+    from django_matt.api import DjangoMattAPI
 
 from django_matt_clerk_auth.config import get_clerk_config
 from django_matt_clerk_auth.controllers import ClerkWebhookController
@@ -23,7 +23,7 @@ class ClerkAuthPlugin(MattPlugin):
     django_matt_version = "0.9.0"
     settings_prefix = "MATT_CLERK"
 
-    def setup(self, api: MattAPI) -> None:
+    def setup(self, api: DjangoMattAPI) -> None:
         config = get_clerk_config()
         errors = config.validate()
         if errors:

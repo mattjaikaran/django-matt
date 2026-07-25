@@ -1,4 +1,4 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from apps.contact.controllers import register_contact_routes
 from apps.experience.controllers import register_experience_routes
@@ -6,7 +6,7 @@ from apps.projects.controllers import register_project_routes
 from apps.skills.controllers import register_skill_routes
 from apps.users.controllers import register_auth_routes
 
-api = MattAPI(
+api = DjangoMattAPI(
     title="Portfolio API",
     version="1.0.0",
     description="Personal portfolio backend built with django-matt",

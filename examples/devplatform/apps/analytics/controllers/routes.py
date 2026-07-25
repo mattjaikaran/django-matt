@@ -1,9 +1,9 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from .analytics_controller import AnalyticsController
 
 
-def register_analytics_routes(api: MattAPI) -> None:
+def register_analytics_routes(api: DjangoMattAPI) -> None:
     api.get(
         "organizations/<str:org_id>/projects/<str:project_id>/analytics/summary",
         tags=["Analytics"],

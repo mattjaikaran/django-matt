@@ -27,9 +27,9 @@ If you already have a Django project, add `"django_matt"` to
 
 ```python
 # api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
-api = MattAPI(
+api = DjangoMattAPI(
     title="Blog API",
     version="1.0.0",
     description="A blog REST API built with Django Matt",
@@ -471,10 +471,10 @@ DJANGO_MATT_JWT = {
 
 ```python
 # api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth import AuthController
 
-api = MattAPI(
+api = DjangoMattAPI(
     title="Blog API",
     version="1.0.0",
     description="A blog REST API built with Django Matt",

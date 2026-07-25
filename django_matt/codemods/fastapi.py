@@ -19,11 +19,11 @@ from django_matt.codemods.patterns import (
 
 
 class FastAPIAppToMattAPI(Codemod):
-    """Convert FastAPI() to MattAPI() and APIRouter() to APIController."""
+    """Convert FastAPI() to DjangoMattAPI() and APIRouter() to APIController."""
 
     name = "fastapi-app-to-matt-api"
     source_framework = "fastapi"
-    description = "Convert FastAPI/APIRouter to MattAPI/APIController"
+    description = "Convert FastAPI/APIRouter to DjangoMattAPI/APIController"
 
     def detect(self, source: str, filename: str) -> bool:
         return "fastapi" in source.lower() and ("FastAPI" in source or "APIRouter" in source)
@@ -40,7 +40,7 @@ class FastAPIAppToMattAPI(Codemod):
                 "fastapi",
                 "django_matt",
                 {
-                    "FastAPI": "MattAPI",
+                    "FastAPI": "DjangoMattAPI",
                     "APIRouter": "APIRouter",
                     "Depends": "Depends",
                     "HTTPException": "APIError",
@@ -71,10 +71,10 @@ class FastAPIAppToMattAPI(Codemod):
 
                 if func_name == "FastAPI":
                     if isinstance(node.func, ast.Name):
-                        node.func.id = "MattAPI"
+                        node.func.id = "DjangoMattAPI"
                     elif isinstance(node.func, ast.Attribute):
-                        node.func.attr = "MattAPI"
-                    changes.append("Replaced FastAPI() -> MattAPI()")
+                        node.func.attr = "DjangoMattAPI"
+                    changes.append("Replaced FastAPI() -> DjangoMattAPI()")
 
         if not changes:
             return CodemodResult(transformed=source, confidence=0.0)

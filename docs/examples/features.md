@@ -6,7 +6,7 @@
 
 ```python
 # file_upload.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth import jwt_required
 from django_matt.core import Schema
 from django_matt.core.errors import ValidationAPIError
@@ -15,7 +15,7 @@ from django.core.files.storage import default_storage
 from PIL import Image
 import uuid
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"]
 MAX_SIZE = 5 * 1024 * 1024  # 5MB
@@ -125,11 +125,11 @@ def process_image(image_id: int):
 
 ```python
 # api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth import jwt_required
 from .tasks import send_welcome_email, process_image
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 @api.post("/users", tags=["Users"])
 async def create_user(request, data: UserCreate):
@@ -249,7 +249,7 @@ application = create_asgi_application(
 
 ```python
 # api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.multitenancy import (
     OrganizationController,
     TeamController,
@@ -258,7 +258,7 @@ from django_matt.multitenancy import (
 )
 from django_matt.multitenancy.middleware import TenantMiddleware
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 # Register multi-tenancy controllers
 api.register_controller(OrganizationController)
@@ -307,7 +307,7 @@ class ProjectController(APIController):
 
 ```python
 # billing_api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.billing import (
     BillingController,
     WebhookController,
@@ -315,7 +315,7 @@ from django_matt.billing import (
 )
 from django_matt.auth import jwt_required
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 # Register billing controllers
 api.register_controller(BillingController)

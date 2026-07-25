@@ -32,10 +32,10 @@
 
 **django-matt** is the Django meta-framework. It replaces Django REST Framework, django-ninja, django-ninja-extra, and their entire ecosystems with a single, cohesive package. No more juggling a dozen packages just to build a production API.
 ```python
-from django_matt import MattAPI, APIController, IsAuthenticated
+from django_matt import DjangoMattAPI, APIController, IsAuthenticated
 from django_matt.auth import jwt_required
 
-api = MattAPI(title="My API", version="0.9.0")
+api = DjangoMattAPI(title="My API", version="0.9.0")
 
 @api.controller("/users", tags=["Users"])
 class UserController(APIController):
@@ -97,9 +97,9 @@ python manage.py startapi myproject --template b2b --auth jwt
 
 ```python
 # myproject/api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
-api = MattAPI(title="My API", version="0.9.0")
+api = DjangoMattAPI(title="My API", version="0.9.0")
 
 @api.get("/hello")
 async def hello(request):

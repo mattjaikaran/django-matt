@@ -136,15 +136,15 @@ class AsyncGraphQLView(StrawberryAsyncGraphQLView if STRAWBERRY_AVAILABLE else V
 
 class GraphQLAPI:
     """
-    GraphQL API class for integration with MattAPI.
+    GraphQL API class for integration with DjangoMattAPI.
 
     Provides a high-level interface for adding GraphQL to your API.
 
     Usage:
-        from django_matt import MattAPI
+        from django_matt import DjangoMattAPI
         from django_matt.graphql import GraphQLAPI, generate_schema
 
-        api = MattAPI()
+        api = DjangoMattAPI()
         schema = generate_schema(models=[User, Post])
 
         graphql = GraphQLAPI(schema=schema)
@@ -273,15 +273,15 @@ class GraphQLAPI:
 
 def add_graphql_to_api(api, path: str = "/graphql", **kwargs) -> GraphQLAPI:
     """
-    Add GraphQL to a MattAPI instance.
+    Add GraphQL to a DjangoMattAPI instance.
 
-    This function patches the MattAPI class to support GraphQL.
+    This function patches the DjangoMattAPI class to support GraphQL.
 
     Usage:
-        from django_matt import MattAPI
+        from django_matt import DjangoMattAPI
         from django_matt.graphql import add_graphql_to_api
 
-        api = MattAPI()
+        api = DjangoMattAPI()
         graphql = add_graphql_to_api(api, models=[User, Post])
     """
     _require_strawberry()
@@ -304,18 +304,18 @@ def add_graphql_to_api(api, path: str = "/graphql", **kwargs) -> GraphQLAPI:
     return graphql
 
 
-# Monkey-patch MattAPI to add add_graphql method
+# Monkey-patch DjangoMattAPI to add add_graphql method
 def _patch_matt_api():
-    """Patch MattAPI to support GraphQL."""
+    """Patch DjangoMattAPI to support GraphQL."""
     try:
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
         def add_graphql(self, path: str = "/graphql", **kwargs) -> GraphQLAPI:
             """Add GraphQL endpoint to this API."""
             return add_graphql_to_api(self, path=path, **kwargs)
 
-        if not hasattr(MattAPI, "add_graphql"):
-            MattAPI.add_graphql = add_graphql
+        if not hasattr(DjangoMattAPI, "add_graphql"):
+            DjangoMattAPI.add_graphql = add_graphql
     except ImportError:
         pass
 

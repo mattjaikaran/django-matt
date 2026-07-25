@@ -1,11 +1,11 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from apps.experience.schemas import ExperienceSchema
 
 from .experience_controller import ExperienceController
 
 
-def register_experience_routes(api: MattAPI) -> None:
+def register_experience_routes(api: DjangoMattAPI) -> None:
     api.get("experience", tags=["Experience"])(ExperienceController.list_experience)
 
     api.post("experience", response_model=ExperienceSchema, status_code=201, tags=["Experience"])(

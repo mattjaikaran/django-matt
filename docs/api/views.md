@@ -242,7 +242,7 @@ class ProductViewSet(APIViewSet):
 ## Complete Example
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.views import (
     APIViewSet,
     ListView,
@@ -256,7 +256,7 @@ from django_matt.permissions import IsAuthenticated, IsAdminOrReadOnly
 from myapp.models import Product
 from myapp.schemas import ProductSchema, ProductCreateSchema, ProductUpdateSchema
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 class ProductViewSet(APIViewSet):
     """Complete CRUD API for products."""

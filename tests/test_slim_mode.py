@@ -433,90 +433,90 @@ class TestDeferredLoader:
 
 
 # ---------------------------------------------------------------------------
-# MattAPI integration tests
+# DjangoMattAPI integration tests
 # ---------------------------------------------------------------------------
 
 
 class TestMattAPISlimMode:
     def test_default_mode_is_full(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI()
+        api = DjangoMattAPI()
         assert api.mode == "full"
 
     def test_minimal_mode(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="minimal")
+        api = DjangoMattAPI(mode="minimal")
         assert api.mode == "minimal"
 
     def test_slim_mode(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="slim")
+        api = DjangoMattAPI(mode="slim")
         assert api.mode == "slim"
         assert "auth" in api.modules
 
     def test_auto_mode(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="auto")
+        api = DjangoMattAPI(mode="auto")
         assert api.mode == "auto"
 
     def test_modules_property(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="minimal")
+        api = DjangoMattAPI(mode="minimal")
         assert isinstance(api.modules, frozenset)
         assert "core" in api.modules
 
     def test_activate_returns_self(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="minimal")
+        api = DjangoMattAPI(mode="minimal")
         result = api.activate("cors")
         assert result is api
 
     def test_activate_modules(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="minimal")
+        api = DjangoMattAPI(mode="minimal")
         api.activate("cors")
         assert "cors" in api.modules
 
     def test_deactivate_modules(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="minimal")
+        api = DjangoMattAPI(mode="minimal")
         api.activate("cors")
         api.deactivate("cors")
         assert "cors" not in api.modules
 
     def test_auth_param_activates_auth_module(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="minimal", auth="jwt")
+        api = DjangoMattAPI(mode="minimal", auth="jwt")
         assert "auth" in api.modules
 
     def test_registry_property(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="minimal")
+        api = DjangoMattAPI(mode="minimal")
         assert isinstance(api.registry, ModuleRegistry)
 
     def test_slim_mode_activate_specific_modules(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="slim")
+        api = DjangoMattAPI(mode="slim")
         api.activate("billing", "cors")
         assert "billing" in api.modules
         assert "cors" in api.modules
         assert "graphql" not in api.modules
 
     def test_full_mode_backwards_compatible(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI()
+        api = DjangoMattAPI()
         assert api.mode == "full"
         assert api.registry.is_active("billing")
         assert api.registry.is_active("graphql")
@@ -525,51 +525,51 @@ class TestMattAPISlimMode:
 
 class TestMattAPIURLsSlimMode:
     def test_full_mode_includes_health(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="full", health_url="/health")
+        api = DjangoMattAPI(mode="full", health_url="/health")
         urls = api.get_urls()
         names = [u.name for u in urls if hasattr(u, "name")]
         assert "health-check" in names
 
     def test_minimal_mode_excludes_health(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="minimal", health_url="/health")
+        api = DjangoMattAPI(mode="minimal", health_url="/health")
         urls = api.get_urls()
         names = [u.name for u in urls if hasattr(u, "name")]
         assert "health-check" not in names
 
     def test_slim_mode_excludes_health(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="slim", health_url="/health")
+        api = DjangoMattAPI(mode="slim", health_url="/health")
         urls = api.get_urls()
         names = [u.name for u in urls if hasattr(u, "name")]
         assert "health-check" not in names
 
     def test_slim_mode_with_observability_includes_health(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="slim", health_url="/health")
+        api = DjangoMattAPI(mode="slim", health_url="/health")
         api.activate("observability")
         urls = api.get_urls()
         names = [u.name for u in urls if hasattr(u, "name")]
         assert "health-check" in names
 
     def test_minimal_mode_with_observability_includes_health(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="minimal", health_url="/health")
+        api = DjangoMattAPI(mode="minimal", health_url="/health")
         api.activate("observability")
         urls = api.get_urls()
         names = [u.name for u in urls if hasattr(u, "name")]
         assert "health-check" in names
 
     def test_full_mode_includes_docs(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="full")
+        api = DjangoMattAPI(mode="full")
         urls = api.get_urls()
         names = [u.name for u in urls if hasattr(u, "name")]
         assert "swagger-ui" in names
@@ -577,9 +577,9 @@ class TestMattAPIURLsSlimMode:
         assert "openapi-schema" in names
 
     def test_minimal_mode_includes_docs(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="minimal")
+        api = DjangoMattAPI(mode="minimal")
         urls = api.get_urls()
         names = [u.name for u in urls if hasattr(u, "name")]
         assert "swagger-ui" in names
@@ -587,9 +587,9 @@ class TestMattAPIURLsSlimMode:
         assert "openapi-schema" in names
 
     def test_health_url_none_no_health(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(mode="full", health_url=None)
+        api = DjangoMattAPI(mode="full", health_url=None)
         urls = api.get_urls()
         names = [u.name for u in urls if hasattr(u, "name")]
         assert "health-check" not in names

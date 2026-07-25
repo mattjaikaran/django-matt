@@ -6,7 +6,7 @@ This document provides a comprehensive reference for all public APIs in django-m
 
 | Module | Description |
 |--------|-------------|
-| [MattAPI](#mattapi) | Main API entry point |
+| [DjangoMattAPI](#mattapi) | Main API entry point |
 | [Controllers](#controllers) | Class-based API handlers |
 | [Schemas](#schemas) | Pydantic data validation |
 | [Views](#views) | Composable CRUD views |
@@ -16,16 +16,16 @@ This document provides a comprehensive reference for all public APIs in django-m
 
 ---
 
-## MattAPI
+## DjangoMattAPI
 
 The main entry point for creating API applications.
 
 ### Constructor
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
-api = MattAPI(
+api = DjangoMattAPI(
     title="My API",           # OpenAPI title
     version="1.0.0",          # API version
     description="My API",     # OpenAPI description

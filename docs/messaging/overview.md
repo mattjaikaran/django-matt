@@ -133,13 +133,13 @@ python manage.py migrate
 ### 3. Register Controllers
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.messaging.controllers import (
     ConversationController,
     MessageController,
 )
 
-api = MattAPI()
+api = DjangoMattAPI()
 api.register_controller(ConversationController)
 api.register_controller(MessageController)
 ```

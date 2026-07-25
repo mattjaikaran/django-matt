@@ -81,8 +81,8 @@ Nine new end-to-end cookbook files covering real-world patterns:
 
 Three comprehensive migration guides:
 - `from-drf.md` — serializer → Pydantic schema, ViewSet → APIViewSet, simplejwt → built-in auth
-- `from-fastapi.md` — Starlette routing → MattAPI, Depends → built-in DI, SQLAlchemy → Django ORM
-- `from-ninja.md` — NinjaAPI → MattAPI, ninja-extra → APIController, ninja-jwt → AuthController
+- `from-fastapi.md` — Starlette routing → DjangoMattAPI, Depends → built-in DI, SQLAlchemy → Django ORM
+- `from-ninja.md` — NinjaAPI → DjangoMattAPI, ninja-extra → APIController, ninja-jwt → AuthController
 
 #### Examples
 
@@ -108,7 +108,7 @@ v1.0 Milestone — 54 modules, 2100+ tests. Full audit, hardening, and completio
 
 #### Core Framework
 
-- `MattAPI` — main API class with OpenAPI generation
+- `DjangoMattAPI` — main API class with OpenAPI generation
 - `APIRouter` — modular routing with tags and prefixes
 - `APIController` — class-based controllers with dependency injection
 - `CRUDController` — pre-built CRUD operations
@@ -272,7 +272,7 @@ v1.0 Milestone — 54 modules, 2100+ tests. Full audit, hardening, and completio
 
 See [Migration Guide: Django Ninja](migrations/from-ninja.md).
 
-Key changes: replace `NinjaAPI` with `MattAPI`; replace `ninja_extra` decorators with `@api.get` etc.; update schema `Config` classes to `Meta`; replace `ninja_jwt` with built-in `AuthController`.
+Key changes: replace `NinjaAPI` with `DjangoMattAPI`; replace `ninja_extra` decorators with `@api.get` etc.; update schema `Config` classes to `Meta`; replace `ninja_jwt` with built-in `AuthController`.
 
 ### From Django REST Framework
 
@@ -284,4 +284,4 @@ Key changes: replace serializers with Pydantic schemas; replace `APIView` with `
 
 See [Migration Guide: FastAPI](migrations/from-fastapi.md).
 
-Key changes: replace `FastAPI()` with `MattAPI()`; replace `Depends()` with built-in DI container; replace SQLAlchemy + Alembic with Django ORM + migrations; gain Django admin, ecosystem packages, and all batteries-included modules.
+Key changes: replace `FastAPI()` with `DjangoMattAPI()`; replace `Depends()` with built-in DI container; replace SQLAlchemy + Alembic with Django ORM + migrations; gain Django admin, ecosystem packages, and all batteries-included modules.

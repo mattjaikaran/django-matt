@@ -6,9 +6,9 @@ All request/response handling uses Pydantic v2 schemas.
 
 Usage:
     from django_matt.auth.controllers import AuthController
-    from django_matt import MattAPI
+    from django_matt import DjangoMattAPI
 
-    api = MattAPI()
+    api = DjangoMattAPI()
     api.register_controller(AuthController)
 
     # Or with custom prefix:
@@ -92,10 +92,10 @@ class AuthController(APIController):
         POST /auth/change-password - Change password
 
     Example:
-        from django_matt import MattAPI
+        from django_matt import DjangoMattAPI
         from django_matt.auth.controllers import AuthController
 
-        api = MattAPI()
+        api = DjangoMattAPI()
         api.register_controller(AuthController)
     """
 

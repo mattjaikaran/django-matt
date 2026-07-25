@@ -7,10 +7,10 @@ Complete REST API for managing feature flags programmatically.
 Register the flag controllers with your API:
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.flags import FlagController, FlagEvaluationController
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 # Full management API (CRUD + evaluation)
 api.register_controller(FlagController)

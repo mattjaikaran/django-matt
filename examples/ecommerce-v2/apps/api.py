@@ -1,4 +1,4 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth import jwt_required
 
 from apps.cart.controllers import register_cart_routes
@@ -10,11 +10,9 @@ from apps.search.controllers import register_search_routes
 from apps.stores.controllers import register_store_routes
 from apps.users.controllers import register_auth_routes
 
-api = MattAPI(
-    title="Ecommerce API",
-    version="1.0.0",
-    description="Multi-vendor marketplace built with django-matt",
-)
+api = DjangoMattAPI(title="Ecommerce API",
+version="1.0.0",
+description="Multi-vendor marketplace built with django-matt",)
 
 # Register all routes
 register_auth_routes(api)

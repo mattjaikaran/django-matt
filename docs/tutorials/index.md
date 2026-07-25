@@ -7,7 +7,7 @@ Learn Django Matt through hands-on tutorials, from basic REST APIs to production
 ### [Build a REST API in 10 Minutes](build-a-rest-api.md)
 
 Create a complete blog API with CRUD, authentication, pagination, and filtering.
-Covers `MattAPI`, `APIController`, `ModelSchema`, `APIViewSet`, JWT auth, and the
+Covers `DjangoMattAPI`, `APIController`, `ModelSchema`, `APIViewSet`, JWT auth, and the
 built-in Swagger UI.
 
 **Time:** ~15 minutes | **Prerequisites:** Python 3.12+, Django basics

@@ -255,11 +255,11 @@ class UserDetailView(APIView):
 
 **django-matt**
 ```python
-from django_matt import MattAPI, APIController
+from django_matt import DjangoMattAPI, APIController
 from django_matt.permissions import IsAuthenticated
 from django_matt.core.errors import NotFoundError
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 @api.controller("/users", tags=["Users"])
 class UserController(APIController):
@@ -654,9 +654,9 @@ urlpatterns = [
 
 **django-matt — APIController (manual registration)**
 ```python
-from django_matt import MattAPI, APIController
+from django_matt import DjangoMattAPI, APIController
 
-api = MattAPI(title="My API", version="1.0.0")
+api = DjangoMattAPI(title="My API", version="1.0.0")
 
 @api.controller("/products", tags=["Products"])
 class ProductController(APIController):

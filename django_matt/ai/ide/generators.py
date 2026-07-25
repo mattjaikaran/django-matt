@@ -411,7 +411,7 @@ class CursorRulesGenerator:
             "## Import Preferences",
             "",
             "# Prefer these imports:",
-            "from django_matt import MattAPI",
+            "from django_matt import DjangoMattAPI",
             "from django_matt.core import APIController, ModelSchema",
             "from django_matt.auth import jwt_required, IsAuthenticated",
             "from django_matt.views import ListView, CreateView, ReadView",

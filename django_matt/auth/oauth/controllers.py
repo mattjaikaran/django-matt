@@ -63,10 +63,10 @@ class OAuthController:
         DELETE /oauth/connections/{provider} - Disconnect a provider
 
     Usage:
-        from django_matt import MattAPI
+        from django_matt import DjangoMattAPI
         from django_matt.auth.oauth import OAuthController
 
-        api = MattAPI()
+        api = DjangoMattAPI()
         api.register_controller(OAuthController, prefix="/auth")
     """
 

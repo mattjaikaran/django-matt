@@ -1,11 +1,11 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from apps.keys.schemas import APIKeyCreatedSchema
 
 from .api_key_controller import APIKeyController
 
 
-def register_key_routes(api: MattAPI) -> None:
+def register_key_routes(api: DjangoMattAPI) -> None:
     api.get(
         "organizations/<str:org_id>/projects/<str:project_id>/keys",
         tags=["API Keys"],

@@ -46,13 +46,13 @@ myproject/
 
 ```python
 # api/main.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from apps.users.controllers import UserController
 from apps.products.controllers import ProductController
 from apps.orders.controllers import OrderController
 
-api = MattAPI(
+api = DjangoMattAPI(
     title="My E-Commerce API",
     version="1.0.0",
     description="E-commerce platform API",
@@ -73,11 +73,11 @@ api.register_controllers(
 Support both JWT and API keys for different use cases:
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth import jwt_required
 from django_matt.auth.api_keys import api_key_required, api_key_or_jwt
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 # JWT only (for user-facing endpoints)
 @api.get("/me")

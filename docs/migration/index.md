@@ -28,7 +28,7 @@ For teams with existing DRF applications. Covers:
 ### [From Django Ninja (legacy)](from-django-ninja.md)
 
 For projects using Django Ninja and its ecosystem (ninja-extra, ninja-jwt, ninja-crud). Covers:
-- NinjaAPI to MattAPI (near-identical API surface)
+- NinjaAPI to DjangoMattAPI (near-identical API surface)
 - Schema Config to Meta class
 - Controllers (ninja-extra to APIController)
 - JWT (ninja-jwt to built-in auth)

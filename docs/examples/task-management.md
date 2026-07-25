@@ -75,7 +75,7 @@ class ProjectSchema(ModelSchema):
 
 ```python
 # api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.core import APIController
 from django_matt.auth import jwt_required
 from django_matt.permissions import IsAuthenticated
@@ -85,7 +85,7 @@ from django_matt.websockets.groups import broadcast
 from .models import Task, Project
 from .schemas import TaskSchema, TaskCreate, TaskUpdate, ProjectSchema
 
-api = MattAPI(title="Task Management API", version="1.0.0")
+api = DjangoMattAPI(title="Task Management API", version="1.0.0")
 
 @api.controller("/projects/{project_id}/tasks", tags=["Tasks"])
 class TaskController(APIController):

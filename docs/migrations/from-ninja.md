@@ -76,11 +76,11 @@ from ninja_extra import NinjaExtraAPI
 api = NinjaExtraAPI(title="My API", version="1.0.0", auth=JWTAuth())
 
 # After
-from django_matt import MattAPI
-api = MattAPI(title="My API", version="1.0.0")
+from django_matt import DjangoMattAPI
+api = DjangoMattAPI(title="My API", version="1.0.0")
 ```
 
-`MattAPI` builds on both: global auth is handled via middleware instead of the `auth=` constructor argument, so you can drop it. Router registration is the same:
+`DjangoMattAPI` builds on both: global auth is handled via middleware instead of the `auth=` constructor argument, so you can drop it. Router registration is the same:
 
 ```python
 # urls.py
@@ -129,11 +129,11 @@ api.register_controllers(UserController)
 
 
 # After — django-matt
-from django_matt import MattAPI, APIController
+from django_matt import DjangoMattAPI, APIController
 from django_matt.permissions import IsAuthenticated
 from django_matt.core.errors import NotFoundError
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 @api.controller("/users", tags=["Users"])
 class UserController(APIController):
@@ -602,7 +602,7 @@ from ninja_jwt.controller import NinjaJWTDefaultController
 from ninja_jwt.authentication import JWTAuth
 
 # ─── New imports ────────────────────────────────────────────────────────────
-from django_matt import MattAPI, APIRouter, APIController
+from django_matt import DjangoMattAPI, APIRouter, APIController
 from pydantic import BaseModel as Schema                   # or: from django_matt import Schema
 from django_matt.core.schema import ModelSchema
 from django_matt.auth import (
@@ -635,7 +635,7 @@ from django_matt.testing import AsyncAPITestClient, APITestClient
 
 ## Incremental migration
 
-You do not need to migrate everything at once. `MattAPI` and `NinjaExtraAPI` can co-exist in the same Django project, mounted at different URL prefixes:
+You do not need to migrate everything at once. `DjangoMattAPI` and `NinjaExtraAPI` can co-exist in the same Django project, mounted at different URL prefixes:
 
 ```python
 # urls.py — run both during transition
@@ -663,7 +663,7 @@ Recommended approach:
 - [ ] Add `django-matt` via `uv add django-matt`
 - [ ] Swap `INSTALLED_APPS` entries, add `DJANGO_MATT_JWT` config
 - [ ] Add `JWTAuthenticationMiddleware` to `MIDDLEWARE`
-- [ ] Replace `NinjaAPI` / `NinjaExtraAPI` with `MattAPI`
+- [ ] Replace `NinjaAPI` / `NinjaExtraAPI` with `DjangoMattAPI`
 - [ ] Replace `@api_controller` + bare class with `@api.controller` + `APIController` subclass
 - [ ] Replace `@http_get` / `@http_post` etc. with `@api.get` / `@api.post` etc.
 - [ ] Rename `permissions` → `permission_classes` on controllers

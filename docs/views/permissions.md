@@ -195,10 +195,10 @@ full_access = HasPermission(
 Require authentication for a single function-based endpoint:
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.permissions import authenticated
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 @api.get("/protected")
 @authenticated

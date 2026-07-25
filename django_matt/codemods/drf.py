@@ -609,12 +609,12 @@ class DRFRouterToRegistration(Codemod):
                         func_name = node.value.func.attr
                     if func_name in ("DefaultRouter", "SimpleRouter"):
                         router_var = target.id
-                        # Replace with MattAPI()
-                        node.value.func = ast.Name(id="MattAPI", ctx=ast.Load())
+                        # Replace with DjangoMattAPI()
+                        node.value.func = ast.Name(id="DjangoMattAPI", ctx=ast.Load())
                         node.value.args = []
                         node.value.keywords = []
                         target.id = "api"
-                        changes.append(f"Replaced {func_name}() -> MattAPI()")
+                        changes.append(f"Replaced {func_name}() -> DjangoMattAPI()")
 
         # Transform router.register() calls
         if router_var:
@@ -647,7 +647,7 @@ class DRFRouterToRegistration(Codemod):
 
         # Update imports
         remove_import(tree, "rest_framework.routers")
-        add_import(tree, "django_matt", ["MattAPI"])
+        add_import(tree, "django_matt", ["DjangoMattAPI"])
 
         ast.fix_missing_locations(tree)
         return CodemodResult(

@@ -279,9 +279,9 @@ Create a simple test to verify the installation:
 
 ```python
 # test_installation.py
-from django_matt import MattAPI, __version__
+from django_matt import DjangoMattAPI, __version__
 
-api = MattAPI(title="Test API", version="1.0.0")
+api = DjangoMattAPI(title="Test API", version="1.0.0")
 
 @api.get("/test")
 async def test(request):

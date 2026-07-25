@@ -5,7 +5,7 @@ This module configures the django-matt API with all routes,
 middleware, and OpenAPI documentation.
 """
 
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from api.analytics import AnalyticsController
 from api.auth import AuthController
@@ -19,7 +19,7 @@ from api.tasks import TaskController
 from api.teams import TeamController
 
 # Create the main API instance
-api = MattAPI(
+api = DjangoMattAPI(
     title="SaaS Starter API",
     version="1.0.0",
     description="""

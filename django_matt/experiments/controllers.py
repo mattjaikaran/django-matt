@@ -7,7 +7,7 @@ Provides REST API endpoints for managing experiments.
 Usage:
     from django_matt.experiments.controllers import ExperimentController
 
-    api = MattAPI()
+    api = DjangoMattAPI()
     api.register_controller(ExperimentController)
 """
 

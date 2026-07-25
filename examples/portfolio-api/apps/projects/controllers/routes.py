@@ -1,11 +1,11 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from apps.projects.schemas import ProjectSchema
 
 from .project_controller import ProjectController
 
 
-def register_project_routes(api: MattAPI) -> None:
+def register_project_routes(api: DjangoMattAPI) -> None:
     api.get("projects", tags=["Projects"])(ProjectController.list_projects)
 
     api.post("projects", response_model=ProjectSchema, status_code=201, tags=["Projects"])(

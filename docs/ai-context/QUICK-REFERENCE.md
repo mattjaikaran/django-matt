@@ -20,7 +20,7 @@ python manage.py startapi myproject --template saas --auth jwt --docker
 
 ```python
 # Core
-from django_matt import MattAPI, APIController, get, post, put, patch, delete
+from django_matt import DjangoMattAPI, APIController, get, post, put, patch, delete
 from django_matt import ModelSchema, Schema
 from django_matt import APIRouter
 
@@ -49,8 +49,8 @@ from django_matt.di import Depends
 
 ```python
 # config/api.py
-from django_matt import MattAPI
-api = MattAPI(title="My API", version="1.0.0")
+from django_matt import DjangoMattAPI
+api = DjangoMattAPI(title="My API", version="1.0.0")
 
 # config/urls.py
 from django.urls import path

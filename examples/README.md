@@ -70,7 +70,7 @@ Django Matt features: `APIController`, `ModelSchema`, `jwt_required`, `IsAuthent
 
 Minimal in-process example meant to be installed into an existing Django project. Demonstrates a CRUD controller with Pydantic schemas and basic error handling. Good for copy-paste when adding a new resource to an existing API.
 
-Django Matt features: `APIController`, `ModelSchema`, `MattAPI`.
+Django Matt features: `APIController`, `ModelSchema`, `DjangoMattAPI`.
 
 ### blog-app
 

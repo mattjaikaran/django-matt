@@ -99,10 +99,10 @@ app.include_router(items.router, prefix="/api/v1")
 
 ```python
 # myapp/api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from .controllers import UserController, PostController, ItemController
 
-api = MattAPI(title="My API", version="1.0.0")
+api = DjangoMattAPI(title="My API", version="1.0.0")
 
 api.register_controller(UserController)
 api.register_controller(PostController)
@@ -134,7 +134,7 @@ routers/                           config/settings.py
 models.py (SQLAlchemy)             myapp/
 schemas.py (Pydantic)                models.py       (Django ORM)
 crud.py                              schemas.py      (Pydantic — same)
-deps.py                              api.py          (MattAPI + controllers)
+deps.py                              api.py          (DjangoMattAPI + controllers)
 core/security.py (DIY JWT)           admin.py        (free admin panel)
 alembic/                             tests.py
 ```
@@ -169,9 +169,9 @@ async def delete_post(post_id: int): ...
 **django-matt** — class-based controllers, same decorator names:
 
 ```python
-from django_matt import MattAPI, APIController
+from django_matt import DjangoMattAPI, APIController
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 @api.controller("/posts", tags=["Posts"])
 class PostController(APIController):
@@ -823,7 +823,7 @@ count = await sync_to_async(Post.objects.filter(author=user).count)()
 
 ```python
 # FastAPI                                    # django-matt
-from fastapi import FastAPI                  from django_matt import MattAPI
+from fastapi import FastAPI                  from django_matt import DjangoMattAPI
 from fastapi import APIRouter                from django_matt import APIRouter
 from fastapi import HTTPException            from django_matt.core.errors import NotFoundError
 from fastapi import Depends                  from django_matt.di import Depends

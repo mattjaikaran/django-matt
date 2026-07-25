@@ -519,7 +519,7 @@ FEATURE_FLAG_BACKEND = "database"
 
 ```python
 # api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth import AuthController
 from django_matt.multitenancy import (
     OrganizationController,
@@ -529,7 +529,7 @@ from django_matt.multitenancy import (
 from django_matt.billing import BillingController, WebhookController
 from django_matt.flags import FlagController
 
-api = MattAPI(
+api = DjangoMattAPI(
     title="SaaS API",
     version="1.0.0",
     description="Multi-tenant SaaS backend",

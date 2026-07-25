@@ -23,7 +23,7 @@ Client Request
     |  - EventBusMiddleware (attaches event context to request)
     |
     v
-[3] MattAPI Router — URL resolution
+[3] DjangoMattAPI Router — URL resolution
     |
     v
 [4] Route-Scoped Interceptors (before_request)
@@ -110,10 +110,10 @@ The `ErrorMiddleware` catches any exception that escapes all other layers. For A
 
 ### 3. URL Resolution
 
-`MattAPI` extends Django's URL resolver. When you register controllers or viewsets, their routes are compiled into Django URL patterns:
+`DjangoMattAPI` extends Django's URL resolver. When you register controllers or viewsets, their routes are compiled into Django URL patterns:
 
 ```python
-api = MattAPI(prefix="/api")
+api = DjangoMattAPI(prefix="/api")
 
 @api.controller("/users", tags=["Users"])
 class UserController(APIController):

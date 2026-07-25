@@ -8,7 +8,7 @@ django-matt is built around these core concepts:
 
 ```mermaid
 graph TB
-    A[MattAPI] --> B[Routes]
+    A[DjangoMattAPI] --> B[Routes]
     A --> C[Controllers]
     B --> D[Endpoints]
     C --> D
@@ -61,7 +61,7 @@ graph TB
 Here's a complete example using all core concepts:
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.core.controller import APIController
 from django_matt.core.schema import ModelSchema
 from django_matt.core.router import get, post
@@ -71,7 +71,7 @@ from pydantic import BaseModel
 from myapp.models import Product
 
 # Initialize API
-api = MattAPI(title="Product API", version="1.0.0")
+api = DjangoMattAPI(title="Product API", version="1.0.0")
 
 
 # Define schemas
@@ -179,7 +179,7 @@ Organize your API into logical modules:
 ```
 api/
     __init__.py
-    main.py           # MattAPI instance
+    main.py           # DjangoMattAPI instance
     users/
         controllers.py
         schemas.py

@@ -47,8 +47,8 @@ class TestCollectAutoImports(TestCase):
 
     def test_django_matt_classes_imported(self) -> None:
         namespace, _ = collect_auto_imports()
-        # At minimum MattAPI should be importable
-        assert "MattAPI" in namespace
+        # At minimum DjangoMattAPI should be importable
+        assert "DjangoMattAPI" in namespace
 
     def test_models_imported(self) -> None:
         namespace, import_log = collect_auto_imports()

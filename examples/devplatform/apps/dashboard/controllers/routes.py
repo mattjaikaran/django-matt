@@ -1,9 +1,9 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from .dashboard_controller import DashboardController
 
 
-def register_dashboard_routes(api: MattAPI) -> None:
+def register_dashboard_routes(api: DjangoMattAPI) -> None:
     api.get(
         "organizations/<str:org_id>/dashboard",
         tags=["Dashboard"],

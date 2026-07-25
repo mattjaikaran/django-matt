@@ -14,7 +14,7 @@ Support multiple API versions simultaneously.
 ```python
 from django_matt.versioning import URLPathVersioning
 
-api = MattAPI(versioning_class=URLPathVersioning)
+api = DjangoMattAPI(versioning_class=URLPathVersioning)
 ```
 
 ### Header Versioning
@@ -26,7 +26,7 @@ X-API-Version: 2
 ```python
 from django_matt.versioning import HeaderVersioning
 
-api = MattAPI(versioning_class=HeaderVersioning)
+api = DjangoMattAPI(versioning_class=HeaderVersioning)
 ```
 
 ### Accept Header Versioning
@@ -38,7 +38,7 @@ Accept: application/json; version=2
 ```python
 from django_matt.versioning import AcceptHeaderVersioning
 
-api = MattAPI(versioning_class=AcceptHeaderVersioning)
+api = DjangoMattAPI(versioning_class=AcceptHeaderVersioning)
 ```
 
 ### Query Parameter Versioning
@@ -50,7 +50,7 @@ api = MattAPI(versioning_class=AcceptHeaderVersioning)
 ```python
 from django_matt.versioning import QueryParameterVersioning
 
-api = MattAPI(versioning_class=QueryParameterVersioning)
+api = DjangoMattAPI(versioning_class=QueryParameterVersioning)
 ```
 
 ## VersionedAPI

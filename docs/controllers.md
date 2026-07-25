@@ -7,9 +7,9 @@ This document provides a quick overview of controllers in django-matt. For detai
 ```python
 from django_matt.core.controller import APIController
 from django_matt.core.router import get, post, put, delete
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 class UserController(APIController):
     """User management controller."""

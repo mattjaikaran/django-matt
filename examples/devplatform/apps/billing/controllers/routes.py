@@ -1,11 +1,11 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from apps.billing.schemas import SubscriptionSchema
 
 from .billing_controller import BillingController
 
 
-def register_billing_routes(api: MattAPI) -> None:
+def register_billing_routes(api: DjangoMattAPI) -> None:
     api.get(
         "organizations/<str:org_id>/billing/subscription",
         response_model=SubscriptionSchema,

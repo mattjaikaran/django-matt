@@ -24,9 +24,9 @@ myproject/
 
 ### config/api.py
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
-api = MattAPI(
+api = DjangoMattAPI(
     title="My SaaS API",
     version="1.0.0",
     description="A SaaS application built with Django Matt",
@@ -299,10 +299,10 @@ class ProductController(APIController):
 ## Example 2: ViewSet-Based CRUD (Minimal Code)
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.views import APIViewSet, ListView, CreateView, ReadView, UpdateView, DeleteView
 
-api = MattAPI(title="Blog API")
+api = DjangoMattAPI(title="Blog API")
 
 class PostViewSet(APIViewSet):
     api = api

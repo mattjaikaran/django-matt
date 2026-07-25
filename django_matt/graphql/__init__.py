@@ -48,7 +48,7 @@ Example usage:
         posts: list["PostType"]
 
     # Add to API
-    api = MattAPI()
+    api = DjangoMattAPI()
     api.add_graphql("/graphql", schema=schema)
 """
 

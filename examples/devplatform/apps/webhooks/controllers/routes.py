@@ -1,11 +1,11 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from apps.webhooks.schemas import WebhookSchema
 
 from .webhook_controller import WebhookController
 
 
-def register_webhook_routes(api: MattAPI) -> None:
+def register_webhook_routes(api: DjangoMattAPI) -> None:
     api.get(
         "organizations/<str:org_id>/projects/<str:project_id>/webhooks",
         tags=["Webhooks"],

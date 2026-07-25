@@ -1,11 +1,11 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from apps.payments.schemas import PaymentIntentSchema
 
 from .payment_controller import PaymentController
 
 
-def register_payment_routes(api: MattAPI) -> None:
+def register_payment_routes(api: DjangoMattAPI) -> None:
     api.post(
         "payments/create-intent",
         response_model=PaymentIntentSchema,

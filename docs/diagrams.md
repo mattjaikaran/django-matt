@@ -14,7 +14,7 @@ graph TB
     end
 
     subgraph "API Layer"
-        API[MattAPI]
+        API[DjangoMattAPI]
         AUTH[Auth]
         MW[Middleware]
         INTERCEPT[Interceptors]
@@ -635,7 +635,7 @@ flowchart LR
 ```mermaid
 graph TB
     subgraph "Core"
-        API[api.py<br/>MattAPI]
+        API[api.py<br/>DjangoMattAPI]
         ROUTER[core/router]
         CTRL[core/controller]
         SCHEMA[core/schema]

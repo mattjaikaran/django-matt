@@ -1,11 +1,11 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth import jwt_required
 
 from apps.organizations.controllers import register_org_routes
 from apps.todos.controllers import register_todo_routes
 from apps.users.controllers import register_auth_routes
 
-api = MattAPI(
+api = DjangoMattAPI(
     title="QuickTodo API",
     version="1.0.0",
     description="Multi-tenant todo API built with django-matt",

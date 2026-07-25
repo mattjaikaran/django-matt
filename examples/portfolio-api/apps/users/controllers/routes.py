@@ -1,11 +1,11 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from apps.users.schemas import RegisterResponseSchema, TokenSchema, UserSchema
 
 from .auth_controller import AuthController
 
 
-def register_auth_routes(api: MattAPI) -> None:
+def register_auth_routes(api: DjangoMattAPI) -> None:
     api.post(
         "auth/register", response_model=RegisterResponseSchema, status_code=201, tags=["Auth"]
     )(AuthController.register)

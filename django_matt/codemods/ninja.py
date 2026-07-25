@@ -18,11 +18,11 @@ from django_matt.codemods.patterns import (
 
 
 class NinjaAPIToMattAPI(Codemod):
-    """Convert NinjaAPI() to MattAPI() and Router() to APIController."""
+    """Convert NinjaAPI() to DjangoMattAPI() and Router() to APIController."""
 
     name = "ninja-api-to-matt-api"
     source_framework = "ninja"
-    description = "Convert NinjaAPI/Router to MattAPI/APIController"
+    description = "Convert NinjaAPI/Router to DjangoMattAPI/APIController"
 
     def detect(self, source: str, filename: str) -> bool:
         return "ninja" in source and ("NinjaAPI" in source or "Router" in source)
@@ -38,7 +38,7 @@ class NinjaAPIToMattAPI(Codemod):
                 tree,
                 "ninja",
                 "django_matt",
-                {"NinjaAPI": "MattAPI", "Router": "APIRouter"},
+                {"NinjaAPI": "DjangoMattAPI", "Router": "APIRouter"},
             )
         )
         changes.extend(
@@ -61,10 +61,10 @@ class NinjaAPIToMattAPI(Codemod):
 
                 if func_name == "NinjaAPI":
                     if isinstance(node.func, ast.Name):
-                        node.func.id = "MattAPI"
+                        node.func.id = "DjangoMattAPI"
                     elif isinstance(node.func, ast.Attribute):
-                        node.func.attr = "MattAPI"
-                    changes.append("Replaced NinjaAPI() -> MattAPI()")
+                        node.func.attr = "DjangoMattAPI"
+                    changes.append("Replaced NinjaAPI() -> DjangoMattAPI()")
 
                 elif func_name == "Router":
                     if isinstance(node.func, ast.Name):

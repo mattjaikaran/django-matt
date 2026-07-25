@@ -7,7 +7,7 @@ Provides REST API endpoints for analytics tracking and querying.
 Usage:
     from django_matt.analytics import AnalyticsController, MetricsController
 
-    api = MattAPI()
+    api = DjangoMattAPI()
     api.register_controller(AnalyticsController, prefix="/analytics")
     api.register_controller(MetricsController, prefix="/analytics")
 """

@@ -1,4 +1,4 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from apps.catalog.schemas import (
     CategorySchema,
@@ -11,7 +11,7 @@ from .product_controller import ProductController
 from .variant_controller import VariantController
 
 
-def register_catalog_routes(api: MattAPI) -> None:
+def register_catalog_routes(api: DjangoMattAPI) -> None:
     # --- Categories ---
     api.get(
         "categories",

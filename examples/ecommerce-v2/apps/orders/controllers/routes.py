@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from django_matt.api import MattAPI
+    from django_matt.api import DjangoMattAPI
 
 from apps.orders.controllers.order_controller import OrderController
 
 
-def register_order_routes(api: MattAPI) -> None:
+def register_order_routes(api: DjangoMattAPI) -> None:
     """Register order routes with the API."""
     controller = OrderController()
 

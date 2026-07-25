@@ -1,11 +1,11 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from apps.skills.schemas import SkillSchema
 
 from .skill_controller import SkillController
 
 
-def register_skill_routes(api: MattAPI) -> None:
+def register_skill_routes(api: DjangoMattAPI) -> None:
     api.get("skills", tags=["Skills"])(SkillController.list_skills)
 
     api.post("skills", response_model=SkillSchema, status_code=201, tags=["Skills"])(

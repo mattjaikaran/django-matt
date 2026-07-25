@@ -423,7 +423,7 @@ class APIRouter:
         Args:
             csrf_exempt: When True, set ``_csrf_exempt = True`` on every view
                          function so that CSRF middleware skips those endpoints.
-                         This is set automatically by ``MattAPI`` when
+                         This is set automatically by ``DjangoMattAPI`` when
                          ``csrf=False`` (the default).
         """
         # Collect all (path_pattern, view_func, name, methods) entries first,
@@ -589,7 +589,7 @@ class APIRouter:
         """Fast route lookup using the Rust radix tree.
 
         Returns ``(view_func, kwargs)`` or ``None`` if no match.
-        Used by ``MattAPI`` middleware or ASGI handler to bypass Django's
+        Used by ``DjangoMattAPI`` middleware or ASGI handler to bypass Django's
         URL resolver for registered API routes.
         """
         if self._radix_router is None:

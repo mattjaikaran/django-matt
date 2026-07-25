@@ -6,7 +6,7 @@ Provides REST API endpoints for managing feature flags.
 Usage:
     from django_matt.flags.controllers import FlagController
 
-    api = MattAPI()
+    api = DjangoMattAPI()
     api.register_controller(FlagController)
 """
 

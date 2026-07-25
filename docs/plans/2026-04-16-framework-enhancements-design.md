@@ -370,7 +370,7 @@ class BatchEndpoint:
     
     def __init__(
         self,
-        api: MattAPI,
+        api: DjangoMattAPI,
         path: str = "/batch",
         max_requests: int = 50,
         timeout_per_request: float = 30.0,
@@ -408,7 +408,7 @@ class BatchEndpoint:
 # Registration
 from django_matt.batch import BatchEndpoint
 
-api = MattAPI()
+api = DjangoMattAPI()
 batch = BatchEndpoint(api, path="/batch", max_requests=50)
 api.register_batch(batch)
 

@@ -2,14 +2,14 @@
 
 Django Matt provides a clean, decorator-based routing system for defining API endpoints.
 
-## MattAPI
+## DjangoMattAPI
 
 The main entry point for creating a Django Matt API.
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
-api = MattAPI(
+api = DjangoMattAPI(
     title="My API",
     version="1.0.0",
     description="A modern Django API",
@@ -34,10 +34,10 @@ api = MattAPI(
 Use `api.get/post/put/patch/delete` as decorators on standalone async functions:
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from pydantic import BaseModel
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 class UserCreate(BaseModel):
     email: str
@@ -169,10 +169,10 @@ api.include_router(users_router)
 ## Registering Controllers
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from myapp.controllers import UserController, ProductController
 
-api = MattAPI()
+api = DjangoMattAPI()
 api.register_controller(UserController)
 api.register_controller(ProductController)
 

@@ -17,7 +17,7 @@ A standalone Django meta-framework that replaces Django Ninja, DRF, and their ec
 
 ```
 django_matt/
-├── api.py              # MattAPI — the entry point (like FastAPI() or NinjaAPI())
+├── api.py              # DjangoMattAPI — the entry point (like FastAPI() or NinjaAPI())
 ├── core/
 │   ├── router.py       # Router, route decorators: get, post, put, patch, delete
 │   ├── controller.py   # Controller, APIController, CRUDController base classes
@@ -82,9 +82,9 @@ django_matt/
 
 ```python
 # config/api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
-api = MattAPI(
+api = DjangoMattAPI(
     title="My API",
     version="1.0.0",
     description="My API built with Django Matt",

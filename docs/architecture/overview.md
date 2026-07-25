@@ -13,7 +13,7 @@ graph TB
     end
 
     subgraph "API Gateway"
-        API[MattAPI<br/>Router & OpenAPI]
+        API[DjangoMattAPI<br/>Router & OpenAPI]
         MW[Middleware Stack]
         AUTH[Auth Layer]
     end
@@ -91,7 +91,7 @@ sequenceDiagram
 
 ```
 django_matt/
-├── api.py                    # MattAPI - Main entry point
+├── api.py                    # DjangoMattAPI - Main entry point
 ├── slim.py                   # Slim mode config (full/slim/minimal/auto)
 ├── loader.py                 # Lazy/deferred module loading (LazyModuleProxy)
 │

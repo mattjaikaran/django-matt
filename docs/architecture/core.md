@@ -6,7 +6,7 @@ The core module provides the fundamental building blocks for API development.
 
 ```mermaid
 classDiagram
-    class MattAPI {
+    class DjangoMattAPI {
         +routers: list
         +middleware: list
         +register_controller()
@@ -52,7 +52,7 @@ classDiagram
         +from_orm()
     }
 
-    MattAPI --> Router
+    DjangoMattAPI --> Router
     Router --> APIController
     APIController <|-- CRUDController
     Schema <|-- ModelSchema
@@ -64,7 +64,7 @@ classDiagram
 ```mermaid
 sequenceDiagram
     participant D as Developer
-    participant A as MattAPI
+    participant A as DjangoMattAPI
     participant R as Router
     participant O as OpenAPI
 
@@ -149,10 +149,10 @@ flowchart TD
 ### Basic Controller
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.core import APIController
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 @api.controller("/users", tags=["Users"])
 class UserController(APIController):

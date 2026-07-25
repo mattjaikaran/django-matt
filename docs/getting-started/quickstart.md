@@ -81,12 +81,12 @@ DJANGO_MATT_JWT = {
 Create `myproject/api.py`:
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth import jwt_required
 from pydantic import BaseModel
 
 # Initialize the API
-api = MattAPI(
+api = DjangoMattAPI(
     title="My First API",
     version="0.9.0",
     description="A modern Django API built with django-matt",

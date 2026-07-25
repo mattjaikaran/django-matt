@@ -8,11 +8,11 @@ This cookbook covers common authentication patterns and recipes.
 
 ```python
 import pyotp
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth import jwt_required, create_token_pair
 from pydantic import BaseModel
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 
 class MFASetupResponse(BaseModel):
@@ -139,10 +139,10 @@ async def login_with_backup_code(request, data: BackupCodeLoginRequest):
 ### Complete OAuth Flow
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth.oauth import GoogleOAuthProvider, GitHubOAuthProvider
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 # Configure providers
 providers = {

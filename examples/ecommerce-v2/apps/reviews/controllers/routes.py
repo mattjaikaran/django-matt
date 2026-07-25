@@ -1,11 +1,11 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from apps.reviews.schemas import ReviewSchema, ReviewSummarySchema
 
 from .review_controller import ReviewController
 
 
-def register_review_routes(api: MattAPI) -> None:
+def register_review_routes(api: DjangoMattAPI) -> None:
     api.get(
         "products/<str:product_id>/reviews",
         tags=["Reviews"],

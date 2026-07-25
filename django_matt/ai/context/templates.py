@@ -161,7 +161,7 @@ CURSOR_RULES_TEMPLATE = """# {project_name} - Cursor Rules
 ## Import Preferences
 
 # Core imports
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.core import APIController, ModelSchema
 from django_matt.auth import jwt_required, IsAuthenticated
 from django_matt.views import ListView, CreateView, ReadView
@@ -194,11 +194,11 @@ When writing API endpoints:
 
 Example:
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth import jwt_required
 from django.http import JsonResponse
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 @api.get("/items")
 @jwt_required
@@ -268,7 +268,7 @@ class CreateItemRequest(BaseModel):
 ## Common Imports
 ```python
 # API
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.core import APIController, ModelSchema
 from django_matt.core.router import get, post, put, patch, delete
 
@@ -848,7 +848,7 @@ raise ValidationAPIError(message="Invalid data", field="email")
 ## Key Imports
 
 ```python
-from django_matt import MattAPI, APIController, get, post, put, patch, delete
+from django_matt import DjangoMattAPI, APIController, get, post, put, patch, delete
 from django_matt import ModelSchema, Schema
 from django_matt.views import APIViewSet, ListView, CreateView, ReadView, UpdateView, DeleteView
 from django_matt.auth import jwt_required, jwt_optional, create_token_pair, with_roles

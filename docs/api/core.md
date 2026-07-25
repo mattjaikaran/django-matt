@@ -2,14 +2,14 @@
 
 The core module provides the fundamental building blocks for Django Matt applications.
 
-## MattAPI
+## DjangoMattAPI
 
 The main API class for creating Django Matt applications.
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
-api = MattAPI(
+api = DjangoMattAPI(
     title="My API",
     version="1.0.0",
     description="API description",

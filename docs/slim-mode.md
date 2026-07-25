@@ -45,9 +45,9 @@ DJANGO_MATT = {
 
 ```python
 # api.py — mode can also be set on the API instance
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
-api = MattAPI(mode="slim")
+api = DjangoMattAPI(mode="slim")
 ```
 
 ## Three Modes

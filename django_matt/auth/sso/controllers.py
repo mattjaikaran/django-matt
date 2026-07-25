@@ -58,10 +58,10 @@ class SSOController:
         DELETE /sso/{org_id}/connection - Delete SSO connection
 
     Usage:
-        from django_matt import MattAPI
+        from django_matt import DjangoMattAPI
         from django_matt.auth.sso import SSOController
 
-        api = MattAPI()
+        api = DjangoMattAPI()
         api.register_controller(SSOController, prefix="/auth")
     """
 

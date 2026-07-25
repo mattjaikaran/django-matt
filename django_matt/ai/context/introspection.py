@@ -404,7 +404,7 @@ class EnhancedIntrospector:
         """Introspect all API endpoints."""
         endpoints = []
 
-        # Try to find MattAPI instances and controllers
+        # Try to find DjangoMattAPI instances and controllers
         endpoints.extend(self._find_matt_api_endpoints())
 
         # Also check URL patterns
@@ -422,7 +422,7 @@ class EnhancedIntrospector:
         return unique_endpoints
 
     def _find_matt_api_endpoints(self) -> list[EndpointInfo]:
-        """Find endpoints from MattAPI instances and controllers."""
+        """Find endpoints from DjangoMattAPI instances and controllers."""
         endpoints = []
 
         for app_config in apps.get_app_configs():

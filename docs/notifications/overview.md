@@ -159,10 +159,10 @@ python manage.py migrate
 ### 3. Register Controller
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.notifications import NotificationController
 
-api = MattAPI()
+api = DjangoMattAPI()
 api.register_controller(NotificationController)
 ```
 

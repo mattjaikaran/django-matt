@@ -4,7 +4,7 @@
 
 ```python
 # auth_api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth import jwt_required, create_token_pair
 from django_matt.auth.schemas import RefreshTokenRequest
 from django_matt.core import Schema
@@ -14,7 +14,7 @@ from django.contrib.auth import authenticate, get_user_model
 from pydantic import EmailStr, field_validator
 
 User = get_user_model()
-api = MattAPI(title="Auth API")
+api = DjangoMattAPI(title="Auth API")
 
 class RegisterSchema(Schema):
     email: EmailStr
@@ -118,14 +118,14 @@ async def logout(request):
 
 ```python
 # oauth_example.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth.oauth import (
     OAuthController,
     GoogleOAuthProvider,
     GitHubOAuthProvider,
 )
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 # Register OAuth controller (provides /oauth/* endpoints)
 api.register_controller(OAuthController)
@@ -158,10 +158,10 @@ MATT_OAUTH = {
 
 ```python
 # passkey_example.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth.passkeys import PasskeyController
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 # Register passkey controller
 api.register_controller(PasskeyController)

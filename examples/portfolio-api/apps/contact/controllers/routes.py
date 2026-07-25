@@ -1,11 +1,11 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from apps.contact.schemas import ContactMessageSchema
 
 from .contact_controller import ContactController
 
 
-def register_contact_routes(api: MattAPI) -> None:
+def register_contact_routes(api: DjangoMattAPI) -> None:
     api.post("contact", response_model=ContactMessageSchema, status_code=201, tags=["Contact"])(
         ContactController.submit_contact
     )

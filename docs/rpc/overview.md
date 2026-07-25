@@ -100,7 +100,7 @@ async with RPCClient("https://api.example.com") as client:
 
 ## TypedRPCClient
 
-Extends `RPCClient` with route awareness built from a `MattAPI` instance. Enables calling endpoints by method name.
+Extends `RPCClient` with route awareness built from a `DjangoMattAPI` instance. Enables calling endpoints by method name.
 
 ```python
 from django_matt.rpc import TypedRPCClient, BearerAuth

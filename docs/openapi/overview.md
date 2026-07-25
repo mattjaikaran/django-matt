@@ -33,9 +33,9 @@ flowchart LR
 ## Quick Start
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
-api = MattAPI(
+api = DjangoMattAPI(
     title="My API",
     version="1.0.0",
     description="A powerful API built with Django Matt",
@@ -65,7 +65,7 @@ Access documentation at:
 ### API Setup
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.openapi import OpenAPIConfig
 
 config = OpenAPIConfig(
@@ -119,7 +119,7 @@ config = OpenAPIConfig(
     },
 )
 
-api = MattAPI(openapi_config=config)
+api = DjangoMattAPI(openapi_config=config)
 ```
 
 ### Tags
@@ -127,7 +127,7 @@ api = MattAPI(openapi_config=config)
 Organize endpoints with tags:
 
 ```python
-api = MattAPI(
+api = DjangoMattAPI(
     tags=[
         {"name": "Users", "description": "User management operations"},
         {"name": "Products", "description": "Product CRUD operations"},
@@ -407,7 +407,7 @@ class CustomGenerator(OpenAPIGenerator):
 
         return operation
 
-api = MattAPI(openapi_generator=CustomGenerator())
+api = DjangoMattAPI(openapi_generator=CustomGenerator())
 ```
 
 ### Hide Endpoints
@@ -457,7 +457,7 @@ swagger_config = SwaggerUIConfig(
     oauth2_redirect_url="/api/docs/oauth2-redirect",
 )
 
-api = MattAPI(swagger_config=swagger_config)
+api = DjangoMattAPI(swagger_config=swagger_config)
 ```
 
 ## ReDoc Customization
@@ -491,7 +491,7 @@ redoc_config = ReDocConfig(
     },
 )
 
-api = MattAPI(redoc_config=redoc_config)
+api = DjangoMattAPI(redoc_config=redoc_config)
 ```
 
 ## Export Schema

@@ -82,8 +82,8 @@ django-matt
 INSTALLED_APPS = ["django_matt", ...]
 
 # api.py
-from django_matt import MattAPI
-api = MattAPI()
+from django_matt import DjangoMattAPI
+api = DjangoMattAPI()
 ```
 
 That's it. Auth, billing, multi-tenancy, tasks, real-time, type generation, testing helpers, admin — all configured and integrated.

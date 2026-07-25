@@ -263,9 +263,9 @@ def _make_batch_request(factory: RequestFactory, payload: dict | list) -> HttpRe
 class TestBatchEndpointValidation:
     @pytest.fixture
     def endpoint(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(title="Test")
+        api = DjangoMattAPI(title="Test")
         from django_matt.batch.endpoint import BatchEndpoint
 
         return BatchEndpoint(api, max_requests=5)
@@ -324,10 +324,10 @@ class TestBatchEndpointValidation:
 
     @pytest.mark.asyncio
     async def test_dependencies_disabled(self, factory):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
         from django_matt.batch.endpoint import BatchEndpoint
 
-        api = MattAPI(title="Test")
+        api = DjangoMattAPI(title="Test")
         ep = BatchEndpoint(api, allow_dependencies=False)
         request = _make_batch_request(
             factory,
@@ -349,9 +349,9 @@ class TestBatchEndpointExecution:
 
     @pytest.fixture
     def api_with_routes(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
 
-        api = MattAPI(title="Test Batch")
+        api = DjangoMattAPI(title="Test Batch")
 
         @api.get("/users/1")
         async def get_user(request):
@@ -489,20 +489,20 @@ class TestBatchEndpointExecution:
 
 class TestBatchEndpointRegistration:
     def test_register_batch_on_api(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
         from django_matt.batch import BatchEndpoint
 
-        api = MattAPI(title="Test")
+        api = DjangoMattAPI(title="Test")
         batch = BatchEndpoint(api, path="/batch")
         api.register_batch(batch)
 
         assert len(api._batch_endpoints) == 1
 
     def test_batch_url_in_patterns(self):
-        from django_matt.api import MattAPI
+        from django_matt.api import DjangoMattAPI
         from django_matt.batch import BatchEndpoint
 
-        api = MattAPI(title="Test")
+        api = DjangoMattAPI(title="Test")
         batch = BatchEndpoint(api, path="/batch")
         api.register_batch(batch)
 

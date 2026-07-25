@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from django_matt.plugins import MattPlugin
 
 if TYPE_CHECKING:
-    from django_matt.api import MattAPI
+    from django_matt.api import DjangoMattAPI
 
 from django_matt_stripe_webhooks.config import get_stripe_config
 from django_matt_stripe_webhooks.controllers import StripeWebhookController
@@ -25,7 +25,7 @@ class StripeWebhooksPlugin(MattPlugin):
     django_matt_version = "0.9.0"
     settings_prefix = "MATT_STRIPE"
 
-    def setup(self, api: MattAPI) -> None:
+    def setup(self, api: DjangoMattAPI) -> None:
         config = get_stripe_config()
         errors = config.validate()
         if errors:

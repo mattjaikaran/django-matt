@@ -1,4 +1,4 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from apps.todos.schemas import TodoListSchema, TodoSchema
 
@@ -6,7 +6,7 @@ from .todo_controller import TodoController
 from .todo_list_controller import TodoListController
 
 
-def register_todo_routes(api: MattAPI) -> None:
+def register_todo_routes(api: DjangoMattAPI) -> None:
     # Todo Lists
     api.get(
         "organizations/<str:org_id>/lists",

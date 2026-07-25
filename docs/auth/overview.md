@@ -38,11 +38,11 @@ flowchart TD
 ### JWT Authentication (Recommended for APIs)
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth import jwt_required, create_token_pair
 from django_matt.auth.schemas import LoginRequest, TokenPair
 
-api = MattAPI()
+api = DjangoMattAPI()
 
 @api.post("/auth/login")
 async def login(request, data: LoginRequest) -> TokenPair:
@@ -62,10 +62,10 @@ async def get_me(request):
 For a complete auth system out of the box:
 
 ```python
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.auth import AuthController
 
-api = MattAPI()
+api = DjangoMattAPI()
 api.register_controller(AuthController)
 
 # This provides:

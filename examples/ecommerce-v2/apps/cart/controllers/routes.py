@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from django_matt.api import MattAPI
+    from django_matt.api import DjangoMattAPI
 
 from apps.cart.controllers.cart_controller import CartController
 
 
-def register_cart_routes(api: MattAPI) -> None:
+def register_cart_routes(api: DjangoMattAPI) -> None:
     """Register cart routes with the API."""
     controller = CartController()
 

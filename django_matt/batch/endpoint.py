@@ -22,7 +22,7 @@ from django_matt.batch.resolver import (
 )
 
 if TYPE_CHECKING:
-    from django_matt.api import MattAPI
+    from django_matt.api import DjangoMattAPI
 
 logger = logging.getLogger("django_matt.batch")
 
@@ -40,14 +40,14 @@ class BatchEndpoint:
 
         from django_matt.batch import BatchEndpoint
 
-        api = MattAPI()
+        api = DjangoMattAPI()
         batch = BatchEndpoint(api, path="/batch", max_requests=50)
         api.register_batch(batch)
     """
 
     def __init__(
         self,
-        api: MattAPI,
+        api: DjangoMattAPI,
         path: str = "/batch",
         max_requests: int = 50,
         timeout_per_request: float = 30.0,

@@ -1,9 +1,9 @@
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 
 from .gateway_controller import GatewayController
 
 
-def register_gateway_routes(api: MattAPI) -> None:
+def register_gateway_routes(api: DjangoMattAPI) -> None:
     api.get(
         "organizations/<str:org_id>/projects/<str:project_id>/logs",
         tags=["Gateway"],

@@ -25,7 +25,7 @@ logger = logging.getLogger("django_matt.api")
 LifecycleHandler = Union[Callable[[], None], Callable[[], Coroutine[Any, Any, None]]]
 
 
-class MattAPI(APIRouter):
+class DjangoMattAPI(APIRouter):
     """
     Main API class for Django Matt.
 
@@ -37,16 +37,16 @@ class MattAPI(APIRouter):
         - "auto": detect from DJANGO_MATT settings which modules are in use
 
     Usage:
-        from django_matt import MattAPI
+        from django_matt import DjangoMattAPI
 
-        api = MattAPI(
+        api = DjangoMattAPI(
             title="My API",
             version="1.0.0",
             description="My awesome API",
         )
 
         # Slim mode — only load what you use
-        api = MattAPI(title="My API", mode="minimal")
+        api = DjangoMattAPI(title="My API", mode="minimal")
         api.activate("auth", "cors")
 
         @api.get("/hello")
@@ -144,17 +144,17 @@ class MattAPI(APIRouter):
         """Direct access to the module registry."""
         return self._registry
 
-    def activate(self, *modules: str) -> "MattAPI":
+    def activate(self, *modules: str) -> "DjangoMattAPI":
         """
         Activate one or more modules.
 
         Returns self for chaining:
-            api = MattAPI(mode="minimal").activate("auth", "cors")
+            api = DjangoMattAPI(mode="minimal").activate("auth", "cors")
         """
         self._registry.activate(*modules)
         return self
 
-    def deactivate(self, *modules: str) -> "MattAPI":
+    def deactivate(self, *modules: str) -> "DjangoMattAPI":
         """Deactivate one or more non-core modules."""
         self._registry.deactivate(*modules)
         return self
@@ -424,3 +424,5 @@ class MattAPI(APIRouter):
             return handler
 
         return decorator
+
+# Backward-compatible alias

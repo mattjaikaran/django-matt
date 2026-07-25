@@ -290,18 +290,18 @@ Here's a complete example with custom types:
     schema = strawberry.Schema(query=Query, mutation=Mutation)
     ```
 
-## Adding to Existing MattAPI
+## Adding to Existing DjangoMattAPI
 
-If you already have a REST API with MattAPI:
+If you already have a REST API with DjangoMattAPI:
 
 ```python
 # myapp/api.py
-from django_matt import MattAPI
+from django_matt import DjangoMattAPI
 from django_matt.graphql import GraphQLAPI, generate_schema
 from .models import Author, Book
 
 # Your existing REST API
-api = MattAPI()
+api = DjangoMattAPI()
 
 @api.get("/health")
 def health(request):

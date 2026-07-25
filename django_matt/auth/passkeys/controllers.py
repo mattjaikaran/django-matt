@@ -47,10 +47,10 @@ class PasskeyController:
         PATCH /passkeys/credentials/{id} - Update credential name (requires auth)
 
     Usage:
-        from django_matt import MattAPI
+        from django_matt import DjangoMattAPI
         from django_matt.auth.passkeys import PasskeyController
 
-        api = MattAPI()
+        api = DjangoMattAPI()
         api.register_controller(PasskeyController, prefix="/auth")
     """
 

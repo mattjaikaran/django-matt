@@ -2,11 +2,11 @@
 API routes — wire up tenant and project controllers.
 """
 
-from django_matt.api import MattAPI
+from django_matt.api import DjangoMattAPI
 
 from api.controllers import OrganizationController, ProjectController
 
-api = MattAPI(
+api = DjangoMattAPI(
     title="Multi-tenant SaaS API",
     version="1.0.0",
     description="Multi-tenant SaaS with events, interceptors, and feature flags",
