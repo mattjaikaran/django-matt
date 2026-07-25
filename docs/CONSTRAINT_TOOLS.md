@@ -172,5 +172,5 @@ gates["something"] = self._gate_something
 
 - [SwarmForge](https://github.com/unclebob/swarm-forge) — Uncle Bob Martin's tmux-based
   agent orchestration platform with constitution-driven constraints
-- [scripts/gauntlet.py](../scripts/gauntlet.py) — the 8-gate quality pipeline orchestrator
-- [scripts/check_architecture.py](../scripts/check_architecture.py) — layer dependency enforcement rules
+- [scripts/gauntlet.py](https://github.com/mattjaikaran/django-matt/blob/main/scripts/gauntlet.py) — the 8-gate quality pipeline orchestrator
+- [scripts/check_architecture.py](https://github.com/mattjaikaran/django-matt/blob/main/scripts/check_architecture.py) — layer dependency enforcement rules
