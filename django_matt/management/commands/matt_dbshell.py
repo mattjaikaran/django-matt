@@ -84,9 +84,7 @@ def get_table_sizes(alias: str = "default", limit: int = 10) -> list[tuple[str, 
     return results
 
 
-def execute_query(
-    query: str, alias: str = "default"
-) -> tuple[list[str], list[tuple[Any, ...]]]:
+def execute_query(query: str, alias: str = "default") -> tuple[list[str], list[tuple[Any, ...]]]:
     """Execute a SQL query and return (column_names, rows)."""
     connection = connections[alias]
     with connection.cursor() as cursor:
@@ -130,19 +128,13 @@ def format_plain_table(columns: list[str], rows: list[tuple[Any, ...]]) -> str:
     if not columns:
         return "(no results)"
     all_rows = [columns] + [tuple(str(v) for v in row) for row in rows]
-    col_widths = [
-        max(len(str(val)) for val in col_vals) for col_vals in zip(*all_rows)
-    ]
+    col_widths = [max(len(str(val)) for val in col_vals) for col_vals in zip(*all_rows)]
     lines: list[str] = []
-    header = " | ".join(
-        str(val).ljust(w) for val, w in zip(columns, col_widths)
-    )
+    header = " | ".join(str(val).ljust(w) for val, w in zip(columns, col_widths))
     lines.append(header)
     lines.append("-+-".join("-" * w for w in col_widths))
     for row in rows:
-        lines.append(
-            " | ".join(str(val).ljust(w) for val, w in zip(row, col_widths))
-        )
+        lines.append(" | ".join(str(val).ljust(w) for val, w in zip(row, col_widths)))
     return "\n".join(lines)
 
 
@@ -255,13 +247,9 @@ class Command(BaseCommand):
         # Read-only mode
         if read_only:
             if set_read_only(alias):
-                self.stdout.write(
-                    self.style.SUCCESS("Read-only mode enabled.\n")
-                )
+                self.stdout.write(self.style.SUCCESS("Read-only mode enabled.\n"))
             else:
-                self.stderr.write(
-                    self.style.WARNING("Could not enable read-only mode.\n")
-                )
+                self.stderr.write(self.style.WARNING("Could not enable read-only mode.\n"))
 
         # One-shot query mode
         if query:

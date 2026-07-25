@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Google Gemini provider implementation.
 

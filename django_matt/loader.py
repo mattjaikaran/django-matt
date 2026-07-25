@@ -16,48 +16,52 @@ from django_matt.slim import is_module_enabled
 
 # Heavy modules that benefit from deferred loading.
 # These are never imported at startup — only when explicitly used.
-HEAVY_MODULES: frozenset[str] = frozenset({
-    "billing",
-    "ai",
-    "ml",
-    "graphql",
-    "websockets",
-    "analytics",
-    "experiments",
-    "notifications",
-    "email",
-    "messaging",
-    "files",
-    "tasks",
-    # Frontend integration modules — only needed if you use them
-    "vite",
-    "inertia",
-    "unpoly",
-    "components",
-    "htmx",
-    "livewire",
-    "pages",
-    "tailwind",
-    "forms",
-    # Dev-only modules
-    "review",
-    "codemods",
-    "sdkgen",
-    "typegen",
-    "codegen",
-})
+HEAVY_MODULES: frozenset[str] = frozenset(
+    {
+        "billing",
+        "ai",
+        "ml",
+        "graphql",
+        "websockets",
+        "analytics",
+        "experiments",
+        "notifications",
+        "email",
+        "messaging",
+        "files",
+        "tasks",
+        # Frontend integration modules — only needed if you use them
+        "vite",
+        "inertia",
+        "unpoly",
+        "components",
+        "htmx",
+        "livewire",
+        "pages",
+        "tailwind",
+        "forms",
+        # Dev-only modules
+        "review",
+        "codemods",
+        "sdkgen",
+        "typegen",
+        "codegen",
+    }
+)
 
 # Light modules always loaded eagerly
-LIGHT_MODULES: frozenset[str] = frozenset({
-    "core",
-    "auth",
-    "views",
-    "config",
-    "permissions",
-    "openapi",
-    "pagination",
-    "filtering",
-})
+LIGHT_MODULES: frozenset[str] = frozenset(
+    {
+        "core",
+        "auth",
+        "views",
+        "config",
+        "permissions",
+        "openapi",
+        "pagination",
+        "filtering",
+    }
+)
 
 
 class LazyModuleProxy:
@@ -144,10 +148,7 @@ class DeferredLoader:
 
     @property
     def deferred_modules(self) -> list[str]:
-        return [
-            name for name, proxy in self._proxies.items()
-            if not proxy._is_loaded
-        ]
+        return [name for name, proxy in self._proxies.items() if not proxy._is_loaded]
 
     def __repr__(self) -> str:
         loaded = sum(1 for n in self._proxies if self.is_loaded(n))

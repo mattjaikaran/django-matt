@@ -35,14 +35,24 @@ class ConsoleExporter:
         status_icon = "+" if s.status.value == "ok" else "!" if s.status.value == "error" else "?"
 
         if self._color:
-            color = "\033[32m" if s.status.value == "ok" else "\033[31m" if s.status.value == "error" else "\033[33m"
+            color = (
+                "\033[32m"
+                if s.status.value == "ok"
+                else "\033[31m"
+                if s.status.value == "error"
+                else "\033[33m"
+            )
             reset = "\033[0m"
             line = f"{prefix}{color}[{status_icon}]{reset} {s.name} ({s.duration_ms:.2f}ms)"
         else:
             line = f"{prefix}[{status_icon}] {s.name} ({s.duration_ms:.2f}ms)"
 
         if s.tags:
-            tag_str = " ".join(f"{k}={v}" for k, v in s.tags.items() if k not in ("error", "error.type", "error.message"))
+            tag_str = " ".join(
+                f"{k}={v}"
+                for k, v in s.tags.items()
+                if k not in ("error", "error.type", "error.message")
+            )
             if tag_str:
                 line += f" {tag_str}"
 
@@ -95,6 +105,7 @@ class PrometheusExporter:
     def __init__(self) -> None:
         try:
             import prometheus_client  # noqa: F401
+
             self._available = True
         except ImportError:
             self._available = False
@@ -105,6 +116,7 @@ class PrometheusExporter:
         self._error_counter: Any = None
         if self._available:
             from prometheus_client import Counter, Histogram
+
             self._histogram = Histogram(
                 "django_matt_span_duration_seconds",
                 "Span duration in seconds",

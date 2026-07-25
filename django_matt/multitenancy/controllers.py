@@ -1,3 +1,4 @@
+# file-length-max: 950
 """
 Controllers for multi-tenancy endpoints.
 
@@ -136,11 +137,15 @@ class OrganizationController(APIController):
             return JsonResponse({"detail": "Forbidden"}, status=403)
 
         # Org-scoped query: only retrieve if user has membership (avoids timing leak)
-        membership = await Membership.objects.filter(
-            user=request.user,
-            organization_id=org_id,
-            organization__is_active=True,
-        ).select_related("organization").afirst()
+        membership = (
+            await Membership.objects.filter(
+                user=request.user,
+                organization_id=org_id,
+                organization__is_active=True,
+            )
+            .select_related("organization")
+            .afirst()
+        )
 
         if not membership:
             return JsonResponse({"detail": "Forbidden"}, status=403)
@@ -166,11 +171,15 @@ class OrganizationController(APIController):
             return JsonResponse({"detail": "Forbidden"}, status=403)
 
         # Org-scoped query with membership check
-        membership = await Membership.objects.filter(
-            user=request.user,
-            organization_id=org_id,
-            role__in=[MembershipRole.ADMIN.value, MembershipRole.OWNER.value],
-        ).select_related("organization").afirst()
+        membership = (
+            await Membership.objects.filter(
+                user=request.user,
+                organization_id=org_id,
+                role__in=[MembershipRole.ADMIN.value, MembershipRole.OWNER.value],
+            )
+            .select_related("organization")
+            .afirst()
+        )
 
         if not membership:
             return JsonResponse({"detail": "Forbidden"}, status=403)
@@ -203,11 +212,15 @@ class OrganizationController(APIController):
             return JsonResponse({"detail": "Forbidden"}, status=403)
 
         # Org-scoped query: only owners can delete
-        membership = await Membership.objects.filter(
-            user=request.user,
-            organization_id=org_id,
-            role=MembershipRole.OWNER.value,
-        ).select_related("organization").afirst()
+        membership = (
+            await Membership.objects.filter(
+                user=request.user,
+                organization_id=org_id,
+                role=MembershipRole.OWNER.value,
+            )
+            .select_related("organization")
+            .afirst()
+        )
 
         if not membership:
             return JsonResponse({"detail": "Forbidden"}, status=403)
@@ -370,10 +383,14 @@ class TeamController(APIController):
 
         if organization:
             # Org-scoped lookup: returns 403 for cross-org access (explicit denial)
-            team = await Team.objects.filter(
-                organization=organization,
-                id=team_id,
-            ).select_related("organization").afirst()
+            team = (
+                await Team.objects.filter(
+                    organization=organization,
+                    id=team_id,
+                )
+                .select_related("organization")
+                .afirst()
+            )
             if not team:
                 return JsonResponse({"detail": "Forbidden"}, status=403)
         else:
@@ -409,10 +426,14 @@ class TeamController(APIController):
 
         if organization:
             # Org-scoped lookup: 403 for cross-org (explicit denial per user decision)
-            team = await Team.objects.filter(
-                organization=organization,
-                id=team_id,
-            ).select_related("organization").afirst()
+            team = (
+                await Team.objects.filter(
+                    organization=organization,
+                    id=team_id,
+                )
+                .select_related("organization")
+                .afirst()
+            )
             if not team:
                 return JsonResponse({"detail": "Forbidden"}, status=403)
         else:
@@ -451,10 +472,14 @@ class TeamController(APIController):
 
         if organization:
             # Org-scoped: 403 for cross-org (explicit denial)
-            team = await Team.objects.filter(
-                organization=organization,
-                id=team_id,
-            ).select_related("organization").afirst()
+            team = (
+                await Team.objects.filter(
+                    organization=organization,
+                    id=team_id,
+                )
+                .select_related("organization")
+                .afirst()
+            )
             if not team:
                 return JsonResponse({"detail": "Forbidden"}, status=403)
         else:
@@ -533,10 +558,14 @@ class MembershipController(APIController):
 
         if organization:
             # Org-scoped: only see memberships within request.organization
-            membership = await Membership.objects.filter(
-                id=membership_id,
-                organization=organization,
-            ).select_related("organization", "user").afirst()
+            membership = (
+                await Membership.objects.filter(
+                    id=membership_id,
+                    organization=organization,
+                )
+                .select_related("organization", "user")
+                .afirst()
+            )
             if not membership:
                 return JsonResponse({"detail": "Forbidden"}, status=403)
         else:
@@ -588,10 +617,14 @@ class MembershipController(APIController):
 
         if organization:
             # Org-scoped: only see memberships within request.organization
-            membership = await Membership.objects.filter(
-                id=membership_id,
-                organization=organization,
-            ).select_related("organization", "user").afirst()
+            membership = (
+                await Membership.objects.filter(
+                    id=membership_id,
+                    organization=organization,
+                )
+                .select_related("organization", "user")
+                .afirst()
+            )
             if not membership:
                 return JsonResponse({"detail": "Forbidden"}, status=403)
         else:
@@ -797,10 +830,14 @@ class InvitationController(APIController):
 
         if organization:
             # Org-scoped: 403 for cross-org (explicit denial)
-            invitation = await Invitation.objects.filter(
-                id=invitation_id,
-                organization=organization,
-            ).select_related("organization").afirst()
+            invitation = (
+                await Invitation.objects.filter(
+                    id=invitation_id,
+                    organization=organization,
+                )
+                .select_related("organization")
+                .afirst()
+            )
             if not invitation:
                 return JsonResponse({"detail": "Forbidden"}, status=403)
         else:
@@ -839,10 +876,14 @@ class InvitationController(APIController):
 
         if organization:
             # Org-scoped: 403 for cross-org (explicit denial)
-            invitation = await Invitation.objects.filter(
-                id=invitation_id,
-                organization=organization,
-            ).select_related("organization").afirst()
+            invitation = (
+                await Invitation.objects.filter(
+                    id=invitation_id,
+                    organization=organization,
+                )
+                .select_related("organization")
+                .afirst()
+            )
             if not invitation:
                 return JsonResponse({"detail": "Forbidden"}, status=403)
         else:

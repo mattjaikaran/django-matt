@@ -236,9 +236,15 @@ class TaskSchedule(models.Model):
         else:
             self.failure_count += 1
         self.update_next_run()
-        self.save(update_fields=[
-            "last_run_at", "run_count", "success_count", "failure_count", "next_run_at"
-        ])
+        self.save(
+            update_fields=[
+                "last_run_at",
+                "run_count",
+                "success_count",
+                "failure_count",
+                "next_run_at",
+            ]
+        )
 
     @classmethod
     def get_due_schedules(cls, now: datetime | None = None):

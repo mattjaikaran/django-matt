@@ -163,9 +163,13 @@ def transform_decorators(
             old_method = attr_node.attr
             if old_method in method_map:
                 attr_node.attr = method_map[old_method]
-                changes.append(f"Transformed @{old_obj}.{old_method}() -> @{new_obj}.{method_map[old_method]}()")
+                changes.append(
+                    f"Transformed @{old_obj}.{old_method}() -> @{new_obj}.{method_map[old_method]}()"
+                )
             else:
-                changes.append(f"Transformed @{old_obj}.{old_method}() -> @{new_obj}.{old_method}()")
+                changes.append(
+                    f"Transformed @{old_obj}.{old_method}() -> @{new_obj}.{old_method}()"
+                )
 
     return changes
 

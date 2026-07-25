@@ -23,9 +23,7 @@ from django_matt.deploy.base import ServerBackend
 app = typer.Typer(help="Development server and utilities")
 console = Console()
 
-_SERVER_BACKEND_HELP = (
-    "Server backend: django (built-in runserver), uvicorn, granian, robyn"
-)
+_SERVER_BACKEND_HELP = "Server backend: django (built-in runserver), uvicorn, granian, robyn"
 
 
 def _find_asgi_module() -> str:

@@ -131,9 +131,7 @@ class Command(MattCommand):
             # Check for failures
             failed = tracker.get_failed_tests()
             if failed:
-                self.console.info(
-                    f"Found {len(failed)} failed test(s) — re-running"
-                )
+                self.console.info(f"Found {len(failed)} failed test(s) — re-running")
                 return ["--matt-failed"]
 
             # No changes, no failures — full suite
@@ -154,9 +152,7 @@ class Command(MattCommand):
         db_path = Path(options.get("db", ".matttest.db"))
 
         if not db_path.exists():
-            self.console.warning(
-                f"No database at {db_path}. Run with --rebuild-deps first."
-            )
+            self.console.warning(f"No database at {db_path}. Run with --rebuild-deps first.")
             return
 
         tracker = TestDependencyTracker(db_path)

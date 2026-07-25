@@ -1,3 +1,4 @@
+# file-length-max: 500
 """Fix suggestion engine — pattern-matched suggestions for common errors."""
 
 from __future__ import annotations
@@ -75,9 +76,7 @@ class SuggestionEngine:
         self._patterns.append(pattern)
         self._patterns.sort(key=lambda p: p.priority, reverse=True)
 
-    def register_matcher(
-        self, matcher: Callable[[Exception], StructuredError | None]
-    ) -> None:
+    def register_matcher(self, matcher: Callable[[Exception], StructuredError | None]) -> None:
         """Register a custom matcher function.
 
         The function receives an exception and returns a ``StructuredError``

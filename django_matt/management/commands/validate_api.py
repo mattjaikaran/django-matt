@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Management command to validate API endpoints for common issues.
 
@@ -347,8 +348,7 @@ class Command(MattCommand):
                             endpoint=endpoint,
                             severity="error",
                             code="sync-orm-in-async",
-                            message=f"Sync ORM call `{sync_call.strip('(')}`"
-                            f" in async view",
+                            message=f"Sync ORM call `{sync_call.strip('(')}` in async view",
                             suggestion=f"Use `{async_call.strip('(')}`"
                             f" or wrap with sync_to_async()",
                         )

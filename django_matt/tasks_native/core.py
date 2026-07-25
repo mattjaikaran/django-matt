@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 Core task implementation with Pydantic validation.
 
@@ -106,7 +107,11 @@ class NativeTask(Generic[P, R]):
                 first_param = params[start_idx]
                 param_type = hints.get(first_param.name)
 
-                if param_type and isinstance(param_type, type) and issubclass(param_type, BaseModel):
+                if (
+                    param_type
+                    and isinstance(param_type, type)
+                    and issubclass(param_type, BaseModel)
+                ):
                     return param_type
         except Exception:
             pass
@@ -137,15 +142,11 @@ class NativeTask(Generic[P, R]):
         """Execute the task synchronously."""
         if self.bind:
             if self._is_async:
-                return asyncio.get_event_loop().run_until_complete(
-                    self.func(self, *args, **kwargs)
-                )
+                return asyncio.get_event_loop().run_until_complete(self.func(self, *args, **kwargs))
             return self.func(self, *args, **kwargs)
 
         if self._is_async:
-            return asyncio.get_event_loop().run_until_complete(
-                self.func(*args, **kwargs)
-            )
+            return asyncio.get_event_loop().run_until_complete(self.func(*args, **kwargs))
         return self.func(*args, **kwargs)
 
     def delay(self, *args: P.args, **kwargs: P.kwargs) -> TaskResult[R]:
@@ -254,9 +255,7 @@ class NativeTask(Generic[P, R]):
                 else:
                     result = self.func(self, *args, **kwargs)
             elif self._is_async:
-                result = asyncio.get_event_loop().run_until_complete(
-                    self.func(*args, **kwargs)
-                )
+                result = asyncio.get_event_loop().run_until_complete(self.func(*args, **kwargs))
             else:
                 result = self.func(*args, **kwargs)
 

@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 Agent framework with tool dispatch loop for AI/LLM integration.
 
@@ -137,10 +138,9 @@ class Agent:
         )
 
         self._hook = (
-            CompositeHook([
-                h if isinstance(h, ObservabilityHook) else CallbackHook(h)
-                for h in self.hooks
-            ])
+            CompositeHook(
+                [h if isinstance(h, ObservabilityHook) else CallbackHook(h) for h in self.hooks]
+            )
             if self.hooks
             else None
         )
@@ -235,13 +235,9 @@ class Agent:
 
         # Output schema instruction
         if self.output_schema:
-            schema_json = orjson.dumps(
-                self.output_schema.model_json_schema()
-            ).decode()
+            schema_json = orjson.dumps(self.output_schema.model_json_schema()).decode()
             messages.append(
-                Message.system(
-                    f"Respond with JSON matching this schema: {schema_json}"
-                )
+                Message.system(f"Respond with JSON matching this schema: {schema_json}")
             )
 
         # Load conversation history if persisting
@@ -312,9 +308,7 @@ class Agent:
                 if conversation_id is not None:
                     to_save = list(messages[_new_msg_start:])
                     to_save.append(Message.assistant(response.content))
-                    await self._save_conversation_messages(
-                        conversation_id, to_save
-                    )
+                    await self._save_conversation_messages(conversation_id, to_save)
 
                 resp = AgentResponse(
                     content=response.content,
@@ -341,9 +335,7 @@ class Agent:
                 }
                 for tc in tool_calls
             ]
-            messages.append(
-                Message.assistant(response.content or "", tool_calls=tool_call_dicts)
-            )
+            messages.append(Message.assistant(response.content or "", tool_calls=tool_call_dicts))
 
             # Execute each tool call
             for tc in tool_calls:
@@ -358,9 +350,7 @@ class Agent:
                 try:
                     result = await self._registry.aexecute(tc.name, tc.arguments)
                     result_str = (
-                        result
-                        if isinstance(result, str)
-                        else orjson.dumps(result).decode()
+                        result if isinstance(result, str) else orjson.dumps(result).decode()
                     )
                     _tool_ms = (time.monotonic() - _tool_start) * 1000
                     await self._emit(
@@ -397,9 +387,7 @@ class Agent:
 
         # Persist new messages if conversation is active
         if conversation_id is not None:
-            await self._save_conversation_messages(
-                conversation_id, messages[_new_msg_start:]
-            )
+            await self._save_conversation_messages(conversation_id, messages[_new_msg_start:])
 
         resp = AgentResponse(
             content=response.content or "",

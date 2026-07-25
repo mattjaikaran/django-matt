@@ -1,3 +1,4 @@
+# file-length-max: 700
 """
 Component Playground for live preview and testing.
 

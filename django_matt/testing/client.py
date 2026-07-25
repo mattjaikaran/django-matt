@@ -1,3 +1,4 @@
+# file-length-max: 650
 """
 Test client with authentication helpers.
 
@@ -20,6 +21,7 @@ import orjson
 # ---------------------------------------------------------------------------
 # auser() helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_auser_callable(user: Any) -> Any:
     """Return an async callable that resolves to *user*.
@@ -59,6 +61,7 @@ class _AuserAsyncClientHandler(AsyncClientHandler):
 # ---------------------------------------------------------------------------
 # Sync test client
 # ---------------------------------------------------------------------------
+
 
 class APITestClient(Client):
     """
@@ -355,6 +358,7 @@ class APITestClient(Client):
 # Async test client
 # ---------------------------------------------------------------------------
 
+
 class AsyncAPITestClient(AsyncClient):
     """
     Async version of APITestClient.
@@ -589,19 +593,25 @@ class AsyncAPITestClient(AsyncClient):
         data = self.json(response) if response.content else None
         return response, data
 
-    async def post_json(self, path: str, data: Any = None, **kwargs: Any) -> tuple[HttpResponse, Any]:
+    async def post_json(
+        self, path: str, data: Any = None, **kwargs: Any
+    ) -> tuple[HttpResponse, Any]:
         """Make an async POST request and return (response, json_data) tuple."""
         response = await self.post(path, data=data, **kwargs)
         resp_data = self.json(response) if response.content else None
         return response, resp_data
 
-    async def put_json(self, path: str, data: Any = None, **kwargs: Any) -> tuple[HttpResponse, Any]:
+    async def put_json(
+        self, path: str, data: Any = None, **kwargs: Any
+    ) -> tuple[HttpResponse, Any]:
         """Make an async PUT request and return (response, json_data) tuple."""
         response = await self.put(path, data=data, **kwargs)
         resp_data = self.json(response) if response.content else None
         return response, resp_data
 
-    async def patch_json(self, path: str, data: Any = None, **kwargs: Any) -> tuple[HttpResponse, Any]:
+    async def patch_json(
+        self, path: str, data: Any = None, **kwargs: Any
+    ) -> tuple[HttpResponse, Any]:
         """Make an async PATCH request and return (response, json_data) tuple."""
         response = await self.patch(path, data=data, **kwargs)
         resp_data = self.json(response) if response.content else None

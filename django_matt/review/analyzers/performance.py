@@ -1,3 +1,4 @@
+# file-length-max: 500
 """AST-based performance anti-pattern analyzer.
 
 Detects common performance pitfalls: ORM queries in loops, blocking I/O in
@@ -115,7 +116,9 @@ class PerformanceAnalyzer(ASTVisitorAnalyzer):
             class_name=self._current_class,
         )
 
-    def _visit_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef, *, is_async: bool) -> None:
+    def _visit_function(
+        self, node: ast.FunctionDef | ast.AsyncFunctionDef, *, is_async: bool
+    ) -> None:
         prev_func = self._current_function
         prev_async = self._in_async
         self._current_function = node.name
@@ -144,27 +147,31 @@ class PerformanceAnalyzer(ASTVisitorAnalyzer):
         """Detect ORM calls directly in a loop body (recursively)."""
         if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
             if self._is_orm_call(node.value):
-                self._add_finding(Finding(
-                    rule_id="PERF001",
-                    message="ORM query inside loop body",
-                    severity=Severity.WARNING,
-                    category=Category.PERFORMANCE,
-                    location=self._make_location(node.lineno),
-                    suggestion="Prefetch data before the loop or use select_related/prefetch_related",
-                    context=self._get_source_line(node.lineno),
-                ))
+                self._add_finding(
+                    Finding(
+                        rule_id="PERF001",
+                        message="ORM query inside loop body",
+                        severity=Severity.WARNING,
+                        category=Category.PERFORMANCE,
+                        location=self._make_location(node.lineno),
+                        suggestion="Prefetch data before the loop or use select_related/prefetch_related",
+                        context=self._get_source_line(node.lineno),
+                    )
+                )
                 return
         if isinstance(node, ast.Assign):
             if isinstance(node.value, ast.Call) and self._is_orm_call(node.value):
-                self._add_finding(Finding(
-                    rule_id="PERF001",
-                    message="ORM query inside loop body",
-                    severity=Severity.WARNING,
-                    category=Category.PERFORMANCE,
-                    location=self._make_location(node.lineno),
-                    suggestion="Prefetch data before the loop or use select_related/prefetch_related",
-                    context=self._get_source_line(node.lineno),
-                ))
+                self._add_finding(
+                    Finding(
+                        rule_id="PERF001",
+                        message="ORM query inside loop body",
+                        severity=Severity.WARNING,
+                        category=Category.PERFORMANCE,
+                        location=self._make_location(node.lineno),
+                        suggestion="Prefetch data before the loop or use select_related/prefetch_related",
+                        context=self._get_source_line(node.lineno),
+                    )
+                )
                 return
         # Check if statements and other compound bodies inside the loop
         if isinstance(node, ast.If):
@@ -202,15 +209,17 @@ class PerformanceAnalyzer(ASTVisitorAnalyzer):
                 is_qs = True
 
         if is_qs:
-            self._add_finding(Finding(
-                rule_id="PERF002",
-                message="len() called on QuerySet — loads all objects into memory",
-                severity=Severity.HINT,
-                category=Category.PERFORMANCE,
-                location=self._make_location(node.lineno),
-                suggestion="Use .count() to avoid loading all objects",
-                context=self._get_source_line(node.lineno),
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="PERF002",
+                    message="len() called on QuerySet — loads all objects into memory",
+                    severity=Severity.HINT,
+                    category=Category.PERFORMANCE,
+                    location=self._make_location(node.lineno),
+                    suggestion="Use .count() to avoid loading all objects",
+                    context=self._get_source_line(node.lineno),
+                )
+            )
 
     # ------------------------------------------------------------------
     # PERF003 — Blocking I/O in async
@@ -260,18 +269,20 @@ class PerformanceAnalyzer(ASTVisitorAnalyzer):
         return None
 
     def _emit_blocking_io(self, node: ast.Call) -> None:
-        self._add_finding(Finding(
-            rule_id="PERF003",
-            message="Blocking I/O call in async function",
-            severity=Severity.ERROR,
-            category=Category.PERFORMANCE,
-            location=self._make_location(node.lineno),
-            suggestion=(
-                "Use async alternatives: aiofiles for file I/O, asyncio.sleep, "
-                "httpx for HTTP, asyncio.subprocess for subprocesses"
-            ),
-            context=self._get_source_line(node.lineno),
-        ))
+        self._add_finding(
+            Finding(
+                rule_id="PERF003",
+                message="Blocking I/O call in async function",
+                severity=Severity.ERROR,
+                category=Category.PERFORMANCE,
+                location=self._make_location(node.lineno),
+                suggestion=(
+                    "Use async alternatives: aiofiles for file I/O, asyncio.sleep, "
+                    "httpx for HTTP, asyncio.subprocess for subprocesses"
+                ),
+                context=self._get_source_line(node.lineno),
+            )
+        )
 
     # ------------------------------------------------------------------
     # PERF004 — Unnecessary list() conversion
@@ -297,15 +308,17 @@ class PerformanceAnalyzer(ASTVisitorAnalyzer):
                 is_qs = True
 
         if is_qs and self._loop_depth > 0:
-            self._add_finding(Finding(
-                rule_id="PERF004",
-                message="Unnecessary list() conversion of QuerySet inside loop",
-                severity=Severity.HINT,
-                category=Category.PERFORMANCE,
-                location=self._make_location(node.lineno),
-                suggestion="Iterate directly over the QuerySet instead of converting to list",
-                context=self._get_source_line(node.lineno),
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="PERF004",
+                    message="Unnecessary list() conversion of QuerySet inside loop",
+                    severity=Severity.HINT,
+                    category=Category.PERFORMANCE,
+                    location=self._make_location(node.lineno),
+                    suggestion="Iterate directly over the QuerySet instead of converting to list",
+                    context=self._get_source_line(node.lineno),
+                )
+            )
 
     # ------------------------------------------------------------------
     # PERF005 — QuerySet re-evaluation
@@ -337,15 +350,17 @@ class PerformanceAnalyzer(ASTVisitorAnalyzer):
             # Exclude the assignment line itself
             unique_lines.discard(self._qs_assignments[name])
             if len(unique_lines) >= 2:
-                self._add_finding(Finding(
-                    rule_id="PERF005",
-                    message=f"QuerySet '{name}' evaluated multiple times without caching",
-                    severity=Severity.HINT,
-                    category=Category.PERFORMANCE,
-                    location=self._make_location(self._qs_assignments[name]),
-                    suggestion="Evaluate once with list() or use queryset caching to avoid repeated DB hits",
-                    context=self._get_source_line(self._qs_assignments[name]),
-                ))
+                self._add_finding(
+                    Finding(
+                        rule_id="PERF005",
+                        message=f"QuerySet '{name}' evaluated multiple times without caching",
+                        severity=Severity.HINT,
+                        category=Category.PERFORMANCE,
+                        location=self._make_location(self._qs_assignments[name]),
+                        suggestion="Evaluate once with list() or use queryset caching to avoid repeated DB hits",
+                        context=self._get_source_line(self._qs_assignments[name]),
+                    )
+                )
 
     # ------------------------------------------------------------------
     # PERF006 — String concatenation in loop
@@ -364,25 +379,41 @@ class PerformanceAnalyzer(ASTVisitorAnalyzer):
         is_string_concat = False
 
         if isinstance(node.value, (ast.Constant, ast.JoinedStr)):
-            if (isinstance(node.value, ast.Constant) and isinstance(node.value.value, str)) or isinstance(node.value, ast.JoinedStr):
+            if (
+                isinstance(node.value, ast.Constant) and isinstance(node.value.value, str)
+            ) or isinstance(node.value, ast.JoinedStr):
                 is_string_concat = True
 
         # Also check for common string variable name patterns
         target_name = node.target.id.lower()
-        string_hints = ("html", "text", "msg", "message", "output", "result", "body", "content", "xml", "csv", "sql")
+        string_hints = (
+            "html",
+            "text",
+            "msg",
+            "message",
+            "output",
+            "result",
+            "body",
+            "content",
+            "xml",
+            "csv",
+            "sql",
+        )
         if any(hint in target_name for hint in string_hints):
             is_string_concat = True
 
         if is_string_concat:
-            self._add_finding(Finding(
-                rule_id="PERF006",
-                message="String concatenation with += inside loop",
-                severity=Severity.HINT,
-                category=Category.PERFORMANCE,
-                location=self._make_location(node.lineno),
-                suggestion="Collect parts in a list and use ''.join() after the loop",
-                context=self._get_source_line(node.lineno),
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="PERF006",
+                    message="String concatenation with += inside loop",
+                    severity=Severity.HINT,
+                    category=Category.PERFORMANCE,
+                    location=self._make_location(node.lineno),
+                    suggestion="Collect parts in a list and use ''.join() after the loop",
+                    context=self._get_source_line(node.lineno),
+                )
+            )
 
     # ------------------------------------------------------------------
     # PERF007 — Mutable default argument
@@ -393,15 +424,17 @@ class PerformanceAnalyzer(ASTVisitorAnalyzer):
             if default is None:
                 continue
             if self._is_mutable_literal(default):
-                self._add_finding(Finding(
-                    rule_id="PERF007",
-                    message=f"Mutable default argument in '{node.name}'",
-                    severity=Severity.WARNING,
-                    category=Category.PERFORMANCE,
-                    location=self._make_location(default.lineno),
-                    suggestion="Use None as default and initialize inside the function: if arg is None: arg = []",
-                    context=self._get_source_line(node.lineno),
-                ))
+                self._add_finding(
+                    Finding(
+                        rule_id="PERF007",
+                        message=f"Mutable default argument in '{node.name}'",
+                        severity=Severity.WARNING,
+                        category=Category.PERFORMANCE,
+                        location=self._make_location(default.lineno),
+                        suggestion="Use None as default and initialize inside the function: if arg is None: arg = []",
+                        context=self._get_source_line(node.lineno),
+                    )
+                )
 
     def _is_mutable_literal(self, node: ast.expr) -> bool:
         """Check if a node is a mutable literal: [], {}, set()."""

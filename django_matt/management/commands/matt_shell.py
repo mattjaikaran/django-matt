@@ -53,9 +53,7 @@ def collect_auto_imports() -> dict[str, Any]:
         "Prefetch": Prefetch,
     }
     namespace.update(orm_names)
-    import_log.append(
-        f"django.db.models: {', '.join(sorted(orm_names.keys()))}"
-    )
+    import_log.append(f"django.db.models: {', '.join(sorted(orm_names.keys()))}")
 
     # --- Django settings ---
     from django.conf import settings
@@ -190,9 +188,7 @@ class Command(BaseCommand):
                 return None
             except ImportError:
                 self.stderr.write(
-                    self.style.WARNING(
-                        "IPython not installed. Falling back to standard shell.\n"
-                    )
+                    self.style.WARNING("IPython not installed. Falling back to standard shell.\n")
                 )
 
         # Standard interactive console

@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Django Matt Analytics - Comprehensive event tracking and analytics system.
 

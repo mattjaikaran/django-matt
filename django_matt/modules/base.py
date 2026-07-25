@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 class MattModule:
     """Base class for django_matt plugins with lifecycle hooks and configuration."""
+
     name: str = ""
     version: str = "0.1.0"
     dependencies: list[str] = []

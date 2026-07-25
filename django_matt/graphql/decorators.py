@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 GraphQL decorators for Django Matt.
 
@@ -30,7 +31,7 @@ def _require_strawberry(feature: str = "this feature"):
     if not STRAWBERRY_AVAILABLE:
         raise ImportError(
             f"strawberry-graphql is required for {feature}. "
-            "Install it with: uv add \"strawberry-graphql[django]\""
+            'Install it with: uv add "strawberry-graphql[django]"'
         )
 
 

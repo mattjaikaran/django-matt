@@ -124,13 +124,15 @@ class DatabaseMetricsCollector:
             self._durations.observe(duration)
             duration_ms = duration * 1000
             if duration_ms > self._slow_threshold:
-                self._slow_queries.append({
-                    "operation": operation,
-                    "table": table,
-                    "duration_ms": duration_ms,
-                    "sql": sql[:200] if sql else None,
-                    "timestamp": time.time(),
-                })
+                self._slow_queries.append(
+                    {
+                        "operation": operation,
+                        "table": table,
+                        "duration_ms": duration_ms,
+                        "sql": sql[:200] if sql else None,
+                        "timestamp": time.time(),
+                    }
+                )
                 if len(self._slow_queries) > 100:
                     self._slow_queries = self._slow_queries[-100:]
 

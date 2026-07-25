@@ -119,9 +119,7 @@ class BulkCreateView(APIView):
         if not items:
             raise ValueError("Request body must contain at least one item")
         if len(items) > self.max_items:
-            raise ValueError(
-                f"Too many items: {len(items)} exceeds maximum of {self.max_items}"
-            )
+            raise ValueError(f"Too many items: {len(items)} exceeds maximum of {self.max_items}")
 
 
 class BulkUpdateView(APIView):
@@ -171,9 +169,7 @@ class BulkUpdateView(APIView):
         for item in items_data:
             lookup_value = item.pop(self.lookup_field, None)
             if lookup_value is None:
-                raise ValueError(
-                    f"Each item must include '{self.lookup_field}'"
-                )
+                raise ValueError(f"Each item must include '{self.lookup_field}'")
             if schema is not None:
                 obj = schema.model_validate(item)
                 data_dict = obj.model_dump(exclude_unset=True)
@@ -201,9 +197,7 @@ class BulkUpdateView(APIView):
 
         return [self.serialize_single(inst) for inst in instances]
 
-    async def _bulk_update(
-        self, entries: list[tuple[Any, dict[str, Any]]]
-    ) -> list[models.Model]:
+    async def _bulk_update(self, entries: list[tuple[Any, dict[str, Any]]]) -> list[models.Model]:
         """Fetch, update, and save all instances in a transaction."""
         model = self.get_model()
         lookup_values = [lv for lv, _ in entries]
@@ -272,9 +266,7 @@ class BulkUpdateView(APIView):
         if not items:
             raise ValueError("Request body must contain at least one item")
         if len(items) > self.max_items:
-            raise ValueError(
-                f"Too many items: {len(items)} exceeds maximum of {self.max_items}"
-            )
+            raise ValueError(f"Too many items: {len(items)} exceeds maximum of {self.max_items}")
 
 
 class BulkDeleteView(APIView):
@@ -372,6 +364,4 @@ class BulkDeleteView(APIView):
         if not items:
             raise ValueError("Request body must contain at least one ID")
         if len(items) > self.max_items:
-            raise ValueError(
-                f"Too many items: {len(items)} exceeds maximum of {self.max_items}"
-            )
+            raise ValueError(f"Too many items: {len(items)} exceeds maximum of {self.max_items}")

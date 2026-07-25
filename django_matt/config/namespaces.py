@@ -24,9 +24,7 @@ class ConfigNamespace(BaseModel):
         """Load and cache a namespace instance from Django settings."""
         settings_key = key or cls._settings_key
         if not settings_key:
-            raise ValueError(
-                f"{cls.__name__} has no _settings_key and none was provided"
-            )
+            raise ValueError(f"{cls.__name__} has no _settings_key and none was provided")
 
         if settings_key in _cache:
             return _cache[settings_key]

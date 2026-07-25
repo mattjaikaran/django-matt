@@ -266,9 +266,7 @@ class Command(BaseCommand):
 
         for_model = options.get("for_model", "generic")
 
-        self.stdout.write(
-            self.style.NOTICE(f"Generating project context for {for_model}...")
-        )
+        self.stdout.write(self.style.NOTICE(f"Generating project context for {for_model}..."))
 
         context = generate_context(for_model=for_model)
 
@@ -341,9 +339,7 @@ class Command(BaseCommand):
                     lines.append(f"  Suggestion: {finding.suggestion}")
 
             if len(report.all_findings) > 50:
-                lines.append(
-                    f"\n... and {len(report.all_findings) - 50} more findings"
-                )
+                lines.append(f"\n... and {len(report.all_findings) - 50} more findings")
 
         return "\n".join(lines)
 

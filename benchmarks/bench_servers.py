@@ -31,6 +31,7 @@ import httpx
 
 try:
     import psutil
+
     HAS_PSUTIL = True
 except ImportError:
     HAS_PSUTIL = False
@@ -78,28 +79,53 @@ class BackendResult:
 
 def _uvicorn_cmd(port: int) -> list[str]:
     return [
-        sys.executable, "-m", "uvicorn", BENCH_APP,
-        "--host", "127.0.0.1", "--port", str(port),
-        "--workers", "1", "--log-level", "warning",
+        sys.executable,
+        "-m",
+        "uvicorn",
+        BENCH_APP,
+        "--host",
+        "127.0.0.1",
+        "--port",
+        str(port),
+        "--workers",
+        "1",
+        "--log-level",
+        "warning",
     ]
 
 
 def _gunicorn_cmd(port: int) -> list[str]:
     return [
-        sys.executable, "-m", "gunicorn", BENCH_APP,
-        "--worker-class", "uvicorn.workers.UvicornWorker",
-        "--bind", f"127.0.0.1:{port}",
-        "--workers", "1",
-        "--log-level", "warning",
+        sys.executable,
+        "-m",
+        "gunicorn",
+        BENCH_APP,
+        "--worker-class",
+        "uvicorn.workers.UvicornWorker",
+        "--bind",
+        f"127.0.0.1:{port}",
+        "--workers",
+        "1",
+        "--log-level",
+        "warning",
     ]
 
 
 def _granian_cmd(port: int) -> list[str]:
     return [
-        sys.executable, "-m", "granian",
-        "--interface", "asgi",
-        "--host", "127.0.0.1", "--port", str(port),
-        "--workers", "1", "--log-level", "warning",
+        sys.executable,
+        "-m",
+        "granian",
+        "--interface",
+        "asgi",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        str(port),
+        "--workers",
+        "1",
+        "--log-level",
+        "warning",
         BENCH_APP,
     ]
 
@@ -256,17 +282,13 @@ async def _bench_one(
 
     for extra in spec.get("extra_modules", []):
         if not _module_available(extra):
-            return BackendResult(
-                name, False, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, f"requires {extra}"
-            )
+            return BackendResult(name, False, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, f"requires {extra}")
 
     port = _free_port()
     cmd = spec["build_cmd"](port)
     env = os.environ.copy()
     # Make the bench app importable from REPO_ROOT/benchmarks/
-    env["PYTHONPATH"] = (
-        str(REPO_ROOT / "benchmarks") + os.pathsep + env.get("PYTHONPATH", "")
-    )
+    env["PYTHONPATH"] = str(REPO_ROOT / "benchmarks") + os.pathsep + env.get("PYTHONPATH", "")
 
     proc = subprocess.Popen(
         cmd,
@@ -280,9 +302,7 @@ async def _bench_one(
     try:
         ready = await _wait_until_ready(url, timeout=10.0)
         if not ready:
-            return BackendResult(
-                name, True, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, "failed to start"
-            )
+            return BackendResult(name, True, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, "failed to start")
 
         # Warmup pass — discard latencies
         await _hammer(url, warmup, concurrency)
@@ -369,9 +389,7 @@ def _print_table(results: list[BackendResult]) -> None:
 
 def _baseline_speedup(results: list[BackendResult]) -> None:
     """Print speedup of each backend relative to uvicorn (the baseline)."""
-    baseline = next(
-        (r for r in results if r.name == "uvicorn" and r.requests), None
-    )
+    baseline = next((r for r in results if r.name == "uvicorn" and r.requests), None)
     if not baseline:
         return
     print("\nSpeedup vs uvicorn (RPS ratio):")
@@ -441,17 +459,19 @@ async def main_async(args: argparse.Namespace) -> list[BackendResult]:
             )
             continue
         print(f"-> Benchmarking {name}...", flush=True)
-        results.append(
-            await _bench_one(name, spec, args.duration, args.concurrency, args.warmup)
-        )
+        results.append(await _bench_one(name, spec, args.duration, args.concurrency, args.warmup))
     return results
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--duration", type=float, default=5.0, help="Seconds per backend (default: 5)")
+    parser.add_argument(
+        "--duration", type=float, default=5.0, help="Seconds per backend (default: 5)"
+    )
     parser.add_argument("--warmup", type=float, default=1.0, help="Warmup seconds (default: 1)")
-    parser.add_argument("--concurrency", type=int, default=32, help="Concurrent clients (default: 32)")
+    parser.add_argument(
+        "--concurrency", type=int, default=32, help="Concurrent clients (default: 32)"
+    )
     parser.add_argument(
         "--backends",
         default="",

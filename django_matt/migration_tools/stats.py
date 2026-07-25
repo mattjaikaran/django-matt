@@ -1,3 +1,4 @@
+# file-length-max: 550
 """Migration statistics and diagnostics — understand why migrations are slow.
 
 Provides tools to:
@@ -177,9 +178,7 @@ class MigrationProfiler:
         applied = recorder.applied_migrations()
 
         total_migrations = len(loader.disk_migrations)
-        applied_count = len(
-            [k for k in loader.disk_migrations if k in applied]
-        )
+        applied_count = len([k for k in loader.disk_migrations if k in applied])
         pending_count = total_migrations - applied_count
 
         # Count operations
@@ -187,7 +186,13 @@ class MigrationProfiler:
         data_migrations = 0
         index_ops = 0
         apps: dict[str, int] = {}
-        complexity_breakdown: dict[str, int] = {"trivial": 0, "simple": 0, "moderate": 0, "complex": 0, "extreme": 0}
+        complexity_breakdown: dict[str, int] = {
+            "trivial": 0,
+            "simple": 0,
+            "moderate": 0,
+            "complex": 0,
+            "extreme": 0,
+        }
         estimated_pending = 0.0
 
         for (app_label, migration_name), migration in loader.disk_migrations.items():
@@ -340,14 +345,16 @@ class MigrationTimer:
         if key not in history:
             history[key] = []
 
-        history[key].append({
-            "started_at": stats.started_at,
-            "finished_at": stats.finished_at,
-            "elapsed_seconds": stats.elapsed_seconds,
-            "success": stats.success,
-            "rows_affected": stats.rows_affected,
-            "error": stats.error,
-        })
+        history[key].append(
+            {
+                "started_at": stats.started_at,
+                "finished_at": stats.finished_at,
+                "elapsed_seconds": stats.elapsed_seconds,
+                "success": stats.success,
+                "rows_affected": stats.rows_affected,
+                "error": stats.error,
+            }
+        )
 
         self._save_history(history)
 

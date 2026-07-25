@@ -1,3 +1,4 @@
+# file-length-max: 750
 """
 JWT Authentication backend for Django Matt.
 
@@ -239,9 +240,7 @@ async def acreate_access_token(
 
     # Async groups query
     if hasattr(user, "groups"):
-        payload["roles"] = [
-            name async for name in user.groups.values_list("name", flat=True)
-        ]
+        payload["roles"] = [name async for name in user.groups.values_list("name", flat=True)]
 
     if extra_claims:
         payload.update(extra_claims)

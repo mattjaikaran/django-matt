@@ -1,3 +1,4 @@
+# file-length-max: 600
 """
 Pre-built Tailwind CSS component class helpers.
 

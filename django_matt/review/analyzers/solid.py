@@ -1,3 +1,4 @@
+# file-length-max: 550
 """
 SOLID principles analyzer — AST-based detection of SRP, OCP, LSP, ISP, DIP violations.
 """
@@ -10,19 +11,62 @@ from django_matt.review.analyzers.base import ASTVisitorAnalyzer
 from django_matt.review.findings import Category, Finding, Location, Severity
 
 # Heuristic method-name prefixes for responsibility classification
-_IO_PATTERNS = frozenset({
-    "save", "write", "send", "fetch", "read", "load", "download", "upload",
-    "open", "close", "connect", "disconnect", "publish", "consume", "emit",
-})
-_COMPUTE_PATTERNS = frozenset({
-    "calculate", "compute", "process", "transform", "parse", "evaluate",
-    "analyze", "aggregate", "reduce", "merge", "solve", "derive",
-})
-_SERIALIZE_PATTERNS = frozenset({
-    "serialize", "deserialize", "to_dict", "to_json", "to_xml", "to_csv",
-    "from_dict", "from_json", "from_xml", "as_dict", "as_json", "encode",
-    "decode", "marshal", "unmarshal", "to_yaml", "from_yaml",
-})
+_IO_PATTERNS = frozenset(
+    {
+        "save",
+        "write",
+        "send",
+        "fetch",
+        "read",
+        "load",
+        "download",
+        "upload",
+        "open",
+        "close",
+        "connect",
+        "disconnect",
+        "publish",
+        "consume",
+        "emit",
+    }
+)
+_COMPUTE_PATTERNS = frozenset(
+    {
+        "calculate",
+        "compute",
+        "process",
+        "transform",
+        "parse",
+        "evaluate",
+        "analyze",
+        "aggregate",
+        "reduce",
+        "merge",
+        "solve",
+        "derive",
+    }
+)
+_SERIALIZE_PATTERNS = frozenset(
+    {
+        "serialize",
+        "deserialize",
+        "to_dict",
+        "to_json",
+        "to_xml",
+        "to_csv",
+        "from_dict",
+        "from_json",
+        "from_xml",
+        "as_dict",
+        "as_json",
+        "encode",
+        "decode",
+        "marshal",
+        "unmarshal",
+        "to_yaml",
+        "from_yaml",
+    }
+)
 
 # Base classes that indicate an abstract interface
 _ABSTRACT_BASES = frozenset({"ABC", "Protocol"})
@@ -103,11 +147,7 @@ def _is_concrete_annotation(ann: ast.expr | None) -> bool:
         # String annotation like "SomeClass"
         if isinstance(ann.value, str):
             val = ann.value
-            return (
-                val[:1].isupper()
-                and val not in _ABSTRACT_BASES
-                and "Protocol" not in val
-            )
+            return val[:1].isupper() and val not in _ABSTRACT_BASES and "Protocol" not in val
         return False
     if isinstance(ann, ast.Name):
         return (
@@ -167,24 +207,26 @@ class SolidAnalyzer(ASTVisitorAnalyzer):
         threshold = self.config.solid.max_class_methods
         count = len(public_methods)
         if count > threshold:
-            self._add_finding(Finding(
-                rule_id="SOL001",
-                message=(
-                    f"Class '{node.name}' has {count} public methods "
-                    f"(threshold: {threshold}), suggesting too many responsibilities"
-                ),
-                severity=Severity.WARNING,
-                category=Category.SOLID,
-                location=Location(
-                    file=str(self._file_path),
-                    line=node.lineno,
-                    class_name=node.name,
-                ),
-                suggestion=(
-                    "Split into smaller, focused classes — each with a single responsibility"
-                ),
-                metadata={"public_method_count": count, "threshold": threshold},
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="SOL001",
+                    message=(
+                        f"Class '{node.name}' has {count} public methods "
+                        f"(threshold: {threshold}), suggesting too many responsibilities"
+                    ),
+                    severity=Severity.WARNING,
+                    category=Category.SOLID,
+                    location=Location(
+                        file=str(self._file_path),
+                        line=node.lineno,
+                        class_name=node.name,
+                    ),
+                    suggestion=(
+                        "Split into smaller, focused classes — each with a single responsibility"
+                    ),
+                    metadata={"public_method_count": count, "threshold": threshold},
+                )
+            )
 
     # ------------------------------------------------------------------
     # SOL002 — SRP: Mixed responsibilities
@@ -218,24 +260,24 @@ class SolidAnalyzer(ASTVisitorAnalyzer):
             if has_serialize:
                 labels.append("serialization")
 
-            self._add_finding(Finding(
-                rule_id="SOL002",
-                message=(
-                    f"Class '{node.name}' mixes {' + '.join(labels)} responsibilities"
-                ),
-                severity=Severity.WARNING,
-                category=Category.SOLID,
-                location=Location(
-                    file=str(self._file_path),
-                    line=node.lineno,
-                    class_name=node.name,
-                ),
-                suggestion=(
-                    "Separate into dedicated classes: one for I/O, one for "
-                    "business logic, one for serialization"
-                ),
-                metadata={"responsibilities": labels},
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="SOL002",
+                    message=(f"Class '{node.name}' mixes {' + '.join(labels)} responsibilities"),
+                    severity=Severity.WARNING,
+                    category=Category.SOLID,
+                    location=Location(
+                        file=str(self._file_path),
+                        line=node.lineno,
+                        class_name=node.name,
+                    ),
+                    suggestion=(
+                        "Separate into dedicated classes: one for I/O, one for "
+                        "business logic, one for serialization"
+                    ),
+                    metadata={"responsibilities": labels},
+                )
+            )
 
     # ------------------------------------------------------------------
     # SOL003 — OCP: Excessive type checking
@@ -260,31 +302,33 @@ class SolidAnalyzer(ASTVisitorAnalyzer):
         total = isinstance_count + type_cmp_count
 
         if total > threshold:
-            self._add_finding(Finding(
-                rule_id="SOL003",
-                message=(
-                    f"Function '{node.name}' has {total} type checks "
-                    f"(threshold: {threshold}), consider a visitor or strategy pattern"
-                ),
-                severity=Severity.HINT,
-                category=Category.SOLID,
-                location=Location(
-                    file=str(self._file_path),
-                    line=node.lineno,
-                    function=node.name,
-                    class_name=enclosing_class,
-                ),
-                suggestion=(
-                    "Replace branching on type with polymorphism "
-                    "(visitor pattern, strategy pattern, or dispatch dict)"
-                ),
-                metadata={
-                    "isinstance_calls": isinstance_count,
-                    "type_comparisons": type_cmp_count,
-                    "total": total,
-                    "threshold": threshold,
-                },
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="SOL003",
+                    message=(
+                        f"Function '{node.name}' has {total} type checks "
+                        f"(threshold: {threshold}), consider a visitor or strategy pattern"
+                    ),
+                    severity=Severity.HINT,
+                    category=Category.SOLID,
+                    location=Location(
+                        file=str(self._file_path),
+                        line=node.lineno,
+                        function=node.name,
+                        class_name=enclosing_class,
+                    ),
+                    suggestion=(
+                        "Replace branching on type with polymorphism "
+                        "(visitor pattern, strategy pattern, or dispatch dict)"
+                    ),
+                    metadata={
+                        "isinstance_calls": isinstance_count,
+                        "type_comparisons": type_cmp_count,
+                        "total": total,
+                        "threshold": threshold,
+                    },
+                )
+            )
 
     # ------------------------------------------------------------------
     # SOL004 — ISP: Fat interface
@@ -303,29 +347,31 @@ class SolidAnalyzer(ASTVisitorAnalyzer):
         count = len(abstract_methods)
 
         if count > threshold:
-            self._add_finding(Finding(
-                rule_id="SOL004",
-                message=(
-                    f"Interface '{node.name}' has {count} abstract methods "
-                    f"(threshold: {threshold}), violating Interface Segregation"
-                ),
-                severity=Severity.WARNING,
-                category=Category.SOLID,
-                location=Location(
-                    file=str(self._file_path),
-                    line=node.lineno,
-                    class_name=node.name,
-                ),
-                suggestion=(
-                    "Split into smaller, role-specific interfaces that clients "
-                    "can implement independently"
-                ),
-                metadata={
-                    "abstract_method_count": count,
-                    "threshold": threshold,
-                    "method_names": [m.name for m in abstract_methods],
-                },
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="SOL004",
+                    message=(
+                        f"Interface '{node.name}' has {count} abstract methods "
+                        f"(threshold: {threshold}), violating Interface Segregation"
+                    ),
+                    severity=Severity.WARNING,
+                    category=Category.SOLID,
+                    location=Location(
+                        file=str(self._file_path),
+                        line=node.lineno,
+                        class_name=node.name,
+                    ),
+                    suggestion=(
+                        "Split into smaller, role-specific interfaces that clients "
+                        "can implement independently"
+                    ),
+                    metadata={
+                        "abstract_method_count": count,
+                        "threshold": threshold,
+                        "method_names": [m.name for m in abstract_methods],
+                    },
+                )
+            )
 
     # ------------------------------------------------------------------
     # SOL005 — DIP: Too many concrete dependencies
@@ -352,30 +398,32 @@ class SolidAnalyzer(ASTVisitorAnalyzer):
 
         count = len(concrete_params)
         if count > threshold:
-            self._add_finding(Finding(
-                rule_id="SOL005",
-                message=(
-                    f"Class '{node.name}.__init__' has {count} concrete dependencies "
-                    f"(threshold: {threshold}), violating Dependency Inversion"
-                ),
-                severity=Severity.HINT,
-                category=Category.SOLID,
-                location=Location(
-                    file=str(self._file_path),
-                    line=init.lineno,
-                    function="__init__",
-                    class_name=node.name,
-                ),
-                suggestion=(
-                    "Depend on abstractions (Protocol/ABC) instead of concrete classes. "
-                    "Use dependency injection to provide implementations"
-                ),
-                metadata={
-                    "concrete_dependencies": concrete_params,
-                    "count": count,
-                    "threshold": threshold,
-                },
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="SOL005",
+                    message=(
+                        f"Class '{node.name}.__init__' has {count} concrete dependencies "
+                        f"(threshold: {threshold}), violating Dependency Inversion"
+                    ),
+                    severity=Severity.HINT,
+                    category=Category.SOLID,
+                    location=Location(
+                        file=str(self._file_path),
+                        line=init.lineno,
+                        function="__init__",
+                        class_name=node.name,
+                    ),
+                    suggestion=(
+                        "Depend on abstractions (Protocol/ABC) instead of concrete classes. "
+                        "Use dependency injection to provide implementations"
+                    ),
+                    metadata={
+                        "concrete_dependencies": concrete_params,
+                        "count": count,
+                        "threshold": threshold,
+                    },
+                )
+            )
 
     # ------------------------------------------------------------------
     # SOL006 — God class
@@ -399,30 +447,32 @@ class SolidAnalyzer(ASTVisitorAnalyzer):
             class_lines = self._estimate_class_lines(node)
 
         if method_count > method_threshold and class_lines > line_threshold:
-            self._add_finding(Finding(
-                rule_id="SOL006",
-                message=(
-                    f"God class '{node.name}': {method_count} public methods "
-                    f"and {class_lines} lines — far too many responsibilities"
-                ),
-                severity=Severity.ERROR,
-                category=Category.SOLID,
-                location=Location(
-                    file=str(self._file_path),
-                    line=node.lineno,
-                    class_name=node.name,
-                ),
-                suggestion=(
-                    "Decompose into smaller, cohesive classes using composition. "
-                    "Extract service objects, value objects, and strategy patterns"
-                ),
-                metadata={
-                    "public_method_count": method_count,
-                    "class_lines": class_lines,
-                    "method_threshold": method_threshold,
-                    "line_threshold": line_threshold,
-                },
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="SOL006",
+                    message=(
+                        f"God class '{node.name}': {method_count} public methods "
+                        f"and {class_lines} lines — far too many responsibilities"
+                    ),
+                    severity=Severity.ERROR,
+                    category=Category.SOLID,
+                    location=Location(
+                        file=str(self._file_path),
+                        line=node.lineno,
+                        class_name=node.name,
+                    ),
+                    suggestion=(
+                        "Decompose into smaller, cohesive classes using composition. "
+                        "Extract service objects, value objects, and strategy patterns"
+                    ),
+                    metadata={
+                        "public_method_count": method_count,
+                        "class_lines": class_lines,
+                        "method_threshold": method_threshold,
+                        "line_threshold": line_threshold,
+                    },
+                )
+            )
 
     # ------------------------------------------------------------------
     # Helpers

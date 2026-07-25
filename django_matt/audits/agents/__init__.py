@@ -1,3 +1,4 @@
+# file-length-max: 600
 """
 AI agent integration for automated audits.
 

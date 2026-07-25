@@ -53,8 +53,7 @@ try:
     import httpx
 except ImportError as exc:
     raise ImportError(
-        "httpx is required for BaseThirdPartyService. "
-        "Install with: uv add httpx"
+        "httpx is required for BaseThirdPartyService. Install with: uv add httpx"
     ) from exc
 
 
@@ -115,12 +114,7 @@ class BaseThirdPartyService:
                 msg = body.get("error", {}).get("message", "Unknown error")
                 raise ThirdPartyServiceError(status, msg, body)
         """
-        message = (
-            body.get("message")
-            or body.get("error")
-            or body.get("detail")
-            or f"HTTP {status}"
-        )
+        message = body.get("message") or body.get("error") or body.get("detail") or f"HTTP {status}"
         raise ThirdPartyServiceError(status, str(message), body)
 
     # ------------------------------------------------------------------

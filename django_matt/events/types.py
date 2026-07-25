@@ -11,6 +11,7 @@ from django_matt.events.bus import Event
 
 class UserCreatedEvent(Event):
     """Emitted when a new user is created."""
+
     __event_type__: str = "user.created"
     event_type: str = "user.created"
     user_id: int | str | None = None

@@ -2764,17 +2764,19 @@ class TestPrometheusMetricsSuccessCriteria:
 
         # Use a fresh manager to avoid cross-test pollution
         mgr = MetricsManager()
-        with patch("django_matt.observability.metrics.metrics_manager", mgr):
-            with patch("django_matt.observability.metrics.metrics_config") as mock_cfg:
-                mock_cfg.enabled = True
-                mock_cfg.prefix = "django_matt"
-                mock_cfg.default_buckets = [0.01, 0.1, 1.0]
+        with (
+            patch("django_matt.observability.metrics.metrics_manager", mgr),
+            patch("django_matt.observability.metrics.metrics_config") as mock_cfg,
+        ):
+            mock_cfg.enabled = True
+            mock_cfg.prefix = "django_matt"
+            mock_cfg.default_buckets = [0.01, 0.1, 1.0]
 
-                record_request("GET", "/api/users", 200, 0.05)
+            record_request("GET", "/api/users", 200, 0.05)
 
-                # Metrics should have been created
-                output = mgr.generate_metrics().decode("utf-8")
-                assert len(output) > 0
+            # Metrics should have been created
+            output = mgr.generate_metrics().decode("utf-8")
+            assert len(output) > 0
 
 
 class TestOTELTracingSuccessCriteria:

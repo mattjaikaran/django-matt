@@ -1,3 +1,4 @@
+# file-length-max: 750
 """
 Base view classes for Django Matt.
 
@@ -232,9 +233,7 @@ class APIView(Generic[ModelT, SchemaT]):
             return None
         return build_camel_case_map(list(schema.model_fields.keys()))
 
-    def serialize_list_to_json_bytes(
-        self, items: list[dict[str, Any]]
-    ) -> bytes | None:
+    def serialize_list_to_json_bytes(self, items: list[dict[str, Any]]) -> bytes | None:
         """Serialize a list of dicts to JSON bytes using Rust (with camelCase).
 
         Returns None if Rust is unavailable or camelCase is disabled,
@@ -376,9 +375,7 @@ class APIView(Generic[ModelT, SchemaT]):
         return queryset
 
     @staticmethod
-    def _filter_dict_fields(
-        data: dict[str, Any], fields: list[str] | None
-    ) -> dict[str, Any]:
+    def _filter_dict_fields(data: dict[str, Any], fields: list[str] | None) -> dict[str, Any]:
         """Filter a serialised dict to only include the requested fields."""
         if fields is None:
             return data
@@ -614,9 +611,7 @@ class BoundView:
         if allowed_methods:
             allowed_upper = {m.upper() for m in allowed_methods}
             if request.method not in allowed_upper:
-                response = JsonResponse(
-                    {"detail": "Method not allowed"}, status=405
-                )
+                response = JsonResponse({"detail": "Method not allowed"}, status=405)
                 response["Allow"] = ", ".join(sorted(allowed_upper))
                 return response
 
@@ -644,19 +639,11 @@ class BoundView:
 
             # Fast path: when camelCase is enabled and Rust is available,
             # serialize list items with Rust (rename + JSON in one pass).
-            if (
-                isinstance(result, dict)
-                and "items" in result
-                and isinstance(result["items"], list)
-            ):
-                json_bytes = self.view.serialize_list_to_json_bytes(
-                    result["items"]
-                )
+            if isinstance(result, dict) and "items" in result and isinstance(result["items"], list):
+                json_bytes = self.view.serialize_list_to_json_bytes(result["items"])
                 if json_bytes is not None:
                     # Build envelope around Rust-serialized items
-                    envelope = {
-                        k: v for k, v in result.items() if k != "items"
-                    }
+                    envelope = {k: v for k, v in result.items() if k != "items"}
                     envelope_json = orjson.dumps(envelope)
                     # Splice: {"count":...,"items":[rust bytes],...}
                     # Insert items into the envelope

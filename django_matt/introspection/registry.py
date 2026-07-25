@@ -15,6 +15,7 @@ logger = logging.getLogger("django_matt.introspection")
 
 class ComponentStatus(str, Enum):
     """Health status values for infrastructure components."""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"

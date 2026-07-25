@@ -76,9 +76,7 @@ class AccessPatternLearner:
             for rel in accessed_relations:
                 self._relations[model_key][rel] += 1
 
-    def suggest_prefetches(
-        self, model_key: str
-    ) -> list[tuple[str, float]]:
+    def suggest_prefetches(self, model_key: str) -> list[tuple[str, float]]:
         """Suggest relations to prefetch based on observed access patterns.
 
         Returns list of (relation_name, frequency) tuples sorted by

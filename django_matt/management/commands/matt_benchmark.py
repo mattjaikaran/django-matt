@@ -83,9 +83,11 @@ class Command(BaseCommand):
             available = suite.list_scenarios()
             for s in scenarios:
                 if s not in available:
-                    self.stderr.write(self.style.ERROR(
-                        f"Unknown scenario: {s}. Available: {', '.join(available)}"
-                    ))
+                    self.stderr.write(
+                        self.style.ERROR(
+                            f"Unknown scenario: {s}. Available: {', '.join(available)}"
+                        )
+                    )
                     return
 
         self.stdout.write(self.style.MIGRATE_HEADING("\n=== Django Matt Benchmarks ===\n"))
@@ -120,9 +122,9 @@ class Command(BaseCommand):
         # Save baseline
         if options["save_baseline"]:
             runner.save_results("baseline.json")
-            self.stdout.write(self.style.SUCCESS(
-                "\n  Baseline saved to .matt/benchmarks/baseline.json"
-            ))
+            self.stdout.write(
+                self.style.SUCCESS("\n  Baseline saved to .matt/benchmarks/baseline.json")
+            )
 
     def _output_table(self, results):
         """Print results as a formatted table."""
@@ -163,9 +165,9 @@ class Command(BaseCommand):
         try:
             comparisons = runner.compare_with_baseline("baseline.json")
         except FileNotFoundError:
-            self.stdout.write(self.style.WARNING(
-                "\n  No baseline found. Run with --save-baseline first."
-            ))
+            self.stdout.write(
+                self.style.WARNING("\n  No baseline found. Run with --save-baseline first.")
+            )
             return
 
         if not comparisons:

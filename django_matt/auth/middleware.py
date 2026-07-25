@@ -29,9 +29,7 @@ if TYPE_CHECKING:
 _ANONYMOUS_USER = AnonymousUser()
 
 
-def _set_request_auser(
-    request: HttpRequest, user: AbstractBaseUser | AnonymousUser
-) -> None:
+def _set_request_auser(request: HttpRequest, user: AbstractBaseUser | AnonymousUser) -> None:
     """Set ``request.auser`` as an async callable returning *user*.
 
     Mirrors Django's ``AuthenticationMiddleware`` contract so that

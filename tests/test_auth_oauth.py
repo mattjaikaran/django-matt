@@ -208,9 +208,11 @@ class TestGoogleOAuthProvider:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
-        with patch("httpx.AsyncClient", return_value=mock_client):
-            with pytest.raises(OAuthAuthenticationError, match="Code expired"):
-                await provider.exchange_code("bad-code")
+        with (
+            patch("httpx.AsyncClient", return_value=mock_client),
+            pytest.raises(OAuthAuthenticationError, match="Code expired"),
+        ):
+            await provider.exchange_code("bad-code")
 
     @pytest.mark.asyncio
     async def test_fetch_user_info_via_id_token(self):

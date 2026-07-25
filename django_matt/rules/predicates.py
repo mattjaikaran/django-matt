@@ -9,13 +9,16 @@ Example::
 
     from django_matt.rules import predicate
 
+
     @predicate
     def is_author(user, obj):
         return obj.author == user
 
+
     @predicate
     def is_editor(user, obj):
         return user.groups.filter(name="editors").exists()
+
 
     can_edit = is_author | is_editor
     can_edit.test(request.user, post)  # True/False
@@ -109,9 +112,7 @@ class _AndPredicate(Predicate):
         self.bind = False
 
     def _eval(self, user: Any, *args: Any, **kwargs: Any) -> bool:
-        return self.left.test(user, *args, **kwargs) and self.right.test(
-            user, *args, **kwargs
-        )
+        return self.left.test(user, *args, **kwargs) and self.right.test(user, *args, **kwargs)
 
     def test(self, user: Any, *args: Any, **kwargs: Any) -> bool:
         return self._eval(user, *args, **kwargs)
@@ -133,9 +134,7 @@ class _OrPredicate(Predicate):
         self.bind = False
 
     def _eval(self, user: Any, *args: Any, **kwargs: Any) -> bool:
-        return self.left.test(user, *args, **kwargs) or self.right.test(
-            user, *args, **kwargs
-        )
+        return self.left.test(user, *args, **kwargs) or self.right.test(user, *args, **kwargs)
 
     def test(self, user: Any, *args: Any, **kwargs: Any) -> bool:
         return self._eval(user, *args, **kwargs)
@@ -194,6 +193,7 @@ def predicate(
         @predicate
         def is_active(user):
             return user.is_active
+
 
         @predicate(name="cached_check", bind=True)
         def expensive_check(self, user, obj):

@@ -357,9 +357,11 @@ class TestRegistrationFlow:
                 sign_count=0,
             )
 
-        with patch(_CONFIG_PATCH_TARGET, return_value=config):
-            with pytest.raises(PasskeyRegistrationError, match="Maximum number of credentials"):
-                generate_registration_options(user)
+        with (
+            patch(_CONFIG_PATCH_TARGET, return_value=config),
+            pytest.raises(PasskeyRegistrationError, match="Maximum number of credentials"),
+        ):
+            generate_registration_options(user)
 
     @pytest.mark.django_db
     def test_verify_registration_creates_credential(self, user):
@@ -403,15 +405,17 @@ class TestRegistrationFlow:
 
     @pytest.mark.django_db
     def test_verify_registration_expired_challenge(self, user):
-        with _mock_config():
-            with pytest.raises(PasskeyRegistrationError, match="Challenge not found or expired"):
-                verify_registration_response(
-                    user=user,
-                    credential_id="Y3JlZA",
-                    client_data_json="Y2xpZW50",
-                    attestation_object="YXR0ZXN0",
-                    challenge_id="nonexistent-challenge",
-                )
+        with (
+            _mock_config(),
+            pytest.raises(PasskeyRegistrationError, match="Challenge not found or expired"),
+        ):
+            verify_registration_response(
+                user=user,
+                credential_id="Y3JlZA",
+                client_data_json="Y2xpZW50",
+                attestation_object="YXR0ZXN0",
+                challenge_id="nonexistent-challenge",
+            )
 
     @pytest.mark.django_db
     def test_verify_registration_wrong_user(self, user):
@@ -612,15 +616,17 @@ class TestAuthenticationFlow:
 
     @pytest.mark.django_db
     def test_verify_authentication_expired_challenge(self, user, credential):
-        with _mock_config():
-            with pytest.raises(PasskeyAuthenticationError, match="Challenge not found or expired"):
-                verify_authentication_response(
-                    credential_id=credential.credential_id,
-                    client_data_json="Y2xpZW50",
-                    authenticator_data="YXV0aA",
-                    signature="c2ln",
-                    challenge_id="nonexistent-auth-challenge",
-                )
+        with (
+            _mock_config(),
+            pytest.raises(PasskeyAuthenticationError, match="Challenge not found or expired"),
+        ):
+            verify_authentication_response(
+                credential_id=credential.credential_id,
+                client_data_json="Y2xpZW50",
+                authenticator_data="YXV0aA",
+                signature="c2ln",
+                challenge_id="nonexistent-auth-challenge",
+            )
 
     @pytest.mark.django_db
     def test_verify_authentication_cleans_up_challenge(self, user, credential):

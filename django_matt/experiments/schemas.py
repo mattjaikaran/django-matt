@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 Pydantic schemas for experiments API.
 

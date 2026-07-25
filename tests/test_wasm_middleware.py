@@ -28,9 +28,11 @@ class TestWasmNotAvailable:
         assert "uv add" in str(err)
 
     def test_loader_requires_wasmtime(self):
-        with patch.dict("sys.modules", {"wasmtime": None}):
-            with pytest.raises((WasmNotAvailableError, ImportError)):
-                WasmMiddlewareLoader()
+        with (
+            patch.dict("sys.modules", {"wasmtime": None}),
+            pytest.raises((WasmNotAvailableError, ImportError)),
+        ):
+            WasmMiddlewareLoader()
 
 
 class TestWasmMiddlewareInterface:

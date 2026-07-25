@@ -283,9 +283,7 @@ def __getattr__(name: str):
                     }
                     hint = optional_dep_hints.get(module_path, "")
                     if hint:
-                        raise ImportError(
-                            f"{name!r} requires {hint} to be installed."
-                        ) from None
+                        raise ImportError(f"{name!r} requires {hint} to be installed.") from None
                     raise
 
         return _imported[name]

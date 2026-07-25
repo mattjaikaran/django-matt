@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 Base service classes for django-matt.
 
@@ -140,9 +141,7 @@ class BaseService[ModelT: models.Model]:
         try:
             return await self.get_queryset().aget(**lookup)
         except ObjectDoesNotExist:
-            raise NotFoundError(
-                f"{self.model.__name__} matching {lookup} not found"
-            )
+            raise NotFoundError(f"{self.model.__name__} matching {lookup} not found")
 
     async def exists(self, **lookup) -> bool:
         """Return True if at least one matching record exists."""
@@ -285,9 +284,7 @@ class CRUDService[ModelT: models.Model](BaseService[ModelT]):
             patched = await service.update(pk, payload.model_dump(), user=request.user, partial=True)
         """
         instance = await self.get(pk)
-        update_data = (
-            {k: v for k, v in data.items() if v is not None} if partial else data
-        )
+        update_data = {k: v for k, v in data.items() if v is not None} if partial else data
 
         if user is not None and hasattr(instance, "updated_by"):
             instance.updated_by = user  # type: ignore[attr-defined]
@@ -317,9 +314,7 @@ class CRUDService[ModelT: models.Model](BaseService[ModelT]):
     # Delete
     # ------------------------------------------------------------------
 
-    async def delete(
-        self, pk: Any, user=None, *, hard: bool = False
-    ) -> bool:
+    async def delete(self, pk: Any, user=None, *, hard: bool = False) -> bool:
         """
         Delete a record.
 
@@ -369,9 +364,7 @@ class CRUDService[ModelT: models.Model](BaseService[ModelT]):
         result = await self.model.objects.abulk_create(
             instances, batch_size=batch_size, ignore_conflicts=ignore_conflicts
         )
-        self._log.info(
-            "bulk_create %s: %d records", self.model.__name__, len(result)
-        )
+        self._log.info("bulk_create %s: %d records", self.model.__name__, len(result))
         return result
 
     async def bulk_update(
@@ -392,9 +385,7 @@ class CRUDService[ModelT: models.Model](BaseService[ModelT]):
                 inst.updated_by = user  # type: ignore[attr-defined]
             fields = [*fields, "updated_by"]
 
-        count = await self.model.objects.abulk_update(
-            instances, fields, batch_size=batch_size
-        )
+        count = await self.model.objects.abulk_update(instances, fields, batch_size=batch_size)
         self._log.info("bulk_update %s: %d records", self.model.__name__, count)
         return count
 

@@ -119,9 +119,7 @@ class QueryCoalescer:
                     entry.future.set_result(obj)
                 else:
                     entry.future.set_exception(
-                        model.DoesNotExist(
-                            f"{model.__name__} with pk={entry.pk!r} does not exist"
-                        )
+                        model.DoesNotExist(f"{model.__name__} with pk={entry.pk!r} does not exist")
                     )
         except Exception as e:
             for entry in entries:

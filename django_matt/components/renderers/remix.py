@@ -1,3 +1,4 @@
+# file-length-max: 700
 """
 Remix renderer for components.
 
@@ -211,7 +212,9 @@ class RemixRenderer(BaseRenderer):
             metadata={
                 "component_type": component.type.value,
                 "has_form": has_form,
-            } if self.include_metadata else {},
+            }
+            if self.include_metadata
+            else {},
         )
 
     def _render_node(
@@ -239,16 +242,24 @@ class RemixRenderer(BaseRenderer):
             return f'<Link to="{href}" {attr_str}>{text}</Link>'
 
         # Form components use Remix Form
-        if component.type in (ComponentType.FORM, ComponentType.LOGIN_FORM, ComponentType.REGISTER_FORM):
+        if component.type in (
+            ComponentType.FORM,
+            ComponentType.LOGIN_FORM,
+            ComponentType.REGISTER_FORM,
+        ):
             imports.add('import { Form } from "@remix-run/react";')
             attr_str = self._attrs_to_jsx(attrs)
-            return f"<Form method=\"post\" {attr_str}>\n{children_jsx}\n</Form>"
+            return f'<Form method="post" {attr_str}>\n{children_jsx}\n</Form>'
 
         # UI library component
         if self.component_library == "shadcn":
-            imports.add(f'import {{ {comp_name} }} from "@/components/ui/{self._to_kebab(comp_name)}";')
+            imports.add(
+                f'import {{ {comp_name} }} from "@/components/ui/{self._to_kebab(comp_name)}";'
+            )
         elif self.component_library == "radix":
-            imports.add(f'import * as {comp_name} from "@radix-ui/react-{self._to_kebab(comp_name)}";')
+            imports.add(
+                f'import * as {comp_name} from "@radix-ui/react-{self._to_kebab(comp_name)}";'
+            )
 
         attr_str = self._attrs_to_jsx(attrs)
         if children_jsx:
@@ -351,10 +362,7 @@ class RemixRenderer(BaseRenderer):
     @staticmethod
     def _to_pascal_case(s: str) -> str:
         """Convert string to PascalCase."""
-        return "".join(
-            word.capitalize()
-            for word in s.replace("-", " ").replace("_", " ").split()
-        )
+        return "".join(word.capitalize() for word in s.replace("-", " ").replace("_", " ").split())
 
     @staticmethod
     def _to_kebab(s: str) -> str:

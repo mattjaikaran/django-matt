@@ -1,3 +1,4 @@
+# file-length-max: 700
 """
 Custom startapp command that creates a package-based app structure.
 
@@ -121,9 +122,7 @@ class Command(StartAppCommand):
         if not model_names:
             model_names = [get_model_name(app_name)]
 
-        created_files = self._create_structure(
-            app_name, app_directory, model_names, no_service
-        )
+        created_files = self._create_structure(app_name, app_directory, model_names, no_service)
 
         self.stdout.write(
             self.style.SUCCESS(f"\nSuccessfully created app '{app_name}' with package structure")
@@ -258,9 +257,7 @@ class Command(StartAppCommand):
             )
             created_files.extend(
                 self._write_file(
-                    os.path.join(
-                        app_directory, "tests", "factories", f"{lower}_factory.py"
-                    ),
+                    os.path.join(app_directory, "tests", "factories", f"{lower}_factory.py"),
                     self._factory_template(app_name, model_name),
                 )
             )
@@ -301,9 +298,7 @@ class Command(StartAppCommand):
 
     def _write_init_files(self, app_directory, app_name, model_names, no_service):
         # models/__init__.py
-        imports = [
-            f"from {app_name}.models.{m.lower()} import {m}" for m in model_names
-        ]
+        imports = [f"from {app_name}.models.{m.lower()} import {m}" for m in model_names]
         all_names = [f'"{m}"' for m in model_names]
         self._write_file(
             os.path.join(app_directory, "models", "__init__.py"),
@@ -321,9 +316,7 @@ class Command(StartAppCommand):
                 f"\n    {m}UpdateSchema,"
                 f"\n)"
             )
-            schema_all.extend(
-                [f'"{m}Schema"', f'"{m}CreateSchema"', f'"{m}UpdateSchema"']
-            )
+            schema_all.extend([f'"{m}Schema"', f'"{m}CreateSchema"', f'"{m}UpdateSchema"'])
         self._write_file(
             os.path.join(app_directory, "schemas", "__init__.py"),
             "\n".join(schema_imports) + f"\n\n__all__ = [{', '.join(schema_all)}]\n",
@@ -342,8 +335,7 @@ class Command(StartAppCommand):
 
         # admin/__init__.py
         admin_imports = [
-            f"from {app_name}.admin.{m.lower()}_admin import {m}Admin"
-            for m in model_names
+            f"from {app_name}.admin.{m.lower()}_admin import {m}Admin" for m in model_names
         ]
         admin_all = [f'"{m}Admin"' for m in model_names]
         self._write_file(
@@ -364,9 +356,7 @@ class Command(StartAppCommand):
             )
 
         # tests/__init__.py
-        self._write_file(
-            os.path.join(app_directory, "tests", "__init__.py"), ""
-        )
+        self._write_file(os.path.join(app_directory, "tests", "__init__.py"), "")
 
         # tests/factories/__init__.py
         factory_imports = [
@@ -650,14 +640,10 @@ class {model_name}Factory(factory.django.DjangoModelFactory):
 '''
 
     def _urls_template(self, app_name, model_names):
-        imports = [
-            f"from {app_name}.controllers import {m}Controller" for m in model_names
-        ]
-        registers = [
-            f"router.register_controller({m}Controller)" for m in model_names
-        ]
+        imports = [f"from {app_name}.controllers import {m}Controller" for m in model_names]
+        registers = [f"router.register_controller({m}Controller)" for m in model_names]
         return (
-            'from django_matt import APIRouter\n\n'
+            "from django_matt import APIRouter\n\n"
             + "\n".join(imports)
             + "\n\n"
             + f'router = APIRouter(prefix="api/{app_name}/", tags=["{app_name}"])\n\n'

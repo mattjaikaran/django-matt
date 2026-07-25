@@ -22,7 +22,9 @@ class RequestLoggingMiddleware:
 
         self.enabled = log_config.get("ENABLED", True)
         self.log_level = getattr(logging, log_config.get("LEVEL", "INFO").upper(), logging.INFO)
-        self.exclude_paths = set(log_config.get("EXCLUDE_PATHS", ["/health/", "/ready/", "/favicon.ico"]))
+        self.exclude_paths = set(
+            log_config.get("EXCLUDE_PATHS", ["/health/", "/ready/", "/favicon.ico"])
+        )
         self.log_headers = log_config.get("LOG_HEADERS", False)
         self.log_body = log_config.get("LOG_BODY", False)
 
@@ -39,7 +41,8 @@ class RequestLoggingMiddleware:
             "path": request.path,
             "status": response.status_code,
             "duration_ms": round(duration_ms, 2),
-            "user": getattr(request, "user", None) and str(getattr(request.user, "pk", "anonymous")),
+            "user": getattr(request, "user", None)
+            and str(getattr(request.user, "pk", "anonymous")),
         }
 
         # Optionally include request ID

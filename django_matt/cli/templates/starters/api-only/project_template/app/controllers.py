@@ -15,10 +15,7 @@ async def health(request) -> JsonResponse:
 @require_http_methods(["GET"])
 @jwt_required
 async def list_items(request) -> JsonResponse:
-    items = [
-        ItemSchema.model_validate(item)
-        async for item in Item.objects.all()
-    ]
+    items = [ItemSchema.model_validate(item) async for item in Item.objects.all()]
     return JsonResponse({"items": [i.model_dump(mode="json") for i in items]})
 
 

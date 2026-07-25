@@ -1,3 +1,4 @@
+# file-length-max: 650
 """
 Django models for billing/subscription management.
 

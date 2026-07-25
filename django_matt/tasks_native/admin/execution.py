@@ -239,9 +239,7 @@ class TaskExecutionAdmin(ModelAdmin):
         ).update(state=TaskState.CANCELLED.value)
 
         if cancelled:
-            self.message_user(
-                request, f"Cancelled {cancelled} tasks.", messages.SUCCESS
-            )
+            self.message_user(request, f"Cancelled {cancelled} tasks.", messages.SUCCESS)
 
     @action(description="Purge completed tasks older than 7 days")
     def purge_completed(self, request: HttpRequest, queryset: QuerySet) -> None:
@@ -256,6 +254,4 @@ class TaskExecutionAdmin(ModelAdmin):
         ).delete()
 
         if deleted:
-            self.message_user(
-                request, f"Purged {deleted} old completed tasks.", messages.SUCCESS
-            )
+            self.message_user(request, f"Purged {deleted} old completed tasks.", messages.SUCCESS)

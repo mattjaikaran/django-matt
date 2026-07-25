@@ -57,12 +57,8 @@ class Command(BaseCommand):
         )
 
         # Load
-        load_parser = subparsers.add_parser(
-            "load", help="Load a baseline into the database"
-        )
-        load_parser.add_argument(
-            "version", help="Version of the baseline to load"
-        )
+        load_parser = subparsers.add_parser("load", help="Load a baseline into the database")
+        load_parser.add_argument("version", help="Version of the baseline to load")
         load_parser.add_argument(
             "--dry-run",
             action="store_true",
@@ -73,9 +69,7 @@ class Command(BaseCommand):
         subparsers.add_parser("list", help="List available baselines")
 
         # Verify
-        verify_parser = subparsers.add_parser(
-            "verify", help="Verify a baseline's integrity"
-        )
+        verify_parser = subparsers.add_parser("verify", help="Verify a baseline's integrity")
         verify_parser.add_argument("version", help="Version to verify")
 
         # Delete
@@ -88,9 +82,7 @@ class Command(BaseCommand):
         )
 
         # Info
-        info_parser = subparsers.add_parser(
-            "info", help="Show detailed info about a baseline"
-        )
+        info_parser = subparsers.add_parser("info", help="Show detailed info about a baseline")
         info_parser.add_argument("version", help="Version to inspect")
 
     def handle(self, **options):
@@ -207,9 +199,7 @@ class Command(BaseCommand):
 
         if not baselines:
             self.stdout.write("No baselines found.")
-            self.stdout.write(
-                "Create one with: python manage.py matt_baseline create <version>"
-            )
+            self.stdout.write("Create one with: python manage.py matt_baseline create <version>")
             return
 
         self.stdout.write("Available baselines:\n")

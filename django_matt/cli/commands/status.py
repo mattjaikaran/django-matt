@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Status command - Project health check and diagnostics.
 
@@ -67,8 +68,8 @@ def _collect_errors() -> list[CheckResult]:
                     message="SECRET_KEY is set to a known-insecure placeholder",
                     fix=(
                         "Generate a new secret key: "
-                        "python -c \"from django.core.management.utils import "
-                        "get_random_secret_key; print(get_random_secret_key())\""
+                        'python -c "from django.core.management.utils import '
+                        'get_random_secret_key; print(get_random_secret_key())"'
                     ),
                 )
             )
@@ -182,9 +183,7 @@ def _collect_warnings() -> list[CheckResult]:
         # No CORS headers configured
         cors_origins = getattr(settings, "CORS_ALLOWED_ORIGINS", None)
         cors_all = getattr(settings, "CORS_ALLOW_ALL_ORIGINS", False)
-        cors_middleware = any(
-            "CorsMiddleware" in m for m in getattr(settings, "MIDDLEWARE", [])
-        )
+        cors_middleware = any("CorsMiddleware" in m for m in getattr(settings, "MIDDLEWARE", []))
         if not cors_middleware and cors_origins is None and not cors_all:
             results.append(
                 CheckResult(

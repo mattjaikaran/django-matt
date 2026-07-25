@@ -74,10 +74,16 @@ async def send_message(request, conversation_id: int) -> JsonResponse:
         content="AI response placeholder — configure DJANGO_MATT_AI to enable",
     )
 
-    return JsonResponse({
-        "user_message": MessageSchema.model_validate(user_msg).model_dump(mode="json"),
-        "assistant_message": MessageSchema.model_validate(assistant_msg).model_dump(mode="json"),
-    })
+    return JsonResponse(
+        {
+            "user_message": MessageSchema.model_validate(user_msg).model_dump(
+                mode="json"
+            ),
+            "assistant_message": MessageSchema.model_validate(assistant_msg).model_dump(
+                mode="json"
+            ),
+        }
+    )
 
 
 @require_http_methods(["POST"])

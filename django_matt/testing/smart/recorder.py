@@ -69,9 +69,7 @@ class TestRecorder:
         self.metadata = self._capture_metadata()
 
     def record_start(self, test_id: str) -> None:
-        self.events.append(
-            TestEvent(event="test_start", test_id=test_id, timestamp=time.time())
-        )
+        self.events.append(TestEvent(event="test_start", test_id=test_id, timestamp=time.time()))
 
     def record_pass(
         self, test_id: str, duration_ms: float, stdout: str = "", stderr: str = ""
@@ -158,20 +156,25 @@ class TestRecorder:
 
         try:
             import django
+
             meta.django_version = django.__version__
         except ImportError:
             pass
 
         try:
             import subprocess
+
             result = subprocess.run(
                 ["git", "rev-parse", "HEAD"],
-                capture_output=True, text=True, check=True,
+                capture_output=True,
+                text=True,
+                check=True,
             )
             meta.git_sha = result.stdout.strip()
             dirty = subprocess.run(
                 ["git", "diff", "--quiet"],
-                capture_output=True, check=False,
+                capture_output=True,
+                check=False,
             )
             meta.git_dirty = dirty.returncode != 0
         except Exception:
@@ -179,6 +182,7 @@ class TestRecorder:
 
         try:
             from importlib.metadata import distributions
+
             meta.packages = {
                 d.metadata["Name"]: d.metadata["Version"]
                 for d in distributions()

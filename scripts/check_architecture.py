@@ -128,13 +128,43 @@ TOOLING = {  # exempt
 }
 
 _MODULE_LAYER: dict[str, int] = {}
-_MODULE_LAYER.update({m: 0 for m in FOUNDATION})
-_MODULE_LAYER.update({m: 1 for m in INFRASTRUCTURE})
-_MODULE_LAYER.update({m: 2 for m in DOMAIN})
-_MODULE_LAYER.update({m: 3 for m in INTERFACE})
+_MODULE_LAYER.update(dict.fromkeys(FOUNDATION, 0))
+_MODULE_LAYER.update(dict.fromkeys(INFRASTRUCTURE, 1))
+_MODULE_LAYER.update(dict.fromkeys(DOMAIN, 2))
+_MODULE_LAYER.update(dict.fromkeys(INTERFACE, 3))
 
 _LAYER_NAME = {0: "foundation", 1: "infrastructure", 2: "domain", 3: "interface"}
 _ALL_MODULES = FOUNDATION | INFRASTRUCTURE | DOMAIN | INTERFACE | TOOLING
+
+# ── Exemptions ───────────────────────────────────────────────────────────────
+
+# Modules entirely exempt from all checks (imports from anywhere allowed).
+TESTING_EXEMPT = {"testing"}
+
+# API facade file (foundation/api.py) — the top-level surface, imports from anywhere.
+API_FACADE_FILE = "django_matt/api.py"
+
+# (source_module, target_module) exempt from LAYER-DEP violations.
+ALLOWED_CROSS_LAYER: set[tuple[str, str]] = {
+    ("core", "di"),  # core/router.py DI integration
+    ("permissions", "multitenancy"),  # org-scoped permissions need tenant models
+    ("websockets", "auth"),  # WebSocket auth needs JWT tokens
+    ("tasks_native", "admin"),  # intra-module: tasks_native/apps.py → tasks_native/admin/
+}
+
+# (source_module, target_module) exempt from CROSS-DOMAIN violations.
+ALLOWED_CROSS_DOMAIN: set[tuple[str, str]] = {
+    ("ml", "ai"),  # ML models use AI base classes
+    ("notifications", "email"),  # notifications deliver via email
+    ("experiments", "flags"),  # flags_integration is THE flags bridge
+    ("experiments", "analytics"),  # manager analytics bridge
+}
+
+# External package prefixes — imports from these are never django-matt modules.
+_EXTERNAL_PREFIXES = frozenset(
+    {"django.", "rest_framework.", "celery.", "pydantic.", "sqlalchemy."}
+)
+
 
 SKIP_DIRS = {
     ".venv",
@@ -189,6 +219,10 @@ def _eff_layer(path: str, module: str) -> int | None:
 
 def _resolve_abs(import_path: str) -> str | None:
     """django_matt.core.router → 'core'; core.schema → 'core'."""
+    # Skip known external packages (e.g. django.contrib.admin is not django_matt.admin).
+    for prefix in _EXTERNAL_PREFIXES:
+        if import_path == prefix.rstrip(".") or import_path.startswith(prefix):
+            return None
     parts = import_path.split(".")
     if parts[0] == "django_matt" and len(parts) >= 2:
         return parts[1] if parts[1] in _ALL_MODULES else None
@@ -234,8 +268,14 @@ class ArchChecker:
         rel = str(fp)
         if not rel.endswith(".py"):
             return
+        # API facade imports from everywhere — exempt.
+        if rel == API_FACADE_FILE:
+            return
         mod = _top_module(rel)
         if mod is None or mod in SKIP_MODULES:
+            return
+        # Testing infrastructure imports from everywhere — exempt.
+        if mod in TESTING_EXEMPT:
             return
         layer = _eff_layer(rel, mod)
         if layer is None:
@@ -272,6 +312,10 @@ class ArchChecker:
         if tmod is None:
             return
 
+        # Intra-module imports (e.g. tasks_native.apps → tasks_native.admin) are always allowed.
+        if fmod == tmod:
+            return
+
         if tmod in ("tests", "test"):
             self.violations.append(
                 Violation(
@@ -288,27 +332,29 @@ class ArchChecker:
             return
 
         if flayer < tlayer:
-            self.violations.append(
-                Violation(
-                    fp,
-                    line,
-                    "LAYER-DEP",
-                    f"Layer violation: {_LAYER_NAME[flayer]}({fmod}) "
-                    f"→ {_LAYER_NAME[tlayer]}({tmod}) via '{ipath}'. "
-                    f"Lower layers must not depend on higher layers.",
+            if (fmod, tmod) not in ALLOWED_CROSS_LAYER:
+                self.violations.append(
+                    Violation(
+                        fp,
+                        line,
+                        "LAYER-DEP",
+                        f"Layer violation: {_LAYER_NAME[flayer]}({fmod}) "
+                        f"→ {_LAYER_NAME[tlayer]}({tmod}) via '{ipath}'. "
+                        f"Lower layers must not depend on higher layers.",
+                    )
                 )
-            )
 
         if flayer == 2 and tlayer == 2 and fmod != tmod:
-            self.violations.append(
-                Violation(
-                    fp,
-                    line,
-                    "CROSS-DOMAIN",
-                    f"Cross-domain: {fmod} → {tmod} via '{ipath}'. "
-                    f"Domain features must not import from each other.",
+            if (fmod, tmod) not in ALLOWED_CROSS_DOMAIN:
+                self.violations.append(
+                    Violation(
+                        fp,
+                        line,
+                        "CROSS-DOMAIN",
+                        f"Cross-domain: {fmod} → {tmod} via '{ipath}'. "
+                        f"Domain features must not import from each other.",
+                    )
                 )
-            )
 
     def report(self) -> int:
         if not self.violations:

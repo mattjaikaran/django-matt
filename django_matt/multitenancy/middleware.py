@@ -279,9 +279,7 @@ class TenantMiddlewareAsync:
 
         return None
 
-    async def _resolve_from_url(
-        self, request: HttpRequest, Organization
-    ) -> Optional[Organization]:
+    async def _resolve_from_url(self, request: HttpRequest, Organization) -> Optional[Organization]:
         """Resolve tenant from URL parameters."""
         if hasattr(request, "resolver_match") and request.resolver_match:
             org_slug = request.resolver_match.kwargs.get(self.url_kwarg)

@@ -1,3 +1,4 @@
+# file-length-max: 600
 """SQL baseline management — replace hundreds of migrations with a single dump.
 
 Instead of running 500+ migrations sequentially, developers can:
@@ -338,9 +339,7 @@ class MigrationBaseline:
             manifest_path = version_dir / "manifest.json"
             if manifest_path.exists():
                 try:
-                    info = BaselineInfo.from_dict(
-                        json.loads(manifest_path.read_text())
-                    )
+                    info = BaselineInfo.from_dict(json.loads(manifest_path.read_text()))
                     baselines.append(info)
                 except Exception as e:
                     logger.warning("Failed to read baseline %s: %s", version_dir.name, e)

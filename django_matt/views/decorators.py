@@ -1,3 +1,4 @@
+# file-length-max: 550
 """
 Decorator-based hooks for Django Matt CRUD views.
 

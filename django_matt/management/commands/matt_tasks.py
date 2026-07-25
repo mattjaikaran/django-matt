@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Django Matt native task engine CLI.
 
@@ -122,9 +123,7 @@ class Command(MattCommand):
         )
 
         # schedules
-        schedules_parser = subparsers.add_parser(
-            "schedules", help="List all schedules"
-        )
+        schedules_parser = subparsers.add_parser("schedules", help="List all schedules")
         schedules_parser.add_argument(
             "--enabled-only",
             action="store_true",
@@ -142,7 +141,9 @@ class Command(MattCommand):
         subcommand = options.get("subcommand")
 
         if not subcommand:
-            self.console.error("Please specify a subcommand: list, run, status, purge, retry, schedules")
+            self.console.error(
+                "Please specify a subcommand: list, run, status, purge, retry, schedules"
+            )
             self.print_help("manage.py", "matt_tasks")
             return
 
@@ -163,16 +164,18 @@ class Command(MattCommand):
             return
 
         if options["format"] == "json":
-            self._output_json([
-                {
-                    "name": t.name,
-                    "is_async": t.is_async,
-                    "queue": t.options.queue,
-                    "max_retries": t.options.max_retries,
-                    "has_payload_type": t.payload_type is not None,
-                }
-                for t in tasks
-            ])
+            self._output_json(
+                [
+                    {
+                        "name": t.name,
+                        "is_async": t.is_async,
+                        "queue": t.options.queue,
+                        "max_retries": t.options.max_retries,
+                        "has_payload_type": t.payload_type is not None,
+                    }
+                    for t in tasks
+                ]
+            )
         else:
             self._output_task_table(tasks)
 
@@ -266,11 +269,13 @@ class Command(MattCommand):
         health = backend.health_check()
 
         if options["format"] == "json":
-            self._output_json({
-                "backend": health,
-                "registered_tasks": len(task_registry),
-                "queue_length": backend.get_queue_length(options.get("queue") or "default"),
-            })
+            self._output_json(
+                {
+                    "backend": health,
+                    "registered_tasks": len(task_registry),
+                    "queue_length": backend.get_queue_length(options.get("queue") or "default"),
+                }
+            )
         else:
             self._output_status_table(health, backend, options)
 
@@ -404,17 +409,19 @@ class Command(MattCommand):
             return
 
         if options["format"] == "json":
-            self._output_json([
-                {
-                    "name": s.name or s.task.name,
-                    "task": s.task.name,
-                    "schedule": repr(s.schedule),
-                    "enabled": s.enabled,
-                    "next_run": s.next_run.isoformat() if s.next_run else None,
-                    "run_count": s.run_count,
-                }
-                for s in schedules
-            ])
+            self._output_json(
+                [
+                    {
+                        "name": s.name or s.task.name,
+                        "task": s.task.name,
+                        "schedule": repr(s.schedule),
+                        "enabled": s.enabled,
+                        "next_run": s.next_run.isoformat() if s.next_run else None,
+                        "run_count": s.run_count,
+                    }
+                    for s in schedules
+                ]
+            )
         else:
             self._output_schedule_table(schedules)
 

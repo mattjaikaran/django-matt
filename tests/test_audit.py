@@ -703,33 +703,35 @@ class TestAuditLogModel:
 
     def test_log_with_object(self):
         """Test AuditLog.log with associated object."""
-        with patch("django_matt.audit.models.AuditLog.objects") as mock_objects:
-            with patch("django_matt.audit.models.ContentType.objects.get_for_model") as mock_ct:
-                mock_ct.return_value = Mock(model="user")
-                mock_log = create_mock_audit_log(
-                    action=AuditAction.UPDATE,
-                    changes={"email": {"old": "old@example.com", "new": "new@example.com"}},
-                )
-                mock_objects.create.return_value = mock_log
+        with (
+            patch("django_matt.audit.models.AuditLog.objects") as mock_objects,
+            patch("django_matt.audit.models.ContentType.objects.get_for_model") as mock_ct,
+        ):
+            mock_ct.return_value = Mock(model="user")
+            mock_log = create_mock_audit_log(
+                action=AuditAction.UPDATE,
+                changes={"email": {"old": "old@example.com", "new": "new@example.com"}},
+            )
+            mock_objects.create.return_value = mock_log
 
-                mock_obj = Mock()
-                mock_obj.pk = 123
+            mock_obj = Mock()
+            mock_obj.pk = 123
 
-                from django_matt.audit.models import AuditLog
+            from django_matt.audit.models import AuditLog
 
-                AuditLog.log(
-                    action=AuditAction.UPDATE,
-                    obj=mock_obj,
-                    description="Updated user profile",
-                    changes={"email": {"old": "old@example.com", "new": "new@example.com"}},
-                )
+            AuditLog.log(
+                action=AuditAction.UPDATE,
+                obj=mock_obj,
+                description="Updated user profile",
+                changes={"email": {"old": "old@example.com", "new": "new@example.com"}},
+            )
 
-                mock_objects.create.assert_called_once()
-                call_kwargs = mock_objects.create.call_args[1]
-                assert call_kwargs["object_id"] == "123"
-                assert call_kwargs["changes"] == {
-                    "email": {"old": "old@example.com", "new": "new@example.com"}
-                }
+            mock_objects.create.assert_called_once()
+            call_kwargs = mock_objects.create.call_args[1]
+            assert call_kwargs["object_id"] == "123"
+            assert call_kwargs["changes"] == {
+                "email": {"old": "old@example.com", "new": "new@example.com"}
+            }
 
     def test_log_with_severity(self):
         """Test AuditLog.log with custom severity."""
@@ -862,22 +864,24 @@ class TestAuditUtils:
         mock_obj._meta.app_label = "myapp"
         mock_obj._meta.model_name = "mymodel"
 
-        with patch("django_matt.audit.models.AuditLog.objects") as mock_manager:
-            with patch(
+        with (
+            patch("django_matt.audit.models.AuditLog.objects") as mock_manager,
+            patch(
                 "django.contrib.contenttypes.models.ContentType.objects.get_for_model"
-            ) as mock_ct:
-                mock_ct.return_value = Mock(id=1)
-                mock_qs = Mock()
-                mock_qs.order_by.return_value = mock_qs
-                mock_manager.filter.return_value = mock_qs
+            ) as mock_ct,
+        ):
+            mock_ct.return_value = Mock(id=1)
+            mock_qs = Mock()
+            mock_qs.order_by.return_value = mock_qs
+            mock_manager.filter.return_value = mock_qs
 
-                from django_matt.audit.utils import get_audit_history
+            from django_matt.audit.utils import get_audit_history
 
-                get_audit_history(mock_obj)
+            get_audit_history(mock_obj)
 
-                mock_manager.filter.assert_called_once()
-                call_kwargs = mock_manager.filter.call_args[1]
-                assert call_kwargs["object_id"] == "123"
+            mock_manager.filter.assert_called_once()
+            call_kwargs = mock_manager.filter.call_args[1]
+            assert call_kwargs["object_id"] == "123"
 
     def test_get_user_actions_calls_filter(self):
         """Test get_user_actions filters correctly."""
@@ -1200,28 +1204,30 @@ class TestSoftDeleteAuditIntegration:
         from django_matt.audit.models import AuditLog
 
         # Directly test the logic: pk=None means create
-        with patch.object(AuditLog, "log") as mock_log:
-            with patch("django_matt.audit.context.get_current_user", return_value=None):
-                # Simulate what save() does for a new object
-                obj, Mixin = self._make_mixin(pk=None, title="Test")
-                obj._audit_original_values = {}
+        with (
+            patch.object(AuditLog, "log") as mock_log,
+            patch("django_matt.audit.context.get_current_user", return_value=None),
+        ):
+            # Simulate what save() does for a new object
+            obj, Mixin = self._make_mixin(pk=None, title="Test")
+            obj._audit_original_values = {}
 
-                # Call the save logic components directly
-                is_new = obj.pk is None
-                assert is_new is True
+            # Call the save logic components directly
+            is_new = obj.pk is None
+            assert is_new is True
 
-                # The AuditLog.log call that save() would make for create
-                AuditLog.log(
-                    action=AuditAction.CREATE,
-                    user=None,
-                    obj=obj,
-                    description=f"Created {obj._meta.verbose_name}",
-                    new_values={"title": "Test"},
-                )
+            # The AuditLog.log call that save() would make for create
+            AuditLog.log(
+                action=AuditAction.CREATE,
+                user=None,
+                obj=obj,
+                description=f"Created {obj._meta.verbose_name}",
+                new_values={"title": "Test"},
+            )
 
-                mock_log.assert_called_once()
-                call_kwargs = mock_log.call_args[1]
-                assert call_kwargs["action"] == AuditAction.CREATE
+            mock_log.assert_called_once()
+            call_kwargs = mock_log.call_args[1]
+            assert call_kwargs["action"] == AuditAction.CREATE
 
     def test_update_produces_audit_log_with_changes_diff(self):
         """Test: Update audited model -> AuditLog entry with changes diff showing old/new."""
@@ -1328,21 +1334,23 @@ class TestSoftDeleteAuditIntegration:
         mock_obj._meta.app_label = "testapp"
         mock_obj._meta.model_name = "testmodel"
 
-        with patch("django_matt.audit.models.AuditLog.objects") as mock_manager:
-            with patch(
+        with (
+            patch("django_matt.audit.models.AuditLog.objects") as mock_manager,
+            patch(
                 "django.contrib.contenttypes.models.ContentType.objects.get_for_model"
-            ) as mock_ct:
-                mock_ct.return_value = Mock(id=5)
-                mock_qs = Mock()
-                mock_qs.order_by.return_value = mock_qs
-                mock_qs.filter.return_value = mock_qs
-                mock_manager.filter.return_value = mock_qs
+            ) as mock_ct,
+        ):
+            mock_ct.return_value = Mock(id=5)
+            mock_qs = Mock()
+            mock_qs.order_by.return_value = mock_qs
+            mock_qs.filter.return_value = mock_qs
+            mock_manager.filter.return_value = mock_qs
 
-                from django_matt.audit.utils import get_audit_history
+            from django_matt.audit.utils import get_audit_history
 
-                result = get_audit_history(mock_obj)
+            result = get_audit_history(mock_obj)
 
-                mock_manager.filter.assert_called_once()
-                call_kwargs = mock_manager.filter.call_args[1]
-                assert call_kwargs["object_id"] == "42"
-                mock_qs.order_by.assert_called_once_with("-created_at")
+            mock_manager.filter.assert_called_once()
+            call_kwargs = mock_manager.filter.call_args[1]
+            assert call_kwargs["object_id"] == "42"
+            mock_qs.order_by.assert_called_once_with("-created_at")

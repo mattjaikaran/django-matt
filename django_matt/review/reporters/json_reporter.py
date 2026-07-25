@@ -41,12 +41,8 @@ def report_json(summary: ReviewSummary, config: ReviewConfig) -> str:
             "total_findings": summary.total,
             "analyzers_run": summary.analyzers_run,
             "duration_ms": summary.duration_ms,
-            "by_severity": {
-                sev.name: count for sev, count in summary.by_severity.items()
-            },
-            "by_category": {
-                cat.value: count for cat, count in summary.by_category.items()
-            },
+            "by_severity": {sev.name: count for sev, count in summary.by_severity.items()},
+            "by_category": {cat.value: count for cat, count in summary.by_category.items()},
             "exit_code": summary.exit_code,
         },
         "findings": [_finding_dict(f) for f in summary.findings],

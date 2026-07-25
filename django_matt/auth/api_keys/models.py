@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 API Key models for SaaS API authentication.
 

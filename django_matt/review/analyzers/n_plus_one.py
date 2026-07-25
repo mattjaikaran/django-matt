@@ -14,16 +14,32 @@ from django_matt.review.config import ReviewConfig
 from django_matt.review.findings import Category, Finding, Location, Severity
 
 # ORM calls that typically indicate queryset evaluation
-_QUERYSET_METHODS: frozenset[str] = frozenset({
-    "filter", "get", "all", "exclude", "values", "values_list",
-    "count", "exists", "first", "last", "create", "update",
-    "aggregate", "annotate",
-})
+_QUERYSET_METHODS: frozenset[str] = frozenset(
+    {
+        "filter",
+        "get",
+        "all",
+        "exclude",
+        "values",
+        "values_list",
+        "count",
+        "exists",
+        "first",
+        "last",
+        "create",
+        "update",
+        "aggregate",
+        "annotate",
+    }
+)
 
 # Methods that prefetch/optimize related lookups
-_PREFETCH_METHODS: frozenset[str] = frozenset({
-    "select_related", "prefetch_related",
-})
+_PREFETCH_METHODS: frozenset[str] = frozenset(
+    {
+        "select_related",
+        "prefetch_related",
+    }
+)
 
 
 class NPlusOneAnalyzer(ASTVisitorAnalyzer):
@@ -149,24 +165,39 @@ class NPlusOneAnalyzer(ASTVisitorAnalyzer):
                 attr = child.attr
                 # Skip common non-relation attrs
                 if attr.startswith("_") or attr in {
-                    "pk", "id", "name", "title", "email", "is_active",
-                    "created_at", "updated_at", "status", "type", "slug",
-                    "description", "content", "value", "key", "data",
+                    "pk",
+                    "id",
+                    "name",
+                    "title",
+                    "email",
+                    "is_active",
+                    "created_at",
+                    "updated_at",
+                    "status",
+                    "type",
+                    "slug",
+                    "description",
+                    "content",
+                    "value",
+                    "key",
+                    "data",
                 }:
                     continue
                 if attr in reported_attrs:
                     continue
                 reported_attrs.add(attr)
 
-                self._add_finding(Finding(
-                    rule_id="NP001",
-                    message=f"Potential N+1: '{loop_var}.{attr}' accessed inside loop (line {child.lineno})",
-                    severity=Severity.WARNING,
-                    category=Category.N_PLUS_ONE,
-                    location=self._make_location(child.lineno),
-                    suggestion=f"Add .select_related('{attr}') or .prefetch_related('{attr}') to the queryset",
-                    context=self._get_source_line(child.lineno).strip(),
-                ))
+                self._add_finding(
+                    Finding(
+                        rule_id="NP001",
+                        message=f"Potential N+1: '{loop_var}.{attr}' accessed inside loop (line {child.lineno})",
+                        severity=Severity.WARNING,
+                        category=Category.N_PLUS_ONE,
+                        location=self._make_location(child.lineno),
+                        suggestion=f"Add .select_related('{attr}') or .prefetch_related('{attr}') to the queryset",
+                        context=self._get_source_line(child.lineno).strip(),
+                    )
+                )
 
             # Pattern: loop_var.related.subfield (deeper traversal)
             if (
@@ -181,19 +212,25 @@ class NPlusOneAnalyzer(ASTVisitorAnalyzer):
                     continue
                 # Skip common non-relation first-level attrs
                 if related.startswith("_") or related in {
-                    "pk", "id", "name", "title", "email",
+                    "pk",
+                    "id",
+                    "name",
+                    "title",
+                    "email",
                 }:
                     continue
                 reported_attrs.add(key)
-                self._add_finding(Finding(
-                    rule_id="NP001",
-                    message=f"Potential N+1: '{loop_var}.{related}.{subfield}' accessed inside loop",
-                    severity=Severity.WARNING,
-                    category=Category.N_PLUS_ONE,
-                    location=self._make_location(child.lineno),
-                    suggestion=f"Add .select_related('{related}') to the queryset",
-                    context=self._get_source_line(child.lineno).strip(),
-                ))
+                self._add_finding(
+                    Finding(
+                        rule_id="NP001",
+                        message=f"Potential N+1: '{loop_var}.{related}.{subfield}' accessed inside loop",
+                        severity=Severity.WARNING,
+                        category=Category.N_PLUS_ONE,
+                        location=self._make_location(child.lineno),
+                        suggestion=f"Add .select_related('{related}') to the queryset",
+                        context=self._get_source_line(child.lineno).strip(),
+                    )
+                )
 
     def _check_orm_calls_in_body(self, body: list[ast.stmt]) -> None:
         """NP002: Detect ORM queryset calls inside loop body."""
@@ -208,13 +245,15 @@ class NPlusOneAnalyzer(ASTVisitorAnalyzer):
             # Check if it's an .objects.method() or chained queryset call
             value = child.func.value
             if isinstance(value, ast.Attribute) and value.attr == "objects":
-                self._add_finding(Finding(
-                    rule_id="NP002",
-                    message=f"ORM .objects.{method}() called inside loop body",
-                    severity=Severity.WARNING,
-                    category=Category.N_PLUS_ONE,
-                    location=self._make_location(child.lineno),
-                    suggestion="Move the query before the loop or use bulk operations",
-                    context=self._get_source_line(child.lineno).strip(),
-                ))
+                self._add_finding(
+                    Finding(
+                        rule_id="NP002",
+                        message=f"ORM .objects.{method}() called inside loop body",
+                        severity=Severity.WARNING,
+                        category=Category.N_PLUS_ONE,
+                        location=self._make_location(child.lineno),
+                        suggestion="Move the query before the loop or use bulk operations",
+                        context=self._get_source_line(child.lineno).strip(),
+                    )
+                )
                 return  # One finding per loop body

@@ -13,6 +13,7 @@ from pydantic import BaseModel
 # Small schema (5 fields)
 # ---------------------------------------------------------------------------
 
+
 class UserSmall(BaseModel):
     id: int
     name: str
@@ -24,6 +25,7 @@ class UserSmall(BaseModel):
 # ---------------------------------------------------------------------------
 # Medium schema (15 fields)
 # ---------------------------------------------------------------------------
+
 
 class Address(BaseModel):
     street: str
@@ -54,6 +56,7 @@ class UserMedium(BaseModel):
 # ---------------------------------------------------------------------------
 # Large schema (50 fields)
 # ---------------------------------------------------------------------------
+
 
 class SocialLinks(BaseModel):
     twitter: str = ""
@@ -128,6 +131,7 @@ class UserLarge(BaseModel):
 # ---------------------------------------------------------------------------
 # Nested schema (3 levels deep)
 # ---------------------------------------------------------------------------
+
 
 class CommentNested(BaseModel):
     id: int

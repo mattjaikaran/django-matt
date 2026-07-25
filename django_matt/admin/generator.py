@@ -1,3 +1,4 @@
+# file-length-max: 550
 """
 Admin class generator for auto-generating admin.py from Django models.
 
@@ -335,7 +336,8 @@ class AdminGenerator:
 
             # Count concrete fields to decide TabularInline vs StackedInline
             concrete_fields = [
-                f for f in related_model._meta.get_fields()
+                f
+                for f in related_model._meta.get_fields()
                 if hasattr(f, "column") and f.name not in self.exclude_fields
             ]
 

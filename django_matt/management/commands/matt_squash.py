@@ -111,9 +111,7 @@ class Command(BaseCommand):
 
         opportunities = []
         for app_label, migrations in sorted(apps.items()):
-            applied_count = sum(
-                1 for m in migrations if (app_label, m) in applied
-            )
+            applied_count = sum(1 for m in migrations if (app_label, m) in applied)
             if applied_count >= min_count:
                 opportunities.append((app_label, migrations, applied_count))
 
@@ -141,9 +139,7 @@ class Command(BaseCommand):
                 f"  Suggested: python manage.py matt_squash {app_label} {first} {last_applied}"
             )
 
-        self.stdout.write(
-            f"\n{len(opportunities)} app(s) could benefit from squashing."
-        )
+        self.stdout.write(f"\n{len(opportunities)} app(s) could benefit from squashing.")
 
     def _handle_single(self, options):
         """Squash a single app's migrations."""
@@ -168,14 +164,14 @@ class Command(BaseCommand):
         self.stdout.write(f"  {', '.join(preview.migrations_to_squash[:5])}")
         if len(preview.migrations_to_squash) > 5:
             self.stdout.write(f"  ... and {len(preview.migrations_to_squash) - 5} more")
-        self.stdout.write(f"\nOperations: {preview.total_operations} → {preview.optimized_operations}")
+        self.stdout.write(
+            f"\nOperations: {preview.total_operations} → {preview.optimized_operations}"
+        )
 
         reduction = preview.total_operations - preview.optimized_operations
         if reduction > 0:
             pct = (reduction / preview.total_operations) * 100
-            self.stdout.write(
-                self.style.SUCCESS(f"Reduction: {reduction} operations ({pct:.1f}%)")
-            )
+            self.stdout.write(self.style.SUCCESS(f"Reduction: {reduction} operations ({pct:.1f}%)"))
 
         if preview.warnings:
             self.stdout.write(self.style.WARNING("\nWarnings:"))
@@ -196,9 +192,7 @@ class Command(BaseCommand):
 
         if result.success:
             self.stdout.write(
-                self.style.SUCCESS(
-                    f"\nSquash complete! Created: {result.new_migration_name}"
-                )
+                self.style.SUCCESS(f"\nSquash complete! Created: {result.new_migration_name}")
             )
             self.stdout.write(
                 "\nNext steps:\n"
@@ -231,16 +225,10 @@ class Command(BaseCommand):
             if (app_label, migration_name) in applied:
                 apps.setdefault(app_label, []).append(migration_name)
 
-        candidates = [
-            (app, sorted(migs))
-            for app, migs in apps.items()
-            if len(migs) >= min_count
-        ]
+        candidates = [(app, sorted(migs)) for app, migs in apps.items() if len(migs) >= min_count]
 
         if not candidates:
-            self.stdout.write(
-                f"No apps with {min_count}+ applied migrations to squash."
-            )
+            self.stdout.write(f"No apps with {min_count}+ applied migrations to squash.")
             return
 
         self.stdout.write(f"\nWill squash {len(candidates)} apps:")
@@ -264,9 +252,7 @@ class Command(BaseCommand):
             result = squasher.squash(app, migs[0], migs[-1])
 
             if result.success:
-                self.stdout.write(
-                    self.style.SUCCESS(f"  ✓ Created {result.new_migration_name}")
-                )
+                self.stdout.write(self.style.SUCCESS(f"  ✓ Created {result.new_migration_name}"))
                 successes += 1
             else:
                 self.stderr.write(self.style.ERROR(f"  ✗ Failed: {result.error}"))

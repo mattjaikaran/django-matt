@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 Django Matt AI - Machine Learning & LLM Integration.
 

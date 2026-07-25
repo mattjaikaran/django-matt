@@ -1,3 +1,4 @@
+# file-length-max: 1400
 """
 Django Matt CRUD generator command.
 
@@ -643,12 +644,14 @@ class Command(GeneratorCommand):
         if not with_service:
             lines.append(f"from .models import {model_name}")
         # Schema imports sorted alphabetically
-        schema_names = sorted([
-            f"{model_name}CreateSchema",
-            f"{model_name}ListSchema",
-            f"{model_name}Schema",
-            f"{model_name}UpdateSchema",
-        ])
+        schema_names = sorted(
+            [
+                f"{model_name}CreateSchema",
+                f"{model_name}ListSchema",
+                f"{model_name}Schema",
+                f"{model_name}UpdateSchema",
+            ]
+        )
         lines.append("from .schemas import (")
         for name in schema_names:
             lines.append(f"    {name},")
@@ -1041,9 +1044,7 @@ class Command(GeneratorCommand):
         if search_fields:
             lines.append("        if search:")
             lines.append("            from django.db.models import Q")
-            parts = " | ".join(
-                f"Q({f}__icontains=search)" for f in search_fields[:3]
-            )
+            parts = " | ".join(f"Q({f}__icontains=search)" for f in search_fields[:3])
             lines.append(f"            queryset = queryset.filter({parts})")
             lines.append("")
 
@@ -1172,12 +1173,15 @@ class Command(GeneratorCommand):
         lines.append("")
         # Sorted imports: first-party django_matt, then local-folder
         # django_matt.admin exports are sorted alphabetically
-        admin_imports = sorted([
-            "MattModelAdmin",
-            "export_as_csv",
-            "export_as_json",
-            "register_admin",
-        ] + (["SoftDeleteAdminMixin"] if soft_delete else []))
+        admin_imports = sorted(
+            [
+                "MattModelAdmin",
+                "export_as_csv",
+                "export_as_json",
+                "register_admin",
+            ]
+            + (["SoftDeleteAdminMixin"] if soft_delete else [])
+        )
         lines.append("from django_matt.admin import (")
         for imp in admin_imports:
             lines.append(f"    {imp},")

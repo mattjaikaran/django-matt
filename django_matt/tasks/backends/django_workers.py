@@ -127,9 +127,7 @@ class DjangoWorkersBackend(BaseBackend):
             "completed": "success",
             "failed": "failure",
         }
-        status = status_map.get(
-            getattr(job, "status", "unknown"), "unknown"
-        )
+        status = status_map.get(getattr(job, "status", "unknown"), "unknown")
 
         return Result(
             task_id=task_id,
@@ -179,16 +177,15 @@ class DjangoWorkersBackend(BaseBackend):
         """Send a chain of tasks for sequential execution."""
         if not signatures:
             from ..base import TaskResult as Result
+
             return Result(task_id="", status="success")
 
         # Django workers may support chaining natively
         if hasattr(self._backend, "enqueue_chain"):
-            chain_def = [
-                (sig.task.fn, sig.args, sig.kwargs)
-                for sig in signatures
-            ]
+            chain_def = [(sig.task.fn, sig.args, sig.kwargs) for sig in signatures]
             job = self._backend.enqueue_chain(chain_def, **options)
             from ..base import TaskResult as Result
+
             return Result(
                 task_id=job.id if hasattr(job, "id") else "",
                 status="pending",
@@ -224,18 +221,21 @@ def auto_detect_backend() -> str:
 
     try:
         import celery  # noqa: F401
+
         return "celery"
     except ImportError:
         pass
 
     try:
         import dramatiq  # noqa: F401
+
         return "dramatiq"
     except ImportError:
         pass
 
     try:
         import django_q  # noqa: F401
+
         return "django_q"
     except ImportError:
         pass

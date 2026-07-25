@@ -113,9 +113,7 @@ class AIReviewer:
         try:
             import django_matt.ai.providers  # noqa: F401
         except ImportError:
-            return AIReviewResult(
-                summary="AI review unavailable: django_matt.ai not configured"
-            )
+            return AIReviewResult(summary="AI review unavailable: django_matt.ai not configured")
 
         result = AIReviewResult()
 
@@ -129,7 +127,9 @@ class AIReviewer:
             result.tokens_used += batch_result.tokens_used
 
         if result.findings:
-            result.summary = f"AI review found {len(result.findings)} issues across {len(files)} files"
+            result.summary = (
+                f"AI review found {len(result.findings)} issues across {len(files)} files"
+            )
         else:
             result.summary = f"AI review: no significant issues found in {len(files)} files"
 
@@ -160,7 +160,9 @@ class AIReviewer:
             max_tokens=4096,
         )
 
-        return self._parse_response(response.content, response.usage.total_tokens if response.usage else 0)
+        return self._parse_response(
+            response.content, response.usage.total_tokens if response.usage else 0
+        )
 
     def _parse_response(self, content: str, tokens: int) -> AIReviewResult:
         """Parse LLM response into structured findings."""

@@ -165,7 +165,7 @@ def _make_error_envelope(
             "code": "validation_error",
             "hint": "Check the request body matches the schema.",
             "docs_url": "https://...",
-            "extra": null
+            "extra": null,
         }
 
     ``code`` is a stable, machine-readable error identifier (e.g.
@@ -567,7 +567,12 @@ class ValidationAPIError(APIError):
             extra = [
                 {
                     "message": e.get("message", e.get("msg", str(e))),
-                    "key": e.get("field", e.get("loc", ["unknown"])[-1] if isinstance(e.get("loc"), (list, tuple)) else e.get("loc", "unknown")),
+                    "key": e.get(
+                        "field",
+                        e.get("loc", ["unknown"])[-1]
+                        if isinstance(e.get("loc"), (list, tuple))
+                        else e.get("loc", "unknown"),
+                    ),
                     "source": "body",
                 }
                 for e in self.errors
@@ -802,6 +807,7 @@ class ErrorMiddleware:
         # picks the async inner branch.
         if asyncio.iscoroutinefunction(self.get_response):
             import inspect as _inspect
+
             if hasattr(_inspect, "markcoroutinefunction"):
                 _inspect.markcoroutinefunction(self)
             else:

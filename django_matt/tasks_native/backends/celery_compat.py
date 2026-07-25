@@ -60,9 +60,7 @@ class CeleryNativeBackend(BaseNativeBackend):
             )
 
         except ImportError:
-            raise ImportError(
-                "Celery is not installed. Install it with: uv add celery"
-            )
+            raise ImportError("Celery is not installed. Install it with: uv add celery")
 
     def enqueue(
         self,

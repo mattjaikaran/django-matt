@@ -1,3 +1,4 @@
+# file-length-max: 600
 """
 Django Matt configuration management command.
 

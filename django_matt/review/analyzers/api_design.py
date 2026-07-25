@@ -1,3 +1,4 @@
+# file-length-max: 500
 """AST-based API design checker.
 
 Detects inconsistent URL patterns, missing pagination on list endpoints,
@@ -13,33 +14,64 @@ from pathlib import Path
 from django_matt.review.analyzers.base import BaseAnalyzer
 from django_matt.review.findings import Category, Finding, Location, Severity
 
-_ROUTE_DECORATORS: frozenset[str] = frozenset({
-    "get", "post", "put", "patch", "delete", "head", "options",
-})
+_ROUTE_DECORATORS: frozenset[str] = frozenset(
+    {
+        "get",
+        "post",
+        "put",
+        "patch",
+        "delete",
+        "head",
+        "options",
+    }
+)
 
-_MUTATION_METHODS: frozenset[str] = frozenset({
-    "post", "put", "patch", "delete",
-})
+_MUTATION_METHODS: frozenset[str] = frozenset(
+    {
+        "post",
+        "put",
+        "patch",
+        "delete",
+    }
+)
 
-_AUTH_DECORATORS: frozenset[str] = frozenset({
-    "jwt_required", "jwt_optional", "login_required",
-    "permission_required", "requires_role", "requires_permission",
-    "authenticated", "IsAuthenticated",
-})
+_AUTH_DECORATORS: frozenset[str] = frozenset(
+    {
+        "jwt_required",
+        "jwt_optional",
+        "login_required",
+        "permission_required",
+        "requires_role",
+        "requires_permission",
+        "authenticated",
+        "IsAuthenticated",
+    }
+)
 
-_PAGINATION_INDICATORS: frozenset[str] = frozenset({
-    "paginate", "pagination", "paginator", "page_size",
-    "limit", "offset", "cursor", "PageNumberPagination",
-    "LimitOffsetPagination", "CursorPagination",
-    "paginate_queryset",
-})
+_PAGINATION_INDICATORS: frozenset[str] = frozenset(
+    {
+        "paginate",
+        "pagination",
+        "paginator",
+        "page_size",
+        "limit",
+        "offset",
+        "cursor",
+        "PageNumberPagination",
+        "LimitOffsetPagination",
+        "CursorPagination",
+        "paginate_queryset",
+    }
+)
 
 
 class APIDesignAnalyzer(BaseAnalyzer):
     """Analyzer that detects API design issues via AST inspection."""
 
     name = "api_design"
-    description = "Checks URL consistency, missing pagination, missing auth on mutations, broad serialization"
+    description = (
+        "Checks URL consistency, missing pagination, missing auth on mutations, broad serialization"
+    )
 
     def analyze_file(self, file_path: Path, tree: ast.Module, source: str) -> list[Finding]:
         findings: list[Finding] = []
@@ -94,15 +126,17 @@ class APIDesignAnalyzer(BaseAnalyzer):
                             continue
                         method, path = route_info
                         has_auth = self._function_has_auth(item)
-                        endpoints.append({
-                            "node": item,
-                            "method": method,
-                            "path": path,
-                            "has_auth": has_auth,
-                            "name": item.name,
-                            "lineno": item.lineno,
-                            "class_name": node.name,
-                        })
+                        endpoints.append(
+                            {
+                                "node": item,
+                                "method": method,
+                                "path": path,
+                                "has_auth": has_auth,
+                                "name": item.name,
+                                "lineno": item.lineno,
+                                "class_name": node.name,
+                            }
+                        )
 
             # Also collect module-level route functions (no enclosing class)
             if isinstance(node, ast.Module):
@@ -115,15 +149,17 @@ class APIDesignAnalyzer(BaseAnalyzer):
                             continue
                         method, path = route_info
                         has_auth = self._function_has_auth(item)
-                        endpoints.append({
-                            "node": item,
-                            "method": method,
-                            "path": path,
-                            "has_auth": has_auth,
-                            "name": item.name,
-                            "lineno": item.lineno,
-                            "class_name": None,
-                        })
+                        endpoints.append(
+                            {
+                                "node": item,
+                                "method": method,
+                                "path": path,
+                                "has_auth": has_auth,
+                                "name": item.name,
+                                "lineno": item.lineno,
+                                "class_name": None,
+                            }
+                        )
 
         return endpoints
 

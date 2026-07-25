@@ -147,9 +147,7 @@ class BillingConfig:
             connect_default_account_type=stripe_dict.get(
                 "CONNECT_DEFAULT_ACCOUNT_TYPE", "standard"
             ),
-            connect_application_fee_percent=stripe_dict.get(
-                "CONNECT_APPLICATION_FEE_PERCENT", 0.0
-            ),
+            connect_application_fee_percent=stripe_dict.get("CONNECT_APPLICATION_FEE_PERCENT", 0.0),
         )
 
         paypal_dict = config_dict.get("PAYPAL", {})

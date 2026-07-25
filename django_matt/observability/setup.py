@@ -59,13 +59,17 @@ def _build_exporters(config: dict[str, Any]) -> list[ExporterProtocol]:
         elif exp_type == "prometheus":
             try:
                 from django_matt.observability.exporters import PrometheusExporter
+
                 exporters.append(PrometheusExporter())
             except Exception as e:
                 logger.warning(f"Could not create PrometheusExporter: {e}")
         elif exp_type == "opentelemetry":
             try:
                 from django_matt.observability.exporters import OpenTelemetryExporter
-                service_name = exp_kwargs.get("service_name", config.get("SERVICE_NAME", "django-matt"))
+
+                service_name = exp_kwargs.get(
+                    "service_name", config.get("SERVICE_NAME", "django-matt")
+                )
                 exporters.append(OpenTelemetryExporter(service_name=service_name))
             except Exception as e:
                 logger.warning(f"Could not create OpenTelemetryExporter: {e}")

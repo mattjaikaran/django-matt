@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 pytest plugin for smart test selection.
 
@@ -116,17 +117,19 @@ def pytest_addoption(parser: Parser) -> None:
 
 def pytest_configure(config: Config) -> None:
     """Register the plugin if any matt flags are active."""
-    matt_active = any([
-        config.getoption("--matt-affected", False),
-        config.getoption("--matt-failed", False),
-        config.getoption("--matt-rebuild-deps", False),
-        config.getoption("--matt-clear-failures", False),
-        config.getoption("--matt-stress", False),
-        config.getoption("--matt-detect-flaky", False),
-        config.getoption("--matt-quarantine", False),
-        config.getoption("--matt-record", None) is not None,
-        config.getoption("--matt-replay", None) is not None,
-    ])
+    matt_active = any(
+        [
+            config.getoption("--matt-affected", False),
+            config.getoption("--matt-failed", False),
+            config.getoption("--matt-rebuild-deps", False),
+            config.getoption("--matt-clear-failures", False),
+            config.getoption("--matt-stress", False),
+            config.getoption("--matt-detect-flaky", False),
+            config.getoption("--matt-quarantine", False),
+            config.getoption("--matt-record", None) is not None,
+            config.getoption("--matt-replay", None) is not None,
+        ]
+    )
 
     if matt_active:
         config.pluginmanager.register(MattSmartPlugin(config), "matt-smart")
@@ -155,6 +158,7 @@ class MattSmartPlugin:
         record_path = config.getoption("--matt-record", None)
         if record_path:
             from django_matt.testing.smart.recorder import TestRecorder
+
             self._recorder = TestRecorder(record_path)
 
     @property
@@ -179,6 +183,7 @@ class MattSmartPlugin:
         """Lazy-init flaky detector."""
         if self._flaky_detector is None:
             from django_matt.testing.smart.flaky import FlakyDetector
+
             self._flaky_detector = FlakyDetector(self.db_path)
         return self._flaky_detector
 
@@ -205,14 +210,11 @@ class MattSmartPlugin:
 
         if not self.tracker.has_data():
             logger.warning(
-                "No dependency data. Run pytest --matt-rebuild-deps first. "
-                "Running all tests."
+                "No dependency data. Run pytest --matt-rebuild-deps first. Running all tests."
             )
             return
 
-        affected_ids = set(
-            self.tracker.get_affected_tests(changed_files=changed_files)
-        )
+        affected_ids = set(self.tracker.get_affected_tests(changed_files=changed_files))
 
         if not affected_ids:
             logger.info("No affected tests detected — nothing to run")
@@ -229,9 +231,7 @@ class MattSmartPlugin:
             self.config.hook.pytest_deselected(items=deselected)
         items[:] = selected
 
-        logger.info(
-            f"Smart selection: {len(selected)} affected, {len(deselected)} skipped"
-        )
+        logger.info(f"Smart selection: {len(selected)} affected, {len(deselected)} skipped")
 
     def _filter_failed(self, items: list[Item]) -> None:
         """Keep only tests that failed in the last run."""
@@ -252,9 +252,7 @@ class MattSmartPlugin:
             self.config.hook.pytest_deselected(items=deselected)
         items[:] = selected
 
-        logger.info(
-            f"Failed-only: {len(selected)} to re-run, {len(deselected)} skipped"
-        )
+        logger.info(f"Failed-only: {len(selected)} to re-run, {len(deselected)} skipped")
 
     def _filter_quarantine(self, items: list[Item]) -> None:
         """Keep only known flaky (quarantined) tests."""
@@ -292,9 +290,7 @@ class MattSmartPlugin:
         if deselected:
             self.config.hook.pytest_deselected(items=deselected)
         items[:] = selected
-        logger.info(
-            f"Replay: {len(selected)} failed tests from archive, {len(deselected)} skipped"
-        )
+        logger.info(f"Replay: {len(selected)} failed tests from archive, {len(deselected)} skipped")
 
     # ------------------------------------------------------------------
     # Coverage recording (--matt-rebuild-deps)
@@ -420,14 +416,10 @@ class MattSmartPlugin:
             terminalreporter.write_sep("=", "matt: dependency database rebuilt")
         elif self.config.getoption("--matt-affected", False):
             n = self._stats["total"]
-            terminalreporter.write_sep(
-                "=", f"matt: {n} affected test(s) selected"
-            )
+            terminalreporter.write_sep("=", f"matt: {n} affected test(s) selected")
         elif self.config.getoption("--matt-failed", False):
             n = self._stats["total"]
-            terminalreporter.write_sep(
-                "=", f"matt: {n} previously-failed test(s) re-run"
-            )
+            terminalreporter.write_sep("=", f"matt: {n} previously-failed test(s) re-run")
         elif self._detect_flaky:
             flaky = self.flaky_detector.get_flaky_tests()
             if flaky:
@@ -440,9 +432,7 @@ class MattSmartPlugin:
             else:
                 terminalreporter.write_sep("=", "matt: no flaky tests detected")
         if self._recorder:
-            terminalreporter.write_sep(
-                "=", f"matt: run recorded to {self._recorder.output_path}"
-            )
+            terminalreporter.write_sep("=", f"matt: run recorded to {self._recorder.output_path}")
 
 
 class TrackerWrapper:

@@ -1,3 +1,4 @@
+# file-length-max: 900
 """
 PayPal billing provider.
 
@@ -590,11 +591,7 @@ class PayPalProvider(BillingProvider[PayPalConfig]):
         if customer_id:
             sub_ids = list(self._tracked_subscriptions.get(customer_id, []))
         else:
-            sub_ids = [
-                sid
-                for sids in self._tracked_subscriptions.values()
-                for sid in sids
-            ]
+            sub_ids = [sid for sids in self._tracked_subscriptions.values() for sid in sids]
 
         subscriptions: list[SubscriptionData] = []
         for sub_id in sub_ids:

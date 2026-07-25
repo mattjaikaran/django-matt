@@ -110,9 +110,7 @@ def jsonpath_extract(data: Any, path: str) -> Any:
                     raise KeyError(f"Key '{token}' not found in {type(current).__name__}")
                 current = current[token]
             else:
-                raise TypeError(
-                    f"Cannot access key '{token}' on {type(current).__name__}"
-                )
+                raise TypeError(f"Cannot access key '{token}' on {type(current).__name__}")
         elif isinstance(token, int):
             if isinstance(current, (list, tuple)):
                 try:
@@ -120,9 +118,7 @@ def jsonpath_extract(data: Any, path: str) -> Any:
                 except IndexError:
                     raise IndexError(f"Index {token} out of range (length {len(current)})")
             else:
-                raise TypeError(
-                    f"Cannot index {type(current).__name__} with integer"
-                )
+                raise TypeError(f"Cannot index {type(current).__name__} with integer")
 
     return current
 

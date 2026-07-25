@@ -46,16 +46,18 @@ MODULE_URL_FEATURES: dict[str, str] = {
 }
 
 # Core modules that are always loaded regardless of mode
-CORE_MODULES: frozenset[str] = frozenset({
-    "core",
-    "router",
-    "controller",
-    "schema",
-    "errors",
-    "openapi",
-    "docs",
-    "redoc",
-})
+CORE_MODULES: frozenset[str] = frozenset(
+    {
+        "core",
+        "router",
+        "controller",
+        "schema",
+        "errors",
+        "openapi",
+        "docs",
+        "redoc",
+    }
+)
 
 # Settings keys that imply a module is in use
 _SETTINGS_MODULE_MAP: dict[str, str] = {
@@ -102,6 +104,7 @@ def get_slim_config() -> SlimConfig:
         return _slim_config
     try:
         from django.conf import settings
+
         matt_config = getattr(settings, "DJANGO_MATT", {})
         slim_data = matt_config.get("SLIM_MODE", {})
         _slim_config = SlimConfig(**slim_data) if slim_data else SlimConfig()
@@ -127,7 +130,9 @@ def is_module_enabled(module_name: str) -> bool:
         return module_name in {"auth"} and module_name not in config.disabled_modules
     if config.mode == "slim":
         if config.enabled_modules is not None:
-            return module_name in config.enabled_modules and module_name not in config.disabled_modules
+            return (
+                module_name in config.enabled_modules and module_name not in config.disabled_modules
+            )
         return module_name not in config.disabled_modules
     # auto mode — defer to registry
     return module_name not in config.disabled_modules
@@ -168,6 +173,7 @@ class ModuleRegistry:
         """Scan DJANGO_MATT settings to detect which modules are configured."""
         try:
             from django.conf import settings
+
             matt_config = getattr(settings, "DJANGO_MATT", {})
         except Exception:
             # Settings not ready yet; skip auto-detection
@@ -181,13 +187,9 @@ class ModuleRegistry:
         # If a middleware stack is set, activate the middleware modules it implies
         stack = matt_config.get("MIDDLEWARE_STACK")
         if stack == "production":
-            self._active_modules.update(
-                {"security", "request_id", "cors", "logging", "timing"}
-            )
+            self._active_modules.update({"security", "request_id", "cors", "logging", "timing"})
         elif stack == "development":
-            self._active_modules.update(
-                {"request_id", "cors", "logging", "timing"}
-            )
+            self._active_modules.update({"request_id", "cors", "logging", "timing"})
 
     @property
     def mode(self) -> Mode:
@@ -205,9 +207,7 @@ class ModuleRegistry:
     def deactivate(self, *modules: str) -> None:
         """Deactivate one or more modules. Cannot deactivate core modules."""
         if self._frozen:
-            raise RuntimeError(
-                "Cannot deactivate modules after the registry has been frozen."
-            )
+            raise RuntimeError("Cannot deactivate modules after the registry has been frozen.")
         for module in modules:
             if module in CORE_MODULES:
                 raise ValueError(f"Cannot deactivate core module: {module!r}")

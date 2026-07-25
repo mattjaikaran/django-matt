@@ -1,3 +1,4 @@
+# file-length-max: 1500
 """
 Django Matt CLI - Model refactoring management commands.
 

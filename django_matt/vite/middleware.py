@@ -53,9 +53,7 @@ class ViteDevMiddleware:
         }
     """
 
-    def __init__(
-        self, get_response: Callable[[HttpRequest], HttpResponse]
-    ) -> None:
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response
         self._vite_available: bool | None = None
 
@@ -100,9 +98,7 @@ class AsyncViteDevMiddleware:
     async_capable = True
     sync_capable = False
 
-    def __init__(
-        self, get_response: Callable[[HttpRequest], HttpResponse]
-    ) -> None:
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response
         self._vite_available: bool | None = None
 
@@ -130,9 +126,7 @@ class AsyncViteDevMiddleware:
         return response
 
 
-def _inject_hmr_into_response(
-    response: HttpResponse, config: ViteConfig
-) -> None:
+def _inject_hmr_into_response(response: HttpResponse, config: ViteConfig) -> None:
     """Shared injection logic for sync and async middleware."""
     content = response.content.decode(response.charset)
     dev_url = config.dev_server_url.rstrip("/")
@@ -148,9 +142,7 @@ def _inject_hmr_into_response(
             f"  window.__vite_plugin_react_preamble_installed__ = true;\n"
             f"</script>"
         )
-    parts.append(
-        f'<script type="module" src="{dev_url}/@vite/client"></script>'
-    )
+    parts.append(f'<script type="module" src="{dev_url}/@vite/client"></script>')
     inject_scripts = "\n".join(parts)
 
     if "</head>" in content:
@@ -164,7 +156,6 @@ def _inject_hmr_into_response(
 
     response.content = content.encode(response.charset)
     response["Content-Length"] = len(response.content)
-
 
 
 __all__ = [

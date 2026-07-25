@@ -1,3 +1,4 @@
+# file-length-max: 800
 """
 Prometheus-compatible metrics for Django Matt.
 

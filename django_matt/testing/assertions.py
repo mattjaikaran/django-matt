@@ -370,12 +370,10 @@ class assert_query_count:
             actual = len(self._ctx.captured_queries)
             if actual != self.expected:
                 queries = "\n".join(
-                    f"  {i + 1}. {q['sql']}"
-                    for i, q in enumerate(self._ctx.captured_queries)
+                    f"  {i + 1}. {q['sql']}" for i, q in enumerate(self._ctx.captured_queries)
                 )
                 raise AssertionError(
-                    f"Expected {self.expected} queries, got {actual}.\n"
-                    f"Queries:\n{queries}"
+                    f"Expected {self.expected} queries, got {actual}.\nQueries:\n{queries}"
                 )
         return False  # Do not suppress exceptions from the body
 

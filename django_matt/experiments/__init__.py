@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 A/B Testing and Experiments for Django Matt.
 

@@ -81,7 +81,9 @@ class Command(BaseCommand):
             total_issues += import_issues["errors"]
             total_warnings += import_issues["warnings"]
         else:
-            self.stdout.write(self.style.MIGRATE_HEADING("\n[3/4] Import verification (skipped — quick mode)"))
+            self.stdout.write(
+                self.style.MIGRATE_HEADING("\n[3/4] Import verification (skipped — quick mode)")
+            )
 
         # 4. API endpoint validation
         if not quick:
@@ -90,7 +92,9 @@ class Command(BaseCommand):
             total_issues += api_issues["errors"]
             total_warnings += api_issues["warnings"]
         else:
-            self.stdout.write(self.style.MIGRATE_HEADING("\n[4/4] API endpoint validation (skipped — quick mode)"))
+            self.stdout.write(
+                self.style.MIGRATE_HEADING("\n[4/4] API endpoint validation (skipped — quick mode)")
+            )
 
         # Summary
         elapsed = time.monotonic() - start
@@ -100,14 +104,10 @@ class Command(BaseCommand):
             total_issues += total_warnings
 
         if total_issues == 0 and total_warnings == 0:
-            self.stdout.write(
-                self.style.SUCCESS(f"All checks passed ({elapsed:.1f}s)")
-            )
+            self.stdout.write(self.style.SUCCESS(f"All checks passed ({elapsed:.1f}s)"))
         elif total_issues == 0:
             self.stdout.write(
-                self.style.WARNING(
-                    f"{total_warnings} warning(s), 0 errors ({elapsed:.1f}s)"
-                )
+                self.style.WARNING(f"{total_warnings} warning(s), 0 errors ({elapsed:.1f}s)")
             )
         else:
             self.stdout.write(
@@ -151,26 +151,20 @@ class Command(BaseCommand):
 
                 if matt_throttle not in PRESETS:
                     self.stdout.write(
-                        self.style.ERROR(
-                            f"  MATT_THROTTLE preset '{matt_throttle}' not found"
-                        )
+                        self.style.ERROR(f"  MATT_THROTTLE preset '{matt_throttle}' not found")
                     )
                     errors += 1
 
             # Check for DEBUG in production indicators
             if not getattr(settings, "DEBUG", True):
                 if getattr(settings, "SECRET_KEY", "").startswith("django-insecure"):
-                    self.stdout.write(
-                        self.style.WARNING("  Insecure SECRET_KEY in non-DEBUG mode")
-                    )
+                    self.stdout.write(self.style.WARNING("  Insecure SECRET_KEY in non-DEBUG mode"))
                     warnings += 1
 
             if errors == 0 and warnings == 0:
                 self.stdout.write(self.style.SUCCESS("  Pass"))
             else:
-                self.stdout.write(
-                    f"  {errors} error(s), {warnings} warning(s)"
-                )
+                self.stdout.write(f"  {errors} error(s), {warnings} warning(s)")
 
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"  Config check failed: {e}"))

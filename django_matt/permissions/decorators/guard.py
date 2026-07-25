@@ -34,13 +34,11 @@ def guard(*permission_classes: type[BasePermission] | BasePermission) -> Callabl
 
             @guard(AllowAny)
             @route_get("/public")
-            async def public_endpoint(self, request):
-                ...
+            async def public_endpoint(self, request): ...
 
             @guard(IsAdmin)
             @route_post("/admin-action")
-            async def admin_action(self, request):
-                ...
+            async def admin_action(self, request): ...
     """
 
     def decorator(func: F) -> F:

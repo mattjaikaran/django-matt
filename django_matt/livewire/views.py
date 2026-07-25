@@ -48,7 +48,9 @@ def livewire_message(request: HttpRequest) -> JsonResponse:
     try:
         # Parse request data
         data = (
-            orjson.loads(request.body) if request.content_type == "application/json" else request.POST
+            orjson.loads(request.body)
+            if request.content_type == "application/json"
+            else request.POST
         )
 
         snapshot_token = data.get("_snapshot")

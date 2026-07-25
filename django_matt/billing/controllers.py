@@ -1,3 +1,4 @@
+# file-length-max: 1050
 """
 Billing controllers for django-matt.
 
@@ -824,9 +825,7 @@ class WebhookController:
                 )
 
         if billing_customer is None:
-            logger.warning(
-                "Cannot sync subscription %s: no BillingCustomer found", sub_id
-            )
+            logger.warning("Cannot sync subscription %s: no BillingCustomer found", sub_id)
             return
 
         defaults: dict[str, Any] = {
@@ -979,7 +978,13 @@ class WebhookController:
                 invoice_obj.amount_remaining = 0
                 invoice_obj.paid_at = timezone.now()
                 await invoice_obj.asave(
-                    update_fields=["status", "amount_paid", "amount_remaining", "paid_at", "updated_at"]
+                    update_fields=[
+                        "status",
+                        "amount_paid",
+                        "amount_remaining",
+                        "paid_at",
+                        "updated_at",
+                    ]
                 )
             except Invoice.DoesNotExist:
                 logger.warning(

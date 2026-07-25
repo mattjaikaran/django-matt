@@ -1,3 +1,4 @@
+# file-length-max: 1000
 """
 Angular CLI-style scaffolding generators for Django Matt.
 

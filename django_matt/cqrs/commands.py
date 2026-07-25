@@ -85,6 +85,7 @@ def command_handler(
     bus: CommandBus | None = None,
 ) -> Callable:
     """Class decorator that registers a command handler with the bus."""
+
     def decorator(cls: type) -> type:
         target_bus = bus or _default_command_bus
         target_bus.register(command_type, cls())

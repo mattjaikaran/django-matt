@@ -45,6 +45,7 @@ class MigrationAdvisor:
                 ConcurrentIndexRewriter,
                 RenameFieldRewriter,
             )
+
             rewriters = [
                 AddNonNullableRewriter(),
                 ConcurrentIndexRewriter(),

@@ -11,7 +11,9 @@ import orjson
 from django_matt.exceptions.filters import ExceptionFilter
 
 
-def _json_response(data: dict[str, Any], status: int, headers: dict[str, str] | None = None) -> HttpResponse:
+def _json_response(
+    data: dict[str, Any], status: int, headers: dict[str, str] | None = None
+) -> HttpResponse:
     body = orjson.dumps(data)
     response = HttpResponse(body, content_type="application/json", status=status)
     if headers:
@@ -44,7 +46,9 @@ class ValidationExceptionFilter(ExceptionFilter):
         extra = [
             {
                 "message": e.get("msg", str(e)),
-                "key": e.get("loc", ("unknown",))[-1] if isinstance(e.get("loc"), (list, tuple)) else "unknown",
+                "key": e.get("loc", ("unknown",))[-1]
+                if isinstance(e.get("loc"), (list, tuple))
+                else "unknown",
                 "source": "body",
             }
             for e in errors

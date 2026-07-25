@@ -119,7 +119,9 @@ def generate(from_tag: str | None = None, to: str = "HEAD") -> ChangelogEntries:
 
     try:
         log_output = _run_git(
-            "log", range_spec, "--format=%H %s%n%b%n---END---",
+            "log",
+            range_spec,
+            "--format=%H %s%n%b%n---END---",
         )
     except subprocess.CalledProcessError:
         return ChangelogEntries()
@@ -157,7 +159,7 @@ def generate(from_tag: str | None = None, to: str = "HEAD") -> ChangelogEntries:
             if commit.body:
                 for body_line in commit.body.split("\n"):
                     if body_line.startswith("BREAKING CHANGE:"):
-                        breaking_desc = body_line[len("BREAKING CHANGE:"):].strip()
+                        breaking_desc = body_line[len("BREAKING CHANGE:") :].strip()
                         break
             entries.breaking_changes.append(breaking_desc)
 
@@ -181,8 +183,16 @@ def format_entries(version: str, entries: ChangelogEntries, date: str | None = N
         lines.append("")
 
     section_order = [
-        "Added", "Fixed", "Changed", "Performance",
-        "Documentation", "Testing", "Chores", "CI", "Build", "Style",
+        "Added",
+        "Fixed",
+        "Changed",
+        "Performance",
+        "Documentation",
+        "Testing",
+        "Chores",
+        "CI",
+        "Build",
+        "Style",
     ]
 
     for section in section_order:
@@ -232,12 +242,7 @@ def update_changelog(version: str, entries: ChangelogEntries, path: Path | None 
         next_header = re.search(r"^## ", rest, re.MULTILINE)
         if next_header:
             # Clear unreleased content and insert new version before next header
-            new_content = (
-                existing[:insert_pos]
-                + "\n"
-                + formatted
-                + rest[next_header.start():]
-            )
+            new_content = existing[:insert_pos] + "\n" + formatted + rest[next_header.start() :]
         else:
             new_content = existing[:insert_pos] + "\n" + formatted + rest
     else:
@@ -248,10 +253,7 @@ def update_changelog(version: str, entries: ChangelogEntries, path: Path | None 
         else:
             header_end += 2
         new_content = (
-            existing[:header_end]
-            + "## [Unreleased]\n\n"
-            + formatted
-            + existing[header_end:]
+            existing[:header_end] + "## [Unreleased]\n\n" + formatted + existing[header_end:]
         )
 
     path.write_text(new_content)

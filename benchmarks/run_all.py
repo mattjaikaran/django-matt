@@ -116,9 +116,7 @@ def run_all_benchmarks(
         print("\n" + "=" * 70)
         print(" Running Throughput Benchmarks")
         print("=" * 70)
-        throughput_results = run_throughput_benchmarks(
-            iterations=int(5000 * iterations_multiplier)
-        )
+        throughput_results = run_throughput_benchmarks(iterations=int(5000 * iterations_multiplier))
         throughput_results.extend(
             run_pydantic_throughput(iterations=int(5000 * iterations_multiplier))
         )

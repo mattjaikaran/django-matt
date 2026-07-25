@@ -47,63 +47,67 @@ class SchemaOptimizer:
             # FK fields that somehow lost their index
             if isinstance(field, models.ForeignKey):
                 if not field.db_index and not field.unique and field.name not in existing_indexed:
-                    suggestions.append(IndexSuggestion(
-                        model_name=model_name,
-                        field_name=field.name,
-                        index_type="btree",
-                        reason="ForeignKey without index slows joins",
-                        migration_code=self._gen_index_migration(model, field.name),
-                    ))
+                    suggestions.append(
+                        IndexSuggestion(
+                            model_name=model_name,
+                            field_name=field.name,
+                            index_type="btree",
+                            reason="ForeignKey without index slows joins",
+                            migration_code=self._gen_index_migration(model, field.name),
+                        )
+                    )
 
             # Boolean/status fields used in filtering
             if isinstance(field, models.BooleanField):
                 if field.name in ("is_active", "is_published", "is_deleted", "is_archived"):
                     if not field.db_index and field.name not in existing_indexed:
-                        suggestions.append(IndexSuggestion(
-                            model_name=model_name,
-                            field_name=field.name,
-                            index_type="btree",
-                            reason=f"Status field '{field.name}' likely filtered frequently",
-                            migration_code=self._gen_index_migration(model, field.name),
-                        ))
+                        suggestions.append(
+                            IndexSuggestion(
+                                model_name=model_name,
+                                field_name=field.name,
+                                index_type="btree",
+                                reason=f"Status field '{field.name}' likely filtered frequently",
+                                migration_code=self._gen_index_migration(model, field.name),
+                            )
+                        )
 
             # DateTimeField likely used in ordering/filtering
             if isinstance(field, (models.DateTimeField, models.DateField)):
                 if field.name in ("created_at", "updated_at", "published_at", "deleted_at"):
                     if not field.db_index and field.name not in existing_indexed:
-                        suggestions.append(IndexSuggestion(
-                            model_name=model_name,
-                            field_name=field.name,
-                            index_type="btree",
-                            reason=f"Timestamp field '{field.name}' commonly used in ordering/filtering",
-                            migration_code=self._gen_index_migration(model, field.name),
-                        ))
+                        suggestions.append(
+                            IndexSuggestion(
+                                model_name=model_name,
+                                field_name=field.name,
+                                index_type="btree",
+                                reason=f"Timestamp field '{field.name}' commonly used in ordering/filtering",
+                                migration_code=self._gen_index_migration(model, field.name),
+                            )
+                        )
 
             # SlugField without index
             if isinstance(field, models.SlugField):
                 if not field.db_index and not field.unique and field.name not in existing_indexed:
-                    suggestions.append(IndexSuggestion(
-                        model_name=model_name,
-                        field_name=field.name,
-                        index_type="btree",
-                        reason="SlugField used in URL lookups should be indexed",
-                        migration_code=self._gen_index_migration(model, field.name),
-                    ))
+                    suggestions.append(
+                        IndexSuggestion(
+                            model_name=model_name,
+                            field_name=field.name,
+                            index_type="btree",
+                            reason="SlugField used in URL lookups should be indexed",
+                            migration_code=self._gen_index_migration(model, field.name),
+                        )
+                    )
 
         return suggestions
 
-    def suggest_select_related(
-        self, model: type[models.Model]
-    ) -> list[str]:
+    def suggest_select_related(self, model: type[models.Model]) -> list[str]:
         paths: list[str] = []
         for field in model._meta.get_fields():
             if isinstance(field, (models.ForeignKey, models.OneToOneField)):
                 paths.append(field.name)
         return paths
 
-    def suggest_prefetch_related(
-        self, model: type[models.Model]
-    ) -> list[str]:
+    def suggest_prefetch_related(self, model: type[models.Model]) -> list[str]:
         paths: list[str] = []
         for field in model._meta.get_fields():
             if isinstance(field, models.ManyToManyField):
@@ -115,27 +119,29 @@ class SchemaOptimizer:
                         paths.append(name)
         return paths
 
-    def detect_n_plus_one(
-        self, model: type[models.Model]
-    ) -> list[NPlusOneWarning]:
+    def detect_n_plus_one(self, model: type[models.Model]) -> list[NPlusOneWarning]:
         warnings: list[NPlusOneWarning] = []
         model_name = f"{model._meta.app_label}.{model.__name__}"
 
         for field in model._meta.get_fields():
             if isinstance(field, models.ForeignKey):
-                warnings.append(NPlusOneWarning(
-                    model_name=model_name,
-                    field_name=field.name,
-                    related_model=f"{field.related_model._meta.app_label}.{field.related_model.__name__}",
-                    suggestion=f"Use select_related('{field.name}') when querying {model.__name__}",
-                ))
+                warnings.append(
+                    NPlusOneWarning(
+                        model_name=model_name,
+                        field_name=field.name,
+                        related_model=f"{field.related_model._meta.app_label}.{field.related_model.__name__}",
+                        suggestion=f"Use select_related('{field.name}') when querying {model.__name__}",
+                    )
+                )
             elif isinstance(field, models.ManyToManyField):
-                warnings.append(NPlusOneWarning(
-                    model_name=model_name,
-                    field_name=field.name,
-                    related_model=f"{field.related_model._meta.app_label}.{field.related_model.__name__}",
-                    suggestion=f"Use prefetch_related('{field.name}') when querying {model.__name__}",
-                ))
+                warnings.append(
+                    NPlusOneWarning(
+                        model_name=model_name,
+                        field_name=field.name,
+                        related_model=f"{field.related_model._meta.app_label}.{field.related_model.__name__}",
+                        suggestion=f"Use prefetch_related('{field.name}') when querying {model.__name__}",
+                    )
+                )
 
         return warnings
 
@@ -152,18 +158,22 @@ class SchemaOptimizer:
         for model in model_classes:
             for field in model._meta.get_fields():
                 if isinstance(field, models.ForeignKey):
-                    rel_key = f"{field.related_model._meta.app_label}.{field.related_model.__name__}"
+                    rel_key = (
+                        f"{field.related_model._meta.app_label}.{field.related_model.__name__}"
+                    )
                     fk_count[rel_key] = fk_count.get(rel_key, 0) + 1
 
         for rel_key, count in fk_count.items():
             if count >= 3:
-                suggestions.append(DenormSuggestion(
-                    source_model=rel_key,
-                    target_model="multiple",
-                    field_name="*",
-                    reason=f"{rel_key} is referenced by {count} ForeignKeys — frequent join target",
-                    suggestion=f"Consider denormalizing commonly accessed fields from {rel_key} into referencing tables",
-                ))
+                suggestions.append(
+                    DenormSuggestion(
+                        source_model=rel_key,
+                        target_model="multiple",
+                        field_name="*",
+                        reason=f"{rel_key} is referenced by {count} ForeignKeys — frequent join target",
+                        suggestion=f"Consider denormalizing commonly accessed fields from {rel_key} into referencing tables",
+                    )
+                )
 
         return suggestions
 
@@ -177,7 +187,7 @@ class SchemaOptimizer:
             "",
             "class Migration(migrations.Migration):",
             "",
-            '    dependencies = []  # Add your dependency here',
+            "    dependencies = []  # Add your dependency here",
             "",
             "    operations = [",
         ]
@@ -185,12 +195,8 @@ class SchemaOptimizer:
         for s in suggestions:
             parts = s.model_name.split(".")
             model_lower = parts[-1].lower() if parts else "model"
-            lines.append(
-                "        migrations.AddIndex("
-            )
-            lines.append(
-                f"            model_name='{model_lower}',"
-            )
+            lines.append("        migrations.AddIndex(")
+            lines.append(f"            model_name='{model_lower}',")
             lines.append(
                 f"            index=models.Index(fields=['{s.field_name}'], name='idx_{model_lower}_{s.field_name}'),"
             )

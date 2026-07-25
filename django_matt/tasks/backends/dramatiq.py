@@ -70,8 +70,7 @@ class DramatiqBackend(BaseBackend):
             from dramatiq.brokers.redis import RedisBroker
         except ImportError:
             raise ImportError(
-                "Dramatiq is required for DramatiqBackend. "
-                "Install with: uv add \"dramatiq[redis]\""
+                'Dramatiq is required for DramatiqBackend. Install with: uv add "dramatiq[redis]"'
             )
 
         broker_type = self._config.get("DRAMATIQ_BROKER", "redis").lower()

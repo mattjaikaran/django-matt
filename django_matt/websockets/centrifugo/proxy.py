@@ -214,9 +214,7 @@ def get_centrifugo_urls(
     Pass custom view classes to override proxy behaviour::
 
         urlpatterns += [
-            path("centrifugo/", include(
-                get_centrifugo_urls(connect_view=MyConnectProxy)
-            ))
+            path("centrifugo/", include(get_centrifugo_urls(connect_view=MyConnectProxy)))
         ]
     """
     from django_matt.websockets.centrifugo.config import get_centrifugo_config

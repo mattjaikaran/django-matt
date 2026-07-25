@@ -1,3 +1,4 @@
+# file-length-max: 800
 """
 Built-in JWT implementation using Python stdlib.
 
@@ -355,9 +356,14 @@ def encode_jwt(
 
     # Fast path: use Rust for supported algorithms (no custom headers)
     rust_supported = {
-        "HS256", "HS384", "HS512",
-        "RS256", "RS384", "RS512",
-        "ES256", "ES384",
+        "HS256",
+        "HS384",
+        "HS512",
+        "RS256",
+        "RS384",
+        "RS512",
+        "ES256",
+        "ES384",
     }
     if HAS_RUST and algorithm in rust_supported and not headers:
         secret_bytes = secret.encode("utf-8") if isinstance(secret, str) else secret
@@ -426,7 +432,16 @@ def decode_jwt(
             raise JWTAlgorithmError(f"Unsupported algorithm: {alg}")
 
     # Fast path: use Rust for decode (no nbf/iat/iss/aud verification)
-    _rust_decode_supported = {"HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256", "ES384"}
+    _rust_decode_supported = {
+        "HS256",
+        "HS384",
+        "HS512",
+        "RS256",
+        "RS384",
+        "RS512",
+        "ES256",
+        "ES384",
+    }
     if (
         HAS_RUST
         and len(algorithms) == 1

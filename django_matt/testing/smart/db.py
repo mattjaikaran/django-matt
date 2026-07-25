@@ -75,9 +75,7 @@ def connect(db_path: Path = DEFAULT_DB_PATH) -> sqlite3.Connection:
 def ensure_schema(conn: sqlite3.Connection) -> None:
     """Create tables if they don't exist. Migrate if schema version changed."""
     conn.executescript(SCHEMA_SQL)
-    row = conn.execute(
-        "SELECT value FROM meta WHERE key = 'schema_version'"
-    ).fetchone()
+    row = conn.execute("SELECT value FROM meta WHERE key = 'schema_version'").fetchone()
     if row is None:
         conn.execute(
             "INSERT INTO meta (key, value) VALUES ('schema_version', ?)",

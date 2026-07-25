@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 File watcher for automatic AI context regeneration.
 

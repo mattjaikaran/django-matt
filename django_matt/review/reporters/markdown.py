@@ -84,7 +84,9 @@ def report_markdown(summary: ReviewSummary, config: ReviewConfig) -> str:
     by_file = summary.by_file
     for file_path in sorted(by_file):
         findings = sorted(by_file[file_path], key=lambda f: (-f.severity, f.location.line or 0))
-        lines.append(f"### `{file_path}` ({len(findings)} finding{'s' if len(findings) != 1 else ''})")
+        lines.append(
+            f"### `{file_path}` ({len(findings)} finding{'s' if len(findings) != 1 else ''})"
+        )
         lines.append("")
         for finding in findings:
             lines.append(_finding_row(finding))

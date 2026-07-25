@@ -1,3 +1,4 @@
+# file-length-max: 550
 """
 API Key management controllers.
 

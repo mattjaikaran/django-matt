@@ -1,3 +1,4 @@
+# file-length-max: 750
 """
 Vector store integrations.
 
@@ -477,9 +478,7 @@ class PineconeVectorStore(VectorStore):
             try:
                 from pinecone import Pinecone
             except ImportError:
-                raise ImportError(
-                    "pinecone-client required. Install with: uv add pinecone-client"
-                )
+                raise ImportError("pinecone-client required. Install with: uv add pinecone-client")
 
             pc = Pinecone(api_key=self.api_key)
             self._index = pc.Index(self.collection_name)

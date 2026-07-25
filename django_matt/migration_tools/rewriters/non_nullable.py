@@ -56,8 +56,7 @@ class AddNonNullableRewriter(BaseRewriter):
             RewriteStep(
                 description=f"Backfill default value ({default_repr}) in batches of {self.batch_size}",
                 sql=(
-                    f"UPDATE {table} SET {field_name} = {default_repr} "
-                    f"WHERE {field_name} IS NULL;"
+                    f"UPDATE {table} SET {field_name} = {default_repr} WHERE {field_name} IS NULL;"
                 ),
             ),
             RewriteStep(
@@ -90,6 +89,7 @@ class AddNonNullableRewriter(BaseRewriter):
         if callable(db_type):
             try:
                 from django.db import connection
+
                 return db_type(connection)
             except Exception:
                 pass

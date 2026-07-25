@@ -1,3 +1,4 @@
+# file-length-max: 650
 """
 Structured JSON logging for Django Matt.
 

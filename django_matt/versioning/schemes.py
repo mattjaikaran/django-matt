@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 Concrete versioning scheme implementations for django-matt.
 """

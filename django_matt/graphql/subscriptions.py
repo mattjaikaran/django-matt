@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 GraphQL subscriptions for Django Matt.
 
@@ -33,7 +34,7 @@ def _require_strawberry():
     if not STRAWBERRY_AVAILABLE:
         raise ImportError(
             "strawberry-graphql is required for GraphQL subscriptions. "
-            "Install it with: uv add \"strawberry-graphql[django]\""
+            'Install it with: uv add "strawberry-graphql[django]"'
         )
 
 

@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 Utility functions for type generation.
 """
@@ -46,12 +47,14 @@ PYTHON_TO_TYPESCRIPT: dict[type, str] = {
     tuple: "any[]",
 }
 
+
 # Populated after import so EmailStr lookup works at runtime
 def _build_ts_map() -> dict:
     m = dict(PYTHON_TO_TYPESCRIPT)
     if _EmailStr is not None:
         m[_EmailStr] = "string"
     return m
+
 
 # Python type to Zod type mapping
 PYTHON_TO_ZOD: dict[type, str] = {
@@ -74,6 +77,7 @@ PYTHON_TO_ZOD: dict[type, str] = {
     set: "z.array(z.any())",
     tuple: "z.tuple([])",
 }
+
 
 def _build_zod_map() -> dict:
     m = dict(PYTHON_TO_ZOD)

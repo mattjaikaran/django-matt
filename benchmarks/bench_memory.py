@@ -134,8 +134,12 @@ def main():
 
     secret = b"memory-test-secret-key-32-bytes!"
     jwt_payload = orjson.dumps(
-        {"sub": "user123", "role": "admin", "iat": int(time.time()),
-         "exp": int(time.time()) + 3600},
+        {
+            "sub": "user123",
+            "role": "admin",
+            "iat": int(time.time()),
+            "exp": int(time.time()) + 3600,
+        },
         option=orjson.OPT_SORT_KEYS,
     )
     test_token = jwt_encode(jwt_payload, secret, "HS256")
@@ -167,8 +171,14 @@ def main():
     )
 
     test_dicts = [
-        {"id": i, "first_name": f"User{i}", "last_name": f"Smith{i}",
-         "email": f"user{i}@example.com", "is_active": True, "score": i * 1.5}
+        {
+            "id": i,
+            "first_name": f"User{i}",
+            "last_name": f"Smith{i}",
+            "email": f"user{i}@example.com",
+            "is_active": True,
+            "score": i * 1.5,
+        }
         for i in range(10)
     ]
     single_dict = test_dicts[0]
@@ -180,64 +190,84 @@ def main():
     results = []
 
     # 1. RadixRouter.match_route — creates PyDict of params per call
-    results.append(run_memory_test(
-        "RadixRouter.match_route",
-        lambda: router.match_route("GET", "/users/42"),
-    ))
+    results.append(
+        run_memory_test(
+            "RadixRouter.match_route",
+            lambda: router.match_route("GET", "/users/42"),
+        )
+    )
 
     # 2. jwt_encode — creates a String, returned as PyString
-    results.append(run_memory_test(
-        "jwt_encode",
-        lambda: jwt_encode(jwt_payload, secret, "HS256"),
-    ))
+    results.append(
+        run_memory_test(
+            "jwt_encode",
+            lambda: jwt_encode(jwt_payload, secret, "HS256"),
+        )
+    )
 
     # 3. jwt_decode — creates PyDict via orjson.loads internally
-    results.append(run_memory_test(
-        "jwt_decode",
-        lambda: jwt_decode(test_token, secret, "HS256", False, 0),
-    ))
+    results.append(
+        run_memory_test(
+            "jwt_decode",
+            lambda: jwt_decode(test_token, secret, "HS256", False, 0),
+        )
+    )
 
     # 4. jwt_verify — returns bool, minimal allocation
-    results.append(run_memory_test(
-        "jwt_verify",
-        lambda: jwt_verify(test_token, secret, "HS256"),
-    ))
+    results.append(
+        run_memory_test(
+            "jwt_verify",
+            lambda: jwt_verify(test_token, secret, "HS256"),
+        )
+    )
 
     # 5. parse_query_string — creates 5 PyDicts + PyLists
-    results.append(run_memory_test(
-        "parse_query_string",
-        lambda: parse_query_string(query_string),
-    ))
+    results.append(
+        run_memory_test(
+            "parse_query_string",
+            lambda: parse_query_string(query_string),
+        )
+    )
 
     # 6. parse_headers — creates nested PyDicts
-    results.append(run_memory_test(
-        "parse_headers",
-        lambda: parse_headers(meta),
-    ))
+    results.append(
+        run_memory_test(
+            "parse_headers",
+            lambda: parse_headers(meta),
+        )
+    )
 
     # 7. serialize_dicts_to_json — creates PyBytes
-    results.append(run_memory_test(
-        "serialize_dicts_to_json",
-        lambda: serialize_dicts_to_json(test_dicts),
-    ))
+    results.append(
+        run_memory_test(
+            "serialize_dicts_to_json",
+            lambda: serialize_dicts_to_json(test_dicts),
+        )
+    )
 
     # 8. serialize_dicts_to_json + alias — creates PyBytes with rename
-    results.append(run_memory_test(
-        "serialize_dicts + camelCase",
-        lambda: serialize_dicts_to_json(test_dicts, alias_map),
-    ))
+    results.append(
+        run_memory_test(
+            "serialize_dicts + camelCase",
+            lambda: serialize_dicts_to_json(test_dicts, alias_map),
+        )
+    )
 
     # 9. serialize_dict_to_json — single dict
-    results.append(run_memory_test(
-        "serialize_dict_to_json",
-        lambda: serialize_dict_to_json(single_dict),
-    ))
+    results.append(
+        run_memory_test(
+            "serialize_dict_to_json",
+            lambda: serialize_dict_to_json(single_dict),
+        )
+    )
 
     # 10. build_camel_case_map — creates PyDict
-    results.append(run_memory_test(
-        "build_camel_case_map",
-        lambda: build_camel_case_map(field_names),
-    ))
+    results.append(
+        run_memory_test(
+            "build_camel_case_map",
+            lambda: build_camel_case_map(field_names),
+        )
+    )
 
     # 11. Combined lifecycle — all components in sequence
     def lifecycle():
@@ -247,10 +277,12 @@ def main():
         parse_query_string(query_string)
         serialize_dicts_to_json(test_dicts, alias_map)
 
-    results.append(run_memory_test(
-        "Full lifecycle (combined)",
-        lifecycle,
-    ))
+    results.append(
+        run_memory_test(
+            "Full lifecycle (combined)",
+            lifecycle,
+        )
+    )
 
     # ---- Print results ----
 
@@ -273,7 +305,9 @@ def main():
         print(f"  {failed} test(s) FAILED — potential memory leak detected!")
         for r in results:
             if not r["passed"]:
-                print(f"    - {r['name']}: grew {r['peak_growth_mb']:.1f}MB (threshold: {r['threshold_mb']:.0f}MB)")
+                print(
+                    f"    - {r['name']}: grew {r['peak_growth_mb']:.1f}MB (threshold: {r['threshold_mb']:.0f}MB)"
+                )
 
     print()
     print("=" * 75)

@@ -143,8 +143,13 @@ class RefactorPromptGenerator:
 
         # Build the full prompt text
         prompt = self._build_prompt_text(
-            finding, context, instructions, constraints, verification,
-            health_impact, file_health,
+            finding,
+            context,
+            instructions,
+            constraints,
+            verification,
+            health_impact,
+            file_health,
         )
 
         return RefactorPrompt(
@@ -213,16 +218,18 @@ class RefactorPromptGenerator:
                 f"{file_health.score_rounded} -> {round(new_score, 1)}"
             )
 
-        parts.extend([
-            "",
-            "### Context",
-            "```python",
-            context,
-            "```",
-            "",
-            "### Instructions",
-            instructions,
-        ])
+        parts.extend(
+            [
+                "",
+                "### Context",
+                "```python",
+                context,
+                "```",
+                "",
+                "### Instructions",
+                instructions,
+            ]
+        )
 
         if finding.suggestion:
             parts.extend(["", f"**Suggestion:** {finding.suggestion}"])
@@ -232,13 +239,15 @@ class RefactorPromptGenerator:
             for c in constraints:
                 parts.append(f"- {c}")
 
-        parts.extend([
-            "",
-            "### Verification",
-            "```bash",
-            verification,
-            "```",
-        ])
+        parts.extend(
+            [
+                "",
+                "### Verification",
+                "```bash",
+                verification,
+                "```",
+            ]
+        )
 
         return "\n".join(parts)
 
@@ -249,8 +258,7 @@ class RefactorPromptGenerator:
 
         if loc.function:
             constraints.append(
-                f"Function `{loc.function}()` signature must not change "
-                f"(may be called externally)"
+                f"Function `{loc.function}()` signature must not change (may be called externally)"
             )
         if loc.class_name:
             constraints.append(
@@ -275,7 +283,7 @@ class RefactorPromptGenerator:
         parts = Path(file_path).parts
         if "django_matt" in parts:
             idx = parts.index("django_matt")
-            rest = parts[idx + 1:]
+            rest = parts[idx + 1 :]
             test_path = f"tests/test_{'_'.join(rest)}".replace(".py", ".py")
             # Also run the specific module tests
             return f"pytest {test_path} -v\npytest tests/ -k {Path(file_path).stem} -v"

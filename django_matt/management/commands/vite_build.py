@@ -81,8 +81,7 @@ class Command(BaseCommand):
         vite_config = self._find_vite_config()
         if vite_config is None:
             raise CommandError(
-                "No vite.config.{ts,js,mts,mjs} found. "
-                "Initialize Vite first: bunx create-vite"
+                "No vite.config.{ts,js,mts,mjs} found. Initialize Vite first: bunx create-vite"
             )
 
         outdir = options["outdir"] or config.build_dir
@@ -109,9 +108,7 @@ class Command(BaseCommand):
         if options["watch"]:
             cmd.append("--watch")
 
-        self.stdout.write(
-            self.style.MIGRATE_HEADING(f"Building with Vite ({runner})...")
-        )
+        self.stdout.write(self.style.MIGRATE_HEADING(f"Building with Vite ({runner})..."))
         self.stdout.write(f"  Mode:   {options['mode']}")
         self.stdout.write(f"  Output: {outdir}")
         self.stdout.write("")
@@ -129,14 +126,10 @@ class Command(BaseCommand):
         manifest_path = Path(settings.BASE_DIR) / config.manifest_path
         if not options["watch"] and not manifest_path.exists():
             self.stdout.write(
-                self.style.WARNING(
-                    f"  Warning: manifest not found at {config.manifest_path}"
-                )
+                self.style.WARNING(f"  Warning: manifest not found at {config.manifest_path}")
             )
         elif not options["watch"]:
-            self.stdout.write(
-                self.style.SUCCESS(f"  Manifest: {config.manifest_path}")
-            )
+            self.stdout.write(self.style.SUCCESS(f"  Manifest: {config.manifest_path}"))
 
         self.stdout.write(self.style.SUCCESS("\nBuild complete."))
         return None

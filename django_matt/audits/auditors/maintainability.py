@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Maintainability auditor for code health and technical debt.
 

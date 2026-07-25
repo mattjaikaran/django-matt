@@ -1,3 +1,4 @@
+# file-length-max: 550
 """Django best-practices AST analyzer — detects ORM misuse, fat views, and security risks."""
 
 from __future__ import annotations
@@ -8,18 +9,46 @@ from pathlib import Path
 from django_matt.review.analyzers.base import ASTVisitorAnalyzer
 from django_matt.review.findings import Category, Finding, Location, Severity
 
-_SYNC_ORM_METHODS: frozenset[str] = frozenset({
-    "get", "filter", "all", "save", "delete", "create", "update",
-    "count", "exists", "first", "last", "aggregate", "values", "values_list",
-})
+_SYNC_ORM_METHODS: frozenset[str] = frozenset(
+    {
+        "get",
+        "filter",
+        "all",
+        "save",
+        "delete",
+        "create",
+        "update",
+        "count",
+        "exists",
+        "first",
+        "last",
+        "aggregate",
+        "values",
+        "values_list",
+    }
+)
 
-_VIEW_BASE_KEYWORDS: frozenset[str] = frozenset({
-    "Controller", "ViewSet", "View", "APIView",
-})
+_VIEW_BASE_KEYWORDS: frozenset[str] = frozenset(
+    {
+        "Controller",
+        "ViewSet",
+        "View",
+        "APIView",
+    }
+)
 
-_ROUTE_DECORATOR_NAMES: frozenset[str] = frozenset({
-    "get", "post", "put", "patch", "delete", "head", "options", "trace",
-})
+_ROUTE_DECORATOR_NAMES: frozenset[str] = frozenset(
+    {
+        "get",
+        "post",
+        "put",
+        "patch",
+        "delete",
+        "head",
+        "options",
+        "trace",
+    }
+)
 
 
 def _is_async_def(node: ast.AST) -> bool:
@@ -42,8 +71,14 @@ def _has_route_decorator(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
 
 
 def _has_auth_decorator(node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
-    auth_names = {"jwt_required", "jwt_optional", "requires_role", "requires_permission",
-                  "login_required", "permission_required"}
+    auth_names = {
+        "jwt_required",
+        "jwt_optional",
+        "requires_role",
+        "requires_permission",
+        "login_required",
+        "permission_required",
+    }
     for dec in node.decorator_list:
         if isinstance(dec, ast.Call):
             dec = dec.func  # type: ignore[assignment]
@@ -83,7 +118,8 @@ def _class_has_auth(node: ast.ClassDef) -> bool:
         if isinstance(item, ast.Assign):
             for target in item.targets:
                 if isinstance(target, ast.Name) and target.id in {
-                    "permission_classes", "authentication_classes",
+                    "permission_classes",
+                    "authentication_classes",
                 }:
                     return True
         if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -93,11 +129,15 @@ def _class_has_auth(node: ast.ClassDef) -> bool:
     for dec in node.decorator_list:
         func = dec.func if isinstance(dec, ast.Call) else dec
         if isinstance(func, ast.Name) and func.id in {
-            "jwt_required", "requires_role", "requires_permission",
+            "jwt_required",
+            "requires_role",
+            "requires_permission",
         }:
             return True
         if isinstance(func, ast.Attribute) and func.attr in {
-            "jwt_required", "requires_role", "requires_permission",
+            "jwt_required",
+            "requires_role",
+            "requires_permission",
         }:
             return True
     return False
@@ -141,7 +181,9 @@ class DjangoBestPracticesAnalyzer(ASTVisitorAnalyzer):
     """AST-based Django best practices analyzer."""
 
     name: str = "django"
-    description: str = "Detects Django anti-patterns: sync ORM in async, N+1, fat views, raw SQL, missing auth"
+    description: str = (
+        "Detects Django anti-patterns: sync ORM in async, N+1, fat views, raw SQL, missing auth"
+    )
 
     def __init__(self, config: object) -> None:
         super().__init__(config)  # type: ignore[arg-type]
@@ -169,7 +211,8 @@ class DjangoBestPracticesAnalyzer(ASTVisitorAnalyzer):
             line=lineno,
             end_line=end_lineno,
             function=function or (self._async_context[-1] if self._async_context else None),
-            class_name=class_name or (self._class_context[-1].name if self._class_context else None),
+            class_name=class_name
+            or (self._class_context[-1].name if self._class_context else None),
         )
 
     # ── DJ001: Sync ORM in async context ─────────────────────────────
@@ -182,15 +225,17 @@ class DjangoBestPracticesAnalyzer(ASTVisitorAnalyzer):
             return
         method_name = func.attr
         if method_name in _SYNC_ORM_METHODS:
-            self._add_finding(Finding(
-                rule_id="DJ001",
-                message=f"Sync ORM method .{method_name}() called inside async function '{self._async_context[-1]}'",
-                severity=Severity.ERROR,
-                category=Category.DJANGO,
-                location=self._location(node.lineno),
-                suggestion=f"Use .a{method_name}() or wrap with sync_to_async()",
-                context=self._get_source_line(node.lineno).strip(),
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="DJ001",
+                    message=f"Sync ORM method .{method_name}() called inside async function '{self._async_context[-1]}'",
+                    severity=Severity.ERROR,
+                    category=Category.DJANGO,
+                    location=self._location(node.lineno),
+                    suggestion=f"Use .a{method_name}() or wrap with sync_to_async()",
+                    context=self._get_source_line(node.lineno).strip(),
+                )
+            )
 
     # ── DJ002: N+1 query pattern ─────────────────────────────────────
 
@@ -199,17 +244,22 @@ class DjangoBestPracticesAnalyzer(ASTVisitorAnalyzer):
             if child is node:
                 continue
             if isinstance(child, ast.Attribute) and child.attr in {
-                "objects", "filter", "get", "all",
+                "objects",
+                "filter",
+                "get",
+                "all",
             }:
-                self._add_finding(Finding(
-                    rule_id="DJ002",
-                    message="Potential N+1 query: ORM access inside loop",
-                    severity=Severity.WARNING,
-                    category=Category.PERFORMANCE,
-                    location=self._location(child.lineno),
-                    suggestion="Use select_related() or prefetch_related() before the loop",
-                    context=self._get_source_line(child.lineno).strip(),
-                ))
+                self._add_finding(
+                    Finding(
+                        rule_id="DJ002",
+                        message="Potential N+1 query: ORM access inside loop",
+                        severity=Severity.WARNING,
+                        category=Category.PERFORMANCE,
+                        location=self._location(child.lineno),
+                        suggestion="Use select_related() or prefetch_related() before the loop",
+                        context=self._get_source_line(child.lineno).strip(),
+                    )
+                )
                 return  # one finding per loop
 
     # ── DJ003: Fat view ──────────────────────────────────────────────
@@ -223,14 +273,16 @@ class DjangoBestPracticesAnalyzer(ASTVisitorAnalyzer):
             return
         line_count = _function_line_count(node)
         if line_count > 50:
-            self._add_finding(Finding(
-                rule_id="DJ003",
-                message=f"View '{node.name}' is {line_count} lines — consider extracting to service layer",
-                severity=Severity.WARNING,
-                category=Category.COMPLEXITY,
-                location=self._location(node.lineno, node.end_lineno, function=node.name),
-                suggestion="Extract business logic to a service layer; keep views thin",
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="DJ003",
+                    message=f"View '{node.name}' is {line_count} lines — consider extracting to service layer",
+                    severity=Severity.WARNING,
+                    category=Category.COMPLEXITY,
+                    location=self._location(node.lineno, node.end_lineno, function=node.name),
+                    suggestion="Extract business logic to a service layer; keep views thin",
+                )
+            )
 
     # ── DJ004: Raw SQL usage ─────────────────────────────────────────
 
@@ -242,42 +294,46 @@ class DjangoBestPracticesAnalyzer(ASTVisitorAnalyzer):
 
         if method_name in {"raw", "extra"}:
             # Check if arguments contain f-strings or .format()
-            has_injection_risk = any(
-                _is_fstring_or_format(arg) for arg in node.args
-            )
+            has_injection_risk = any(_is_fstring_or_format(arg) for arg in node.args)
             if has_injection_risk:
-                self._add_finding(Finding(
-                    rule_id="DJ004",
-                    message=f"SQL injection risk: .{method_name}() with string interpolation",
-                    severity=Severity.ERROR,
-                    category=Category.SECURITY,
-                    location=self._location(node.lineno),
-                    suggestion="Use parameterized queries: .raw('SELECT ... WHERE id = %s', [id])",
-                    context=self._get_source_line(node.lineno).strip(),
-                ))
+                self._add_finding(
+                    Finding(
+                        rule_id="DJ004",
+                        message=f"SQL injection risk: .{method_name}() with string interpolation",
+                        severity=Severity.ERROR,
+                        category=Category.SECURITY,
+                        location=self._location(node.lineno),
+                        suggestion="Use parameterized queries: .raw('SELECT ... WHERE id = %s', [id])",
+                        context=self._get_source_line(node.lineno).strip(),
+                    )
+                )
             else:
-                self._add_finding(Finding(
-                    rule_id="DJ004",
-                    message=f"Raw SQL via .{method_name}() — prefer ORM when possible",
-                    severity=Severity.WARNING,
-                    category=Category.DJANGO,
-                    location=self._location(node.lineno),
-                    suggestion="Use Django ORM or ensure parameterized queries",
-                    context=self._get_source_line(node.lineno).strip(),
-                ))
+                self._add_finding(
+                    Finding(
+                        rule_id="DJ004",
+                        message=f"Raw SQL via .{method_name}() — prefer ORM when possible",
+                        severity=Severity.WARNING,
+                        category=Category.DJANGO,
+                        location=self._location(node.lineno),
+                        suggestion="Use Django ORM or ensure parameterized queries",
+                        context=self._get_source_line(node.lineno).strip(),
+                    )
+                )
 
         if method_name == "execute":
             # cursor.execute() with f-string/format
             if node.args and _is_fstring_or_format(node.args[0]):
-                self._add_finding(Finding(
-                    rule_id="DJ004",
-                    message="SQL injection risk: cursor.execute() with string interpolation",
-                    severity=Severity.ERROR,
-                    category=Category.SECURITY,
-                    location=self._location(node.lineno),
-                    suggestion="Use parameterized queries: cursor.execute('SELECT ... WHERE id = %s', [id])",
-                    context=self._get_source_line(node.lineno).strip(),
-                ))
+                self._add_finding(
+                    Finding(
+                        rule_id="DJ004",
+                        message="SQL injection risk: cursor.execute() with string interpolation",
+                        severity=Severity.ERROR,
+                        category=Category.SECURITY,
+                        location=self._location(node.lineno),
+                        suggestion="Use parameterized queries: cursor.execute('SELECT ... WHERE id = %s', [id])",
+                        context=self._get_source_line(node.lineno).strip(),
+                    )
+                )
 
     # ── DJ005: Missing auth on view class ────────────────────────────
 
@@ -286,14 +342,16 @@ class DjangoBestPracticesAnalyzer(ASTVisitorAnalyzer):
             return
         if _class_has_auth(node):
             return
-        self._add_finding(Finding(
-            rule_id="DJ005",
-            message=f"Class '{node.name}' has no permission_classes or auth decorators",
-            severity=Severity.HINT,
-            category=Category.SECURITY,
-            location=self._location(node.lineno, class_name=node.name),
-            suggestion="Add permission_classes = [IsAuthenticated] or apply auth decorators",
-        ))
+        self._add_finding(
+            Finding(
+                rule_id="DJ005",
+                message=f"Class '{node.name}' has no permission_classes or auth decorators",
+                severity=Severity.HINT,
+                category=Category.SECURITY,
+                location=self._location(node.lineno, class_name=node.name),
+                suggestion="Add permission_classes = [IsAuthenticated] or apply auth decorators",
+            )
+        )
 
     # ── DJ006: Business logic in view ────────────────────────────────
 
@@ -307,29 +365,33 @@ class DjangoBestPracticesAnalyzer(ASTVisitorAnalyzer):
         # .objects.create() pattern
         if func.attr == "create" and isinstance(func.value, ast.Attribute):
             if func.value.attr == "objects":
-                self._add_finding(Finding(
-                    rule_id="DJ006",
-                    message=f"Direct .objects.create() in view '{self._view_context[-1].name}'",
-                    severity=Severity.HINT,
-                    category=Category.MODULARITY,
-                    location=self._location(node.lineno),
-                    suggestion="Extract model creation to a service or repository layer",
-                    context=self._get_source_line(node.lineno).strip(),
-                ))
+                self._add_finding(
+                    Finding(
+                        rule_id="DJ006",
+                        message=f"Direct .objects.create() in view '{self._view_context[-1].name}'",
+                        severity=Severity.HINT,
+                        category=Category.MODULARITY,
+                        location=self._location(node.lineno),
+                        suggestion="Extract model creation to a service or repository layer",
+                        context=self._get_source_line(node.lineno).strip(),
+                    )
+                )
                 return
 
         # 3+ chained ORM calls
         chain_depth = _count_chained_calls(node)
         if chain_depth >= 3:
-            self._add_finding(Finding(
-                rule_id="DJ006",
-                message=f"Complex query chain ({chain_depth} calls) in view '{self._view_context[-1].name}'",
-                severity=Severity.HINT,
-                category=Category.MODULARITY,
-                location=self._location(node.lineno),
-                suggestion="Extract complex queries to a service or repository layer",
-                context=self._get_source_line(node.lineno).strip(),
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="DJ006",
+                    message=f"Complex query chain ({chain_depth} calls) in view '{self._view_context[-1].name}'",
+                    severity=Severity.HINT,
+                    category=Category.MODULARITY,
+                    location=self._location(node.lineno),
+                    suggestion="Extract complex queries to a service or repository layer",
+                    context=self._get_source_line(node.lineno).strip(),
+                )
+            )
 
     # ── DJ007: Unbounded queryset ────────────────────────────────────
 
@@ -357,15 +419,17 @@ class DjangoBestPracticesAnalyzer(ASTVisitorAnalyzer):
         if parent_attr in {"select_related", "prefetch_related", "order_by", "only", "defer"}:
             return
 
-        self._add_finding(Finding(
-            rule_id="DJ007",
-            message=f"Potentially unbounded .{func.attr}() in view '{self._view_context[-1].name}'",
-            severity=Severity.WARNING,
-            category=Category.PERFORMANCE,
-            location=self._location(node.lineno),
-            suggestion="Add pagination, slicing [:N], or .iterator() to limit results",
-            context=self._get_source_line(node.lineno).strip(),
-        ))
+        self._add_finding(
+            Finding(
+                rule_id="DJ007",
+                message=f"Potentially unbounded .{func.attr}() in view '{self._view_context[-1].name}'",
+                severity=Severity.WARNING,
+                category=Category.PERFORMANCE,
+                location=self._location(node.lineno),
+                suggestion="Add pagination, slicing [:N], or .iterator() to limit results",
+                context=self._get_source_line(node.lineno).strip(),
+            )
+        )
 
     # ── AST visitors ─────────────────────────────────────────────────
 

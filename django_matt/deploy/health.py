@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Health check endpoints for deployment monitoring.
 

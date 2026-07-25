@@ -35,9 +35,7 @@ class ExceptionFilterRegistry:
 
     # -- controller --
 
-    def register_controller_filter(
-        self, controller_cls: type, filter_: ExceptionFilter
-    ) -> None:
+    def register_controller_filter(self, controller_cls: type, filter_: ExceptionFilter) -> None:
         """Register a filter scoped to a specific controller class."""
         if controller_cls not in self._controller_chains:
             self._controller_chains[controller_cls] = ExceptionFilterChain()
@@ -49,9 +47,7 @@ class ExceptionFilterRegistry:
 
     # -- route --
 
-    def register_route_filter(
-        self, route_key: str, filter_: ExceptionFilter
-    ) -> None:
+    def register_route_filter(self, route_key: str, filter_: ExceptionFilter) -> None:
         """Register a filter scoped to a specific route key."""
         if route_key not in self._route_chains:
             self._route_chains[route_key] = ExceptionFilterChain()

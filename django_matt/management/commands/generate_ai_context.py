@@ -1,3 +1,4 @@
+# file-length-max: 550
 """
 Management command for generating AI assistant context files.
 

@@ -10,6 +10,7 @@ Usage::
     from django_matt.rules.integration import PredicatePermission
     from django_matt.rules.builtins import is_owner, is_superuser
 
+
     class PostController(APIController):
         permission_classes = [PredicatePermission(is_owner | is_superuser)]
 
@@ -46,9 +47,7 @@ class PredicatePermission(BasePermission):
         user = getattr(request, "user", None)
         return self.pred.test(user)
 
-    def has_object_permission(
-        self, request: HttpRequest, view: Any, obj: Any
-    ) -> bool:
+    def has_object_permission(self, request: HttpRequest, view: Any, obj: Any) -> bool:
         user = getattr(request, "user", None)
         return self.pred.test(user, obj)
 

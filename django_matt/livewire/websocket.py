@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 WebSocket support for Livewire components.
 

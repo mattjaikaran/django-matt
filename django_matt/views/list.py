@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 ListView for listing resources with pagination, filtering, and search.
 
@@ -232,8 +233,7 @@ class ListView(APIView):
         # Apply dynamic field selection to serialized items
         if selected_fields is not None and "items" in response:
             response["items"] = [
-                self._filter_dict_fields(item, selected_fields)
-                for item in response["items"]
+                self._filter_dict_fields(item, selected_fields) for item in response["items"]
             ]
 
         # Run after_list hooks - allows modifying response
@@ -267,8 +267,7 @@ class ListView(APIView):
             sort_tuples = parsed_qs.get("sort", [])
             if sort_tuples:
                 fields = [
-                    f"-{field}" if not ascending else field
-                    for field, ascending in sort_tuples
+                    f"-{field}" if not ascending else field for field, ascending in sort_tuples
                 ]
                 valid_fields = []
                 for field in fields:
@@ -382,7 +381,9 @@ class ListView(APIView):
         """
         parsed_qs = getattr(request, "_parsed_qs", None)
         if parsed_qs is not None:
-            search = parsed_qs.get("extras", {}).get("search") or parsed_qs.get("extras", {}).get("q")
+            search = parsed_qs.get("extras", {}).get("search") or parsed_qs.get("extras", {}).get(
+                "q"
+            )
         else:
             search = request.GET.get("search")
 
@@ -416,7 +417,11 @@ class ListView(APIView):
 
         try:
             raw_size = pagination_params.get("page_size") if pagination_params else None
-            page_size = int(raw_size) if raw_size is not None else int(request.GET.get("page_size", self.page_size))
+            page_size = (
+                int(raw_size)
+                if raw_size is not None
+                else int(request.GET.get("page_size", self.page_size))
+            )
         except (TypeError, ValueError):
             page_size = self.page_size
 

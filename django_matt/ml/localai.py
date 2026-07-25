@@ -1,3 +1,4 @@
+# file-length-max: 1300
 """
 LocalAI provider implementation.
 

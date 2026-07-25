@@ -24,6 +24,7 @@ class ConcurrentIndexRewriter(BaseRewriter):
             return True
         # Also catch RunSQL with CREATE INDEX
         from django.db.migrations.operations.special import RunSQL
+
         if isinstance(operation, RunSQL):
             sql = operation.sql if isinstance(operation.sql, str) else ""
             return "CREATE INDEX" in sql.upper() and "CONCURRENTLY" not in sql.upper()

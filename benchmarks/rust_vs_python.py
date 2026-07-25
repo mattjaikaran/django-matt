@@ -139,7 +139,9 @@ def main():
                     # Rust correctly prioritizes static over param
                     mismatches += 1
         if mismatches:
-            print(f"  Correctness: {mismatches} priority differences (Rust static > param, correct)\n")
+            print(
+                f"  Correctness: {mismatches} priority differences (Rust static > param, correct)\n"
+            )
         else:
             print("  Correctness check: PASS\n")
 
@@ -245,6 +247,7 @@ def main():
 
     def py_jwt_encode():
         import time as _time
+
         claims = dict(jwt_payload)
         now = int(_time.time())
         claims["iat"] = now
@@ -275,6 +278,7 @@ def main():
 
         def rust_jwt_encode():
             import time as _time
+
             claims = dict(jwt_payload)
             now = int(_time.time())
             claims["iat"] = now
@@ -298,8 +302,12 @@ def main():
     if has_rust:
         enc_speedup = py_enc["mean_ns"] / rs_enc["mean_ns"]
         dec_speedup = py_dec["mean_ns"] / rs_dec["mean_ns"]
-        print(f"  {'JWT encode':<20} {py_enc['mean_ns']:<15.0f} {rs_enc['mean_ns']:<15.0f} {enc_speedup:<10.1f}x")
-        print(f"  {'JWT decode+verify':<20} {py_dec['mean_ns']:<15.0f} {rs_dec['mean_ns']:<15.0f} {dec_speedup:<10.1f}x")
+        print(
+            f"  {'JWT encode':<20} {py_enc['mean_ns']:<15.0f} {rs_enc['mean_ns']:<15.0f} {enc_speedup:<10.1f}x"
+        )
+        print(
+            f"  {'JWT decode+verify':<20} {py_dec['mean_ns']:<15.0f} {rs_dec['mean_ns']:<15.0f} {dec_speedup:<10.1f}x"
+        )
     else:
         print(f"  {'JWT encode':<20} {py_enc['mean_ns']:<15.0f} {'N/A':<15} {'N/A':<10}")
         print(f"  {'JWT decode+verify':<20} {py_dec['mean_ns']:<15.0f} {'N/A':<15} {'N/A':<10}")
@@ -319,8 +327,14 @@ def main():
     qs_test_cases = [
         ("simple", "fields=id,name,email"),
         ("filters", "filter[status]=active&filter[role]=admin&filter[org]=acme"),
-        ("full", "fields=id,name&filter[status]=active&sort=-created,name&page=2&limit=20&search=hello"),
-        ("complex", "fields=id,name,email,created,updated&filter[status]=active&filter[role__in]=admin,user&sort=-created,name,email&page=3&limit=50&offset=100&search=test%20query"),
+        (
+            "full",
+            "fields=id,name&filter[status]=active&sort=-created,name&page=2&limit=20&search=hello",
+        ),
+        (
+            "complex",
+            "fields=id,name,email,created,updated&filter[status]=active&filter[role__in]=admin,user&sort=-created,name,email&page=3&limit=50&offset=100&search=test%20query",
+        ),
     ]
 
     qs_iterations = 500_000
@@ -333,9 +347,12 @@ def main():
 
         if has_rust:
             from django_matt._rust import parse_query_string as _parse_qs_rs
+
             rs_qs = benchmark(f"rs:{label}", lambda q=qs: _parse_qs_rs(q), qs_iterations)
             speedup = py_qs["mean_ns"] / rs_qs["mean_ns"]
-            print(f"  {label:<15} {py_qs['mean_ns']:<15.0f} {rs_qs['mean_ns']:<15.0f} {speedup:<10.1f}x")
+            print(
+                f"  {label:<15} {py_qs['mean_ns']:<15.0f} {rs_qs['mean_ns']:<15.0f} {speedup:<10.1f}x"
+            )
         else:
             print(f"  {label:<15} {py_qs['mean_ns']:<15.0f} {'N/A':<15} {'N/A':<10}")
 
@@ -411,7 +428,9 @@ def main():
                 ser_iterations,
             )
             rs_camel_speedup = json_ns / rs_camel["mean_ns"]
-            print(f"    {'rust + camelCase':<25} {rs_camel['mean_ns']:<15.0f} {rs_camel_speedup:<20.1f}x")
+            print(
+                f"    {'rust + camelCase':<25} {rs_camel['mean_ns']:<15.0f} {rs_camel_speedup:<20.1f}x"
+            )
 
         print()
 

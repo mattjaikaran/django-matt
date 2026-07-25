@@ -29,33 +29,25 @@ except ImportError:
         """Placeholder for pgvector's VectorField."""
 
         def __init__(self, *args, **kwargs):
-            raise ImportError(
-                "pgvector is not installed. Install it with: uv add django-pgvector"
-            )
+            raise ImportError("pgvector is not installed. Install it with: uv add django-pgvector")
 
     class L2Distance:
         """Placeholder for pgvector's L2Distance."""
 
         def __init__(self, *args, **kwargs):
-            raise ImportError(
-                "pgvector is not installed. Install it with: uv add django-pgvector"
-            )
+            raise ImportError("pgvector is not installed. Install it with: uv add django-pgvector")
 
     class CosineDistance:
         """Placeholder for pgvector's CosineDistance."""
 
         def __init__(self, *args, **kwargs):
-            raise ImportError(
-                "pgvector is not installed. Install it with: uv add django-pgvector"
-            )
+            raise ImportError("pgvector is not installed. Install it with: uv add django-pgvector")
 
     class MaxInnerProduct:
         """Placeholder for pgvector's MaxInnerProduct."""
 
         def __init__(self, *args, **kwargs):
-            raise ImportError(
-                "pgvector is not installed. Install it with: uv add django-pgvector"
-            )
+            raise ImportError("pgvector is not installed. Install it with: uv add django-pgvector")
 
 
 def setup_pgvector():
@@ -149,9 +141,7 @@ class VectorManager:
             A queryset ordered by similarity
         """
         if not HAS_PGVECTOR:
-            raise ImportError(
-                "pgvector is not installed. Install it with: uv add django-pgvector"
-            )
+            raise ImportError("pgvector is not installed. Install it with: uv add django-pgvector")
 
         if distance_func == "cosine":
             distance = CosineDistance(field_name, query_vector)

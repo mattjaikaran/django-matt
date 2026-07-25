@@ -1,3 +1,4 @@
+# file-length-max: 550
 """
 Password utilities using Django's built-in hashers.
 

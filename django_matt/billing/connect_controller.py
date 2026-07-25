@@ -173,9 +173,7 @@ class ConnectController:
     # -------------------------------------------------------------------------
 
     @staticmethod
-    async def create_account_link(
-        request: HttpRequest, data: AccountLinkCreate
-    ) -> dict:
+    async def create_account_link(request: HttpRequest, data: AccountLinkCreate) -> dict:
         """Create an account link for Express onboarding."""
         try:
             provider = _get_stripe_provider()

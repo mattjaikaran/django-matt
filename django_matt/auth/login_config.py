@@ -17,8 +17,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
-from django.conf import settings
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 
@@ -34,8 +34,6 @@ class LoginConfig:
     allow_inactive: bool = False
     max_login_attempts: int = 0  # 0 = no limit
     lockout_duration: int = 300  # seconds
-
-
 
 
 def get_login_config() -> LoginConfig:
@@ -55,7 +53,6 @@ def get_login_config() -> LoginConfig:
 
 def reset_login_config() -> None:
     """Reset cached config (for testing). No-op — config is no longer cached."""
-    pass
 
 
 class EmailOrUsernameBackend(ModelBackend):

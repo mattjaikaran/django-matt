@@ -1,3 +1,4 @@
+# file-length-max: 950
 """
 SolidJS code generator.
 

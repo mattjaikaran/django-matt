@@ -16,6 +16,7 @@ def command(
     bus: CommandBus | None = None,
 ) -> Callable:
     """Decorator that parses request data into a Command and dispatches it."""
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def wrapper(self: Any, request: Any, data: Any = None, **kwargs: Any) -> Any:
@@ -48,6 +49,7 @@ def query(
     bus: QueryBus | None = None,
 ) -> Callable:
     """Decorator that parses query params into a Query and dispatches it."""
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def wrapper(self: Any, request: Any, **kwargs: Any) -> Any:

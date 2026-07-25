@@ -62,9 +62,7 @@ class SmartSquasher:
         result = squasher.squash("myapp", "0001", "0015")
     """
 
-    def preview(
-        self, app_label: str, start: str, end: str
-    ) -> SquashPreview:
+    def preview(self, app_label: str, start: str, end: str) -> SquashPreview:
         """Preview what a squash would do without writing files."""
         from django.db import connection
         from django.db.migrations.loader import MigrationLoader
@@ -90,14 +88,10 @@ class SmartSquasher:
             for op in ops:
                 if isinstance(op, RunPython):
                     has_run_python = True
-                    warnings.append(
-                        f"{mn}: contains RunPython — cannot be fully optimized"
-                    )
+                    warnings.append(f"{mn}: contains RunPython — cannot be fully optimized")
                 elif isinstance(op, RunSQL):
                     has_run_sql = True
-                    warnings.append(
-                        f"{mn}: contains RunSQL — will be preserved as-is"
-                    )
+                    warnings.append(f"{mn}: contains RunSQL — will be preserved as-is")
 
         # Estimate optimized operations using Django's optimizer
         optimized_count = self._estimate_optimized(all_ops)
@@ -114,9 +108,7 @@ class SmartSquasher:
             warnings=warnings,
         )
 
-    def squash(
-        self, app_label: str, start: str, end: str, dry_run: bool = False
-    ) -> SquashResult:
+    def squash(self, app_label: str, start: str, end: str, dry_run: bool = False) -> SquashResult:
         """Squash migrations in range.
 
         For actual file generation, delegates to Django's core squash logic
@@ -160,9 +152,7 @@ class SmartSquasher:
             )
 
     @staticmethod
-    def _get_range(
-        loader: Any, app_label: str, start: str, end: str
-    ) -> list[tuple[str, str]]:
+    def _get_range(loader: Any, app_label: str, start: str, end: str) -> list[tuple[str, str]]:
         """Get migrations in range [start, end] for an app."""
         all_migrations = sorted(
             [(al, mn) for (al, mn) in loader.disk_migrations if al == app_label],

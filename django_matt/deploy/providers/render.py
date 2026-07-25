@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Render deployment provider.
 
@@ -389,7 +390,9 @@ python manage.py migrate --noinput
 
         except urllib.error.HTTPError:
             # Scaling API may not be available on all plans
-            result.add_log(f"API scaling unavailable. Update render.yaml: numInstances: {instances}")
+            result.add_log(
+                f"API scaling unavailable. Update render.yaml: numInstances: {instances}"
+            )
             result.status = DeploymentStatus.SUCCESS
         except Exception as e:
             result.status = DeploymentStatus.FAILED
@@ -408,10 +411,7 @@ python manage.py migrate --noinput
             return ["RENDER_API_KEY not set. Set it to fetch logs via API."]
 
         try:
-            url = (
-                f"https://api.render.com/v1/services/{self.config.app_name}"
-                f"/logs?limit={lines}"
-            )
+            url = f"https://api.render.com/v1/services/{self.config.app_name}/logs?limit={lines}"
             req = urllib.request.Request(url)
             req.add_header("Authorization", f"Bearer {api_key}")
 
@@ -419,10 +419,7 @@ python manage.py migrate --noinput
                 data = orjson.loads(response.read().decode())
 
             log_entries = data if isinstance(data, list) else data.get("logs", [])
-            return [
-                entry.get("message", str(entry))
-                for entry in log_entries[:lines]
-            ]
+            return [entry.get("message", str(entry)) for entry in log_entries[:lines]]
 
         except urllib.error.HTTPError as e:
             return [f"Render API error: {e.code} {e.reason}"]

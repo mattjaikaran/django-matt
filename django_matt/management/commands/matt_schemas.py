@@ -1,3 +1,4 @@
+# file-length-max: 550
 """
 Django Matt schema listing command.
 
@@ -81,7 +82,9 @@ class Command(MattCommand):
 
         # Output in requested format
         if output_json:
-            self.stdout.write(orjson.dumps(schemas, default=str, option=orjson.OPT_INDENT_2).decode())
+            self.stdout.write(
+                orjson.dumps(schemas, default=str, option=orjson.OPT_INDENT_2).decode()
+            )
         else:
             self._display_schemas(schemas, verbose)
 

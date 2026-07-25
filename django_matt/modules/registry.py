@@ -33,6 +33,7 @@ class ModuleNotFoundError(ModuleError):
 
 class ModuleRegistry:
     """Central registry for module registration, dependency resolution, and lifecycle."""
+
     def __init__(self) -> None:
         self._modules: dict[str, MattModule] = {}
         self._loaded: dict[str, MattModule] = {}
@@ -73,9 +74,7 @@ class ModuleRegistry:
             if name in visited:
                 return
             if name in visiting:
-                raise CircularDependencyError(
-                    f"Circular dependency detected involving {name!r}"
-                )
+                raise CircularDependencyError(f"Circular dependency detected involving {name!r}")
             visiting.add(name)
             for dep in graph.get(name, []):
                 visit(dep)
@@ -166,10 +165,7 @@ class ModuleRegistry:
         self._configs.clear()
 
     def __repr__(self) -> str:
-        return (
-            f"<ModuleRegistry registered={len(self._modules)} "
-            f"loaded={len(self._loaded)}>"
-        )
+        return f"<ModuleRegistry registered={len(self._modules)} loaded={len(self._loaded)}>"
 
 
 def get_registry() -> ModuleRegistry:
@@ -196,6 +192,7 @@ def discover_modules() -> list[MattModule]:
     # 1. Entry points
     if sys.version_info >= (3, 12):
         from importlib.metadata import entry_points
+
         eps = entry_points(group="django_matt.modules")
         for ep in eps:
             try:
@@ -208,6 +205,7 @@ def discover_modules() -> list[MattModule]:
     # 2. Django settings explicit list
     try:
         from django.conf import settings
+
         matt_config = getattr(settings, "DJANGO_MATT", {})
         module_paths = matt_config.get("MODULES", [])
         for path in module_paths:
@@ -231,6 +229,7 @@ def discover_modules() -> list[MattModule]:
     # 3. Convention: scan installed apps for matt_module.py
     try:
         from django.apps import apps
+
         for app_config in apps.get_app_configs():
             module_path = f"{app_config.name}.matt_module"
             try:
@@ -248,9 +247,7 @@ def discover_modules() -> list[MattModule]:
             except ImportError:
                 continue
             except Exception as exc:
-                logger.warning(
-                    "Error scanning %s for modules: %s", app_config.name, exc
-                )
+                logger.warning("Error scanning %s for modules: %s", app_config.name, exc)
     except Exception:
         pass
 

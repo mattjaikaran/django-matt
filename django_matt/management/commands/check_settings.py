@@ -114,9 +114,7 @@ class Command(BaseCommand):
                 self.style.ERROR(f"\n{len(errors)} error(s), {len(warnings)} warning(s).")
             )
         else:
-            self.stdout.write(
-                self.style.WARNING(f"\n{len(warnings)} warning(s), 0 errors.")
-            )
+            self.stdout.write(self.style.WARNING(f"\n{len(warnings)} warning(s), 0 errors."))
 
         if strict and warnings:
             raise SystemExit(1)

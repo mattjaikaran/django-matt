@@ -1,3 +1,4 @@
+# file-length-max: 650
 import logging
 import os
 import signal

@@ -43,9 +43,7 @@ class SESProvider(EmailProviderBase):
 
                 self._client = boto3.client("ses", region_name=self.region)
             except ImportError:
-                raise ImportError(
-                    "boto3 is required for SES provider. Install with: uv add boto3"
-                )
+                raise ImportError("boto3 is required for SES provider. Install with: uv add boto3")
         return self._client
 
     def send(

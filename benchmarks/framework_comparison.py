@@ -96,6 +96,7 @@ NINJA_BASELINES: dict[str, float] = {
 # Percentile helper
 # ---------------------------------------------------------------------------
 
+
 def _percentile(data: list[float], pct: float) -> float:
     sorted_data = sorted(data)
     k = (len(sorted_data) - 1) * pct / 100
@@ -109,6 +110,7 @@ def _percentile(data: list[float], pct: float) -> float:
 # ---------------------------------------------------------------------------
 # Route resolution benchmarks
 # ---------------------------------------------------------------------------
+
 
 def bench_route_resolution(iterations: int) -> list[tuple[str, BenchmarkResult]]:
     from django.urls import Resolver404
@@ -160,28 +162,34 @@ def bench_route_resolution(iterations: int) -> list[tuple[str, BenchmarkResult]]
     def resolve_static():
         resolver.resolve("users/")
 
-    results.append((
-        "route_static",
-        run_benchmark("Route: static /users/", resolve_static, iterations=iterations),
-    ))
+    results.append(
+        (
+            "route_static",
+            run_benchmark("Route: static /users/", resolve_static, iterations=iterations),
+        )
+    )
 
     # Parameterized route
     def resolve_param():
         resolver.resolve("users/42/")
 
-    results.append((
-        "route_param",
-        run_benchmark("Route: param /users/{id}/", resolve_param, iterations=iterations),
-    ))
+    results.append(
+        (
+            "route_param",
+            run_benchmark("Route: param /users/{id}/", resolve_param, iterations=iterations),
+        )
+    )
 
     # Nested parameterized route
     def resolve_nested():
         resolver.resolve("orgs/1/teams/5/members/")
 
-    results.append((
-        "route_nested",
-        run_benchmark("Route: nested /orgs/../members/", resolve_nested, iterations=iterations),
-    ))
+    results.append(
+        (
+            "route_nested",
+            run_benchmark("Route: nested /orgs/../members/", resolve_nested, iterations=iterations),
+        )
+    )
 
     # Miss (404)
     def resolve_miss():
@@ -190,10 +198,12 @@ def bench_route_resolution(iterations: int) -> list[tuple[str, BenchmarkResult]]
         except Resolver404:
             pass
 
-    results.append((
-        "route_miss",
-        run_benchmark("Route: miss (404)", resolve_miss, iterations=iterations),
-    ))
+    results.append(
+        (
+            "route_miss",
+            run_benchmark("Route: miss (404)", resolve_miss, iterations=iterations),
+        )
+    )
 
     return results
 
@@ -201,6 +211,7 @@ def bench_route_resolution(iterations: int) -> list[tuple[str, BenchmarkResult]]
 # ---------------------------------------------------------------------------
 # Schema serialization benchmarks
 # ---------------------------------------------------------------------------
+
 
 def bench_schema_serialization(iterations: int) -> list[tuple[str, BenchmarkResult]]:
     results = []
@@ -220,77 +231,91 @@ def bench_schema_serialization(iterations: int) -> list[tuple[str, BenchmarkResu
     list_insts = [UserSmall(**d) for d in list_data]
 
     # Validation (parse)
-    results.append((
-        "schema_small",
-        run_benchmark(
-            "Schema: small (5 fields) validate",
-            lambda: UserSmall(**small_data),
-            iterations=iterations,
-        ),
-    ))
+    results.append(
+        (
+            "schema_small",
+            run_benchmark(
+                "Schema: small (5 fields) validate",
+                lambda: UserSmall(**small_data),
+                iterations=iterations,
+            ),
+        )
+    )
 
-    results.append((
-        "schema_medium",
-        run_benchmark(
-            "Schema: medium (15 fields) validate",
-            lambda: UserMedium(**medium_data),
-            iterations=iterations,
-        ),
-    ))
+    results.append(
+        (
+            "schema_medium",
+            run_benchmark(
+                "Schema: medium (15 fields) validate",
+                lambda: UserMedium(**medium_data),
+                iterations=iterations,
+            ),
+        )
+    )
 
-    results.append((
-        "schema_large",
-        run_benchmark(
-            "Schema: large (50 fields) validate",
-            lambda: UserLarge(**large_data),
-            iterations=iterations,
-        ),
-    ))
+    results.append(
+        (
+            "schema_large",
+            run_benchmark(
+                "Schema: large (50 fields) validate",
+                lambda: UserLarge(**large_data),
+                iterations=iterations,
+            ),
+        )
+    )
 
-    results.append((
-        "schema_nested",
-        run_benchmark(
-            "Schema: nested (3 levels) validate",
-            lambda: BlogNested(**nested_data),
-            iterations=iterations,
-        ),
-    ))
+    results.append(
+        (
+            "schema_nested",
+            run_benchmark(
+                "Schema: nested (3 levels) validate",
+                lambda: BlogNested(**nested_data),
+                iterations=iterations,
+            ),
+        )
+    )
 
     # List serialization
     def serialize_list():
         return [inst.model_dump() for inst in list_insts]
 
-    results.append((
-        "schema_list_100",
-        run_benchmark(
-            "Schema: list of 100 model_dump()",
-            serialize_list,
-            iterations=iterations // 10,
-        ),
-    ))
+    results.append(
+        (
+            "schema_list_100",
+            run_benchmark(
+                "Schema: list of 100 model_dump()",
+                serialize_list,
+                iterations=iterations // 10,
+            ),
+        )
+    )
 
     # model_dump_json (orjson under the hood in pydantic)
-    results.append((
-        "schema_dump_json",
-        run_benchmark(
-            "Schema: small model_dump_json()",
-            small_inst.model_dump_json,
-            iterations=iterations,
-        ),
-    ))
+    results.append(
+        (
+            "schema_dump_json",
+            run_benchmark(
+                "Schema: small model_dump_json()",
+                small_inst.model_dump_json,
+                iterations=iterations,
+            ),
+        )
+    )
 
     # model_construct (skip validation — fast path used by from_orm_fast)
     def construct_small():
         return UserSmall.model_construct(**small_data)
 
-    results.append((
-        "schema_construct",
-        run_benchmark(
-            "Schema: small model_construct()",
-            construct_small,
-            iterations=iterations,
-        ),
-    ))
+    results.append(
+        (
+            "schema_construct",
+            run_benchmark(
+                "Schema: small model_construct()",
+                construct_small,
+                iterations=iterations,
+            ),
+        )
+    )
 
     return results
 
@@ -298,6 +323,7 @@ def bench_schema_serialization(iterations: int) -> list[tuple[str, BenchmarkResu
 # ---------------------------------------------------------------------------
 # Request parsing benchmarks
 # ---------------------------------------------------------------------------
+
 
 def bench_request_parsing(iterations: int) -> list[tuple[str, BenchmarkResult]]:
     results = []
@@ -307,73 +333,85 @@ def bench_request_parsing(iterations: int) -> list[tuple[str, BenchmarkResult]]:
     large_json = orjson.dumps(gen_large_data())
 
     # JSON body parsing — orjson
-    results.append((
-        "parse_json_small",
-        run_benchmark(
-            "Parse: JSON small (orjson)",
-            lambda: orjson.loads(small_json),
-            iterations=iterations,
-        ),
-    ))
+    results.append(
+        (
+            "parse_json_small",
+            run_benchmark(
+                "Parse: JSON small (orjson)",
+                lambda: orjson.loads(small_json),
+                iterations=iterations,
+            ),
+        )
+    )
 
-    results.append((
-        "parse_json_medium",
-        run_benchmark(
-            "Parse: JSON medium (orjson)",
-            lambda: orjson.loads(medium_json),
-            iterations=iterations,
-        ),
-    ))
+    results.append(
+        (
+            "parse_json_medium",
+            run_benchmark(
+                "Parse: JSON medium (orjson)",
+                lambda: orjson.loads(medium_json),
+                iterations=iterations,
+            ),
+        )
+    )
 
-    results.append((
-        "parse_json_large",
-        run_benchmark(
-            "Parse: JSON large (orjson)",
-            lambda: orjson.loads(large_json),
-            iterations=iterations,
-        ),
-    ))
+    results.append(
+        (
+            "parse_json_large",
+            run_benchmark(
+                "Parse: JSON large (orjson)",
+                lambda: orjson.loads(large_json),
+                iterations=iterations,
+            ),
+        )
+    )
 
     # JSON parse + validate
     def parse_and_validate_small():
         data = orjson.loads(small_json)
         return UserSmall(**data)
 
-    results.append((
-        "parse_validate_small",
-        run_benchmark(
-            "Parse: JSON + validate small",
-            parse_and_validate_small,
-            iterations=iterations,
-        ),
-    ))
+    results.append(
+        (
+            "parse_validate_small",
+            run_benchmark(
+                "Parse: JSON + validate small",
+                parse_and_validate_small,
+                iterations=iterations,
+            ),
+        )
+    )
 
     def parse_and_validate_medium():
         data = orjson.loads(medium_json)
         return UserMedium(**data)
 
-    results.append((
-        "parse_validate_medium",
-        run_benchmark(
-            "Parse: JSON + validate medium",
-            parse_and_validate_medium,
-            iterations=iterations,
-        ),
-    ))
+    results.append(
+        (
+            "parse_validate_medium",
+            run_benchmark(
+                "Parse: JSON + validate medium",
+                parse_and_validate_medium,
+                iterations=iterations,
+            ),
+        )
+    )
 
     # Query string parsing
     from django.http import QueryDict
 
     qs_str = "page=1&limit=20&search=django&ordering=-created_at&status=active&tag=python&tag=api"
 
-    results.append((
-        "parse_querystring",
-        run_benchmark(
-            "Parse: query string (7 params)",
-            lambda: QueryDict(qs_str),
-            iterations=iterations,
-        ),
-    ))
+    results.append(
+        (
+            "parse_querystring",
+            run_benchmark(
+                "Parse: query string (7 params)",
+                lambda: QueryDict(qs_str),
+                iterations=iterations,
+            ),
+        )
+    )
 
     # Header extraction simulation
     headers = {
@@ -393,14 +431,16 @@ def bench_request_parsing(iterations: int) -> list[tuple[str, BenchmarkResult]]:
             "forwarded_for": headers.get("HTTP_X_FORWARDED_FOR", ""),
         }
 
-    results.append((
-        "parse_headers",
-        run_benchmark(
-            "Parse: header extraction (5 headers)",
-            extract_headers,
-            iterations=iterations,
-        ),
-    ))
+    results.append(
+        (
+            "parse_headers",
+            run_benchmark(
+                "Parse: header extraction (5 headers)",
+                extract_headers,
+                iterations=iterations,
+            ),
+        )
+    )
 
     return results
 
@@ -408,6 +448,7 @@ def bench_request_parsing(iterations: int) -> list[tuple[str, BenchmarkResult]]:
 # ---------------------------------------------------------------------------
 # Full request lifecycle benchmarks
 # ---------------------------------------------------------------------------
+
 
 def bench_lifecycle(iterations: int) -> list[tuple[str, BenchmarkResult]]:
     results = []
@@ -432,14 +473,16 @@ def bench_lifecycle(iterations: int) -> list[tuple[str, BenchmarkResult]]:
         }
         return orjson.dumps(response)
 
-    results.append((
-        "lifecycle_list",
-        run_benchmark(
-            "Lifecycle: GET list (20 items)",
-            lifecycle_list,
-            iterations=iterations,
-        ),
-    ))
+    results.append(
+        (
+            "lifecycle_list",
+            run_benchmark(
+                "Lifecycle: GET list (20 items)",
+                lifecycle_list,
+                iterations=iterations,
+            ),
+        )
+    )
 
     # Simulate GET detail
     detail_data = gen_medium_data()
@@ -449,14 +492,16 @@ def bench_lifecycle(iterations: int) -> list[tuple[str, BenchmarkResult]]:
         serialized = detail_instance.model_dump()
         return orjson.dumps(serialized)
 
-    results.append((
-        "lifecycle_detail",
-        run_benchmark(
-            "Lifecycle: GET detail",
-            lifecycle_detail,
-            iterations=iterations,
-        ),
-    ))
+    results.append(
+        (
+            "lifecycle_detail",
+            run_benchmark(
+                "Lifecycle: GET detail",
+                lifecycle_detail,
+                iterations=iterations,
+            ),
+        )
+    )
 
     # Simulate POST create: parse JSON -> validate -> serialize response
     create_json = orjson.dumps(gen_small_data())
@@ -467,14 +512,16 @@ def bench_lifecycle(iterations: int) -> list[tuple[str, BenchmarkResult]]:
         response = instance.model_dump()
         return orjson.dumps(response)
 
-    results.append((
-        "lifecycle_create",
-        run_benchmark(
-            "Lifecycle: POST create",
-            lifecycle_create,
-            iterations=iterations,
-        ),
-    ))
+    results.append(
+        (
+            "lifecycle_create",
+            run_benchmark(
+                "Lifecycle: POST create",
+                lifecycle_create,
+                iterations=iterations,
+            ),
+        )
+    )
 
     return results
 
@@ -482,6 +529,7 @@ def bench_lifecycle(iterations: int) -> list[tuple[str, BenchmarkResult]]:
 # ---------------------------------------------------------------------------
 # Output
 # ---------------------------------------------------------------------------
+
 
 def _ratio_str(matt_ops: float, baseline_ops: float) -> str:
     if baseline_ops <= 0:
@@ -591,14 +639,19 @@ def print_plain_table(
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="django-matt framework comparison benchmarks")
     parser.add_argument(
-        "-n", "--iterations", type=int, default=10_000,
+        "-n",
+        "--iterations",
+        type=int,
+        default=10_000,
         help="iterations per benchmark (default: 10000)",
     )
     parser.add_argument(
-        "--plain", action="store_true",
+        "--plain",
+        action="store_true",
         help="plain text output (no Rich tables)",
     )
     args = parser.parse_args()

@@ -1,3 +1,4 @@
+# file-length-max: 1250
 """
 Analytics storage backends.
 

@@ -11,6 +11,7 @@ from pydantic import BaseModel, create_model
 @dataclass(frozen=True, slots=True)
 class SerializationContext:
     """Immutable context specifying which groups/fields are visible for serialization."""
+
     groups: frozenset[str] = field(default_factory=frozenset)
     include_fields: frozenset[str] | None = None
     exclude_fields: frozenset[str] | None = None

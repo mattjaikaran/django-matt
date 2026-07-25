@@ -145,9 +145,7 @@ class Command(MattCommand):
         # CI gate
         fail_below = options.get("fail_below")
         if fail_below is not None and health.score < fail_below:
-            self.console.error(
-                f"Health {health.score_rounded} below threshold {fail_below}"
-            )
+            self.console.error(f"Health {health.score_rounded} below threshold {fail_below}")
             sys.exit(1)
 
     def _build_config(self, options: dict) -> ReviewConfig:
@@ -167,12 +165,17 @@ class Command(MattCommand):
         # Project summary
         score_color = "green" if health.score >= 7 else "yellow" if health.score >= 5 else "red"
         rc.print(
-            Text(f"\nProject Health: {health.score_rounded}/10 ({health.grade})", style=f"bold {score_color}")
+            Text(
+                f"\nProject Health: {health.score_rounded}/10 ({health.grade})",
+                style=f"bold {score_color}",
+            )
         )
-        rc.print(Text(
-            f"{health.total_files} files, {health.total_loc} LOC, {health.total_findings} findings",
-            style="dim",
-        ))
+        rc.print(
+            Text(
+                f"{health.total_files} files, {health.total_loc} LOC, {health.total_findings} findings",
+                style="dim",
+            )
+        )
 
         # File table
         top = options.get("top", 20)

@@ -82,8 +82,7 @@ def _make_skipped_result(
             "framework": framework,
             "skipped": True,
             "reason": (
-                f"{reason} — run `uv add --dev djangorestframework "
-                "django-ninja fastapi` to enable"
+                f"{reason} — run `uv add --dev djangorestframework django-ninja fastapi` to enable"
             ),
         },
     )

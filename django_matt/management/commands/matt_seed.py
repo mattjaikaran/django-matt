@@ -1,3 +1,4 @@
+# file-length-max: 900
 """
 Seed development database with realistic fake data.
 

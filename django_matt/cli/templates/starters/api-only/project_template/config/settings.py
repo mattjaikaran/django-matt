@@ -68,9 +68,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # CORS
 CORS_ALLOW_ALL_ORIGINS = DEBUG
-CORS_ALLOWED_ORIGINS: list[str] = os.environ.get(
-    "CORS_ALLOWED_ORIGINS", ""
-).split(",")
+CORS_ALLOWED_ORIGINS: list[str] = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
 
 # Django Matt — JWT
 DJANGO_MATT_JWT = {

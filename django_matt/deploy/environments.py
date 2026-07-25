@@ -1,3 +1,4 @@
+# file-length-max: 600
 """
 Multi-environment configuration management.
 

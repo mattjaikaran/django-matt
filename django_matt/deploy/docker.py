@@ -1,3 +1,4 @@
+# file-length-max: 750
 """
 Docker configuration generators.
 
@@ -238,9 +239,7 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:{self.config.port}"]
         backend = self.config.server_backend
         package = backend.get_install_package()
         if backend == ServerBackend.GUNICORN:
-            return (
-                f"RUN uv pip install --no-cache-dir {package} 'uvicorn[standard]'"
-            )
+            return f"RUN uv pip install --no-cache-dir {package} 'uvicorn[standard]'"
         return f"RUN uv pip install --no-cache-dir {package}"
 
     def _all_system_packages(self) -> list[str]:

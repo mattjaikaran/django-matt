@@ -10,6 +10,7 @@ from .queries import Query, QueryBus
 
 class InMemoryCommandBus(CommandBus):
     """Test double that records dispatched commands without executing handlers."""
+
     def __init__(self) -> None:
         super().__init__()
         self._dispatched: list[Command] = []

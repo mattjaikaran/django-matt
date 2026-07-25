@@ -1,3 +1,4 @@
+# file-length-max: 1000
 """
 Templates for AI context file generation.
 
@@ -650,7 +651,9 @@ def format_async_safety_section(
     lines = ["## Async Safety Guide", ""]
     lines.append("### Rules")
     lines.append("- **NEVER** use sync ORM methods in async views/functions")
-    lines.append("- Use async ORM methods: `.aget()`, `.afilter()`, `.acreate()`, `.asave()`, `.adelete()`")
+    lines.append(
+        "- Use async ORM methods: `.aget()`, `.afilter()`, `.acreate()`, `.asave()`, `.adelete()`"
+    )
     lines.append("- For sync code in async context, wrap with `sync_to_async()`")
     lines.append("")
     lines.append("### Correct vs Incorrect")

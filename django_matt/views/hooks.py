@@ -1,3 +1,4 @@
+# file-length-max: 750
 """
 Lifecycle hooks for Django Matt CRUD views.
 
@@ -663,9 +664,7 @@ class HooksMixin:
         """Hook called after reading a resource."""
         return instance
 
-    async def before_update(
-        self, request: HttpRequest, value: Any
-    ) -> Any:
+    async def before_update(self, request: HttpRequest, value: Any) -> Any:
         """Hook called before updating a resource.
 
         The value is a tuple of (instance, data_dict). Returns the same

@@ -20,6 +20,7 @@ class DomainEvent(BaseModel):
 
 def emits(*event_types: type[DomainEvent]) -> Callable:
     """Decorator that marks a handler as emitting specific domain event types."""
+
     def decorator(cls: type) -> type:
         cls._emitted_events = tuple(event_types)
         return cls

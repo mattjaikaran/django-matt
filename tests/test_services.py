@@ -561,9 +561,11 @@ class TestBaseThirdPartyService:
         svc = MyService()
         resp = self._make_resp({"message": "Not found"}, status=404)
 
-        with patch.object(svc._get_client(), "request", AsyncMock(return_value=resp)):
-            with pytest.raises(ThirdPartyServiceError) as exc_info:
-                await svc._get("/missing")
+        with (
+            patch.object(svc._get_client(), "request", AsyncMock(return_value=resp)),
+            pytest.raises(ThirdPartyServiceError) as exc_info,
+        ):
+            await svc._get("/missing")
 
         assert exc_info.value.status == 404
 
@@ -606,9 +608,11 @@ class TestBaseThirdPartyService:
         svc = StrictService()
         resp = self._make_resp({"error": "rate limited"}, status=429)
 
-        with patch.object(svc._get_client(), "request", AsyncMock(return_value=resp)):
-            with pytest.raises(ThirdPartyServiceError) as exc_info:
-                await svc._post("/items", {})
+        with (
+            patch.object(svc._get_client(), "request", AsyncMock(return_value=resp)),
+            pytest.raises(ThirdPartyServiceError) as exc_info,
+        ):
+            await svc._post("/items", {})
 
         assert "rate limited" in exc_info.value.message
 

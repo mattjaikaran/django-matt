@@ -41,10 +41,18 @@ _CATEGORY_MULTIPLIER: dict[Category, float] = {
 }
 
 _GRADES = [
-    (9.5, "A+"), (9.0, "A"), (8.5, "A-"),
-    (8.0, "B+"), (7.5, "B"), (7.0, "B-"),
-    (6.5, "C+"), (6.0, "C"), (5.5, "C-"),
-    (5.0, "D+"), (4.5, "D"), (4.0, "D-"),
+    (9.5, "A+"),
+    (9.0, "A"),
+    (8.5, "A-"),
+    (8.0, "B+"),
+    (7.5, "B"),
+    (7.0, "B-"),
+    (6.5, "C+"),
+    (6.0, "C"),
+    (5.5, "C-"),
+    (5.0, "D+"),
+    (4.5, "D"),
+    (4.0, "D-"),
     (0.0, "F"),
 ]
 
@@ -171,8 +179,12 @@ class CodeHealthScorer:
         """Aggregate file scores into project health, weighted by LOC."""
         if not file_scores:
             return ProjectHealth(
-                score=10.0, grade="A+", file_scores=[], total_findings=0,
-                total_files=0, total_loc=0,
+                score=10.0,
+                grade="A+",
+                file_scores=[],
+                total_findings=0,
+                total_files=0,
+                total_loc=0,
             )
 
         total_loc = sum(f.loc for f in file_scores)
@@ -202,10 +214,16 @@ class CodeHealthScorer:
         finding_files = set(by_file.keys())
         for file_path, loc in file_loc.items():
             if file_path not in finding_files:
-                scores.append(FileHealth(
-                    file=file_path, score=10.0, grade="A+", loc=loc,
-                    finding_count=0, deductions={},
-                ))
+                scores.append(
+                    FileHealth(
+                        file=file_path,
+                        score=10.0,
+                        grade="A+",
+                        loc=loc,
+                        finding_count=0,
+                        deductions={},
+                    )
+                )
 
         return self.score_project(scores)
 
@@ -265,8 +283,14 @@ class HealthTrend:
         cur = self.db.execute(
             "INSERT INTO health_snapshots (commit_sha, project_score, project_grade, "
             "total_findings, total_files, total_loc) VALUES (?, ?, ?, ?, ?, ?)",
-            (commit_sha, health.score, health.grade, health.total_findings,
-             health.total_files, health.total_loc),
+            (
+                commit_sha,
+                health.score,
+                health.grade,
+                health.total_findings,
+                health.total_files,
+                health.total_loc,
+            ),
         )
         snapshot_id = cur.lastrowid
         assert snapshot_id is not None
@@ -291,13 +315,19 @@ class HealthTrend:
         ).fetchall()
         return [
             CommitHealth(
-                commit_sha=r[0], score=r[1], grade=r[2],
-                total_findings=r[3], total_files=r[4], timestamp=r[5],
+                commit_sha=r[0],
+                score=r[1],
+                grade=r[2],
+                total_findings=r[3],
+                total_files=r[4],
+                timestamp=r[5],
             )
             for r in rows
         ]
 
-    def regressions(self, current: ProjectHealth, previous_sha: str | None = None) -> list[HealthRegression]:
+    def regressions(
+        self, current: ProjectHealth, previous_sha: str | None = None
+    ) -> list[HealthRegression]:
         """Find files whose health regressed vs. the previous snapshot."""
         if previous_sha:
             row = self.db.execute(
@@ -324,13 +354,15 @@ class HealthTrend:
         for fs in current.file_scores:
             prev = prev_scores.get(fs.file)
             if prev is not None and fs.score < prev - 0.1:
-                regressions.append(HealthRegression(
-                    file=fs.file,
-                    old_score=prev,
-                    new_score=fs.score,
-                    delta=fs.score - prev,
-                    new_findings=list(fs.deductions.keys()),
-                ))
+                regressions.append(
+                    HealthRegression(
+                        file=fs.file,
+                        old_score=prev,
+                        new_score=fs.score,
+                        delta=fs.score - prev,
+                        new_findings=list(fs.deductions.keys()),
+                    )
+                )
 
         return sorted(regressions, key=lambda r: r.delta)
 
@@ -340,7 +372,10 @@ class HealthTrend:
         try:
             result = subprocess.run(
                 ["git", "rev-parse", "HEAD"],
-                capture_output=True, text=True, check=True, timeout=5,
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=5,
             )
             return result.stdout.strip()
         except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):

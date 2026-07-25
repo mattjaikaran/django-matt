@@ -66,9 +66,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # CORS
 CORS_ALLOW_ALL_ORIGINS = DEBUG
-CORS_ALLOWED_ORIGINS: list[str] = os.environ.get(
-    "CORS_ALLOWED_ORIGINS", ""
-).split(",")
+CORS_ALLOWED_ORIGINS: list[str] = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
 
 # Django Matt — JWT
 DJANGO_MATT_JWT = {
@@ -129,7 +127,9 @@ DJANGO_MATT_STREAMING = {
 
 # Background tasks
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/1")
-CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://localhost:6379/2")
+CELERY_RESULT_BACKEND = os.environ.get(
+    "CELERY_RESULT_BACKEND", "redis://localhost:6379/2"
+)
 
 # WebSocket
 CHANNEL_LAYERS = {

@@ -1,3 +1,4 @@
+# file-length-max: 550
 """
 Views for the performance dashboard.
 

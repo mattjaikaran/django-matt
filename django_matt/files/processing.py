@@ -26,9 +26,7 @@ except ImportError:
 
 def _require_pillow() -> None:
     if not _PIL_AVAILABLE:
-        raise ImportError(
-            "Pillow is required for image processing. Install with: uv add Pillow"
-        )
+        raise ImportError("Pillow is required for image processing. Install with: uv add Pillow")
 
 
 @dataclass

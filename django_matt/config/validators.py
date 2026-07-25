@@ -46,9 +46,7 @@ def validate_duration(v: Any) -> timedelta:
         raise ValueError(f"expected string or number, got {type(v).__name__}")
     match = _DURATION_RE.match(v.strip())
     if not match:
-        raise ValueError(
-            f"invalid duration: {v!r} — use format like '30s', '5m', '1h', '7d'"
-        )
+        raise ValueError(f"invalid duration: {v!r} — use format like '30s', '5m', '1h', '7d'")
     value = float(match.group(1))
     unit = match.group(2).lower()
     return timedelta(seconds=value * _DURATION_MULTIPLIERS[unit])
@@ -62,9 +60,7 @@ def validate_size(v: Any) -> int:
         raise ValueError(f"expected string or int, got {type(v).__name__}")
     match = _SIZE_RE.match(v.strip())
     if not match:
-        raise ValueError(
-            f"invalid size: {v!r} — use format like '10MB', '1GB', '512KB'"
-        )
+        raise ValueError(f"invalid size: {v!r} — use format like '10MB', '1GB', '512KB'")
     value = float(match.group(1))
     unit = match.group(2).lower()
     return int(value * _SIZE_MULTIPLIERS[unit])

@@ -1,3 +1,4 @@
+# file-length-max: 700
 """
 OpenTelemetry tracing for Django Matt.
 
@@ -247,9 +248,7 @@ class TracingManager:
             return False
 
         if not HAS_OPENTELEMETRY:
-            logger.warning(
-                "OpenTelemetry is not installed. Install with: uv add opentelemetry-sdk"
-            )
+            logger.warning("OpenTelemetry is not installed. Install with: uv add opentelemetry-sdk")
             return False
 
         service_name = service_name or tracing_config.service_name
@@ -315,8 +314,7 @@ class TracingManager:
         if exporter_type == "otlp":
             if not HAS_OTLP:
                 logger.warning(
-                    "OTLP exporter not installed. Install with: "
-                    "uv add opentelemetry-exporter-otlp"
+                    "OTLP exporter not installed. Install with: uv add opentelemetry-exporter-otlp"
                 )
                 return None
             kwargs = {}

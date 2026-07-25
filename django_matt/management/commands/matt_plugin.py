@@ -35,9 +35,7 @@ class Command(BaseCommand):
         create_parser = subparsers.add_parser("create", help="Scaffold a new plugin")
         create_parser.add_argument("name", type=str)
         create_parser.add_argument("--author", type=str, default="")
-        create_parser.add_argument(
-            "--output", type=str, default=".", help="Output directory"
-        )
+        create_parser.add_argument("--output", type=str, default=".", help="Output directory")
         create_parser.add_argument("--description", type=str, default="")
 
         # check
@@ -75,17 +73,13 @@ class Command(BaseCommand):
             self.stdout.write("No plugins registered.")
             return
 
-        self.stdout.write(
-            f"{'Name':<25} {'Version':<10} {'Status':<12} {'Dependencies'}"
-        )
+        self.stdout.write(f"{'Name':<25} {'Version':<10} {'Status':<12} {'Dependencies'}")
         self.stdout.write("-" * 75)
 
         for plugin in plugins:
             status = registry.get_status(plugin.name).value
             deps = ", ".join(plugin.dependencies) if plugin.dependencies else "-"
-            self.stdout.write(
-                f"{plugin.name:<25} {plugin.version:<10} {status:<12} {deps}"
-            )
+            self.stdout.write(f"{plugin.name:<25} {plugin.version:<10} {status:<12} {deps}")
 
     def _handle_info(self, **options: Any) -> None:
         from django_matt.plugins.registry import (
@@ -113,9 +107,7 @@ class Command(BaseCommand):
         self.stdout.write(f"Status:       {status.value}")
         self.stdout.write(f"Min version:  {plugin.django_matt_version}")
         self.stdout.write(f"Settings:     {plugin.settings_prefix or 'none'}")
-        self.stdout.write(
-            f"Dependencies: {', '.join(plugin.dependencies) or 'none'}"
-        )
+        self.stdout.write(f"Dependencies: {', '.join(plugin.dependencies) or 'none'}")
         self.stdout.write(f"URLs:         {len(plugin.get_urls())} patterns")
         self.stdout.write(f"Middleware:    {len(plugin.get_middleware())} classes")
 
@@ -154,17 +146,14 @@ class Command(BaseCommand):
             for dep in plugin.dependencies:
                 if not registry.is_registered(dep):
                     issues.append(
-                        f"Plugin {plugin.name!r} depends on {dep!r}, "
-                        f"which is not registered"
+                        f"Plugin {plugin.name!r} depends on {dep!r}, which is not registered"
                     )
 
             # Run plugin checks
             checks = plugin.check()
             for check in checks:
                 if check.is_serious():
-                    issues.append(
-                        f"Plugin {plugin.name!r}: [{check.level}] {check.msg}"
-                    )
+                    issues.append(f"Plugin {plugin.name!r}: [{check.level}] {check.msg}")
 
             # Check for errors
             error = registry.get_error(plugin.name)

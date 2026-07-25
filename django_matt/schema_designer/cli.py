@@ -17,8 +17,10 @@ app = typer.Typer(
 
 def _ensure_django() -> None:
     import os
+
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     import django
+
     django.setup()
 
 
@@ -34,7 +36,9 @@ def analyze(
     analyzer = SchemaAnalyzer(app_labels=app_labels)
     report = analyzer.analyze_all()
 
-    console.print(f"\n[bold]Schema Analysis[/] — {len(report.models)} models, {report.total_issues} issues\n")
+    console.print(
+        f"\n[bold]Schema Analysis[/] — {len(report.models)} models, {report.total_issues} issues\n"
+    )
 
     severity_colors = {Severity.ERROR: "red", Severity.WARNING: "yellow", Severity.INFO: "blue"}
 
@@ -70,7 +74,9 @@ def analyze(
 
 @app.command()
 def diagram(
-    format: str = typer.Option("mermaid", "--format", "-f", help="Output format: mermaid, dot, dbml, plantuml"),
+    format: str = typer.Option(
+        "mermaid", "--format", "-f", help="Output format: mermaid, dot, dbml, plantuml"
+    ),
     app_label: Optional[str] = typer.Option(None, "--app", "-a", help="Filter by app label"),
     output: Optional[str] = typer.Option(None, "--output", "-o", help="Output file path"),
 ) -> None:
@@ -151,6 +157,7 @@ def export_schema(
     if format == "yaml":
         try:
             import yaml
+
             text = yaml.dump(data, default_flow_style=False)
         except ImportError:
             console.print("[red]PyYAML not installed. Use json format or install pyyaml.[/red]")
@@ -169,7 +176,9 @@ def export_schema(
 @app.command()
 def prompt(
     app_label: Optional[str] = typer.Option(None, "--app", "-a", help="Filter by app label"),
-    mode: str = typer.Option("schema", "--mode", "-m", help="Prompt mode: schema, review, migration"),
+    mode: str = typer.Option(
+        "schema", "--mode", "-m", help="Prompt mode: schema, review, migration"
+    ),
 ) -> None:
     _ensure_django()
     from django_matt.schema_designer.prompts import (

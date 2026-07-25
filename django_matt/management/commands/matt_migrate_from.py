@@ -1,3 +1,4 @@
+# file-length-max: 1150
 """
 Django Matt migration wizard command.
 
@@ -114,7 +115,9 @@ class Command(GeneratorCommand):
 
         # Output
         if output_json:
-            self.stdout.write(orjson.dumps(analysis, default=str, option=orjson.OPT_INDENT_2).decode())
+            self.stdout.write(
+                orjson.dumps(analysis, default=str, option=orjson.OPT_INDENT_2).decode()
+            )
         else:
             self._display_analysis(analysis, source)
 
@@ -1041,7 +1044,9 @@ class UserController(CRUDController):
         dry_run = options.get("dry_run", True)
         output_json = options.get("json", False)
 
-        target_dir = Path(directory) if directory else Path(getattr(settings, "BASE_DIR", Path.cwd()))
+        target_dir = (
+            Path(directory) if directory else Path(getattr(settings, "BASE_DIR", Path.cwd()))
+        )
 
         if framework == "auto":
             framework = engine.detect_framework_directory(target_dir)
@@ -1085,9 +1090,7 @@ class UserController(CRUDController):
                 }
                 for path, r in results.items()
             }
-            self.stdout.write(
-                orjson.dumps(data, default=str, option=orjson.OPT_INDENT_2).decode()
-            )
+            self.stdout.write(orjson.dumps(data, default=str, option=orjson.OPT_INDENT_2).decode())
         else:
             report = engine.generate_report(results)
             self.stdout.write(report)

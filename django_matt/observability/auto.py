@@ -35,6 +35,7 @@ def _wrap_sync(func: F, span_name: str, tags: dict[str, Any] | None = None) -> F
             except Exception as exc:
                 s.set_error(exc)
                 raise
+
     return wrapper  # type: ignore[return-value]
 
 
@@ -49,6 +50,7 @@ def _wrap_async(func: F, span_name: str, tags: dict[str, Any] | None = None) -> 
             except Exception as exc:
                 s.set_error(exc)
                 raise
+
     return wrapper  # type: ignore[return-value]
 
 
@@ -150,7 +152,9 @@ class AutoInstrumentor:
             original_delete = cache.delete
 
             @functools.wraps(original_get)
-            def patched_get(key: str, default: Any = None, version: Any = None, **kwargs: Any) -> Any:
+            def patched_get(
+                key: str, default: Any = None, version: Any = None, **kwargs: Any
+            ) -> Any:
                 start = time.perf_counter()
                 result = original_get(key, default, version=version, **kwargs)
                 duration = time.perf_counter() - start
@@ -161,7 +165,9 @@ class AutoInstrumentor:
                 return result
 
             @functools.wraps(original_set)
-            def patched_set(key: str, value: Any, timeout: Any = None, version: Any = None, **kwargs: Any) -> None:
+            def patched_set(
+                key: str, value: Any, timeout: Any = None, version: Any = None, **kwargs: Any
+            ) -> None:
                 start = time.perf_counter()
                 result = original_set(key, value, timeout=timeout, version=version, **kwargs)
                 duration = time.perf_counter() - start

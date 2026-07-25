@@ -1,3 +1,4 @@
+# file-length-max: 650
 """
 OpenID Connect (OIDC) SSO provider.
 
@@ -91,11 +92,29 @@ def _verify_rs256_signature(header_payload: bytes, signature: bytes, jwk: dict) 
 
         # 2. PKCS1-v1.5 DigestInfo for SHA-256
         # DER encoding: SEQUENCE { SEQUENCE { OID sha256, NULL }, OCTET STRING hash }
-        sha256_digest_info_prefix = bytes([
-            0x30, 0x31, 0x30, 0x0D, 0x06, 0x09, 0x60, 0x86,
-            0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05,
-            0x00, 0x04, 0x20,
-        ])
+        sha256_digest_info_prefix = bytes(
+            [
+                0x30,
+                0x31,
+                0x30,
+                0x0D,
+                0x06,
+                0x09,
+                0x60,
+                0x86,
+                0x48,
+                0x01,
+                0x65,
+                0x03,
+                0x04,
+                0x02,
+                0x01,
+                0x05,
+                0x00,
+                0x04,
+                0x20,
+            ]
+        )
 
         digest = hashlib.sha256(header_payload).digest()
         expected_em = (
@@ -540,26 +559,18 @@ class OIDCProvider(SSOProvider):
                 matching_key = keys[0]
 
             if not matching_key:
-                raise SSOAuthenticationError(
-                    f"No matching JWK found for kid={kid!r} in IdP JWKS"
-                )
+                raise SSOAuthenticationError(f"No matching JWK found for kid={kid!r} in IdP JWKS")
 
             if not _verify_rs256_signature(signed_data, signature, matching_key):
-                raise SSOAuthenticationError(
-                    "id_token RS256 signature verification failed"
-                )
+                raise SSOAuthenticationError("id_token RS256 signature verification failed")
 
         elif alg == "HS256":
             # HS256 uses the client_secret as the HMAC key
             client_secret = self.connection.client_secret
             if not client_secret:
-                raise SSOAuthenticationError(
-                    "HS256 id_token verification requires client_secret"
-                )
+                raise SSOAuthenticationError("HS256 id_token verification requires client_secret")
             if not _verify_hs256_signature(signed_data, signature, client_secret):
-                raise SSOAuthenticationError(
-                    "id_token HS256 signature verification failed"
-                )
+                raise SSOAuthenticationError("id_token HS256 signature verification failed")
 
         else:
             raise SSOAuthenticationError(

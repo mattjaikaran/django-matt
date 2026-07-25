@@ -1,3 +1,4 @@
+# file-length-max: 650
 """
 Statistical analysis for experiments.
 

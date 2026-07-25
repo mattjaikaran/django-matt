@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Django version upgrade assistant.
 
@@ -134,9 +135,11 @@ class Command(BaseCommand):
         target_major_minor = self._parse_version(target)
 
         if current_major_minor >= target_major_minor:
-            self.stdout.write(self.style.SUCCESS(
-                f"\n  Already on Django {current_version} (>= {target}). Nothing to do.\n"
-            ))
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"\n  Already on Django {current_version} (>= {target}). Nothing to do.\n"
+                )
+            )
             return
 
         # Collect all breaking changes across upgrade path
@@ -149,13 +152,17 @@ class Command(BaseCommand):
                 all_changes.append((key, changes))
 
         # Show breaking changes
-        self.stdout.write(self.style.MIGRATE_HEADING(
-            f"\n--- Breaking Changes ({current_major_minor[0]}.{current_major_minor[1]} -> "
-            f"{target_major_minor[0]}.{target_major_minor[1]}) ---\n"
-        ))
+        self.stdout.write(
+            self.style.MIGRATE_HEADING(
+                f"\n--- Breaking Changes ({current_major_minor[0]}.{current_major_minor[1]} -> "
+                f"{target_major_minor[0]}.{target_major_minor[1]}) ---\n"
+            )
+        )
 
         if not all_changes:
-            self.stdout.write(self.style.SUCCESS("  No known breaking changes for this upgrade path.\n"))
+            self.stdout.write(
+                self.style.SUCCESS("  No known breaking changes for this upgrade path.\n")
+            )
         else:
             total_findings = 0
             for path_key, changes in all_changes:
@@ -174,21 +181,27 @@ class Command(BaseCommand):
                         matches = self._scan_codebase(change["pattern"])
                         if matches:
                             total_findings += len(matches)
-                            self.stdout.write(self.style.WARNING(
-                                f"    Found {len(matches)} potential match(es):"
-                            ))
+                            self.stdout.write(
+                                self.style.WARNING(f"    Found {len(matches)} potential match(es):")
+                            )
                             for match_file, line_num, line_text in matches[:5]:
-                                self.stdout.write(f"      {match_file}:{line_num}  {line_text.strip()}")
+                                self.stdout.write(
+                                    f"      {match_file}:{line_num}  {line_text.strip()}"
+                                )
                             if len(matches) > 5:
                                 self.stdout.write(f"      ... and {len(matches) - 5} more")
                         else:
-                            self.stdout.write(self.style.SUCCESS("    No matches found in codebase."))
+                            self.stdout.write(
+                                self.style.SUCCESS("    No matches found in codebase.")
+                            )
                     self.stdout.write("")
 
             if total_findings:
-                self.stdout.write(self.style.WARNING(
-                    f"\n  Total findings: {total_findings} potential issue(s) to review.\n"
-                ))
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"\n  Total findings: {total_findings} potential issue(s) to review.\n"
+                    )
+                )
 
         if check_only:
             return
@@ -259,8 +272,11 @@ class Command(BaseCommand):
     ) -> list[tuple[str, str]]:
         """Get the step-by-step upgrade path between versions."""
         known_versions = [
-            (5, 0), (5, 1), (5, 2),
-            (6, 0), (6, 1),
+            (5, 0),
+            (5, 1),
+            (5, 2),
+            (6, 0),
+            (6, 1),
         ]
         path = []
         started = False
@@ -289,10 +305,19 @@ class Command(BaseCommand):
         for py_file in project_dir.rglob("*.py"):
             # Skip common non-project directories
             rel = str(py_file.relative_to(project_dir))
-            if any(skip in rel for skip in [
-                ".venv", "venv", "__pycache__", "node_modules",
-                ".git", "site-packages", ".tox", "migrations",
-            ]):
+            if any(
+                skip in rel
+                for skip in [
+                    ".venv",
+                    "venv",
+                    "__pycache__",
+                    "node_modules",
+                    ".git",
+                    "site-packages",
+                    ".tox",
+                    "migrations",
+                ]
+            ):
                 continue
 
             try:
@@ -321,9 +346,11 @@ class Command(BaseCommand):
             )
             if result.returncode != 0:
                 if "already exists" in result.stderr:
-                    self.stdout.write(self.style.WARNING(
-                        f"  Branch {branch_name} already exists, switching to it."
-                    ))
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"  Branch {branch_name} already exists, switching to it."
+                        )
+                    )
                     subprocess.run(
                         ["git", "checkout", branch_name],
                         capture_output=True,
@@ -340,7 +367,7 @@ class Command(BaseCommand):
             # Match patterns like "django>=5.2.0" or "Django>=5.2"
             updated = re.sub(
                 r'(["\'])django>=[\d.]+(["\'])',
-                f'\\1django>={target}\\2',
+                f"\\1django>={target}\\2",
                 content,
                 flags=re.IGNORECASE,
             )
@@ -348,9 +375,11 @@ class Command(BaseCommand):
                 pyproject.write_text(updated)
                 self.stdout.write(self.style.SUCCESS("  Updated pyproject.toml"))
             else:
-                self.stdout.write(self.style.WARNING(
-                    "  Could not find Django version in pyproject.toml. Update manually."
-                ))
+                self.stdout.write(
+                    self.style.WARNING(
+                        "  Could not find Django version in pyproject.toml. Update manually."
+                    )
+                )
 
         # Step 3: Lock dependencies
         self.stdout.write("  Locking dependencies with uv...")
@@ -392,14 +421,12 @@ class Command(BaseCommand):
         if result.returncode == 0:
             self.stdout.write(self.style.SUCCESS("  Migrations are up to date."))
         else:
-            self.stdout.write(self.style.WARNING(
-                "  Pending migrations detected. Run: python manage.py migrate"
-            ))
+            self.stdout.write(
+                self.style.WARNING("  Pending migrations detected. Run: python manage.py migrate")
+            )
 
         # Summary
-        self.stdout.write(self.style.SUCCESS(
-            f"\n  Django upgrade to {target} complete!"
-        ))
+        self.stdout.write(self.style.SUCCESS(f"\n  Django upgrade to {target} complete!"))
         self.stdout.write("\n  Next steps:")
         self.stdout.write("  1. Review the breaking changes above")
         self.stdout.write("  2. Run your test suite: uv run pytest")

@@ -59,9 +59,7 @@ class InterceptorChain:
                 if error_response is not None:
                     # still run after_response for all active interceptors
                     for i in reversed(active):
-                        error_response = await i.after_response(
-                            request, error_response, **kwargs
-                        )
+                        error_response = await i.after_response(request, error_response, **kwargs)
                     return error_response
             raise
 

@@ -1,3 +1,4 @@
+# file-length-max: 750
 """
 Typed API client generation from OpenAPI schema or controllers.
 """

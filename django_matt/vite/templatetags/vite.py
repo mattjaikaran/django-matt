@@ -40,9 +40,7 @@ def vite_asset(entry: str) -> str:
 
     if config.is_dev:
         dev_url = config.dev_server_url.rstrip("/")
-        return mark_safe(
-            f'<script type="module" src="{dev_url}/{entry}"></script>'
-        )
+        return mark_safe(f'<script type="module" src="{dev_url}/{entry}"></script>')
 
     # Production: resolve from manifest
     manifest = get_manifest()
@@ -71,9 +69,7 @@ def vite_hmr_client() -> str:
         return ""
 
     dev_url = config.dev_server_url.rstrip("/")
-    return mark_safe(
-        f'<script type="module" src="{dev_url}/@vite/client"></script>'
-    )
+    return mark_safe(f'<script type="module" src="{dev_url}/@vite/client"></script>')
 
 
 @register.simple_tag

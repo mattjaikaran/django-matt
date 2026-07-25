@@ -135,7 +135,11 @@ class RPCClient:
             try:
                 error_body = orjson.loads(response_body) if response_body else {}
             except (orjson.JSONDecodeError, ValueError):
-                error_body = {"detail": response_body.decode("utf-8", errors="replace") if response_body else ""}
+                error_body = {
+                    "detail": response_body.decode("utf-8", errors="replace")
+                    if response_body
+                    else ""
+                }
             raise error_from_response(status, error_body)
 
         if not response_body:
@@ -174,9 +178,7 @@ class RPCClient:
     ) -> tuple[int, bytes]:
         client = await self._get_httpx_client()
         try:
-            resp = await client.request(
-                method, path, content=body, params=params, headers=headers
-            )
+            resp = await client.request(method, path, content=body, params=params, headers=headers)
             return resp.status_code, resp.content
         except httpx.ConnectError as e:
             raise RPCConnectionError(str(e)) from e

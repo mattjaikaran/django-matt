@@ -157,6 +157,4 @@ class DeadLetterTaskAdmin(ModelAdmin):
                 )
 
         if reprocessed:
-            self.message_user(
-                request, f"Reprocessed {reprocessed} tasks.", messages.SUCCESS
-            )
+            self.message_user(request, f"Reprocessed {reprocessed} tasks.", messages.SUCCESS)

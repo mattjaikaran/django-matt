@@ -1,3 +1,4 @@
+# file-length-max: 650
 """
 Multi-tenancy models for B2B organization and team management.
 

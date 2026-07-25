@@ -21,6 +21,7 @@ def __getattr__(name: str) -> type:
     }
     if name in _lazy:
         import importlib
+
         mod = importlib.import_module(_lazy[name])
         return getattr(mod, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

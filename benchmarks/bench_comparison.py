@@ -87,11 +87,7 @@ def main() -> None:
                 print(f"  {fw:<18} {r.name:<30} {'[NOT INSTALLED]':>12}")
             else:
                 ops = r.ops_per_second
-                ops_str = (
-                    f"{ops / 1_000:.1f}K"
-                    if ops >= 1_000
-                    else f"{ops:.0f}"
-                )
+                ops_str = f"{ops / 1_000:.1f}K" if ops >= 1_000 else f"{ops:.0f}"
                 print(f"  {fw:<18} {r.name:<30} {ops_str:>12} {r.median_time_ms:>12.3f}")
 
     # Calculate speedup vs DRF

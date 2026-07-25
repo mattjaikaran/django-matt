@@ -94,9 +94,7 @@ class RedisBackend(BackendProtocol):
                 if isinstance(data, bytes):
                     event = Event.deserialize(data)
                     for pattern, handlers in self._handlers.items():
-                        if pattern == event.event_type or fnmatch(
-                            event.event_type, pattern
-                        ):
+                        if pattern == event.event_type or fnmatch(event.event_type, pattern):
                             for handler in handlers:
                                 try:
                                     if asyncio.iscoroutinefunction(handler):

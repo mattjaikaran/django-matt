@@ -146,17 +146,13 @@ class Command(BaseCommand):
 
         for issue in issues:
             icon = "\u26a0" if issue.severity.value == "warning" else "\u2717"
-            self.stdout.write(
-                f"\n{icon} {issue.app_label}/{issue.migration_name}"
-            )
+            self.stdout.write(f"\n{icon} {issue.app_label}/{issue.migration_name}")
             self.stdout.write(f"  {issue.operation_description}")
             self.stdout.write(f"  {issue.message}")
 
             if options["rewrite"] and issue.rewrite:
                 self.stdout.write("")
-                self.stdout.write(
-                    self.style.SUCCESS("  Safe rewrite steps:")
-                )
+                self.stdout.write(self.style.SUCCESS("  Safe rewrite steps:"))
                 for i, step in enumerate(issue.rewrite.steps, 1):
                     self.stdout.write(f"    Step {i}: {step.description}")
                     if step.sql and not options.get("dry_run"):
@@ -284,7 +280,7 @@ class Command(BaseCommand):
 
         total_time = sum(p.estimated_seconds for p in profiles)
         self.stdout.write(
-            f"\n{self.style.NOTICE('Total estimated time:')} {total_time:.1f}s ({total_time/60:.1f} minutes)"
+            f"\n{self.style.NOTICE('Total estimated time:')} {total_time:.1f}s ({total_time / 60:.1f} minutes)"
         )
 
         # Check for parallelization opportunity
@@ -297,8 +293,14 @@ class Command(BaseCommand):
             parallel_time = 0
             for wave in waves:
                 wave_times = [
-                    next((p.estimated_seconds for p in profiles
-                          if p.app_label == app and p.migration_name == name), 0.5)
+                    next(
+                        (
+                            p.estimated_seconds
+                            for p in profiles
+                            if p.app_label == app and p.migration_name == name
+                        ),
+                        0.5,
+                    )
                     for app, name in wave
                 ]
                 parallel_time += max(wave_times) if wave_times else 0
@@ -319,9 +321,7 @@ class Command(BaseCommand):
 
         if not slowest:
             self.stdout.write("No migration timing history found.")
-            self.stdout.write(
-                "Migration times are recorded automatically when using django-matt."
-            )
+            self.stdout.write("Migration times are recorded automatically when using django-matt.")
             return
 
         self.stdout.write(f"\nTop {limit} slowest migrations (from history):")
@@ -346,7 +346,9 @@ class Command(BaseCommand):
                 self.stdout.write(f"\n  Wave {wave.wave_number}:")
                 for timing in wave.migrations:
                     self.stdout.write(f"    - {timing.app_label}.{timing.migration_name}")
-            self.stdout.write(f"\nTotal: {result.migrations_applied} migrations in {len(result.waves)} waves")
+            self.stdout.write(
+                f"\nTotal: {result.migrations_applied} migrations in {len(result.waves)} waves"
+            )
             return
 
         self.stdout.write("Executing migrations in parallel waves...")
@@ -393,6 +395,4 @@ class Command(BaseCommand):
             self.stdout.write("")
 
         self.stdout.write(f"Total: {total} migrations across {len(waves)} waves")
-        self.stdout.write(
-            "\nRun with --parallel to execute this plan."
-        )
+        self.stdout.write("\nRun with --parallel to execute this plan.")

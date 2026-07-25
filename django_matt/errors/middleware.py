@@ -92,9 +92,7 @@ def build_error_response(
     if is_debug:
         tb = sys.exc_info()[2]
         if tb:
-            structured.traceback_str = "".join(
-                traceback.format_exception(type(exc), exc, tb)
-            )
+            structured.traceback_str = "".join(traceback.format_exception(type(exc), exc, tb))
 
     max_suggestions = config.get("max_suggestions", 3)
     structured.fix_suggestions = structured.fix_suggestions[:max_suggestions]
@@ -174,9 +172,7 @@ class ErrorEnhancementMiddleware:
     def _handle(self, exc: Exception, request: HttpRequest) -> HttpResponse:
         if not self._config.get("enhanced", True):
             raise exc
-        return build_error_response(
-            exc, request, engine=self._engine, config=self._config
-        )
+        return build_error_response(exc, request, engine=self._engine, config=self._config)
 
 
 def install_default_handlers(urlconf_module: Any) -> None:
@@ -193,6 +189,7 @@ def install_default_handlers(urlconf_module: Any) -> None:
 
         from django_matt.errors import install_default_handlers
         import sys
+
         install_default_handlers(sys.modules[__name__])
     """
     from django.core.exceptions import PermissionDenied, SuspiciousOperation

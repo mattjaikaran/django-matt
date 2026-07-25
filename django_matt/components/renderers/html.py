@@ -1,3 +1,4 @@
+# file-length-max: 900
 """
 HTML renderer for components.
 

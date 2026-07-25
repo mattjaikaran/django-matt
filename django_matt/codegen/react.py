@@ -1,3 +1,4 @@
+# file-length-max: 700
 """
 React code generator.
 

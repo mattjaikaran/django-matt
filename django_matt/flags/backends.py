@@ -675,9 +675,7 @@ class UnleashBackend(FlagBackend):
                 )
                 self._client.initialize_client()
             except ImportError:
-                raise ImportError(
-                    "UnleashClient is required. Install with: uv add UnleashClient"
-                )
+                raise ImportError("UnleashClient is required. Install with: uv add UnleashClient")
         return self._client
 
     def _build_context(

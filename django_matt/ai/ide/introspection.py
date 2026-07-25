@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Django project introspection for AI context generation.
 

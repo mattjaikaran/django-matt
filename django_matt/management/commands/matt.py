@@ -1,3 +1,4 @@
+# file-length-max: 850
 """
 Django Matt CLI - Main entry point.
 
@@ -117,24 +118,45 @@ class Command(GeneratorCommand):
         # validate (delegates to validate_api)
         validate_parser = subparsers.add_parser("validate", help="Validate API endpoints")
         validate_parser.add_argument("--prefix", default="/api/", help="URL prefix to scan")
-        validate_parser.add_argument("--strict", action="store_true", help="Treat warnings as errors")
+        validate_parser.add_argument(
+            "--strict", action="store_true", help="Treat warnings as errors"
+        )
         validate_parser.add_argument("--json", action="store_true", help="Output as JSON")
 
         # migrate-from (delegates to matt_migrate_from)
-        migrate_parser = subparsers.add_parser("migrate-from", help="Migrate from another framework")
-        migrate_parser.add_argument("framework", nargs="?", help="Source framework (e.g., ninja, drf)")
-        migrate_parser.add_argument("--dry-run", action="store_true", help="Preview without changes")
+        migrate_parser = subparsers.add_parser(
+            "migrate-from", help="Migrate from another framework"
+        )
+        migrate_parser.add_argument(
+            "framework", nargs="?", help="Source framework (e.g., ninja, drf)"
+        )
+        migrate_parser.add_argument(
+            "--dry-run", action="store_true", help="Preview without changes"
+        )
 
         # ai (delegates to generate_ai_context)
         ai_parser = subparsers.add_parser("ai", help="Generate AI context files")
-        ai_parser.add_argument("--format", "-f", default="all", help="Format: all, claude, cursor, copilot")
+        ai_parser.add_argument(
+            "--format", "-f", default="all", help="Format: all, claude, cursor, copilot"
+        )
         ai_parser.add_argument("--output", "-o", default=".", help="Output directory")
         ai_parser.add_argument("--dry-run", action="store_true", help="Preview without writing")
 
     # Available subcommands for "did you mean" suggestions
     SUBCOMMANDS = [
-        "info", "doctor", "routes", "models", "version", "new",
-        "analyze", "endpoints", "explain", "schemas", "validate", "migrate-from", "ai",
+        "info",
+        "doctor",
+        "routes",
+        "models",
+        "version",
+        "new",
+        "analyze",
+        "endpoints",
+        "explain",
+        "schemas",
+        "validate",
+        "migrate-from",
+        "ai",
     ]
 
     def handle(self, *args, **options):
@@ -281,6 +303,7 @@ class Command(GeneratorCommand):
         if options.get("fix"):
             # Delegate to matt_status which has full --fix implementation
             from django.core.management import call_command
+
             call_command("matt_status", fix=True)
             return
 
@@ -551,6 +574,7 @@ class Command(GeneratorCommand):
     def handle_analyze(self, options):
         """Deep project analysis (delegates to matt_analyze)."""
         from django.core.management import call_command
+
         kwargs = {}
         if options.get("json"):
             kwargs["json"] = True
@@ -561,6 +585,7 @@ class Command(GeneratorCommand):
     def handle_endpoints(self, options):
         """List all API endpoints (delegates to matt_endpoints)."""
         from django.core.management import call_command
+
         kwargs = {}
         if options.get("json"):
             kwargs["json"] = True
@@ -573,6 +598,7 @@ class Command(GeneratorCommand):
     def handle_explain(self, options):
         """Explain request flow (delegates to matt_explain)."""
         from django.core.management import call_command
+
         args = []
         if options.get("path"):
             args.append(options["path"])
@@ -581,6 +607,7 @@ class Command(GeneratorCommand):
     def handle_schemas(self, options):
         """List all Pydantic schemas (delegates to matt_schemas)."""
         from django.core.management import call_command
+
         kwargs = {}
         if options.get("json"):
             kwargs["json"] = True
@@ -591,6 +618,7 @@ class Command(GeneratorCommand):
     def handle_validate(self, options):
         """Validate API endpoints (delegates to validate_api)."""
         from django.core.management import call_command
+
         kwargs = {}
         if options.get("prefix"):
             kwargs["prefix"] = options["prefix"]
@@ -603,6 +631,7 @@ class Command(GeneratorCommand):
     def handle_migrate_from(self, options):
         """Migrate from another framework (delegates to matt_migrate_from)."""
         from django.core.management import call_command
+
         args = []
         if options.get("framework"):
             args.append(options["framework"])
@@ -614,6 +643,7 @@ class Command(GeneratorCommand):
     def handle_ai(self, options):
         """Generate AI context files (delegates to generate_ai_context)."""
         from django.core.management import call_command
+
         kwargs = {}
         if options.get("format"):
             kwargs["format"] = options["format"]

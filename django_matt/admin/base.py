@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 Base admin classes for Django Unfold integration.
 

@@ -1,3 +1,4 @@
+# file-length-max: 900
 """
 Experiment manager for assignment logic and bandit algorithms.
 
@@ -138,6 +139,7 @@ class ExperimentManager:
 
         # Emit analytics event when a user is assigned to an experiment variant
         from django_matt.analytics import track_event
+
         track_event(
             name="experiment_assigned",
             properties={

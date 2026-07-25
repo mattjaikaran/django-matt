@@ -47,9 +47,7 @@ class TestDependencyTracker:
     # Recording: called during instrumented test runs
     # ------------------------------------------------------------------
 
-    def record_test_coverage(
-        self, test_id: str, coverage_data: dict[str, set[int]]
-    ) -> None:
+    def record_test_coverage(self, test_id: str, coverage_data: dict[str, set[int]]) -> None:
         """Record which source lines a test executed.
 
         Args:
@@ -180,8 +178,7 @@ class TestDependencyTracker:
 
             # Build lookup from DB blocks by (type, name) → hash
             old_by_name: dict[tuple[str, str], str] = {
-                (r["block_type"], r["block_name"]): r["block_hash"]
-                for r in old_blocks_rows
+                (r["block_type"], r["block_name"]): r["block_hash"] for r in old_blocks_rows
             }
             new_by_name: dict[tuple[str, str], str] = {
                 (b.block_type, b.name): b.content_hash for b in current_blocks
@@ -196,9 +193,7 @@ class TestDependencyTracker:
                     # Removed or modified — find the DB row's line range
                     for r in old_blocks_rows:
                         if (r["block_type"], r["block_name"]) == key:
-                            changed_block_ranges.add(
-                                (r["start_line"], r["end_line"])
-                            )
+                            changed_block_ranges.add((r["start_line"], r["end_line"]))
 
             # New blocks (added)
             for key in new_by_name:
@@ -332,11 +327,7 @@ class TestDependencyTracker:
             )
             files.extend(result2.stdout.strip().splitlines())
 
-            return [
-                Path(f)
-                for f in set(files)
-                if f.endswith(".py") and Path(f).exists()
-            ]
+            return [Path(f) for f in set(files) if f.endswith(".py") and Path(f).exists()]
         except (subprocess.CalledProcessError, FileNotFoundError):
             logger.warning("git not available — cannot detect changed files")
             return []

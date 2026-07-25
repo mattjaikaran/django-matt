@@ -15,6 +15,7 @@ _pending_subscriptions: list[tuple[str, Callable]] = []
 
 def on(event_type: str | type[Event]) -> Callable:
     """Subscribe the decorated function to the given event type."""
+
     def decorator(func: Callable) -> Callable:
         if isinstance(event_type, str):
             key = event_type

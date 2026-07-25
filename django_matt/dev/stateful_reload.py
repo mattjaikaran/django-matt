@@ -102,9 +102,7 @@ class StatefulReloader:
                 consumer_class=f"{type(consumer).__module__}.{type(consumer).__qualname__}",
                 channel_name=getattr(consumer, "channel_name", ""),
                 groups=list(getattr(consumer, "groups", [])),
-                user_id=getattr(
-                    getattr(consumer, "scope", {}).get("user"), "pk", None
-                ),
+                user_id=getattr(getattr(consumer, "scope", {}).get("user"), "pk", None),
                 connected_at=getattr(consumer, "_connected_at", 0.0),
             )
 
@@ -143,22 +141,22 @@ class StatefulReloader:
             logger.warning("Failed to load reload snapshot")
             return None
 
-    def restore_states(
-        self, snapshot: ReloadSnapshot
-    ) -> list[dict[str, Any]]:
+    def restore_states(self, snapshot: ReloadSnapshot) -> list[dict[str, Any]]:
         """Reconstruct consumer state from a snapshot.
 
         Returns a list of restoration instructions.
         """
         instructions = []
         for cs in snapshot.consumers:
-            instructions.append({
-                "class": cs.consumer_class,
-                "channel": cs.channel_name,
-                "groups": cs.groups,
-                "state": cs.state,
-                "user_id": cs.user_id,
-            })
+            instructions.append(
+                {
+                    "class": cs.consumer_class,
+                    "channel": cs.channel_name,
+                    "groups": cs.groups,
+                    "state": cs.state,
+                    "user_id": cs.user_id,
+                }
+            )
 
         for callback in self._post_reload_callbacks:
             try:
@@ -181,8 +179,10 @@ class StatefulReloader:
     @staticmethod
     def build_reload_frame() -> bytes:
         """Build a WebSocket frame for code reload notification."""
-        return json.dumps({
-            "type": "matt.reload",
-            "timestamp": time.time(),
-            "action": "refresh_state",
-        }).encode("utf-8")
+        return json.dumps(
+            {
+                "type": "matt.reload",
+                "timestamp": time.time(),
+                "action": "refresh_state",
+            }
+        ).encode("utf-8")

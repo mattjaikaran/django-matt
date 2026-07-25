@@ -293,6 +293,7 @@ class SchemaAPIView(SchemaAccessMixin, View):
             app_model = request.GET.get("name", "")
             try:
                 from django.apps import apps
+
                 app_label, model_name = app_model.split(".")
                 model = apps.get_model(app_label, model_name)
                 model_report = analyzer.analyze_model(model)
@@ -317,6 +318,7 @@ class SchemaAPIView(SchemaAccessMixin, View):
     def post(self, request: HttpRequest, action: str = "") -> JsonResponse:
         if action == "optimize":
             from django.apps import apps as django_apps
+
             optimizer = SchemaOptimizer()
             all_suggestions: list[dict[str, Any]] = []
 
@@ -327,13 +329,16 @@ class SchemaAPIView(SchemaAccessMixin, View):
             migration_code = ""
             if all_suggestions:
                 from django_matt.schema_designer.optimizer import IndexSuggestion
+
                 idx_objs = [IndexSuggestion(**s) for s in all_suggestions]
                 migration_code = optimizer.generate_migration(idx_objs)
 
-            return JsonResponse({
-                "index_suggestions": all_suggestions,
-                "migration_code": migration_code,
-            })
+            return JsonResponse(
+                {
+                    "index_suggestions": all_suggestions,
+                    "migration_code": migration_code,
+                }
+            )
 
         return JsonResponse({"error": "Unknown action"}, status=400)
 
@@ -342,10 +347,17 @@ def include_schema_designer():
     return [
         path("", SchemaDesignerView.as_view(), name="schema-designer"),
         path("api/models/", SchemaAPIView.as_view(), {"action": "models"}, name="schema-models"),
-        path("api/models/detail/", SchemaAPIView.as_view(), {"action": "model_detail"}, name="schema-model-detail"),
+        path(
+            "api/models/detail/",
+            SchemaAPIView.as_view(),
+            {"action": "model_detail"},
+            name="schema-model-detail",
+        ),
         path("api/analyze/", SchemaAPIView.as_view(), {"action": "analyze"}, name="schema-analyze"),
         path("api/diagram/", SchemaAPIView.as_view(), {"action": "diagram"}, name="schema-diagram"),
-        path("api/optimize/", SchemaAPIView.as_view(), {"action": "optimize"}, name="schema-optimize"),
+        path(
+            "api/optimize/", SchemaAPIView.as_view(), {"action": "optimize"}, name="schema-optimize"
+        ),
     ]
 
 

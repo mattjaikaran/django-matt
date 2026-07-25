@@ -1,3 +1,4 @@
+# file-length-max: 650
 """
 Rich console utilities for beautiful CLI output.
 

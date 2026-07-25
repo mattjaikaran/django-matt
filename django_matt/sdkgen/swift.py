@@ -272,7 +272,7 @@ public final class APIKeyAuth: AuthProvider, @unchecked Sendable {
             "        components.queryItems = queryItems",
             "",
             "        guard let url = components.url else {",
-            '            throw APIError.httpError(status: 0, body: nil)',
+            "            throw APIError.httpError(status: 0, body: nil)",
             "        }",
             "",
             "        var urlRequest = URLRequest(url: url)",
@@ -300,7 +300,7 @@ public final class APIKeyAuth: AuthProvider, @unchecked Sendable {
             "            do {",
             "                let (data, response) = try await session.data(for: urlRequest)",
             "                guard let httpResponse = response as? HTTPURLResponse else {",
-            '                    throw APIError.httpError(status: 0, body: nil)',
+            "                    throw APIError.httpError(status: 0, body: nil)",
             "                }",
             "",
             "                if httpResponse.statusCode == 401 && attempt == 0 {",
@@ -321,7 +321,7 @@ public final class APIKeyAuth: AuthProvider, @unchecked Sendable {
             "            }",
             "        }",
             "",
-            '        throw lastError ?? APIError.httpError(status: 0, body: nil)',
+            "        throw lastError ?? APIError.httpError(status: 0, body: nil)",
             "    }",
             "",
             "    private func requestVoid(",
@@ -353,12 +353,14 @@ public final class APIKeyAuth: AuthProvider, @unchecked Sendable {
         for ep in api.endpoints:
             self._generate_swift_method(lines, ep)
 
-        lines.extend([
-            "}",
-            "",
-            "private struct EmptyResponse: Decodable {}",
-            "",
-        ])
+        lines.extend(
+            [
+                "}",
+                "",
+                "private struct EmptyResponse: Decodable {}",
+                "",
+            ]
+        )
 
         return "\n".join(lines)
 
@@ -409,9 +411,13 @@ public final class APIKeyAuth: AuthProvider, @unchecked Sendable {
         body_arg = ", body: data" if has_body else ""
 
         if returns_value:
-            lines.append(f'        return try await request(method: "{ep.method}", path: {path_expr}{body_arg})')
+            lines.append(
+                f'        return try await request(method: "{ep.method}", path: {path_expr}{body_arg})'
+            )
         else:
-            lines.append(f'        try await requestVoid(method: "{ep.method}", path: {path_expr}{body_arg})')
+            lines.append(
+                f'        try await requestVoid(method: "{ep.method}", path: {path_expr}{body_arg})'
+            )
 
         lines.append("    }")
         lines.append("")

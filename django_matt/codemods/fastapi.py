@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 FastAPI codemods.
 
@@ -113,9 +114,7 @@ class FastAPIRouterToController(Codemod):
 
         if changes:
             add_import(tree, "django_matt.core.router", ["get", "post", "put", "patch", "delete"])
-            warnings.append(
-                "Consider grouping endpoint functions into APIController classes"
-            )
+            warnings.append("Consider grouping endpoint functions into APIController classes")
 
         if not changes:
             return CodemodResult(transformed=source, confidence=0.0)

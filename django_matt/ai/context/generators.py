@@ -1,3 +1,4 @@
+# file-length-max: 700
 """
 Enhanced AI context file generators.
 
@@ -350,7 +351,9 @@ class CopilotInstructionsGenerator:
 
         if async_warnings:
             lines.append("")
-            lines.append(f"Note: {len(async_warnings)} async safety issue(s) detected in this project")
+            lines.append(
+                f"Note: {len(async_warnings)} async safety issue(s) detected in this project"
+            )
 
         return "\n".join(lines)
 

@@ -1,3 +1,4 @@
+# file-length-max: 700
 """
 S3-compatible storage backends.
 

@@ -1,3 +1,4 @@
+# file-length-max: 900
 """
 Core WebAuthn/Passkey logic for registration and authentication.
 

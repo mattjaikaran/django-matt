@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 Database-driven task scheduling for the native task engine.
 
@@ -89,7 +90,9 @@ class CrontabSchedule:
 
     def to_cron_string(self) -> str:
         """Convert to standard cron string format."""
-        return f"{self.minute} {self.hour} {self.day_of_month} {self.month_of_year} {self.day_of_week}"
+        return (
+            f"{self.minute} {self.hour} {self.day_of_month} {self.month_of_year} {self.day_of_week}"
+        )
 
     @classmethod
     def from_cron_string(cls, cron_str: str) -> "CrontabSchedule":

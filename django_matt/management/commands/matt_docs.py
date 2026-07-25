@@ -143,12 +143,16 @@ class Command(BaseCommand):
         if ci_mode:
             if doc_pct < threshold:
                 self.stderr.write(
-                    self.style.ERROR(f"Docstring coverage {doc_pct:.1f}% below threshold {threshold}%")
+                    self.style.ERROR(
+                        f"Docstring coverage {doc_pct:.1f}% below threshold {threshold}%"
+                    )
                 )
                 return "1"
             if param_pct < threshold:
                 self.stderr.write(
-                    self.style.ERROR(f"Parameter type coverage {param_pct:.1f}% below threshold {threshold}%")
+                    self.style.ERROR(
+                        f"Parameter type coverage {param_pct:.1f}% below threshold {threshold}%"
+                    )
                 )
                 return "1"
 
@@ -178,9 +182,7 @@ class Command(BaseCommand):
         stubs = batch_generate_stubs(path, output_file=output_file, style=style)
 
         total_stubs = sum(len(s) for s in stubs.values())
-        self.stdout.write(
-            self.style.SUCCESS(f"Generated {total_stubs} stubs in {output_file}")
-        )
+        self.stdout.write(self.style.SUCCESS(f"Generated {total_stubs} stubs in {output_file}"))
 
         # Show summary
         if stubs:
@@ -224,17 +226,13 @@ class Command(BaseCommand):
                 all_hints.append(f"\n## {py_file}\n{hints}")
 
         if output_file:
-            Path(output_file).write_text(
-                "# Missing Type Hints\n" + "\n".join(all_hints)
-            )
+            Path(output_file).write_text("# Missing Type Hints\n" + "\n".join(all_hints))
             self.stdout.write(self.style.SUCCESS(f"Wrote hints to {output_file}"))
         else:
             for section in all_hints[:10]:
                 self.stdout.write(section)
 
             if len(all_hints) > 10:
-                self.stdout.write(
-                    self.style.WARNING(f"\n... and {len(all_hints) - 10} more files")
-                )
+                self.stdout.write(self.style.WARNING(f"\n... and {len(all_hints) - 10} more files"))
 
         return None

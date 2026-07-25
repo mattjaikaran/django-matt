@@ -398,9 +398,11 @@ class TestAnalyticsMiddleware:
         mock_session.session_id = "sess-test"
         mock_session.user = None
         mock_session.page_views = 0
-        with patch.object(mw, "_get_or_create_session", return_value=(mock_session, "anon-1")):
-            with patch.object(mw, "_track_page_view"):
-                response = mw(request)
+        with (
+            patch.object(mw, "_get_or_create_session", return_value=(mock_session, "anon-1")),
+            patch.object(mw, "_track_page_view"),
+        ):
+            response = mw(request)
         assert "X-Analytics-Time" in response
 
     @pytest.mark.django_db
@@ -415,9 +417,11 @@ class TestAnalyticsMiddleware:
         mock_session.session_id = "sess-cookie"
         mock_session.user = None
         mock_session.page_views = 0
-        with patch.object(mw, "_get_or_create_session", return_value=(mock_session, "anon-2")):
-            with patch.object(mw, "_track_page_view"):
-                response = mw(request)
+        with (
+            patch.object(mw, "_get_or_create_session", return_value=(mock_session, "anon-2")),
+            patch.object(mw, "_track_page_view"),
+        ):
+            response = mw(request)
         cookie_names = [c for c in response.cookies]
         assert "_matt_session" in cookie_names
 

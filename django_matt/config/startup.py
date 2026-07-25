@@ -50,9 +50,7 @@ def validate_config() -> dict[str, ConfigNamespace]:
 
     if errors:
         detail = "\n".join(errors)
-        raise ValueError(
-            f"django-matt configuration errors:\n{detail}"
-        )
+        raise ValueError(f"django-matt configuration errors:\n{detail}")
 
     return results
 

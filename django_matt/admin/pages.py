@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 Admin page builder for creating custom admin pages.
 

@@ -13,12 +13,31 @@ from django_matt.review.analyzers.base import ASTVisitorAnalyzer
 from django_matt.review.config import ReviewConfig
 from django_matt.review.findings import Category, Finding, Location, Severity
 
-_SYNC_ORM_METHODS: frozenset[str] = frozenset({
-    "get", "filter", "save", "delete", "all", "count", "exists",
-    "first", "last", "create", "update", "bulk_create", "bulk_update",
-    "aggregate", "values", "values_list", "exclude", "annotate",
-    "order_by", "distinct", "select_for_update",
-})
+_SYNC_ORM_METHODS: frozenset[str] = frozenset(
+    {
+        "get",
+        "filter",
+        "save",
+        "delete",
+        "all",
+        "count",
+        "exists",
+        "first",
+        "last",
+        "create",
+        "update",
+        "bulk_create",
+        "bulk_update",
+        "aggregate",
+        "values",
+        "values_list",
+        "exclude",
+        "annotate",
+        "order_by",
+        "distinct",
+        "select_for_update",
+    }
+)
 
 _BLOCKING_IO_CALLS: dict[str | None, frozenset[str]] = {
     None: frozenset({"open"}),
@@ -35,7 +54,9 @@ class AsyncSafetyAnalyzer(ASTVisitorAnalyzer):
     """Analyzer that detects async safety violations via AST inspection."""
 
     name = "async_safety"
-    description = "Detects sync ORM in async, missing await, time.sleep, blocking I/O in async context"
+    description = (
+        "Detects sync ORM in async, missing await, time.sleep, blocking I/O in async context"
+    )
 
     def __init__(self, config: ReviewConfig) -> None:
         super().__init__(config)
@@ -106,15 +127,17 @@ class AsyncSafetyAnalyzer(ASTVisitorAnalyzer):
         # e.g. Model.objects.get(), queryset.filter(), instance.save()
         # We check if the parent chain includes .objects or common ORM patterns
         if self._looks_like_orm_call(node):
-            self._add_finding(Finding(
-                rule_id="AS001",
-                message=f"Sync ORM method .{method_name}() called in async function '{self._async_stack[-1]}'",
-                severity=Severity.ERROR,
-                category=Category.ASYNC_SAFETY,
-                location=self._make_location(node.lineno),
-                suggestion=f"Use .a{method_name}() or wrap with sync_to_async()",
-                context=self._get_source_line(node.lineno).strip(),
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="AS001",
+                    message=f"Sync ORM method .{method_name}() called in async function '{self._async_stack[-1]}'",
+                    severity=Severity.ERROR,
+                    category=Category.ASYNC_SAFETY,
+                    location=self._make_location(node.lineno),
+                    suggestion=f"Use .a{method_name}() or wrap with sync_to_async()",
+                    context=self._get_source_line(node.lineno).strip(),
+                )
+            )
 
     def _looks_like_orm_call(self, node: ast.Call) -> bool:
         """Heuristic check if a method call looks like Django ORM usage."""
@@ -145,15 +168,17 @@ class AsyncSafetyAnalyzer(ASTVisitorAnalyzer):
         """AS002: Detect time.sleep() in async context."""
         dotted = self._get_dotted_name(node.func)
         if dotted == "time.sleep":
-            self._add_finding(Finding(
-                rule_id="AS002",
-                message=f"time.sleep() called in async function '{self._async_stack[-1]}'",
-                severity=Severity.ERROR,
-                category=Category.ASYNC_SAFETY,
-                location=self._make_location(node.lineno),
-                suggestion="Use await asyncio.sleep() instead of time.sleep()",
-                context=self._get_source_line(node.lineno).strip(),
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="AS002",
+                    message=f"time.sleep() called in async function '{self._async_stack[-1]}'",
+                    severity=Severity.ERROR,
+                    category=Category.ASYNC_SAFETY,
+                    location=self._make_location(node.lineno),
+                    suggestion="Use await asyncio.sleep() instead of time.sleep()",
+                    context=self._get_source_line(node.lineno).strip(),
+                )
+            )
 
     def _check_blocking_io(self, node: ast.Call) -> None:
         """AS003: Detect blocking I/O calls in async context."""
@@ -186,15 +211,17 @@ class AsyncSafetyAnalyzer(ASTVisitorAnalyzer):
                         return
 
     def _emit_blocking_finding(self, node: ast.Call, call_repr: str) -> None:
-        self._add_finding(Finding(
-            rule_id="AS003",
-            message=f"Blocking I/O call {call_repr} in async function '{self._async_stack[-1]}'",
-            severity=Severity.ERROR,
-            category=Category.ASYNC_SAFETY,
-            location=self._make_location(node.lineno),
-            suggestion="Use async alternatives: aiofiles.open(), httpx, asyncio.subprocess",
-            context=self._get_source_line(node.lineno).strip(),
-        ))
+        self._add_finding(
+            Finding(
+                rule_id="AS003",
+                message=f"Blocking I/O call {call_repr} in async function '{self._async_stack[-1]}'",
+                severity=Severity.ERROR,
+                category=Category.ASYNC_SAFETY,
+                location=self._make_location(node.lineno),
+                suggestion="Use async alternatives: aiofiles.open(), httpx, asyncio.subprocess",
+                context=self._get_source_line(node.lineno).strip(),
+            )
+        )
 
     def _check_missing_await(self, node: ast.Call) -> None:
         """AS004: Detect calls to known async methods without await."""
@@ -205,15 +232,17 @@ class AsyncSafetyAnalyzer(ASTVisitorAnalyzer):
         if method.startswith("a") and method[1:] in _SYNC_ORM_METHODS:
             # This is an async ORM call used as a bare expression (no await)
             # The parent visit_Expr already filtered to bare expressions
-            self._add_finding(Finding(
-                rule_id="AS004",
-                message=f"Async ORM method .{method}() called without await in '{self._async_stack[-1]}'",
-                severity=Severity.ERROR,
-                category=Category.ASYNC_SAFETY,
-                location=self._make_location(node.lineno),
-                suggestion=f"Add 'await' before .{method}() call",
-                context=self._get_source_line(node.lineno).strip(),
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="AS004",
+                    message=f"Async ORM method .{method}() called without await in '{self._async_stack[-1]}'",
+                    severity=Severity.ERROR,
+                    category=Category.ASYNC_SAFETY,
+                    location=self._make_location(node.lineno),
+                    suggestion=f"Add 'await' before .{method}() call",
+                    context=self._get_source_line(node.lineno).strip(),
+                )
+            )
 
     # -- Helpers -----------------------------------------------------------
 

@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Session management controller.
 
@@ -139,7 +140,11 @@ class SessionController:
                 action=AuditAction.LOGIN_FAILED,
                 description=f"Failed session login for {data.email}",
                 severity=AuditSeverity.WARNING,
-                metadata={"email": data.email, "reason": "invalid_credentials", "auth_method": "session"},
+                metadata={
+                    "email": data.email,
+                    "reason": "invalid_credentials",
+                    "auth_method": "session",
+                },
                 **ctx,
             )
             return JsonResponse(
@@ -154,7 +159,11 @@ class SessionController:
                 obj=user,
                 description=f"Session login blocked for {user.email} — account disabled",
                 severity=AuditSeverity.WARNING,
-                metadata={**_user_metadata(user), "reason": "account_disabled", "auth_method": "session"},
+                metadata={
+                    **_user_metadata(user),
+                    "reason": "account_disabled",
+                    "auth_method": "session",
+                },
                 **ctx,
             )
             return JsonResponse(

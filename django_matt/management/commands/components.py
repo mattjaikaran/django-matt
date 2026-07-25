@@ -1,3 +1,4 @@
+# file-length-max: 600
 """
 Management command for component operations.
 

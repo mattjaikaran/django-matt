@@ -1,3 +1,4 @@
+# file-length-max: 600
 """
 Hot module reload for Django — React-style HMR experience.
 
@@ -78,7 +79,19 @@ _EXTENSION_MAP: dict[str, ChangeType] = {
     ".woff2": ChangeType.STATIC,
 }
 
-_DEFAULT_WATCH_EXTENSIONS = {".py", ".css", ".scss", ".sass", ".less", ".js", ".ts", ".html", ".txt", ".jinja", ".jinja2"}
+_DEFAULT_WATCH_EXTENSIONS = {
+    ".py",
+    ".css",
+    ".scss",
+    ".sass",
+    ".less",
+    ".js",
+    ".ts",
+    ".html",
+    ".txt",
+    ".jinja",
+    ".jinja2",
+}
 
 
 def _classify_change(file_path: str) -> ChangeType:
@@ -301,11 +314,13 @@ class WebSocketReloadServer:
         import orjson
 
         rel_path = os.path.relpath(file_path)
-        message = orjson.dumps({
-            "type": change_type.value,
-            "file": rel_path,
-            "timestamp": time.time(),
-        }).decode()
+        message = orjson.dumps(
+            {
+                "type": change_type.value,
+                "file": rel_path,
+                "timestamp": time.time(),
+            }
+        ).decode()
 
         async def _send() -> None:
             dead: set[Any] = set()

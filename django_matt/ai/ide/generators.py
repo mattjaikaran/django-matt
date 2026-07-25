@@ -1,3 +1,4 @@
+# file-length-max: 550
 """
 AI context file generators.
 

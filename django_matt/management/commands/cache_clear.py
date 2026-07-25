@@ -43,17 +43,12 @@ class Command(BaseCommand):
         if not cache_backends:
             raise CommandError("No CACHES configured in settings.")
 
-        aliases: list[str] = (
-            [backend_alias] if backend_alias else list(cache_backends.keys())
-        )
+        aliases: list[str] = [backend_alias] if backend_alias else list(cache_backends.keys())
 
         # validate requested alias exists
         if backend_alias and backend_alias not in cache_backends:
             available = ", ".join(cache_backends.keys())
-            raise CommandError(
-                f"Cache backend '{backend_alias}' not found. "
-                f"Available: {available}"
-            )
+            raise CommandError(f"Cache backend '{backend_alias}' not found. Available: {available}")
 
         if dry_run:
             console.warning("[dry-run] No caches will be modified.")
@@ -66,11 +61,7 @@ class Command(BaseCommand):
             engine = backend_config.get("BACKEND", "unknown")
 
             if dry_run:
-                action = (
-                    f"clear keys with prefix '{prefix}'"
-                    if prefix
-                    else "clear all keys"
-                )
+                action = f"clear keys with prefix '{prefix}'" if prefix else "clear all keys"
                 console.info(f"  [{alias}] ({engine}) — would {action}")
                 cleared.append(alias)
                 continue
@@ -86,22 +77,17 @@ class Command(BaseCommand):
                     if hasattr(cache, "delete_pattern"):
                         # django-redis provides delete_pattern
                         cache.delete_pattern(f"{prefix}*")
-                        console.success(
-                            f"  [{alias}] cleared keys matching '{prefix}*'"
-                        )
+                        console.success(f"  [{alias}] cleared keys matching '{prefix}*'")
                         cleared.append(alias)
                     elif hasattr(cache, "keys"):
                         matching = cache.keys(f"{prefix}*")
                         cache.delete_many(matching)
                         console.success(
-                            f"  [{alias}] cleared {len(matching)} key(s) "
-                            f"matching '{prefix}*'"
+                            f"  [{alias}] cleared {len(matching)} key(s) matching '{prefix}*'"
                         )
                         cleared.append(alias)
                     else:
-                        skipped.append(
-                            (alias, "backend does not support prefix-based deletion")
-                        )
+                        skipped.append((alias, "backend does not support prefix-based deletion"))
                 else:
                     cache.clear()
                     console.success(f"  [{alias}] ({engine}) — cleared")

@@ -21,15 +21,14 @@ def get_learner():
 
         try:
             from django_matt.conf import get_matt_setting
+
             threshold = get_matt_setting("PREFETCH_THRESHOLD", 0.3)
             max_prefetches = get_matt_setting("PREFETCH_MAX_RELATIONS", 5)
         except Exception:
             threshold = 0.3
             max_prefetches = 5
 
-        _learner = AccessPatternLearner(
-            threshold=threshold, max_prefetches=max_prefetches
-        )
+        _learner = AccessPatternLearner(threshold=threshold, max_prefetches=max_prefetches)
     return _learner
 
 
@@ -42,10 +41,7 @@ class PredictivePrefetchMiddleware:
 
     Add to MIDDLEWARE::
 
-        MIDDLEWARE = [
-            "django_matt.prefetch.middleware.PredictivePrefetchMiddleware",
-            ...
-        ]
+        MIDDLEWARE = ["django_matt.prefetch.middleware.PredictivePrefetchMiddleware", ...]
     """
 
     def __init__(self, get_response: Any) -> None:

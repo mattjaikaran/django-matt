@@ -30,13 +30,38 @@ def profile_imports() -> dict[str, float]:
         set(CORE_MODULES)
         | set(MODULE_MIDDLEWARE.keys())
         | {
-            "views", "permissions", "config", "pagination", "filtering",
-            "billing", "ai", "ml", "graphql", "websockets", "analytics",
-            "experiments", "notifications", "email", "messaging", "files",
-            "tasks", "audit", "htmx", "components", "deployment",
-            "observability", "throttling", "versioning", "di",
-            "multitenancy", "typegen", "testing", "utils", "admin",
-            "resources", "inspector",
+            "views",
+            "permissions",
+            "config",
+            "pagination",
+            "filtering",
+            "billing",
+            "ai",
+            "ml",
+            "graphql",
+            "websockets",
+            "analytics",
+            "experiments",
+            "notifications",
+            "email",
+            "messaging",
+            "files",
+            "tasks",
+            "audit",
+            "htmx",
+            "components",
+            "deployment",
+            "observability",
+            "throttling",
+            "versioning",
+            "di",
+            "multitenancy",
+            "typegen",
+            "testing",
+            "utils",
+            "admin",
+            "resources",
+            "inspector",
         }
     )
 
@@ -102,9 +127,7 @@ class StartupProfiler:
             "module_count": len(importable),
             "failed_count": len(failed),
             "failed_modules": failed,
-            "slowest_5": sorted(
-                importable.items(), key=lambda x: x[1], reverse=True
-            )[:5],
+            "slowest_5": sorted(importable.items(), key=lambda x: x[1], reverse=True)[:5],
         }
 
 

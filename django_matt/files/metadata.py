@@ -111,10 +111,7 @@ def _extract_image_metadata(data: bytes, meta: FileMetadata) -> None:
     try:
         exif_data = img.getexif()
         if exif_data:
-            meta.exif = {
-                TAGS.get(tag, str(tag)): str(value)
-                for tag, value in exif_data.items()
-            }
+            meta.exif = {TAGS.get(tag, str(tag)): str(value) for tag, value in exif_data.items()}
     except Exception:
         pass
 
@@ -130,8 +127,10 @@ def _extract_av_metadata(data: bytes, meta: FileMetadata) -> None:
         result = subprocess.run(
             [
                 ffprobe,
-                "-v", "quiet",
-                "-print_format", "json",
+                "-v",
+                "quiet",
+                "-print_format",
+                "json",
                 "-show_format",
                 "-show_streams",
                 "pipe:0",

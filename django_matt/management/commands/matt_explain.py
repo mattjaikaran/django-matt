@@ -1,3 +1,4 @@
+# file-length-max: 700
 """
 Django Matt view explanation command.
 
@@ -73,7 +74,9 @@ class Command(MattCommand):
 
         # Output
         if output_json:
-            self.stdout.write(orjson.dumps(explanation, default=str, option=orjson.OPT_INDENT_2).decode())
+            self.stdout.write(
+                orjson.dumps(explanation, default=str, option=orjson.OPT_INDENT_2).decode()
+            )
         else:
             self._display_explanation(explanation, verbose)
 

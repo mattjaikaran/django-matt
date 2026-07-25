@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Cache settings for Django Matt applications.
 

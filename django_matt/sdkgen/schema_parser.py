@@ -159,9 +159,7 @@ class SchemaParser:
 
         return endpoints
 
-    def _parse_operation(
-        self, path: str, method: str, operation: dict[str, Any]
-    ) -> Endpoint:
+    def _parse_operation(self, path: str, method: str, operation: dict[str, Any]) -> Endpoint:
         """Parse a single path operation."""
         op_id = operation.get("operationId", self._generate_op_id(path, method))
 
@@ -169,14 +167,16 @@ class SchemaParser:
         params: list[EndpointParam] = []
         for param_def in operation.get("parameters", []):
             resolved = self.resolve_ref(param_def)
-            params.append(EndpointParam(
-                name=resolved.get("name", ""),
-                location=resolved.get("in", "query"),
-                type_str=self._schema_to_type_str(resolved.get("schema", {})),
-                required=resolved.get("required", False),
-                description=resolved.get("description", ""),
-                schema=resolved.get("schema", {}),
-            ))
+            params.append(
+                EndpointParam(
+                    name=resolved.get("name", ""),
+                    location=resolved.get("in", "query"),
+                    type_str=self._schema_to_type_str(resolved.get("schema", {})),
+                    required=resolved.get("required", False),
+                    description=resolved.get("description", ""),
+                    schema=resolved.get("schema", {}),
+                )
+            )
 
         # Request body
         request_body = operation.get("requestBody", {})
@@ -206,10 +206,7 @@ class SchemaParser:
                 break
 
         # Auth
-        auth_required = bool(
-            operation.get("security")
-            or operation.get("x-auth-required", False)
-        )
+        auth_required = bool(operation.get("security") or operation.get("x-auth-required", False))
 
         return Endpoint(
             operation_id=op_id,

@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Layout components for structuring UI.
 

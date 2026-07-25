@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 Custom admin filters for enhanced filtering capabilities.
 

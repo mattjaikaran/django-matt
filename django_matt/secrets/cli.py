@@ -101,7 +101,9 @@ def rotate_secret(key: str = typer.Argument(..., help="Secret key")):
 def encrypt_file(
     input_path: str = typer.Argument(..., help="Input JSON file path"),
     output_path: str = typer.Argument(..., help="Output encrypted file path"),
-    key: Optional[str] = typer.Option(None, "--key", "-k", help="Fernet encryption key (generates one if not provided)"),
+    key: Optional[str] = typer.Option(
+        None, "--key", "-k", help="Fernet encryption key (generates one if not provided)"
+    ),
 ):
     """Encrypt a JSON secrets file."""
     from pathlib import Path

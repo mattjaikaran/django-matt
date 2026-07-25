@@ -156,17 +156,13 @@ class HybridMethodClassAccessor:
 
     __slots__ = ("_method", "_model_class")
 
-    def __init__(
-        self, method: hybrid_method, model_class: type[models.Model] | None
-    ) -> None:
+    def __init__(self, method: hybrid_method, model_class: type[models.Model] | None) -> None:
         self._method = method
         self._model_class = model_class
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         if self._method.expr is None:
-            raise AttributeError(
-                f"hybrid method '{self._method._name}' has no SQL expression"
-            )
+            raise AttributeError(f"hybrid method '{self._method._name}' has no SQL expression")
         return self._method.expr(self._model_class, *args, **kwargs)
 
 
@@ -191,9 +187,7 @@ class HybridQuerySet(QuerySet[M]):
         annotations: dict[str, BaseExpression] = {}
         for name in names:
             if name not in descriptors:
-                raise ValueError(
-                    f"'{name}' is not a hybrid property on {self.model.__name__}"
-                )
+                raise ValueError(f"'{name}' is not a hybrid property on {self.model.__name__}")
             prop = descriptors[name]
             annotations[name] = prop.get_expression(self.model)
         return self.annotate(**annotations)  # type: ignore[return-value]
@@ -210,9 +204,7 @@ class HybridQuerySet(QuerySet[M]):
             prop_name = parts[0]
 
             if prop_name not in descriptors:
-                raise ValueError(
-                    f"'{prop_name}' is not a hybrid property on {self.model.__name__}"
-                )
+                raise ValueError(f"'{prop_name}' is not a hybrid property on {self.model.__name__}")
 
             prop = descriptors[prop_name]
             annotations[prop_name] = prop.get_expression(self.model)
@@ -234,9 +226,7 @@ class HybridQuerySet(QuerySet[M]):
             prop_name = name.lstrip("-")
 
             if prop_name not in descriptors:
-                raise ValueError(
-                    f"'{prop_name}' is not a hybrid property on {self.model.__name__}"
-                )
+                raise ValueError(f"'{prop_name}' is not a hybrid property on {self.model.__name__}")
 
             prop = descriptors[prop_name]
             annotations[prop_name] = prop.get_expression(self.model)
@@ -252,6 +242,7 @@ class HybridManager(Manager[M]):
 
         class UserManager(HybridManager, models.Manager):
             pass
+
 
         class User(models.Model):
             objects = UserManager()

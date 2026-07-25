@@ -162,14 +162,10 @@ def verify_password_reset_token(token: str) -> PasswordResetResult:
 
         # Check password hasn't changed since token was issued
         if _password_digest(user.password) != payload.get("pwd"):
-            return PasswordResetResult(
-                valid=False, email=email, error="Token has been invalidated"
-            )
+            return PasswordResetResult(valid=False, email=email, error="Token has been invalidated")
 
         if not user.is_active:
-            return PasswordResetResult(
-                valid=False, email=email, error="User account is inactive"
-            )
+            return PasswordResetResult(valid=False, email=email, error="User account is inactive")
 
         return PasswordResetResult(valid=True, email=email, user=user)
 
@@ -221,14 +217,10 @@ async def averify_password_reset_token(token: str) -> PasswordResetResult:
             return PasswordResetResult(valid=False, email=email, error="User not found")
 
         if _password_digest(user.password) != payload.get("pwd"):
-            return PasswordResetResult(
-                valid=False, email=email, error="Token has been invalidated"
-            )
+            return PasswordResetResult(valid=False, email=email, error="Token has been invalidated")
 
         if not user.is_active:
-            return PasswordResetResult(
-                valid=False, email=email, error="User account is inactive"
-            )
+            return PasswordResetResult(valid=False, email=email, error="User account is inactive")
 
         return PasswordResetResult(valid=True, email=email, user=user)
 

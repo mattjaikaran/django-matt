@@ -33,7 +33,8 @@ class Command(BaseCommand):
         # generate
         gen = subparsers.add_parser("generate", help="Generate SDK package")
         gen.add_argument(
-            "--target", "-t",
+            "--target",
+            "-t",
             choices=_TARGETS,
             default="typescript",
             help="Target language (default: typescript)",
@@ -52,7 +53,8 @@ class Command(BaseCommand):
         # preview
         preview = subparsers.add_parser("preview", help="Preview generated SDK without writing")
         preview.add_argument(
-            "--target", "-t",
+            "--target",
+            "-t",
             choices=_TARGETS,
             default="typescript",
             help="Target language",
@@ -91,9 +93,9 @@ class Command(BaseCommand):
         # Try to discover the API instance
         api = self._discover_api()
         if api is None:
-            self.stderr.write(self.style.WARNING(
-                "No API instance found. Generating SDK from empty schema."
-            ))
+            self.stderr.write(
+                self.style.WARNING("No API instance found. Generating SDK from empty schema.")
+            )
             return schema_builder.build()
 
         # Register routes from the API
@@ -132,6 +134,7 @@ class Command(BaseCommand):
         if not module_path:
             raise ImportError(f"Invalid API path: {dotted_path}")
         from importlib import import_module
+
         module = import_module(module_path)
         return getattr(module, attr_name)
 
@@ -177,9 +180,9 @@ class Command(BaseCommand):
             output: SDKOutput = generator.generate(schema, config)
             written = output.write_to_disk(gen_output_dir)
 
-            self.stdout.write(self.style.SUCCESS(
-                f"\n[{name}] Generated {len(written)} files in {gen_output_dir}"
-            ))
+            self.stdout.write(
+                self.style.SUCCESS(f"\n[{name}] Generated {len(written)} files in {gen_output_dir}")
+            )
             for path in written:
                 self.stdout.write(f"  {path}")
 

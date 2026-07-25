@@ -206,7 +206,16 @@ def collect_routes_data(
                         response_schema = _get_schema_name(return_annotation)
 
                     # Look for request body schemas (non-primitive type hints in params)
-                    primitive_names = {"-", "str", "int", "bool", "float", "bytes", "Request", "None"}
+                    primitive_names = {
+                        "-",
+                        "str",
+                        "int",
+                        "bool",
+                        "float",
+                        "bytes",
+                        "Request",
+                        "None",
+                    }
                     for param_name, hint in hints.items():
                         if param_name == "return":
                             continue
@@ -249,7 +258,9 @@ def routes(
         None, "--filter", "-f", help="Filter routes by pattern"
     ),
     method: Optional[str] = typer.Option(None, "--method", "-m", help="Filter by HTTP method"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show request/response schema and permissions"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Show request/response schema and permissions"
+    ),
 ):
     """List all API routes in the project.
 
@@ -308,7 +319,9 @@ def endpoints_command(
         None, "--filter", "-f", help="Filter endpoints by pattern"
     ),
     method: Optional[str] = typer.Option(None, "--method", "-m", help="Filter by HTTP method"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show request/response schema and permissions"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Show request/response schema and permissions"
+    ),
 ):
     """List all API endpoints (alias for 'routes')."""
     routes(filter_pattern, method, verbose)

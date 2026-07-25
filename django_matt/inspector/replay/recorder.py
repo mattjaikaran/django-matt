@@ -74,6 +74,7 @@ class RequestTrace:
         data = asdict(self)
         # Convert bytes to base64 for JSON
         import base64
+
         data["body"] = base64.b64encode(self.body).decode("ascii")
         data["response_body"] = base64.b64encode(self.response_body).decode("ascii")
         return orjson.dumps(data)
@@ -82,6 +83,7 @@ class RequestTrace:
     def from_json(cls, data: bytes) -> RequestTrace:
         """Deserialize from JSON bytes."""
         import base64
+
         raw = orjson.loads(data)
         raw["body"] = base64.b64decode(raw.get("body", ""))
         raw["response_body"] = base64.b64decode(raw.get("response_body", ""))
@@ -118,14 +120,13 @@ class _QueryTracker:
         """Get a shortened stack trace (skip framework internals)."""
         frames = traceback.extract_stack()
         relevant = [
-            f for f in frames
+            f
+            for f in frames
             if "django_matt" not in f.filename
             and "django/" not in f.filename
             and "site-packages" not in f.filename
         ]
-        return "\n".join(
-            f"{f.filename}:{f.lineno} in {f.name}" for f in relevant[-5:]
-        )
+        return "\n".join(f"{f.filename}:{f.lineno} in {f.name}" for f in relevant[-5:])
 
 
 class RequestRecorder:
@@ -139,9 +140,7 @@ class RequestRecorder:
                 self.recorder = RequestRecorder()
 
             async def __call__(self, request):
-                trace, response = await self.recorder.record_request(
-                    request, self.get_response
-                )
+                trace, response = await self.recorder.record_request(request, self.get_response)
                 store.save(trace)
                 return response
     """
@@ -149,9 +148,7 @@ class RequestRecorder:
     def __init__(self, capture_stacks: bool = True) -> None:
         self.capture_stacks = capture_stacks
 
-    async def record_request(
-        self, request: Any, get_response: Any
-    ) -> tuple[RequestTrace, Any]:
+    async def record_request(self, request: Any, get_response: Any) -> tuple[RequestTrace, Any]:
         """Record a request lifecycle and return (trace, response)."""
         from django.db import connection
 
@@ -209,17 +206,22 @@ class RequestRecorder:
     @staticmethod
     def _capture_env(trace: RequestTrace) -> None:
         import sys
+
         trace.python_version = sys.version.split()[0]
         try:
             import django
+
             trace.django_version = django.__version__
         except ImportError:
             pass
         try:
             import subprocess
+
             result = subprocess.run(
                 ["git", "rev-parse", "--short", "HEAD"],
-                capture_output=True, text=True, check=True,
+                capture_output=True,
+                text=True,
+                check=True,
             )
             trace.git_sha = result.stdout.strip()
         except Exception:

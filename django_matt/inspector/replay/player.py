@@ -120,13 +120,10 @@ class RequestReplayer:
             result.response_diff = self._diff_response(trace, response)
 
             # Compare queries
-            result.query_diff = self._diff_queries(
-                trace.queries, tracker.queries
-            )
+            result.query_diff = self._diff_queries(trace.queries, tracker.queries)
 
             result.success = (
-                not result.response_diff.status_changed
-                and not result.query_diff.new_queries
+                not result.response_diff.status_changed and not result.query_diff.new_queries
             )
 
         except Exception as e:
@@ -181,9 +178,7 @@ class RequestReplayer:
         return diff
 
     @staticmethod
-    def _diff_queries(
-        original: list[QueryRecord], replayed: list[QueryRecord]
-    ) -> QueryDiff:
+    def _diff_queries(original: list[QueryRecord], replayed: list[QueryRecord]) -> QueryDiff:
         """Compare original and replayed DB queries."""
         import re
 

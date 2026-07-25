@@ -39,15 +39,11 @@ class PluginTestCase:
         assert self.registry.is_loaded(name), f"Plugin {name!r} is not loaded"
 
     def assert_plugin_registered(self, name: str) -> None:
-        assert self.registry.is_registered(name), (
-            f"Plugin {name!r} is not registered"
-        )
+        assert self.registry.is_registered(name), f"Plugin {name!r} is not registered"
 
     def assert_plugin_status(self, name: str, status: PluginStatus) -> None:
         actual = self.registry.get_status(name)
-        assert actual == status, (
-            f"Plugin {name!r} status is {actual}, expected {status}"
-        )
+        assert actual == status, f"Plugin {name!r} status is {actual}, expected {status}"
 
     def assert_hook_count(self, event: str, expected: int) -> None:
         from django_matt.plugins.hooks import get_hooks

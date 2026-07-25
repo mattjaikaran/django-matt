@@ -1,3 +1,4 @@
+# file-length-max: 600
 """
 Cache invalidation utilities for Django Matt.
 

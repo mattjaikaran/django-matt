@@ -13,19 +13,21 @@ from django.template.backends.django import DjangoTemplates
 logger = logging.getLogger("django_matt.templates")
 
 # Django built-in context processor variables that should always be allowed
-DEFAULT_ALLOWLIST: frozenset[str] = frozenset({
-    "csrf_token",
-    "request",
-    "user",
-    "perms",
-    "messages",
-    "DEFAULT_MESSAGE_LEVELS",
-    "True",
-    "False",
-    "None",
-    "forloop",
-    "block",
-})
+DEFAULT_ALLOWLIST: frozenset[str] = frozenset(
+    {
+        "csrf_token",
+        "request",
+        "user",
+        "perms",
+        "messages",
+        "DEFAULT_MESSAGE_LEVELS",
+        "True",
+        "False",
+        "None",
+        "forloop",
+        "block",
+    }
+)
 
 
 def _get_config() -> dict[str, Any]:
@@ -46,8 +48,7 @@ class UndefinedVariableError(Exception):
         self.line = line
         loc = f" at line {line}" if line else ""
         super().__init__(
-            f"Variable '{variable}' is undefined in template "
-            f"'{self.template_name}'{loc}"
+            f"Variable '{variable}' is undefined in template '{self.template_name}'{loc}"
         )
 
 
@@ -165,9 +166,7 @@ def strict_template(
 
             if isinstance(response, TemplateResponse) and not response.is_rendered:
                 ctx_data = response.context_data or {}
-                strict_ctx = StrictRequestContext(
-                    request, ctx_data, allow_undefined=extra
-                )
+                strict_ctx = StrictRequestContext(request, ctx_data, allow_undefined=extra)
                 response.content = response.template.render(strict_ctx)
                 return response
             return response

@@ -10,9 +10,11 @@ Usage::
 
     router = APIRouter(prefix="/api/v1")
 
+
     @router.get("/users/")
     async def list_users(request):
         return {"users": []}
+
 
     # In urls.py
     urlpatterns = router.get_urls()
@@ -321,9 +323,7 @@ class APIRouter:
         async def view_func(request, *args, _di_params=di_params, **kwargs):
             # Enforce HTTP method
             if allowed_methods and request.method not in allowed_methods:
-                response = JsonResponse(
-                    {"detail": "Method not allowed"}, status=405
-                )
+                response = JsonResponse({"detail": "Method not allowed"}, status=405)
                 response["Allow"] = ", ".join(sorted(allowed_methods))
                 return response
 
@@ -443,9 +443,7 @@ class APIRouter:
                 view_func._csrf_exempt = True
             if _login_not_required is not None:
                 view_func = _login_not_required(view_func)
-            path_entries.append(
-                (route["path"], view_func, route["name"], route["methods"])
-            )
+            path_entries.append((route["path"], view_func, route["name"], route["methods"]))
 
         # Add routes from controllers
         for controller_class in self.controllers:
@@ -489,9 +487,7 @@ class APIRouter:
         # Preserves first-seen order for each unique path.
         from collections import OrderedDict
 
-        grouped: OrderedDict[str, list[tuple[Callable, str, list[str]]]] = (
-            OrderedDict()
-        )
+        grouped: OrderedDict[str, list[tuple[Callable, str, list[str]]]] = OrderedDict()
         for url_path, vf, name, methods in path_entries:
             if url_path not in grouped:
                 grouped[url_path] = []
@@ -528,12 +524,8 @@ class APIRouter:
                 ):
                     handler = _method_map.get(request.method)
                     if handler is None:
-                        response = JsonResponse(
-                            {"detail": "Method not allowed"}, status=405
-                        )
-                        response["Allow"] = ", ".join(
-                            sorted(_method_map.keys())
-                        )
+                        response = JsonResponse({"detail": "Method not allowed"}, status=405)
+                        response["Allow"] = ", ".join(sorted(_method_map.keys()))
                         return response
                     return await handler(request, *args, **kwargs)
 
@@ -573,9 +565,7 @@ class APIRouter:
                 self._radix_endpoints[endpoint_key] = view_func
                 self._radix_router.add_route(method.upper(), radix_path, endpoint_key)
 
-        logger.debug(
-            "Rust radix router built: %d routes", self._radix_router.route_count
-        )
+        logger.debug("Rust radix router built: %d routes", self._radix_router.route_count)
 
     @staticmethod
     def _django_to_radix_pattern(django_path: str) -> str:

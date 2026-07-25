@@ -81,7 +81,8 @@ class DjangoMattMiddleware(MiddlewareMixin):
                 TimingMiddleware: "timing",
             }
             stack_classes = [
-                cls for cls in stack_classes
+                cls
+                for cls in stack_classes
                 if _cls_to_module.get(cls) is None or registry.is_active(_cls_to_module[cls])
             ]
 

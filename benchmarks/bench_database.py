@@ -148,9 +148,7 @@ def run_database_benchmarks(iterations: int = 500) -> list[BenchmarkResult]:
         # --- SELECT by index ---
         def select_by_email():
             cursor = db.conn.cursor()
-            cursor.execute(
-                "SELECT * FROM benchmark_test WHERE email = ?", ("user500@example.com",)
-            )
+            cursor.execute("SELECT * FROM benchmark_test WHERE email = ?", ("user500@example.com",))
             return cursor.fetchone()
 
         results.append(
@@ -231,9 +229,7 @@ def run_database_benchmarks(iterations: int = 500) -> list[BenchmarkResult]:
         # --- UPDATE bulk ---
         def update_bulk():
             cursor = db.conn.cursor()
-            cursor.execute(
-                "UPDATE benchmark_test SET score = score + 1 WHERE score < ?", (500.0,)
-            )
+            cursor.execute("UPDATE benchmark_test SET score = score + 1 WHERE score < ?", (500.0,))
             db.conn.commit()
 
         results.append(

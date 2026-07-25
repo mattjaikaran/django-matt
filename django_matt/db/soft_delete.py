@@ -202,9 +202,7 @@ class SoftDeleteMixin(models.Model):
         # soft-delete method instead of performing a real database delete.
         from asgiref.sync import sync_to_async
 
-        return await sync_to_async(super().delete)(
-            using=using, keep_parents=keep_parents
-        )
+        return await sync_to_async(super().delete)(using=using, keep_parents=keep_parents)
 
     def restore(self, using=None):
         """
@@ -357,9 +355,9 @@ def restore_cascade(instance, using=None):
                     # Build filter using the FK field name
                     if hasattr(field, "field"):
                         fk_field_name = field.field.name
-                        related_model.all_objects.filter(
-                            **{fk_field_name: instance}
-                        ).update(deleted_at=None)
+                        related_model.all_objects.filter(**{fk_field_name: instance}).update(
+                            deleted_at=None
+                        )
                 elif hasattr(field, "get_accessor_name"):
                     accessor = field.get_accessor_name()
                     if hasattr(instance, accessor):

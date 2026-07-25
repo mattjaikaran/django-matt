@@ -47,7 +47,7 @@ class PluginConfig:
         env_config: dict[str, Any] = {}
         for key, value in os.environ.items():
             if key.startswith(prefix):
-                config_key = key[len(prefix):].lower()
+                config_key = key[len(prefix) :].lower()
                 env_config[config_key] = value
 
         return env_config
@@ -109,8 +109,7 @@ class PluginConfig:
                     py_type = type_map[expected_type]
                     if not isinstance(value, py_type):
                         errors.append(
-                            f"Field {key!r}: expected {expected_type}, "
-                            f"got {type(value).__name__}"
+                            f"Field {key!r}: expected {expected_type}, got {type(value).__name__}"
                         )
 
         return errors

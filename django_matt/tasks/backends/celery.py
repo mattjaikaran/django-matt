@@ -69,7 +69,7 @@ class CeleryBackend(BaseBackend):
             from celery import Celery
         except ImportError:
             raise ImportError(
-                "Celery is required for CeleryBackend. Install with: uv add \"celery[redis]\""
+                'Celery is required for CeleryBackend. Install with: uv add "celery[redis]"'
             )
 
         app = Celery("django_matt_tasks")

@@ -25,7 +25,8 @@ def _field_type_str(field: models.Field) -> str:
 
 def _get_concrete_fields(model: type[models.Model]) -> list[models.Field]:
     return [
-        f for f in model._meta.get_fields()
+        f
+        for f in model._meta.get_fields()
         if not isinstance(f, models.fields.related.ForeignObjectRel)
     ]
 
@@ -43,8 +44,10 @@ def generate_mermaid(
         lines.append(f"    {table} {{")
         for field in _get_concrete_fields(model):
             pk_marker = " PK" if getattr(field, "primary_key", False) else ""
-            fk_marker = " FK" if isinstance(field, (models.ForeignKey, models.OneToOneField)) else ""
-            nullable = " \"nullable\"" if getattr(field, "null", False) else ""
+            fk_marker = (
+                " FK" if isinstance(field, (models.ForeignKey, models.OneToOneField)) else ""
+            )
+            nullable = ' "nullable"' if getattr(field, "null", False) else ""
             lines.append(
                 f"        {_field_type_str(field)} {field.name}{pk_marker}{fk_marker}{nullable}"
             )
@@ -103,12 +106,16 @@ def generate_dot(
                 rel_table = f"{rel._meta.app_label}__{rel.__name__}"
                 if rel in model_list:
                     style = "bold" if isinstance(field, models.OneToOneField) else "solid"
-                    lines.append(f'    {table} -> {rel_table} [label="{field.name}", style={style}];')
+                    lines.append(
+                        f'    {table} -> {rel_table} [label="{field.name}", style={style}];'
+                    )
             elif isinstance(field, models.ManyToManyField):
                 rel = field.related_model
                 rel_table = f"{rel._meta.app_label}__{rel.__name__}"
                 if rel in model_list:
-                    lines.append(f'    {table} -> {rel_table} [label="{field.name}", style=dashed];')
+                    lines.append(
+                        f'    {table} -> {rel_table} [label="{field.name}", style=dashed];'
+                    )
 
     lines.append("}")
     return "\n".join(lines)
@@ -134,7 +141,9 @@ def generate_dbml(
             if not getattr(field, "null", False):
                 attrs.append("not null")
             attr_str = f" [{', '.join(attrs)}]" if attrs else ""
-            lines.append(f"  {field.column if hasattr(field, 'column') else field.name} {_field_type_str(field)}{attr_str}")
+            lines.append(
+                f"  {field.column if hasattr(field, 'column') else field.name} {_field_type_str(field)}{attr_str}"
+            )
         lines.append("}")
         lines.append("")
 
@@ -163,9 +172,16 @@ def generate_plantuml(
     model_names: list[str] | None = None,
 ) -> str:
     model_list = _get_models(app_labels, model_names)
-    lines = ["@startuml", "skinparam backgroundColor #111827", "skinparam class {",
-             "  BackgroundColor #1f2937", "  BorderColor #4b5563",
-             "  FontColor white", "  ArrowColor #6b7280", "}"]
+    lines = [
+        "@startuml",
+        "skinparam backgroundColor #111827",
+        "skinparam class {",
+        "  BackgroundColor #1f2937",
+        "  BorderColor #4b5563",
+        "  FontColor white",
+        "  ArrowColor #6b7280",
+        "}",
+    ]
 
     for model in model_list:
         meta = model._meta

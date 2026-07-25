@@ -1,3 +1,4 @@
+# file-length-max: 800
 """
 Deployment management command.
 
@@ -324,9 +325,7 @@ class Command(BaseCommand):
             from django_matt.deploy.docker import DockerfileConfig
 
             server_backend = ServerBackend(options.get("server", "granian"))
-            dockerfile_gen = DockerfileGenerator(
-                DockerfileConfig(server_backend=server_backend)
-            )
+            dockerfile_gen = DockerfileGenerator(DockerfileConfig(server_backend=server_backend))
             compose_gen = ComposeGenerator(app_name=app_name)
 
             files = {

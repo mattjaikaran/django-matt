@@ -197,7 +197,7 @@ def format_for_html(error: StructuredError, *, include_debug: bool = False) -> s
         "a:hover{text-decoration:underline}"
         "</style>"
     )
-    parts.append("</head><body><div class=\"wrap\">")
+    parts.append('</head><body><div class="wrap">')
 
     parts.append('<div class="hdr">')
     parts.append(f'<div class="status">{status} error</div>')
@@ -232,9 +232,7 @@ def format_for_html(error: StructuredError, *, include_debug: bool = False) -> s
     if include_debug:
         if error.context:
             parts.append("<section><h3>Context</h3><pre>")
-            parts.append(
-                esc(orjson.dumps(error.context, option=orjson.OPT_INDENT_2).decode())
-            )
+            parts.append(esc(orjson.dumps(error.context, option=orjson.OPT_INDENT_2).decode()))
             parts.append("</pre></section>")
 
         if error.related_settings:

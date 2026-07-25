@@ -77,21 +77,15 @@ class Command(BaseCommand):
 
         django_thread = None
         if not no_django:
-            self.stdout.write(
-                f"Starting Django runserver on port {django_port}"
-            )
+            self.stdout.write(f"Starting Django runserver on port {django_port}")
 
             def run_django() -> None:
                 try:
-                    call_command(
-                        "runserver", str(django_port), use_reloader=False
-                    )
+                    call_command("runserver", str(django_port), use_reloader=False)
                 except SystemExit:
                     pass
 
-            django_thread = threading.Thread(
-                target=run_django, daemon=True
-            )
+            django_thread = threading.Thread(target=run_django, daemon=True)
             django_thread.start()
 
         def shutdown(signum: int, frame: object) -> None:
@@ -118,6 +112,4 @@ class Command(BaseCommand):
             return "bunx"
         if shutil.which("npx"):
             return "npx"
-        raise CommandError(
-            "Neither bunx nor npx found. Install bun or Node.js."
-        )
+        raise CommandError("Neither bunx nor npx found. Install bun or Node.js.")

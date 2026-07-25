@@ -1,3 +1,4 @@
+# file-length-max: 700
 """
 Django Matt project health check command.
 
@@ -88,7 +89,9 @@ class Command(MattCommand):
 
         # Output results
         if output_json:
-            self.stdout.write(orjson.dumps(results, default=str, option=orjson.OPT_INDENT_2).decode())
+            self.stdout.write(
+                orjson.dumps(results, default=str, option=orjson.OPT_INDENT_2).decode()
+            )
         else:
             self._display_results(results, verbose, fix)
 
@@ -617,6 +620,7 @@ class Command(MattCommand):
         self.console.info(f"Applying {pending} pending migration(s)...")
         try:
             from django.core.management import call_command
+
             call_command("migrate", verbosity=1)
             self.console.success("Migrations applied successfully")
             check["status"] = "ok"
@@ -645,7 +649,9 @@ class Command(MattCommand):
         self.console.warning("Cannot auto-fix ALLOWED_HOSTS (requires settings file change)")
         self.console.newline()
         self.console.print("[bold]Add this to your settings:[/]")
-        self.console.print("  [cyan]ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'your-domain.com'][/]")
+        self.console.print(
+            "  [cyan]ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'your-domain.com'][/]"
+        )
         self.console.newline()
         self.console.print("[dim]Or set as environment variable:[/]")
         self.console.print("  [cyan]export ALLOWED_HOSTS=localhost,127.0.0.1[/]")
@@ -659,5 +665,7 @@ class Command(MattCommand):
         self.console.print("  [cyan]export DJANGO_DEBUG=False[/]")
         self.console.newline()
         self.console.print("[bold]Or in settings.py:[/]")
-        self.console.print("  [cyan]DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() == 'true'[/]")
+        self.console.print(
+            "  [cyan]DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() == 'true'[/]"
+        )
         return False  # Not auto-fixable

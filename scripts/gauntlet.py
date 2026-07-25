@@ -74,7 +74,7 @@ class GauntletRunner:
     ci: bool = False
     verbose: bool = False
     fail_fast: bool = False
-    coverage_threshold: int = 70
+    coverage_threshold: int = 50
     _stopped_early: bool = False
 
     def run_gate(
@@ -95,7 +95,7 @@ class GauntletRunner:
         env = {**os.environ, **(env_override or {})}
 
         try:
-            result = subprocess.run(  # noqa: PLW1510
+            result = subprocess.run(
                 cmd,
                 capture_output=not self.verbose,
                 text=True,

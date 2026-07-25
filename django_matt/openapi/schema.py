@@ -1,3 +1,4 @@
+# file-length-max: 750
 """
 OpenAPI schema generation for Django Matt.
 
@@ -16,15 +17,17 @@ from django.conf import settings
 from pydantic import BaseModel
 
 # Permission class names that indicate auth is required
-_AUTH_PERMISSION_NAMES: frozenset[str] = frozenset({
-    "IsAuthenticated",
-    "IsAdmin",
-    "IsStaff",
-    "IsSuperUser",
-    "IsOwner",
-    "HasRole",
-    "HasPermission",
-})
+_AUTH_PERMISSION_NAMES: frozenset[str] = frozenset(
+    {
+        "IsAuthenticated",
+        "IsAdmin",
+        "IsStaff",
+        "IsSuperUser",
+        "IsOwner",
+        "HasRole",
+        "HasPermission",
+    }
+)
 
 # Python type to OpenAPI type mapping
 TYPE_MAP: dict[type, dict[str, str]] = {
@@ -183,9 +186,7 @@ class OpenAPISchema:
         response_model = route.get("response_model")
         status_code = route.get("status_code", 200)
         extra_responses: dict[int, type] = route.get("responses", {})
-        operation["responses"] = self._build_responses(
-            response_model, status_code, extra_responses
-        )
+        operation["responses"] = self._build_responses(response_model, status_code, extra_responses)
 
         # Add permission extension fields (x-auth-required, x-permissions, x-roles)
         extensions = self._extract_permission_extensions(endpoint, route)
@@ -193,9 +194,7 @@ class OpenAPISchema:
 
         return operation
 
-    def _extract_permission_extensions(
-        self, endpoint: Any, route: dict
-    ) -> dict[str, Any]:
+    def _extract_permission_extensions(self, endpoint: Any, route: dict) -> dict[str, Any]:
         """Extract permission metadata from endpoint and route into OpenAPI extensions.
 
         Returns a dict with any applicable ``x-auth-required``, ``x-permissions``,
@@ -210,9 +209,7 @@ class OpenAPISchema:
         # Method-level @guard() overrides controller-level permission_classes
         guard_perms = getattr(endpoint, "_guard_permissions", None)
         perm_classes = (
-            guard_perms
-            if guard_perms is not None
-            else route.get("permission_classes", [])
+            guard_perms if guard_perms is not None else route.get("permission_classes", [])
         )
 
         # Check if _allow_any is set (explicitly public)
@@ -384,10 +381,7 @@ class OpenAPISchema:
                 if code_str in responses:
                     # Don't overwrite the primary success response
                     continue
-                if (
-                    inspect.isclass(model)
-                    and issubclass(model, BaseModel)
-                ):
+                if inspect.isclass(model) and issubclass(model, BaseModel):
                     schema_ref = self._register_schema(model, mode="serialization")
                     responses[code_str] = {
                         "description": model.__doc__ or f"{code} response",
@@ -491,8 +485,8 @@ class OpenAPISchema:
                     old_key = f"{old_name}{mode_suffix}"
                     new_key = f"{new_name}{mode_suffix}"
                     if old_key in self.components["schemas"]:
-                        self.components["schemas"][new_key] = (
-                            self.components["schemas"].pop(old_key)
+                        self.components["schemas"][new_key] = self.components["schemas"].pop(
+                            old_key
                         )
                         self._rewrite_refs(
                             f"#/components/schemas/{old_key}",
@@ -581,9 +575,7 @@ class OpenAPISchema:
                 (mode,) = modes
                 suffixed = self._component_name_for(base_name, mode)
                 if suffixed in self.components["schemas"]:
-                    self.components["schemas"][base_name] = self.components["schemas"].pop(
-                        suffixed
-                    )
+                    self.components["schemas"][base_name] = self.components["schemas"].pop(suffixed)
                     self._rewrite_refs(
                         f"#/components/schemas/{suffixed}",
                         f"#/components/schemas/{base_name}",
@@ -607,6 +599,7 @@ class OpenAPISchema:
 
     def _rewrite_refs(self, old_ref: str, new_ref: str) -> None:
         """Rewrite all ``$ref`` values in paths from *old_ref* to *new_ref*."""
+
         def _walk(obj: Any) -> None:
             if isinstance(obj, dict):
                 if obj.get("$ref") == old_ref:

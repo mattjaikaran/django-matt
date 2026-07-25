@@ -61,9 +61,7 @@ class ASTBlockDiffer:
 
         return blocks
 
-    def _extract_node_blocks(
-        self, node: ast.AST, lines: list[str], prefix: str
-    ) -> list[Block]:
+    def _extract_node_blocks(self, node: ast.AST, lines: list[str], prefix: str) -> list[Block]:
         """Recursively extract blocks from an AST node."""
         blocks: list[Block] = []
 
@@ -100,19 +98,15 @@ class ASTBlockDiffer:
                     )
 
         elif hasattr(node, "lineno") and hasattr(node, "end_lineno"):
-                start = node.lineno
-                end = node.end_lineno or node.lineno
-                content = "\n".join(lines[start - 1 : end])
-                name = self._statement_name(node)
-                blocks.append(
-                    Block(start, end, "statement", name, self._hash(content))
-                )
+            start = node.lineno
+            end = node.end_lineno or node.lineno
+            content = "\n".join(lines[start - 1 : end])
+            name = self._statement_name(node)
+            blocks.append(Block(start, end, "statement", name, self._hash(content)))
 
         return blocks
 
-    def changed_blocks(
-        self, old_source: str, new_source: str
-    ) -> list[BlockChange]:
+    def changed_blocks(self, old_source: str, new_source: str) -> list[BlockChange]:
         """Return blocks that changed between two versions of a file.
 
         Comparison is by name+hash: if a function moved lines but content is
@@ -122,12 +116,8 @@ class ASTBlockDiffer:
         new_blocks = self.extract_blocks(new_source)
 
         # Index by (block_type, name) for matching
-        old_by_name: dict[tuple[str, str], Block] = {
-            (b.block_type, b.name): b for b in old_blocks
-        }
-        new_by_name: dict[tuple[str, str], Block] = {
-            (b.block_type, b.name): b for b in new_blocks
-        }
+        old_by_name: dict[tuple[str, str], Block] = {(b.block_type, b.name): b for b in old_blocks}
+        new_by_name: dict[tuple[str, str], Block] = {(b.block_type, b.name): b for b in new_blocks}
 
         changes: list[BlockChange] = []
 

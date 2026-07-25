@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 API Playground utilities for Django Matt.
 

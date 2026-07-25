@@ -196,8 +196,9 @@ class ChatController(APIController):
         api_messages = self._build_api_messages(conversation, messages)
         config = getattr(settings, "MATT_AI", {})
 
-        async with httpx.AsyncClient() as client:
-            async with client.stream(
+        async with (
+            httpx.AsyncClient() as client,
+            client.stream(
                 "POST",
                 "https://api.openai.com/v1/chat/completions",
                 headers={"Authorization": f"Bearer {config.get('OPENAI_API_KEY', '')}"},
@@ -207,18 +208,18 @@ class ChatController(APIController):
                     "stream": True,
                 },
                 timeout=120.0,
-            ) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    if not line.startswith("data: "):
-                        continue
-                    payload = line[6:]
-                    if payload == "[DONE]":
-                        break
-                    chunk = orjson.loads(payload)
-                    delta = chunk["choices"][0].get("delta", {})
-                    if content := delta.get("content"):
-                        yield content
+            ) as response,
+        ):
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if not line.startswith("data: "):
+                    continue
+                payload = line[6:]
+                if payload == "[DONE]":
+                    break
+                chunk = orjson.loads(payload)
+                if content := chunk.get("choices", [{}])[0].get("delta", {}).get("content"):
+                    yield content
 
     @staticmethod
     def _build_api_messages(

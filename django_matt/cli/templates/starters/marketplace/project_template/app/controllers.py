@@ -41,7 +41,9 @@ async def get_product(request, product_id: int) -> JsonResponse:
     except Product.DoesNotExist:
         return JsonResponse({"error": "Not found"}, status=404)
 
-    avg_rating = await Review.objects.filter(product=product).aaggregate(avg=Avg("rating"))
+    avg_rating = await Review.objects.filter(product=product).aaggregate(
+        avg=Avg("rating")
+    )
     data = ProductSchema.model_validate(product).model_dump(mode="json")
     data["avg_rating"] = avg_rating.get("avg")
     return JsonResponse(data)

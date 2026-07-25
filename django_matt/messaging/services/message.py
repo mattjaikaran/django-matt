@@ -348,9 +348,7 @@ class MessageService:
     @staticmethod
     async def amark_as_read(conversation, user, up_to_message=None):
         """Async wrapper for mark_as_read using sync_to_async."""
-        return await sync_to_async(MessageService.mark_as_read)(
-            conversation, user, up_to_message
-        )
+        return await sync_to_async(MessageService.mark_as_read)(conversation, user, up_to_message)
 
     @staticmethod
     def get_unread_counts(user):

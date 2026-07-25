@@ -43,7 +43,9 @@ def generate_schema_prompt(
             if model_report.issues:
                 issue_lines.append(f"\n### {model_report.full_name}")
                 for issue in model_report.issues:
-                    icon = {"error": "ERROR", "warning": "WARN", "info": "INFO"}[issue.severity.value]
+                    icon = {"error": "ERROR", "warning": "WARN", "info": "INFO"}[
+                        issue.severity.value
+                    ]
                     issue_lines.append(f"  [{icon}] {issue.field_name}: {issue.issue}")
         issues_text = "\n".join(issue_lines)
 
@@ -108,6 +110,7 @@ def generate_review_prompt(
     relationship_text: list[str] = []
     for model in model_list:
         from django.db import models as m
+
         for field in model._meta.get_fields():
             if isinstance(field, m.ForeignKey):
                 relationship_text.append(

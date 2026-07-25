@@ -1,3 +1,4 @@
+# file-length-max: 700
 """
 Benchmark runner for Django Matt framework.
 

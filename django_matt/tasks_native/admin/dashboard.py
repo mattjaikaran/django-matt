@@ -48,19 +48,14 @@ class TaskDashboard:
         )
 
         # Failure rate
-        total_24h = (
-            state_counts["completed"]
-            + state_counts["failed"]
-        )
+        total_24h = state_counts["completed"] + state_counts["failed"]
         failure_rate = 0
         if total_24h > 0:
             failure_rate = (state_counts["failed"] / total_24h) * 100
 
         # Scheduled tasks
         scheduled_count = TaskSchedule.objects.filter(enabled=True).count()
-        due_schedules = TaskSchedule.objects.filter(
-            enabled=True, next_run_at__lte=now
-        ).count()
+        due_schedules = TaskSchedule.objects.filter(enabled=True, next_run_at__lte=now).count()
 
         # Dead letter queue
         dlq_count = DeadLetterTask.objects.filter(reprocessed=False).count()
@@ -94,16 +89,18 @@ class TaskDashboard:
     def get_recent_failures(limit: int = 10) -> list[TaskExecution]:
         """Get recent failed tasks."""
         return list(
-            TaskExecution.objects.filter(state=TaskState.FAILED.value)
-            .order_by("-completed_at")[:limit]
+            TaskExecution.objects.filter(state=TaskState.FAILED.value).order_by("-completed_at")[
+                :limit
+            ]
         )
 
     @staticmethod
     def get_upcoming_schedules(limit: int = 10) -> list[TaskSchedule]:
         """Get upcoming scheduled tasks."""
         return list(
-            TaskSchedule.objects.filter(enabled=True, next_run_at__isnull=False)
-            .order_by("next_run_at")[:limit]
+            TaskSchedule.objects.filter(enabled=True, next_run_at__isnull=False).order_by(
+                "next_run_at"
+            )[:limit]
         )
 
 

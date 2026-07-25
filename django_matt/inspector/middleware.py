@@ -195,6 +195,7 @@ class RequestCaptureMiddleware:
         # Snapshot query count before processing (only in DEBUG mode)
         if settings.DEBUG:
             from django.db import connection
+
             initial_count = len(connection.queries)
 
         try:
@@ -222,6 +223,7 @@ class RequestCaptureMiddleware:
             # Capture DB query info (only in DEBUG mode)
             if settings.DEBUG:
                 from django.db import connection
+
                 queries = connection.queries[initial_count:]
                 captured.db_queries = [{"sql": q["sql"], "time": q["time"]} for q in queries]
                 captured.db_query_count = len(queries)
@@ -252,12 +254,14 @@ class RequestCaptureMiddleware:
         warnings = []
         for norm_sql, indices in normalized.items():
             if len(indices) >= 3:
-                warnings.append({
-                    "pattern": norm_sql[:200],
-                    "count": len(indices),
-                    "example_sql": queries[indices[0]].get("sql", "")[:300],
-                    "suggestion": "Consider using select_related() or prefetch_related()",
-                })
+                warnings.append(
+                    {
+                        "pattern": norm_sql[:200],
+                        "count": len(indices),
+                        "example_sql": queries[indices[0]].get("sql", "")[:300],
+                        "suggestion": "Consider using select_related() or prefetch_related()",
+                    }
+                )
         return warnings
 
     def process_exception(self, request: HttpRequest, exception: Exception):

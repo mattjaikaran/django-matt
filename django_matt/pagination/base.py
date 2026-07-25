@@ -133,8 +133,10 @@ class BasePagination(ABC):
         if parsed_qs is not None:
             raw = parsed_qs.get("pagination", {}).get(self.page_size_query_param)
         try:
-            page_size = int(raw) if raw is not None else int(
-                request.GET.get(self.page_size_query_param, self.page_size)
+            page_size = (
+                int(raw)
+                if raw is not None
+                else int(request.GET.get(self.page_size_query_param, self.page_size))
             )
         except (ValueError, TypeError):
             page_size = self.page_size

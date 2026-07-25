@@ -75,9 +75,7 @@ class Command(BaseCommand):
                 check=False,
             )
         except FileNotFoundError:
-            raise CommandError(
-                f"'{runner}' not found. Install bun or Node.js."
-            )
+            raise CommandError(f"'{runner}' not found. Install bun or Node.js.")
 
         elapsed = time.monotonic() - start
 
@@ -87,13 +85,9 @@ class Command(BaseCommand):
             self.stderr.write(result.stderr)
 
         if result.returncode != 0:
-            raise CommandError(
-                f"Vite build failed with exit code {result.returncode}"
-            )
+            raise CommandError(f"Vite build failed with exit code {result.returncode}")
 
-        self.stdout.write(
-            self.style.SUCCESS(f"Build completed in {elapsed:.2f}s")
-        )
+        self.stdout.write(self.style.SUCCESS(f"Build completed in {elapsed:.2f}s"))
         self._report_stats(outdir)
 
     def _detect_runner(self) -> str:
@@ -102,9 +96,7 @@ class Command(BaseCommand):
             return "bunx"
         if shutil.which("npx"):
             return "npx"
-        raise CommandError(
-            "Neither bunx nor npx found. Install bun or Node.js."
-        )
+        raise CommandError("Neither bunx nor npx found. Install bun or Node.js.")
 
     def _report_stats(self, outdir: str) -> None:
         """Report basic build output stats."""

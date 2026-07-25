@@ -87,6 +87,7 @@ def query_handler(
     bus: QueryBus | None = None,
 ) -> Callable:
     """Class decorator that registers a query handler with the bus."""
+
     def decorator(cls: type) -> type:
         target_bus = bus or _default_query_bus
         target_bus.register(query_type, cls())

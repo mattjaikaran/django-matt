@@ -1,3 +1,4 @@
+# file-length-max: 650
 """
 Astro renderer for components.
 
@@ -102,8 +103,11 @@ def get_astro_component_name(component_type: ComponentType) -> str:
 # =============================================================================
 
 ClientDirective = Literal[
-    "client:load", "client:idle", "client:visible",
-    "client:media", "client:only",
+    "client:load",
+    "client:idle",
+    "client:visible",
+    "client:media",
+    "client:only",
 ]
 
 
@@ -168,18 +172,22 @@ class AstroRenderer(BaseRenderer):
             metadata={
                 "component_type": component.type.value,
                 "island_framework": self.island_framework,
-            } if self.include_metadata else {},
+            }
+            if self.include_metadata
+            else {},
         )
 
     def _build_frontmatter(
-        self, component: Component, imports: set[str],
+        self,
+        component: Component,
+        imports: set[str],
     ) -> str:
         """Build the Astro frontmatter (TypeScript section)."""
         lines: list[str] = []
 
         # Props interface
         lines.append("interface Props {")
-        lines.append('  class?: string;')
+        lines.append("  class?: string;")
 
         props = self._extract_props(component)
         for prop_name, prop_type in props.items():
@@ -190,9 +198,7 @@ class AstroRenderer(BaseRenderer):
         # Destructure props
         prop_names = list(props.keys())
         if prop_names:
-            lines.append(
-                f"const {{ class: className, {', '.join(prop_names)} }} = Astro.props;"
-            )
+            lines.append(f"const {{ class: className, {', '.join(prop_names)} }} = Astro.props;")
         else:
             lines.append("const { class: className } = Astro.props;")
         lines.append("")
@@ -226,9 +232,7 @@ class AstroRenderer(BaseRenderer):
         # Island component — needs import and client directive
         if is_interactive:
             ext = self._framework_extension()
-            imports.add(
-                f'import {comp_name} from "@/components/{comp_name}.{ext}";'
-            )
+            imports.add(f'import {comp_name} from "@/components/{comp_name}.{ext}";')
             directive = self.default_directive
             attr_str = self._attrs_to_string(attrs)
             if children_html:

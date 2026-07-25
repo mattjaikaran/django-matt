@@ -1,3 +1,4 @@
+# file-length-max: 950
 """
 Management command to synchronize types between Python and TypeScript/Swift.
 
@@ -491,9 +492,7 @@ class Command(BaseCommand):
 
                 schema = yaml.safe_load(content)
             except ImportError:
-                raise CommandError(
-                    "YAML spec files require PyYAML. Install it with: uv add pyyaml"
-                )
+                raise CommandError("YAML spec files require PyYAML. Install it with: uv add pyyaml")
 
         return self._generate_from_openapi_schema(
             schema=schema,
@@ -548,9 +547,7 @@ class Command(BaseCommand):
         components = schema.get("components", {})
         openapi_schemas = components.get("schemas", {})
 
-        self.stdout.write(
-            f"Found {len(openapi_schemas)} component schemas in OpenAPI spec"
-        )
+        self.stdout.write(f"Found {len(openapi_schemas)} component schemas in OpenAPI spec")
 
         if target in ("typescript", "ts"):
             from django_matt.typegen.api_client import APIClientGenerator
@@ -573,7 +570,7 @@ class Command(BaseCommand):
             # For now, return TS types with a note — full Zod-from-OpenAPI is complex
             lines = [
                 "// Auto-generated from OpenAPI schema",
-                '// Note: Use --target typescript for full OpenAPI type generation',
+                "// Note: Use --target typescript for full OpenAPI type generation",
                 "",
                 ts_code,
             ]

@@ -164,7 +164,9 @@ class Command(BaseCommand):
         self.stdout.write("")
 
         for name, available in ServerRegistry.list_backends():
-            status = self.style.SUCCESS("installed") if available else self.style.ERROR("not installed")
+            status = (
+                self.style.SUCCESS("installed") if available else self.style.ERROR("not installed")
+            )
             backend = ServerRegistry.get(name)
             features = []
             if backend.supports_http2:

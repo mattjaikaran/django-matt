@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 Base classes for deployment providers.
 
@@ -57,10 +58,7 @@ class ServerBackend(str, Enum):
                 f"--http auto"
             )
         if self == ServerBackend.ROBYN:
-            return (
-                f"python -m robyn {asgi_module} "
-                f"--host {host} --port {port} --workers {workers}"
-            )
+            return f"python -m robyn {asgi_module} --host {host} --port {port} --workers {workers}"
         if self == ServerBackend.GUNICORN:
             return (
                 f"gunicorn {asgi_module} "
@@ -68,10 +66,7 @@ class ServerBackend(str, Enum):
                 f"--worker-class uvicorn.workers.UvicornWorker"
             )
         # Default: uvicorn
-        return (
-            f"uvicorn {asgi_module} "
-            f"--host {host} --port {port} --workers {workers}"
-        )
+        return f"uvicorn {asgi_module} --host {host} --port {port} --workers {workers}"
 
     def get_dev_command(
         self,
@@ -87,15 +82,9 @@ class ServerBackend(str, Enum):
                 f"--host {host} --port {port} --workers 1 --reload"
             )
         if self == ServerBackend.ROBYN:
-            return (
-                f"python -m robyn {asgi_module} "
-                f"--host {host} --port {port} --dev"
-            )
+            return f"python -m robyn {asgi_module} --host {host} --port {port} --dev"
         # uvicorn/gunicorn dev mode uses uvicorn directly
-        return (
-            f"uvicorn {asgi_module} "
-            f"--host {host} --port {port} --reload"
-        )
+        return f"uvicorn {asgi_module} --host {host} --port {port} --reload"
 
 
 @dataclass

@@ -108,11 +108,15 @@ class PythonSDKGenerator(SDKGenerator):
 
                     if is_required:
                         if desc:
-                            lines.append(f'    {field_name}: {py_type} = Field(description="{desc}")')
+                            lines.append(
+                                f'    {field_name}: {py_type} = Field(description="{desc}")'
+                            )
                         else:
                             lines.append(f"    {field_name}: {py_type}")
                     elif desc:
-                        lines.append(f'    {field_name}: {py_type} | None = Field(default=None, description="{desc}")')
+                        lines.append(
+                            f'    {field_name}: {py_type} | None = Field(default=None, description="{desc}")'
+                        )
                     else:
                         lines.append(f"    {field_name}: {py_type} | None = None")
 
@@ -279,113 +283,117 @@ class APIKeyAuth(AuthProvider):
             lines.append(f"from {pkg}.models import {imports}")
             lines.append("")
 
-        lines.extend([
-            f'logger = logging.getLogger("{pkg}")',
-            "",
-            "",
-            "_ERROR_MAP: dict[int, type[APIError]] = {",
-            "    401: AuthenticationError,",
-            "    404: NotFoundError,",
-            "    429: RateLimitError,",
-            "}",
-            "",
-            "",
-        ])
+        lines.extend(
+            [
+                f'logger = logging.getLogger("{pkg}")',
+                "",
+                "",
+                "_ERROR_MAP: dict[int, type[APIError]] = {",
+                "    401: AuthenticationError,",
+                "    404: NotFoundError,",
+                "    429: RateLimitError,",
+                "}",
+                "",
+                "",
+            ]
+        )
 
         # Sync client
-        lines.extend([
-            "class Client:",
-            '    """Synchronous API client (httpx-based)."""',
-            "",
-            "    def __init__(",
-            "        self,",
-            "        base_url: str,",
-            "        auth: AuthProvider | None = None,",
-            "        timeout: float = 30.0,",
-            "        max_retries: int = 3,",
-            "        retry_backoff: float = 0.5,",
-            "    ) -> None:",
-            "        if not _HAS_HTTPX:",
-            '            raise ImportError("httpx is required: uv add httpx")',
-            '        self._base_url = base_url.rstrip("/")',
-            "        self._auth = auth",
-            "        self._timeout = timeout",
-            "        self._max_retries = max_retries",
-            "        self._retry_backoff = retry_backoff",
-            "        self._client = httpx.Client(base_url=self._base_url, timeout=timeout)",
-            "",
-            "    def _headers(self) -> dict[str, str]:",
-            '        headers: dict[str, str] = {"Content-Type": "application/json", "Accept": "application/json"}',
-            "        if self._auth:",
-            "            headers.update(self._auth.get_headers())",
-            "        return headers",
-            "",
-            "    def _request(",
-            "        self,",
-            "        method: str,",
-            "        path: str,",
-            "        *,",
-            "        json: Any = None,",
-            "        params: dict[str, Any] | None = None,",
-            "    ) -> Any:",
-            "        import time",
-            "",
-            "        last_error: Exception | None = None",
-            "        for attempt in range(self._max_retries):",
-            "            try:",
-            "                resp = self._client.request(",
-            "                    method, path, json=json, params=params, headers=self._headers()",
-            "                )",
-            "                if resp.status_code == 401 and attempt == 0 and self._auth:",
-            "                    self._auth.on_unauthorized()",
-            "                    continue",
-            "                if resp.status_code >= 400:",
-            "                    body = resp.json() if resp.content else None",
-            "                    error_cls = _ERROR_MAP.get(resp.status_code, APIError)",
-            "                    if resp.status_code == 422:",
-            "                        errors = body.get('errors', []) if isinstance(body, dict) else []",
-            "                        raise ValidationError(errors, body)",
-            "                    raise error_cls(str(body), resp.status_code, body) if error_cls is APIError else error_cls(body=body)",
-            "                if resp.status_code == 204:",
-            "                    return None",
-            "                return resp.json()",
-            "            except APIError:",
-            "                raise",
-            "            except Exception as e:",
-            "                last_error = e",
-            "                if attempt < self._max_retries - 1:",
-            "                    time.sleep(self._retry_backoff * (2 ** attempt))",
-            '        raise last_error or APIError("Request failed", 0)',
-            "",
-            "    def upload_file(",
-            "        self,",
-            "        path: str,",
-            "        file: bytes,",
-            '        filename: str = "upload",',
-            '        field_name: str = "file",',
-            "        extra_fields: dict[str, str] | None = None,",
-            "    ) -> Any:",
-            "        files = {field_name: (filename, file)}",
-            "        data = extra_fields or {}",
-            "        headers = {}",
-            "        if self._auth:",
-            "            headers.update(self._auth.get_headers())",
-            "        resp = self._client.post(path, files=files, data=data, headers=headers)",
-            "        if resp.status_code >= 400:",
-            "            body = resp.json() if resp.content else None",
-            '            raise APIError(f"Upload failed: {resp.status_code}", resp.status_code, body)',
-            "        return resp.json()",
-            "",
-            "    def close(self) -> None:",
-            "        self._client.close()",
-            "",
-            "    def __enter__(self) -> Client:",
-            "        return self",
-            "",
-            "    def __exit__(self, *args: Any) -> None:",
-            "        self.close()",
-            "",
-        ])
+        lines.extend(
+            [
+                "class Client:",
+                '    """Synchronous API client (httpx-based)."""',
+                "",
+                "    def __init__(",
+                "        self,",
+                "        base_url: str,",
+                "        auth: AuthProvider | None = None,",
+                "        timeout: float = 30.0,",
+                "        max_retries: int = 3,",
+                "        retry_backoff: float = 0.5,",
+                "    ) -> None:",
+                "        if not _HAS_HTTPX:",
+                '            raise ImportError("httpx is required: uv add httpx")',
+                '        self._base_url = base_url.rstrip("/")',
+                "        self._auth = auth",
+                "        self._timeout = timeout",
+                "        self._max_retries = max_retries",
+                "        self._retry_backoff = retry_backoff",
+                "        self._client = httpx.Client(base_url=self._base_url, timeout=timeout)",
+                "",
+                "    def _headers(self) -> dict[str, str]:",
+                '        headers: dict[str, str] = {"Content-Type": "application/json", "Accept": "application/json"}',
+                "        if self._auth:",
+                "            headers.update(self._auth.get_headers())",
+                "        return headers",
+                "",
+                "    def _request(",
+                "        self,",
+                "        method: str,",
+                "        path: str,",
+                "        *,",
+                "        json: Any = None,",
+                "        params: dict[str, Any] | None = None,",
+                "    ) -> Any:",
+                "        import time",
+                "",
+                "        last_error: Exception | None = None",
+                "        for attempt in range(self._max_retries):",
+                "            try:",
+                "                resp = self._client.request(",
+                "                    method, path, json=json, params=params, headers=self._headers()",
+                "                )",
+                "                if resp.status_code == 401 and attempt == 0 and self._auth:",
+                "                    self._auth.on_unauthorized()",
+                "                    continue",
+                "                if resp.status_code >= 400:",
+                "                    body = resp.json() if resp.content else None",
+                "                    error_cls = _ERROR_MAP.get(resp.status_code, APIError)",
+                "                    if resp.status_code == 422:",
+                "                        errors = body.get('errors', []) if isinstance(body, dict) else []",
+                "                        raise ValidationError(errors, body)",
+                "                    raise error_cls(str(body), resp.status_code, body) if error_cls is APIError else error_cls(body=body)",
+                "                if resp.status_code == 204:",
+                "                    return None",
+                "                return resp.json()",
+                "            except APIError:",
+                "                raise",
+                "            except Exception as e:",
+                "                last_error = e",
+                "                if attempt < self._max_retries - 1:",
+                "                    time.sleep(self._retry_backoff * (2 ** attempt))",
+                '        raise last_error or APIError("Request failed", 0)',
+                "",
+                "    def upload_file(",
+                "        self,",
+                "        path: str,",
+                "        file: bytes,",
+                '        filename: str = "upload",',
+                '        field_name: str = "file",',
+                "        extra_fields: dict[str, str] | None = None,",
+                "    ) -> Any:",
+                "        files = {field_name: (filename, file)}",
+                "        data = extra_fields or {}",
+                "        headers = {}",
+                "        if self._auth:",
+                "            headers.update(self._auth.get_headers())",
+                "        resp = self._client.post(path, files=files, data=data, headers=headers)",
+                "        if resp.status_code >= 400:",
+                "            body = resp.json() if resp.content else None",
+                '            raise APIError(f"Upload failed: {resp.status_code}", resp.status_code, body)',
+                "        return resp.json()",
+                "",
+                "    def close(self) -> None:",
+                "        self._client.close()",
+                "",
+                "    def __enter__(self) -> Client:",
+                "        return self",
+                "",
+                "    def __exit__(self, *args: Any) -> None:",
+                "        self.close()",
+                "",
+            ]
+        )
 
         # Sync endpoint methods
         for ep in api.endpoints:
@@ -395,97 +403,99 @@ class APIKeyAuth(AuthProvider):
         lines.append("")
 
         # Async client
-        lines.extend([
-            "class AsyncClient:",
-            '    """Asynchronous API client (httpx-based)."""',
-            "",
-            "    def __init__(",
-            "        self,",
-            "        base_url: str,",
-            "        auth: AuthProvider | None = None,",
-            "        timeout: float = 30.0,",
-            "        max_retries: int = 3,",
-            "        retry_backoff: float = 0.5,",
-            "    ) -> None:",
-            "        if not _HAS_HTTPX:",
-            '            raise ImportError("httpx is required: uv add httpx")',
-            '        self._base_url = base_url.rstrip("/")',
-            "        self._auth = auth",
-            "        self._timeout = timeout",
-            "        self._max_retries = max_retries",
-            "        self._retry_backoff = retry_backoff",
-            "        self._client = httpx.AsyncClient(base_url=self._base_url, timeout=timeout)",
-            "",
-            "    def _headers(self) -> dict[str, str]:",
-            '        headers: dict[str, str] = {"Content-Type": "application/json", "Accept": "application/json"}',
-            "        if self._auth:",
-            "            headers.update(self._auth.get_headers())",
-            "        return headers",
-            "",
-            "    async def _request(",
-            "        self,",
-            "        method: str,",
-            "        path: str,",
-            "        *,",
-            "        json: Any = None,",
-            "        params: dict[str, Any] | None = None,",
-            "    ) -> Any:",
-            "        last_error: Exception | None = None",
-            "        for attempt in range(self._max_retries):",
-            "            try:",
-            "                resp = await self._client.request(",
-            "                    method, path, json=json, params=params, headers=self._headers()",
-            "                )",
-            "                if resp.status_code == 401 and attempt == 0 and self._auth:",
-            "                    self._auth.on_unauthorized()",
-            "                    continue",
-            "                if resp.status_code >= 400:",
-            "                    body = resp.json() if resp.content else None",
-            "                    error_cls = _ERROR_MAP.get(resp.status_code, APIError)",
-            "                    if resp.status_code == 422:",
-            "                        errors = body.get('errors', []) if isinstance(body, dict) else []",
-            "                        raise ValidationError(errors, body)",
-            "                    raise error_cls(str(body), resp.status_code, body) if error_cls is APIError else error_cls(body=body)",
-            "                if resp.status_code == 204:",
-            "                    return None",
-            "                return resp.json()",
-            "            except APIError:",
-            "                raise",
-            "            except Exception as e:",
-            "                last_error = e",
-            "                if attempt < self._max_retries - 1:",
-            "                    await asyncio.sleep(self._retry_backoff * (2 ** attempt))",
-            '        raise last_error or APIError("Request failed", 0)',
-            "",
-            "    async def upload_file(",
-            "        self,",
-            "        path: str,",
-            "        file: bytes,",
-            '        filename: str = "upload",',
-            '        field_name: str = "file",',
-            "        extra_fields: dict[str, str] | None = None,",
-            "    ) -> Any:",
-            "        files = {field_name: (filename, file)}",
-            "        data = extra_fields or {}",
-            "        headers = {}",
-            "        if self._auth:",
-            "            headers.update(self._auth.get_headers())",
-            "        resp = await self._client.post(path, files=files, data=data, headers=headers)",
-            "        if resp.status_code >= 400:",
-            "            body = resp.json() if resp.content else None",
-            '            raise APIError(f"Upload failed: {resp.status_code}", resp.status_code, body)',
-            "        return resp.json()",
-            "",
-            "    async def close(self) -> None:",
-            "        await self._client.aclose()",
-            "",
-            "    async def __aenter__(self) -> AsyncClient:",
-            "        return self",
-            "",
-            "    async def __aexit__(self, *args: Any) -> None:",
-            "        await self.close()",
-            "",
-        ])
+        lines.extend(
+            [
+                "class AsyncClient:",
+                '    """Asynchronous API client (httpx-based)."""',
+                "",
+                "    def __init__(",
+                "        self,",
+                "        base_url: str,",
+                "        auth: AuthProvider | None = None,",
+                "        timeout: float = 30.0,",
+                "        max_retries: int = 3,",
+                "        retry_backoff: float = 0.5,",
+                "    ) -> None:",
+                "        if not _HAS_HTTPX:",
+                '            raise ImportError("httpx is required: uv add httpx")',
+                '        self._base_url = base_url.rstrip("/")',
+                "        self._auth = auth",
+                "        self._timeout = timeout",
+                "        self._max_retries = max_retries",
+                "        self._retry_backoff = retry_backoff",
+                "        self._client = httpx.AsyncClient(base_url=self._base_url, timeout=timeout)",
+                "",
+                "    def _headers(self) -> dict[str, str]:",
+                '        headers: dict[str, str] = {"Content-Type": "application/json", "Accept": "application/json"}',
+                "        if self._auth:",
+                "            headers.update(self._auth.get_headers())",
+                "        return headers",
+                "",
+                "    async def _request(",
+                "        self,",
+                "        method: str,",
+                "        path: str,",
+                "        *,",
+                "        json: Any = None,",
+                "        params: dict[str, Any] | None = None,",
+                "    ) -> Any:",
+                "        last_error: Exception | None = None",
+                "        for attempt in range(self._max_retries):",
+                "            try:",
+                "                resp = await self._client.request(",
+                "                    method, path, json=json, params=params, headers=self._headers()",
+                "                )",
+                "                if resp.status_code == 401 and attempt == 0 and self._auth:",
+                "                    self._auth.on_unauthorized()",
+                "                    continue",
+                "                if resp.status_code >= 400:",
+                "                    body = resp.json() if resp.content else None",
+                "                    error_cls = _ERROR_MAP.get(resp.status_code, APIError)",
+                "                    if resp.status_code == 422:",
+                "                        errors = body.get('errors', []) if isinstance(body, dict) else []",
+                "                        raise ValidationError(errors, body)",
+                "                    raise error_cls(str(body), resp.status_code, body) if error_cls is APIError else error_cls(body=body)",
+                "                if resp.status_code == 204:",
+                "                    return None",
+                "                return resp.json()",
+                "            except APIError:",
+                "                raise",
+                "            except Exception as e:",
+                "                last_error = e",
+                "                if attempt < self._max_retries - 1:",
+                "                    await asyncio.sleep(self._retry_backoff * (2 ** attempt))",
+                '        raise last_error or APIError("Request failed", 0)',
+                "",
+                "    async def upload_file(",
+                "        self,",
+                "        path: str,",
+                "        file: bytes,",
+                '        filename: str = "upload",',
+                '        field_name: str = "file",',
+                "        extra_fields: dict[str, str] | None = None,",
+                "    ) -> Any:",
+                "        files = {field_name: (filename, file)}",
+                "        data = extra_fields or {}",
+                "        headers = {}",
+                "        if self._auth:",
+                "            headers.update(self._auth.get_headers())",
+                "        resp = await self._client.post(path, files=files, data=data, headers=headers)",
+                "        if resp.status_code >= 400:",
+                "            body = resp.json() if resp.content else None",
+                '            raise APIError(f"Upload failed: {resp.status_code}", resp.status_code, body)',
+                "        return resp.json()",
+                "",
+                "    async def close(self) -> None:",
+                "        await self._client.aclose()",
+                "",
+                "    async def __aenter__(self) -> AsyncClient:",
+                "        return self",
+                "",
+                "    async def __aexit__(self, *args: Any) -> None:",
+                "        await self.close()",
+                "",
+            ]
+        )
 
         # Async endpoint methods
         for ep in api.endpoints:
@@ -503,12 +513,14 @@ class APIKeyAuth(AuthProvider):
         return_type = self._return_type(ep)
 
         if ep.summary:
-            lines.append(f'{prefix}def {method_name}({sig}) -> {return_type}:')
+            lines.append(f"{prefix}def {method_name}({sig}) -> {return_type}:")
             lines.append(f'{prefix}    """{ep.summary}"""')
         else:
             lines.append(f"{prefix}def {method_name}({sig}) -> {return_type}:")
 
-        lines.append(f'{prefix}    return self._request("{ep.method}", {path_expr}{body_arg}{query_arg})')
+        lines.append(
+            f'{prefix}    return self._request("{ep.method}", {path_expr}{body_arg}{query_arg})'
+        )
         lines.append("")
 
     def _generate_async_method(self, lines: list[str], ep: Endpoint, prefix: str) -> None:
@@ -519,12 +531,14 @@ class APIKeyAuth(AuthProvider):
         return_type = self._return_type(ep)
 
         if ep.summary:
-            lines.append(f'{prefix}async def {method_name}({sig}) -> {return_type}:')
+            lines.append(f"{prefix}async def {method_name}({sig}) -> {return_type}:")
             lines.append(f'{prefix}    """{ep.summary}"""')
         else:
             lines.append(f"{prefix}async def {method_name}({sig}) -> {return_type}:")
 
-        lines.append(f'{prefix}    return await self._request("{ep.method}", {path_expr}{body_arg}{query_arg})')
+        lines.append(
+            f'{prefix}    return await self._request("{ep.method}", {path_expr}{body_arg}{query_arg})'
+        )
         lines.append("")
 
     def _method_parts(self, ep: Endpoint) -> tuple[list[str], str, str, str]:
@@ -621,7 +635,7 @@ __all__ = [
 [project]
 name = "{name}"
 version = "{config.version}"
-description = "{config.description or f'Python client for {api.title}'}"
+description = "{config.description or f"Python client for {api.title}"}"
 requires-python = ">=3.12"
 license = "{config.license}"
 dependencies = [

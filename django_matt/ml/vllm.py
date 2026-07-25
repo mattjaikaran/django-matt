@@ -1,3 +1,4 @@
+# file-length-max: 1600
 """
 vLLM provider implementation.
 
@@ -383,9 +384,7 @@ class VLLMClient:
             try:
                 import httpx
             except ImportError:
-                raise ImportError(
-                    "httpx is required for VLLMClient. Install with: uv add httpx"
-                )
+                raise ImportError("httpx is required for VLLMClient. Install with: uv add httpx")
 
             headers = {"Content-Type": "application/json"}
             if self.api_key:

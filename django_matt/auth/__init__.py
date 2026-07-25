@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 Django Matt Authentication - Complete auth system with JWT, RBAC, and decorators.
 

@@ -11,6 +11,7 @@ from django_matt.serialization.groups import SerializationContext
 
 class SerializationContextMiddleware:
     """Sets request.serialization_context based on the authenticated user's role."""
+
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response
         self.role_to_groups: dict[str, list[str]] = {

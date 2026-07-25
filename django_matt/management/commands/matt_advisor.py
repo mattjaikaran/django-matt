@@ -163,13 +163,13 @@ class Command(MattCommand):
     def _format_console(self, prompts) -> str:
         lines = []
         for i, p in enumerate(prompts, 1):
-            lines.append(f"\n{'='*60}")
+            lines.append(f"\n{'=' * 60}")
             lines.append(f"  [{i}/{len(prompts)}] {p.summary}")
             lines.append(f"  File: {p.file_path}:{p.line_range[0]}")
             lines.append(f"  Priority: {'*' * p.priority} ({p.priority}/5)")
             lines.append(f"  Effort: {p.estimated_effort}")
             lines.append(f"  Health impact: +{p.health_impact}")
-            lines.append(f"{'='*60}")
+            lines.append(f"{'=' * 60}")
             lines.append("")
             lines.append(p.prompt)
             lines.append("")

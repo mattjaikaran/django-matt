@@ -37,9 +37,7 @@ class DjangoQNativeBackend(BaseNativeBackend):
         try:
             from django_q.tasks import async_task  # noqa: F401
         except ImportError:
-            raise ImportError(
-                "Django-Q2 is not installed. Install it with: uv add django-q2"
-            )
+            raise ImportError("Django-Q2 is not installed. Install it with: uv add django-q2")
 
     def _create_task_wrapper(self, task: "NativeTask"):
         """Create a wrapper function for Django-Q2."""

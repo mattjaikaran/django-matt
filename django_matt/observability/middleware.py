@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 Observability middleware for Django Matt.
 

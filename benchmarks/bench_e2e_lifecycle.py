@@ -32,6 +32,7 @@ def benchmark(name: str, func, iterations: int = 100_000):
 # Python implementations (pure Python baselines)
 # ================================================================
 
+
 def _base64url_encode(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
 
@@ -90,6 +91,7 @@ def py_regex_router(patterns):
                 if result:
                     return eid, result.groupdict()
         return None
+
     return match
 
 
@@ -135,6 +137,7 @@ def py_parse_headers(meta):
 def py_parse_qs(qs):
     """Python query string parsing."""
     from urllib.parse import parse_qs
+
     return parse_qs(qs)
 
 
@@ -164,6 +167,7 @@ def main():
         from django_matt._rust import (
             serialize_dicts_to_json as serialize_rs,
         )
+
         has_rust = True
     except ImportError:
         has_rust = False
@@ -175,15 +179,21 @@ def main():
     # ---- Setup ----
 
     secret = b"benchmark-secret-key-at-least-32-bytes-long!"
-    jwt_payload = {"sub": "user123", "role": "admin", "org_id": "acme",
-                   "iat": int(time.time()), "exp": int(time.time()) + 3600}
+    jwt_payload = {
+        "sub": "user123",
+        "role": "admin",
+        "org_id": "acme",
+        "iat": int(time.time()),
+        "exp": int(time.time()) + 3600,
+    }
 
     # Generate a valid JWT
     test_token_py = py_jwt_encode(jwt_payload, secret)
     if has_rust:
         test_token_rs = jwt_encode_rs(
             orjson.dumps(jwt_payload, option=orjson.OPT_SORT_KEYS),
-            secret, "HS256",
+            secret,
+            "HS256",
         )
 
     # Routes
@@ -268,10 +278,14 @@ def main():
     py_route = benchmark("py:route", lambda: py_match("GET", "/users/42"), iterations)
     stages_py["route"] = py_route["mean_ns"]
     if has_rust:
-        rs_route = benchmark("rs:route", lambda: rust_router.match_route("GET", "/users/42"), iterations)
+        rs_route = benchmark(
+            "rs:route", lambda: rust_router.match_route("GET", "/users/42"), iterations
+        )
         stages_rs["route"] = rs_route["mean_ns"]
         speedup = py_route["mean_ns"] / rs_route["mean_ns"]
-        print(f"  {'1. Route matching':<25} {py_route['mean_ns']:<15.0f} {rs_route['mean_ns']:<15.0f} {speedup:<10.1f}x")
+        print(
+            f"  {'1. Route matching':<25} {py_route['mean_ns']:<15.0f} {rs_route['mean_ns']:<15.0f} {speedup:<10.1f}x"
+        )
     else:
         print(f"  {'1. Route matching':<25} {py_route['mean_ns']:<15.0f} {'N/A':<15} {'N/A':<10}")
 
@@ -282,7 +296,9 @@ def main():
         rs_hdr = benchmark("rs:headers", lambda: parse_headers_rs(meta), iterations)
         stages_rs["headers"] = rs_hdr["mean_ns"]
         speedup = py_hdr["mean_ns"] / rs_hdr["mean_ns"]
-        print(f"  {'2. Header parsing':<25} {py_hdr['mean_ns']:<15.0f} {rs_hdr['mean_ns']:<15.0f} {speedup:<10.1f}x")
+        print(
+            f"  {'2. Header parsing':<25} {py_hdr['mean_ns']:<15.0f} {rs_hdr['mean_ns']:<15.0f} {speedup:<10.1f}x"
+        )
     else:
         print(f"  {'2. Header parsing':<25} {py_hdr['mean_ns']:<15.0f} {'N/A':<15} {'N/A':<10}")
 
@@ -290,10 +306,14 @@ def main():
     py_jwt = benchmark("py:jwt", lambda: py_jwt_decode(test_token_py, secret), iterations)
     stages_py["jwt"] = py_jwt["mean_ns"]
     if has_rust:
-        rs_jwt = benchmark("rs:jwt", lambda: jwt_decode_rs(test_token_rs, secret, "HS256", False, 0), iterations)
+        rs_jwt = benchmark(
+            "rs:jwt", lambda: jwt_decode_rs(test_token_rs, secret, "HS256", False, 0), iterations
+        )
         stages_rs["jwt"] = rs_jwt["mean_ns"]
         speedup = py_jwt["mean_ns"] / rs_jwt["mean_ns"]
-        print(f"  {'3. JWT decode+verify':<25} {py_jwt['mean_ns']:<15.0f} {rs_jwt['mean_ns']:<15.0f} {speedup:<10.1f}x")
+        print(
+            f"  {'3. JWT decode+verify':<25} {py_jwt['mean_ns']:<15.0f} {rs_jwt['mean_ns']:<15.0f} {speedup:<10.1f}x"
+        )
     else:
         print(f"  {'3. JWT decode+verify':<25} {py_jwt['mean_ns']:<15.0f} {'N/A':<15} {'N/A':<10}")
 
@@ -304,7 +324,9 @@ def main():
         rs_qs = benchmark("rs:qs", lambda: parse_qs_rs(query_string), iterations)
         stages_rs["qs"] = rs_qs["mean_ns"]
         speedup = py_qs["mean_ns"] / rs_qs["mean_ns"]
-        print(f"  {'4. Query string parse':<25} {py_qs['mean_ns']:<15.0f} {rs_qs['mean_ns']:<15.0f} {speedup:<10.1f}x")
+        print(
+            f"  {'4. Query string parse':<25} {py_qs['mean_ns']:<15.0f} {rs_qs['mean_ns']:<15.0f} {speedup:<10.1f}x"
+        )
     else:
         print(f"  {'4. Query string parse':<25} {py_qs['mean_ns']:<15.0f} {'N/A':<15} {'N/A':<10}")
 
@@ -312,12 +334,18 @@ def main():
     py_ser = benchmark("py:serialize", lambda: py_serialize_list(response_data), iterations)
     stages_py["serialize"] = py_ser["mean_ns"]
     if has_rust:
-        rs_ser = benchmark("rs:serialize", lambda: serialize_rs(response_data, alias_map), iterations)
+        rs_ser = benchmark(
+            "rs:serialize", lambda: serialize_rs(response_data, alias_map), iterations
+        )
         stages_rs["serialize"] = rs_ser["mean_ns"]
         speedup = py_ser["mean_ns"] / rs_ser["mean_ns"]
-        print(f"  {'5. Serialize (camelCase)':<25} {py_ser['mean_ns']:<15.0f} {rs_ser['mean_ns']:<15.0f} {speedup:<10.1f}x")
+        print(
+            f"  {'5. Serialize (camelCase)':<25} {py_ser['mean_ns']:<15.0f} {rs_ser['mean_ns']:<15.0f} {speedup:<10.1f}x"
+        )
     else:
-        print(f"  {'5. Serialize (camelCase)':<25} {py_ser['mean_ns']:<15.0f} {'N/A':<15} {'N/A':<10}")
+        print(
+            f"  {'5. Serialize (camelCase)':<25} {py_ser['mean_ns']:<15.0f} {'N/A':<15} {'N/A':<10}"
+        )
 
     # ================================================================
     # Total lifecycle
@@ -350,6 +378,7 @@ def main():
     py_combined = benchmark("py:lifecycle", py_lifecycle, iterations)
 
     if has_rust:
+
         def rs_lifecycle():
             rust_router.match_route("GET", "/users/42")
             parse_headers_rs(meta)

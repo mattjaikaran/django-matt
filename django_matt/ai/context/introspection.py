@@ -1,3 +1,4 @@
+# file-length-max: 1300
 """
 Enhanced Django project introspection for AI context generation.
 
@@ -961,7 +962,9 @@ class EnhancedIntrospector:
 
                     methods = []
                     has_async = False
-                    for method_name, method in inspect.getmembers(obj, predicate=inspect.isfunction):
+                    for method_name, method in inspect.getmembers(
+                        obj, predicate=inspect.isfunction
+                    ):
                         if method_name.startswith("_") and method_name != "__init__":
                             continue
 
@@ -1059,7 +1062,11 @@ class EnhancedIntrospector:
                             continue
                         seen_names.add(var_name)
 
-                        default = match.group(2).strip("'\" ") if len(match.groups()) > 1 and match.group(2) else None
+                        default = (
+                            match.group(2).strip("'\" ")
+                            if len(match.groups()) > 1 and match.group(2)
+                            else None
+                        )
                         env_vars.append(
                             EnvironmentVar(
                                 name=var_name,
@@ -1128,7 +1135,11 @@ class EnhancedIntrospector:
                             indent_level = len(line) - len(stripped)
                         elif stripped.startswith("def ") and not stripped.startswith("def _"):
                             in_async_func = False
-                        elif in_async_func and stripped and not line.startswith(" " * (indent_level + 1)):
+                        elif (
+                            in_async_func
+                            and stripped
+                            and not line.startswith(" " * (indent_level + 1))
+                        ):
                             if not stripped.startswith("#") and not stripped.startswith("@"):
                                 in_async_func = False
 

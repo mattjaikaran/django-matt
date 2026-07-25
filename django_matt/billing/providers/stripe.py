@@ -1,3 +1,4 @@
+# file-length-max: 1100
 """
 Stripe billing provider.
 

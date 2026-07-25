@@ -1,3 +1,4 @@
+# file-length-max: 1000
 """
 Django models for analytics and event tracking.
 

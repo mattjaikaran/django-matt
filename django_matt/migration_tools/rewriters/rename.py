@@ -35,8 +35,7 @@ class RenameFieldRewriter(BaseRewriter):
             RewriteStep(
                 description=f"Add new column '{new_name}' as a copy of '{old_name}'",
                 sql=(
-                    f"ALTER TABLE {table} ADD COLUMN {new_name} "
-                    f"/* same type as {old_name} */ NULL;"
+                    f"ALTER TABLE {table} ADD COLUMN {new_name} /* same type as {old_name} */ NULL;"
                 ),
             ),
             RewriteStep(
@@ -53,10 +52,7 @@ class RenameFieldRewriter(BaseRewriter):
             ),
             RewriteStep(
                 description=f"Backfill: copy {old_name} → {new_name} for existing rows",
-                sql=(
-                    f"UPDATE {table} SET {new_name} = {old_name} "
-                    f"WHERE {new_name} IS NULL;"
-                ),
+                sql=(f"UPDATE {table} SET {new_name} = {old_name} WHERE {new_name} IS NULL;"),
             ),
             RewriteStep(
                 description="Deploy application code reading from new column name",

@@ -80,10 +80,26 @@ def _detect_modules() -> list[str]:
 
     modules = []
     candidates = [
-        "auth", "billing", "websockets", "flags", "analytics",
-        "experiments", "graphql", "messaging", "notifications",
-        "email", "ai", "ml", "files", "tasks", "audit", "htmx",
-        "multitenancy", "observability", "inspector", "introspection",
+        "auth",
+        "billing",
+        "websockets",
+        "flags",
+        "analytics",
+        "experiments",
+        "graphql",
+        "messaging",
+        "notifications",
+        "email",
+        "ai",
+        "ml",
+        "files",
+        "tasks",
+        "audit",
+        "htmx",
+        "multitenancy",
+        "observability",
+        "inspector",
+        "introspection",
     ]
     for mod_name in candidates:
         try:

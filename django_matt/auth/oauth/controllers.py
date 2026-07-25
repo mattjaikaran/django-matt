@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 API Controllers for OAuth authentication.
 
@@ -274,9 +275,7 @@ class OAuthController:
         """
         from django_matt.auth.oauth.models import OAuthConnection
 
-        connections = [
-            conn async for conn in OAuthConnection.objects.filter(user=request.user)
-        ]
+        connections = [conn async for conn in OAuthConnection.objects.filter(user=request.user)]
 
         return OAuthConnectionListResponse(
             connections=[
@@ -311,9 +310,11 @@ class OAuthController:
             raise NotFoundAPIError(f"No connection to {provider}")
 
         # Prevent disconnecting last auth method if user has no password
-        other_connections = await OAuthConnection.objects.filter(
-            user=request.user
-        ).exclude(provider=provider).acount()
+        other_connections = (
+            await OAuthConnection.objects.filter(user=request.user)
+            .exclude(provider=provider)
+            .acount()
+        )
 
         has_password = request.user.has_usable_password()
         has_passkeys = (

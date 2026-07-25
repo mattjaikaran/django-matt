@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Streaming utilities for LLM responses.
 

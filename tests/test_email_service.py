@@ -482,16 +482,18 @@ class TestMailgunProvider:
             "message": "Queued",
         }
 
-        with patch.object(provider, "filter_suppressed", return_value=["user@example.com"]):
-            with patch(
+        with (
+            patch.object(provider, "filter_suppressed", return_value=["user@example.com"]),
+            patch(
                 "requests.post",
                 return_value=mock_response,
-            ) as mock_post:
-                result = provider.send(
-                    to=["user@example.com"],
-                    subject="Hello",
-                    text="Test body",
-                )
+            ) as mock_post,
+        ):
+            result = provider.send(
+                to=["user@example.com"],
+                subject="Hello",
+                text="Test body",
+            )
         assert result.success is True
         assert result.provider == "mailgun"
         mock_post.assert_called_once()
@@ -506,18 +508,20 @@ class TestMailgunProvider:
         mock_response.status_code = 200
         mock_response.json.return_value = {"id": "<msg-id>", "message": "Queued"}
 
-        with patch.object(provider, "filter_suppressed", return_value=["user@example.com"]):
-            with patch(
+        with (
+            patch.object(provider, "filter_suppressed", return_value=["user@example.com"]),
+            patch(
                 "requests.post",
                 return_value=mock_response,
-            ) as mock_post:
-                result = provider.send(
-                    to=["user@example.com"],
-                    subject="HTML",
-                    html="<h1>Hi</h1>",
-                    tags=["tag1", "tag2"],
-                    metadata={"key": "val"},
-                )
+            ) as mock_post,
+        ):
+            result = provider.send(
+                to=["user@example.com"],
+                subject="HTML",
+                html="<h1>Hi</h1>",
+                tags=["tag1", "tag2"],
+                metadata={"key": "val"},
+            )
         assert result.success is True
         call_kwargs = mock_post.call_args
         data = call_kwargs.kwargs.get("data") or call_kwargs[1].get("data")
@@ -533,16 +537,18 @@ class TestMailgunProvider:
         mock_response.status_code = 401
         mock_response.json.return_value = {"message": "Forbidden"}
 
-        with patch.object(provider, "filter_suppressed", return_value=["user@example.com"]):
-            with patch(
+        with (
+            patch.object(provider, "filter_suppressed", return_value=["user@example.com"]),
+            patch(
                 "requests.post",
                 return_value=mock_response,
-            ):
-                result = provider.send(
-                    to=["user@example.com"],
-                    subject="Test",
-                    text="body",
-                )
+            ),
+        ):
+            result = provider.send(
+                to=["user@example.com"],
+                subject="Test",
+                text="body",
+            )
         assert result.success is False
 
     @override_settings(
@@ -1101,17 +1107,19 @@ class TestSMTPProvider:
 
     def test_send_exception_handling(self):
         provider = SMTPProvider()
-        with patch.object(provider, "filter_suppressed", return_value=["user@example.com"]):
-            with patch(
+        with (
+            patch.object(provider, "filter_suppressed", return_value=["user@example.com"]),
+            patch(
                 "django_matt.email.providers.smtp.EmailMultiAlternatives.send",
                 side_effect=Exception("SMTP connection refused"),
-            ):
-                result = provider.send(
-                    to=["user@example.com"],
-                    subject="Test",
-                    text="body",
-                    from_email="sender@example.com",
-                )
+            ),
+        ):
+            result = provider.send(
+                to=["user@example.com"],
+                subject="Test",
+                text="body",
+                from_email="sender@example.com",
+            )
         assert result.success is False
         assert "connection refused" in result.error.lower()
 
@@ -1177,13 +1185,15 @@ class TestEmailRequirements:
             "message": "Queued",
         }
 
-        with patch.object(provider, "filter_suppressed", return_value=["alice@example.com"]):
-            with patch("requests.post", return_value=mock_response) as mock_post:
-                result = provider.send(
-                    to=["alice@example.com"],
-                    subject="Mailgun Requirement Test",
-                    text="EMAIL-02 verification",
-                )
+        with (
+            patch.object(provider, "filter_suppressed", return_value=["alice@example.com"]),
+            patch("requests.post", return_value=mock_response) as mock_post,
+        ):
+            result = provider.send(
+                to=["alice@example.com"],
+                subject="Mailgun Requirement Test",
+                text="EMAIL-02 verification",
+            )
         assert result.success is True
         assert result.provider == "mailgun"
         mock_post.assert_called_once()

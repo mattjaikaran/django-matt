@@ -26,7 +26,9 @@ class SecurityHeadersMiddleware:
         self.x_frame_options = sec.get("X_FRAME_OPTIONS", "DENY")
         self.x_content_type_options = sec.get("X_CONTENT_TYPE_OPTIONS", "nosniff")
         self.referrer_policy = sec.get("REFERRER_POLICY", "strict-origin-when-cross-origin")
-        self.permissions_policy = sec.get("PERMISSIONS_POLICY", "geolocation=(), camera=(), microphone=()")
+        self.permissions_policy = sec.get(
+            "PERMISSIONS_POLICY", "geolocation=(), camera=(), microphone=()"
+        )
         self.enabled = sec.get("ENABLED", True)
 
     def __call__(self, request):

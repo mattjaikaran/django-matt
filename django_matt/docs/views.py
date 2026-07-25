@@ -1,3 +1,4 @@
+# file-length-max: 1100
 """
 Interactive documentation views for Django Matt.
 

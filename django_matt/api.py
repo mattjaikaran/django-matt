@@ -176,6 +176,7 @@ class MattAPI(APIRouter):
             async def init_pool():
                 await setup_connection_pool()
 
+
             @api.on_startup
             def warmup_cache():
                 cache.warmup()
@@ -345,9 +346,7 @@ class MattAPI(APIRouter):
                 _batch_view._csrf_exempt = True  # type: ignore[attr-defined]
             if _login_not_required is not None:
                 _batch_view = _login_not_required(_batch_view)
-            url_patterns.append(
-                path(_ep.path.lstrip("/"), _batch_view, name="batch-endpoint")
-            )
+            url_patterns.append(path(_ep.path.lstrip("/"), _batch_view, name="batch-endpoint"))
 
         # Add health check endpoint (only if observability is active)
         if self.health_url and self._registry.is_active("observability"):
@@ -377,7 +376,9 @@ class MattAPI(APIRouter):
                     title=f"{self.title} - Docs",
                 )
 
-            url_patterns.append(path(self.docs_url.lstrip("/"), _exempt(docs_view), name="swagger-ui"))
+            url_patterns.append(
+                path(self.docs_url.lstrip("/"), _exempt(docs_view), name="swagger-ui")
+            )
 
         # Add ReDoc endpoint
         if self.redoc_url and self._registry.is_active("redoc"):

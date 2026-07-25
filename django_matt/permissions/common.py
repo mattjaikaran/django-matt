@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 Common permission classes for Django Matt.
 
@@ -341,9 +342,13 @@ class IsOrgMember(BasePermission):
             return False
         # Superuser bypass (configurable via settings)
         from django.conf import settings
-        if getattr(settings, "TENANT_SUPERUSER_BYPASS", True) and getattr(user, "is_superuser", False):
+
+        if getattr(settings, "TENANT_SUPERUSER_BYPASS", True) and getattr(
+            user, "is_superuser", False
+        ):
             return True
         from django_matt.multitenancy.models import Membership
+
         return Membership.objects.filter(organization=org, user=user).exists()
 
 
@@ -371,9 +376,13 @@ class IsOrgAdmin(BasePermission):
         if org is None:
             return False
         from django.conf import settings
-        if getattr(settings, "TENANT_SUPERUSER_BYPASS", True) and getattr(user, "is_superuser", False):
+
+        if getattr(settings, "TENANT_SUPERUSER_BYPASS", True) and getattr(
+            user, "is_superuser", False
+        ):
             return True
         from django_matt.multitenancy.models import Membership
+
         return Membership.objects.filter(
             organization=org, user=user, role__in=["admin", "owner"]
         ).exists()
@@ -403,9 +412,11 @@ class IsOrgOwner(BasePermission):
         if org is None:
             return False
         from django.conf import settings
-        if getattr(settings, "TENANT_SUPERUSER_BYPASS", True) and getattr(user, "is_superuser", False):
+
+        if getattr(settings, "TENANT_SUPERUSER_BYPASS", True) and getattr(
+            user, "is_superuser", False
+        ):
             return True
         from django_matt.multitenancy.models import Membership
-        return Membership.objects.filter(
-            organization=org, user=user, role="owner"
-        ).exists()
+
+        return Membership.objects.filter(organization=org, user=user, role="owner").exists()

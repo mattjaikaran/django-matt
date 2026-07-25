@@ -28,9 +28,7 @@ class ServerRegistry:
         cls._ensure_builtins()
         if name not in cls._backends:
             available = ", ".join(sorted(cls._backends))
-            raise KeyError(
-                f"Unknown server backend '{name}'. Available: {available}"
-            )
+            raise KeyError(f"Unknown server backend '{name}'. Available: {available}")
         return cls._backends[name]()
 
     @classmethod

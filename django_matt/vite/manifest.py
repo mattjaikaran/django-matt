@@ -124,9 +124,7 @@ class ViteManifest:
 
         return result
 
-    def _collect_imports(
-        self, entry: str, seen: set[str] | None = None
-    ) -> list[str]:
+    def _collect_imports(self, entry: str, seen: set[str] | None = None) -> list[str]:
         """Recursively collect imported chunk files."""
         if seen is None:
             seen = set()
@@ -170,14 +168,10 @@ class ViteManifest:
 
         # Import chunks first
         for imp_file in self._collect_imports(entry):
-            tags.append(
-                f'<script type="module" src="{prefix}{imp_file}"></script>'
-            )
+            tags.append(f'<script type="module" src="{prefix}{imp_file}"></script>')
 
         # Main entry
-        tags.append(
-            f'<script type="module" src="{prefix}{manifest_entry.file}"></script>'
-        )
+        tags.append(f'<script type="module" src="{prefix}{manifest_entry.file}"></script>')
 
         return tags
 
@@ -201,9 +195,7 @@ class ViteManifest:
         for css_file in css_files:
             if css_file not in seen:
                 seen.add(css_file)
-                tags.append(
-                    f'<link rel="stylesheet" href="{prefix}{css_file}" />'
-                )
+                tags.append(f'<link rel="stylesheet" href="{prefix}{css_file}" />')
 
         return tags
 
@@ -224,9 +216,7 @@ class ViteManifest:
         import_files = self._collect_imports(entry)
         tags: list[str] = []
         for imp_file in import_files:
-            tags.append(
-                f'<link rel="modulepreload" href="{prefix}{imp_file}" />'
-            )
+            tags.append(f'<link rel="modulepreload" href="{prefix}{imp_file}" />')
 
         return tags
 

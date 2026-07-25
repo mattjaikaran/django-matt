@@ -517,9 +517,11 @@ class TestJWTRefreshTokens:
 
             return MockModel
 
-        with patch("django_matt.auth.jwt.get_user_model", mock_user_model):
-            with pytest.raises(InvalidTokenError, match="User not found"):
-                refresh_tokens(token)
+        with (
+            patch("django_matt.auth.jwt.get_user_model", mock_user_model),
+            pytest.raises(InvalidTokenError, match="User not found"),
+        ):
+            refresh_tokens(token)
 
     @pytest.mark.django_db
     def test_refresh_with_access_token_fails(self, user):

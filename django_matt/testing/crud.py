@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Scenario-based CRUD testing for Django Matt ViewSets.
 
@@ -222,10 +223,7 @@ class CRUDTestCase:
                     )
                     return self._fail(scenario, status, body, msg)
                 if actual_val != expected_val:
-                    msg = (
-                        f"[{label}] body['{key}']: expected {expected_val!r}, "
-                        f"got {actual_val!r}"
-                    )
+                    msg = f"[{label}] body['{key}']: expected {expected_val!r}, got {actual_val!r}"
                     return self._fail(scenario, status, body, msg)
 
         # Clear auth for next scenario
@@ -248,26 +246,22 @@ class CRUDTestCase:
 
         if scenario.headers:
             for key, value in scenario.headers.items():
-                header_key = key if key.startswith("HTTP_") else f"HTTP_{key.upper().replace('-', '_')}"
+                header_key = (
+                    key if key.startswith("HTTP_") else f"HTTP_{key.upper().replace('-', '_')}"
+                )
                 kwargs[header_key] = value
 
         if method == "GET":
             return client.get(scenario.url, data=scenario.data, **kwargs)
         if method == "POST":
             body = orjson.dumps(scenario.data).decode() if scenario.data is not None else None
-            return client.post(
-                scenario.url, data=body, content_type="application/json", **kwargs
-            )
+            return client.post(scenario.url, data=body, content_type="application/json", **kwargs)
         if method == "PUT":
             body = orjson.dumps(scenario.data).decode() if scenario.data is not None else None
-            return client.put(
-                scenario.url, data=body, content_type="application/json", **kwargs
-            )
+            return client.put(scenario.url, data=body, content_type="application/json", **kwargs)
         if method == "PATCH":
             body = orjson.dumps(scenario.data).decode() if scenario.data is not None else None
-            return client.patch(
-                scenario.url, data=body, content_type="application/json", **kwargs
-            )
+            return client.patch(scenario.url, data=body, content_type="application/json", **kwargs)
         if method == "DELETE":
             return client.delete(scenario.url, **kwargs)
         raise ValueError(f"Unsupported HTTP method: {method}")

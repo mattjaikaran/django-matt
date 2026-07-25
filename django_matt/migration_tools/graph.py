@@ -28,6 +28,7 @@ class MigrationGraphRenderer:
         # From Django's migration loader
         from django.db import connection
         from django.db.migrations.loader import MigrationLoader
+
         loader = MigrationLoader(connection)
         graph = loader.graph
 

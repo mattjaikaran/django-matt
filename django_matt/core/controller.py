@@ -55,8 +55,6 @@ def _get_di_config() -> bool:
     return get_matt_setting("DI_AUTO_WIRE", False)
 
 
-
-
 class Controller:
     """
     Base controller class for Django Matt framework.
@@ -131,7 +129,10 @@ class Controller:
                 for pname, pparam in sig.parameters.items():
                     if pname in ("self", "cls", "request"):
                         continue
-                    if pparam.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                    if pparam.kind in (
+                        inspect.Parameter.VAR_POSITIONAL,
+                        inspect.Parameter.VAR_KEYWORD,
+                    ):
                         continue
                     if isinstance(pparam.default, DependencyMarker):
                         di_params_found[pname] = pparam.default
@@ -144,8 +145,7 @@ class Controller:
             _permission_instances = None
             if _perm_sources:
                 _permission_instances = [
-                    cls() if isinstance(cls, type) else cls
-                    for cls in _perm_sources
+                    cls() if isinstance(cls, type) else cls for cls in _perm_sources
                 ]
 
             # Pre-resolve route-scoped middleware stack once at init

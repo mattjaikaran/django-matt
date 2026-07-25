@@ -77,9 +77,7 @@ class BatchEndpoint:
         try:
             payload = BatchPayload(**raw)
         except ValidationError as e:
-            return JsonResponse(
-                {"detail": "Validation error", "errors": e.errors()}, status=422
-            )
+            return JsonResponse({"detail": "Validation error", "errors": e.errors()}, status=422)
 
         if len(payload.requests) > self.max_requests:
             return JsonResponse(
@@ -113,13 +111,9 @@ class BatchEndpoint:
             from django.db import transaction
 
             async with transaction.atomic():
-                await self._execute_waves(
-                    waves, payload.requests, request, results, responses
-                )
+                await self._execute_waves(waves, payload.requests, request, results, responses)
         else:
-            await self._execute_waves(
-                waves, payload.requests, request, results, responses
-            )
+            await self._execute_waves(waves, payload.requests, request, results, responses)
 
         # Build ordered response list
         output = []
@@ -183,10 +177,14 @@ class BatchEndpoint:
         try:
             # Interpolate dependencies into path and body
             path = interpolate_value(batch_req.path, results)
-            body = interpolate_value(batch_req.body, results) if batch_req.body is not None else None
+            body = (
+                interpolate_value(batch_req.body, results) if batch_req.body is not None else None
+            )
 
             # Build internal Django request
-            sub_request = self._build_request(batch_req.method, path, body, batch_req.headers, parent_request)
+            sub_request = self._build_request(
+                batch_req.method, path, body, batch_req.headers, parent_request
+            )
 
             # Resolve URL and dispatch
             match = resolve(path)

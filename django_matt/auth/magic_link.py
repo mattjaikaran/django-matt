@@ -1,3 +1,4 @@
+# file-length-max: 700
 """
 Magic Link Passwordless Authentication for Django Matt.
 

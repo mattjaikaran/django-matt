@@ -40,9 +40,7 @@ class ScopedCorsMiddleware(RouteMiddleware):
             return response
         return None
 
-    async def process_response(
-        self, request: HttpRequest, response: HttpResponse
-    ) -> HttpResponse:
+    async def process_response(self, request: HttpRequest, response: HttpResponse) -> HttpResponse:
         self._set_cors_headers(request, response)
         return response
 
@@ -117,9 +115,7 @@ class ScopedCacheMiddleware(RouteMiddleware):
             del self._cache[key]
         return None
 
-    async def process_response(
-        self, request: HttpRequest, response: HttpResponse
-    ) -> HttpResponse:
+    async def process_response(self, request: HttpRequest, response: HttpResponse) -> HttpResponse:
         if request.method == "GET" and 200 <= response.status_code < 300:
             key = self._cache_key(request)
             self._cache[key] = (time.monotonic(), response)

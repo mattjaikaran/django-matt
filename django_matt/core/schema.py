@@ -91,6 +91,7 @@ def register_field_type(
     Example::
 
         from django_matt.core.schema import register_field_type
+
         register_field_type(MoneyField, Decimal, {"type": "string", "format": "decimal"})
     """
     _CUSTOM_FIELD_TYPE_MAP[django_field_class] = pydantic_type

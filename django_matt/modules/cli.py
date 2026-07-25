@@ -69,18 +69,14 @@ def modules_check() -> list[str]:
     for mod in registry.list_registered():
         for dep in mod.dependencies:
             if not registry.is_registered(dep):
-                issues.append(
-                    f"Module {mod.name!r} depends on {dep!r}, which is not registered"
-                )
+                issues.append(f"Module {mod.name!r} depends on {dep!r}, which is not registered")
 
         if mod.config_schema and mod.config_namespace:
             config = registry._configs.get(mod.config_namespace, {})
             try:
                 mod.validate_config(config)
             except Exception as exc:
-                issues.append(
-                    f"Module {mod.name!r} config validation failed: {exc}"
-                )
+                issues.append(f"Module {mod.name!r} config validation failed: {exc}")
 
     if not issues:
         print("All modules OK.")

@@ -50,9 +50,7 @@ class PluginRegistry:
         if isinstance(plugin, type):
             plugin = plugin()
         if not isinstance(plugin, MattPlugin):
-            raise TypeError(
-                f"Expected MattPlugin instance, got {type(plugin).__name__}"
-            )
+            raise TypeError(f"Expected MattPlugin instance, got {type(plugin).__name__}")
         if plugin.name in self._plugins:
             raise PluginError(f"Plugin {plugin.name!r} is already registered")
 
@@ -69,20 +67,14 @@ class PluginRegistry:
         self._status.pop(name, None)
         self._errors.pop(name, None)
         self._url_prefixes = {
-            prefix: pname
-            for prefix, pname in self._url_prefixes.items()
-            if pname != name
+            prefix: pname for prefix, pname in self._url_prefixes.items() if pname != name
         }
         if name in self._load_order:
             self._load_order.remove(name)
 
     def resolve_dependencies(self) -> list[str]:
         """Resolve plugin load order via topological sort."""
-        active = {
-            name
-            for name, status in self._status.items()
-            if status != PluginStatus.DISABLED
-        }
+        active = {name for name, status in self._status.items() if status != PluginStatus.DISABLED}
 
         graph: dict[str, list[str]] = {}
         for name in active:
@@ -104,9 +96,7 @@ class PluginRegistry:
                 return
             if name in visiting:
                 cycle = " -> ".join(sorted(visiting))
-                raise PluginDependencyError(
-                    f"Circular dependency detected: {cycle}"
-                )
+                raise PluginDependencyError(f"Circular dependency detected: {cycle}")
             visiting.add(name)
             for dep in graph.get(name, []):
                 visit(dep)
@@ -194,9 +184,7 @@ class PluginRegistry:
 
     def __repr__(self) -> str:
         loaded = sum(1 for s in self._status.values() if s == PluginStatus.LOADED)
-        return (
-            f"<PluginRegistry registered={len(self._plugins)} loaded={loaded}>"
-        )
+        return f"<PluginRegistry registered={len(self._plugins)} loaded={loaded}>"
 
 
 # Global singleton

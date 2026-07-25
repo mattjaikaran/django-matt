@@ -8,6 +8,7 @@ from typing import Protocol, runtime_checkable
 @runtime_checkable
 class AuthStrategy(Protocol):
     """Protocol for authentication strategies that modify request headers."""
+
     def apply(self, headers: dict[str, str]) -> dict[str, str]: ...
 
 
@@ -44,9 +45,7 @@ class BasicAuth:
     def apply(self, headers: dict[str, str]) -> dict[str, str]:
         import base64
 
-        credentials = base64.b64encode(
-            f"{self.username}:{self.password}".encode()
-        ).decode()
+        credentials = base64.b64encode(f"{self.username}:{self.password}".encode()).decode()
         headers["Authorization"] = f"Basic {credentials}"
         return headers
 

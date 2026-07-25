@@ -1,3 +1,4 @@
+# file-length-max: 600
 """
 Base command classes for Django Matt CLI.
 

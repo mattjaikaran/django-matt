@@ -17,6 +17,7 @@ def exception_filter(
     order: int = 0,
 ) -> Callable[[type], type]:
     """Class decorator that configures exception_types and order on a filter class."""
+
     def decorator(cls: type) -> type:
         if not hasattr(cls, "catch"):
             raise TypeError(f"{cls.__name__} must define an async 'catch' method")
@@ -33,6 +34,7 @@ def catch(
     order: int = 0,
 ) -> Callable:
     """Decorator to attach an exception handler to a view function."""
+
     def decorator(func: Callable) -> Callable:
         if handler is not None:
             filter_ = FunctionExceptionFilter(

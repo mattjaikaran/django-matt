@@ -1133,11 +1133,11 @@ class TestDoctorTiers:
 
         from django_matt.cli.commands.status import _collect_warnings
 
-        with override_settings(DEBUG=True, ALLOWED_HOSTS=["example.com"]):
-            with patch.dict(
-                os.environ, {"DJANGO_SETTINGS_MODULE": "myproject.settings.production"}
-            ):
-                results = _collect_warnings()
+        with (
+            override_settings(DEBUG=True, ALLOWED_HOSTS=["example.com"]),
+            patch.dict(os.environ, {"DJANGO_SETTINGS_MODULE": "myproject.settings.production"}),
+        ):
+            results = _collect_warnings()
         names = [r.name for r in results]
         assert any("DEBUG" in n for n in names)
 

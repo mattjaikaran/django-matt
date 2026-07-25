@@ -2402,10 +2402,12 @@ class TestValidateModel:
         request = _make_request(rf, "POST", "/", data={"username": "testuser"})
         bound = BoundView(view, vs)
 
-        with patch.object(User, "full_clean", return_value=None):
-            with patch.object(User, "asave", new_callable=AsyncMock):
-                response = await bound(request)
-                assert response.status_code == 200
+        with (
+            patch.object(User, "full_clean", return_value=None),
+            patch.object(User, "asave", new_callable=AsyncMock),
+        ):
+            response = await bound(request)
+            assert response.status_code == 200
 
     @pytest.mark.django_db
     @pytest.mark.asyncio
@@ -2457,11 +2459,13 @@ class TestValidateModel:
         request = _make_request(rf, "POST", "/", data={"username": "user"})
         bound = BoundView(view, vs)
 
-        with patch.object(User, "full_clean") as mock_clean:
-            with patch.object(User, "asave", new_callable=AsyncMock):
-                response = await bound(request)
-                assert response.status_code == 200
-                mock_clean.assert_not_called()
+        with (
+            patch.object(User, "full_clean") as mock_clean,
+            patch.object(User, "asave", new_callable=AsyncMock),
+        ):
+            response = await bound(request)
+            assert response.status_code == 200
+            mock_clean.assert_not_called()
 
     @pytest.mark.django_db
     @pytest.mark.asyncio
@@ -2604,11 +2608,13 @@ class TestValidateModel:
         request = _make_request(rf, "POST", "/", data={"username": "user"})
         bound = BoundView(view, vs)
 
-        with patch.object(User, "full_clean", return_value=None) as mock_clean:
-            with patch.object(User, "asave", new_callable=AsyncMock):
-                response = await bound(request)
-                assert response.status_code == 200
-                mock_clean.assert_called_once()
+        with (
+            patch.object(User, "full_clean", return_value=None) as mock_clean,
+            patch.object(User, "asave", new_callable=AsyncMock),
+        ):
+            response = await bound(request)
+            assert response.status_code == 200
+            mock_clean.assert_called_once()
 
 
 # ============================================================================

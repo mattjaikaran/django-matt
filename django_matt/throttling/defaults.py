@@ -100,9 +100,7 @@ def resolve_throttle_config(setting: str | dict[str, Any] | None = None) -> dict
     if isinstance(setting, str):
         if setting not in PRESETS:
             valid = ", ".join(sorted(PRESETS.keys()))
-            raise ValueError(
-                f"Unknown throttle preset '{setting}'. Valid presets: {valid}"
-            )
+            raise ValueError(f"Unknown throttle preset '{setting}'. Valid presets: {valid}")
         return PRESETS[setting].copy()
 
     raise TypeError(f"MATT_THROTTLE must be a str or dict, got {type(setting).__name__}")

@@ -88,8 +88,10 @@ class LimitOffsetPagination(BasePagination):
         if parsed_qs is not None:
             raw = parsed_qs.get("pagination", {}).get(self.limit_query_param)
         try:
-            limit = int(raw) if raw is not None else int(
-                request.GET.get(self.limit_query_param, self.default_limit)
+            limit = (
+                int(raw)
+                if raw is not None
+                else int(request.GET.get(self.limit_query_param, self.default_limit))
             )
         except (ValueError, TypeError):
             limit = self.default_limit
@@ -110,8 +112,8 @@ class LimitOffsetPagination(BasePagination):
         if parsed_qs is not None:
             raw = parsed_qs.get("pagination", {}).get(self.offset_query_param)
         try:
-            offset = int(raw) if raw is not None else int(
-                request.GET.get(self.offset_query_param, 0)
+            offset = (
+                int(raw) if raw is not None else int(request.GET.get(self.offset_query_param, 0))
             )
         except (ValueError, TypeError):
             offset = 0

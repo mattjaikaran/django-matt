@@ -1,3 +1,4 @@
+# file-length-max: 1050
 """
 Analytics REST API controllers.
 

@@ -1,3 +1,4 @@
+# file-length-max: 2100
 """
 Django Matt API project generator command.
 
@@ -56,8 +57,14 @@ class Command(BaseCommand):
             "--template",
             "-t",
             choices=[
-                "starter", "b2b", "b2c", "saas",
-                "api-only", "ai-saas", "marketplace", "internal-tools",
+                "starter",
+                "b2b",
+                "b2c",
+                "saas",
+                "api-only",
+                "ai-saas",
+                "marketplace",
+                "internal-tools",
             ],
             default="api-only",
             help="Project template type (default: api-only)",
@@ -117,7 +124,10 @@ class Command(BaseCommand):
 
         # New starter template system
         if options.get("use_starter") or template in (
-            "api-only", "ai-saas", "marketplace", "internal-tools"
+            "api-only",
+            "ai-saas",
+            "marketplace",
+            "internal-tools",
         ):
             self._handle_starter_template(project_name, directory, template, options)
             return
@@ -223,9 +233,7 @@ class Command(BaseCommand):
             self.stdout.write(f"    {desc}")
             self.stdout.write(f"    Modules: {modules}\n")
 
-        self.stdout.write(
-            "\nUsage: python manage.py startapi myproject --template <name>"
-        )
+        self.stdout.write("\nUsage: python manage.py startapi myproject --template <name>")
 
     def _handle_starter_template(
         self,
@@ -241,9 +249,7 @@ class Command(BaseCommand):
         output_dir = Path(directory) / project_name
 
         if output_dir.exists() and not force:
-            raise CommandError(
-                f"Directory {output_dir} already exists. Use --force to overwrite."
-            )
+            raise CommandError(f"Directory {output_dir} already exists. Use --force to overwrite.")
 
         metadata = load_metadata(template)
         self.stdout.write(f"Creating project {project_name} from {template!r} template...")
@@ -253,9 +259,7 @@ class Command(BaseCommand):
         render_template(template, project_name, output_dir)
 
         self.stdout.write(
-            self.style.SUCCESS(
-                f"\nSuccessfully created {project_name} from {template!r} template"
-            )
+            self.style.SUCCESS(f"\nSuccessfully created {project_name} from {template!r} template")
         )
         self.stdout.write("\nNext steps:")
         self.stdout.write(f"  cd {output_dir}")
@@ -277,9 +281,7 @@ class Command(BaseCommand):
             "saas": "SaaS platform",
             "ai-saas": "AI-powered SaaS with LLM integration",
             "marketplace": "Multi-vendor marketplace",
-        }.get(
-            template, "Django API"
-        )
+        }.get(template, "Django API")
         docker_cmd = "docker compose exec api " if docker else ""
 
         content = f"""# {project_name}

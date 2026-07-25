@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Configuration system for code generation.
 

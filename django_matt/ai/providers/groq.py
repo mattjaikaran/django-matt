@@ -97,9 +97,7 @@ class GroqProvider(LLMProvider, StructuredOutputProvider):
             try:
                 import httpx
             except ImportError:
-                raise ImportError(
-                    "httpx is required for Groq provider. Install with: uv add httpx"
-                )
+                raise ImportError("httpx is required for Groq provider. Install with: uv add httpx")
 
             self._client = httpx.AsyncClient(
                 base_url=self.base_url,

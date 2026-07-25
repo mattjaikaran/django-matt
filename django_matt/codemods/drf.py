@@ -1,3 +1,4 @@
+# file-length-max: 700
 """
 DRF (Django REST Framework) codemods.
 
@@ -206,7 +207,7 @@ class DRFSerializerToSchema(Codemod):
         """Transform DRF validate_<field> methods to Pydantic field_validators."""
         for item in class_node.body:
             if isinstance(item, ast.FunctionDef) and item.name.startswith("validate_"):
-                field_name = item.name[len("validate_"):]
+                field_name = item.name[len("validate_") :]
                 if field_name and field_name != "":
                     warnings.append(
                         f"validate_{field_name}() needs manual conversion to "
@@ -238,11 +239,23 @@ class DRFSerializerToSchema(Codemod):
 
     def _is_optional_field(self, call: ast.Call) -> bool:
         for kw in call.keywords:
-            if kw.arg == "required" and isinstance(kw.value, ast.Constant) and kw.value.value is False:
+            if (
+                kw.arg == "required"
+                and isinstance(kw.value, ast.Constant)
+                and kw.value.value is False
+            ):
                 return True
-            if kw.arg == "allow_null" and isinstance(kw.value, ast.Constant) and kw.value.value is True:
+            if (
+                kw.arg == "allow_null"
+                and isinstance(kw.value, ast.Constant)
+                and kw.value.value is True
+            ):
                 return True
-            if kw.arg == "allow_blank" and isinstance(kw.value, ast.Constant) and kw.value.value is True:
+            if (
+                kw.arg == "allow_blank"
+                and isinstance(kw.value, ast.Constant)
+                and kw.value.value is True
+            ):
                 return True
         return False
 
@@ -402,10 +415,15 @@ class DRFViewSetToController(Codemod):
                         if isinstance(item.value, ast.Call):
                             func = item.value.func
                             if isinstance(func, ast.Attribute) and func.attr == "all":
-                                if isinstance(func.value, ast.Attribute) and func.value.attr == "objects":
+                                if (
+                                    isinstance(func.value, ast.Attribute)
+                                    and func.value.attr == "objects"
+                                ):
                                     target.id = "model"
                                     item.value = func.value.value
-                                    changes.append("Converted queryset = Model.objects.all() -> model = Model")
+                                    changes.append(
+                                        "Converted queryset = Model.objects.all() -> model = Model"
+                                    )
 
     def _transform_methods(
         self,
@@ -481,8 +499,7 @@ class DRFViewSetToController(Codemod):
                     return kw.value.value
                 if isinstance(kw.value, ast.List):
                     return [
-                        elt.value if isinstance(elt, ast.Constant) else ""
-                        for elt in kw.value.elts
+                        elt.value if isinstance(elt, ast.Constant) else "" for elt in kw.value.elts
                     ]
         return None
 
@@ -526,9 +543,7 @@ class DRFApiViewDecorator(Codemod):
                         changes.extend(remove_response_wrapper(node))
 
         if api_view_funcs:
-            warnings.append(
-                "Converted functions should be moved into an APIController class"
-            )
+            warnings.append("Converted functions should be moved into an APIController class")
 
         if not changes:
             return CodemodResult(transformed=source, confidence=0.0)
@@ -606,10 +621,7 @@ class DRFRouterToRegistration(Codemod):
             for i, node in enumerate(tree.body):
                 if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
                     call = node.value
-                    if (
-                        isinstance(call.func, ast.Attribute)
-                        and call.func.attr == "register"
-                    ):
+                    if isinstance(call.func, ast.Attribute) and call.func.attr == "register":
                         obj_name = ""
                         if isinstance(call.func.value, ast.Name):
                             obj_name = call.func.value.id

@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Resource abstraction — collapse CRUD boilerplate to 1-10 lines.
 
@@ -322,7 +323,9 @@ def _build_child_viewset(
         child_model = child_resource.model
         child_config = ResourceConfig(model=child_model)
     else:
-        raise ValueError(f"Cannot resolve child resource '{child_name}': must be a Model or ViewSet")
+        raise ValueError(
+            f"Cannot resolve child resource '{child_name}': must be a Model or ViewSet"
+        )
 
     fk_field = _find_fk_field(child_model, parent_model)
     parent_name = parent_model.__name__.lower()

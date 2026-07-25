@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 GraphQL middleware for Django Matt.
 
@@ -36,7 +37,7 @@ def _require_strawberry():
     if not STRAWBERRY_AVAILABLE:
         raise ImportError(
             "strawberry-graphql is required for GraphQL middleware. "
-            "Install it with: uv add \"strawberry-graphql[django]\""
+            'Install it with: uv add "strawberry-graphql[django]"'
         )
 
 

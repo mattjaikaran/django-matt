@@ -66,9 +66,7 @@ async def generate_presigned_upload(
     expires_at = datetime.now(UTC) + timedelta(seconds=expires)
 
     if method == "PUT":
-        return await _generate_put_upload(
-            storage, key, content_type, expires, expires_at, metadata
-        )
+        return await _generate_put_upload(storage, key, content_type, expires, expires_at, metadata)
 
     return await _generate_post_upload(
         storage, key, content_type, expires, expires_at, conditions, metadata, max_size

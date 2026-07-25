@@ -71,9 +71,7 @@ class Command(BaseCommand):
         runner = options["runner"] or self._detect_runner()
 
         if runner is None:
-            raise CommandError(
-                "Neither bunx nor npx found. Install bun or Node.js."
-            )
+            raise CommandError("Neither bunx nor npx found. Install bun or Node.js.")
 
         cmd = [runner, "vite"]
         cmd.extend(["--port", str(port)])
@@ -86,9 +84,7 @@ class Command(BaseCommand):
         if options["https"]:
             cmd.append("--https")
 
-        self.stdout.write(
-            self.style.SUCCESS(f"Starting Vite dev server at http://{host}:{port}")
-        )
+        self.stdout.write(self.style.SUCCESS(f"Starting Vite dev server at http://{host}:{port}"))
 
         env = os.environ.copy()
         env["DJANGO_BASE_DIR"] = str(settings.BASE_DIR)

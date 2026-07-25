@@ -82,8 +82,7 @@ class SuggestionEngine:
             ),
             # Dependencies
             CLIErrorCode.MISSING_DEPENDENCY: (
-                "Install the missing package:\n"
-                "  uv add <package-name>"
+                "Install the missing package:\n  uv add <package-name>"
             ),
             CLIErrorCode.IMPORT_ERROR: (
                 "Check that all required packages are installed.\n"
@@ -195,11 +194,7 @@ class SuggestionEngine:
         if not package:
             return None
 
-        return (
-            f"Package '{package}' is not installed.\n\n"
-            f"Install with:\n"
-            f"  uv add {package}"
-        )
+        return f"Package '{package}' is not installed.\n\nInstall with:\n  uv add {package}"
 
     def _suggest_command(self, context: dict[str, Any]) -> str | None:
         """Suggest similar commands."""

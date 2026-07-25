@@ -1,3 +1,4 @@
+# file-length-max: 750
 """
 LLM prompt helpers for AI-assisted audits.
 

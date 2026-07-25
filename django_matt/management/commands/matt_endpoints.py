@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Django Matt endpoint listing command.
 
@@ -109,7 +110,9 @@ class Command(MattCommand):
         elif markdown:
             self._output_markdown(endpoints)
         elif output_json:
-            self.stdout.write(orjson.dumps(endpoints, default=str, option=orjson.OPT_INDENT_2).decode())
+            self.stdout.write(
+                orjson.dumps(endpoints, default=str, option=orjson.OPT_INDENT_2).decode()
+            )
         else:
             self._display_endpoints(endpoints, group_by, verbose)
 

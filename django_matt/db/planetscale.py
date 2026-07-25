@@ -1,3 +1,4 @@
+# file-length-max: 1300
 """
 PlanetScale database support for Django Matt.
 

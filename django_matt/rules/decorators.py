@@ -25,8 +25,7 @@ def permission_required(
     Usage::
 
         @permission_required("posts.change")
-        def edit_post(request, pk):
-            ...
+        def edit_post(request, pk): ...
 
     When the rule fails, raises :class:`~django.core.exceptions.PermissionDenied`
     (or returns 403 response if *raise_exception* is ``False``).
@@ -59,8 +58,7 @@ def predicate_required(
     Usage::
 
         @predicate_required(is_owner | is_admin)
-        def delete_post(request, pk):
-            ...
+        def delete_post(request, pk): ...
     """
 
     def decorator(view_func: Callable[..., Any]) -> Callable[..., Any]:

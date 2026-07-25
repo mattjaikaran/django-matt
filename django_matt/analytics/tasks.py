@@ -1,3 +1,4 @@
+# file-length-max: 700
 """
 Background tasks for analytics processing.
 

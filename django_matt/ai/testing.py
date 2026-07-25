@@ -78,14 +78,16 @@ class FakeProvider(LLMProvider, StructuredOutputProvider):
         tool_choice: str | None = None,
         **kwargs: Any,
     ) -> CompletionResponse:
-        self.calls.append({
-            "messages": messages,
-            "model": model,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "tools": tools,
-            "kwargs": kwargs,
-        })
+        self.calls.append(
+            {
+                "messages": messages,
+                "model": model,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "tools": tools,
+                "kwargs": kwargs,
+            }
+        )
 
         response_item = self._responses[self._call_index % len(self._responses)]
         self._call_index += 1
@@ -119,8 +121,11 @@ class FakeProvider(LLMProvider, StructuredOutputProvider):
         **kwargs: Any,
     ) -> AsyncIterator[StreamChunk]:
         response = await self.complete(
-            messages, model=model, temperature=temperature,
-            max_tokens=max_tokens, **kwargs,
+            messages,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs,
         )
         # Yield content word by word
         words = response.content.split(" ") if response.content else [""]
@@ -140,7 +145,10 @@ class FakeProvider(LLMProvider, StructuredOutputProvider):
         **kwargs: Any,
     ) -> BaseModel:
         response = await self.complete(
-            messages, model=model, temperature=temperature, **kwargs,
+            messages,
+            model=model,
+            temperature=temperature,
+            **kwargs,
         )
         return response_model.model_validate_json(response.content)
 
@@ -165,9 +173,7 @@ class FakeProvider(LLMProvider, StructuredOutputProvider):
             for msg in call["messages"]:
                 if msg.content == content:
                     return
-        raise AssertionError(
-            f"No call contained message with content: {content!r}"
-        )
+        raise AssertionError(f"No call contained message with content: {content!r}")
 
     def reset(self) -> None:
         """Reset call history and response index."""

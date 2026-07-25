@@ -7,9 +7,11 @@ Usage::
 
     from django_matt.throttling.token_bucket import TokenBucketThrottle
 
+
     # As a throttle class on a controller
     class MyController(APIController):
         throttle_classes = [TokenBucketThrottle(capacity=100, refill_per_second=10)]
+
 
     # Direct usage
     bucket = TokenBucketThrottle(capacity=50, refill_per_second=5.0)
@@ -58,10 +60,16 @@ class _PythonTokenBucket:
                 tokens -= 1.0
                 self._buckets[key] = (tokens, now)
                 remaining = int(tokens)
-                reset_ms = int((self._capacity - tokens) / self._refill_rate * 1000) if remaining < self._capacity and self._refill_rate > 0 else 0
+                reset_ms = (
+                    int((self._capacity - tokens) / self._refill_rate * 1000)
+                    if remaining < self._capacity and self._refill_rate > 0
+                    else 0
+                )
                 return (True, remaining, reset_ms)
             self._buckets[key] = (tokens, now)
-            reset_ms = int((1.0 - tokens) / self._refill_rate * 1000) if self._refill_rate > 0 else 0
+            reset_ms = (
+                int((1.0 - tokens) / self._refill_rate * 1000) if self._refill_rate > 0 else 0
+            )
             return (False, 0, reset_ms)
 
     def check_many(self, keys: list[bytes]) -> list[tuple[bool, int, int]]:
@@ -174,6 +182,7 @@ class TokenBucketThrottle:
             return True
         try:
             from django.conf import settings
+
             if getattr(settings, "TESTING", False):
                 return True
         except Exception:

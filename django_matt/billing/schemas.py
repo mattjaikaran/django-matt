@@ -1,3 +1,4 @@
+# file-length-max: 550
 """
 Pydantic schemas for billing API requests and responses.
 """
@@ -410,9 +411,7 @@ class ConnectedAccountCreate(BaseModel):
     type: ConnectAccountType = ConnectAccountType.STANDARD
     email: EmailStr | None = None
     country: str | None = None
-    business_type: Literal["individual", "company", "non_profit", "government_entity"] | None = (
-        None
-    )
+    business_type: Literal["individual", "company", "non_profit", "government_entity"] | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

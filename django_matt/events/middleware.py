@@ -77,6 +77,7 @@ class EventMiddleware:
                     )
                 )
             else:
+
                 async def _emit_all():
                     for event in events:
                         await bus.emit(event)

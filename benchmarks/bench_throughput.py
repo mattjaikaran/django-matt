@@ -130,10 +130,7 @@ class MockListView(MockView):
 
     def handle(self, request: MockRequest) -> MockResponse:
         # Simulate list response
-        items = [
-            {"id": i, "name": f"Item {i}", "active": True}
-            for i in range(20)
-        ]
+        items = [{"id": i, "name": f"Item {i}", "active": True} for i in range(20)]
         data = {"items": items, "count": len(items)}
         body = json.dumps(data).encode()
 
@@ -196,13 +193,15 @@ def run_throughput_benchmarks(iterations: int = 5000) -> list[BenchmarkResult]:
     print("Benchmarking JSON body parsing...")
 
     small_body = b'{"id": 1, "name": "Test"}'
-    medium_body = json.dumps({
-        "id": 1,
-        "name": "Test User",
-        "email": "test@example.com",
-        "profile": {"bio": "Test bio", "location": "NYC"},
-        "tags": ["python", "django"],
-    }).encode()
+    medium_body = json.dumps(
+        {
+            "id": 1,
+            "name": "Test User",
+            "email": "test@example.com",
+            "profile": {"bio": "Test bio", "location": "NYC"},
+            "tags": ["python", "django"],
+        }
+    ).encode()
 
     results.append(
         run_benchmark(
@@ -392,9 +391,7 @@ def run_pydantic_throughput(iterations: int = 5000) -> list[BenchmarkResult]:
         )
 
         # Response serialization
-        response_item = ItemResponse(
-            id=1, name="Test Item", description="A test item", price=29.99
-        )
+        response_item = ItemResponse(id=1, name="Test Item", description="A test item", price=29.99)
 
         results.append(
             run_benchmark(
@@ -466,7 +463,9 @@ def main():
         full_cycle_results = [r for r in results if "Full cycle" in r.name]
         if full_cycle_results:
             avg_ops = sum(r.ops_per_second for r in full_cycle_results) / len(full_cycle_results)
-            print(f"\nTheoretical max throughput: ~{avg_ops:,.0f} requests/second (single-threaded)")
+            print(
+                f"\nTheoretical max throughput: ~{avg_ops:,.0f} requests/second (single-threaded)"
+            )
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+# file-length-max: 1100
 """
 Standard benchmark scenarios for Django Matt framework.
 

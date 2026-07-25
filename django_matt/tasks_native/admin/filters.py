@@ -33,11 +33,7 @@ class QueueFilter(admin.SimpleListFilter):
     def lookups(self, request: HttpRequest, model_admin) -> list[tuple[str, str]]:
         from ..models import TaskExecution
 
-        queues = (
-            TaskExecution.objects.values_list("queue", flat=True)
-            .distinct()
-            .order_by("queue")
-        )
+        queues = TaskExecution.objects.values_list("queue", flat=True).distinct().order_by("queue")
         return [(q, q) for q in queues]
 
     def queryset(self, request: HttpRequest, queryset: QuerySet) -> QuerySet:

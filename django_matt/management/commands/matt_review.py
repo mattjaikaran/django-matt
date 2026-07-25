@@ -140,9 +140,7 @@ class Command(MattCommand):
         self.console.header("Code Review")
         engine = ReviewEngine(config)
 
-        self.console.info(
-            f"Analyzers: {', '.join(sorted(config.analyzers))}"
-        )
+        self.console.info(f"Analyzers: {', '.join(sorted(config.analyzers))}")
         self.console.info(f"Paths: {', '.join(str(p) for p in paths)}")
 
         summary = engine.review_paths(paths)

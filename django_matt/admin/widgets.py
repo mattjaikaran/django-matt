@@ -1,3 +1,4 @@
+# file-length-max: 550
 """
 Admin dashboard widgets for Django Unfold.
 

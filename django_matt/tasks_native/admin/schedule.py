@@ -207,9 +207,7 @@ class TaskScheduleAdmin(ModelAdmin):
                     )
 
         if run:
-            self.message_user(
-                request, f"Triggered {run} schedule(s).", messages.SUCCESS
-            )
+            self.message_user(request, f"Triggered {run} schedule(s).", messages.SUCCESS)
 
 
 class ScheduleHistoryAdmin(ModelAdmin):

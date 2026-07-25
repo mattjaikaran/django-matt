@@ -1,3 +1,4 @@
+# file-length-max: 550
 """
 Advanced search backends for django-matt.
 

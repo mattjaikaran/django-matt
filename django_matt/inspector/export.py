@@ -157,7 +157,9 @@ def export_as_python(request: CapturedRequest, include_response: bool = False) -
             if k.lower() not in ("host", "content-length", "connection")
         }
         if headers_dict:
-            lines.append(f"headers = {orjson.dumps(headers_dict, option=orjson.OPT_INDENT_2).decode()}")
+            lines.append(
+                f"headers = {orjson.dumps(headers_dict, option=orjson.OPT_INDENT_2).decode()}"
+            )
         else:
             headers_dict = None
     else:
@@ -180,7 +182,9 @@ def export_as_python(request: CapturedRequest, include_response: bool = False) -
     if request.request_body:
         try:
             body_obj = orjson.loads(request.request_body)
-            lines.append(f"json_data = {orjson.dumps(body_obj, option=orjson.OPT_INDENT_2).decode()}")
+            lines.append(
+                f"json_data = {orjson.dumps(body_obj, option=orjson.OPT_INDENT_2).decode()}"
+            )
             body_var = "json=json_data"
         except (orjson.JSONDecodeError, TypeError):
             lines.append(f'data = """{request.request_body}"""')

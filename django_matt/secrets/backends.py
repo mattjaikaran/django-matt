@@ -15,6 +15,7 @@ logger = logging.getLogger("django_matt.secrets")
 @runtime_checkable
 class SecretsBackend(Protocol):
     """Protocol defining the interface all secrets backends must implement."""
+
     async def get(self, key: str) -> str | None: ...
     async def get_many(self, keys: list[str]) -> dict[str, str | None]: ...
     async def set(self, key: str, value: str) -> None: ...
@@ -46,11 +47,7 @@ class EnvBackend:
     async def list_keys(self) -> list[str]:
         if not self._prefix:
             return list(os.environ.keys())
-        return [
-            k[len(self._prefix) :]
-            for k in os.environ
-            if k.startswith(self._prefix)
-        ]
+        return [k[len(self._prefix) :] for k in os.environ if k.startswith(self._prefix)]
 
 
 class DotenvBackend:
@@ -172,9 +169,7 @@ class AWSSecretsManagerBackend:
     ) -> None:
         import boto3
 
-        self._client = boto3.client(
-            "secretsmanager", region_name=region_name, **client_kwargs
-        )
+        self._client = boto3.client("secretsmanager", region_name=region_name, **client_kwargs)
         self._prefix = prefix
 
     def _resolve_key(self, key: str) -> str:
@@ -232,11 +227,7 @@ class AWSSecretsManagerBackend:
         resp = await asyncio.to_thread(self._client.list_secrets)
         names = [s["Name"] for s in resp.get("SecretList", [])]
         if self._prefix:
-            return [
-                n[len(self._prefix) :]
-                for n in names
-                if n.startswith(self._prefix)
-            ]
+            return [n[len(self._prefix) :] for n in names if n.startswith(self._prefix)]
         return names
 
 

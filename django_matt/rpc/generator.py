@@ -62,14 +62,16 @@ def _extract_routes(api: Any) -> list[dict[str, Any]]:
                 hints = get_type_hints(endpoint)
             except Exception:
                 hints = {}
-        routes.append({
-            "name": route.get("name", "unknown"),
-            "path": route.get("path", "/"),
-            "methods": route.get("methods", ["GET"]),
-            "response_model": route.get("response_model"),
-            "hints": hints,
-            "endpoint": endpoint,
-        })
+        routes.append(
+            {
+                "name": route.get("name", "unknown"),
+                "path": route.get("path", "/"),
+                "methods": route.get("methods", ["GET"]),
+                "response_model": route.get("response_model"),
+                "hints": hints,
+                "endpoint": endpoint,
+            }
+        )
 
     for controller_cls in getattr(api, "controllers", []):
         prefix = getattr(controller_cls, "prefix", "")
@@ -86,15 +88,17 @@ def _extract_routes(api: Any) -> list[dict[str, Any]]:
                 hints = get_type_hints(method)
             except Exception:
                 hints = {}
-            routes.append({
-                "name": attr_name,
-                "path": prefix + route_info["path"],
-                "methods": route_info["methods"],
-                "response_model": route_info.get("response_model"),
-                "hints": hints,
-                "endpoint": method,
-                "controller": controller_cls.__name__,
-            })
+            routes.append(
+                {
+                    "name": attr_name,
+                    "path": prefix + route_info["path"],
+                    "methods": route_info["methods"],
+                    "response_model": route_info.get("response_model"),
+                    "hints": hints,
+                    "endpoint": method,
+                    "controller": controller_cls.__name__,
+                }
+            )
 
     return routes
 
@@ -140,7 +144,7 @@ def generate_python_client(api: Any, class_name: str = "GeneratedClient") -> str
     lines.append(f"class {class_name}:")
     lines.append("    def __init__(")
     lines.append("        self,")
-    lines.append('        base_url: str,')
+    lines.append("        base_url: str,")
     lines.append("        auth: AuthStrategy | None = None,")
     lines.append("        **kwargs: Any,")
     lines.append("    ):")
@@ -302,7 +306,11 @@ def generate_typescript_client(api: Any, class_name: str = "APIClient") -> str:
                     body_var = "data"
                     break
 
-        return_ts = response_model.__name__ if response_model and hasattr(response_model, "__name__") else "any"
+        return_ts = (
+            response_model.__name__
+            if response_model and hasattr(response_model, "__name__")
+            else "any"
+        )
         sig = ", ".join(ts_params)
 
         # Build path expression
@@ -313,7 +321,9 @@ def generate_typescript_client(api: Any, class_name: str = "APIClient") -> str:
 
         body_arg = f", {body_var}" if body_var else ""
         lines.append(f"  async {method_name}({sig}): Promise<{return_ts}> {{")
-        lines.append(f'    return this.request<{return_ts}>("{http_method}", {path_expr}{body_arg});')
+        lines.append(
+            f'    return this.request<{return_ts}>("{http_method}", {path_expr}{body_arg});'
+        )
         lines.append("  }")
         lines.append("")
 

@@ -10,9 +10,11 @@ Quick start::
     from django_matt.rules import predicate, add_perm, test_rule
     from django_matt.rules.builtins import is_authenticated, is_owner
 
+
     @predicate
     def is_author(user, obj):
         return obj.author_id == user.pk
+
 
     add_perm("posts.edit", is_author | is_owner)
     add_perm("posts.delete", is_author)
@@ -22,6 +24,7 @@ Quick start::
 
     # Use with django-matt controllers
     from django_matt.rules.integration import PredicatePermission
+
 
     class PostController(APIController):
         permission_classes = [PredicatePermission(is_author | is_owner)]

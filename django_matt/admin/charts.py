@@ -1,3 +1,4 @@
+# file-length-max: 550
 """
 Chart components for Django Unfold admin dashboards.
 

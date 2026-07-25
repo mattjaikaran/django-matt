@@ -34,15 +34,14 @@ class WasmNotAvailableError(ImportError):
     """Raised when wasmtime is not installed."""
 
     def __init__(self):
-        super().__init__(
-            "wasmtime is required for WASM middleware. Install with: uv add wasmtime"
-        )
+        super().__init__("wasmtime is required for WASM middleware. Install with: uv add wasmtime")
 
 
 def _require_wasmtime():
     """Import wasmtime or raise a clear error."""
     try:
         import wasmtime
+
         return wasmtime
     except ImportError:
         raise WasmNotAvailableError()
@@ -82,9 +81,7 @@ class WasmMiddleware:
     def has_on_response(self) -> bool:
         return self._on_response is not None
 
-    def process_request(
-        self, headers: bytes, body: bytes
-    ) -> tuple[int, bytes, bytes]:
+    def process_request(self, headers: bytes, body: bytes) -> tuple[int, bytes, bytes]:
         """Call the WASM module's on_request function.
 
         Returns (action, modified_headers, modified_body).
@@ -94,13 +91,9 @@ class WasmMiddleware:
             return (ACTION_CONTINUE, headers, body)
 
         with self._lock:
-            return self._call_transform(
-                self._on_request, headers, body, has_action=True
-            )
+            return self._call_transform(self._on_request, headers, body, has_action=True)
 
-    def process_response(
-        self, headers: bytes, body: bytes
-    ) -> tuple[bytes, bytes]:
+    def process_response(self, headers: bytes, body: bytes) -> tuple[bytes, bytes]:
         """Call the WASM module's on_response function.
 
         Returns (modified_headers, modified_body).
@@ -109,23 +102,17 @@ class WasmMiddleware:
             return (headers, body)
 
         with self._lock:
-            result = self._call_transform(
-                self._on_response, headers, body, has_action=False
-            )
+            result = self._call_transform(self._on_response, headers, body, has_action=False)
             return result  # type: ignore[return-value]
 
-    def _call_transform(
-        self, func: Any, headers: bytes, body: bytes, has_action: bool
-    ) -> tuple:
+    def _call_transform(self, func: Any, headers: bytes, body: bytes, has_action: bool) -> tuple:
         """Write data into WASM memory, call function, read results back."""
         store = self._store
         memory = self._memory
         alloc = self._alloc
 
         if memory is None or alloc is None:
-            raise RuntimeError(
-                f"WASM module '{self.name}' does not export 'memory' or 'alloc'"
-            )
+            raise RuntimeError(f"WASM module '{self.name}' does not export 'memory' or 'alloc'")
 
         # Allocate and write headers
         h_ptr = alloc(store, len(headers))
@@ -133,6 +120,7 @@ class WasmMiddleware:
         mem_len = memory.data_len(store)
 
         import ctypes
+
         ctypes.memmove(mem_data + h_ptr, headers, len(headers))
 
         # Allocate and write body
@@ -148,12 +136,8 @@ class WasmMiddleware:
 
         if has_action:
             action, rh_ptr, rh_len, rb_ptr, rb_len = result
-            out_headers = bytes(
-                (ctypes.c_ubyte * rh_len).from_address(mem_data + rh_ptr)
-            )
-            out_body = bytes(
-                (ctypes.c_ubyte * rb_len).from_address(mem_data + rb_ptr)
-            )
+            out_headers = bytes((ctypes.c_ubyte * rh_len).from_address(mem_data + rh_ptr))
+            out_body = bytes((ctypes.c_ubyte * rb_len).from_address(mem_data + rb_ptr))
 
             # Free WASM memory
             if self._dealloc:
@@ -162,12 +146,8 @@ class WasmMiddleware:
 
             return (action, out_headers, out_body)
         rh_ptr, rh_len, rb_ptr, rb_len = result
-        out_headers = bytes(
-            (ctypes.c_ubyte * rh_len).from_address(mem_data + rh_ptr)
-        )
-        out_body = bytes(
-            (ctypes.c_ubyte * rb_len).from_address(mem_data + rb_ptr)
-        )
+        out_headers = bytes((ctypes.c_ubyte * rh_len).from_address(mem_data + rh_ptr))
+        out_body = bytes((ctypes.c_ubyte * rb_len).from_address(mem_data + rb_ptr))
 
         if self._dealloc:
             self._dealloc(store, rh_ptr, rh_len)
@@ -284,6 +264,7 @@ class WasmMiddlewareLoader:
                     )
                     if action == ACTION_SHORT_CIRCUIT:
                         from django.http import HttpResponse
+
                         return HttpResponse(new_body, status=403)
 
                 # Call next middleware/view
@@ -291,14 +272,12 @@ class WasmMiddlewareLoader:
 
                 # Process response through WASM
                 if mw_self._wasm.has_on_response:
-                    resp_headers = "\n".join(
-                        f"{k}: {v}" for k, v in response.items()
-                    ).encode("utf-8")
+                    resp_headers = "\n".join(f"{k}: {v}" for k, v in response.items()).encode(
+                        "utf-8"
+                    )
                     resp_body = response.content if hasattr(response, "content") else b""
 
-                    _, new_body = mw_self._wasm.process_response(
-                        resp_headers, resp_body
-                    )
+                    _, new_body = mw_self._wasm.process_response(resp_headers, resp_body)
                     response.content = new_body
 
                 return response

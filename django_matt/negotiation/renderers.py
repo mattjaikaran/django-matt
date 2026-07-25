@@ -1,3 +1,4 @@
+# file-length-max: 650
 """
 Content renderers for different output formats.
 
@@ -553,7 +554,11 @@ class HTMLRenderer(BaseRenderer):
         else:
             # Render as formatted JSON
             html_parts.append("<pre>")
-            html_parts.append(self._escape_html(orjson.dumps(data, default=str, option=orjson.OPT_INDENT_2).decode()))
+            html_parts.append(
+                self._escape_html(
+                    orjson.dumps(data, default=str, option=orjson.OPT_INDENT_2).decode()
+                )
+            )
             html_parts.append("</pre>")
 
         html_parts.extend(["</body>", "</html>"])

@@ -91,8 +91,17 @@ def render_template(
 def _replace_placeholders(directory: Path, project_name: str) -> None:
     """Recursively replace {{ project_name }} in all text files."""
     text_extensions = {
-        ".py", ".toml", ".yml", ".yaml", ".json", ".md",
-        ".cfg", ".ini", ".txt", ".env", ".sh",
+        ".py",
+        ".toml",
+        ".yml",
+        ".yaml",
+        ".json",
+        ".md",
+        ".cfg",
+        ".ini",
+        ".txt",
+        ".env",
+        ".sh",
     }
     # Also handle extensionless files like Dockerfile
     extensionless_names = {"Dockerfile", "Makefile", "Procfile"}

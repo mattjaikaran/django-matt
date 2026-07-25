@@ -1,3 +1,4 @@
+# file-length-max: 600
 """
 Decorators for multi-tenancy access control.
 
@@ -42,11 +43,14 @@ def requires_organization(func: Callable) -> Callable:
             ...
     """
     if inspect.iscoroutinefunction(func):
+
         @wraps(func)
         async def async_wrapper(self_or_request, *args, **kwargs):
             # Handle both function-based (request first) and method-based (self first) views
-            request = self_or_request if isinstance(self_or_request, HttpRequest) else (
-                args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+            request = (
+                self_or_request
+                if isinstance(self_or_request, HttpRequest)
+                else (args[0] if args and isinstance(args[0], HttpRequest) else self_or_request)
             )
             organization = _get_organization(request)
             if not organization:
@@ -55,11 +59,15 @@ def requires_organization(func: Callable) -> Callable:
                     status=400,
                 )
             return await func(self_or_request, *args, **kwargs)
+
         return async_wrapper
+
     @wraps(func)
     def sync_wrapper(self_or_request, *args, **kwargs):
-        request = self_or_request if isinstance(self_or_request, HttpRequest) else (
-            args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+        request = (
+            self_or_request
+            if isinstance(self_or_request, HttpRequest)
+            else (args[0] if args and isinstance(args[0], HttpRequest) else self_or_request)
         )
         organization = _get_organization(request)
         if not organization:
@@ -68,6 +76,7 @@ def requires_organization(func: Callable) -> Callable:
                 status=400,
             )
         return func(self_or_request, *args, **kwargs)
+
     return sync_wrapper
 
 
@@ -84,10 +93,13 @@ def requires_org_membership(func: Callable) -> Callable:
             ...
     """
     if inspect.iscoroutinefunction(func):
+
         @wraps(func)
         async def async_wrapper(self_or_request, *args, **kwargs):
-            request = self_or_request if isinstance(self_or_request, HttpRequest) else (
-                args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+            request = (
+                self_or_request
+                if isinstance(self_or_request, HttpRequest)
+                else (args[0] if args and isinstance(args[0], HttpRequest) else self_or_request)
             )
             if not request.user.is_authenticated:
                 return JsonResponse(
@@ -116,11 +128,15 @@ def requires_org_membership(func: Callable) -> Callable:
                 )
 
             return await func(self_or_request, *args, **kwargs)
+
         return async_wrapper
+
     @wraps(func)
     def sync_wrapper(self_or_request, *args, **kwargs):
-        request = self_or_request if isinstance(self_or_request, HttpRequest) else (
-            args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+        request = (
+            self_or_request
+            if isinstance(self_or_request, HttpRequest)
+            else (args[0] if args and isinstance(args[0], HttpRequest) else self_or_request)
         )
         if not request.user.is_authenticated:
             return JsonResponse(
@@ -142,6 +158,7 @@ def requires_org_membership(func: Callable) -> Callable:
             )
 
         return func(self_or_request, *args, **kwargs)
+
     return sync_wrapper
 
 
@@ -172,10 +189,13 @@ def requires_org_role(
 
     def decorator(func: Callable) -> Callable:
         if inspect.iscoroutinefunction(func):
+
             @wraps(func)
             async def async_wrapper(self_or_request, *args, **kwargs):
-                request = self_or_request if isinstance(self_or_request, HttpRequest) else (
-                    args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+                request = (
+                    self_or_request
+                    if isinstance(self_or_request, HttpRequest)
+                    else (args[0] if args and isinstance(args[0], HttpRequest) else self_or_request)
                 )
                 if not request.user.is_authenticated:
                     return JsonResponse(
@@ -216,11 +236,15 @@ def requires_org_role(
                 request.membership = membership
 
                 return await func(self_or_request, *args, **kwargs)
+
             return async_wrapper
+
         @wraps(func)
         def sync_wrapper(self_or_request, *args, **kwargs):
-            request = self_or_request if isinstance(self_or_request, HttpRequest) else (
-                args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+            request = (
+                self_or_request
+                if isinstance(self_or_request, HttpRequest)
+                else (args[0] if args and isinstance(args[0], HttpRequest) else self_or_request)
             )
             if not request.user.is_authenticated:
                 return JsonResponse(
@@ -261,6 +285,7 @@ def requires_org_role(
             request.membership = membership
 
             return func(self_or_request, *args, **kwargs)
+
         return sync_wrapper
 
     return decorator
@@ -314,10 +339,13 @@ def requires_min_org_role(min_role: str) -> Callable:
 
     def decorator(func: Callable) -> Callable:
         if inspect.iscoroutinefunction(func):
+
             @wraps(func)
             async def async_wrapper(self_or_request, *args, **kwargs):
-                request = self_or_request if isinstance(self_or_request, HttpRequest) else (
-                    args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+                request = (
+                    self_or_request
+                    if isinstance(self_or_request, HttpRequest)
+                    else (args[0] if args and isinstance(args[0], HttpRequest) else self_or_request)
                 )
                 if not request.user.is_authenticated:
                     return JsonResponse(
@@ -357,11 +385,15 @@ def requires_min_org_role(min_role: str) -> Callable:
                 request.membership = membership
 
                 return await func(self_or_request, *args, **kwargs)
+
             return async_wrapper
+
         @wraps(func)
         def sync_wrapper(self_or_request, *args, **kwargs):
-            request = self_or_request if isinstance(self_or_request, HttpRequest) else (
-                args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+            request = (
+                self_or_request
+                if isinstance(self_or_request, HttpRequest)
+                else (args[0] if args and isinstance(args[0], HttpRequest) else self_or_request)
             )
             if not request.user.is_authenticated:
                 return JsonResponse(
@@ -401,6 +433,7 @@ def requires_min_org_role(min_role: str) -> Callable:
             request.membership = membership
 
             return func(self_or_request, *args, **kwargs)
+
         return sync_wrapper
 
     return decorator
@@ -424,10 +457,13 @@ def requires_team_membership(team_param: str = "team_id") -> Callable:
 
     def decorator(func: Callable) -> Callable:
         if inspect.iscoroutinefunction(func):
+
             @wraps(func)
             async def async_wrapper(self_or_request, *args, **kwargs):
-                request = self_or_request if isinstance(self_or_request, HttpRequest) else (
-                    args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+                request = (
+                    self_or_request
+                    if isinstance(self_or_request, HttpRequest)
+                    else (args[0] if args and isinstance(args[0], HttpRequest) else self_or_request)
                 )
                 if not request.user.is_authenticated:
                     return JsonResponse(
@@ -466,11 +502,15 @@ def requires_team_membership(team_param: str = "team_id") -> Callable:
                 request.team_membership = team_membership
 
                 return await func(self_or_request, *args, **kwargs)
+
             return async_wrapper
+
         @wraps(func)
         def sync_wrapper(self_or_request, *args, **kwargs):
-            request = self_or_request if isinstance(self_or_request, HttpRequest) else (
-                args[0] if args and isinstance(args[0], HttpRequest) else self_or_request
+            request = (
+                self_or_request
+                if isinstance(self_or_request, HttpRequest)
+                else (args[0] if args and isinstance(args[0], HttpRequest) else self_or_request)
             )
             if not request.user.is_authenticated:
                 return JsonResponse(
@@ -509,6 +549,7 @@ def requires_team_membership(team_param: str = "team_id") -> Callable:
             request.team_membership = team_membership
 
             return func(self_or_request, *args, **kwargs)
+
         return sync_wrapper
 
     return decorator

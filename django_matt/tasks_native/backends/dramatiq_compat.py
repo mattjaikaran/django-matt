@@ -57,9 +57,7 @@ class DramatiqNativeBackend(BaseNativeBackend):
                     pass
 
         except ImportError:
-            raise ImportError(
-                "Dramatiq is not installed. Install it with: uv add dramatiq[redis]"
-            )
+            raise ImportError("Dramatiq is not installed. Install it with: uv add dramatiq[redis]")
 
     def enqueue(
         self,
@@ -90,7 +88,9 @@ class DramatiqNativeBackend(BaseNativeBackend):
                     if task.is_async:
                         loop = asyncio.new_event_loop()
                         try:
-                            return loop.run_until_complete(task.func(task, *task_args, **task_kwargs))
+                            return loop.run_until_complete(
+                                task.func(task, *task_args, **task_kwargs)
+                            )
                         finally:
                             loop.close()
                     return task.func(task, *task_args, **task_kwargs)

@@ -1,3 +1,4 @@
+# file-length-max: 600
 """
 Swift code generation from Pydantic schemas.
 """

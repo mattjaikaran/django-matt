@@ -22,8 +22,8 @@ Usage::
 
     # Evaluate against a user's permission bitfield
     user_perms = 0b0011  # admin + editor
-    evaluator.evaluate(can_edit, user_perms)     # True
-    evaluator.evaluate(not_banned, user_perms)   # True
+    evaluator.evaluate(can_edit, user_perms)  # True
+    evaluator.evaluate(not_banned, user_perms)  # True
 """
 
 from __future__ import annotations
@@ -59,6 +59,7 @@ class _PythonPermissionEvaluator:
 
 
 # --- Expression tree (mirrors the Rust implementation) ---
+
 
 class _Expr:
     def evaluate(self, user_perms: int) -> bool:

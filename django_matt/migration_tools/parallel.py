@@ -1,3 +1,4 @@
+# file-length-max: 500
 """Parallel migration execution — run independent migrations concurrently.
 
 Django runs migrations sequentially by default, even when they're independent.
@@ -65,7 +66,7 @@ class MigrationWavePlanner:
         planner = MigrationWavePlanner()
         waves = planner.plan_waves()
         for i, wave in enumerate(waves):
-            print(f"Wave {i+1}: {wave}")
+            print(f"Wave {i + 1}: {wave}")
             # All migrations in this wave can run concurrently
     """
 
@@ -86,7 +87,7 @@ class MigrationWavePlanner:
 
         # Get pending migrations
         pending = set()
-        for (app_label, migration_name) in loader.disk_migrations:
+        for app_label, migration_name in loader.disk_migrations:
             if (app_label, migration_name) not in applied:
                 pending.add((app_label, migration_name))
 
@@ -194,7 +195,7 @@ class ParallelMigrationExecutor:
         # Preview what will happen
         plan = executor.plan()
         for i, wave in enumerate(plan):
-            print(f"Wave {i+1}: {len(wave)} migrations")
+            print(f"Wave {i + 1}: {len(wave)} migrations")
 
         # Execute
         result = executor.execute()

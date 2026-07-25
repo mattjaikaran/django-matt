@@ -1,3 +1,4 @@
+# file-length-max: 850
 """
 Benchmark result reporters for Django Matt framework.
 
@@ -689,9 +690,7 @@ class RichTableReporter(BenchmarkReporter):
             create_skipped = create_r is None or create_r.metadata.get("skipped", False)
 
             list_ops_str = (
-                "[NOT INSTALLED]"
-                if list_skipped
-                else self._format_rich_ops(list_r.ops_per_second)  # type: ignore[union-attr]
+                "[NOT INSTALLED]" if list_skipped else self._format_rich_ops(list_r.ops_per_second)  # type: ignore[union-attr]
             )
             create_ops_str = (
                 "[NOT INSTALLED]"

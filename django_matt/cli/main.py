@@ -185,7 +185,9 @@ def routes(
         None, "--filter", "-f", help="Filter routes by pattern"
     ),
     method: Optional[str] = typer.Option(None, "--method", "-m", help="Filter by HTTP method"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show request/response schema and permissions"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Show request/response schema and permissions"
+    ),
 ):
     """List all API routes (alias for 'analyze routes').
 
@@ -201,7 +203,9 @@ def routes(
 def endpoints(
     filter_pattern: Optional[str] = typer.Option(None, "--filter", "-f", help="Filter by pattern"),
     method: Optional[str] = typer.Option(None, "--method", "-m", help="Filter by HTTP method"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show request/response schema and permissions"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Show request/response schema and permissions"
+    ),
 ):
     """List all API endpoints (alias for 'routes')."""
     from django_matt.cli.commands.analyze import routes as analyze_routes

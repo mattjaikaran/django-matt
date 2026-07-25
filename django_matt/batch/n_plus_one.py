@@ -14,10 +14,7 @@ In production:
 Usage::
 
     # settings.py
-    MIDDLEWARE = [
-        "django_matt.batch.n_plus_one.NPlusOneMiddleware",
-        ...
-    ]
+    MIDDLEWARE = ["django_matt.batch.n_plus_one.NPlusOneMiddleware", ...]
 
     # Or configure
     DJANGO_MATT = {
@@ -108,6 +105,7 @@ class NPlusOneMiddleware:
     def _get_threshold() -> int:
         try:
             from django_matt.conf import get_matt_setting
+
             return get_matt_setting("N_PLUS_ONE_THRESHOLD", 5)
         except Exception:
             return 5

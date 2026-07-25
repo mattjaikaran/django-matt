@@ -1,3 +1,4 @@
+# file-length-max: 800
 """
 Polar billing provider.
 

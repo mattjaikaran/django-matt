@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Filter backends for django-matt.
 
@@ -361,9 +362,7 @@ class OrderingBackend(BaseFilterBackend):
             pass
         return []
 
-    def _is_valid_ordering_field(
-        self, field_name: str, allowed_fields: list[str]
-    ) -> bool:
+    def _is_valid_ordering_field(self, field_name: str, allowed_fields: list[str]) -> bool:
         """Check if a field is valid for ordering.
 
         Supports relation traversal (e.g. ``author__name``) when the
@@ -403,8 +402,7 @@ class OrderingBackend(BaseFilterBackend):
             sort_tuples = parsed_qs.get("sort", [])
             if sort_tuples:
                 ordering = [
-                    f"-{field}" if not ascending else field
-                    for field, ascending in sort_tuples
+                    f"-{field}" if not ascending else field for field, ascending in sort_tuples
                 ]
         else:
             ordering_str = request.GET.get(self.ordering_param, "")
@@ -467,10 +465,7 @@ class OrderingBackend(BaseFilterBackend):
         schema: dict[str, Any] = {"type": "string"}
 
         if ordering_fields and ordering_fields != ["__all__"]:
-            description = (
-                f"Order by: {', '.join(ordering_fields)} "
-                "(prefix with - for descending)"
-            )
+            description = f"Order by: {', '.join(ordering_fields)} (prefix with - for descending)"
             # Build enum: each field + its descending variant
             enum_values: list[str] = []
             for field in ordering_fields:

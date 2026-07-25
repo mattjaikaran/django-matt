@@ -49,16 +49,20 @@ class AIFriendlyThresholds:
 class SecurityPatterns:
     """Patterns for security analyzer."""
 
-    secret_patterns: list[str] = field(default_factory=lambda: [
-        r"(?i)(password|secret|api_key|token|private_key)\s*=\s*['\"][^'\"]+['\"]",
-        r"(?i)(AWS_SECRET|STRIPE_SECRET|DATABASE_URL)\s*=\s*['\"][^'\"]+['\"]",
-    ])
-    sql_injection_patterns: list[str] = field(default_factory=lambda: [
-        r"\.raw\s*\(",
-        r"\.extra\s*\(",
-        r"cursor\.execute\s*\(\s*f['\"]",
-        r"cursor\.execute\s*\(\s*['\"].*%s",
-    ])
+    secret_patterns: list[str] = field(
+        default_factory=lambda: [
+            r"(?i)(password|secret|api_key|token|private_key)\s*=\s*['\"][^'\"]+['\"]",
+            r"(?i)(AWS_SECRET|STRIPE_SECRET|DATABASE_URL)\s*=\s*['\"][^'\"]+['\"]",
+        ]
+    )
+    sql_injection_patterns: list[str] = field(
+        default_factory=lambda: [
+            r"\.raw\s*\(",
+            r"\.extra\s*\(",
+            r"cursor\.execute\s*\(\s*f['\"]",
+            r"cursor\.execute\s*\(\s*['\"].*%s",
+        ]
+    )
 
 
 @dataclass
@@ -66,19 +70,21 @@ class ReviewConfig:
     """Configuration for a code review run."""
 
     # Which analyzers to run
-    analyzers: set[str] = field(default_factory=lambda: {
-        "complexity",
-        "solid",
-        "django",
-        "ai_friendly",
-        "security",
-        "modularity",
-        "performance",
-        "async_safety",
-        "n_plus_one",
-        "migration_safety",
-        "api_design",
-    })
+    analyzers: set[str] = field(
+        default_factory=lambda: {
+            "complexity",
+            "solid",
+            "django",
+            "ai_friendly",
+            "security",
+            "modularity",
+            "performance",
+            "async_safety",
+            "n_plus_one",
+            "migration_safety",
+            "api_design",
+        }
+    )
 
     # Minimum severity to report
     min_severity: Severity = Severity.INFO
@@ -88,17 +94,19 @@ class ReviewConfig:
 
     # File patterns to include/exclude
     include_patterns: list[str] = field(default_factory=lambda: ["**/*.py"])
-    exclude_patterns: list[str] = field(default_factory=lambda: [
-        "**/migrations/**",
-        "**/__pycache__/**",
-        "**/node_modules/**",
-        "**/.venv/**",
-        "**/venv/**",
-        "**/dist/**",
-        "**/build/**",
-        "**/.git/**",
-        "**/manage.py",
-    ])
+    exclude_patterns: list[str] = field(
+        default_factory=lambda: [
+            "**/migrations/**",
+            "**/__pycache__/**",
+            "**/node_modules/**",
+            "**/.venv/**",
+            "**/venv/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/.git/**",
+            "**/manage.py",
+        ]
+    )
 
     # Per-analyzer thresholds
     complexity: ComplexityThresholds = field(default_factory=ComplexityThresholds)

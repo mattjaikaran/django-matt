@@ -1,3 +1,4 @@
+# file-length-max: 550
 """
 LLM Response Caching.
 
@@ -164,7 +165,9 @@ class CachedLLM:
             content_parts.append(f"{msg.role.value}:{msg.content}")
 
         content = "|".join(content_parts)
-        params = orjson.dumps({"model": model, "temperature": temperature, **kwargs}, option=orjson.OPT_SORT_KEYS).decode()
+        params = orjson.dumps(
+            {"model": model, "temperature": temperature, **kwargs}, option=orjson.OPT_SORT_KEYS
+        ).decode()
 
         hash_input = f"{content}|{params}"
         hash_val = hashlib.sha256(hash_input.encode()).hexdigest()[:32]

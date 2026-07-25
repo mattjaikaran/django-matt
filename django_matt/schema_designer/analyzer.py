@@ -88,18 +88,22 @@ class SchemaAnalyzer:
                 fields_info.append(field_data)
 
             if isinstance(field, (models.ForeignKey, models.OneToOneField)):
-                relationships.append({
-                    "type": "fk" if isinstance(field, models.ForeignKey) else "one_to_one",
-                    "field": field.name,
-                    "related_model": f"{field.related_model._meta.app_label}.{field.related_model.__name__}",
-                })
+                relationships.append(
+                    {
+                        "type": "fk" if isinstance(field, models.ForeignKey) else "one_to_one",
+                        "field": field.name,
+                        "related_model": f"{field.related_model._meta.app_label}.{field.related_model.__name__}",
+                    }
+                )
 
             if isinstance(field, models.ManyToManyField):
-                relationships.append({
-                    "type": "m2m",
-                    "field": field.name,
-                    "related_model": f"{field.related_model._meta.app_label}.{field.related_model.__name__}",
-                })
+                relationships.append(
+                    {
+                        "type": "m2m",
+                        "field": field.name,
+                        "related_model": f"{field.related_model._meta.app_label}.{field.related_model.__name__}",
+                    }
+                )
 
             issues.extend(self._check_field(field, model))
 
@@ -153,102 +157,121 @@ class SchemaAnalyzer:
         # Missing index on FK
         if isinstance(field, models.ForeignKey):
             if not field.db_index and not field.unique:
-                issues.append(FieldIssue(
-                    field_name=field.name,
-                    issue="ForeignKey without db_index",
-                    severity=Severity.WARNING,
-                    suggestion=f"Add db_index=True to {field.name} for faster joins",
-                ))
+                issues.append(
+                    FieldIssue(
+                        field_name=field.name,
+                        issue="ForeignKey without db_index",
+                        severity=Severity.WARNING,
+                        suggestion=f"Add db_index=True to {field.name} for faster joins",
+                    )
+                )
 
         # Missing related_name on FK/M2M
         if isinstance(field, (models.ForeignKey, models.ManyToManyField)):
             related_name = field.remote_field.related_name
             if not related_name or related_name.endswith("+"):
-                issues.append(FieldIssue(
-                    field_name=field.name,
-                    issue="Missing explicit related_name",
-                    severity=Severity.INFO,
-                    suggestion=f"Add related_name to {field.name} for clearer reverse lookups",
-                ))
+                issues.append(
+                    FieldIssue(
+                        field_name=field.name,
+                        issue="Missing explicit related_name",
+                        severity=Severity.INFO,
+                        suggestion=f"Add related_name to {field.name} for clearer reverse lookups",
+                    )
+                )
 
         # Large CharField without max_length optimization
         if isinstance(field, models.CharField):
             if hasattr(field, "max_length") and field.max_length and field.max_length > 500:
-                issues.append(FieldIssue(
-                    field_name=field.name,
-                    issue=f"CharField with large max_length ({field.max_length})",
-                    severity=Severity.INFO,
-                    suggestion="Consider using TextField instead for large text content",
-                ))
+                issues.append(
+                    FieldIssue(
+                        field_name=field.name,
+                        issue=f"CharField with large max_length ({field.max_length})",
+                        severity=Severity.INFO,
+                        suggestion="Consider using TextField instead for large text content",
+                    )
+                )
 
         # Nullable fields without defaults
         if hasattr(field, "null") and field.null and hasattr(field, "default"):
             if field.default is models.fields.NOT_PROVIDED:
-                if not isinstance(field, (models.ForeignKey, models.OneToOneField, models.ManyToManyField)):
-                    issues.append(FieldIssue(
-                        field_name=field.name,
-                        issue="Nullable field without default",
-                        severity=Severity.INFO,
-                        suggestion=f"Consider adding default=None to {field.name}",
-                    ))
+                if not isinstance(
+                    field, (models.ForeignKey, models.OneToOneField, models.ManyToManyField)
+                ):
+                    issues.append(
+                        FieldIssue(
+                            field_name=field.name,
+                            issue="Nullable field without default",
+                            severity=Severity.INFO,
+                            suggestion=f"Consider adding default=None to {field.name}",
+                        )
+                    )
 
         return issues
 
-    def _check_model_level(
-        self, model: type[models.Model], fields: Any
-    ) -> list[FieldIssue]:
+    def _check_model_level(self, model: type[models.Model], fields: Any) -> list[FieldIssue]:
         issues: list[FieldIssue] = []
         meta = model._meta
 
         # Missing __str__
         if model.__str__ is models.Model.__str__:
-            issues.append(FieldIssue(
-                field_name="__str__",
-                issue="Missing __str__ method",
-                severity=Severity.INFO,
-                suggestion="Add a __str__ method for better admin/debugging display",
-            ))
+            issues.append(
+                FieldIssue(
+                    field_name="__str__",
+                    issue="Missing __str__ method",
+                    severity=Severity.INFO,
+                    suggestion="Add a __str__ method for better admin/debugging display",
+                )
+            )
 
         # Missing ordering
         if not meta.ordering:
-            issues.append(FieldIssue(
-                field_name="Meta.ordering",
-                issue="Missing ordering in Meta",
-                severity=Severity.INFO,
-                suggestion="Add ordering in Meta for consistent query results",
-            ))
+            issues.append(
+                FieldIssue(
+                    field_name="Meta.ordering",
+                    issue="Missing ordering in Meta",
+                    severity=Severity.INFO,
+                    suggestion="Add ordering in Meta for consistent query results",
+                )
+            )
 
         # Too many columns
-        concrete_count = len([
-            f for f in fields
-            if not isinstance(f, models.fields.related.ForeignObjectRel)
-        ])
+        concrete_count = len(
+            [f for f in fields if not isinstance(f, models.fields.related.ForeignObjectRel)]
+        )
         if concrete_count > 30:
-            issues.append(FieldIssue(
-                field_name="*",
-                issue=f"Table has {concrete_count} columns (>30)",
-                severity=Severity.WARNING,
-                suggestion="Consider splitting into related models to reduce table width",
-            ))
+            issues.append(
+                FieldIssue(
+                    field_name="*",
+                    issue=f"Table has {concrete_count} columns (>30)",
+                    severity=Severity.WARNING,
+                    suggestion="Consider splitting into related models to reduce table width",
+                )
+            )
 
         # Missing created_at/updated_at
         field_names = {f.name for f in fields if hasattr(f, "name")}
         has_created = any(n in field_names for n in ("created_at", "date_created", "created"))
-        has_updated = any(n in field_names for n in ("updated_at", "date_updated", "modified", "modified_at"))
+        has_updated = any(
+            n in field_names for n in ("updated_at", "date_updated", "modified", "modified_at")
+        )
         if not has_created and not meta.proxy and not meta.abstract:
-            issues.append(FieldIssue(
-                field_name="created_at",
-                issue="Missing created_at timestamp",
-                severity=Severity.INFO,
-                suggestion="Add created_at = models.DateTimeField(auto_now_add=True)",
-            ))
+            issues.append(
+                FieldIssue(
+                    field_name="created_at",
+                    issue="Missing created_at timestamp",
+                    severity=Severity.INFO,
+                    suggestion="Add created_at = models.DateTimeField(auto_now_add=True)",
+                )
+            )
         if not has_updated and not meta.proxy and not meta.abstract:
-            issues.append(FieldIssue(
-                field_name="updated_at",
-                issue="Missing updated_at timestamp",
-                severity=Severity.INFO,
-                suggestion="Add updated_at = models.DateTimeField(auto_now=True)",
-            ))
+            issues.append(
+                FieldIssue(
+                    field_name="updated_at",
+                    issue="Missing updated_at timestamp",
+                    severity=Severity.INFO,
+                    suggestion="Add updated_at = models.DateTimeField(auto_now=True)",
+                )
+            )
 
         # Soft delete without index
         if "is_active" in field_names or "deleted_at" in field_names:
@@ -256,12 +279,14 @@ class SchemaAnalyzer:
             try:
                 soft_field = meta.get_field(soft_field_name)
                 if hasattr(soft_field, "db_index") and not soft_field.db_index:
-                    issues.append(FieldIssue(
-                        field_name=soft_field_name,
-                        issue=f"Soft delete field '{soft_field_name}' without index",
-                        severity=Severity.WARNING,
-                        suggestion=f"Add db_index=True to {soft_field_name} for efficient filtering",
-                    ))
+                    issues.append(
+                        FieldIssue(
+                            field_name=soft_field_name,
+                            issue=f"Soft delete field '{soft_field_name}' without index",
+                            severity=Severity.WARNING,
+                            suggestion=f"Add db_index=True to {soft_field_name} for efficient filtering",
+                        )
+                    )
             except Exception:
                 pass
 
@@ -280,12 +305,14 @@ class SchemaAnalyzer:
             if key in visited:
                 return False
             if key == model_key and len(path) > 1:
-                issues.append(FieldIssue(
-                    field_name="*",
-                    issue=f"Circular FK dependency: {' -> '.join(path)} -> {key}",
-                    severity=Severity.WARNING,
-                    suggestion="Consider breaking circular dependency with nullable FK or restructuring",
-                ))
+                issues.append(
+                    FieldIssue(
+                        field_name="*",
+                        issue=f"Circular FK dependency: {' -> '.join(path)} -> {key}",
+                        severity=Severity.WARNING,
+                        suggestion="Consider breaking circular dependency with nullable FK or restructuring",
+                    )
+                )
                 return True
             visited.add(key)
             for field in current._meta.get_fields():

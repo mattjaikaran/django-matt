@@ -1,3 +1,4 @@
+# file-length-max: 700
 """
 HTMX component patterns and helpers.
 

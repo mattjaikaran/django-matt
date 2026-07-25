@@ -155,10 +155,17 @@ async def check_email() -> ComponentInfo:
 
     info = ComponentInfo(name="email", component_type="email", critical=False)
     try:
-        backend = getattr(settings, "EMAIL_BACKEND", "django.core.mail.backends.locmem.EmailBackend")
+        backend = getattr(
+            settings, "EMAIL_BACKEND", "django.core.mail.backends.locmem.EmailBackend"
+        )
         info.details["backend"] = backend
 
-        if "console" in backend or "locmem" in backend or "filebased" in backend or "dummy" in backend:
+        if (
+            "console" in backend
+            or "locmem" in backend
+            or "filebased" in backend
+            or "dummy" in backend
+        ):
             info.status = ComponentStatus.HEALTHY
             info.details["note"] = "non-production backend"
         else:

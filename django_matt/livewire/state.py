@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 State management for Livewire components.
 

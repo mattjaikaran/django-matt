@@ -1,3 +1,4 @@
+# file-length-max: 1000
 """
 Built-in data generators for testing.
 

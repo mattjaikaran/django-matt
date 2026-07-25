@@ -1,3 +1,4 @@
+# file-length-max: 500
 """
 Storage backends for throttle data.
 """

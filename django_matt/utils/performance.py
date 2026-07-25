@@ -1,3 +1,4 @@
+# file-length-max: 1500
 """
 Performance utilities for Django Matt framework.
 
@@ -91,9 +92,7 @@ class MessagePackRenderer:
             MessagePack formatted bytes
         """
         if not HAS_MSGPACK:
-            raise ImportError(
-                "MessagePack is not installed. Install it with 'uv add msgpack'."
-            )
+            raise ImportError("MessagePack is not installed. Install it with 'uv add msgpack'.")
 
         return msgpack.packb(obj, **kwargs)
 
@@ -110,9 +109,7 @@ class MessagePackRenderer:
             A Python object
         """
         if not HAS_MSGPACK:
-            raise ImportError(
-                "MessagePack is not installed. Install it with 'uv add msgpack'."
-            )
+            raise ImportError("MessagePack is not installed. Install it with 'uv add msgpack'.")
 
         return msgpack.unpackb(s, **kwargs)
 
@@ -161,9 +158,7 @@ class MessagePackResponse(HttpResponse):
             **kwargs: Additional keyword arguments to pass to the HttpResponse
         """
         if not HAS_MSGPACK:
-            raise ImportError(
-                "MessagePack is not installed. Install it with 'uv add msgpack'."
-            )
+            raise ImportError("MessagePack is not installed. Install it with 'uv add msgpack'.")
 
         kwargs.setdefault("content_type", "application/x-msgpack")
         content = MessagePackRenderer.dumps(data)

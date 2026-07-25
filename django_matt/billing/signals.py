@@ -8,6 +8,7 @@ Example::
 
     from django_matt.billing.signals import subscription_synced
 
+
     @receiver(subscription_synced)
     def on_subscription_synced(sender, subscription, provider, event_type, **kwargs):
         # Grant/revoke feature access, send emails, etc.

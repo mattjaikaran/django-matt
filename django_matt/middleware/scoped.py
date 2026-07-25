@@ -16,14 +16,10 @@ class RouteMiddleware:
     async def process_request(self, request: HttpRequest) -> HttpResponse | None:
         return None
 
-    async def process_response(
-        self, request: HttpRequest, response: HttpResponse
-    ) -> HttpResponse:
+    async def process_response(self, request: HttpRequest, response: HttpResponse) -> HttpResponse:
         return response
 
-    async def process_exception(
-        self, request: HttpRequest, exc: Exception
-    ) -> HttpResponse | None:
+    async def process_exception(self, request: HttpRequest, exc: Exception) -> HttpResponse | None:
         return None
 
 

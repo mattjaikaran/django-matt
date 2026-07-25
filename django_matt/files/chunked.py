@@ -1,3 +1,4 @@
+# file-length-max: 550
 """
 Chunked and resumable upload support.
 
@@ -117,9 +118,7 @@ class TusUploadHandler:
     ) -> str:
         """Create a new upload session. Returns upload_id."""
         if size > self.max_size:
-            raise ValueError(
-                f"File size {size} exceeds maximum {self.max_size}"
-            )
+            raise ValueError(f"File size {size} exceeds maximum {self.max_size}")
 
         upload_id = self._generate_id()
         path = self._session_path(upload_id)
@@ -154,15 +153,11 @@ class TusUploadHandler:
         session = self._validate_session(upload_id)
 
         if offset != session.offset:
-            raise ValueError(
-                f"Offset mismatch: expected {session.offset}, got {offset}"
-            )
+            raise ValueError(f"Offset mismatch: expected {session.offset}, got {offset}")
 
         new_offset = session.offset + len(chunk)
         if session.size and new_offset > session.size:
-            raise ValueError(
-                f"Upload would exceed declared size: {new_offset} > {session.size}"
-            )
+            raise ValueError(f"Upload would exceed declared size: {new_offset} > {session.size}")
 
         path = self._session_path(upload_id)
 
@@ -180,9 +175,7 @@ class TusUploadHandler:
         session = self._validate_session(upload_id)
 
         if session.size and session.offset != session.size:
-            raise ValueError(
-                f"Upload incomplete: {session.offset}/{session.size} bytes"
-            )
+            raise ValueError(f"Upload incomplete: {session.offset}/{session.size} bytes")
 
         session.completed = True
         path = str(self._session_path(upload_id))
@@ -204,9 +197,7 @@ class TusUploadHandler:
         """Remove expired upload sessions. Returns count removed."""
         now = time.time()
         expired = [
-            uid
-            for uid, s in self._sessions.items()
-            if now - s.created_at > self.expiry_seconds
+            uid for uid, s in self._sessions.items() if now - s.created_at > self.expiry_seconds
         ]
         for uid in expired:
             self._cleanup_session(uid)
@@ -284,20 +275,14 @@ class TusUploadView(View):
         handler = self.get_handler()
         upload_length = request.headers.get("Upload-Length")
         if upload_length is None:
-            return JsonResponse(
-                {"error": "Upload-Length header required"}, status=400
-            )
+            return JsonResponse({"error": "Upload-Length header required"}, status=400)
 
         try:
             size = int(upload_length)
         except ValueError:
-            return JsonResponse(
-                {"error": "Invalid Upload-Length"}, status=400
-            )
+            return JsonResponse({"error": "Invalid Upload-Length"}, status=400)
 
-        metadata = _parse_tus_metadata(
-            request.headers.get("Upload-Metadata", "")
-        )
+        metadata = _parse_tus_metadata(request.headers.get("Upload-Metadata", ""))
         content_type = metadata.get("content_type", "application/octet-stream")
 
         import asyncio as _asyncio
@@ -329,9 +314,7 @@ class TusUploadView(View):
 
         offset_header = request.headers.get("Upload-Offset")
         if offset_header is None:
-            return JsonResponse(
-                {"error": "Upload-Offset header required"}, status=400
-            )
+            return JsonResponse({"error": "Upload-Offset header required"}, status=400)
 
         try:
             offset = int(offset_header)
@@ -364,9 +347,7 @@ class TusUploadView(View):
         import asyncio as _asyncio
 
         try:
-            offset = _asyncio.get_event_loop().run_until_complete(
-                handler.get_offset(upload_id)
-            )
+            offset = _asyncio.get_event_loop().run_until_complete(handler.get_offset(upload_id))
         except FileNotFoundError:
             return JsonResponse({"error": "Upload not found"}, status=404)
         except TimeoutError:
@@ -406,15 +387,19 @@ class S3MultipartHandler:
     Usage::
 
         from django_matt.files.s3 import S3Storage
+
         handler = S3MultipartHandler(storage)
 
         upload_id = await handler.create_multipart("uploads/big.zip", "application/zip")
         etag1 = await handler.upload_part(upload_id, 1, chunk1)
         etag2 = await handler.upload_part(upload_id, 2, chunk2)
-        await handler.complete_multipart(upload_id, [
-            {"PartNumber": 1, "ETag": etag1},
-            {"PartNumber": 2, "ETag": etag2},
-        ])
+        await handler.complete_multipart(
+            upload_id,
+            [
+                {"PartNumber": 1, "ETag": etag1},
+                {"PartNumber": 2, "ETag": etag2},
+            ],
+        )
     """
 
     def __init__(self, storage: Any) -> None:

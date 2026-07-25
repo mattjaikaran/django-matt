@@ -79,10 +79,14 @@ def generate_github_actions(
 """
 
     # Test job
-    test_needs = '    needs: [lint]\n' if lint else ''
+    test_needs = "    needs: [lint]\n" if lint else ""
     pytest_cmd = "uv run pytest --cov --cov-report=xml" if coverage else "uv run pytest"
-    env_section = f"""
-      env:{env_block}""" if env_block else ""
+    env_section = (
+        f"""
+      env:{env_block}"""
+        if env_block
+        else ""
+    )
 
     test_job = f"""
   test:

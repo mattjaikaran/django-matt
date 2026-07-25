@@ -11,6 +11,7 @@ import orjson
 
 class HealthCheckMiddleware:
     """Short-circuit middleware that responds to health probe paths without full dispatch."""
+
     def __init__(self, get_response) -> None:
         self.get_response = get_response
         self._health_paths = frozenset({"/health/", "/health/live/"})

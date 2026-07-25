@@ -43,14 +43,18 @@ class ModularityAnalyzer(ASTVisitorAnalyzer):
     def _collect_imports(self, tree: ast.Module) -> list[ast.Import | ast.ImportFrom]:
         """Collect all top-level import statements."""
         return [
-            node for node in ast.iter_child_nodes(tree)
+            node
+            for node in ast.iter_child_nodes(tree)
             if isinstance(node, (ast.Import, ast.ImportFrom))
         ]
 
-    def _collect_top_level_defs(self, tree: ast.Module) -> list[ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef]:
+    def _collect_top_level_defs(
+        self, tree: ast.Module
+    ) -> list[ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef]:
         """Collect top-level class and function definitions."""
         return [
-            node for node in ast.iter_child_nodes(tree)
+            node
+            for node in ast.iter_child_nodes(tree)
             if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
         ]
 
@@ -59,15 +63,17 @@ class ModularityAnalyzer(ASTVisitorAnalyzer):
     def _check_too_many_imports(self, imports: list[ast.Import | ast.ImportFrom]) -> None:
         count = len(imports)
         if count > 15:
-            self._add_finding(Finding(
-                rule_id="MOD001",
-                message=f"File has {count} import statements (max 15)",
-                severity=Severity.WARNING,
-                category=Category.MODULARITY,
-                location=Location(file=str(self._file_path), line=1),
-                suggestion="Module may have too many responsibilities, consider splitting",
-                metadata={"import_count": count},
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="MOD001",
+                    message=f"File has {count} import statements (max 15)",
+                    severity=Severity.WARNING,
+                    category=Category.MODULARITY,
+                    location=Location(file=str(self._file_path), line=1),
+                    suggestion="Module may have too many responsibilities, consider splitting",
+                    metadata={"import_count": count},
+                )
+            )
 
     # ── MOD002: Star imports ─────────────────────────────────────────────
 
@@ -77,17 +83,19 @@ class ModularityAnalyzer(ASTVisitorAnalyzer):
                 for alias in node.names:
                     if alias.name == "*":
                         module = node.module or ""
-                        self._add_finding(Finding(
-                            rule_id="MOD002",
-                            message=f"Star import from '{module}'",
-                            severity=Severity.WARNING,
-                            category=Category.MODULARITY,
-                            location=Location(
-                                file=str(self._file_path),
-                                line=node.lineno,
-                            ),
-                            suggestion="Import specific names instead of using wildcard imports",
-                        ))
+                        self._add_finding(
+                            Finding(
+                                rule_id="MOD002",
+                                message=f"Star import from '{module}'",
+                                severity=Severity.WARNING,
+                                category=Category.MODULARITY,
+                                location=Location(
+                                    file=str(self._file_path),
+                                    line=node.lineno,
+                                ),
+                                suggestion="Import specific names instead of using wildcard imports",
+                            )
+                        )
 
     # ── MOD003: Circular import risk ─────────────────────────────────────
 
@@ -97,33 +105,39 @@ class ModularityAnalyzer(ASTVisitorAnalyzer):
                 continue
             for child in ast.walk(node):
                 if isinstance(child, (ast.Import, ast.ImportFrom)) and child is not node:
-                    self._add_finding(Finding(
-                        rule_id="MOD003",
-                        message=f"Import inside function '{node.name}' (possible circular import workaround)",
-                        severity=Severity.HINT,
-                        category=Category.MODULARITY,
-                        location=Location(
-                            file=str(self._file_path),
-                            line=child.lineno,
-                            function=node.name,
-                        ),
-                        suggestion="Refactor module dependencies to avoid circular imports",
-                    ))
+                    self._add_finding(
+                        Finding(
+                            rule_id="MOD003",
+                            message=f"Import inside function '{node.name}' (possible circular import workaround)",
+                            severity=Severity.HINT,
+                            category=Category.MODULARITY,
+                            location=Location(
+                                file=str(self._file_path),
+                                line=child.lineno,
+                                function=node.name,
+                            ),
+                            suggestion="Refactor module dependencies to avoid circular imports",
+                        )
+                    )
 
     # ── MOD004: God module ───────────────────────────────────────────────
 
-    def _check_god_module(self, top_level_defs: list[ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef]) -> None:
+    def _check_god_module(
+        self, top_level_defs: list[ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef]
+    ) -> None:
         count = len(top_level_defs)
         if count > 10:
-            self._add_finding(Finding(
-                rule_id="MOD004",
-                message=f"File has {count} top-level definitions (max 10)",
-                severity=Severity.WARNING,
-                category=Category.MODULARITY,
-                location=Location(file=str(self._file_path), line=1),
-                suggestion="Split into focused modules with fewer definitions each",
-                metadata={"definitions": count},
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="MOD004",
+                    message=f"File has {count} top-level definitions (max 10)",
+                    severity=Severity.WARNING,
+                    category=Category.MODULARITY,
+                    location=Location(file=str(self._file_path), line=1),
+                    suggestion="Split into focused modules with fewer definitions each",
+                    metadata={"definitions": count},
+                )
+            )
 
     # ── MOD005: Deep import path ─────────────────────────────────────────
 
@@ -132,24 +146,10 @@ class ModularityAnalyzer(ASTVisitorAnalyzer):
             if isinstance(node, ast.ImportFrom) and node.module:
                 depth = node.module.count(".") + 1
                 if depth > 4:
-                    self._add_finding(Finding(
-                        rule_id="MOD005",
-                        message=f"Import from deeply nested module '{node.module}' ({depth} levels)",
-                        severity=Severity.HINT,
-                        category=Category.MODULARITY,
-                        location=Location(
-                            file=str(self._file_path),
-                            line=node.lineno,
-                        ),
-                        suggestion="Consider re-exporting from a shorter path",
-                    ))
-            elif isinstance(node, ast.Import):
-                for alias in node.names:
-                    depth = alias.name.count(".") + 1
-                    if depth > 4:
-                        self._add_finding(Finding(
+                    self._add_finding(
+                        Finding(
                             rule_id="MOD005",
-                            message=f"Import from deeply nested module '{alias.name}' ({depth} levels)",
+                            message=f"Import from deeply nested module '{node.module}' ({depth} levels)",
                             severity=Severity.HINT,
                             category=Category.MODULARITY,
                             location=Location(
@@ -157,7 +157,25 @@ class ModularityAnalyzer(ASTVisitorAnalyzer):
                                 line=node.lineno,
                             ),
                             suggestion="Consider re-exporting from a shorter path",
-                        ))
+                        )
+                    )
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    depth = alias.name.count(".") + 1
+                    if depth > 4:
+                        self._add_finding(
+                            Finding(
+                                rule_id="MOD005",
+                                message=f"Import from deeply nested module '{alias.name}' ({depth} levels)",
+                                severity=Severity.HINT,
+                                category=Category.MODULARITY,
+                                location=Location(
+                                    file=str(self._file_path),
+                                    line=node.lineno,
+                                ),
+                                suggestion="Consider re-exporting from a shorter path",
+                            )
+                        )
 
     # ── MOD006: Mixed abstraction levels ─────────────────────────────────
 
@@ -168,7 +186,8 @@ class ModularityAnalyzer(ASTVisitorAnalyzer):
         for node in ast.iter_child_nodes(tree):
             if isinstance(node, ast.ClassDef):
                 method_count = sum(
-                    1 for child in ast.iter_child_nodes(node)
+                    1
+                    for child in ast.iter_child_nodes(node)
                     if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
                 )
                 if method_count >= 5:
@@ -177,14 +196,16 @@ class ModularityAnalyzer(ASTVisitorAnalyzer):
                 has_standalone_function = True
 
         if has_complex_class and has_standalone_function:
-            self._add_finding(Finding(
-                rule_id="MOD006",
-                message="File mixes high-level classes (5+ methods) with standalone utility functions",
-                severity=Severity.HINT,
-                category=Category.MODULARITY,
-                location=Location(file=str(self._file_path), line=1),
-                suggestion="Separate abstractions into different modules",
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="MOD006",
+                    message="File mixes high-level classes (5+ methods) with standalone utility functions",
+                    severity=Severity.HINT,
+                    category=Category.MODULARITY,
+                    location=Location(file=str(self._file_path), line=1),
+                    suggestion="Separate abstractions into different modules",
+                )
+            )
 
     # ── MOD007: Missing __all__ ──────────────────────────────────────────
 
@@ -205,17 +226,16 @@ class ModularityAnalyzer(ASTVisitorAnalyzer):
                         return
 
         # Count public names (no leading underscore)
-        public_names = [
-            d for d in top_level_defs
-            if not d.name.startswith("_")
-        ]
+        public_names = [d for d in top_level_defs if not d.name.startswith("_")]
 
         if len(public_names) >= 3:
-            self._add_finding(Finding(
-                rule_id="MOD007",
-                message=f"Module has {len(public_names)} public definitions but no __all__",
-                severity=Severity.INFO,
-                category=Category.MODULARITY,
-                location=Location(file=str(self._file_path), line=1),
-                suggestion="Define __all__ to clarify the module's public API",
-            ))
+            self._add_finding(
+                Finding(
+                    rule_id="MOD007",
+                    message=f"Module has {len(public_names)} public definitions but no __all__",
+                    severity=Severity.INFO,
+                    category=Category.MODULARITY,
+                    location=Location(file=str(self._file_path), line=1),
+                    suggestion="Define __all__ to clarify the module's public API",
+                )
+            )

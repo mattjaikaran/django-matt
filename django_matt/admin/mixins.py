@@ -1,3 +1,4 @@
+# file-length-max: 450
 """
 Admin mixins for common patterns.
 

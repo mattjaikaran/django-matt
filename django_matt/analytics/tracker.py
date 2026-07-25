@@ -1,3 +1,4 @@
+# file-length-max: 650
 """
 Event tracker for analytics.
 

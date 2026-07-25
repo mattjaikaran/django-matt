@@ -84,11 +84,7 @@ class StateHashVerifier:
 
         # Get migrations for this app in order
         app_migrations = sorted(
-            [
-                (al, mn)
-                for (al, mn) in loader.disk_migrations
-                if al == app_label
-            ],
+            [(al, mn) for (al, mn) in loader.disk_migrations if al == app_label],
             key=lambda x: x[1],
         )
 

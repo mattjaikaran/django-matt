@@ -7,6 +7,7 @@ from typing import Any
 
 class RPCError(Exception):
     """Base exception for all RPC errors."""
+
     def __init__(self, message: str, status_code: int = 500, detail: Any = None):
         self.message = message
         self.status_code = status_code
@@ -26,6 +27,7 @@ class RPCConnectionError(RPCError):
 
 class RPCValidationError(RPCError):
     """Raised when the remote server returns a 422 validation error."""
+
     def __init__(
         self,
         message: str = "Validation error",

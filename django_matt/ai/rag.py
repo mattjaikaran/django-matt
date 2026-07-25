@@ -1,3 +1,4 @@
+# file-length-max: 800
 """
 Retrieval Augmented Generation (RAG) utilities.
 

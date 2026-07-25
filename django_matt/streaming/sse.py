@@ -13,6 +13,7 @@ import orjson
 @dataclass(slots=True)
 class SSEEvent:
     """Data class representing a single Server-Sent Event."""
+
     data: str | bytes | dict[str, Any] | list[Any] | None = None
     event: str | None = None
     id: str | None = None

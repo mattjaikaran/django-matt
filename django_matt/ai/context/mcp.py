@@ -108,20 +108,26 @@ def _generate_tool_function(endpoint: EndpointInfo) -> str:
 
     # Add query params for GET
     if endpoint.method == "GET":
-        params.extend([
-            "limit: int | None = None",
-            "offset: int | None = None",
-        ])
-        param_docs.extend([
-            "        limit: Max results to return",
-            "        offset: Number of results to skip",
-        ])
+        params.extend(
+            [
+                "limit: int | None = None",
+                "offset: int | None = None",
+            ]
+        )
+        param_docs.extend(
+            [
+                "        limit: Max results to return",
+                "        offset: Number of results to skip",
+            ]
+        )
 
     params_str = ", ".join(params)
     param_docs_str = "\n".join(param_docs)
 
     # Build URL with path params
-    url_expr = f'f"{{BASE_URL}}{endpoint.path}"' if path_params else f'"{{BASE_URL}}{endpoint.path}"'
+    url_expr = (
+        f'f"{{BASE_URL}}{endpoint.path}"' if path_params else f'"{{BASE_URL}}{endpoint.path}"'
+    )
     # Replace {param} with {param} for f-string
     url_expr = url_expr.replace("{BASE_URL}", "{BASE_URL}")
 
@@ -131,16 +137,22 @@ def _generate_tool_function(endpoint: EndpointInfo) -> str:
         if "body:" in params_str:
             request_body = "body"
         else:
-            body_fields = [p.split(":")[0].strip() for p in params if p.split(":")[0].strip() not in path_params and "limit" not in p and "offset" not in p]
+            body_fields = [
+                p.split(":")[0].strip()
+                for p in params
+                if p.split(":")[0].strip() not in path_params
+                and "limit" not in p
+                and "offset" not in p
+            ]
             if body_fields:
                 request_body = "{" + ", ".join(f'"{f}": {f}' for f in body_fields) + "}"
             else:
                 request_body = "None"
-        kwargs = f'json={request_body}, headers=headers'
+        kwargs = f"json={request_body}, headers=headers"
     elif endpoint.method == "GET":
         kwargs = 'params={k: v for k, v in {"limit": limit, "offset": offset}.items() if v is not None}, headers=headers'
     else:
-        kwargs = 'headers=headers'
+        kwargs = "headers=headers"
 
     return f'''
 @mcp.tool()
