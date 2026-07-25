@@ -253,13 +253,8 @@ class TestResetLoginConfig:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 class TestEmailOrUsernameBackend:
-    @pytest.fixture(autouse=True)
-    def _reset(self):
-        reset_login_config()
-        yield
-        reset_login_config()
 
     @pytest.fixture
     def user(self):
@@ -273,16 +268,14 @@ class TestEmailOrUsernameBackend:
         )
         return u
 
-    def test_login_by_email(self, user, settings):
-        settings.MATT_AUTH = {"login_field": "email"}
-        backend = EmailOrUsernameBackend()
+    def test_login_by_email(self, user):
+        backend = EmailOrUsernameBackend(config=LoginConfig(login_field="email"))
         result = backend.authenticate(None, username="test@example.com", password="secret123")
         assert result is not None
         assert result.pk == user.pk
 
-    def test_login_by_username(self, user, settings):
-        settings.MATT_AUTH = {"login_field": "username"}
-        backend = EmailOrUsernameBackend()
+    def test_login_by_username(self, user):
+        backend = EmailOrUsernameBackend(config=LoginConfig(login_field="username"))
         result = backend.authenticate(None, username="testuser", password="secret123")
         assert result is not None
         assert result.pk == user.pk
@@ -307,20 +300,17 @@ class TestEmailOrUsernameBackend:
         assert result is not None
         assert result.pk == user.pk
 
-    def test_username_fallback_to_email(self, user, settings):
-        settings.MATT_AUTH = {"login_field": "username"}
-        backend = EmailOrUsernameBackend()
+    def test_username_fallback_to_email(self, user):
+        backend = EmailOrUsernameBackend(config=LoginConfig(login_field="username"))
         # Login with email when login_field is username — should fall back
         result = backend.authenticate(None, username="test@example.com", password="secret123")
         assert result is not None
         assert result.pk == user.pk
 
-    def test_case_insensitive_email(self, user, settings):
-        settings.MATT_AUTH = {"login_field": "email", "case_insensitive": True}
-        backend = EmailOrUsernameBackend()
+    def test_case_insensitive_email(self, user):
+        backend = EmailOrUsernameBackend(config=LoginConfig(login_field="email", case_insensitive=True))
         result = backend.authenticate(None, username="TEST@EXAMPLE.COM", password="secret123")
         assert result is not None
-
     def test_case_sensitive_email(self, user, settings):
         settings.MATT_AUTH = {"login_field": "email", "case_insensitive": False}
         backend = EmailOrUsernameBackend()
@@ -328,12 +318,10 @@ class TestEmailOrUsernameBackend:
         # Exact match fails because DB has lowercase
         assert result is None
 
-    def test_strip_whitespace(self, user, settings):
-        settings.MATT_AUTH = {"login_field": "email", "strip_whitespace": True}
-        backend = EmailOrUsernameBackend()
+    def test_strip_whitespace(self, user):
+        backend = EmailOrUsernameBackend(config=LoginConfig(login_field="email", strip_whitespace=True))
         result = backend.authenticate(None, username="  test@example.com  ", password="secret123")
         assert result is not None
-
     def test_inactive_user_rejected(self, user, settings):
         settings.MATT_AUTH = {"login_field": "email", "allow_inactive": False}
         user.is_active = False
@@ -342,11 +330,10 @@ class TestEmailOrUsernameBackend:
         result = backend.authenticate(None, username="test@example.com", password="secret123")
         assert result is None
 
-    def test_inactive_user_allowed(self, user, settings):
-        settings.MATT_AUTH = {"login_field": "email", "allow_inactive": True}
+    def test_inactive_user_allowed(self, user):
+        backend = EmailOrUsernameBackend(config=LoginConfig(login_field="email", allow_inactive=True))
         user.is_active = False
         user.save()
-        backend = EmailOrUsernameBackend()
         result = backend.authenticate(None, username="test@example.com", password="secret123")
         assert result is not None
 

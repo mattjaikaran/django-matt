@@ -68,6 +68,15 @@ class EmailOrUsernameBackend(ModelBackend):
         ]
     """
 
+    def __init__(self, config: LoginConfig | None = None):
+        self._config = config
+
+    def _get_config(self) -> LoginConfig:
+        """Get login config — use injected config if provided, else read from settings."""
+        if self._config is not None:
+            return self._config
+        return get_login_config()
+
     def authenticate(
         self,
         request: Any = None,
@@ -78,7 +87,7 @@ class EmailOrUsernameBackend(ModelBackend):
         if username is None or password is None:
             return None
 
-        config = get_login_config()
+        config = self._get_config()
         User = get_user_model()
 
         credential = username
