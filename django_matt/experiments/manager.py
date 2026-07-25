@@ -129,12 +129,28 @@ class ExperimentManager:
             return None
 
         # Create assignment
-        return self._create_assignment(
+        assignment = self._create_assignment(
             experiment=experiment,
             user=user,
             anonymous_id=anonymous_id,
             context=context or {},
         )
+
+        # Emit analytics event when a user is assigned to an experiment variant
+        from django_matt.analytics import track_event
+        track_event(
+            name="experiment_assigned",
+            properties={
+                "experiment_key": experiment_key,
+                "variant_key": assignment.variant.key if assignment.variant else None,
+                "is_holdout": assignment.is_holdout,
+            },
+            user=user,
+            anonymous_id=anonymous_id or "",
+            category="experiment",
+        )
+
+        return assignment
 
     def get_variant(
         self,

@@ -32,6 +32,8 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django_matt.core.errors.ErrorMiddleware",
+    "django_matt.multitenancy.TenantMiddlewareAsync",
+    "django_matt.observability.ObservabilityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
