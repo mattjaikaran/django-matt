@@ -21,14 +21,17 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.db import models
+
+import pytest
 
 from django_matt.graphql.config import (
     GraphQLConfig,
-    RateLimitConfig as GraphQLRateLimitConfig,
     get_graphql_config,
     reset_config,
+)
+from django_matt.graphql.config import (
+    RateLimitConfig as GraphQLRateLimitConfig,
 )
 from django_matt.graphql.decorators import (
     _complexity_registry,
@@ -38,7 +41,6 @@ from django_matt.graphql.decorators import (
     get_rate_limit,
     rate_limited,
 )
-
 
 # ===========================================================================
 # Config
@@ -229,8 +231,9 @@ class TestDecoratorsRequireStrawberry:
                     id: int
 
     def test_graphql_enum_raises_without_strawberry(self):
-        from django_matt.graphql import STRAWBERRY_AVAILABLE
         from enum import Enum
+
+        from django_matt.graphql import STRAWBERRY_AVAILABLE
 
         if not STRAWBERRY_AVAILABLE:
             from django_matt.graphql.decorators import graphql_enum
@@ -380,6 +383,7 @@ class TestWithStrawberry:
 
     def test_graphql_type_decorator(self):
         import strawberry
+
         from django_matt.graphql.decorators import graphql_type
 
         @graphql_type
@@ -589,8 +593,9 @@ class TestDataLoaderBatching:
 
     def test_model_data_loader_instantiation(self):
         """Test ModelDataLoader can be created for a model."""
-        from django_matt.graphql.dataloaders import ModelDataLoader
         from django.contrib.auth.models import User
+
+        from django_matt.graphql.dataloaders import ModelDataLoader
 
         loader = ModelDataLoader(User)
         assert loader.model is User
@@ -599,8 +604,9 @@ class TestDataLoaderBatching:
 
     def test_dataloader_registry_register_model(self):
         """Test DataLoaderRegistry registers model loaders."""
-        from django_matt.graphql.dataloaders import DataLoaderRegistry
         from django.contrib.auth.models import User
+
+        from django_matt.graphql.dataloaders import DataLoaderRegistry
 
         registry = DataLoaderRegistry()
         loader = registry.register_model(User)
@@ -609,8 +615,9 @@ class TestDataLoaderBatching:
 
     def test_model_data_loader_batch_uses_filter_in(self):
         """Test that _batch_load uses __in filter for batching."""
-        from django_matt.graphql.dataloaders import ModelDataLoader
         from django.contrib.auth.models import User
+
+        from django_matt.graphql.dataloaders import ModelDataLoader
 
         loader = ModelDataLoader(User)
         # Verify the batch load builds correct filter
@@ -623,8 +630,9 @@ class TestDataLoaderBatching:
 
     def test_create_dataloaders_helper(self):
         """Test create_dataloaders convenience function."""
+        from django.contrib.auth.models import Group, User
+
         from django_matt.graphql.dataloaders import create_dataloaders
-        from django.contrib.auth.models import User, Group
 
         registry = create_dataloaders([User, Group])
         assert registry.get_loader(User) is not None
@@ -653,6 +661,7 @@ class TestGraphQLViewEndpoint:
     def test_graphql_api_get_urls(self):
         """Test GraphQLAPI generates URL patterns."""
         import strawberry
+
         from django_matt.graphql.views import GraphQLAPI
 
         @strawberry.type
@@ -672,6 +681,7 @@ class TestGraphQLViewEndpoint:
     def test_graphql_api_get_view(self):
         """Test GraphQLAPI.get_view returns callable view."""
         import strawberry
+
         from django_matt.graphql.views import GraphQLAPI
 
         @strawberry.type

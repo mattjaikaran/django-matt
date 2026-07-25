@@ -19,24 +19,22 @@ import os
 import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock, AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from django_matt.files.config import FileConfig
 from django_matt.files.storage import (
     BaseStorage,
-    FileExistsError as StorageFileExistsError,
     FileInfo,
-    FileNotFoundError as StorageFileNotFoundError,
     PresignedUrl,
     StorageError,
 )
-from django_matt.files.validators import (
-    FileTooLargeError,
-    FileValidator,
-    InvalidExtensionError,
-    InvalidFileTypeError,
-    ValidationError,
+from django_matt.files.storage import (
+    FileExistsError as StorageFileExistsError,
+)
+from django_matt.files.storage import (
+    FileNotFoundError as StorageFileNotFoundError,
 )
 from django_matt.files.upload import (
     MultipartParser,
@@ -55,8 +53,13 @@ from django_matt.files.utils import (
     sanitize_filename,
     split_filename,
 )
-from django_matt.files.config import FileConfig
-
+from django_matt.files.validators import (
+    FileTooLargeError,
+    FileValidator,
+    InvalidExtensionError,
+    InvalidFileTypeError,
+    ValidationError,
+)
 
 # ==============================================================================
 # FileInfo
@@ -547,17 +550,17 @@ class TestS3Storage:
 class TestMultipartParser:
     def test_parse_simple(self):
         body = (
-            "------boundary\r\n"
-            'Content-Disposition: form-data; name="field1"\r\n'
-            "\r\n"
-            "value1\r\n"
-            "------boundary\r\n"
-            'Content-Disposition: form-data; name="file"; filename="test.txt"\r\n'
-            "Content-Type: text/plain\r\n"
-            "\r\n"
-            "file content\r\n"
-            "------boundary--"
-        ).encode()
+            b"------boundary\r\n"
+            b'Content-Disposition: form-data; name="field1"\r\n'
+            b"\r\n"
+            b"value1\r\n"
+            b"------boundary\r\n"
+            b'Content-Disposition: form-data; name="file"; filename="test.txt"\r\n'
+            b"Content-Type: text/plain\r\n"
+            b"\r\n"
+            b"file content\r\n"
+            b"------boundary--"
+        )
 
         parser = MultipartParser(
             content_type="multipart/form-data; boundary=----boundary",

@@ -5,14 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from django_matt.review.config import ReviewConfig
-from django_matt.review.analyzers.complexity import ComplexityAnalyzer
-from django_matt.review.analyzers.solid import SolidAnalyzer
-from django_matt.review.analyzers.django import DjangoBestPracticesAnalyzer
 from django_matt.review.analyzers.ai_friendly import AIFriendlyAnalyzer
-from django_matt.review.analyzers.security import SecurityAnalyzer
+from django_matt.review.analyzers.complexity import ComplexityAnalyzer
+from django_matt.review.analyzers.django import DjangoBestPracticesAnalyzer
 from django_matt.review.analyzers.modularity import ModularityAnalyzer
 from django_matt.review.analyzers.performance import PerformanceAnalyzer
+from django_matt.review.analyzers.security import SecurityAnalyzer
+from django_matt.review.analyzers.solid import SolidAnalyzer
+from django_matt.review.config import ReviewConfig
 
 
 def _analyze(analyzer_cls: type, source: str, *, file_path: str = "test.py", **config_kwargs) -> list:

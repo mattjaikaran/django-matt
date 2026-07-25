@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import AsyncMock
 
-from django_matt.ai.models import Conversation, ConversationMessage
+import pytest
+
 from django_matt.ai.agents import Agent
 from django_matt.ai.base import CompletionResponse, Usage
+from django_matt.ai.models import Conversation, ConversationMessage
 
 
 @pytest.mark.django_db

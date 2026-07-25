@@ -6,9 +6,10 @@ import json
 from unittest.mock import AsyncMock, MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
-import pytest
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
+
+import pytest
 
 from django_matt.auth.oauth.config import (
     OAuthConfig,
@@ -967,8 +968,9 @@ class TestOAuthGoogleIntegration:
     @pytest.mark.asyncio
     async def test_login_generates_authorization_url(self):
         """OAuthController.login returns an authorization_url with expected Google params."""
-        from django_matt.auth.oauth.controllers import OAuthController
         from django.test import RequestFactory as RF
+
+        from django_matt.auth.oauth.controllers import OAuthController
 
         config = self._make_config()
 
@@ -985,9 +987,10 @@ class TestOAuthGoogleIntegration:
     @pytest.mark.asyncio
     async def test_callback_creates_user_and_returns_tokens(self):
         """Full Google callback: exchange code -> user info -> create user -> JWT tokens."""
+        from django.test import RequestFactory as RF
+
         from django_matt.auth.oauth.controllers import OAuthController
         from django_matt.auth.oauth.models import OAuthConnection
-        from django.test import RequestFactory as RF
 
         config = self._make_config()
 
@@ -1043,9 +1046,10 @@ class TestOAuthGoogleIntegration:
     @pytest.mark.asyncio
     async def test_callback_links_existing_user_by_email(self):
         """Callback links to an existing user when email matches (link_existing_user=True)."""
-        from django_matt.auth.oauth.controllers import OAuthController
-        from django_matt.auth.oauth.config import OAuthConfig
         from django.test import RequestFactory as RF
+
+        from django_matt.auth.oauth.config import OAuthConfig
+        from django_matt.auth.oauth.controllers import OAuthController
 
         config = OAuthConfig(
             redirect_uri_base="https://example.com",
@@ -1102,9 +1106,10 @@ class TestOAuthGoogleIntegration:
     @pytest.mark.asyncio
     async def test_callback_invalid_state_raises(self):
         """Callback raises validation error on invalid state."""
+        from django.test import RequestFactory as RF
+
         from django_matt.auth.oauth.controllers import OAuthController
         from django_matt.core.errors import ValidationAPIError
-        from django.test import RequestFactory as RF
 
         config = self._make_config()
 
@@ -1118,9 +1123,10 @@ class TestOAuthGoogleIntegration:
     @pytest.mark.asyncio
     async def test_callback_missing_code_raises(self):
         """Callback raises validation error when authorization code is missing."""
+        from django.test import RequestFactory as RF
+
         from django_matt.auth.oauth.controllers import OAuthController
         from django_matt.core.errors import ValidationAPIError
-        from django.test import RequestFactory as RF
 
         config = self._make_config()
         request = RF().get("/auth/oauth/google/callback", {})
@@ -1138,8 +1144,9 @@ class TestOAuthGitHubIntegration:
     @pytest.mark.asyncio
     async def test_login_generates_authorization_url(self):
         """OAuthController.login returns a GitHub authorization URL."""
-        from django_matt.auth.oauth.controllers import OAuthController
         from django.test import RequestFactory as RF
+
+        from django_matt.auth.oauth.controllers import OAuthController
 
         config = _make_oauth_config()
 
@@ -1154,9 +1161,10 @@ class TestOAuthGitHubIntegration:
     @pytest.mark.asyncio
     async def test_callback_creates_user_via_github(self):
         """Full GitHub callback: token exchange -> user info (with email endpoint) -> create user -> JWT."""
+        from django.test import RequestFactory as RF
+
         from django_matt.auth.oauth.controllers import OAuthController
         from django_matt.auth.oauth.models import OAuthConnection
-        from django.test import RequestFactory as RF
 
         config = _make_oauth_config()
 
@@ -1215,9 +1223,10 @@ class TestOAuthGitHubIntegration:
     @pytest.mark.asyncio
     async def test_callback_github_private_email_fetched(self):
         """Callback fetches private email from /user/emails when profile email is null."""
+        from django.test import RequestFactory as RF
+
         from django_matt.auth.oauth.controllers import OAuthController
         from django_matt.auth.oauth.models import OAuthConnection
-        from django.test import RequestFactory as RF
 
         config = _make_oauth_config()
 

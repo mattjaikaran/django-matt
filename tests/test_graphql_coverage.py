@@ -26,10 +26,11 @@ import base64
 import datetime
 import uuid
 from decimal import Decimal
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
+from django.db import models
 
 import pytest
-from django.db import models
 
 strawberry = pytest.importorskip("strawberry")
 
@@ -150,23 +151,23 @@ class TestGetGraphQLTypeForPythonType:
 @pytest.mark.django_db
 class TestCreateTypeFromModel:
     def test_basic_type_creation(self):
-        from django_matt.graphql.types import create_type_from_model
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.types import create_type_from_model
 
         ExperimentType = create_type_from_model(Experiment)
         assert ExperimentType is not None
         assert hasattr(ExperimentType, "__annotations__")
 
     def test_custom_name(self):
-        from django_matt.graphql.types import create_type_from_model
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.types import create_type_from_model
 
         CustomType = create_type_from_model(Experiment, name="CustomExperimentType")
         assert CustomType.__name__ == "CustomExperimentType"
 
     def test_field_inclusion(self):
-        from django_matt.graphql.types import create_type_from_model
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.types import create_type_from_model
 
         LimitedType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -178,8 +179,8 @@ class TestCreateTypeFromModel:
         assert "description" not in annotations
 
     def test_field_exclusion(self):
-        from django_matt.graphql.types import create_type_from_model
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.types import create_type_from_model
 
         ExcludeType = create_type_from_model(Experiment, exclude=["metadata", "epsilon"])
         annotations = ExcludeType.__annotations__
@@ -188,8 +189,8 @@ class TestCreateTypeFromModel:
         assert "key" in annotations
 
     def test_from_orm(self):
-        from django_matt.graphql.types import create_type_from_model
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.types import create_type_from_model
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -207,8 +208,8 @@ class TestCreateTypeFromModel:
 
 class TestCreateInputFromModel:
     def test_basic_input_creation(self):
-        from django_matt.graphql.types import create_input_from_model
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.types import create_input_from_model
 
         ExperimentInput = create_input_from_model(Experiment)
         assert ExperimentInput is not None
@@ -217,8 +218,8 @@ class TestCreateInputFromModel:
         assert "id" not in annotations
 
     def test_custom_name(self):
-        from django_matt.graphql.types import create_input_from_model
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.types import create_input_from_model
 
         CustomInput = create_input_from_model(Experiment, name="MyInput")
         assert CustomInput.__name__ == "MyInput"
@@ -254,8 +255,8 @@ class TestRelayTypes:
 @pytest.mark.django_db
 class TestConnectionType:
     def test_from_queryset_basic(self):
-        from django_matt.graphql.types import ConnectionType, create_type_from_model
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.types import ConnectionType, create_type_from_model
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -274,8 +275,8 @@ class TestConnectionType:
         assert connection.page_info.has_previous_page is False
 
     def test_from_queryset_with_after_cursor(self):
-        from django_matt.graphql.types import ConnectionType, create_type_from_model
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.types import ConnectionType, create_type_from_model
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -292,8 +293,8 @@ class TestConnectionType:
         assert connection.page_info.has_previous_page is True
 
     def test_from_queryset_with_last(self):
-        from django_matt.graphql.types import ConnectionType, create_type_from_model
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.types import ConnectionType, create_type_from_model
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -308,8 +309,8 @@ class TestConnectionType:
         assert len(connection.edges) == 2
 
     def test_from_queryset_empty(self):
-        from django_matt.graphql.types import ConnectionType, create_type_from_model
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.types import ConnectionType, create_type_from_model
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -323,8 +324,8 @@ class TestConnectionType:
         assert connection.page_info.start_cursor is None
 
     def test_invalid_cursor_handled(self):
-        from django_matt.graphql.types import ConnectionType, create_type_from_model
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.types import ConnectionType, create_type_from_model
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -391,9 +392,9 @@ class TestDjangoModelType:
 @pytest.mark.django_db
 class TestQueryGenerator:
     def test_list_query_creates_field(self):
+        from django_matt.experiments.models import Experiment
         from django_matt.graphql.queries import QueryGenerator
         from django_matt.graphql.types import create_type_from_model
-        from django_matt.experiments.models import Experiment
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -403,9 +404,9 @@ class TestQueryGenerator:
         assert field is not None
 
     def test_detail_query_creates_field(self):
+        from django_matt.experiments.models import Experiment
         from django_matt.graphql.queries import QueryGenerator
         from django_matt.graphql.types import create_type_from_model
-        from django_matt.experiments.models import Experiment
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -415,9 +416,9 @@ class TestQueryGenerator:
         assert field is not None
 
     def test_connection_query_creates_field(self):
+        from django_matt.experiments.models import Experiment
         from django_matt.graphql.queries import QueryGenerator
         from django_matt.graphql.types import create_type_from_model
-        from django_matt.experiments.models import Experiment
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -488,9 +489,9 @@ class TestApplyFilters:
 
 class TestMutationGenerator:
     def test_create_mutation_generates(self):
+        from django_matt.experiments.models import Experiment
         from django_matt.graphql.mutations import MutationGenerator
         from django_matt.graphql.types import create_type_from_model
-        from django_matt.experiments.models import Experiment
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -500,9 +501,9 @@ class TestMutationGenerator:
         assert mutation is not None
 
     def test_update_mutation_generates(self):
+        from django_matt.experiments.models import Experiment
         from django_matt.graphql.mutations import MutationGenerator
         from django_matt.graphql.types import create_type_from_model
-        from django_matt.experiments.models import Experiment
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -512,9 +513,9 @@ class TestMutationGenerator:
         assert mutation is not None
 
     def test_delete_mutation_generates(self):
+        from django_matt.experiments.models import Experiment
         from django_matt.graphql.mutations import MutationGenerator
         from django_matt.graphql.types import create_type_from_model
-        from django_matt.experiments.models import Experiment
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -549,16 +550,16 @@ class TestMutationGenerator:
 
 class TestModelDataLoader:
     def test_initialization(self):
-        from django_matt.graphql.dataloaders import ModelDataLoader
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.dataloaders import ModelDataLoader
 
         loader = ModelDataLoader(Experiment)
         assert loader.model is Experiment
         assert loader._cache is not None
 
     def test_prime_and_clear(self):
-        from django_matt.graphql.dataloaders import ModelDataLoader
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.dataloaders import ModelDataLoader
 
         loader = ModelDataLoader(Experiment)
         loader.prime("key1", "value1")
@@ -570,8 +571,8 @@ class TestModelDataLoader:
         assert len(loader._cache) == 0
 
     def test_no_cache_mode(self):
-        from django_matt.graphql.dataloaders import ModelDataLoader
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.dataloaders import ModelDataLoader
 
         loader = ModelDataLoader(Experiment, cache=False)
         assert loader._cache is None
@@ -582,8 +583,8 @@ class TestModelDataLoader:
 
 class TestRelatedDataLoader:
     def test_initialization(self):
-        from django_matt.graphql.dataloaders import RelatedDataLoader
         from django_matt.experiments.models import ExperimentAssignment
+        from django_matt.graphql.dataloaders import RelatedDataLoader
 
         loader = RelatedDataLoader(ExperimentAssignment, "experiment_id")
         assert loader.model is ExperimentAssignment
@@ -592,24 +593,24 @@ class TestRelatedDataLoader:
 
 class TestDataLoaderRegistry:
     def test_register_and_get(self):
-        from django_matt.graphql.dataloaders import DataLoaderRegistry
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.dataloaders import DataLoaderRegistry
 
         registry = DataLoaderRegistry()
         loader = registry.register_model(Experiment)
         assert registry.get_loader(Experiment) is loader
 
     def test_register_related(self):
-        from django_matt.graphql.dataloaders import DataLoaderRegistry
         from django_matt.experiments.models import ExperimentAssignment
+        from django_matt.graphql.dataloaders import DataLoaderRegistry
 
         registry = DataLoaderRegistry()
         loader = registry.register_related(ExperimentAssignment, "experiment_id")
         assert registry.get_related_loader(ExperimentAssignment, "experiment_id") is loader
 
     def test_get_nonexistent_loader(self):
-        from django_matt.graphql.dataloaders import DataLoaderRegistry
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.dataloaders import DataLoaderRegistry
 
         registry = DataLoaderRegistry()
         assert registry.get_loader(Experiment) is None
@@ -627,8 +628,8 @@ class TestDataLoaderRegistry:
         assert registry.get_custom_loader("nonexistent") is None
 
     def test_clear_all(self):
-        from django_matt.graphql.dataloaders import DataLoaderRegistry
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.dataloaders import DataLoaderRegistry
 
         registry = DataLoaderRegistry()
         model_loader = registry.register_model(Experiment)
@@ -639,8 +640,8 @@ class TestDataLoaderRegistry:
 
 class TestCreateDataloaders:
     def test_creates_registry(self):
-        from django_matt.graphql.dataloaders import create_dataloaders
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.dataloaders import create_dataloaders
 
         registry = create_dataloaders([Experiment])
         assert registry.get_loader(Experiment) is not None
@@ -690,8 +691,8 @@ class TestSubscriptionManager:
         SubscriptionManager._instance = None
 
     def test_register_model(self):
-        from django_matt.graphql.subscriptions import SubscriptionManager
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.subscriptions import SubscriptionManager
         from django_matt.graphql.types import create_type_from_model
 
         SubscriptionManager._instance = None
@@ -713,9 +714,9 @@ class TestSubscriptionManager:
 
 class TestSubscriptionGenerator:
     def test_created_subscription(self):
+        from django_matt.experiments.models import Experiment
         from django_matt.graphql.subscriptions import SubscriptionGenerator, SubscriptionManager
         from django_matt.graphql.types import create_type_from_model
-        from django_matt.experiments.models import Experiment
 
         SubscriptionManager._instance = None
         ExperimentType = create_type_from_model(
@@ -728,9 +729,9 @@ class TestSubscriptionGenerator:
         SubscriptionManager._instance = None
 
     def test_all_events_subscription(self):
+        from django_matt.experiments.models import Experiment
         from django_matt.graphql.subscriptions import SubscriptionGenerator, SubscriptionManager
         from django_matt.graphql.types import create_type_from_model
-        from django_matt.experiments.models import Experiment
 
         SubscriptionManager._instance = None
         ExperimentType = create_type_from_model(
@@ -750,8 +751,8 @@ class TestSubscriptionGenerator:
 
 class TestGraphQLSchemaBuilder:
     def test_add_model_chaining(self):
-        from django_matt.graphql.schema import GraphQLSchema
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.schema import GraphQLSchema
 
         builder = GraphQLSchema()
         result = builder.add_model(Experiment)
@@ -824,9 +825,9 @@ class TestRequireStrawberry:
 
 class TestConvenienceFunctions:
     def test_generate_list_query(self):
+        from django_matt.experiments.models import Experiment
         from django_matt.graphql.queries import generate_list_query
         from django_matt.graphql.types import create_type_from_model
-        from django_matt.experiments.models import Experiment
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -835,9 +836,9 @@ class TestConvenienceFunctions:
         assert field is not None
 
     def test_generate_detail_query(self):
+        from django_matt.experiments.models import Experiment
         from django_matt.graphql.queries import generate_detail_query
         from django_matt.graphql.types import create_type_from_model
-        from django_matt.experiments.models import Experiment
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -846,9 +847,9 @@ class TestConvenienceFunctions:
         assert field is not None
 
     def test_generate_connection_query(self):
+        from django_matt.experiments.models import Experiment
         from django_matt.graphql.queries import generate_connection_query
         from django_matt.graphql.types import create_type_from_model
-        from django_matt.experiments.models import Experiment
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -857,9 +858,9 @@ class TestConvenienceFunctions:
         assert field is not None
 
     def test_generate_create_mutation(self):
+        from django_matt.experiments.models import Experiment
         from django_matt.graphql.mutations import generate_create_mutation
         from django_matt.graphql.types import create_type_from_model
-        from django_matt.experiments.models import Experiment
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -868,9 +869,9 @@ class TestConvenienceFunctions:
         assert mutation is not None
 
     def test_generate_delete_mutation(self):
+        from django_matt.experiments.models import Experiment
         from django_matt.graphql.mutations import generate_delete_mutation
         from django_matt.graphql.types import create_type_from_model
-        from django_matt.experiments.models import Experiment
 
         ExperimentType = create_type_from_model(
             Experiment, fields=["key", "name", "status"]
@@ -886,8 +887,8 @@ class TestConvenienceFunctions:
 
 class TestCreateFilterInput:
     def test_basic_filter_creation(self):
-        from django_matt.graphql.types import create_filter_input_from_model
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.types import create_filter_input_from_model
 
         FilterInput = create_filter_input_from_model(
             Experiment, fields=["key", "status"]
@@ -900,8 +901,8 @@ class TestCreateFilterInput:
         assert "key_icontains" in annotations
 
     def test_filter_name(self):
-        from django_matt.graphql.types import create_filter_input_from_model
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.types import create_filter_input_from_model
 
         FilterInput = create_filter_input_from_model(
             Experiment, name="ExpFilter", fields=["key"]
@@ -916,8 +917,8 @@ class TestCreateFilterInput:
 
 class TestGetLoaderHelper:
     def test_get_loader_from_context(self):
-        from django_matt.graphql.dataloaders import get_loader, DataLoaderRegistry
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.dataloaders import DataLoaderRegistry, get_loader
 
         registry = DataLoaderRegistry()
         loader = registry.register_model(Experiment)
@@ -929,8 +930,8 @@ class TestGetLoaderHelper:
         assert result is loader
 
     def test_get_loader_no_registry(self):
-        from django_matt.graphql.dataloaders import get_loader
         from django_matt.experiments.models import Experiment
+        from django_matt.graphql.dataloaders import get_loader
 
         info = MagicMock()
         info.context = {}

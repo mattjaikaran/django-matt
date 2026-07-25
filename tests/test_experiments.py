@@ -26,13 +26,12 @@ from django_matt.experiments.analysis import (
     StatisticalAnalyzer,
     VariantStats,
 )
+from django_matt.experiments.manager import ExperimentManager
 from django_matt.experiments.models import (
     AssignmentStrategy,
     ExperimentStatus,
     MetricType,
 )
-from django_matt.experiments.manager import ExperimentManager
-
 
 # ===========================================================================
 # Enums

@@ -20,13 +20,13 @@ import asyncio
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import orjson
-import pytest
 from django.contrib.auth.models import User
 from django.db import models
 from django.http import HttpRequest, JsonResponse, QueryDict
 from django.test import RequestFactory
 
+import orjson
+import pytest
 from pydantic import BaseModel
 
 from django_matt.core.errors import NotFoundAPIError

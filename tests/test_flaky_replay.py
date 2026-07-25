@@ -12,7 +12,6 @@ import pytest
 from django_matt.testing.smart.flaky import FlakyDetector, FlakyRecord
 from django_matt.testing.smart.recorder import TestRecorder, TestReplayer
 
-
 # ──────────────────────────────────────────────
 # FlakyDetector
 # ──────────────────────────────────────────────

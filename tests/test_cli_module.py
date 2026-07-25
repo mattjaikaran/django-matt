@@ -457,9 +457,8 @@ class TestCLIErrorHandler:
         # If we reach here, exception was suppressed
 
     def test_catch_context_manager_with_exit(self):
-        with pytest.raises(SystemExit):
-            with self.handler.catch(exit_on_error=True):
-                raise ValueError("fatal in context")
+        with pytest.raises(SystemExit), self.handler.catch(exit_on_error=True):
+            raise ValueError("fatal in context")
 
     def test_catch_context_manager_no_error(self):
         with self.handler.catch(exit_on_error=False):
@@ -1157,7 +1156,12 @@ class TestDoctorTiers:
 
     def test_doctor_summary_line_format(self):
         """_collect_errors/warnings/infos returns structured CheckResult objects."""
-        from django_matt.cli.commands.status import CheckResult, _collect_errors, _collect_info, _collect_warnings
+        from django_matt.cli.commands.status import (
+            CheckResult,
+            _collect_errors,
+            _collect_info,
+            _collect_warnings,
+        )
 
         errors = _collect_errors()
         warnings = _collect_warnings()

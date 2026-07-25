@@ -19,10 +19,11 @@ from __future__ import annotations
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.http import HttpRequest, JsonResponse
 from django.test import RequestFactory
 from django.utils import timezone
+
+import pytest
 
 from django_matt.flags.backends import DatabaseBackend, MemoryBackend, get_backend
 from django_matt.flags.context import FlagContext, get_current_context, set_current_context

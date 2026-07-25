@@ -18,7 +18,6 @@ from pydantic import BaseModel
 # ---------------------------------------------------------------------------
 # Import the modules under test (optional deps guarded)
 # ---------------------------------------------------------------------------
-
 from django_matt.ai.base import (
     CompletionResponse,
     EmbeddingResponse,
@@ -30,9 +29,8 @@ from django_matt.ai.base import (
 
 # llamacpp requires llama_cpp
 from django_matt.ml import llamacpp
-from django_matt.ml import vllm as vllm_mod
 from django_matt.ml import localai as localai_mod
-
+from django_matt.ml import vllm as vllm_mod
 
 # =============================================================================
 # Pydantic models for structured-output tests

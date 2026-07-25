@@ -16,13 +16,13 @@ from __future__ import annotations
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
-from asgiref.sync import sync_to_async
-
-import pytest
 from django.contrib.auth.models import User
 from django.http import HttpRequest, JsonResponse
 from django.test import RequestFactory
 from django.utils import timezone
+
+import pytest
+from asgiref.sync import sync_to_async
 
 from django_matt.analytics.aggregations import Aggregator, get_aggregator
 from django_matt.analytics.backends import DatabaseBackend as AnalyticsDatabaseBackend

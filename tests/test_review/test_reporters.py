@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import pytest
-
 import orjson
+import pytest
 
 from django_matt.review.config import ReviewConfig
 from django_matt.review.findings import (
@@ -12,10 +11,10 @@ from django_matt.review.findings import (
     ReviewSummary,
     Severity,
 )
+from django_matt.review.reporters.console import report_console
+from django_matt.review.reporters.github import report_github
 from django_matt.review.reporters.json_reporter import report_json
 from django_matt.review.reporters.markdown import report_markdown
-from django_matt.review.reporters.github import report_github
-from django_matt.review.reporters.console import report_console
 
 
 @pytest.fixture

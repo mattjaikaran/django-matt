@@ -23,12 +23,13 @@ import time
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
 from django.test import RequestFactory
 from django.utils import timezone
+
+import pytest
 
 from django_matt.auth.api_keys.decorators import (
     api_key_optional,

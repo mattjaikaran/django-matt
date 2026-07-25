@@ -389,7 +389,7 @@ def generate_controller_from_viewset(vs: ViewSetInfo) -> str:
         lines.append(f"        return {schema_name}.from_orm(instance).model_dump()")
 
     lines.append("")
-    lines.append(f"# Register with the API:")
+    lines.append("# Register with the API:")
     lines.append(f"# api.register_controller({controller_name})")
     lines.append("")
     return "\n".join(lines)

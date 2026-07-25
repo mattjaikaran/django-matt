@@ -16,11 +16,12 @@ import time
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.contrib.auth.models import AnonymousUser, User
 from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 from django.utils import timezone
+
+import pytest
 
 from django_matt.analytics.backends import AnalyticsBackend, DatabaseBackend, get_backend
 from django_matt.analytics.middleware import AnalyticsMiddleware
@@ -33,7 +34,6 @@ from django_matt.analytics.models import (
     SessionStatus,
 )
 from django_matt.analytics.tracker import BatchContext, EventTracker
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -454,11 +454,10 @@ class TestTrackEventDecorator:
     """Test track_event decorator."""
 
     def test_sync_decorator(self, mock_backend):
-        from django_matt.analytics.decorators import track_event
-        from django_matt.analytics.tracker import _default_tracker, get_tracker
-
         # Reset the global tracker
         import django_matt.analytics.tracker as tracker_mod
+        from django_matt.analytics.decorators import track_event
+        from django_matt.analytics.tracker import _default_tracker, get_tracker
         old = tracker_mod._default_tracker
         tracker_mod._default_tracker = None
 
@@ -1159,7 +1158,11 @@ class TestAnalyticsIntegration:
         ORM create() is broken by this naming conflict. We verify the model
         structure, manager interface, and key fields exist as expected.
         """
-        from django_matt.analytics.models import AnalyticsSession, AnalyticsSessionManager, SessionStatus
+        from django_matt.analytics.models import (
+            AnalyticsSession,
+            AnalyticsSessionManager,
+            SessionStatus,
+        )
 
         # Verify model uses our custom manager
         assert isinstance(AnalyticsSession.objects, AnalyticsSessionManager)

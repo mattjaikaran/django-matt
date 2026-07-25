@@ -20,10 +20,11 @@ import uuid
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.contrib.auth.models import User
 from django.test import RequestFactory, override_settings
 from django.utils import timezone
+
+import pytest
 
 from django_matt.email.enums import BounceType, EmailProvider, EmailStatus, EmailType
 from django_matt.email.models import (
@@ -39,7 +40,6 @@ from django_matt.email.providers.sendgrid import SendGridProvider
 from django_matt.email.providers.ses import SESProvider
 from django_matt.email.providers.smtp import SMTPProvider
 from django_matt.email.service import EmailService, send_email, send_template_email
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -3,8 +3,9 @@ from __future__ import annotations
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from django.test import RequestFactory
+
+import pytest
 
 from django_matt.introspection.checks import (
     auto_register,
@@ -21,7 +22,6 @@ from django_matt.introspection.registry import (
     InfraRegistry,
 )
 from django_matt.introspection.report import InfraReport, generate_report
-
 
 # =============================================================================
 # Registry Tests

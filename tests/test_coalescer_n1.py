@@ -8,7 +8,6 @@ import pytest
 
 from django_matt.batch.n_plus_one import NPlusOneWarning, QueryPatternTracker
 
-
 # ──────────────────────────────────────────────
 # QueryPatternTracker
 # ──────────────────────────────────────────────
@@ -74,7 +73,6 @@ class TestQueryPatternTracker:
 
         def mock_execute(sql, params, many, context):
             executed.append(sql)
-            return None
 
         tracker.track(mock_execute, "SELECT * FROM users WHERE id = 1", None, False, None)
         tracker.track(mock_execute, "SELECT * FROM users WHERE id = 2", None, False, None)

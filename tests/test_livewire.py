@@ -1,10 +1,10 @@
 """Tests for django_matt.livewire module."""
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime, timedelta
-from pydantic import BaseModel, Field, ValidationError
+from unittest.mock import MagicMock, Mock, patch
 
+import pytest
+from pydantic import BaseModel, Field, ValidationError
 
 # =============================================================================
 # DECORATOR TESTS
@@ -706,8 +706,9 @@ class TestSnapshot:
 
     def test_snapshot_from_json(self):
         """Test creating snapshot from JSON."""
-        from django_matt.livewire.state import Snapshot
         import json
+
+        from django_matt.livewire.state import Snapshot
 
         data = {
             "name": "Counter",
@@ -763,8 +764,8 @@ class TestSnapshot:
 
     def test_snapshot_verify_checksum(self):
         """Test verifying snapshot checksum against component."""
-        from django_matt.livewire.state import Snapshot
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.state import Snapshot
 
         class Counter(LiveComponent):
             count: int = 0
@@ -960,8 +961,8 @@ class TestStateManager:
 
     def test_state_manager_save_and_load(self):
         """Test saving and loading component state."""
-        from django_matt.livewire.state import StateManager
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.state import StateManager
 
         class Counter(LiveComponent):
             count: int = 0
@@ -979,8 +980,8 @@ class TestStateManager:
 
     def test_state_manager_restore(self):
         """Test restoring component state."""
-        from django_matt.livewire.state import StateManager
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.state import StateManager
 
         class Counter(LiveComponent):
             count: int = 0
@@ -1006,8 +1007,8 @@ class TestStateManager:
 
     def test_state_manager_get_history(self):
         """Test getting snapshot history."""
-        from django_matt.livewire.state import StateManager
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.state import StateManager
 
         class Counter(LiveComponent):
             count: int = 0
@@ -1028,8 +1029,8 @@ class TestStateManager:
 
     def test_state_manager_clear(self):
         """Test clearing snapshots."""
-        from django_matt.livewire.state import StateManager
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.state import StateManager
 
         class Counter(LiveComponent):
             count: int = 0
@@ -1044,8 +1045,8 @@ class TestStateManager:
 
     def test_state_manager_clear_all(self):
         """Test clearing all snapshots."""
-        from django_matt.livewire.state import StateManager
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.state import StateManager
 
         class Counter(LiveComponent):
             count: int = 0
@@ -1063,8 +1064,8 @@ class TestStateManager:
 
     def test_state_manager_max_snapshots(self):
         """Test that max_snapshots is enforced."""
-        from django_matt.livewire.state import StateManager
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.state import StateManager
 
         class Counter(LiveComponent):
             count: int = 0
@@ -1099,8 +1100,8 @@ class TestComponentRegistry:
 
     def test_registry_register_class(self):
         """Test registering a component class directly."""
-        from django_matt.livewire.registry import ComponentRegistry
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.registry import ComponentRegistry
 
         registry = ComponentRegistry()
 
@@ -1112,8 +1113,8 @@ class TestComponentRegistry:
 
     def test_registry_register_with_aliases(self):
         """Test registering a component with aliases."""
-        from django_matt.livewire.registry import ComponentRegistry
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.registry import ComponentRegistry
 
         registry = ComponentRegistry()
 
@@ -1135,8 +1136,8 @@ class TestComponentRegistry:
 
     def test_registry_contains(self):
         """Test checking if component is registered."""
-        from django_matt.livewire.registry import ComponentRegistry
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.registry import ComponentRegistry
 
         registry = ComponentRegistry()
 
@@ -1149,8 +1150,8 @@ class TestComponentRegistry:
 
     def test_registry_unregister(self):
         """Test unregistering a component."""
-        from django_matt.livewire.registry import ComponentRegistry
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.registry import ComponentRegistry
 
         registry = ComponentRegistry()
 
@@ -1166,8 +1167,8 @@ class TestComponentRegistry:
 
     def test_registry_list_components(self):
         """Test listing all registered components."""
-        from django_matt.livewire.registry import ComponentRegistry
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.registry import ComponentRegistry
 
         registry = ComponentRegistry()
 
@@ -1186,8 +1187,8 @@ class TestComponentRegistry:
 
     def test_registry_decorator(self):
         """Test using registry as decorator."""
-        from django_matt.livewire.registry import ComponentRegistry
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.registry import ComponentRegistry
 
         registry = ComponentRegistry()
 
@@ -1199,8 +1200,8 @@ class TestComponentRegistry:
 
     def test_registry_decorator_with_aliases(self):
         """Test using registry decorator with aliases."""
-        from django_matt.livewire.registry import ComponentRegistry
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.registry import ComponentRegistry
 
         registry = ComponentRegistry()
 
@@ -1213,8 +1214,8 @@ class TestComponentRegistry:
 
     def test_registry_create(self):
         """Test creating component instance from registry."""
-        from django_matt.livewire.registry import ComponentRegistry
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.registry import ComponentRegistry
 
         registry = ComponentRegistry()
 
@@ -1237,8 +1238,8 @@ class TestComponentRegistry:
 
     def test_registry_clear(self):
         """Test clearing all registrations."""
-        from django_matt.livewire.registry import ComponentRegistry
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.registry import ComponentRegistry
 
         registry = ComponentRegistry()
 
@@ -1268,14 +1269,14 @@ class TestGlobalRegistry:
 
     def test_global_registry_is_component_registry(self):
         """Test that global registry is ComponentRegistry instance."""
-        from django_matt.livewire.registry import registry, ComponentRegistry
+        from django_matt.livewire.registry import ComponentRegistry, registry
 
         assert isinstance(registry, ComponentRegistry)
 
     def test_register_component_helper(self):
         """Test register_component convenience function."""
-        from django_matt.livewire.registry import register_component
         from django_matt.livewire.component import LiveComponent
+        from django_matt.livewire.registry import register_component
 
         # This is a decorator factory
         decorator = register_component("test-component")
@@ -1335,8 +1336,9 @@ class TestLivewireIntegration:
 
     def test_component_with_nested_state(self):
         """Test component with nested state objects."""
-        from django_matt.livewire.component import LiveComponent
         from typing import List
+
+        from django_matt.livewire.component import LiveComponent
 
         class TodoList(LiveComponent):
             items: List[str] = []
@@ -1371,8 +1373,9 @@ class TestLivewireIntegration:
 
     def test_component_validation_integration(self):
         """Test component with Pydantic validation."""
-        from django_matt.livewire.component import LiveComponent
         from pydantic import Field
+
+        from django_matt.livewire.component import LiveComponent
 
         class BoundedCounter(LiveComponent):
             count: int = Field(default=0, ge=0, le=100)
@@ -1432,6 +1435,6 @@ class TestGlobalStateManager:
 
     def test_global_state_manager_is_state_manager(self):
         """Test that global state manager is StateManager instance."""
-        from django_matt.livewire.state import state_manager, StateManager
+        from django_matt.livewire.state import StateManager, state_manager
 
         assert isinstance(state_manager, StateManager)

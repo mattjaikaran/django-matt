@@ -140,7 +140,7 @@ class TestUtilityFunctions:
         from django_matt.typegen.utils import python_type_to_typescript
 
         result = python_type_to_typescript(dict[str, int])
-        assert "Record<string, number>" == result
+        assert result == "Record<string, number>"
 
     def test_python_type_to_typescript_enum(self):
         from django_matt.typegen.utils import python_type_to_typescript

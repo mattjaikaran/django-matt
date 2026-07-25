@@ -6,13 +6,10 @@ import csv
 import io
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.test import TestCase, override_settings
 
-from django_matt.management.commands.matt_shell import (
-    collect_auto_imports,
-    format_banner,
-)
+import pytest
+
 from django_matt.management.commands.matt_dbshell import (
     format_csv,
     format_plain_table,
@@ -20,7 +17,10 @@ from django_matt.management.commands.matt_dbshell import (
     get_connection_info,
     set_read_only,
 )
-
+from django_matt.management.commands.matt_shell import (
+    collect_auto_imports,
+    format_banner,
+)
 
 # ── matt_shell: auto-import collection ──
 

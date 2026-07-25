@@ -20,9 +20,17 @@ import json
 from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from django.contrib.auth.models import AnonymousUser
 
+import pytest
+
+from django_matt.websockets.auth import (
+    AuthMiddlewareBase,
+    CombinedAuthMiddleware,
+    JWTAuthMiddleware,
+    SessionAuthMiddleware,
+    TokenAuthMiddleware,
+)
 from django_matt.websockets.config import (
     RateLimitConfig,
     WebSocketConfig,
@@ -38,6 +46,13 @@ from django_matt.websockets.consumers import (
     RoomConsumer,
     ValidationError,
     WebSocketError,
+)
+from django_matt.websockets.groups import PresenceInfo, PresenceManager
+from django_matt.websockets.routing import (
+    WebSocketRoute,
+    WebSocketRouter,
+    collect_routes,
+    websocket_route,
 )
 from django_matt.websockets.schemas import (
     AckMessage,
@@ -70,21 +85,6 @@ from django_matt.websockets.schemas import (
     UnsubscribedMessage,
     UnsubscribeMessage,
 )
-from django_matt.websockets.auth import (
-    AuthMiddlewareBase,
-    CombinedAuthMiddleware,
-    JWTAuthMiddleware,
-    SessionAuthMiddleware,
-    TokenAuthMiddleware,
-)
-from django_matt.websockets.routing import (
-    WebSocketRoute,
-    WebSocketRouter,
-    collect_routes,
-    websocket_route,
-)
-from django_matt.websockets.groups import PresenceInfo, PresenceManager
-
 
 # ---------------------------------------------------------------------------
 # Helpers

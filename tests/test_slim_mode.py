@@ -322,6 +322,7 @@ class TestLazyModuleProxy:
 
     def test_thread_safety(self):
         import threading
+
         from django_matt.loader import LazyModuleProxy
 
         proxy = LazyModuleProxy("json")

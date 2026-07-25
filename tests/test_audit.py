@@ -16,14 +16,15 @@ migrations in the test environment.
 
 import json
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, Mock, patch, PropertyMock
+from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
-import pytest
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.http import HttpRequest
 from django.test import RequestFactory, TestCase, override_settings
 from django.utils import timezone
+
+import pytest
 
 from django_matt.audit.context import (
     AuditContextData,
@@ -48,7 +49,6 @@ from django_matt.audit.decorators import (
     skip_audit,
 )
 from django_matt.audit.enums import AuditAction, AuditSeverity
-
 
 User = get_user_model()
 
@@ -611,12 +611,11 @@ class TestAuditLogContext:
         with patch("django_matt.audit.models.AuditLog.objects") as mock_objects:
             mock_objects.create.return_value = create_mock_audit_log()
 
-            with pytest.raises(ValueError):
-                with AuditLogContext(
-                    action=AuditAction.CUSTOM, description="Test operation"
-                ) as ctx:
-                    ctx.add_change("model", 1, {"field": "value"})
-                    raise ValueError("Something went wrong")
+            with pytest.raises(ValueError), AuditLogContext(
+                action=AuditAction.CUSTOM, description="Test operation"
+            ) as ctx:
+                ctx.add_change("model", 1, {"field": "value"})
+                raise ValueError("Something went wrong")
 
             mock_objects.create.assert_called_once()
             call_kwargs = mock_objects.create.call_args[1]
@@ -1155,7 +1154,6 @@ class TestSoftDeleteAuditIntegration:
         # AuditableMixin instance with mocked _meta and super().save()
         class FakeAuditableModel:
             """Minimal stand-in that mimics AuditableMixin behavior."""
-            pass
 
         obj = FakeAuditableModel()
         obj.pk = pk

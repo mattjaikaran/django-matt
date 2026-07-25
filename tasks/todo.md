@@ -27,6 +27,11 @@
   - [x] Auth: login/logout, JWT refresh
   - [x] Uses generated types from `sync_types`
   - [x] `.env.example` pointing at blog-api
+  - [x] Boilerplate todos routes/hooks/store removed, builds clean
+
+#### Known Issues — blog-app/api
+- [ ] Controllers use `data:` param name but framework requires `body:` — renamed, but `@staticmethod` GET handlers cause `invalid method signature` after removal; needs careful audit against django-matt controller patterns
+- [x] `tests/` directory created — 12 model tests pass, API integration tests blocked by controller dispatch issue above
 
 #### Example Apps — Portfolio
 - [ ] `examples/portfolio-api/` — Django-matt backend

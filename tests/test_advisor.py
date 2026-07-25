@@ -24,7 +24,6 @@ from django_matt.review.findings import (
     Severity,
 )
 
-
 # -- Helpers ---------------------------------------------------------------
 
 def _f(
@@ -469,9 +468,10 @@ class TestBugFixes:
 
     def test_api_design_auth_scoped_to_class(self, tmp_path: Path) -> None:
         """Bug #2: Auth check should be scoped to enclosing class, not any class."""
+        import ast
+
         from django_matt.review.analyzers.api_design import APIDesignAnalyzer
         from django_matt.review.config import ReviewConfig
-        import ast
 
         source = '''
 class PublicAPI:

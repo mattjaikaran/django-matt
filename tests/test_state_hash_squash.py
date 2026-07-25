@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
 from django.db import models
 from django.db.migrations.operations.fields import AddField, RenameField
+
+import pytest
 
 from django_matt.migration_tools.squash import SmartSquasher, SquashPreview
 from django_matt.migration_tools.state_hash import HashVerificationResult, StateHashVerifier

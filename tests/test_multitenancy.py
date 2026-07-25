@@ -23,7 +23,6 @@ from __future__ import annotations
 import uuid
 from datetime import timedelta
 
-from asgiref.sync import sync_to_async
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
@@ -31,6 +30,7 @@ from django.test import RequestFactory
 from django.utils import timezone
 
 import pytest
+from asgiref.sync import sync_to_async
 
 from django_matt.multitenancy.decorators import (
     requires_min_org_role,

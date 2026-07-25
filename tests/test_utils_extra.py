@@ -16,24 +16,24 @@ from __future__ import annotations
 import time
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.core.cache import cache as default_cache
 from django.db import models
 from django.test import RequestFactory
+
+import pytest
 from pydantic import BaseModel, ValidationError
 
-from django_matt.utils.cache_invalidation import (
-    CacheInvalidator,
-    _generate_view_cache_key,
-    cached_view,
-)
 from django_matt.core.errors import (
     ErrorDetail,
     ErrorHandler,
     ErrorMiddleware,
     ValidationErrorFormatter,
 )
-
+from django_matt.utils.cache_invalidation import (
+    CacheInvalidator,
+    _generate_view_cache_key,
+    cached_view,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers

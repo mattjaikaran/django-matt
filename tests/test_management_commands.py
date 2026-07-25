@@ -23,10 +23,10 @@ from pathlib import Path
 from unittest.mock import patch
 
 import django
-import pytest
 from django.core.management import call_command
 from django.test import override_settings
 
+import pytest
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -589,7 +589,7 @@ class TestMattEndpointsCommand:
         class FakeView:
             http_method_names = ["get", "post", "head", "options"]
 
-        callback = lambda r: None  # noqa: E731
+        callback = lambda r: None
         callback.view_class = FakeView
         methods = cmd._get_methods(callback)
         assert "HEAD" not in methods
@@ -1071,7 +1071,6 @@ class TestEndpointDataExtraction:
 
         def fake_callback(request):
             """A fake view."""
-            pass
 
         pattern = URLPattern(r"admin/dashboard/", fake_callback, name="admin_dash")
         result = cmd._extract_endpoint_info(pattern, "admin/dashboard/", None)
@@ -1085,7 +1084,6 @@ class TestEndpointDataExtraction:
 
         def fake_callback(request):
             """A fake view."""
-            pass
 
         pattern = URLPattern(r"static/file.js", fake_callback, name="static_file")
         result = cmd._extract_endpoint_info(pattern, "static/file.js", None)
@@ -1099,7 +1097,6 @@ class TestEndpointDataExtraction:
 
         def my_view(request):
             """My test view."""
-            pass
 
         pattern = URLPattern(r"api/test/", my_view, name="test_view")
         result = cmd._extract_endpoint_info(pattern, "api/test/", "myapp")

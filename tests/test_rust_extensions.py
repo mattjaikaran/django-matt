@@ -6,8 +6,9 @@ the bypass/disable mechanisms. Works whether Rust is compiled or not.
 
 from __future__ import annotations
 
-import pytest
 from django.test import RequestFactory
+
+import pytest
 
 from django_matt._accel import HAS_RUST
 from django_matt.permissions.evaluator import BitfieldEvaluator
@@ -17,7 +18,6 @@ from django_matt.throttling.token_bucket import (
     disable_throttle,
     enable_throttle,
 )
-
 
 # ──────────────────────────────────────────────
 # TokenBucketThrottle

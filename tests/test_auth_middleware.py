@@ -5,11 +5,11 @@ from __future__ import annotations
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 
+import pytest
 from asgiref.sync import sync_to_async
 
 from django_matt.auth.jwt import acreate_access_token, create_access_token, create_refresh_token

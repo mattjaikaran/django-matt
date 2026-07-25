@@ -5,11 +5,12 @@ from __future__ import annotations
 import json
 from unittest.mock import patch
 
-import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser, Group
 from django.http import HttpResponse, JsonResponse
 from django.test import RequestFactory
+
+import pytest
 
 from django_matt.auth.rbac.config import RBACConfig, Role
 from django_matt.auth.rbac.decorators import requires_rbac_permission, requires_role_hierarchy

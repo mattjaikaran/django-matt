@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import AsyncMock
 
+import pytest
 from pydantic import BaseModel
 
 from django_matt.ai.agents import Agent, AgentConfig, AgentResponse
 from django_matt.ai.base import CompletionResponse, Role, ToolCall, Usage
 from django_matt.ai.tools import tool
-
 
 # ---------------------------------------------------------------------------
 # Helpers

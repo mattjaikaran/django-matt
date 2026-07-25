@@ -16,12 +16,25 @@ Tests cover:
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from django.db import models
 from django.http import HttpRequest
 from django.test import RequestFactory
 
+import pytest
 from pydantic import BaseModel
+
+from django_matt.views.decorators import (
+    catch_and_continue,
+    compose_hooks,
+    hook_method,
+    log_hook,
+    priority,
+    retry,
+    timed_hook,
+    unless,
+    when,
+    with_hooks,
+)
 
 # Import the hooks system
 from django_matt.views.hooks import (
@@ -48,20 +61,6 @@ from django_matt.views.hooks import (
     register_hook,
     run_hooks,
 )
-
-from django_matt.views.decorators import (
-    catch_and_continue,
-    compose_hooks,
-    hook_method,
-    log_hook,
-    priority,
-    retry,
-    timed_hook,
-    unless,
-    when,
-    with_hooks,
-)
-
 
 # ============================================================================
 # Test fixtures and helpers

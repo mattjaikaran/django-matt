@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from django_matt.events.bus import Event, EventBus, get_event_bus, reset_event_bus
 from django_matt.events.backends import InMemoryBackend
+from django_matt.events.bus import Event, EventBus, get_event_bus, reset_event_bus
 from django_matt.events.decorators import on
 from django_matt.events.types import (
     ModelCreatedEvent,

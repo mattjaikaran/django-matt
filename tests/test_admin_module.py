@@ -16,11 +16,12 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.contrib import admin
 from django.contrib.auth.models import Group, User
 from django.http import HttpRequest
 from django.test import RequestFactory
+
+import pytest
 
 from django_matt.admin.actions import (
     _get_export_fields,
@@ -65,7 +66,6 @@ from django_matt.admin.mixins import (
     ReadOnlyAdminMixin,
     SoftDeleteAdminMixin,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -1419,7 +1419,7 @@ class TestAdminRegistration:
 
     def test_register_admin_decorator_registers_model(self):
         """Test that register_admin decorator registers model with admin site."""
-        from django_matt.admin.base import register_admin, MattModelAdmin
+        from django_matt.admin.base import MattModelAdmin, register_admin
 
         # Create a custom admin site to avoid polluting the global one
         test_site = admin.AdminSite(name="test_registration_site")
@@ -1433,7 +1433,7 @@ class TestAdminRegistration:
 
     def test_unfold_fallback(self):
         """Test that MattModelAdmin works with or without Unfold."""
-        from django_matt.admin.base import MattModelAdmin, HAS_UNFOLD
+        from django_matt.admin.base import HAS_UNFOLD, MattModelAdmin
 
         # MattModelAdmin should always be available regardless of Unfold
         assert issubclass(MattModelAdmin, admin.ModelAdmin)
@@ -1519,8 +1519,8 @@ class TestAdminGeneratorInlines:
 
     def test_generator_inline_classes_have_correct_base(self):
         """Test that generated inlines inherit from MattTabularInline or MattStackedInline."""
+        from django_matt.admin.base import MattStackedInline, MattTabularInline
         from django_matt.admin.generator import AdminGenerator
-        from django_matt.admin.base import MattTabularInline, MattStackedInline
 
         generator = AdminGenerator()
         opts = Group._meta

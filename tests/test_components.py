@@ -1,9 +1,9 @@
 """Tests for django_matt.components module."""
 
-import pytest
-from unittest.mock import Mock, patch
 import json
+from unittest.mock import Mock, patch
 
+import pytest
 
 # =============================================================================
 # COMPONENT TYPE TESTS
@@ -239,7 +239,7 @@ class TestComponentRegistry:
 
     def test_registry_register_decorator(self):
         """Test using registry as decorator."""
-        from django_matt.components.base import ComponentRegistry, Component, ComponentType
+        from django_matt.components.base import Component, ComponentRegistry, ComponentType
 
         registry = ComponentRegistry()
 
@@ -252,7 +252,7 @@ class TestComponentRegistry:
 
     def test_registry_register_with_aliases(self):
         """Test registering with aliases."""
-        from django_matt.components.base import ComponentRegistry, Component, ComponentType
+        from django_matt.components.base import Component, ComponentRegistry, ComponentType
 
         registry = ComponentRegistry()
 
@@ -266,7 +266,7 @@ class TestComponentRegistry:
 
     def test_registry_register_class(self):
         """Test registering class directly."""
-        from django_matt.components.base import ComponentRegistry, Component, ComponentType
+        from django_matt.components.base import Component, ComponentRegistry, ComponentType
 
         registry = ComponentRegistry()
 
@@ -285,7 +285,7 @@ class TestComponentRegistry:
 
     def test_registry_list(self):
         """Test listing registered components."""
-        from django_matt.components.base import ComponentRegistry, Component, ComponentType
+        from django_matt.components.base import Component, ComponentRegistry, ComponentType
 
         registry = ComponentRegistry()
 
@@ -303,7 +303,7 @@ class TestComponentRegistry:
 
     def test_registry_unregister(self):
         """Test unregistering component."""
-        from django_matt.components.base import ComponentRegistry, Component, ComponentType
+        from django_matt.components.base import Component, ComponentRegistry, ComponentType
 
         registry = ComponentRegistry()
 
@@ -327,7 +327,7 @@ class TestGlobalRegistry:
 
     def test_global_registry_is_component_registry(self):
         """Test that global registry is ComponentRegistry."""
-        from django_matt.components.base import registry, ComponentRegistry
+        from django_matt.components.base import ComponentRegistry, registry
 
         assert isinstance(registry, ComponentRegistry)
 
@@ -351,7 +351,7 @@ class TestSlot:
 
     def test_slot_with_content(self):
         """Test slot with content."""
-        from django_matt.components.base import Slot, Component, ComponentType
+        from django_matt.components.base import Component, ComponentType, Slot
 
         content = Component(type=ComponentType.TEXT)
         slot = Slot(name="header", content=content)
@@ -359,7 +359,7 @@ class TestSlot:
 
     def test_slot_with_fallback(self):
         """Test slot with fallback content."""
-        from django_matt.components.base import Slot, Component, ComponentType
+        from django_matt.components.base import Component, ComponentType, Slot
 
         fallback = Component(type=ComponentType.TEXT)
         slot = Slot(name="header", fallback=fallback)
@@ -518,7 +518,7 @@ class TestComponentIntegration:
 
     def test_build_form_with_fields(self):
         """Test building a form with fields."""
-        from django_matt.components.forms import TextField, EmailField, PasswordField
+        from django_matt.components.forms import EmailField, PasswordField, TextField
 
         fields = [
             EmailField(name="email", label="Email", required=True),
@@ -531,8 +531,9 @@ class TestComponentIntegration:
 
     def test_component_serialization_roundtrip(self):
         """Test serializing and deserializing component."""
-        from django_matt.components.base import Component, ComponentType
         import json
+
+        from django_matt.components.base import Component, ComponentType
 
         original = Component(
             type=ComponentType.CONTAINER,
@@ -605,9 +606,10 @@ class TestComponentRendersToHTML:
 
     def test_component_response_returns_response(self):
         """Test ComponentResponse wraps component in HttpResponse."""
+        from django.http import HttpResponse
+
         from django_matt.components.base import Component, ComponentType
         from django_matt.components.serving import ComponentResponse
-        from django.http import HttpResponse
 
         component = Component(type=ComponentType.CONTAINER, id="test-resp")
 
@@ -617,9 +619,10 @@ class TestComponentRendersToHTML:
 
     def test_page_builder_renders(self):
         """Test Page builder adds components and renders."""
+        from django.http import HttpResponse
+
         from django_matt.components.base import Component, ComponentType
         from django_matt.components.serving import Page
-        from django.http import HttpResponse
 
         page = Page(title="Test Page")
         page.add(Component(type=ComponentType.CONTAINER, id="section1"))
@@ -634,8 +637,8 @@ class TestComponentRendersToHTML:
 
     def test_create_component_factory(self):
         """Test create_component creates component by type name."""
+        from django_matt.components.base import Component, ComponentType, registry
         from django_matt.components.serving import create_component
-        from django_matt.components.base import registry, Component, ComponentType
 
         # Register a test component
         @registry.register("test_widget_07")

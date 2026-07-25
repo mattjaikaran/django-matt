@@ -1,9 +1,9 @@
 """Tests for django_matt.pages module."""
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
 import json
+from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 
 # =============================================================================
 # PAGE DATA TESTS
@@ -248,8 +248,9 @@ class TestPageMiddleware:
 
     def test_get_request_mode_page_xhr(self):
         """Test detecting page XHR request."""
-        from django_matt.pages.middleware import get_request_mode, RequestMode
         from django.test import RequestFactory
+
+        from django_matt.pages.middleware import RequestMode, get_request_mode
 
         rf = RequestFactory()
         request = rf.get("/users", HTTP_X_PAGE="true")
@@ -259,8 +260,9 @@ class TestPageMiddleware:
 
     def test_get_request_mode_api(self):
         """Test detecting API request."""
-        from django_matt.pages.middleware import get_request_mode, RequestMode
         from django.test import RequestFactory
+
+        from django_matt.pages.middleware import RequestMode, get_request_mode
 
         rf = RequestFactory()
         request = rf.get("/users", HTTP_ACCEPT="application/json")
@@ -371,8 +373,9 @@ class TestPageForms:
 
     def test_page_form_schema(self):
         """Test PageForm with Pydantic schema."""
-        from django_matt.pages.forms import PageForm
         from pydantic import BaseModel
+
+        from django_matt.pages.forms import PageForm
 
         class UserSchema(BaseModel):
             email: str
@@ -464,8 +467,9 @@ class TestPagesIntegration:
 
     def test_page_response_render_flow(self):
         """Test full page response render flow."""
-        from django_matt.pages.response import PageResponse
         from django.test import RequestFactory
+
+        from django_matt.pages.response import PageResponse
 
         rf = RequestFactory()
         request = rf.get("/users")
@@ -488,8 +492,9 @@ class TestPagesIntegration:
 
     def test_page_data_json_roundtrip(self):
         """Test PageData JSON serialization roundtrip."""
-        from django_matt.pages.response import PageData
         import json
+
+        from django_matt.pages.response import PageData
 
         original = PageData(
             component="UserDetail",

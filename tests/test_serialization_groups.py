@@ -18,7 +18,6 @@ from django_matt.serialization import (
     serialize_for,
 )
 
-
 # -- Test schemas --
 
 

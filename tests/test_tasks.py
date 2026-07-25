@@ -20,6 +20,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from django_matt.tasks.backends.sync import SyncBackend
 from django_matt.tasks.base import (
     Retry,
     Task,
@@ -30,7 +31,7 @@ from django_matt.tasks.base import (
     task_registry,
 )
 from django_matt.tasks.config import TaskConfig, get_task_config, set_task_config
-from django_matt.tasks.decorators import task, shared_task, periodic_task, schedule
+from django_matt.tasks.decorators import periodic_task, schedule, shared_task, task
 from django_matt.tasks.primitives import (
     Chain,
     Chord,
@@ -54,14 +55,12 @@ from django_matt.tasks.retry import (
 from django_matt.tasks.scheduling import (
     CrontabSchedule,
     IntervalSchedule,
-    ScheduleEntry,
     ScheduledTask,
+    ScheduleEntry,
     Scheduler,
     crontab,
     every,
 )
-from django_matt.tasks.backends.sync import SyncBackend
-
 
 # ==============================================================================
 # TaskStatus
@@ -496,7 +495,7 @@ class TestCrontabSchedule:
     def test_parse_field_star(self):
         c = CrontabSchedule()
         result = c._parse_field("*", 0, 59)
-        assert result == set(range(0, 60))
+        assert result == set(range(60))
 
     def test_parse_field_integer(self):
         c = CrontabSchedule()
@@ -769,7 +768,7 @@ class TestSyncBackend:
         t = Task(func=bound, name="sync.bound", bind=True)
         result = self.backend.send_task(t, args=(7,))
         assert result.status == TaskStatus.SUCCESS
-        assert "sync.bound=7" == result.result
+        assert result.result == "sync.bound=7"
 
     def test_get_result_stored(self):
         t = Task(func=lambda: "val", name="sync.stored")

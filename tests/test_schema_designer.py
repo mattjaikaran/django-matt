@@ -8,8 +8,9 @@ import django
 
 django.setup()
 
-import pytest
 from django.db import models
+
+import pytest
 
 from django_matt.schema_designer.analyzer import (
     FieldIssue,
@@ -35,7 +36,6 @@ from django_matt.schema_designer.visualizer import (
     generate_mermaid,
     generate_plantuml,
 )
-
 
 # ---------------------------------------------------------------------------
 # Test models — defined inline so we don't pollute the main codebase

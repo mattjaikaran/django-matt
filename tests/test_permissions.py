@@ -17,10 +17,11 @@ import json
 from types import SimpleNamespace
 from unittest.mock import MagicMock, PropertyMock
 
-import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpRequest, JsonResponse
 from django.test import RequestFactory
+
+import pytest
 
 from django_matt.permissions.base import (
     BasePermission,
@@ -40,16 +41,15 @@ from django_matt.permissions.common import (
     IsStaff,
     IsSuperUser,
 )
-from django_matt.permissions.decorators.base import check_permissions, get_request
 from django_matt.permissions.decorators.auth import allow_any as allow_any_decorator
 from django_matt.permissions.decorators.auth import authenticated
+from django_matt.permissions.decorators.base import check_permissions, get_request
 from django_matt.permissions.decorators.permission import (
     requires_permission,
     requires_permissions,
     with_permissions,
 )
 from django_matt.permissions.decorators.role import requires_role
-
 
 # ---------------------------------------------------------------------------
 # Helpers

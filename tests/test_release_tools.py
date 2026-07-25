@@ -6,6 +6,12 @@ from unittest.mock import patch
 
 import pytest
 
+from django_matt.changelog_gen import (
+    ChangelogEntries,
+    _parse_commit,
+    format_entries,
+    update_changelog,
+)
 from django_matt.versioning_tool import (
     INIT_VERSION_RE,
     PYPROJECT_VERSION_RE,
@@ -15,13 +21,6 @@ from django_matt.versioning_tool import (
     current,
     validate,
 )
-from django_matt.changelog_gen import (
-    ChangelogEntries,
-    _parse_commit,
-    format_entries,
-    update_changelog,
-)
-
 
 # ============================================================================
 # versioning_tool tests

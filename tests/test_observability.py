@@ -26,10 +26,11 @@ import logging
 import time
 from unittest.mock import MagicMock, patch
 
-import orjson
-import pytest
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
+
+import orjson
+import pytest
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -527,6 +528,8 @@ class TestLoggingContext:
     def test_set_and_get_correlation_id(self):
         from django_matt.observability.logging import (
             get_correlation_id as log_get_corr,
+        )
+        from django_matt.observability.logging import (
             set_correlation_id as log_set_corr,
         )
 
@@ -537,12 +540,16 @@ class TestLoggingContext:
     def test_clear_context(self):
         from django_matt.observability.logging import (
             clear_context,
-            get_correlation_id as log_get_corr,
             get_request_id,
             get_user_id,
-            set_correlation_id as log_set_corr,
             set_request_id,
             set_user_id,
+        )
+        from django_matt.observability.logging import (
+            get_correlation_id as log_get_corr,
+        )
+        from django_matt.observability.logging import (
+            set_correlation_id as log_set_corr,
         )
 
         set_request_id("r")
@@ -1963,9 +1970,9 @@ class TestDatabaseQueryMiddleware:
 
     @pytest.mark.django_db
     def test_counts_queries(self, rf):
-        from django_matt.observability.middleware import DatabaseQueryMiddleware
-
         from django.conf import settings
+
+        from django_matt.observability.middleware import DatabaseQueryMiddleware
         # Temporarily enable DEBUG to track queries
         original_debug = settings.DEBUG
         settings.DEBUG = True

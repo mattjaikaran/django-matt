@@ -32,12 +32,12 @@ from django_matt.experiments.analysis import (
     VariantStats,
     analyze_experiment,
 )
+from django_matt.experiments.manager import ExperimentManager
 from django_matt.experiments.models import (
     AssignmentStrategy,
     ExperimentStatus,
     MetricType,
 )
-from django_matt.experiments.manager import ExperimentManager
 from django_matt.experiments.schemas import (
     AssignmentContext,
     AssignmentRequest,
@@ -56,7 +56,6 @@ from django_matt.experiments.schemas import (
     VariantResponse,
     VariantUpdate,
 )
-
 
 # ===========================================================================
 # Model lifecycle (DB-backed)
@@ -228,6 +227,7 @@ class TestVariantModel:
 
     def test_unique_together_constraint(self):
         from django.db import IntegrityError
+
         from django_matt.experiments.models import Experiment, Variant
 
         exp = Experiment.objects.create(key="dup-test", name="Dup Test")
@@ -1103,8 +1103,10 @@ class TestEdgeCases:
         assert heavy_count >= 15  # At least 75% should get heavy
 
     def test_is_running_false_when_past_end_date(self):
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
+
         from django_matt.experiments.models import Experiment
 
         exp = Experiment.objects.create(

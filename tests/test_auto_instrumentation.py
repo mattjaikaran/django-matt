@@ -35,7 +35,6 @@ from django_matt.observability.spans import (
     traced,
 )
 
-
 # -- Span tests --
 
 
@@ -121,9 +120,8 @@ class TestSpanContextManager:
             assert s.tags["key"] == "val"
 
     def test_sync_span_error(self):
-        with pytest.raises(ValueError, match="oops"):
-            with span("test-op") as s:
-                raise ValueError("oops")
+        with pytest.raises(ValueError, match="oops"), span("test-op") as s:
+            raise ValueError("oops")
         assert s.status == SpanStatus.ERROR
         assert s.error is not None
 
@@ -166,9 +164,8 @@ class TestSpanContextManager:
         collected: list[Span] = []
         add_span_listener(collected.append)
         try:
-            with span("parent"):
-                with span("child"):
-                    pass
+            with span("parent"), span("child"):
+                pass
             assert len(collected) == 1
             assert collected[0].name == "parent"
             assert len(collected[0].children) == 1
@@ -555,9 +552,8 @@ class TestSpanExporterIntegration:
             with span("root"):
                 with span("child-1"):
                     pass
-                with span("child-2"):
-                    with span("grandchild"):
-                        pass
+                with span("child-2"), span("grandchild"):
+                    pass
             output = stream.getvalue()
             assert "root" in output
             assert "child-1" in output

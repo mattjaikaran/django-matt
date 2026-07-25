@@ -20,11 +20,11 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import override_settings
 
+import pytest
 
 # ---------------------------------------------------------------------------
 # Helpers

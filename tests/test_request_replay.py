@@ -6,6 +6,12 @@ import json
 
 import pytest
 
+from django_matt.inspector.replay.player import (
+    QueryDiff,
+    ReplayResult,
+    RequestReplayer,
+    ResponseDiff,
+)
 from django_matt.inspector.replay.recorder import (
     QueryRecord,
     RequestRecorder,
@@ -13,13 +19,6 @@ from django_matt.inspector.replay.recorder import (
     TimingRecord,
     _QueryTracker,
 )
-from django_matt.inspector.replay.player import (
-    QueryDiff,
-    ReplayResult,
-    RequestReplayer,
-    ResponseDiff,
-)
-
 
 # ──────────────────────────────────────────────
 # RequestTrace serialization
@@ -77,7 +76,6 @@ class TestQueryTracker:
 
         def mock_execute(sql, params, many, context):
             executed.append(sql)
-            return None
 
         tracker(mock_execute, "SELECT 1", None, False, None)
         tracker(mock_execute, "SELECT 2", None, False, None)
@@ -93,7 +91,6 @@ class TestQueryTracker:
         def slow_execute(sql, params, many, context):
             import time
             time.sleep(0.01)
-            return None
 
         tracker(slow_execute, "SELECT 1", None, False, None)
         assert tracker.queries[0].duration_ms >= 5  # at least 5ms

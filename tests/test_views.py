@@ -20,13 +20,13 @@ import asyncio
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import orjson
-import pytest
 from django.contrib.auth.models import User
 from django.db import models
 from django.http import HttpRequest, JsonResponse, QueryDict
 from django.test import RequestFactory
 
+import orjson
+import pytest
 from pydantic import BaseModel
 
 from django_matt.core.errors import APIError, NotFoundAPIError
@@ -43,7 +43,6 @@ from django_matt.views.list import ListView
 from django_matt.views.read import ReadView, RetrieveView
 from django_matt.views.update import PatchView, UpdateView
 from django_matt.views.viewset import APIViewSet, ViewSet
-
 
 # ============================================================================
 # Test models and schemas
@@ -2202,15 +2201,14 @@ class TestOptimizeQuerysetPreventsNPlus1:
         """optimize_queryset applies select_related for ForeignKey fields in schema."""
         from unittest.mock import patch
 
-        from django.contrib.auth.models import User
+        # Schema with a field that matches the auth_permission.content_type FK
+        # Use Django's built-in Permission model which has a ForeignKey to ContentType
+        from django.contrib.auth.models import Permission, User
+        from django.contrib.contenttypes.models import ContentType
+
         from pydantic import BaseModel
 
         from django_matt.views.base import APIView
-
-        # Schema with a field that matches the auth_permission.content_type FK
-        # Use Django's built-in Permission model which has a ForeignKey to ContentType
-        from django.contrib.auth.models import Permission
-        from django.contrib.contenttypes.models import ContentType
 
         class PermissionSchema(BaseModel):
             id: int | None = None
@@ -2256,6 +2254,7 @@ class TestOptimizeQuerysetPreventsNPlus1:
         from unittest.mock import patch
 
         from django.contrib.auth.models import Group
+
         from pydantic import BaseModel
 
         from django_matt.views.base import APIView
@@ -2282,6 +2281,7 @@ class TestOptimizeQuerysetPreventsNPlus1:
     def test_optimize_queryset_no_relations_unchanged(self):
         """optimize_queryset does not modify queryset when schema has no FK/M2M fields."""
         from django.contrib.auth.models import User
+
         from pydantic import BaseModel
 
         from django_matt.views.base import APIView

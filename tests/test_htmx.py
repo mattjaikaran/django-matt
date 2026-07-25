@@ -12,9 +12,10 @@ Tests cover:
 import json
 from unittest.mock import Mock, patch
 
-import pytest
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
+
+import pytest
 
 from django_matt.htmx.decorators import (
     htmx_only,
@@ -47,7 +48,6 @@ from django_matt.htmx.response import (
     StopPolling,
     trigger_client_event,
 )
-
 
 # ==============================================================================
 # Fixtures
@@ -796,7 +796,7 @@ class TestHtmxComponentPatterns:
 
     def test_modal_open_and_close(self):
         """Test modal open/close return HtmxResponse with correct headers."""
-        from django_matt.htmx.components import open_modal, close_modal
+        from django_matt.htmx.components import close_modal, open_modal
 
         response = open_modal("<p>Modal content</p>", title="My Modal")
         assert isinstance(response, HtmxResponse)

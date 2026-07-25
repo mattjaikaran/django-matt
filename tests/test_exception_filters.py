@@ -1,21 +1,11 @@
 from __future__ import annotations
 
-import pytest
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
 
-from django_matt.exceptions.filters import (
-    ExceptionFilter,
-    ExceptionFilterChain,
-    FunctionExceptionFilter,
-)
-from django_matt.exceptions.registry import ExceptionFilterRegistry
-from django_matt.exceptions.decorators import (
-    catch,
-    catch_all,
-    exception_filter,
-    register_global_filter,
-)
+import pytest
+
+from django_matt.exceptions import default_registry
 from django_matt.exceptions.builtins import (
     DatabaseExceptionFilter,
     NotFoundExceptionFilter,
@@ -23,7 +13,18 @@ from django_matt.exceptions.builtins import (
     ThrottleExceptionFilter,
     ValidationExceptionFilter,
 )
-from django_matt.exceptions import default_registry
+from django_matt.exceptions.decorators import (
+    catch,
+    catch_all,
+    exception_filter,
+    register_global_filter,
+)
+from django_matt.exceptions.filters import (
+    ExceptionFilter,
+    ExceptionFilterChain,
+    FunctionExceptionFilter,
+)
+from django_matt.exceptions.registry import ExceptionFilterRegistry
 
 
 @pytest.fixture

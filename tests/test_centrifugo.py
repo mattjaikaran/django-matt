@@ -231,9 +231,8 @@ class TestCentrifugoClient:
             "post",
             new_callable=AsyncMock,
             return_value=resp,
-        ):
-            with pytest.raises(CentrifugoAPIError) as exc_info:
-                await client.presence("nonexistent")
+        ), pytest.raises(CentrifugoAPIError) as exc_info:
+            await client.presence("nonexistent")
 
         assert exc_info.value.code == 102
         assert "channel not found" in exc_info.value.message
@@ -454,10 +453,9 @@ class TestWebSocketConfigBackend:
 
     def test_backend_from_settings(self, settings):
         settings.DJANGO_MATT_WEBSOCKETS = {"BACKEND": "channels"}
-        from django_matt.websockets.config import WebSocketConfig, _websocket_config
-
         # Reset singleton
         import django_matt.websockets.config as ws_cfg
+        from django_matt.websockets.config import WebSocketConfig, _websocket_config
 
         ws_cfg._websocket_config = None
         cfg = WebSocketConfig.from_settings()

@@ -6,11 +6,11 @@ import asyncio
 import json
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from django.http import HttpRequest, JsonResponse
 from django.test import RequestFactory
 
 import orjson
+import pytest
 
 from django_matt.batch.request import BatchPayload, BatchRequest, BatchResponse
 from django_matt.batch.resolver import (
@@ -20,7 +20,6 @@ from django_matt.batch.resolver import (
     jsonpath_extract,
     topological_sort,
 )
-
 
 # ──────────────────────────────────────────────
 # Schema tests

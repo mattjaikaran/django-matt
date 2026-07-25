@@ -1,12 +1,12 @@
 """Tests for django_matt.codegen module."""
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-from pathlib import Path
-from dataclasses import dataclass
-import tempfile
 import os
+import tempfile
+from dataclasses import dataclass
+from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 
 # =============================================================================
 # CORE CODE NODE TESTS
@@ -478,7 +478,7 @@ class TestCodeGenerator:
 
     def test_generator_add_file(self):
         """Test adding a file to generator."""
-        from django_matt.codegen.core import CodeGenerator, CodeFile
+        from django_matt.codegen.core import CodeFile, CodeGenerator
 
         gen = CodeGenerator()
         file = CodeFile()
@@ -489,7 +489,7 @@ class TestCodeGenerator:
 
     def test_generator_generate(self):
         """Test generating file content."""
-        from django_matt.codegen.core import CodeGenerator, CodeFile, Interface
+        from django_matt.codegen.core import CodeFile, CodeGenerator, Interface
 
         gen = CodeGenerator()
         file = CodeFile(nodes=[Interface(name="User")])
@@ -567,7 +567,7 @@ class TestModelInfo:
 
     def test_model_info_required_fields(self):
         """Test required_fields property."""
-        from django_matt.codegen.introspection import ModelInfo, FieldInfo
+        from django_matt.codegen.introspection import FieldInfo, ModelInfo
 
         def make_field(name, nullable=False, blank=False, has_default=False, is_auto=False):
             return FieldInfo(
@@ -682,8 +682,8 @@ class TestDjangoFieldToTypescript:
 
     def test_basic_types(self):
         """Test basic field type conversion."""
-        from django_matt.codegen.typescript import django_field_to_typescript
         from django_matt.codegen.introspection import FieldInfo
+        from django_matt.codegen.typescript import django_field_to_typescript
 
         def make_field(field_type, nullable=False, choices=None):
             return FieldInfo(
@@ -712,8 +712,8 @@ class TestDjangoFieldToTypescript:
 
     def test_nullable_types(self):
         """Test nullable field type conversion."""
-        from django_matt.codegen.typescript import django_field_to_typescript
         from django_matt.codegen.introspection import FieldInfo
+        from django_matt.codegen.typescript import django_field_to_typescript
 
         field = FieldInfo(
             name="test",
@@ -740,8 +740,8 @@ class TestDjangoFieldToTypescript:
 
     def test_choices_type(self):
         """Test field with choices conversion."""
-        from django_matt.codegen.typescript import django_field_to_typescript
         from django_matt.codegen.introspection import FieldInfo
+        from django_matt.codegen.typescript import django_field_to_typescript
 
         field = FieldInfo(
             name="status",
@@ -774,8 +774,8 @@ class TestDjangoFieldToZod:
 
     def test_basic_zod_types(self):
         """Test basic field to Zod conversion."""
-        from django_matt.codegen.typescript import django_field_to_zod
         from django_matt.codegen.introspection import FieldInfo
+        from django_matt.codegen.typescript import django_field_to_zod
 
         def make_field(field_type, nullable=False, max_length=None, is_required=True):
             return FieldInfo(
@@ -807,8 +807,8 @@ class TestDjangoFieldToZod:
 
     def test_zod_with_max_length(self):
         """Test Zod schema with max length."""
-        from django_matt.codegen.typescript import django_field_to_zod
         from django_matt.codegen.introspection import FieldInfo
+        from django_matt.codegen.typescript import django_field_to_zod
 
         field = FieldInfo(
             name="test",
@@ -1240,7 +1240,7 @@ class TestCodegenIntegration:
 
     def test_full_interface_generation(self):
         """Test generating a complete TypeScript interface."""
-        from django_matt.codegen.core import Interface, Property, CodeFile
+        from django_matt.codegen.core import CodeFile, Interface, Property
 
         file = CodeFile()
         file.header_comment = "Auto-generated types"
@@ -1267,7 +1267,7 @@ class TestCodegenIntegration:
 
     def test_code_generator_write_files(self):
         """Test writing generated files to disk."""
-        from django_matt.codegen.core import CodeGenerator, CodeFile, Interface
+        from django_matt.codegen.core import CodeFile, CodeGenerator, Interface
 
         with tempfile.TemporaryDirectory() as tmpdir:
             gen = CodeGenerator(output_dir=tmpdir)

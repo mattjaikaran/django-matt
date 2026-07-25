@@ -7,16 +7,17 @@ import secrets
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.utils import timezone
 
+import pytest
+
 webauthn = pytest.importorskip("webauthn")
 
-from django_matt.auth.passkeys.config import PasskeyConfig, get_passkey_config  # noqa: E402
-from django_matt.auth.passkeys.models import PasskeyChallenge, PasskeyCredential  # noqa: E402
-from django_matt.auth.passkeys.webauthn import (  # noqa: E402
+from django_matt.auth.passkeys.config import PasskeyConfig, get_passkey_config
+from django_matt.auth.passkeys.models import PasskeyChallenge, PasskeyCredential
+from django_matt.auth.passkeys.webauthn import (
     PasskeyAuthenticationError,
     PasskeyCredentialNotFoundError,
     PasskeyRegistrationError,

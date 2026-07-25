@@ -20,9 +20,10 @@ import json
 import os
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.http import HttpRequest, JsonResponse
 from django.test import RequestFactory
+
+import pytest
 
 from django_matt.core.errors import (
     APIError,
@@ -37,7 +38,6 @@ from django_matt.core.errors import (
     ValidationAPIError,
     handle_exceptions,
 )
-
 
 # ---------------------------------------------------------------------------
 # ErrorDetail
@@ -466,7 +466,7 @@ class TestErrorHandler:
     def test_status_code_for_validation_error(self):
         """Pydantic ValidationError maps to 422."""
         handler = ErrorHandler()
-        from pydantic import ValidationError, BaseModel
+        from pydantic import BaseModel, ValidationError
 
         class M(BaseModel):
             x: int

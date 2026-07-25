@@ -8,9 +8,10 @@ Rich console output (which goes to a separate console).
 from datetime import timedelta
 from io import StringIO
 
-import pytest
 from django.core.management import call_command
 from django.utils import timezone
+
+import pytest
 
 from django_matt.tasks_native import reset, task, task_registry
 from django_matt.tasks_native.scheduling import schedule_registry

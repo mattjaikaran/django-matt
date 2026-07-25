@@ -5,10 +5,11 @@ from __future__ import annotations
 from collections import defaultdict
 from unittest.mock import MagicMock
 
-import pytest
 from django.db import models
 from django.db.migrations.operations.fields import AddField, RenameField
 from django.db.migrations.operations.models import AddIndex
+
+import pytest
 
 from django_matt.migration_tools.advisor import MigrationAdvisor, MigrationIssue
 from django_matt.migration_tools.graph import MigrationConflict, MigrationGraphRenderer
@@ -16,7 +17,6 @@ from django_matt.migration_tools.rewriters.base import Severity
 from django_matt.migration_tools.rewriters.concurrent import ConcurrentIndexRewriter
 from django_matt.migration_tools.rewriters.non_nullable import AddNonNullableRewriter
 from django_matt.migration_tools.rewriters.rename import RenameFieldRewriter
-
 
 # ──────────────────────────────────────────────
 # AddNonNullableRewriter

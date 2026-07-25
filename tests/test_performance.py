@@ -501,9 +501,8 @@ class TestAssertQueryCount(TestCase):
 
         from django_matt.testing.assertions import assert_query_count
 
-        with self.assertRaises(AssertionError) as cm:
-            with assert_query_count(99):
-                list(User.objects.all())
+        with self.assertRaises(AssertionError) as cm, assert_query_count(99):
+            list(User.objects.all())
 
         # The error message must report the mismatch
         error_msg = str(cm.exception)
@@ -516,9 +515,8 @@ class TestAssertQueryCount(TestCase):
 
         from django_matt.testing.assertions import assert_query_count
 
-        with self.assertRaises(AssertionError) as cm:
-            with assert_query_count(0):
-                list(User.objects.all())
+        with self.assertRaises(AssertionError) as cm, assert_query_count(0):
+            list(User.objects.all())
 
         error_msg = str(cm.exception)
         # The SQL text for a User query must appear in the error message

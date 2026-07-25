@@ -6,11 +6,12 @@ import json
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse, JsonResponse
 from django.test import RequestFactory
+
+import pytest
 
 from django_matt.auth.session.config import SessionConfig, get_session_config, set_session_config
 from django_matt.auth.session.decorators import (
@@ -275,8 +276,9 @@ class TestFreshSessionRequired:
         assert response.status_code == 200
 
     def test_stale_session_returns_403(self, rf, user):
-        from django.utils import timezone
         from datetime import timedelta
+
+        from django.utils import timezone
 
         @fresh_session_required(max_age=300)
         def view(request):
