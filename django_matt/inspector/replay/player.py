@@ -105,7 +105,6 @@ class RequestReplayer:
             start = time.perf_counter()
 
             with connection.execute_wrapper(tracker):
-                import asyncio
                 import inspect
 
                 if inspect.iscoroutinefunction(view):
@@ -174,7 +173,7 @@ class RequestReplayer:
         diff.body_changed = trace.response_body != replayed_body
 
         # Compare headers
-        replayed_headers = {k: v for k, v in response.items()}
+        replayed_headers = dict(response.items())
         for key in set(trace.response_headers) | set(replayed_headers):
             if trace.response_headers.get(key) != replayed_headers.get(key):
                 diff.headers_changed.append(key)

@@ -31,7 +31,7 @@ logger = logging.getLogger("django_matt.batch.coalescer")
 class _BatchEntry:
     """A pending load request."""
 
-    __slots__ = ("pk", "future")
+    __slots__ = ("future", "pk")
 
     def __init__(self, pk: Any) -> None:
         self.pk = pk
@@ -61,7 +61,6 @@ class QueryCoalescer:
         The actual query is deferred until the coalescing window closes,
         then all pending loads for the same model are batched.
         """
-        from django.db import models as django_models
 
         key = f"{model._meta.app_label}.{model._meta.model_name}"
         entry = _BatchEntry(pk)

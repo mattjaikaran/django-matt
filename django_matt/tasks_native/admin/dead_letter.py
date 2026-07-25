@@ -2,7 +2,7 @@
 Admin for DeadLetterTask model.
 """
 
-from django.contrib import admin, messages
+from django.contrib import messages
 from django.db.models import QuerySet
 from django.http import HttpRequest
 from django.utils.html import format_html

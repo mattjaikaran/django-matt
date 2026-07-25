@@ -161,20 +161,19 @@ class WasmMiddleware:
                 self._dealloc(store, rb_ptr, rb_len)
 
             return (action, out_headers, out_body)
-        else:
-            rh_ptr, rh_len, rb_ptr, rb_len = result
-            out_headers = bytes(
-                (ctypes.c_ubyte * rh_len).from_address(mem_data + rh_ptr)
-            )
-            out_body = bytes(
-                (ctypes.c_ubyte * rb_len).from_address(mem_data + rb_ptr)
-            )
+        rh_ptr, rh_len, rb_ptr, rb_len = result
+        out_headers = bytes(
+            (ctypes.c_ubyte * rh_len).from_address(mem_data + rh_ptr)
+        )
+        out_body = bytes(
+            (ctypes.c_ubyte * rb_len).from_address(mem_data + rb_ptr)
+        )
 
-            if self._dealloc:
-                self._dealloc(store, rh_ptr, rh_len)
-                self._dealloc(store, rb_ptr, rb_len)
+        if self._dealloc:
+            self._dealloc(store, rh_ptr, rh_len)
+            self._dealloc(store, rb_ptr, rb_len)
 
-            return (out_headers, out_body)
+        return (out_headers, out_body)
 
 
 class WasmMiddlewareLoader:

@@ -10,7 +10,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -281,7 +280,6 @@ class ParallelMigrationExecutor:
         waves_plan: list[list[tuple[str, str]]],
     ) -> ParallelMigrateResult:
         """Execute waves asynchronously."""
-        from django.core.management import call_command
 
         waves: list[WaveResult] = []
         total_start = time.perf_counter()
@@ -426,7 +424,7 @@ def format_parallel_result(result: ParallelMigrateResult) -> str:
             f"(sequential would be: {wave.sequential_would_take:.2f}s)"
         )
 
-    lines.append(f"\nSummary:")
+    lines.append("\nSummary:")
     lines.append(f"  Migrations applied: {result.migrations_applied}")
     lines.append(f"  Migrations failed: {result.migrations_failed}")
     lines.append(f"  Total time: {result.total_elapsed:.2f}s")

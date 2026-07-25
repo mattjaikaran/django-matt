@@ -299,7 +299,7 @@ def run_json_benchmarks(iterations: int = 5000) -> list[BenchmarkResult]:
 
         results.append(
             run_benchmark(
-                f"FastJSONRenderer.dumps (medium)",
+                "FastJSONRenderer.dumps (medium)",
                 FastJSONRenderer.dumps,
                 medium_data,
                 iterations=iterations,

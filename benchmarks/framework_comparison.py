@@ -14,10 +14,8 @@ from __future__ import annotations
 
 import argparse
 import os
-import statistics
 import sys
 from pathlib import Path
-from typing import Any
 
 # ---------------------------------------------------------------------------
 # Bootstrap
@@ -27,21 +25,20 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "tests.settings")
 
-import django  # noqa: E402
+import django
 
 django.setup()
 
-import orjson  # noqa: E402
-from pydantic import BaseModel  # noqa: E402
+import orjson
 
-from benchmarks.bench_utils import (  # noqa: E402
+from benchmarks.bench_utils import (
     BenchmarkResult,
     format_ops,
     format_time,
     print_environment,
     run_benchmark,
 )
-from benchmarks.schemas import (  # noqa: E402
+from benchmarks.schemas import (
     BlogNested,
     UserLarge,
     UserMedium,
@@ -114,7 +111,7 @@ def _percentile(data: list[float], pct: float) -> float:
 # ---------------------------------------------------------------------------
 
 def bench_route_resolution(iterations: int) -> list[tuple[str, BenchmarkResult]]:
-    from django.urls import resolve, Resolver404
+    from django.urls import Resolver404
 
     from django_matt.core.router import APIRouter
 

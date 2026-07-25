@@ -6,7 +6,6 @@ the native task API.
 """
 
 import asyncio
-import traceback
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -54,14 +53,13 @@ class DjangoQNativeBackend(BaseNativeBackend):
                     finally:
                         loop.close()
                 return task.func(task, *args, **kwargs)
-            else:
-                if task.is_async:
-                    loop = asyncio.new_event_loop()
-                    try:
-                        return loop.run_until_complete(task.func(*args, **kwargs))
-                    finally:
-                        loop.close()
-                return task.func(*args, **kwargs)
+            if task.is_async:
+                loop = asyncio.new_event_loop()
+                try:
+                    return loop.run_until_complete(task.func(*args, **kwargs))
+                finally:
+                    loop.close()
+            return task.func(*args, **kwargs)
 
         wrapper.__name__ = task.name
         wrapper.__module__ = task.func.__module__
@@ -78,7 +76,7 @@ class DjangoQNativeBackend(BaseNativeBackend):
         expires: int | None = None,
     ) -> TaskResult:
         """Enqueue task using Django-Q2."""
-        from django_q.tasks import async_task, schedule
+        from django_q.tasks import async_task
 
         wrapper = self._create_task_wrapper(task)
 
@@ -104,24 +102,23 @@ class DjangoQNativeBackend(BaseNativeBackend):
                 next_run=eta,
             )
             task_id = meta.task_id
+        # Immediate execution (with optional countdown)
+        elif countdown:
+            from datetime import timedelta
+
+            from django_q.models import Schedule
+
+            Schedule.objects.create(
+                name=meta.task_id,
+                func=f"{wrapper.__module__}.{wrapper.__name__}",
+                args=str(args),
+                kwargs=str(kwargs),
+                schedule_type=Schedule.ONCE,
+                next_run=datetime.now(UTC) + timedelta(seconds=countdown),
+            )
+            task_id = meta.task_id
         else:
-            # Immediate execution (with optional countdown)
-            if countdown:
-                from datetime import timedelta
-
-                from django_q.models import Schedule
-
-                Schedule.objects.create(
-                    name=meta.task_id,
-                    func=f"{wrapper.__module__}.{wrapper.__name__}",
-                    args=str(args),
-                    kwargs=str(kwargs),
-                    schedule_type=Schedule.ONCE,
-                    next_run=datetime.now(UTC) + timedelta(seconds=countdown),
-                )
-                task_id = meta.task_id
-            else:
-                task_id = async_task(wrapper, *args, **kwargs, **q_options)
+            task_id = async_task(wrapper, *args, **kwargs, **q_options)
 
         meta.state = TaskState.QUEUED
         meta.queued_at = datetime.now(UTC)

@@ -104,7 +104,7 @@ class Command(GeneratorCommand):
                 self.error(
                     "Could not detect source framework. Specify --source drf or --source ninja"
                 )
-                return
+                return None
 
         # Analyze codebase
         if source == "drf":

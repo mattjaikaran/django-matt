@@ -145,9 +145,9 @@ def interpolate_value(value: Any, results: dict[str, Any]) -> Any:
     """Recursively interpolate {result=name:$.path} references in a value."""
     if isinstance(value, str):
         return _interpolate_string(value, results)
-    elif isinstance(value, dict):
+    if isinstance(value, dict):
         return {k: interpolate_value(v, results) for k, v in value.items()}
-    elif isinstance(value, list):
+    if isinstance(value, list):
         return [interpolate_value(item, results) for item in value]
     return value
 

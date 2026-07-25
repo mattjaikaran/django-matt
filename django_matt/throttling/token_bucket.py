@@ -60,10 +60,9 @@ class _PythonTokenBucket:
                 remaining = int(tokens)
                 reset_ms = int((self._capacity - tokens) / self._refill_rate * 1000) if remaining < self._capacity else 0
                 return (True, remaining, reset_ms)
-            else:
-                self._buckets[key] = (tokens, now)
-                reset_ms = int((1.0 - tokens) / self._refill_rate * 1000)
-                return (False, 0, reset_ms)
+            self._buckets[key] = (tokens, now)
+            reset_ms = int((1.0 - tokens) / self._refill_rate * 1000)
+            return (False, 0, reset_ms)
 
     def check_many(self, keys: list[bytes]) -> list[tuple[bool, int, int]]:
         return [self.check(k) for k in keys]

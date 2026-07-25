@@ -204,7 +204,7 @@ class BatchEndpoint:
                 except (orjson.JSONDecodeError, ValueError):
                     resp_body = response.content.decode("utf-8", errors="replace")
 
-            resp_headers = {k: v for k, v in response.items()}
+            resp_headers = dict(response.items())
 
             return BatchResponse(
                 status=status,
@@ -261,6 +261,5 @@ class BatchEndpoint:
 
         if inspect.iscoroutinefunction(view):
             return await view(request, **kwargs)
-        else:
-            loop = asyncio.get_running_loop()
-            return await loop.run_in_executor(None, lambda: view(request, **kwargs))
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, lambda: view(request, **kwargs))

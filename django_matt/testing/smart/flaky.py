@@ -99,22 +99,21 @@ class FlakyDetector:
                     "" if passed else traceback,
                 ),
             )
+        elif passed:
+            self._conn.execute(
+                "UPDATE flaky_tests SET success_count = success_count + 1, "
+                "total_runs = total_runs + 1, last_seen = datetime('now') "
+                "WHERE test_id = ?",
+                (test_id,),
+            )
         else:
-            if passed:
-                self._conn.execute(
-                    "UPDATE flaky_tests SET success_count = success_count + 1, "
-                    "total_runs = total_runs + 1, last_seen = datetime('now') "
-                    "WHERE test_id = ?",
-                    (test_id,),
-                )
-            else:
-                self._conn.execute(
-                    "UPDATE flaky_tests SET failure_count = failure_count + 1, "
-                    "total_runs = total_runs + 1, last_failure = datetime('now'), "
-                    "last_traceback = ?, last_seen = datetime('now') "
-                    "WHERE test_id = ?",
-                    (traceback, test_id),
-                )
+            self._conn.execute(
+                "UPDATE flaky_tests SET failure_count = failure_count + 1, "
+                "total_runs = total_runs + 1, last_failure = datetime('now'), "
+                "last_traceback = ?, last_seen = datetime('now') "
+                "WHERE test_id = ?",
+                (traceback, test_id),
+            )
         self._conn.commit()
 
     def record_stress_result(

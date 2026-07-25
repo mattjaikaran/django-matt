@@ -74,9 +74,9 @@ class Command(BaseCommand):
 
         if action == "coverage":
             return self._handle_coverage(options)
-        elif action == "stubs":
+        if action == "stubs":
             return self._handle_stubs(options)
-        elif action == "hints":
+        if action == "hints":
             return self._handle_hints(options)
 
         return None

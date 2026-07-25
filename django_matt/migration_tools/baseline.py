@@ -15,8 +15,8 @@ import hashlib
 import json
 import logging
 import subprocess
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -175,7 +175,7 @@ class MigrationBaseline:
         # Write manifest
         info = BaselineInfo(
             version=version,
-            created_at=datetime.now(timezone.utc).isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
             schema_hash=schema_hash,
             applied_migrations=migrations_by_app,
             db_vendor=connection.vendor,
@@ -398,12 +398,11 @@ class MigrationBaseline:
 
         if vendor == "postgresql":
             return self._dump_postgres(settings)
-        elif vendor == "mysql":
+        if vendor == "mysql":
             return self._dump_mysql(settings)
-        elif vendor == "sqlite":
+        if vendor == "sqlite":
             return self._dump_sqlite(settings)
-        else:
-            raise ValueError(f"Unsupported database vendor: {vendor}")
+        raise ValueError(f"Unsupported database vendor: {vendor}")
 
     def _dump_postgres(self, settings: dict[str, Any]) -> str:
         """Dump PostgreSQL schema using pg_dump."""

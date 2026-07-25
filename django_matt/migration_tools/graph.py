@@ -184,7 +184,7 @@ class MigrationGraphRenderer:
 
         # DFS-based cycle detection
         WHITE, GRAY, BLACK = 0, 1, 2
-        color: dict[tuple[str, str], int] = {n: WHITE for n in nodes}
+        color: dict[tuple[str, str], int] = dict.fromkeys(nodes, WHITE)
         parent_map: dict[tuple[str, str], tuple[str, str] | None] = {}
         cycles: list[list[tuple[str, str]]] = []
 

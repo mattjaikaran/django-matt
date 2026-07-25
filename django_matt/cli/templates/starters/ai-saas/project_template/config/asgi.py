@@ -14,6 +14,5 @@ async def application(scope, receive, send):
         await django_asgi(scope, receive, send)
     elif scope["type"] == "websocket":
         # WebSocket routing — extend with your consumers
-        from django.http import HttpResponseNotFound
 
         await send({"type": "websocket.close", "code": 4004})

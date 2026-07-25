@@ -5,7 +5,6 @@ Allows using Celery as the task backend while maintaining
 the native task API.
 """
 
-import traceback
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -100,14 +99,13 @@ class CeleryNativeBackend(BaseNativeBackend):
                     finally:
                         loop.close()
                 return task.func(task, *task_args, **task_kwargs)
-            else:
-                if task.is_async:
-                    loop = asyncio.new_event_loop()
-                    try:
-                        return loop.run_until_complete(task.func(*task_args, **task_kwargs))
-                    finally:
-                        loop.close()
-                return task.func(*task_args, **task_kwargs)
+            if task.is_async:
+                loop = asyncio.new_event_loop()
+                try:
+                    return loop.run_until_complete(task.func(*task_args, **task_kwargs))
+                finally:
+                    loop.close()
+            return task.func(*task_args, **task_kwargs)
 
         # Enqueue the task
         celery_result = celery_task.apply_async(

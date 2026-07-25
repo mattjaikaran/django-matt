@@ -20,7 +20,7 @@ class TaskRegistry:
     """
 
     def __init__(self):
-        self._tasks: dict[str, "NativeTask"] = {}
+        self._tasks: dict[str, NativeTask] = {}
 
     def register(self, task: "NativeTask") -> None:
         """Register a task."""

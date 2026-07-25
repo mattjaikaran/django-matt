@@ -10,7 +10,6 @@ import traceback
 import uuid
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from functools import wraps
 from typing import Any, Generic, ParamSpec, TypeVar, get_type_hints, overload
 
 from pydantic import BaseModel, ValidationError
@@ -254,13 +253,12 @@ class NativeTask(Generic[P, R]):
                     )
                 else:
                     result = self.func(self, *args, **kwargs)
+            elif self._is_async:
+                result = asyncio.get_event_loop().run_until_complete(
+                    self.func(*args, **kwargs)
+                )
             else:
-                if self._is_async:
-                    result = asyncio.get_event_loop().run_until_complete(
-                        self.func(*args, **kwargs)
-                    )
-                else:
-                    result = self.func(*args, **kwargs)
+                result = self.func(*args, **kwargs)
 
             meta.state = TaskState.COMPLETED
             meta.result = result

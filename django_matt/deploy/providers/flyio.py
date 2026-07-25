@@ -14,7 +14,6 @@ from django_matt.deploy.base import (
     DeploymentProvider,
     DeploymentResult,
     DeploymentStatus,
-    build_start_command,
     register_provider,
 )
 

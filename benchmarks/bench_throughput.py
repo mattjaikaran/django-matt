@@ -30,7 +30,6 @@ from benchmarks.bench_utils import (
     run_benchmark,
 )
 
-
 # --- Simulated Request/Response objects ---
 
 

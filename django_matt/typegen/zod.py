@@ -4,8 +4,7 @@ Zod validation schema generation from Pydantic schemas.
 
 import sys
 from pathlib import Path
-from typing import get_type_hints
-from typing import Any
+from typing import Any, get_type_hints
 
 from pydantic import BaseModel
 from pydantic.fields import FieldInfo

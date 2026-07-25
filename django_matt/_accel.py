@@ -14,23 +14,23 @@ from collections.abc import Callable
 
 try:
     from django_matt._rust import HAS_RUST_EXTENSIONS as HAS_RUST
+    from django_matt._rust import MiddlewareChain as MiddlewareChainRust
+    from django_matt._rust import PermissionEvaluator as PermissionEvaluatorRust
     from django_matt._rust import (
         RadixRouter,
         build_camel_case_map,
         serialize_dict_to_json,
         serialize_dicts_to_json,
     )
+    from django_matt._rust import RateLimiter as RateLimiterRust
+    from django_matt._rust import SchemaValidator as SchemaValidatorRust
+    from django_matt._rust import build_filter_clause as build_filter_clause_rust
+    from django_matt._rust import build_select as build_select_rust
     from django_matt._rust import jwt_decode as jwt_decode_rust
     from django_matt._rust import jwt_encode as jwt_encode_rust
     from django_matt._rust import jwt_verify as jwt_verify_rust
     from django_matt._rust import parse_headers as parse_headers_rust
     from django_matt._rust import parse_query_string as parse_query_string_rust
-    from django_matt._rust import PermissionEvaluator as PermissionEvaluatorRust
-    from django_matt._rust import RateLimiter as RateLimiterRust
-    from django_matt._rust import SchemaValidator as SchemaValidatorRust
-    from django_matt._rust import MiddlewareChain as MiddlewareChainRust
-    from django_matt._rust import build_select as build_select_rust
-    from django_matt._rust import build_filter_clause as build_filter_clause_rust
 except ImportError:
     HAS_RUST = False
     RadixRouter = None  # type: ignore[assignment, misc]

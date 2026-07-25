@@ -72,9 +72,8 @@ class DjangoNativeBackend(BaseNativeBackend):
         """
         if self._django_tasks_available:
             return self._enqueue_native(task, args, kwargs, meta, countdown, eta, expires)
-        else:
-            # Fallback to sync execution for Django < 6.0
-            return self._execute_sync(task, args, kwargs, meta)
+        # Fallback to sync execution for Django < 6.0
+        return self._execute_sync(task, args, kwargs, meta)
 
     def _enqueue_native(
         self,
@@ -131,15 +130,14 @@ class DjangoNativeBackend(BaseNativeBackend):
                         loop.close()
                 else:
                     result = task.func(task, *args, **kwargs)
+            elif task.is_async:
+                loop = asyncio.new_event_loop()
+                try:
+                    result = loop.run_until_complete(task.func(*args, **kwargs))
+                finally:
+                    loop.close()
             else:
-                if task.is_async:
-                    loop = asyncio.new_event_loop()
-                    try:
-                        result = loop.run_until_complete(task.func(*args, **kwargs))
-                    finally:
-                        loop.close()
-                else:
-                    result = task.func(*args, **kwargs)
+                result = task.func(*args, **kwargs)
 
             meta.state = TaskState.COMPLETED
             meta.result = result

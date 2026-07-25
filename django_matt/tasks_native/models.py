@@ -5,7 +5,7 @@ Stores task executions, schedules, and results in the database
 for persistence, admin UI, and historical tracking.
 """
 
-from datetime import UTC, datetime
+from datetime import datetime
 
 from django.db import models
 from django.utils import timezone
@@ -191,17 +191,16 @@ class TaskSchedule(models.Model):
                 f"{self.crontab_day_of_month} {self.crontab_month_of_year} "
                 f"{self.crontab_day_of_week}"
             )
-        else:
-            parts = []
-            if self.interval_days:
-                parts.append(f"{self.interval_days}d")
-            if self.interval_hours:
-                parts.append(f"{self.interval_hours}h")
-            if self.interval_minutes:
-                parts.append(f"{self.interval_minutes}m")
-            if self.interval_seconds:
-                parts.append(f"{self.interval_seconds}s")
-            return "every " + " ".join(parts) if parts else "every 0s"
+        parts = []
+        if self.interval_days:
+            parts.append(f"{self.interval_days}d")
+        if self.interval_hours:
+            parts.append(f"{self.interval_hours}h")
+        if self.interval_minutes:
+            parts.append(f"{self.interval_minutes}m")
+        if self.interval_seconds:
+            parts.append(f"{self.interval_seconds}s")
+        return "every " + " ".join(parts) if parts else "every 0s"
 
     def get_schedule_object(self):
         """Get the schedule primitive."""
@@ -215,13 +214,12 @@ class TaskSchedule(models.Model):
                 day_of_month=self.crontab_day_of_month,
                 month_of_year=self.crontab_month_of_year,
             )
-        else:
-            return IntervalSchedule(
-                seconds=self.interval_seconds,
-                minutes=self.interval_minutes,
-                hours=self.interval_hours,
-                days=self.interval_days,
-            )
+        return IntervalSchedule(
+            seconds=self.interval_seconds,
+            minutes=self.interval_minutes,
+            hours=self.interval_hours,
+            days=self.interval_days,
+        )
 
     def update_next_run(self) -> None:
         """Calculate and set the next run time."""

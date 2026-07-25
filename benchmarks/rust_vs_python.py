@@ -270,8 +270,8 @@ def main():
     py_dec = benchmark("Python decode", py_jwt_decode, jwt_iterations)
 
     if has_rust:
-        from django_matt._rust import jwt_encode as _jwt_encode_rs
         from django_matt._rust import jwt_decode as _jwt_decode_rs
+        from django_matt._rust import jwt_encode as _jwt_encode_rs
 
         def rust_jwt_encode():
             import time as _time
@@ -392,8 +392,8 @@ def main():
         print(f"    {'orjson':<25} {py_orjson['mean_ns']:<15.0f} {orjson_speedup:<20.1f}x")
 
         if has_rust:
-            from django_matt._rust import serialize_dicts_to_json as _ser_rs
             from django_matt._rust import build_camel_case_map as _build_cm
+            from django_matt._rust import serialize_dicts_to_json as _ser_rs
 
             rs_ser = benchmark(
                 f"rust_serialize({count})",

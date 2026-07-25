@@ -15,7 +15,6 @@ Usage:
 from __future__ import annotations
 
 import json
-import sys
 from datetime import timedelta
 
 from django.utils import timezone
@@ -238,7 +237,7 @@ class Command(MattCommand):
                 else:
                     result = task(payload)
 
-                self.console.success(f"Task completed successfully")
+                self.console.success("Task completed successfully")
                 self.console.info(f"Result: {result}")
             except Exception as e:
                 self.console.error(f"Task failed: {e}")
@@ -277,8 +276,6 @@ class Command(MattCommand):
 
     def _output_status_table(self, health: dict, backend, options: dict) -> None:
         """Output status as formatted text."""
-        from rich.panel import Panel
-        from rich.table import Table
 
         from django_matt.cli.console import console
 
@@ -286,7 +283,7 @@ class Command(MattCommand):
         status = "✓ Healthy" if health.get("healthy") else "✗ Unhealthy"
         status_style = "green" if health.get("healthy") else "red"
 
-        console._console.print(f"\n[bold]Task Engine Status[/bold]\n")
+        console._console.print("\n[bold]Task Engine Status[/bold]\n")
         console._console.print(f"  Backend: [cyan]{health.get('backend', 'unknown')}[/cyan]")
         console._console.print(f"  Status: [{status_style}]{status}[/{status_style}]")
 
@@ -457,15 +454,14 @@ class Command(MattCommand):
             if age_str.endswith("d"):
                 days = int(age_str[:-1])
                 return timezone.now() - timedelta(days=days)
-            elif age_str.endswith("h"):
+            if age_str.endswith("h"):
                 hours = int(age_str[:-1])
                 return timezone.now() - timedelta(hours=hours)
-            elif age_str.endswith("m"):
+            if age_str.endswith("m"):
                 minutes = int(age_str[:-1])
                 return timezone.now() - timedelta(minutes=minutes)
-            else:
-                # Assume days
-                return timezone.now() - timedelta(days=int(age_str))
+            # Assume days
+            return timezone.now() - timedelta(days=int(age_str))
         except ValueError:
             return None
 

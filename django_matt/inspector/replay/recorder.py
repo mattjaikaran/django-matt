@@ -183,7 +183,7 @@ class RequestRecorder:
 
         # Capture response
         trace.status_code = response.status_code
-        trace.response_headers = {k: v for k, v in response.items()}
+        trace.response_headers = dict(response.items())
         trace.response_body = getattr(response, "content", b"") or b""
 
         # Capture queries and timing

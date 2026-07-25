@@ -112,7 +112,6 @@ class BaseNativeBackend(ABC):
 
     def close(self) -> None:
         """Close backend connections."""
-        pass
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"

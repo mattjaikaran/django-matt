@@ -64,7 +64,6 @@ def run_all_benchmarks(
         print("=" * 70)
         try:
             from django_matt.benchmarks.comparison import FrameworkComparisonScenario
-            from django_matt.benchmarks.runner import BenchmarkResult as _BR
 
             scenario = FrameworkComparisonScenario(
                 iterations=int(1000 * iterations_multiplier), warmup=10
@@ -343,7 +342,6 @@ def main():
         try:
             from django_matt.benchmarks.comparison import FrameworkComparisonScenario
             from django_matt.benchmarks.reporters import RichTableReporter
-            from django_matt.benchmarks.runner import BenchmarkResult as _BR
 
             # Re-run comparison scenario to get proper BenchmarkResult objects
             scenario = FrameworkComparisonScenario(

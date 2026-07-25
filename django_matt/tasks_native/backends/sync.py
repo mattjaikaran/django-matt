@@ -57,15 +57,14 @@ class SyncNativeBackend(BaseNativeBackend):
                         loop.close()
                 else:
                     result = task.func(task, *args, **kwargs)
+            elif task.is_async:
+                loop = asyncio.new_event_loop()
+                try:
+                    result = loop.run_until_complete(task.func(*args, **kwargs))
+                finally:
+                    loop.close()
             else:
-                if task.is_async:
-                    loop = asyncio.new_event_loop()
-                    try:
-                        result = loop.run_until_complete(task.func(*args, **kwargs))
-                    finally:
-                        loop.close()
-                else:
-                    result = task.func(*args, **kwargs)
+                result = task.func(*args, **kwargs)
 
             meta.state = TaskState.COMPLETED
             meta.result = result

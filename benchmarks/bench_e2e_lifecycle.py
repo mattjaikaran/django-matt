@@ -148,10 +148,20 @@ def main():
         from django_matt._rust import (
             RadixRouter,
             build_camel_case_map,
+        )
+        from django_matt._rust import (
             jwt_decode as jwt_decode_rs,
+        )
+        from django_matt._rust import (
             jwt_encode as jwt_encode_rs,
+        )
+        from django_matt._rust import (
             parse_headers as parse_headers_rs,
+        )
+        from django_matt._rust import (
             parse_query_string as parse_qs_rs,
+        )
+        from django_matt._rust import (
             serialize_dicts_to_json as serialize_rs,
         )
         has_rust = True

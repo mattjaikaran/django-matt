@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from django.core.management.base import BaseCommand, CommandError, CommandParser
+from django.core.management.base import BaseCommand, CommandParser
 
 if TYPE_CHECKING:
     pass
@@ -133,7 +133,7 @@ class Command(BaseCommand):
         # Handle special audit types
         if audit_type == "bundle":
             return self._handle_bundle_audit(options)
-        elif audit_type == "context":
+        if audit_type == "context":
             return self._handle_context_generation(options)
 
         return self._handle_standard_audit(options)

@@ -1,4 +1,4 @@
-"""Plugin system with dependency resolution, lifecycle hooks, and autodiscovery."""
+"""DEPRECATED: Use `django_matt.plugins` instead. The modules system will be removed in v1.0."""
 
 from __future__ import annotations
 

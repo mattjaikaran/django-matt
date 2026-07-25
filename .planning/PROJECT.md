@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A Django meta-framework that replaces Django REST Framework, django-ninja, and django-ninja-extra with a single cohesive library. Built on Django as the sole dependency — no external packages beyond Django itself (plus orjson for performance). Async-first, type-driven, with 126 shipped requirements across auth, billing, real-time, AI/ML, and more.
+A Django meta-framework that replaces Django REST Framework, django-ninja, and django-ninja-extra with a single cohesive library. Async-first, type-driven, with 60+ modules across auth, billing, real-time, AI/ML, and more.
 
 ## Core Value
 
@@ -12,21 +12,20 @@ The fastest, most developer-friendly way to build Django APIs — if you can't s
 
 ### Validated
 
-- ✓ Full codebase audit — security, performance, DX, correctness — v1.0
-- ✓ Async-first: zero sync ORM in async handlers — v1.0
-- ✓ Performance benchmarks (django-matt vs DRF vs django-ninja vs FastAPI) — v1.0
-- ✓ Zero external dependencies beyond Django + orjson — v1.0
-- ✓ CLI-guided migration from django-ninja projects — v1.0
-- ✓ AI-native: context generation for LLMs (`generate_ai_context`) — v1.0
-- ✓ 126 requirements shipped (CORE, AUTH, DX, PERF, TENANT, BILL, FLAG, ANLYT, EXP, RT, MSG, NOTIF, EMAIL, AI, ML, FILE, TASK, AUDIT, HTMX, COMP, GQL, ADMIN, DEPLOY, OBS) — v1.0
+- ✓ Full codebase audit — security, performance, DX, correctness — v0.9
+- ✓ Async-first: zero sync ORM in async handlers — v0.9
+- ✓ Performance benchmarks (django-matt vs DRF vs django-ninja vs FastAPI) — v0.9
+- ✓ Zero external dependencies beyond Django + orjson — v0.9
+- ✓ CLI-guided migration from django-ninja projects — v0.9
+- ✓ AI-native: context generation for LLMs (`generate_ai_context`) — v0.9
+- ✓ 126 requirements shipped (CORE, AUTH, DX, PERF, TENANT, BILL, FLAG, ANLYT, EXP, RT, MSG, NOTIF, EMAIL, AI, ML, FILE, TASK, AUDIT, HTMX, COMP, GQL, ADMIN, DEPLOY, OBS) — v0.9
 
 ### Active
 
-- [ ] matt-stack 2.0 integration — CLI scaffolds django-matt backends + React frontends
-- [ ] BillingController auth guards — framework-level controller needs APIController base or explicit auth
+- [x] BillingController auth guards — added `permission_classes = [IsAuthenticated]` (2026-07)
 - [ ] startapi middleware auto-wiring — TenantMiddlewareAsync and ObservabilityMiddleware in generated templates
 - [ ] Experiments → Analytics bridge — ExperimentManager.get_assignment() should emit analytics events
-- [ ] Pydantic v2 migration — passkeys/schemas.py uses deprecated `class Config`
+- [x] Pydantic v2 migration — passkeys/schemas.py `class Config` replaced with `model_config` (2026-07)
 
 ### Out of Scope
 
@@ -39,8 +38,7 @@ The fastest, most developer-friendly way to build Django APIs — if you can't s
 
 **Origins:** Evolution of [matt-stack](https://github.com/mattjaikaran/matt-stack), [django-ninja-boilerplate](https://github.com/mattjaikaran/django-ninja-boilerplate), and [react-vite-boilerplate](https://github.com/mattjaikaran/react-vite-boilerplate). V1 was a CLI that wired up django-ninja + React with opinionated conventions. django-matt is the framework those conventions deserve.
 
-**Current state (v1.0 shipped):** 193K LOC library, 62K LOC tests, 35K LOC examples. 4770 tests passing (46 skipped). 126 v1 requirements satisfied across 7 phases, 24 plans. 5 working example apps (quicktodo, ecommerce-v2, devplatform, saas-starter, ecommerce-api) plus 2 legacy examples.
-
+**Current state (v0.9 pre-launch):** 256K LOC library, 62K LOC tests, 35K LOC examples. 8,009 tests passing (10 fixed, 46 skipped). 126 v1 requirements satisfied across 7 phases, 24 plans. 10 working example apps. Preparing for public release.
 **Tech stack:** Python 3.12+ / Django 5.2+ / Pydantic v2 / orjson / async-first
 
 **Dependency philosophy:** Django is the only hard dependency. Build own implementations of everything else. No waiting on third-party patches or abandoned packages. orjson is a base dependency for JSON performance.

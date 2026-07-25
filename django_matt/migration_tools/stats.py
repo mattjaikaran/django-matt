@@ -13,7 +13,7 @@ import json
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -270,9 +270,7 @@ class MigrationProfiler:
             ops_info.append(op_info)
 
         # Determine complexity
-        if len(operations) == 0:
-            complexity = "trivial"
-        elif len(operations) <= 2 and not has_data_migration:
+        if len(operations) == 0 or (len(operations) <= 2 and not has_data_migration):
             complexity = "trivial"
         elif len(operations) <= 5 and not has_data_migration:
             complexity = "simple"
@@ -330,7 +328,7 @@ class MigrationTimer:
         self,
         app_label: str,
         migration_name: str,
-    ) -> "MigrationTimingContext":
+    ) -> MigrationTimingContext:
         """Context manager to time a migration run."""
         return MigrationTimingContext(self, app_label, migration_name)
 
@@ -430,14 +428,14 @@ class MigrationTimingContext:
         self.success = True
         self.error = ""
 
-    def __enter__(self) -> "MigrationTimingContext":
+    def __enter__(self) -> MigrationTimingContext:
         self.start_time = time.perf_counter()
-        self.started_at = datetime.now(timezone.utc).isoformat()
+        self.started_at = datetime.now(UTC).isoformat()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         elapsed = time.perf_counter() - self.start_time
-        finished_at = datetime.now(timezone.utc).isoformat()
+        finished_at = datetime.now(UTC).isoformat()
 
         if exc_val:
             self.success = False

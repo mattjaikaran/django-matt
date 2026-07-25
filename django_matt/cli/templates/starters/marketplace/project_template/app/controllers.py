@@ -3,14 +3,12 @@
 from django.db.models import Avg
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-
 from django_matt.auth import jwt_required
 
 from .models import Product, Review, Store
 from .schemas import (
     ProductCreate,
     ProductSchema,
-    ProductUpdate,
     ReviewCreate,
     ReviewSchema,
     StoreCreate,

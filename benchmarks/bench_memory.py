@@ -126,8 +126,8 @@ def main():
     print("=" * 75)
     print()
     print(f"  Python {sys.version.split()[0]} | {sys.platform}")
-    print(f"  Iterations per test: 1,000,000 (10 batches of 100,000)")
-    print(f"  Threshold: RSS growth < 10 MB")
+    print("  Iterations per test: 1,000,000 (10 batches of 100,000)")
+    print("  Threshold: RSS growth < 10 MB")
     print()
 
     # ---- Setup test data ----
@@ -268,7 +268,7 @@ def main():
 
     if failed == 0:
         print(f"  All {passed} tests PASSED — no memory leaks detected.")
-        print(f"  RSS remained stable across 1M+ iterations per function.")
+        print("  RSS remained stable across 1M+ iterations per function.")
     else:
         print(f"  {failed} test(s) FAILED — potential memory leak detected!")
         for r in results:

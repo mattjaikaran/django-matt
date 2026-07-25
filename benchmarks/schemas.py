@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import random
 import string
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
-
+from pydantic import BaseModel
 
 # ---------------------------------------------------------------------------
 # Small schema (5 fields)
@@ -171,7 +170,7 @@ def _rand_email() -> str:
 
 
 def _rand_datetime() -> datetime:
-    return datetime(2024, 1, 1, tzinfo=timezone.utc)
+    return datetime(2024, 1, 1, tzinfo=UTC)
 
 
 def _rand_uuid() -> UUID:

@@ -62,7 +62,6 @@ class ConcurrentIndexRewriter(BaseRewriter):
             )
 
         # RunSQL case
-        from django.db.migrations.operations.special import RunSQL
         original_sql = operation.sql if isinstance(operation.sql, str) else str(operation.sql)
         safe_sql = original_sql.replace("CREATE INDEX", "CREATE INDEX CONCURRENTLY")
 
