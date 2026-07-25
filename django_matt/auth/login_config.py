@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
+from django.conf import settings
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
@@ -39,12 +40,7 @@ class LoginConfig:
 
 def get_login_config() -> LoginConfig:
     """Get login configuration from Django settings."""
-    try:
-        from django.conf import settings
-
-        raw: dict[str, Any] = getattr(settings, "MATT_AUTH", {})
-    except Exception:
-        raw = {}
+    raw: dict[str, Any] = getattr(settings, "MATT_AUTH", {})
 
     return LoginConfig(
         login_field=raw.get("login_field", "email"),
