@@ -379,6 +379,159 @@ class PerformanceAuditor(BaseAuditor):
 
         return findings
 
+        # Check for count() vs exists()
+        findings.extend(self._check_count_vs_exists(tree, rel_path, config))
+
+        # Check for missing select_related hints
+        findings.extend(self._check_missing_select_related(tree, rel_path, config))
+
+        # Check for first() without order_by() on large queries
+        findings.extend(self._check_first_without_order(tree, rel_path, config))
+
+
+
+    def _check_count_vs_exists(
+        self, tree: ast.Module, file_path: str, config: AuditConfig
+    ) -> list[AuditFinding]:
+        """Detect count() used where exists() would be faster.
+
+        Patterns:
+          - if queryset.count() > 0 / == 0 / >= 1
+          - if queryset.count()
+        """
+        findings: list[AuditFinding] = []
+        src = ast.unparse(tree) if hasattr(ast, "unparse") else ""
+
+        patterns = [
+            re.compile(r"\.count\s*\(\s*\)\s*[><=!]+\s*0"),
+            re.compile(r"\.count\s*\(\s*\)\s*[><=]+\s*1"),
+        ]
+
+        for pat in patterns:
+            for match in pat.finditer(src):
+                severity = AuditSeverity.LOW
+                if self.should_skip_for_level(severity, config.level):
+                    continue
+
+                findings.append(
+                    AuditFinding(
+                        id="PERF033",
+                        severity=severity,
+                        category=self.category,
+                        message="Using count() to check existence — use exists() for better performance",
+                        file=file_path,
+                        suggestion=(
+                            "Replace count() > 0 with exists(). "
+                            "exists() uses LIMIT 1 and stops scanning after first match."
+                        ),
+                        fix_command="matt audit fix --rule PERF033",
+                        tags=["database", "queryset", "optimization"],
+                    )
+                )
+                break  # one finding per file for this pattern
+
+        return findings
+
+    def _check_missing_select_related(
+        self, tree: ast.Module, file_path: str, config: AuditConfig
+    ) -> list[AuditFinding]:
+        """Detect ForeignKey attribute access patterns indicating missing select_related.
+
+        Looks for pattern: for obj in queryset.all(): obj.related_field.some_attr
+        which indicates the queryset should use select_related('related_field').
+        """
+        findings: list[AuditFinding] = []
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.For | ast.AsyncFor):
+                continue
+
+            # Check if the iterator is a queryset operation
+            if not isinstance(node.iter, ast.Call):
+                continue
+
+            iter_src = ast.unparse(node.iter) if hasattr(ast, "unparse") else ""
+            loop_src = ast.unparse(node) if hasattr(ast, "unparse") else ""
+
+            # Only flag when iterating querysets that don't already have select_related
+            if ".all()" in iter_src or ".filter(" in iter_src:
+                if "select_related" not in iter_src and "prefetch_related" not in iter_src:
+                    # Check for dot-access patterns inside loop that look like FK traversal
+                    fk_pattern = re.compile(r"\.(\w+)\.\w+")
+                    if fk_pattern.search(loop_src):
+                        severity = AuditSeverity.MEDIUM
+                        if self.should_skip_for_level(severity, config.level):
+                            continue
+
+                        findings.append(
+                            AuditFinding(
+                                id="PERF034",
+                                severity=severity,
+                                category=self.category,
+                                message="Queryset iteration may benefit from select_related() — FK access detected in loop",
+                                file=file_path,
+                                line=node.lineno,
+                                suggestion=(
+                                    "Add .select_related('related_field') to the queryset "
+                                    "before iteration. Run EXPLAIN to verify the query plan."
+                                ),
+                                fix_command="matt audit fix --rule PERF034",
+                                tags=["select_related", "n+1", "database"],
+                            )
+                        )
+                        break
+
+        return findings
+
+    def _check_first_without_order(
+        self, tree: ast.Module, file_path: str, config: AuditConfig
+    ) -> list[AuditFinding]:
+        """Detect .first() used on filtered querysets without .order_by().
+
+        Without explicit ordering, the result is non-deterministic and may
+        produce unexpected results with replication or sharding.
+        """
+        findings: list[AuditFinding] = []
+        src = ast.unparse(tree) if hasattr(ast, "unparse") else ""
+
+        # Pattern: .filter(...).first() without .order_by()
+        if ".first()" in src:
+            # Find .first() usages preceded by .filter() or .all() but no .order_by()
+            first_pattern = re.compile(
+                r"\.(?:filter|all|exclude)\s*\([^)]*\)\s*\.first\s*\(\s*\)"
+            )
+            for match in first_pattern.finditer(src):
+                # Check if there's an order_by between the filter and first
+                before_first = src[:match.start()]
+                last_dot = before_first.rfind(".first")
+                if last_dot == -1:
+                    snippet = src[max(0, match.start() - 100):match.end()]
+                else:
+                    snippet = src[last_dot:match.end()]
+
+                if "order_by" not in snippet:
+                    severity = AuditSeverity.INFO
+                    if self.should_skip_for_level(severity, config.level):
+                        continue
+
+                    findings.append(
+                        AuditFinding(
+                            id="PERF035",
+                            severity=severity,
+                            category=self.category,
+                            message="Using .first() without .order_by() — result is non-deterministic",
+                            file=file_path,
+                            suggestion=(
+                                "Add explicit .order_by() before .first() for deterministic results. "
+                                "Without ordering, database may return different rows across replicas."
+                            ),
+                            fix_command="matt audit fix --rule PERF035",
+                            tags=["queryset", "ordering", "determinism"],
+                        )
+                    )
+                    break
+
+        return findings
     def _get_method_name(self, call_node: ast.Call) -> str:
         """Get the method name from a Call node."""
         if isinstance(call_node.func, ast.Attribute):
