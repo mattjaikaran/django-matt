@@ -14,21 +14,34 @@ class AuthorProfileResponse(BaseModel):
     github: str = ""
     linkedin: str = ""
     location: str = ""
-
-    @field_validator("avatar", mode="before")
-    @classmethod
-    def coerce_avatar(cls, v):
-        if v is None:
-            return None
-        if hasattr(v, "url"):
-            return v.url
-        return str(v)
-
 class UserPublicResponse(BaseModel):
     id: UUID
     username: str
     full_name: str
     author_profile: AuthorProfileResponse | None = None
+
+    @field_validator("author_profile", mode="before")
+    @classmethod
+    def coerce_author_profile(cls, v):
+        if v is None:
+            return None
+        if hasattr(v, "user"):
+            avatar_url = None
+            if v.avatar and getattr(v.avatar, "name", None):
+                try:
+                    avatar_url = v.avatar.url
+                except (ValueError, OSError):
+                    pass
+            return AuthorProfileResponse(
+                bio=v.bio or "",
+                avatar=avatar_url,
+                website=v.website or "",
+                twitter=v.twitter or "",
+                github=v.github or "",
+                linkedin=v.linkedin or "",
+                location=v.location or "",
+            )
+        return v
 
     class Config:
         from_attributes = True
@@ -44,6 +57,29 @@ class UserResponse(BaseModel):
     is_staff: bool
     date_joined: datetime
     author_profile: AuthorProfileResponse | None = None
+
+    @field_validator("author_profile", mode="before")
+    @classmethod
+    def coerce_author_profile(cls, v):
+        if v is None:
+            return None
+        if hasattr(v, "user"):
+            avatar_url = None
+            if v.avatar and getattr(v.avatar, "name", None):
+                try:
+                    avatar_url = v.avatar.url
+                except (ValueError, OSError):
+                    pass
+            return AuthorProfileResponse(
+                bio=v.bio or "",
+                avatar=avatar_url,
+                website=v.website or "",
+                twitter=v.twitter or "",
+                github=v.github or "",
+                linkedin=v.linkedin or "",
+                location=v.location or "",
+            )
+        return v
 
     class Config:
         from_attributes = True
