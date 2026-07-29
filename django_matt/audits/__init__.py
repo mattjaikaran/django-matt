@@ -1,8 +1,17 @@
 """
-AI-Assisted Codebase Audits.
+AI-Assisted Codebase Quality Audits — static analysis and fix generation.
 
-Provides LLM/AI agent helpers for optimizing django-matt projects with
-structured prompts, audit commands, and actionable recommendations.
+Provides pluggable auditors for security, performance, scalability,
+bundle size, best practices, and maintainability. Includes LLM prompt
+helpers, MCP tool definitions, and auto-fix diff generation.
+
+For operational audit logging (model change tracking, user action history),
+see the sibling package: django_matt.audit
+
+Disambiguation:
+  - django_matt.audits.AuditSeverity = code-quality finding severity (LOW..CRITICAL)
+  - django_matt.audit.AuditSeverity = operational log level (DEBUG..CRITICAL)
+  - Prefer aliases: FindingSeverity (here), LogSeverity (in audit)
 
 Example:
     >>> from django_matt.audits import run_audit, AuditLevel
@@ -19,8 +28,8 @@ from .framework import (
     AuditReport,
     AuditResult,
     AuditSeverity,
+    FindingSeverity,
     BaseAuditor,
-    run_audit,
 )
 
 __all__ = [
@@ -30,7 +39,7 @@ __all__ = [
     "AuditLevel",
     "AuditReport",
     "AuditResult",
-    "AuditSeverity",
+    "FindingSeverity",
     "BaseAuditor",
     "run_audit",
 ]

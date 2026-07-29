@@ -1,6 +1,18 @@
 """
-Audit logging module.
+Operational Audit Logging — model change tracking and user action history.
 
+This module tracks WHO did WHAT to WHICH model at runtime:
+creates, updates, deletes, logins, permission changes, etc.
+
+For codebase quality auditing (security scans, performance analysis,
+scalability checks), see the sibling package: django_matt.audits
+
+Disambiguation:
+  - django_matt.audit.AuditSeverity = operational log level (DEBUG..CRITICAL)
+  - django_matt.audits.AuditSeverity = code-quality finding severity (LOW..CRITICAL)
+  - Prefer aliases: LogSeverity, LogAction
+"""
+"""
 Provides comprehensive audit logging for Django applications including:
 - Model change tracking (create, update, delete)
 - User action logging
@@ -46,7 +58,7 @@ from .context import (
     set_audit_context,
 )
 from .decorators import audit_action, log_action, skip_audit
-from .enums import AuditAction
+from .enums import AuditAction, LogAction, LogSeverity
 from .middleware import AuditContext, AuditMiddleware
 from .mixins import AuditableManager, AuditableMixin, AuditableQuerySet
 from .models import AuditLog
@@ -68,6 +80,8 @@ from .utils import (
 __all__ = [
     # Enums
     "AuditAction",
+    "LogAction",
+    "LogSeverity",
     # Models
     "AuditLog",
     # Mixins

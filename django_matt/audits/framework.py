@@ -61,6 +61,10 @@ class AuditSeverity(str, Enum):
     LOW = "low"
     INFO = "info"
 
+# Disambiguation alias: prefer FindingSeverity to avoid collision
+# with django_matt.audit.AuditSeverity (operational log severity).
+FindingSeverity = AuditSeverity
+
 
 class AuditCategory(str, Enum):
     """
