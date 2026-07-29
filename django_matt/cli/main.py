@@ -156,6 +156,7 @@ def main(
 
 # Import and register command groups
 from django_matt.cli.commands.analyze import app as analyze_app
+from django_matt.cli.commands.audit import app as audit_app
 from django_matt.cli.commands.db import app as db_app
 from django_matt.cli.commands.deploy import app as deploy_app
 from django_matt.cli.commands.generate import app as generate_app
@@ -170,6 +171,7 @@ app.add_typer(generate_app, name="new", help="Generate new components")
 app.add_typer(generate_app, name="generate", help="Code generation (alias for 'new')", hidden=True)
 app.add_typer(types_app, name="types", help="Type generation")
 app.add_typer(analyze_app, name="analyze", help="Project analysis")
+app.add_typer(audit_app, name="audit", help="Codebase quality audits")
 app.add_typer(deploy_app, name="deploy", help="Deployment and Docker")
 app.add_typer(status_app, name="status", help="Project health")
 
