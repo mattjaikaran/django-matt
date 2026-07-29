@@ -421,25 +421,29 @@ def _generate_diffs(
     output_dir: str | None,
     project_path: Path,
 ) -> None:
-    """Generate unified diffs for fixable findings without applying changes."""
-    patches: dict[str, list[str]] = {}
+    """Generate unified diffs for fixable findings using fixer registry."""
+    try:
+        from django_matt.audits.fixers import generate_all_patches, has_fixer
+    except ImportError:
+        console.print("[yellow]Fixer engine not available.[/]")
+        return
 
-    for finding in findings:
+    fixer_findings = [f for f in findings if has_fixer(f.id)]
+    fallback_findings = [f for f in findings if not has_fixer(f.id)]
+
+    patches = generate_all_patches(fixer_findings, project_path)
+
+    for finding in fallback_findings:
         if not finding.file or not finding.line:
             continue
-
         file_path = project_path / finding.file
         if not file_path.exists():
-            console.print(f"[dim]Skipping missing file: {finding.file}[/]")
             continue
-
-        patch_lines = _generate_patch_for_finding(finding, file_path)
+        patch_lines = _generate_fallback_patch(finding, file_path)
         if patch_lines:
             key = str(file_path)
             if key not in patches:
-                patches[key] = []
-                patches[key].append(f"--- a/{finding.file}")
-                patches[key].append(f"+++ b/{finding.file}")
+                patches[key] = [f"--- a/{finding.file}", f"+++ b/{finding.file}"]
             patches[key].extend(patch_lines)
 
     if not patches:
@@ -457,18 +461,28 @@ def _generate_diffs(
         if output_dir:
             out_path = Path(output_dir)
             out_path.mkdir(parents=True, exist_ok=True)
-            patch_file = out_path / f"{rel_path.name}.patch"
+            safe_name = rel_path.name.replace("/", "_")
+            patch_file = out_path / f"{safe_name}.patch"
             patch_file.write_text(patch_text)
             console.print(f"[dim]Patch written to {patch_file}[/]")
 
+    fixed_count = len(fixer_findings)
+    todo_count = len(fallback_findings)
+    parts = []
+    if fixed_count:
+        parts.append(f"{fixed_count} rule-specific fix(es)")
+    if todo_count:
+        parts.append(f"{todo_count} TODO annotation(s)")
+
     console.print(
         f"\n[bold]{len(patches)} file(s) would be changed.[/] "
+        f"({', '.join(parts)}) "
         "Apply with [bold]matt audit fix[/] (without --diff)."
     )
 
 
-def _generate_patch_for_finding(finding, file_path: Path) -> list[str] | None:
-    """Generate unified diff hunks for a single finding."""
+def _generate_fallback_patch(finding, file_path: Path) -> list[str] | None:
+    """Generate unified diff for findings without specific fixers (TODO annotation)."""
     original_lines = file_path.read_text(encoding="utf-8").splitlines(keepends=True)
     line_idx = (finding.line or 1) - 1
 
@@ -500,12 +514,18 @@ def _apply_fixes(
     interactive: bool,
     project_path: Path,
 ) -> None:
-    """Apply auto-fix suggestions to source files."""
+    """Apply auto-fix suggestions using fixer registry."""
+    try:
+        from django_matt.audits.fixers import get_fixer, has_fixer
+    except ImportError:
+        console.print("[yellow]Fixer engine not available.[/]")
+        return
+
     applied = 0
     skipped = 0
 
     for finding in findings:
-        if not finding.file or not finding.line:
+        if not finding.file:
             continue
 
         file_path = project_path / finding.file
@@ -522,20 +542,30 @@ def _apply_fixes(
                 skipped += 1
                 continue
 
-        original = file_path.read_text(encoding="utf-8").splitlines(keepends=True)
-        line_idx = (finding.line or 1) - 1
-
-        if line_idx < len(original):
-            line = original[line_idx].rstrip("\n")
-            if f"TODO: auto-fix {finding.id}" not in line:
-                comment = f"  # TODO: auto-fix {finding.id}"
-                original[line_idx] = f"{line}{comment}\n"
-                file_path.write_text("".join(original), encoding="utf-8")
+        if has_fixer(finding.id):
+            fixer = get_fixer(finding.id)
+            result = fixer(finding, project_path)
+            if result and result.applied:
+                console.print(f"  [green]{result.message}[/]")
                 applied += 1
-                console.print(f"  [green]Annotated {finding.file}:{finding.line}[/]")
+            else:
+                reason = result.message if result else "no fix generated"
+                console.print(f"  [yellow]Skipped: {reason}[/]")
+                skipped += 1
+        else:
+            # Fallback: annotate with TODO
+            original = file_path.read_text(encoding="utf-8").splitlines(keepends=True)
+            line_idx = (finding.line or 1) - 1
+            if line_idx < len(original):
+                line = original[line_idx].rstrip("\n")
+                if f"TODO: auto-fix {finding.id}" not in line:
+                    comment = f"  # TODO: auto-fix {finding.id}"
+                    original[line_idx] = f"{line}{comment}\n"
+                    file_path.write_text("".join(original), encoding="utf-8")
+                    applied += 1
+                    tid = finding.id
+                    loc = finding.file or "?"
+                    line_no = finding.line or 0
+                    console.print(f"  [green]Annotated {loc}:{line_no} — TODO: auto-fix {tid}[/]")
 
     console.print(f"\n[bold]{applied} fix(es) applied, {skipped} skipped.[/]")
-
-
-if __name__ == "__main__":
-    app()

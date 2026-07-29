@@ -426,7 +426,20 @@ class AuditConfig:
     level: AuditLevel = AuditLevel.STANDARD
     categories: list[AuditCategory] = field(default_factory=lambda: [AuditCategory.ALL])
     exclude_patterns: list[str] = field(
-        default_factory=lambda: ["**/migrations/**", "**/__pycache__/**", "**/tests/**"]
+        default_factory=lambda: [
+            "**/migrations/**",
+            "**/__pycache__/**",
+            "**/tests/**",
+            "**/.venv/**",
+            "**/venv/**",
+            "**/.env/**",
+            "**/node_modules/**",
+            "**/.git/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/.tox/**",
+            "**/.nox/**",
+        ]
     )
     include_patterns: list[str] = field(default_factory=lambda: ["**/*.py"])
     max_findings: int = 0
