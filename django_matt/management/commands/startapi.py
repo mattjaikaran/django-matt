@@ -65,6 +65,8 @@ class Command(BaseCommand):
                 "ai-saas",
                 "marketplace",
                 "internal-tools",
+                "blog",
+                "portfolio",
             ],
             default="api-only",
             help="Project template type (default: api-only)",
@@ -128,6 +130,8 @@ class Command(BaseCommand):
             "ai-saas",
             "marketplace",
             "internal-tools",
+            "blog",
+            "portfolio",
         ):
             self._handle_starter_template(project_name, directory, template, options)
             return

@@ -9,7 +9,7 @@ from typing import Any
 
 STARTERS_DIR = Path(__file__).parent
 
-TEMPLATE_NAMES = ["api-only", "ai-saas", "marketplace", "internal-tools"]
+TEMPLATE_NAMES = ["api-only", "ai-saas", "marketplace", "internal-tools", "blog", "portfolio"]
 
 # Map old template names to new starter templates for backward compat
 TEMPLATE_ALIASES: dict[str, str] = {

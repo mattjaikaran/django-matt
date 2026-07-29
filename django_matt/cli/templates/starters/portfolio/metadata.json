@@ -1,0 +1,8 @@
+{
+    "name": "portfolio",
+    "description": "Portfolio API with projects, skills, work experience, contact form, and JWT auth for admin operations",
+    "modules": ["core", "auth", "views", "permissions", "openapi"],
+    "features": ["jwt-auth", "cors", "crud-example", "docker", "pytest", "contact-form"],
+    "requires_redis": false,
+    "requires_celery": false
+}

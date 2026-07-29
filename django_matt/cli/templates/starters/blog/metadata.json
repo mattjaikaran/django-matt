@@ -1,0 +1,8 @@
+{
+    "name": "blog",
+    "description": "Full-featured blog API with posts, comments, tags, categories, JWT auth, RSS, and search",
+    "modules": ["core", "auth", "views", "permissions", "openapi", "pagination", "filtering"],
+    "features": ["jwt-auth", "cors", "crud-example", "docker", "pytest", "rss", "search", "tagging"],
+    "requires_redis": false,
+    "requires_celery": false
+}
