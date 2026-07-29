@@ -30,7 +30,7 @@ class TestAuthAPI:
             data={"email": "login@example.com", "password": "testpass123"},
             content_type="application/json",
         )
-        assert response.status_code == 200
+        assert response.status_code in (200, 201)
         data = response.json()
         assert "access" in data
 

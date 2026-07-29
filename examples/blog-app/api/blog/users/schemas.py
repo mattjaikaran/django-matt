@@ -3,21 +3,26 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class AuthorProfileResponse(BaseModel):
-    bio: str
+    bio: str = ""
     avatar: str | None = None
-    website: str
-    twitter: str
-    github: str
-    linkedin: str
-    location: str
+    website: str = ""
+    twitter: str = ""
+    github: str = ""
+    linkedin: str = ""
+    location: str = ""
 
-    class Config:
-        from_attributes = True
-
+    @field_validator("avatar", mode="before")
+    @classmethod
+    def coerce_avatar(cls, v):
+        if v is None:
+            return None
+        if hasattr(v, "url"):
+            return v.url
+        return str(v)
 
 class UserPublicResponse(BaseModel):
     id: UUID

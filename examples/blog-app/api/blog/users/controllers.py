@@ -29,17 +29,27 @@ class AuthController(APIController):
         if await User.objects.filter(username=body.username).aexists():
             raise ValidationAPIError("A user with this username already exists.")
 
-        user = await User.objects.acreate_user(
-            email=body.email,
-            username=body.username,
-            password=body.password,
-            first_name=body.first_name,
-            last_name=body.last_name,
-        )
-        await AuthorProfile.objects.acreate(user=user)
+        from asgiref.sync import sync_to_async
 
-        access = create_access_token({"sub": str(user.id), "email": user.email})
-        refresh = create_refresh_token({"sub": str(user.id)})
+        @sync_to_async
+        def _create_user():
+            return User.objects.create_user(
+                email=body.email,
+                username=body.username,
+                password=body.password,
+                first_name=body.first_name,
+                last_name=body.last_name,
+            )
+
+        @sync_to_async
+        def _create_profile(user):
+            return AuthorProfile.objects.create(user=user)
+
+        user = await _create_user()
+        await _create_profile(user)
+
+        access = create_access_token(user)
+        refresh = create_refresh_token(user)
         return TokenResponse(access=access, refresh=refresh, user=UserResponse.model_validate(user))
 
     @post("/login")
@@ -48,16 +58,14 @@ class AuthController(APIController):
         if user is None:
             raise AuthenticationAPIError("Invalid credentials.")
 
+        from asgiref.sync import sync_to_async
         from django.contrib.auth.hashers import check_password
-
-        if not check_password(body.password, user.password):
+        if not await sync_to_async(check_password)(body.password, user.password):
             raise AuthenticationAPIError("Invalid credentials.")
-
         if not user.is_active:
             raise AuthenticationAPIError("This account is inactive.")
-
-        access = create_access_token({"sub": str(user.id), "email": user.email})
-        refresh = create_refresh_token({"sub": str(user.id)})
+        access = create_access_token(user)
+        refresh = create_refresh_token(user)
         return TokenResponse(access=access, refresh=refresh, user=UserResponse.model_validate(user))
 
     @post("/token/refresh")

@@ -13,6 +13,9 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-dev-key-change-me")
 DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
+
+# Allow sync ORM in async views (dev convenience — use sync_to_async in production)
+os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
 INSTALLED_APPS = [
     "unfold",
     "unfold.contrib.filters",

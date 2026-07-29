@@ -148,7 +148,8 @@ class PostController(APIController):
         )
 
     @get("/search")
-    async def search(self, q: str, page: int = 1, page_size: int = 10) -> PaginatedPostsResponse:
+    async def search(self, request, page: int = 1, page_size: int = 10) -> PaginatedPostsResponse:
+        q = request.GET.get("q", "")
         if not q or len(q.strip()) < 2:
             raise ValidationAPIError("Search query must be at least 2 characters.")
         page_size = min(page_size, 50)

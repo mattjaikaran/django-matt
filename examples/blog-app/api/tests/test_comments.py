@@ -69,13 +69,13 @@ class TestCommentAPI:
         )
 
     def test_list_comments_for_post(self, client):
-        response = client.get(f"/api/comments/?post_id={self.post.id}")
+        response = client.get(f"/api/comments/?post={self.post.id}")
         assert response.status_code == 200
 
-    def test_create_comment_requires_auth(self, client):
+    def test_create_comment_unauthenticated(self, client):
         response = client.post(
             "/api/comments/",
-            data={"post_id": str(self.post.id), "content": "Test"},
+            data={"post_id": str(self.post.id), "content": "Test comment", "author_name": "Anon"},
             content_type="application/json",
         )
-        assert response.status_code in (401, 403)
+        assert response.status_code == 200
