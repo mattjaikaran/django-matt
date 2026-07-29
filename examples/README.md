@@ -19,6 +19,8 @@ Full-stack and API-only example applications demonstrating the features and capa
 | **realtime-chat** | Django API + Django Channels + Redis + HTML/JS | WebSockets, presence tracking, typing indicators, read receipts, message threading, JWT auth over WS | `cd realtime-chat && make docker-up && make migrate && make run` |
 | **saas-starter** | Django API + PostgreSQL + Redis + Stripe + Celery + Channels | Full SaaS template — multi-tenancy, Stripe billing, real-time notifications, background tasks | `cd saas-starter && make docker-up && make migrate && make run` |
 | **devplatform** | Django API + PostgreSQL + Redis + Stripe + Celery | API management SaaS — API keys, usage analytics, webhooks, metered Stripe billing, gateway routing | `cd devplatform && make docker-up && make migrate && make run` |
+| **react-vite-starter** | React + Vite + TanStack | Minimal frontend starter — JWT auth, CRUD example, TanStack Router, React Query, Axios interceptor, Tailwind | `cd react-vite-starter && bun install && bun dev` |
+| **react-rsbuild-starter** | React + RSBuild + TanStack | Same as vite-starter but with Rust-powered RSBuild bundler for faster cold builds | `cd react-rsbuild-starter && bun install && bun dev` |
 | **plugins/** | Python packages | Third-party integrations: Clerk auth, Resend email, Stripe webhook handlers | See each plugin's README |
 
 ---
@@ -52,9 +54,9 @@ Full-stack and API-only example applications demonstrating the features and capa
 | Building a portfolio site | `portfolio-api` + `portfolio-frontend` |
 | SaaS with billing | `saas-starter` (all-in-one) or `multitenant-saas` (interceptors focus) |
 | Marketplace / e-commerce | `ecommerce-v2` |
+
+| Starting a new frontend | `react-vite-starter` or `react-rsbuild-starter` |
 | AI / streaming responses | `ai-chat` |
-| Real-time chat | `realtime-chat` |
-| Developer tools / API gateway | `devplatform` |
 
 ---
 
