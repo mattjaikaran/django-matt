@@ -61,7 +61,7 @@ jobs:
       - run: uv run pip-audit || true
 
   audit:
-    name: Code Audit (matt_audit)
+    name: Code Audit (matt audit)
     runs-on: ubuntu-latest
     needs: [lint]
     steps:
@@ -69,14 +69,38 @@ jobs:
       - uses: astral-sh/setup-uv@v4
       - run: uv python install 3.12
       - run: uv sync --frozen
-      - run: uv run python manage.py matt_audit security --level standard --format sarif --output audit-security.sarif
-      - run: uv run python manage.py matt_audit best_practices --level standard --format text
-      - name: Upload SARIF
+      - name: Run scalability audit
+        run: uv run matt audit run --category scalability --level standard --format sarif --output audit-scalability.sarif
+      - name: Run performance audit
+        run: uv run matt audit run --category performance --level standard --format sarif --output audit-performance.sarif
+      - name: Run security audit
+        run: uv run matt audit run --category security --level paranoid --format sarif --output audit-security.sarif
+      - name: Run bundle_size audit
+        run: uv run matt audit run --category bundle_size --level standard --format sarif --output audit-bundle.sarif 2>&1 | tee audit-bundle.txt || true
+      - name: Upload SARIF (security)
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: audit-security.sarif
-          category: django-matt-audit
+          category: django-matt-security
+      - name: Upload SARIF (scalability)
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: audit-scalability.sarif
+          category: django-matt-scalability
+      - name: Upload SARIF (performance)
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: audit-performance.sarif
+          category: django-matt-performance
+      - name: Upload SARIF (bundle_size)
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: audit-bundle.sarif
+          category: django-matt-bundle
 
   gauntlet:
     name: Gauntlet (Quality Gate)
