@@ -15,23 +15,19 @@ export const Route = createFileRoute('/')({
   component: HomePage,
 });
 
-const SKILL_CATEGORY_LABELS: Record<Skill['category'], string> = {
-  FRONTEND: 'Frontend',
-  BACKEND: 'Backend',
-  DEVOPS: 'DevOps',
-  DATABASE: 'Database',
-  MOBILE: 'Mobile',
-  OTHER: 'Other',
+const SKILL_CATEGORY_LABELS: Record<string, string> = {
+  frontend: 'Frontend',
+  backend: 'Backend',
+  devops: 'DevOps',
+  database: 'Database',
+  mobile: 'Mobile',
+  other: 'Other',
 };
 
 function HomePage() {
-  const { data: featuredData, isLoading: projectsLoading } = useProjects({ featured: true });
-  const { data: skillsData, isLoading: skillsLoading } = useSkills();
-  const { data: experienceData, isLoading: experienceLoading } = useExperience({ limit: 2 });
-
-  const featuredProjects = featuredData?.items ?? [];
-  const skills = skillsData?.items ?? [];
-  const recentExperience = experienceData?.items ?? [];
+  const { data: featuredProjects = [], isLoading: projectsLoading } = useProjects({ featured: true });
+  const { data: skills = [], isLoading: skillsLoading } = useSkills();
+  const { data: recentExperience = [], isLoading: experienceLoading } = useExperience();
 
   // Group skills by category
   const skillsByCategory = skills.reduce<Record<string, Skill[]>>((acc, skill) => {

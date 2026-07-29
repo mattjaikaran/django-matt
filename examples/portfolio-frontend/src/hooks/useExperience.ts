@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
-import type { Experience, PaginatedResponse } from '@/types';
+import type { Experience } from '@/types';
 
-export function useExperience(params?: { limit?: number; offset?: number }) {
+export function useExperience() {
   return useQuery({
-    queryKey: ['experience', params],
+    queryKey: ['experience'],
     queryFn: async () => {
-      const { data } = await api.get<PaginatedResponse<Experience>>('/experience', { params });
+      const { data } = await api.get<Experience[]>('/experience');
       return data;
     },
   });

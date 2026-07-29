@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
-import type { Project, PaginatedResponse } from '@/types';
+import type { Project } from '@/types';
 
-export function useProjects(params?: { featured?: boolean; limit?: number; offset?: number }) {
+export function useProjects(params?: { featured?: boolean }) {
   return useQuery({
     queryKey: ['projects', params],
     queryFn: async () => {
-      const { data } = await api.get<PaginatedResponse<Project>>('/projects', { params });
+      const { data } = await api.get<Project[]>('/projects', { params });
       return data;
     },
   });

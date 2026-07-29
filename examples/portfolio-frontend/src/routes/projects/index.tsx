@@ -12,10 +12,7 @@ export const Route = createFileRoute('/projects/')({
 });
 
 function ProjectsPage() {
-  const { data, isLoading } = useProjects();
-  const [selectedTech, setSelectedTech] = useState<string | null>(null);
-
-  const projects = data?.items ?? [];
+  const { data: projects = [], isLoading } = useProjects();
 
   // Derive unique tech stacks from all projects
   const allTech = useMemo(() => {

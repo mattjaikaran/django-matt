@@ -11,21 +11,18 @@ export const Route = createFileRoute('/about')({
   component: AboutPage,
 });
 
-const SKILL_CATEGORY_LABELS: Record<Skill['category'], string> = {
-  FRONTEND: 'Frontend',
-  BACKEND: 'Backend',
-  DEVOPS: 'DevOps',
-  DATABASE: 'Database',
-  MOBILE: 'Mobile',
-  OTHER: 'Other',
+const SKILL_CATEGORY_LABELS: Record<string, string> = {
+  frontend: 'Frontend',
+  backend: 'Backend',
+  devops: 'DevOps',
+  database: 'Database',
+  mobile: 'Mobile',
+  other: 'Other',
 };
 
 function AboutPage() {
-  const { data: skillsData, isLoading: skillsLoading } = useSkills();
-  const { data: experienceData, isLoading: experienceLoading } = useExperience();
-
-  const skills = skillsData?.items ?? [];
-  const experience = experienceData?.items ?? [];
+  const { data: skills = [], isLoading: skillsLoading } = useSkills();
+  const { data: experience = [], isLoading: experienceLoading } = useExperience();
 
   const skillsByCategory = skills.reduce<Record<string, Skill[]>>((acc, skill) => {
     const cat = skill.category;
