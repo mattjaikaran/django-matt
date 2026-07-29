@@ -232,6 +232,118 @@ Controllers use a single-pass `_setup_methods()` at `__init__` that:
 - `from_orm_fast()` uses `model_construct()` for list serialization (skips re-validation)
 - `optimize_queryset()` auto-detects FK/M2M fields from schema for `select_related`/`prefetch_related`
 
+
+## Project Structure (User Apps)
+
+Every Django Matt project uses **package-based apps**, not Django's default flat files. This is the only supported structure — the scaffolding commands enforce it.
+
+### App Layout
+
+```
+myapp/
+├── __init__.py
+├── apps.py
+├── urls.py                         # URL patterns, controller registration
+├── models/
+│   ├── __init__.py                 # Re-exports: from .post import Post
+│   └── {model}.py                  # One model per file (~40 lines)
+├── schemas/
+│   ├── __init__.py                 # Re-exports all schemas
+│   └── {model}_schema.py           # Schema, CreateSchema, UpdateSchema
+├── controllers/
+│   ├── __init__.py                 # Re-exports all controllers
+│   └── {model}_controller.py       # Thin HTTP adapter — delegates to service
+├── services/
+│   ├── __init__.py                 # Re-exports all services
+│   └── {model}_service.py          # CRUDService subclass — all business logic
+├── admin/
+│   ├── __init__.py
+│   └── {model}_admin.py            # Django admin config
+└── tests/
+    ├── __init__.py
+    ├── conftest.py
+    ├── test_{model}.py
+    └── factories/
+        └── {model}_factory.py       # Factory Boy factory
+```
+
+### Service Layer Pattern (Mandatory)
+
+Controllers are **thin HTTP adapters**. Business logic lives in services.
+
+```python
+# controllers/post_controller.py — HTTP only
+@api.controller("/posts", tags=["Blog"])
+class PostController(APIController):
+    def __init__(self):
+        self.service = PostService()
+
+    @get("/{slug}")
+    async def get_post(self, request, slug: str):
+        return await self.service.get_by_slug(slug)  # one-liner
+
+    @post("/{id}/publish")
+    async def publish_post(self, request, id: int):
+        return await self.service.publish(id, user=request.user)  # one-liner
+```
+
+```python
+# services/post_service.py — all business logic
+class PostService(CRUDService["Post"]):
+    model = Post
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("created_by")
+
+    async def publish(self, pk: int, user) -> Post:
+        post = await self.get(pk)
+        if post.status == Post.Status.PUBLISHED:
+            raise ConflictError(f"Post {pk} is already published")
+        return await self.update(pk, {"status": "published", ...}, user=user)
+
+    async def get_by_slug(self, slug: str) -> Post:
+        return await self.get_by(slug=slug, status=Post.Status.PUBLISHED)
+```
+
+### Naming Conventions
+
+| Type | File | Class |
+|------|------|-------|
+| Model | `{model}.py` | `Post` |
+| Schema | `{model}_schema.py` | `PostSchema`, `CreatePostSchema` |
+| Controller | `{model}_controller.py` | `PostController` |
+| Service | `{model}_service.py` | `PostService` |
+| Admin | `{model}_admin.py` | `PostAdmin` |
+| Test | `test_{model}.py` | — |
+| Factory | `{model}_factory.py` | `PostFactory` |
+
+### Module Exports
+
+Always export in `__init__.py`:
+```python
+# models/__init__.py
+from .post import Post
+from .comment import Comment
+
+__all__ = ["Post", "Comment"]
+```
+
+Imports go through the package, not the file:
+```python
+# Good
+from blog.models import Post
+
+# Bad
+from blog.models.post import Post
+```
+
+### Key Rules
+
+- **One model per file** — `models/post.py`, never a monolithic `models.py`
+- **Controllers never contain business logic** — delegate to services
+- **Services extend `CRUDService`** — one per model
+- **Always export in `__init__.py`** — empty `__init__.py` = import errors
+- **Scope queries to user** — `Item.objects.filter(created_by=request.user)`, never `.all()`
 ## Settings
 
 ```python

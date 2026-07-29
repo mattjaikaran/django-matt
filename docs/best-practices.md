@@ -407,9 +407,165 @@ DJANGO_MATT = {
 }
 ```
 
+
+## Project Structure Anti-Patterns
+
+These are the most common mistakes that create unmaintainable Django Matt projects. Refer to the [Architecture guide](architecture.md) for the recommended modular structure.
+
+### Monolithic Files
+
+**WRONG** — a single `models.py` with 15 models:
+```python
+# blog/models.py — 3,000 lines, impossible to review
+class Post(models.Model): ...
+class Comment(models.Model): ...
+class Tag(models.Model): ...
+class Category(models.Model): ...
+# ... 11 more models
+```
+
+**CORRECT** — one model per file in a `models/` package:
+```
+blog/models/
+├── __init__.py      # re-exports all models
+├── post.py          # ~40 lines
+├── comment.py       # ~35 lines
+├── tag.py           # ~25 lines
+└── category.py      # ~30 lines
+```
+
+### Business Logic in Controllers
+
+**WRONG** — controller doing domain validation, ORM, and side effects:
+```python
+@api.controller("/orders", tags=["Orders"])
+class OrderController(APIController):
+    @api.post("/")
+    async def create_order(self, request, data: CreateOrderSchema):
+        # Validation in controller — belongs in service
+        pending = await Order.objects.filter(
+            user=request.user, status="pending"
+        ).acount()
+        if pending >= 5:
+            raise ValidationAPIError("Too many pending orders")
+
+        # ORM + side effects in controller — belongs in service
+        order = await Order.objects.acreate(user=request.user, **data.model_dump())
+        for item in data.items:
+            product = await Product.objects.aget(id=item.product_id)
+            if product.stock < item.quantity:
+                await order.adelete()
+                raise ValidationAPIError(f"{product.name} out of stock")
+            product.stock -= item.quantity
+            await product.asave()
+
+        await send_confirmation.delay(str(order.id))
+        return order
+```
+
+**CORRECT** — thin controller delegates everything:
+```python
+@api.controller("/orders", tags=["Orders"])
+class OrderController(APIController):
+    def __init__(self):
+        self.service = OrderService()
+
+    @api.post("/")
+    async def create_order(self, request, data: CreateOrderSchema):
+        return await self.service.create_order(request.user, data)
+```
+
+### Not Scoping Queries to User
+
+**WRONG** — returns everyone's data:
+```python
+@api.get("/")
+async def list_items(self, request):
+    return await Item.objects.all()  # INSECURE: returns all users' items
+```
+
+**CORRECT** — always filter by authenticated user:
+```python
+@api.get("/")
+async def list_items(self, request):
+    items = [i async for i in Item.objects.filter(created_by=request.user)]
+    return items
+```
+
+### Missing __init__.py Exports
+
+**WRONG** — empty `__init__.py` files:
+```python
+# blog/models/__init__.py is empty
+# Results in: from blog.models import Post  →  ImportError
+```
+
+**CORRECT** — always export in `__init__.py`:
+```python
+# blog/models/__init__.py
+from .post import Post
+from .comment import Comment
+
+__all__ = ["Post", "Comment"]
+```
+
+### Flat App Structure
+
+**WRONG** — Django's default flat files don't scale:
+```
+myapp/
+├── models.py      # 2,000 lines
+├── views.py       # 1,500 lines
+├── admin.py       # 600 lines
+└── tests.py       # 3,000 lines
+```
+
+**CORRECT** — modular package structure scales indefinitely:
+```
+myapp/
+├── models/
+│   ├── __init__.py
+│   └── post.py         # ~40 lines
+├── controllers/
+│   ├── __init__.py
+│   └── post_controller.py
+├── schemas/
+│   ├── __init__.py
+│   └── post_schema.py
+├── services/
+│   ├── __init__.py
+│   └── post_service.py
+└── tests/
+    ├── test_post.py
+    └── factories/
+        └── post_factory.py
+```
+
+### Redeclaring Base Model Fields
+
+**WRONG** — redeclaring fields the base model already provides:
+```python
+class Post(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4)   # use AbstractBaseModel
+    created_at = models.DateTimeField(auto_now_add=True)       # use AbstractBaseModel
+    updated_at = models.DateTimeField(auto_now=True)           # use AbstractBaseModel
+    title = models.CharField(max_length=200)
+```
+
+**CORRECT** — only declare your own fields:
+```python
+from django_matt.db import AbstractBaseModel
+
+class Post(AbstractBaseModel):
+    title = models.CharField(max_length=200)
+    body = models.TextField()
+    # id, created_at, updated_at, is_active provided by AbstractBaseModel
+```
+
 ---
 
 ## Code Organization Rules
+
 
 1. **Controllers** are thin -- they parse requests, call services, format responses
 2. **Services** contain business logic -- they are reusable across controllers, tasks, and commands

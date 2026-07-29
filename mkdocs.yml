@@ -136,6 +136,7 @@ nav:
       - Controllers: core/controllers.md
       - Schemas: core/schemas.md
       - Error Handling: core/errors.md
+      - Project Structure: concepts/project-structure.md
 
   - Views:
       - views/index.md

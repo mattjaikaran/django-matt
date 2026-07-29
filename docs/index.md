@@ -325,6 +325,15 @@ python manage.py matt_migrate --parallel
 
     [:octicons-arrow-right-24: Migration](migration/from-drf.md)
 
+
+-   :material-package-variant-closed: **Project Structure**
+
+    ---
+
+    Modular app architecture — package-based, service layer, one model per file.
+
+    [:octicons-arrow-right-24: Project Structure](concepts/project-structure.md)
+
 </div>
 
 ## Version Compatibility

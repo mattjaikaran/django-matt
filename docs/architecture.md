@@ -169,6 +169,138 @@ Create this structure with one command:
 python manage.py startapp myapp --models Product Category
 ```
 
+## Service Layer Pattern
+
+Django Matt apps separate concerns into three layers, following the boilerplate pattern proven in production:
+
+### Layer Responsibilities
+
+| Layer | Directory | Responsibility | Pattern |
+|-------|-----------|---------------|---------|
+| **Presentation** | `controllers/` | HTTP concerns: request parsing, response formatting, permission checks | Thin adapter — delegates all logic |
+| **Business** | `services/` | Domain logic, ORM queries, validation, side effects | Extends `CRUDService`, one service per model |
+| **Data** | `models/` | Database schema, constraints, model managers | One model per file, UUID PKs, timestamps |
+
+### Controllers → Services → Models
+
+```python
+# controllers/post_controller.py — thin HTTP adapter
+@api.controller("/posts", tags=["Blog"])
+class PostController(APIController):
+    def __init__(self):
+        self.service = PostService()
+
+    @api.get("/")
+    async def list_posts(self, request, page: int = 1):
+        items, total = await self.service.list_published(page=page)
+        return {"items": items, "total": total}
+
+    @api.post("/")
+    async def create_post(self, request, data: PostCreateSchema):
+        return await self.service.create(data.model_dump(), user=request.user)
+
+    @api.post("/{id}/publish")
+    async def publish_post(self, request, id: int):
+        return await self.service.publish(id, user=request.user)
+```
+
+```python
+# services/post_service.py — all business logic lives here
+class PostService(CRUDService["Post"]):
+    model = Post
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("created_by")
+
+    async def list_published(self, *, page: int = 1, page_size: int = 20):
+        return await self.list(
+            page=page, page_size=page_size,
+            status=Post.Status.PUBLISHED,
+            ordering="-published_at",
+        )
+
+    async def publish(self, pk: int, user) -> Post:
+        post = await self.get(pk)
+        if post.status == Post.Status.PUBLISHED:
+            raise ConflictError(f"Post {pk} is already published")
+        return await self.update(pk, {
+            "status": Post.Status.PUBLISHED,
+            "published_at": timezone.now(),
+        }, user=user)
+```
+
+### Why Services?
+
+- **Testable** — test business logic without HTTP infrastructure
+- **Reusable** — same service works in controllers, management commands, background tasks, and WebSocket consumers
+- **Single responsibility** — controllers handle HTTP, services handle logic
+- **Swappable** — inject a mock service in tests or swap implementations without touching controllers
+
+## Naming Conventions
+
+Every Django Matt project follows these conventions for consistency:
+
+### Files
+
+| Type | Convention | Example |
+|------|-----------|---------|
+| Model files | `{model}.py` | `post.py`, `comment.py` |
+| Schema files | `{model}_schema.py` | `post_schema.py` |
+| Controller files | `{model}_controller.py` | `post_controller.py` |
+| Service files | `{model}_service.py` | `post_service.py` |
+| Test files | `test_{model}.py` | `test_post.py` |
+| Factory files | `{model}_factory.py` | `post_factory.py` |
+| Admin files | `{model}_admin.py` | `post_admin.py` |
+
+### Classes
+
+| Type | Convention | Example |
+|------|-----------|---------|
+| Models | `PascalCase` | `Post`, `Comment` |
+| Schemas | `PascalCase` + `Schema` suffix | `PostSchema`, `CreatePostSchema`, `UpdatePostSchema` |
+| Controllers | `PascalCase` + `Controller` suffix | `PostController` |
+| Services | `PascalCase` + `Service` suffix | `PostService` |
+| Factories | `PascalCase` + `Factory` suffix | `PostFactory` |
+
+### URLs
+
+| Type | Convention | Example |
+|------|-----------|---------|
+| Collection endpoints | Plural noun | `/posts`, `/users` |
+| Single resource | `/{resource_id}` | `/posts/{post_id}` |
+| Sub-resource actions | Verb or noun | `/posts/{id}/publish`, `/posts/featured` |
+| Nested resources | `/{parent}/{parent_id}/{child}` | `/users/{user_id}/posts` |
+
+### Module Exports
+
+Always export public classes in `__init__.py` so imports stay clean:
+
+```python
+# models/__init__.py
+from .post import Post
+from .comment import Comment
+
+__all__ = ["Post", "Comment"]
+```
+
+```python
+# controllers/__init__.py
+from .post_controller import PostController
+
+__all__ = ["PostController"]
+```
+
+This means consuming code imports from the package, not the file:
+
+```python
+# Good — import from package
+from blog.models import Post
+from blog.controllers import PostController
+from blog.services import PostService
+
+# Bad — import from file (brittle, bypasses __init__)
+from blog.models.post import Post
+```
 ## Project Architecture Patterns
 
 Django Matt supports multiple project architectures:

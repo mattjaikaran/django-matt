@@ -685,6 +685,160 @@ DJANGO_MATT = {
 }
 ```
 
+
+## Project Structure Patterns
+
+### Modular App Layout (Required)
+
+Every Django Matt project uses package-based apps. NEVER use Django's flat `models.py`/`views.py` files.
+
+```
+myapp/
+├── models/          # One model per file, ~40 lines each
+│   ├── __init__.py  # re-exports: from .post import Post
+│   ├── post.py
+│   └── comment.py
+├── schemas/         # Pydantic schemas, one per model
+│   ├── __init__.py
+│   ├── post_schema.py     # PostSchema, CreatePostSchema, UpdatePostSchema
+│   └── comment_schema.py
+├── controllers/     # Thin HTTP adapters — one per resource
+│   ├── __init__.py
+│   ├── post_controller.py
+│   └── comment_controller.py
+├── services/        # Business logic — one CRUDService per model
+│   ├── __init__.py
+│   ├── post_service.py
+│   └── comment_service.py
+├── admin/           # Django admin configs
+│   ├── __init__.py
+│   ├── post_admin.py
+│   └── comment_admin.py
+└── tests/           # pytest + Factory Boy
+    ├── conftest.py
+    ├── test_post.py
+    └── factories/
+        ├── __init__.py
+        ├── post_factory.py
+        └── comment_factory.py
+```
+
+### Service Layer Pattern (Mandatory)
+
+Controllers delegate all logic to services. Controllers handle HTTP; services handle domain logic.
+
+```python
+# services/post_service.py
+from django_matt.services import CRUDService, ConflictError
+
+class PostService(CRUDService["Post"]):
+    model = Post
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("created_by")
+
+    async def list_published(self, *, page: int = 1, page_size: int = 20):
+        return await self.list(
+            page=page, page_size=page_size,
+            status=Post.Status.PUBLISHED, ordering="-published_at",
+        )
+
+    async def publish(self, pk: int, user) -> Post:
+        post = await self.get(pk)
+        if post.status == Post.Status.PUBLISHED:
+            raise ConflictError(f"Post {pk} is already published")
+        return await self.update(pk, {
+            "status": Post.Status.PUBLISHED,
+            "published_at": timezone.now(),
+        }, user=user)
+
+    async def get_by_slug(self, slug: str) -> Post:
+        return await self.get_by(slug=slug, status=Post.Status.PUBLISHED)
+```
+
+```python
+# controllers/post_controller.py
+@api.controller("/posts", tags=["Blog"])
+class PostController(APIController):
+    def __init__(self):
+        self.service = PostService()
+
+    @get("/")
+    async def list_posts(self, request, page: int = 1):
+        items, total = await self.service.list_published(page=page)
+        return {"items": items, "total": total, "page": page}
+
+    @get("/{slug}")
+    async def get_post(self, request, slug: str):
+        return await self.service.get_by_slug(slug)
+
+    @post("/{id}/publish")
+    async def publish_post(self, request, id: int):
+        return await self.service.publish(id, user=request.user)
+```
+
+### Module Exports Pattern
+
+Always export in `__init__.py`:
+```python
+# models/__init__.py
+from .post import Post
+from .comment import Comment
+
+__all__ = ["Post", "Comment"]
+```
+
+```python
+# controllers/__init__.py
+from .post_controller import PostController
+from .comment_controller import CommentController
+
+__all__ = ["PostController", "CommentController"]
+```
+
+### Naming Conventions
+
+| What | Pattern | Example |
+|------|---------|---------|
+| Model file | `{model}.py` | `post.py` |
+| Schema file | `{model}_schema.py` | `post_schema.py` |
+| Controller file | `{model}_controller.py` | `post_controller.py` |
+| Service file | `{model}_service.py` | `post_service.py` |
+| Admin file | `{model}_admin.py` | `post_admin.py` |
+| Test file | `test_{model}.py` | `test_post.py` |
+| Factory file | `{model}_factory.py` | `post_factory.py` |
+
+| Class type | Pattern | Example |
+|------|---------|---------|
+| Model | PascalCase | `Post` |
+| Schema | PascalCase + Schema | `PostSchema`, `CreatePostSchema` |
+| Controller | PascalCase + Controller | `PostController` |
+| Service | PascalCase + Service | `PostService` |
+
+### URL Conventions
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| Collection | Plural noun | `/posts` |
+| Single resource | `/{resource_id}` | `/posts/{post_id}` |
+| Sub-resource action | Verb or noun | `/posts/{id}/publish` |
+| Nested | `/{parent}/{parent_id}/{child}` | `/users/{user_id}/posts` |
+
+### Two-Step Workflow
+
+```bash
+# 1. Scaffold the app structure
+python manage.py startapp blog --models Post Comment Tag
+
+# 2. Edit models to add real fields
+
+# 3. Migrate
+python manage.py makemigrations blog && python manage.py migrate
+
+# 4. Regenerate everything from real models
+python manage.py generate_crud blog.Post --full
+```
+
 ## Secrets Management Patterns
 
 ### Multi-Backend Secret Loading

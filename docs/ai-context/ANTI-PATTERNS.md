@@ -388,3 +388,169 @@ from django_matt.slim import is_module_enabled
 if is_module_enabled("billing"):
     from django_matt.billing import StripeProvider
 ```
+
+## Project Structure Anti-Patterns
+
+### 25. Monolithic Files Instead of Packages
+
+```python
+# WRONG — flat files don't scale
+myapp/
+├── models.py      # 3,000 lines, 15 models — merge conflict magnet
+├── views.py       # 2,000 lines
+├── admin.py       # 800 lines
+└── tests.py       # 1,500 lines
+
+# CORRECT — modular packages
+myapp/
+├── models/
+│   ├── __init__.py
+│   ├── post.py          # ~40 lines
+│   └── comment.py       # ~35 lines
+├── controllers/
+│   ├── __init__.py
+│   ├── post_controller.py
+│   └── comment_controller.py
+├── services/
+│   ├── __init__.py
+│   ├── post_service.py
+│   └── comment_service.py
+└── tests/
+    ├── test_post.py
+    └── test_comment.py
+```
+
+### 26. Business Logic in Controllers
+
+```python
+# WRONG — controller doing domain validation, ORM, and side effects
+@api.post("/")
+async def create_order(self, request, data: CreateOrderSchema):
+    pending = await Order.objects.filter(user=request.user, status="pending").acount()
+    if pending >= 5:
+        raise ValidationAPIError("Too many pending orders")  # domain logic in controller!
+    order = await Order.objects.acreate(**data.model_dump())
+    await send_confirmation.delay(str(order.id))  # side effect in controller!
+    return order
+
+# CORRECT — thin controller delegates to service
+@api.post("/")
+async def create_order(self, request, data: CreateOrderSchema):
+    return await self.service.create_order(request.user, data)
+```
+
+### 27. Missing __init__.py Exports
+
+```python
+# WRONG — empty __init__.py causes ImportError
+# blog/models/__init__.py is empty
+from blog.models import Post  # ImportError!
+
+# CORRECT — always export
+# blog/models/__init__.py
+from .post import Post
+from .comment import Comment
+
+__all__ = ["Post", "Comment"]
+```
+
+### 28. Not Scoping Queries to User
+
+```python
+# WRONG — returns all users' data (security vulnerability)
+@get("/")
+async def list_items(self, request):
+    return Item.objects.all()  # EVERYONE'S items!
+
+# CORRECT — always filter by authenticated user
+@get("/")
+async def list_items(self, request):
+    items = [i async for i in Item.objects.filter(created_by=request.user)]
+    return items
+```
+
+### 29. Redeclaring Base Model Fields
+
+```python
+# WRONG — redeclaring fields AbstractBaseModel already provides
+class Post(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4)   # already in base
+    created_at = models.DateTimeField(auto_now_add=True)       # already in base
+    updated_at = models.DateTimeField(auto_now=True)           # already in base
+    title = models.CharField(max_length=200)
+
+# CORRECT — inherit and only declare your fields
+from django_matt.db import AbstractBaseModel
+
+class Post(AbstractBaseModel):
+    title = models.CharField(max_length=200)
+    body = models.TextField()
+    # id, created_at, updated_at, is_active are inherited
+```
+
+### 30. Using Django's Default startapp Structure
+
+```python
+# WRONG — django-admin startapp creates flat files
+django-admin startapp blog
+# Creates: blog/models.py, blog/views.py, blog/admin.py
+
+# CORRECT — use django-matt's startapp for package structure
+python manage.py startapp blog --models Post Comment
+# Creates: blog/models/post.py, blog/controllers/post_controller.py, etc.
+```
+
+### 31. Controllers That Aren't Thin
+
+```python
+# WRONG — controller with >5 lines per method
+@post("/")
+async def create_post(self, request, data: PostCreateSchema):
+    # 20+ lines of validation, ORM, error handling
+    if not data.title:
+        raise ValidationAPIError("Title required")
+    existing = await Post.objects.filter(slug=slugify(data.title)).aexists()
+    if existing:
+        raise ConflictError("Slug already exists")
+    post = await Post.objects.acreate(
+        title=data.title,
+        slug=slugify(data.title),
+        body=data.body,
+        created_by=request.user,
+        status=Post.Status.DRAFT,
+    )
+    return PostSchema.from_orm(post)
+
+# CORRECT — one-liner delegating to service
+@post("/")
+async def create_post(self, request, data: PostCreateSchema):
+    return await self.service.create(data.model_dump(), user=request.user)
+```
+
+### 32. Wrong File Naming
+
+```python
+# WRONG — inconsistent naming
+blog/
+├── models/
+│   ├── post.py           # OK
+│   ├── Comment.py        # WRONG: PascalCase file
+│   └── tag_model.py      # WRONG: redundant _model suffix
+├── controllers/
+│   ├── post_controller.py  # OK
+│   └── PostController.py   # WRONG: PascalCase file
+└── schemas/
+    └── post_schemas.py    # WRONG: plural (should be _schema.py)
+
+# CORRECT — consistent lowercase_snake_case
+blog/
+├── models/
+│   ├── post.py
+│   ├── comment.py
+│   └── tag.py
+├── controllers/
+│   ├── post_controller.py
+│   └── comment_controller.py
+└── schemas/
+    └── post_schema.py
+```

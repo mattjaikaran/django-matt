@@ -109,7 +109,57 @@ python manage.py runserver
 
 Open `http://localhost:8000/api/docs` for interactive Swagger UI.
 
+
 ---
+
+## Modular by Default
+
+Django Matt apps use **package-based structure** — not Django's flat files. Every app scales from 1 model to 50 without becoming unmaintainable:
+
+```
+blog/
+├── models/              # One model per file
+│   ├── __init__.py
+│   ├── post.py
+│   └── comment.py
+├── controllers/         # Thin HTTP adapters
+│   ├── __init__.py
+│   └── post_controller.py
+├── services/            # Business logic
+│   ├── __init__.py
+│   └── post_service.py
+├── schemas/             # Pydantic schemas
+│   └── post_schema.py
+└── tests/               # pytest + Factory Boy
+    └── test_post.py
+```
+
+Create this structure with one command:
+
+```bash
+python manage.py startapp blog --models Post Comment
+```
+
+Controllers are thin — all business logic lives in services:
+
+```python
+# Thin controller — HTTP only
+@api.controller("/posts")
+class PostController(APIController):
+    def __init__(self):
+        self.service = PostService()
+
+    @api.get("/")
+    async def list_posts(self, request):
+        items, total = await self.service.list_published()
+        return {"items": items, "total": total}
+
+    @api.post("/{id}/publish")
+    async def publish_post(self, request, id: int):
+        return await self.service.publish(id, user=request.user)
+```
+
+[📖 Full project structure guide](https://mattjaikaran.github.io/django-matt/concepts/project-structure/)
 
 ## Examples
 
