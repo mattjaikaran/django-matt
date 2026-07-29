@@ -1,0 +1,1 @@
+{"root":["./src/main.tsx","./src/hooks/useauth.ts","./src/hooks/useitems.ts","./src/lib/api.ts","./src/lib/queryclient.ts","./src/routes/__root.tsx","./src/routes/index.tsx","./src/routes/items.tsx","./src/routes/login.tsx"],"errors":true,"version":"5.6.2"}

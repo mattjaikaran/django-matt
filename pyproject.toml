@@ -32,6 +32,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Application Frameworks",
     "Typing :: Typed",
 ]
+keywords = ["django", "api", "rest", "framework", "async", "pydantic", "openapi", "jwt", "oauth", "fastapi", "ninja"]
 dependencies = [
     # Django 5.2: Python 3.10-3.13
     # Django 6.0: Python 3.12-3.14 (drops Python 3.10, 3.11)
@@ -200,7 +201,7 @@ all = [
 
 [project.urls]
 Homepage = "https://github.com/mattjaikaran/django-matt"
-Documentation = "https://github.com/mattjaikaran/django-matt#readme"
+Documentation = "https://mattjaikaran.github.io/django-matt/"
 Issues = "https://github.com/mattjaikaran/django-matt/issues"
 Changelog = "https://github.com/mattjaikaran/django-matt/blob/main/CHANGELOG.md"
 
