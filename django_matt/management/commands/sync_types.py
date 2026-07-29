@@ -332,6 +332,9 @@ class Command(BaseCommand):
 
         # Collect from apps
         if apps:
+            import importlib
+            from pathlib import Path
+
             for app_label in apps.split(","):
                 app_label = app_label.strip()
                 # Try to find schemas module in app
@@ -345,7 +348,29 @@ class Command(BaseCommand):
                         self.stdout.write(f"  Found {len(module_schemas)} schemas in {module_path}")
                     except ImportError:
                         pass
-
+                    except Exception as e:
+                        self.stderr.write(f"  Error in {module_path}: {e}")
+                # Also scan sub-apps within the app (e.g., apps.projects.schemas)
+                try:
+                    app_module = importlib.import_module(app_label)
+                    app_dir = Path(app_module.__path__[0])
+                    for sub_dir in app_dir.iterdir():
+                        if not sub_dir.is_dir() or sub_dir.name.startswith("_") or sub_dir.name.startswith("."):
+                            continue
+                        if not (sub_dir / "__init__.py").exists():
+                            continue
+                        # Check each sub-package for schemas
+                        sub_label = sub_dir.name
+                        for suffix in ["schemas", "schema", "types"]:
+                            sub_module_path = f"{app_label}.{sub_label}.{suffix}"
+                            try:
+                                sub_schemas = collect_schemas_from_module(sub_module_path)
+                                schemas.extend(sub_schemas)
+                                self.stdout.write(f"  Found {len(sub_schemas)} schemas in {sub_module_path}")
+                            except ImportError:
+                                pass
+                except (ImportError, AttributeError):
+                    pass
         # Remove duplicates while preserving order
         seen = set()
         unique_schemas = []
