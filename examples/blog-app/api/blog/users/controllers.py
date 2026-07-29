@@ -113,7 +113,7 @@ class AuthorController(APIController):
     tags = ["Authors"]
 
     @get("/")
-    async def list_authors() -> list[UserPublicResponse]:
+    async def list_authors(self) -> list[UserPublicResponse]:
         users = (
             User.objects.filter(posts__status="published")
             .select_related("author_profile")
@@ -122,7 +122,7 @@ class AuthorController(APIController):
         return [UserPublicResponse.model_validate(u) async for u in users]
 
     @get("/<str:username>")
-    async def get_author(username: str) -> UserPublicResponse:
+    async def get_author(self, username: str) -> UserPublicResponse:
         user = (
             await User.objects.select_related("author_profile").filter(username=username).afirst()
         )

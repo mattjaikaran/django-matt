@@ -17,7 +17,7 @@ class CommentController(APIController):
     tags = ["Comments"]
 
     @get("/")
-    async def list_comments(request) -> list[CommentResponse]:
+    async def list_comments(self, request) -> list[CommentResponse]:
         """Return top-level approved comments for a post (by post UUID)."""
         post_id = request.GET.get("post", "")
         post_obj = await Post.objects.filter(id=post_id, status="published").afirst()

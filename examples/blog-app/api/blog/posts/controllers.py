@@ -39,11 +39,11 @@ class TagController(APIController):
     tags = ["Tags"]
 
     @get("/")
-    async def list_tags() -> list[TagResponse]:
+    async def list_tags(self) -> list[TagResponse]:
         return [TagResponse.model_validate(t) async for t in Tag.objects.all()]
 
     @get("/<str:slug>")
-    async def get_tag(slug: str) -> TagResponse:
+    async def get_tag(self, slug: str) -> TagResponse:
         tag = await Tag.objects.filter(slug=slug).afirst()
         if tag is None:
             raise NotFoundAPIError(f"Tag '{slug}' not found.")
@@ -66,11 +66,11 @@ class CategoryController(APIController):
     tags = ["Categories"]
 
     @get("/")
-    async def list_categories() -> list[CategoryResponse]:
+    async def list_categories(self) -> list[CategoryResponse]:
         return [CategoryResponse.model_validate(c) async for c in Category.objects.all()]
 
     @get("/<str:slug>")
-    async def get_category(slug: str) -> CategoryResponse:
+    async def get_category(self, slug: str) -> CategoryResponse:
         cat = await Category.objects.filter(slug=slug).afirst()
         if cat is None:
             raise NotFoundAPIError(f"Category '{slug}' not found.")
@@ -122,6 +122,7 @@ class PostController(APIController):
 
     @get("/")
     async def list_posts(
+        self,
         category: str | None = None,
         tag: str | None = None,
         author: str | None = None,
@@ -147,7 +148,7 @@ class PostController(APIController):
         )
 
     @get("/search")
-    async def search(q: str, page: int = 1, page_size: int = 10) -> PaginatedPostsResponse:
+    async def search(self, q: str, page: int = 1, page_size: int = 10) -> PaginatedPostsResponse:
         if not q or len(q.strip()) < 2:
             raise ValidationAPIError("Search query must be at least 2 characters.")
         page_size = min(page_size, 50)
@@ -186,7 +187,7 @@ class PostController(APIController):
         )
 
     @get("/<str:slug>")
-    async def get_post(request, slug: str) -> PostDetailResponse:
+    async def get_post(self, request, slug: str) -> PostDetailResponse:
         post = await get_post_by_slug(slug)
         if post is None or post.status != "published":
             raise NotFoundAPIError(f"Post '{slug}' not found.")
@@ -196,7 +197,7 @@ class PostController(APIController):
         return serialize_post_detail(post)
 
     @get("/<str:slug>/seo")
-    async def get_post_seo(slug: str) -> SEOMetaResponse:
+    async def get_post_seo(self, slug: str) -> SEOMetaResponse:
         post = await get_post_by_slug(slug)
         if post is None or post.status != "published":
             raise NotFoundAPIError(f"Post '{slug}' not found.")
@@ -242,9 +243,9 @@ class PostController(APIController):
             "seo_description",
         ):
             val = (
-                getattr(data, field.replace("_id", ""), None)
+                getattr(body, field.replace("_id", ""), None)
                 if field == "category_id"
-                else getattr(data, field, None)
+                else getattr(body, field, None)
             )
             if field == "category_id":
                 val = body.category_id
