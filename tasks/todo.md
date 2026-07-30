@@ -169,6 +169,225 @@
 ### Launch Readiness (all done)
 - Distribution & publishing: PyPI, TestPyPI, OIDC, Rust wheels
 - Documentation site: MkDocs Material, GitHub Pages, version switcher
+
+---
+
+## Stage 18: Performance — Beat FastAPI (v0.11.0)
+
+**Goal**: django-matt faster than FastAPI+Starlette for 90th percentile use case.
+
+### Phase 18A: Rust Router as Default
+- [ ] Enable Rust request router as default for `@api.get()` / `@api.post()` decorators
+- [ ] Profile route matching: Python vs Rust (target: 2.3x speedup)
+- [ ] Graceful fallback to Python router when Rust wheel unavailable
+- [ ] Update `pyproject.toml` to include Rust wheel as default dependency
+
+### Phase 18B: Rust Schema Validation (opt-in, Pydantic stays)
+- [ ] Create `django_matt.core.schema.RustModelSchema` as Pydantic alternative
+- [ ] Batch validation at Rust layer using `serde` / `jsonschema-rs`
+- [ ] Keep Pydantic as first-class option: `from django_matt.core.schema import ModelSchema` still works
+- [ ] Design: `RustModelSchema` mirrors Pydantic API (`.model_validate()`, `.model_dump()`) for drop-in swap
+- [ ] Benchmarks: Rust vs Pydantic validation latency (target: 3-5x faster for large payloads)
+
+### Phase 18C: Benchmark Suite vs FastAPI
+- [ ] Create `benchmarks/bench_vs_fastapi.py` — identical payloads, both frameworks
+- [ ] Measure: route resolution, JSON serialization, schema validation, end-to-end
+- [ ] Auto-generate comparison charts (p50/p95/p99 latency, throughput)
+- [ ] Target: 15,000 req/s single Granian worker (FastAPI ~12,000 on M2 Pro)
+
+### Phase 18D: Connection Pool Pre-Warming
+- [ ] On startup, open N database connections and hold (active pooling)
+- [ ] `django_matt.db.prewarm_connections(n=10)` called in AppConfig.ready()
+- [ ] Configurable via `MATT_DB_POOL_WARMUP` setting
+- [ ] Eliminates first-request latency spike (40-200ms savings)
+
+### Phase 18E: Streaming Response Pool
+- [ ] Pre-allocate response byte buffers at Rust layer
+- [ ] Zero-copy `BytesStream` for large payloads
+- [ ] Integrate with SSE streaming for token-by-token AI responses
+
+### Phase 18F: matt doctor --ai
+- [ ] Run gauntlet → feed failures + context to LLM → get fix diffs
+- [ ] Uses existing fixer engine; falls back to LLM when rule-based fixer can't handle
+- [ ] `matt doctor --ai --apply` for auto-fix workflow
+- [ ] Integrates with `audits/prompts/` for structured LLM queries
+
+---
+
+## Stage 19: LLM/AI Deep Integration (v0.12.0)
+
+### Phase 19A: AI-Native Context Generation
+- [ ] `matt ai context` auto-detects project patterns and emits rules
+- [ ] Scans git history for bug fixes → emits anti-pattern rules
+- [ ] Generates service-layer, soft-delete, error-handling conventions
+- [ ] Output: `.cursorrules` + `CLAUDE.md` tailored to this specific project
+
+### Phase 19B: matt explain --ai
+- [ ] `matt explain --ai /api/orders/` traces full request lifecycle
+- [ ] Natural language output: middleware chain, controller, service, DB query, response
+- [ ] Dependencies shown: "Uses StripeProvider → requires STRIPE_API_KEY"
+
+### Phase 19C: AI-Assisted Schema Design
+- [ ] Wire `schema_designer/` to LLM for conversational schema creation
+- [ ] "I need a User model with email auth" → Model + Schema + Controller + Service + Tests
+- [ ] Generates migrations, admin config, and OpenAPI docs
+
+### Phase 19D: AI-Assisted Refactoring
+- [ ] `matt refactor --ai <file>` suggests architectural improvements
+- [ ] Detects fat controllers, missing service layer, mixed concerns
+- [ ] Generates split suggestions with before/after diffs
+
+### Phase 19E: Agent SDKs
+- [ ] Rust SDK: `matt_sdk::Client` for maximum performance
+- [ ] Zig SDK: for embedded/WASM use cases
+- [ ] Update existing TypeScript/Swift/Python SDKs
+
+---
+
+## Stage 20: Agent Guardrails (v0.12.0)
+
+### Phase 20A: Architecture Contracts as Code
+- [ ] Declarative `.matt/architecture.toml` format
+- [ ] Layer dependency rules: foundation → domain → interface → tooling
+- [ ] Runtime enforcement via `check_architecture.py` extension
+- [ ] Violations block CI/deploy
+
+### Phase 20B: Pre-Commit AI Audit
+- [ ] Hook `matt audit` into pre-commit flow
+- [ ] Block commits introducing CRITICAL/HIGH findings
+- [ ] Auto-generate fix diffs for review
+
+### Phase 20C: Test Generation from Schemas
+- [ ] Given Pydantic schema, auto-generate edge-case tests
+- [ ] Empty strings, boundary values, type mismatches, missing required fields
+- [ ] Integration with `testing/smart/` module
+
+### Phase 20D: Convention Check
+- [ ] `matt convention-check` compares project against django-matt best practices
+- [ ] Detects: inconsistent error handling, mixed controller patterns, missing service layer
+- [ ] Scoring: 0-100 with per-category breakdown
+
+---
+
+## Stage 21: Beyond FastAPI Performance (v0.13.0)
+
+### Phase 21A: Zero-Copy Request Parsing
+- [ ] Use Rust `serde_json` with borrowed strings for POST bodies
+- [ ] Request body stays in memory as bytes, parsed struct references it directly
+- [ ] Target: 2-3x faster JSON parsing for payloads > 1KB
+
+### Phase 21B: SIMD JSON Validation
+- [ ] Integrate `simd-json` crate for large payload validation
+- [ ] Auto-select SIMD path for payloads > 1KB, fallback to serde for small
+
+### Phase 21C: HTTP/3 (QUIC) Support
+- [ ] Granian HTTP/3 backend (QUIC protocol)
+- [ ] Eliminates TCP head-of-line blocking
+- [ ] Measurable improvement for high-latency clients (mobile, global)
+
+### Phase 21D: Rust-Layer Response Caching
+- [ ] Cache serialized JSON at Rust router level
+- [ ] Cache hit → skip Python entirely, return bytes directly
+- [ ] Integrate with existing `CacheInvalidationMixin` signals
+- [ ] Target: <100μs cache hit latency
+
+### Phase 21E: Shared-Nothing Worker Architecture
+- [ ] Profile GIL contention under high load
+- [ ] Multi-process model with shared-nothing workers if GIL is bottleneck
+- [ ] Each worker: own DB pool, cache, Rust router
+
+---
+
+## Stage 22: ML/AI Pipeline (v0.14.0)
+
+### Phase 22A: ModelDeployment Framework
+- [ ] `django_matt.ml.ModelDeployment` wraps vLLM/llama.cpp/LocalAI
+- [ ] First-class Django resource: `classifier = ModelDeployment(model="llama-3.1-8b")`
+- [ ] `classifier.predict(text)` → async, with concurrency limits
+- [ ] Health checks, auto-restart, GPU memory monitoring
+
+### Phase 22B: Embedding Cache with pgvector
+- [ ] `CachedEmbedding` model stores computed embeddings
+- [ ] <1ms latency for cached embeddings
+- [ ] Auto-invalidation on source data changes
+
+### Phase 22C: Streaming Token Optimization
+- [ ] Rust-backed SSE frame encoder for token-by-token streaming
+- [ ] Model → Python → Rust encoder → client with sub-ms overhead
+- [ ] Backpressure handling for slow clients
+
+### Phase 22D: Batch Inference Queue
+- [ ] Accumulate requests over 50ms window
+- [ ] Send batch to vLLM/llama.cpp for parallel processing
+- [ ] Configurable window size and max batch size
+
+---
+
+## Stage 23: CLI & DevX (v0.14.0)
+
+### Phase 23A: matt new Wizard
+- [ ] Interactive TUI for scaffolding: pick stack, features, auth, billing, AI
+- [ ] `matt new` → selects API-only/fullstack/B2B → auth/JWT/OAuth → billing/Stripe → AI/vLLM
+- [ ] Generates fully wired project in one command
+
+### Phase 23B: matt doctor --fix
+- [ ] Auto-fix common issues: missing `__init__.py`, wrong imports, outdated configs
+- [ ] `matt doctor --fix --dry-run` to preview
+
+### Phase 23C: matt benchmark
+- [ ] Built-in load testing: `matt benchmark --endpoint /api/users --concurrency 100`
+- [ ] Shows p50/p95/p99 latency, throughput, error rate
+- [ ] Compares against baseline from previous run
+
+### Phase 23D: matt deploy --preview
+- [ ] Cost estimate, region selection, resource sizing before deploying
+- [ ] Integrates with Fly.io, Railway, Render, AWS providers
+
+### Phase 23E: mattstack-cli Version Sync
+- [ ] Mattstack-cli pins django-matt version in scaffolded projects
+- [ ] Auto-updates templates on django-matt release
+- [ ] `mattstack sync` command to update existing projects
+
+---
+
+## Stage 24: Horizontal & Vertical Scalability (v0.15.0)
+
+### Phase 24A: Read Replica Routing
+- [ ] `django_matt.db.Router` auto-routes reads → replicas, writes → primary
+- [ ] Inspects query type (SELECT vs INSERT/UPDATE/DELETE)
+- [ ] Configurable via `DATABASE_ROUTERS` with zero code changes
+
+### Phase 24B: Redis Cluster Native Support
+- [ ] `RedisClusterCache` backend for caching + sessions
+- [ ] Auto-sharding across cluster nodes
+- [ ] Failover handling with retry logic
+
+### Phase 24C: Database Sharding Hints
+- [ ] `django_matt.db.shard_key(User, "organization_id")` annotation
+- [ ] Auto-adds `WHERE organization_id = ?` to all queries
+- [ ] Enables horizontal sharding without application changes
+
+### Phase 24D: Async Task Result Streaming
+- [ ] WebSocket streaming of partial task results
+- [ ] Progress bars, intermediate CSV rows, log lines
+- [ ] Client subscribes: `ws://api/tasks/{task_id}/stream`
+
+---
+
+## Design Decisions
+
+- **Schema validation**: Rust `RustModelSchema` becomes default for performance. Pydantic `ModelSchema` remains first-class option. Both expose identical API (`model_validate`, `model_dump`, `model_json_schema`). Users choose via import path.
+- **Rust extensions**: Always optional. Graceful fallback to pure Python when Rust wheel unavailable (e.g., PyPy, exotic architectures).
+- **Agent guardrails**: Architecture contracts are declarative (TOML) and enforced at CI/deploy time, not at import time (zero runtime overhead).
+- **Performance targets**: Benchmarked against FastAPI on identical hardware with identical payloads. All claims backed by reproducible benchmarks in `benchmarks/`.
+
+---
+
+## Future Technical Work (existing)
+
+- [ ] PlanetScale support — connection config, branch-based workflows
+- [ ] Kubernetes/Helm chart generation
+- [ ] vLLM/llama.cpp/LocalAI deeper integration
 - Example apps: 8 examples refreshed + 2 new (ai-chat, multitenant-saas)
 - Polish: ruff clean, 6342 tests passing, pyright 0 errors
 - Community prep: LICENSE, CONTRIBUTING, issue/PR templates, repo settings, SECURITY.md
