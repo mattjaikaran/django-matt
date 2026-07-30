@@ -8,7 +8,7 @@ function HomePage() {
   return (
     <div className="text-center py-16">
       <h1 className="text-3xl font-bold text-slate-900 mb-4">
-        React + Vite Starter
+        React + RSBuild Starter
       </h1>
       <p className="text-slate-500 mb-8">
         Connected to django-matt API. Built with TanStack Router, React Query, and Tailwind.

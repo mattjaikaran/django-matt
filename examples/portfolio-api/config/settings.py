@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     "apps.skills",
     "apps.experience",
     "apps.contact",
+    "apps.site_config",
 ]
 
 MIDDLEWARE = [

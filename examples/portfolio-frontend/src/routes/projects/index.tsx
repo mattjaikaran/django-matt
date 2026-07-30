@@ -13,6 +13,7 @@ export const Route = createFileRoute('/projects/')({
 
 function ProjectsPage() {
   const { data: projects = [], isLoading } = useProjects();
+  const [selectedTech, setSelectedTech] = useState<string | null>(null);
 
   // Derive unique tech stacks from all projects
   const allTech = useMemo(() => {
@@ -37,7 +38,7 @@ function ProjectsPage() {
           </div>
           <p className="text-muted-foreground">
             All my open-source and personal projects.
-            {data && ` ${data.total} total.`}
+            {projects.length > 0 && ` ${projects.length} total.`}
           </p>
         </div>
       </div>

@@ -1,6 +1,7 @@
 from django_matt import DjangoMattAPI
 
 from apps.contact.controllers import register_contact_routes
+from apps.site_config.controllers import SiteConfigController
 from apps.experience.controllers import register_experience_routes
 from apps.projects.controllers import register_project_routes
 from apps.skills.controllers import register_skill_routes
@@ -19,6 +20,7 @@ register_experience_routes(api)
 register_contact_routes(api)
 
 
+api.register_controller(SiteConfigController)
 @api.get("health", tags=["Health"])
 async def health_check(request) -> dict:
     return {"status": "healthy"}
