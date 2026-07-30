@@ -261,6 +261,19 @@ class TodoService(CRUDService["Todo"]):
 items, total = await TodoService().list(created_by=request.user)
 ```
 
+
+### Code Quality Audits
+
+```bash
+# Run all audits
+matt audit run --all --level standard
+
+# Security audit at paranoid level
+matt audit run --category security --level paranoid
+
+# Preview and generate patches
+matt audit diff --rule SCAL001 --output-dir patches/
+```
 ### Interceptors
 
 ```python
@@ -274,28 +287,19 @@ async def list_users(request):
 
 ---
 
-## What's New in 0.8
+## What's New in 0.10.0
 
-**13 new modules, Rust acceleration, 6,300+ tests.**
+**AI Codebase Audits, ecommerce-frontend, 0 lint errors, 15 example apps.**
 
-- **Interceptors** -- before/after/error hooks on any route or controller
-- **SSE Streaming** -- server-sent events with heartbeat and backpressure
-- **Event Bus** -- async pub/sub with in-memory and Redis backends
-- **CQRS** -- command/query buses with middleware pipeline
-- **Exception Filters** -- layered error handling (route, controller, global)
-- **Module System** -- plugins with dependency resolution and lifecycle hooks
-- **Scoped Middleware** -- attach middleware to specific routes, not globally
-- **Serialization Groups** -- role-based field visibility on schemas
-- **RPC Client Generation** -- typed Python and TypeScript clients from OpenAPI
-- **Secrets Management** -- unified API for env, AWS Secrets Manager, Vault, GCP
-- **Introspection** -- health checks, K8s liveness/readiness probes, `/_info`
-- **Rust Extensions** -- optional PyO3 native extensions with up to 1.9x speedup
-- **Vite Integration** -- first-class Vite dev server support with HMR proxy
-- **Inertia.js Adapter** -- server-driven SPA with React/Vue/Svelte frontends
-- **Predicate Permissions** -- compose checks with `&`, `|`, `~` operators
-- **File Storage Redesign** -- unified API across S3, R2, MinIO, and local backends
-- **Code Review Agent** -- `generate_ai_context` produces CLAUDE.md and .cursorrules
-
+- **`matt audit`** — 6 built-in auditors (security, performance, scalability, bundle_size, best_practices, maintainability) with SARIF, Markdown, JSON output
+- **Auto-fix engine** — 9 rule-specific fix generators with `--diff` patch mode for SCAL and BUND rule families
+- **CI integration** — 4-category SARIF upload to GitHub Code Scanning dashboard
+- **`examples/ecommerce-frontend/`** — React/Vite SPA with products, cart (Zustand), Stripe checkout, orders
+- **`examples/portfolio-api/`** — SiteConfig model, 6 Django apps, 35 tests, Docker
+- **React starters** — ProtectedRoute wrapper, API client reads `VITE_API_URL` from env
+- **0 lint errors** — fixed 54 pre-existing ruff violations (B017, E402, N806, F821, B018, etc.)
+- **Namespace disambiguation** — `LogSeverity`/`FindingSeverity` aliases for `audit` vs `audits`
+- **Mattstack-cli presets** — `matt-blog`, `matt-portfolio`, `matt-ecommerce`
 ---
 
 ## Module Overview
@@ -362,7 +366,8 @@ async def list_users(request):
 |--------|-------------|
 | `db` | PostgreSQL connection pooling (psycopg3), pgvector |
 | `files` | Upload handling, S3/R2/MinIO storage backends |
-| `audit` | Audit logging, soft delete with restore |
+| `audit` | Operational audit logging, soft delete with restore |
+| `audits` | AI codebase audits: security, performance, scalability, bundle analysis |
 | `ml` | Vector storage, structured LLM output |
 
 ### Business Logic
@@ -494,14 +499,14 @@ uv add "django-matt[all]"
 
 | Project | Description |
 |---------|-------------|
-| [`examples/quicktodo`](examples/quicktodo) | Multi-tenant todo API -- the "10-minute demo" |
-| [`examples/saas-starter`](examples/saas-starter) | SaaS template with auth, billing, multi-tenancy |
+| [`examples/blog-app`](examples/blog-app) | Full-stack blog with React/Vite frontend and generated types |
+| [`examples/portfolio-api`](examples/portfolio-api) | Portfolio backend with projects, skills, experience, contact |
+| [`examples/portfolio-frontend`](examples/portfolio-frontend) | Portfolio React/Vite SPA with TanStack Router |
+| [`examples/ecommerce-frontend`](examples/ecommerce-frontend) | E-commerce React/Vite SPA with cart, Stripe checkout |
 | [`examples/ecommerce-api`](examples/ecommerce-api) | E-commerce backend with products, orders, payments |
 | [`examples/ecommerce-v2`](examples/ecommerce-v2) | Multi-vendor marketplace with Stripe payments |
 | [`examples/realtime-chat`](examples/realtime-chat) | Real-time chat with WebSockets and presence |
 | [`examples/ai-chat`](examples/ai-chat) | AI-powered chat with SSE streaming and CQRS |
-| [`examples/devplatform`](examples/devplatform) | API management SaaS with keys, analytics, webhooks |
-| [`examples/multitenant-saas`](examples/multitenant-saas) | Multi-tenant SaaS with interceptors and feature flags |
 
 ---
 

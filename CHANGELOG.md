@@ -20,23 +20,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bundle size analysis: unused module detection, slim mode recommendations, import time optimization
 - 4 strictness levels: RELAXED, STANDARD, STRICT, PARANOID
 
-**Scalability Auditor** (`django_matt/audits/auditors/scalability.py`)
-- SCAL001: Missing pagination on list endpoints
-- SCAL002: Single-row operations in loops (use bulk)
-- SCAL003: Heavy operations in request handlers (task offloading)
-- SCAL004: Missing rate limiting on endpoints
-- SCAL010-SCAL015: Connection pooling, session storage, cache config, static serving, throttle middleware
+**Scalability Auditor** (9 rule IDs)
+- SCAL001-SCAL004: pagination, bulk ops, task offloading, rate limiting
+- SCAL010-SCAL015: connection pooling, session storage, cache config, static serving, throttle middleware
 
-**Performance Auditor** expanded (3 new rules)
+**Performance Auditor** expanded (8 rule IDs total)
 - PERF033: `count()` vs `exists()` optimization
 - PERF034: Missing `select_related()` on FK traversal in loops
 - PERF035: `first()` without `order_by()` (non-deterministic results)
 
-**Namespace disambiguation**: `django_matt.audit` (operational logging) vs `django_matt.audits` (code quality) — added `LogSeverity`/`FindingSeverity` aliases and cross-referencing docstrings
+**Namespace disambiguation**: `django_matt.audit` (operational logging) vs `django_matt.audits` (code quality) — added `LogSeverity`/`FindingSeverity` aliases
+
+**Example Apps**
+
+- `examples/ecommerce-frontend/` — React/Vite SPA with product listing, detail, cart (Zustand + localStorage), order history, auth, Stripe checkout placeholder
+- `examples/portfolio-api/` — SiteConfig model, controller, and admin added (6 Django apps total)
+- `examples/react-vite-starter/` — ProtectedRoute component, API client reads `VITE_API_URL` from env
+- `examples/react-rsbuild-starter/` — ProtectedRoute, API client env fix, copy fix
+- `examples/portfolio-frontend/` — Projects page bug fix (undefined state variable), API client env fix
+
+**Mattstack-cli** — `matt-blog`, `matt-portfolio`, `matt-ecommerce` presets for scaffolding
 
 ### Changed
-- Exclude `.venv`, `node_modules`, `.git`, `dist`, `build` from audit scan defaults (cuts noise by ~80%)
 
+- Exclude `.venv`, `node_modules`, `.git`, `dist`, `build`, `**/project_template/**` from audit/ruff scan defaults
+- Bump version to 0.10.0
+
+### Fixed
+
+- **54 ruff lint errors → 0**: Replaced blind `Exception` assertions with specific exceptions (B017), moved module-level imports (E402), fixed camelCase naming (N806), dead code removal, regex raw strings, magic value constants
+- **Ruff format**: 21 files reformatted to comply with project style
+- **Gauntlet compatibility**: Template directory exclusions, file-length overrides for new modules
+- `DjangoMattAPI` duplicate dictionary key in `_LAZY_IMPORTS`
+- `rel_path` undefined reference in performance auditor dead code block
 ## [0.9.1] - 2026-06-15
 ## [0.9.0] - 2026-05-19
 
@@ -59,19 +75,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `python manage.py matt_tasks status` — show queue depth and worker status
   - `python manage.py matt_tasks purge --older-than <duration>` — purge old results
 
-**Stage 17B — AI-Assisted Codebase Audits** (`django_matt/audits/`)
-
-- `AuditFramework` class with pluggable `AuditLens` protocol
-- Security audit lens: OWASP top-10, SQL injection, exposed secrets, auth gaps
-- Performance audit lens: N+1 queries, missing indexes, slow views, cache misses
-- Bundle audit lens: frontend bundle analysis, dead code, large dependencies
-- Pre-built LLM prompt templates (`audits/prompts/`)
-- `AuditAgent` — MCP tool definitions for AI agent integration (`audits/agents/`)
-- CLI commands:
-  - `python manage.py matt_audit` — run all audit lenses
-  - `python manage.py matt_audit security --level strict`
-  - `python manage.py matt_audit bundle`
-  - `python manage.py matt_audit context --for claude` — generate `CLAUDE.md` / `.cursorrules` from live codebase state
 
 **TypeScript Codegen fixes** (`django_matt/typegen/`)
 

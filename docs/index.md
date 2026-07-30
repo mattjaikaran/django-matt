@@ -35,7 +35,7 @@
 from django_matt import DjangoMattAPI, APIController, IsAuthenticated
 from django_matt.auth import jwt_required
 
-api = DjangoMattAPI(title="My API", version="0.9.0")
+api = DjangoMattAPI(title="My API", version="1.0.0")
 
 @api.controller("/users", tags=["Users"])
 class UserController(APIController):
@@ -99,7 +99,7 @@ python manage.py startapi myproject --template b2b --auth jwt
 # myproject/api.py
 from django_matt import DjangoMattAPI
 
-api = DjangoMattAPI(title="My API", version="0.9.0")
+api = DjangoMattAPI(title="My API", version="1.0.0")
 
 @api.get("/hello")
 async def hello(request):
