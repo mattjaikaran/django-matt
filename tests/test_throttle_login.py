@@ -255,7 +255,6 @@ class TestResetLoginConfig:
 
 @pytest.mark.django_db(transaction=True)
 class TestEmailOrUsernameBackend:
-
     @pytest.fixture
     def user(self):
         from django.contrib.auth import get_user_model
@@ -308,9 +307,12 @@ class TestEmailOrUsernameBackend:
         assert result.pk == user.pk
 
     def test_case_insensitive_email(self, user):
-        backend = EmailOrUsernameBackend(config=LoginConfig(login_field="email", case_insensitive=True))
+        backend = EmailOrUsernameBackend(
+            config=LoginConfig(login_field="email", case_insensitive=True)
+        )
         result = backend.authenticate(None, username="TEST@EXAMPLE.COM", password="secret123")
         assert result is not None
+
     def test_case_sensitive_email(self, user, settings):
         settings.MATT_AUTH = {"login_field": "email", "case_insensitive": False}
         backend = EmailOrUsernameBackend()
@@ -319,9 +321,12 @@ class TestEmailOrUsernameBackend:
         assert result is None
 
     def test_strip_whitespace(self, user):
-        backend = EmailOrUsernameBackend(config=LoginConfig(login_field="email", strip_whitespace=True))
+        backend = EmailOrUsernameBackend(
+            config=LoginConfig(login_field="email", strip_whitespace=True)
+        )
         result = backend.authenticate(None, username="  test@example.com  ", password="secret123")
         assert result is not None
+
     def test_inactive_user_rejected(self, user, settings):
         settings.MATT_AUTH = {"login_field": "email", "allow_inactive": False}
         user.is_active = False
@@ -331,7 +336,9 @@ class TestEmailOrUsernameBackend:
         assert result is None
 
     def test_inactive_user_allowed(self, user):
-        backend = EmailOrUsernameBackend(config=LoginConfig(login_field="email", allow_inactive=True))
+        backend = EmailOrUsernameBackend(
+            config=LoginConfig(login_field="email", allow_inactive=True)
+        )
         user.is_active = False
         user.save()
         result = backend.authenticate(None, username="test@example.com", password="secret123")

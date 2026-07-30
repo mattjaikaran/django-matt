@@ -355,7 +355,11 @@ class Command(BaseCommand):
                     app_module = importlib.import_module(app_label)
                     app_dir = Path(app_module.__path__[0])
                     for sub_dir in app_dir.iterdir():
-                        if not sub_dir.is_dir() or sub_dir.name.startswith("_") or sub_dir.name.startswith("."):
+                        if (
+                            not sub_dir.is_dir()
+                            or sub_dir.name.startswith("_")
+                            or sub_dir.name.startswith(".")
+                        ):
                             continue
                         if not (sub_dir / "__init__.py").exists():
                             continue
@@ -366,7 +370,9 @@ class Command(BaseCommand):
                             try:
                                 sub_schemas = collect_schemas_from_module(sub_module_path)
                                 schemas.extend(sub_schemas)
-                                self.stdout.write(f"  Found {len(sub_schemas)} schemas in {sub_module_path}")
+                                self.stdout.write(
+                                    f"  Found {len(sub_schemas)} schemas in {sub_module_path}"
+                                )
                             except ImportError:
                                 pass
                 except (ImportError, AttributeError):

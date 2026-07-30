@@ -10,11 +10,13 @@ from ecommerce.reviews.controllers import ReviewController
 from ecommerce.users.controllers import AddressController, AuthController, WishlistController
 
 # Initialize the API
-api = DjangoMattAPI(title="E-Commerce API",
-version="1.0.0",
-description="Production-quality e-commerce backend API built with django-matt",
-docs_url="/docs",
-openapi_url="/openapi.json",)
+api = DjangoMattAPI(
+    title="E-Commerce API",
+    version="1.0.0",
+    description="Production-quality e-commerce backend API built with django-matt",
+    docs_url="/docs",
+    openapi_url="/openapi.json",
+)
 
 # Register controllers
 api.register_controller(AuthController)

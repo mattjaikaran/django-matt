@@ -60,6 +60,7 @@ class AuthController(APIController):
 
         from asgiref.sync import sync_to_async
         from django.contrib.auth.hashers import check_password
+
         if not await sync_to_async(check_password)(body.password, user.password):
             raise AuthenticationAPIError("Invalid credentials.")
         if not user.is_active:

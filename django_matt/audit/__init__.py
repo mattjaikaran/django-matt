@@ -12,6 +12,7 @@ Disambiguation:
   - django_matt.audits.AuditSeverity = code-quality finding severity (LOW..CRITICAL)
   - Prefer aliases: LogSeverity, LogAction
 """
+
 """
 Provides comprehensive audit logging for Django applications including:
 - Model change tracking (create, update, delete)

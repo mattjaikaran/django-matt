@@ -11,9 +11,11 @@ from apps.projects.controllers import register_project_routes
 from apps.users.controllers import register_auth_routes
 from apps.webhooks.controllers import register_webhook_routes
 
-api = DjangoMattAPI(title="DevPlatform API",
-version="1.0.0",
-description="API management SaaS built with django-matt",)
+api = DjangoMattAPI(
+    title="DevPlatform API",
+    version="1.0.0",
+    description="API management SaaS built with django-matt",
+)
 
 # Register all routes
 register_auth_routes(api)

@@ -10,9 +10,11 @@ from apps.search.controllers import register_search_routes
 from apps.stores.controllers import register_store_routes
 from apps.users.controllers import register_auth_routes
 
-api = DjangoMattAPI(title="Ecommerce API",
-version="1.0.0",
-description="Multi-vendor marketplace built with django-matt",)
+api = DjangoMattAPI(
+    title="Ecommerce API",
+    version="1.0.0",
+    description="Multi-vendor marketplace built with django-matt",
+)
 
 # Register all routes
 register_auth_routes(api)

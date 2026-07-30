@@ -24,13 +24,9 @@ class Post(models.Model):
     slug = models.SlugField(max_length=280, unique=True)
     content = models.TextField()
     excerpt = models.TextField(blank=True)
-    status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.DRAFT
-    )
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     featured = models.BooleanField(default=False)
-    author = models.ForeignKey(
-        "users.User", on_delete=models.CASCADE, related_name="posts"
-    )
+    author = models.ForeignKey("users.User", on_delete=models.CASCADE, related_name="posts")
     tags = models.ManyToManyField(Tag, blank=True, related_name="posts")
     published_at = models.DateTimeField(null=True, blank=True)
     view_count = models.PositiveIntegerField(default=0)

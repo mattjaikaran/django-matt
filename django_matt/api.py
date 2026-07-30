@@ -425,4 +425,5 @@ class DjangoMattAPI(APIRouter):
 
         return decorator
 
+
 # Backward-compatible alias

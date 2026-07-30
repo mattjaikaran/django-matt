@@ -14,6 +14,8 @@ class AuthorProfileResponse(BaseModel):
     github: str = ""
     linkedin: str = ""
     location: str = ""
+
+
 class UserPublicResponse(BaseModel):
     id: UUID
     username: str

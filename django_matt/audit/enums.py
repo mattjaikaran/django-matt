@@ -116,6 +116,7 @@ class AuditSeverity(str, Enum):
         }
         return levels.get(self.value, 20)
 
+
 # ─── Disambiguation aliases ─────────────────────────────────────
 # These prevent collision with django_matt.audits.AuditSeverity
 # (which is for code-quality findings, not operational logging).

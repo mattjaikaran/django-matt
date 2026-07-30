@@ -21,6 +21,8 @@ register_contact_routes(api)
 
 
 api.register_controller(SiteConfigController)
+
+
 @api.get("health", tags=["Health"])
 async def health_check(request) -> dict:
     return {"status": "healthy"}

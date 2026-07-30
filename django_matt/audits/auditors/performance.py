@@ -388,8 +388,6 @@ class PerformanceAuditor(BaseAuditor):
         # Check for first() without order_by() on large queries
         findings.extend(self._check_first_without_order(tree, rel_path, config))
 
-
-
     def _check_count_vs_exists(
         self, tree: ast.Module, file_path: str, config: AuditConfig
     ) -> list[AuditFinding]:
@@ -497,17 +495,15 @@ class PerformanceAuditor(BaseAuditor):
         # Pattern: .filter(...).first() without .order_by()
         if ".first()" in src:
             # Find .first() usages preceded by .filter() or .all() but no .order_by()
-            first_pattern = re.compile(
-                r"\.(?:filter|all|exclude)\s*\([^)]*\)\s*\.first\s*\(\s*\)"
-            )
+            first_pattern = re.compile(r"\.(?:filter|all|exclude)\s*\([^)]*\)\s*\.first\s*\(\s*\)")
             for match in first_pattern.finditer(src):
                 # Check if there's an order_by between the filter and first
-                before_first = src[:match.start()]
+                before_first = src[: match.start()]
                 last_dot = before_first.rfind(".first")
                 if last_dot == -1:
-                    snippet = src[max(0, match.start() - 100):match.end()]
+                    snippet = src[max(0, match.start() - 100) : match.end()]
                 else:
-                    snippet = src[last_dot:match.end()]
+                    snippet = src[last_dot : match.end()]
 
                 if "order_by" not in snippet:
                     severity = AuditSeverity.INFO
@@ -532,6 +528,7 @@ class PerformanceAuditor(BaseAuditor):
                     break
 
         return findings
+
     def _get_method_name(self, call_node: ast.Call) -> str:
         """Get the method name from a Call node."""
         if isinstance(call_node.func, ast.Attribute):
