@@ -422,7 +422,7 @@ class TestAnalyticsMiddleware:
             patch.object(mw, "_track_page_view"),
         ):
             response = mw(request)
-        cookie_names = [c for c in response.cookies]
+        cookie_names = list(response.cookies)
         assert "_matt_session" in cookie_names
 
     @pytest.mark.django_db

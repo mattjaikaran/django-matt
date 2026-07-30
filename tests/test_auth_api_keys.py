@@ -30,6 +30,7 @@ from django.test import RequestFactory
 from django.utils import timezone
 
 import pytest
+from pydantic import ValidationError
 
 from django_matt.auth.api_keys.decorators import (
     api_key_optional,
@@ -2043,12 +2044,12 @@ class TestAPIKeySchemas:
 
     def test_create_request_empty_name_rejected(self):
         """Empty name should be rejected."""
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             APIKeyCreateRequest(name="")
 
     def test_create_request_long_name_rejected(self):
         """Name longer than 100 chars should be rejected."""
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             APIKeyCreateRequest(name="x" * 101)
 
     def test_update_request_all_optional(self):

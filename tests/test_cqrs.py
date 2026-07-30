@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
 
 from django_matt.cqrs import (
     CachingMiddleware,
@@ -76,7 +77,7 @@ class ListUsersHandler:
 class TestCommand:
     def test_command_is_frozen(self):
         cmd = CreateUser(name="Alice", email="alice@example.com")
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             cmd.name = "Bob"
 
     def test_command_serialization(self):
@@ -161,7 +162,7 @@ class TestCommandHandlerDecorator:
 class TestQuery:
     def test_query_is_frozen(self):
         q = GetUser(user_id=1)
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             q.user_id = 2
 
     def test_query_defaults(self):
@@ -295,7 +296,7 @@ class TestDomainEvent:
 
     def test_event_is_frozen(self):
         event = UserCreated(name="Alice", email="a@b.com")
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             event.name = "Bob"
 
 

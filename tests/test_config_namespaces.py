@@ -237,7 +237,7 @@ class TestStartupValidation:
             "API": {"versioning_scheme": "magic"},
         }
         register_namespace("API", APIConfig)
-        with pytest.raises(ValueError, match="DJANGO_MATT.API.versioning_scheme"):
+        with pytest.raises(ValueError, match=r"DJANGO_MATT.API.versioning_scheme"):
             validate_config()
 
     def test_skip_validation(self, settings):

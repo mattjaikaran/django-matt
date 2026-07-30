@@ -22,6 +22,7 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from django.contrib.auth.models import User
+from django.db import IntegrityError
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
 from django.utils import timezone
@@ -495,7 +496,7 @@ class TestBillingProductModel:
 
     def test_unique_together(self, billing_product):
         """Should enforce unique constraint on provider + product_id."""
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             BillingProduct.objects.create(
                 provider="stripe",
                 provider_product_id="prod_test_123",
@@ -566,7 +567,7 @@ class TestBillingPriceModel:
 
     def test_unique_together(self, billing_price):
         """Should enforce unique constraint on provider + price_id."""
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             BillingPrice.objects.create(
                 provider="stripe",
                 provider_price_id="price_test_123",
@@ -779,7 +780,7 @@ class TestWebhookEventModel:
             event_type="test",
             payload={},
         )
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             WebhookEventModel.objects.create(
                 provider="stripe",
                 provider_event_id="evt_dup_123",

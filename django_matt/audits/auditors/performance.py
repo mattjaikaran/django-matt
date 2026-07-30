@@ -379,15 +379,6 @@ class PerformanceAuditor(BaseAuditor):
 
         return findings
 
-        # Check for count() vs exists()
-        findings.extend(self._check_count_vs_exists(tree, rel_path, config))
-
-        # Check for missing select_related hints
-        findings.extend(self._check_missing_select_related(tree, rel_path, config))
-
-        # Check for first() without order_by() on large queries
-        findings.extend(self._check_first_without_order(tree, rel_path, config))
-
     def _check_count_vs_exists(
         self, tree: ast.Module, file_path: str, config: AuditConfig
     ) -> list[AuditFinding]:

@@ -11,6 +11,7 @@ from urllib.parse import parse_qs, urlparse
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.db import IntegrityError
 from django.test import RequestFactory
 
 import pytest
@@ -35,31 +36,31 @@ User = get_user_model()
 
 def _make_mock_connection(**overrides) -> MagicMock:
     """Build a MagicMock SSOConnection with sensible SAML/OIDC defaults."""
-    defaults = dict(
-        id=1,
-        organization_id="acme",
-        provider_type="oidc",
-        name="Acme OIDC",
-        is_active=True,
-        is_required=False,
-        domains=["acme.com"],
+    defaults = {
+        "id": 1,
+        "organization_id": "acme",
+        "provider_type": "oidc",
+        "name": "Acme OIDC",
+        "is_active": True,
+        "is_required": False,
+        "domains": ["acme.com"],
         # SAML
-        idp_entity_id="https://idp.acme.com",
-        idp_sso_url="https://idp.acme.com/sso",
-        idp_slo_url="https://idp.acme.com/slo",
-        idp_certificate="MIIC...",
+        "idp_entity_id": "https://idp.acme.com",
+        "idp_sso_url": "https://idp.acme.com/sso",
+        "idp_slo_url": "https://idp.acme.com/slo",
+        "idp_certificate": "MIIC...",
         # OIDC
-        client_id="client-123",
-        client_secret="secret-456",
-        discovery_url="",
-        authorization_url="https://idp.acme.com/authorize",
-        token_url="https://idp.acme.com/token",
-        userinfo_url="https://idp.acme.com/userinfo",
+        "client_id": "client-123",
+        "client_secret": "secret-456",
+        "discovery_url": "",
+        "authorization_url": "https://idp.acme.com/authorize",
+        "token_url": "https://idp.acme.com/token",
+        "userinfo_url": "https://idp.acme.com/userinfo",
         # Mapping / config
-        attribute_mapping={},
-        default_role="member",
-        extra_config={},
-    )
+        "attribute_mapping": {},
+        "default_role": "member",
+        "extra_config": {},
+    }
     defaults.update(overrides)
     conn = MagicMock(**defaults)
     conn.get_callback_url.return_value = "https://app.acme.com/auth/sso/acme/callback"
@@ -69,12 +70,12 @@ def _make_mock_connection(**overrides) -> MagicMock:
 
 def _make_sso_config(**overrides) -> SSOConfig:
     """Return a test SSOConfig with sensible defaults."""
-    defaults = dict(
-        enabled=True,
-        callback_url_base="https://app.acme.com",
-        state_cache_prefix="sso_state",
-        state_timeout=600,
-    )
+    defaults = {
+        "enabled": True,
+        "callback_url_base": "https://app.acme.com",
+        "state_cache_prefix": "sso_state",
+        "state_timeout": 600,
+    }
     defaults.update(overrides)
     return SSOConfig(**defaults)
 
@@ -769,7 +770,7 @@ class TestSSOConnectionModel:
             organization_id="org-unique",
             provider_type="oidc",
         )
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             SSOConnection.objects.create(
                 organization_id="org-unique",
                 provider_type="saml",
@@ -826,7 +827,7 @@ class TestSSOUserLinkModel:
             idp_user_id="idp-u-dup",
         )
         user2 = User.objects.create_user(username="sso-user-2", password="pass")
-        with pytest.raises(Exception):
+        with pytest.raises(IntegrityError):
             SSOUserLink.objects.create(
                 user=user2,
                 connection=connection,

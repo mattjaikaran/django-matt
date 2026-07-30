@@ -24,6 +24,7 @@ from django.contrib.auth.models import AnonymousUser, Group
 from django.test import RequestFactory
 
 import pytest
+from pydantic import ValidationError
 
 from django_matt.auth.jwt import (
     AsyncJWTAuth,
@@ -235,7 +236,7 @@ class TestJWTBuiltin:
         """Decoding with wrong algorithm list should raise an error."""
         payload = {"sub": "123"}
         token = encode_jwt(payload, "secret", algorithm="HS256", expires_in=3600)
-        with pytest.raises(Exception):
+        with pytest.raises(JWTError):
             decode_jwt(token, "secret", algorithms=["HS512"])
 
     def test_hs384_algorithm(self):
@@ -2282,7 +2283,7 @@ class TestAuthSchemas:
 
     def test_login_request_invalid_email(self):
         """LoginRequest should reject invalid email."""
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             LoginRequest(email="not-an-email", password="pass123")
 
     def test_register_request_password_validation(self):
@@ -2297,7 +2298,7 @@ class TestAuthSchemas:
 
     def test_register_request_weak_password(self):
         """RegisterRequest should reject weak passwords."""
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             RegisterRequest(
                 email="user@test.com",
                 password="weak",
@@ -2306,7 +2307,7 @@ class TestAuthSchemas:
 
     def test_register_request_no_uppercase(self):
         """RegisterRequest should reject passwords without uppercase."""
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             RegisterRequest(
                 email="user@test.com",
                 password="nouppercase1",
@@ -2315,7 +2316,7 @@ class TestAuthSchemas:
 
     def test_register_request_no_digit(self):
         """RegisterRequest should reject passwords without digits."""
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             RegisterRequest(
                 email="user@test.com",
                 password="NoDigitHere",
@@ -2324,7 +2325,7 @@ class TestAuthSchemas:
 
     def test_register_request_password_mismatch(self):
         """RegisterRequest should reject mismatched passwords."""
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             RegisterRequest(
                 email="user@test.com",
                 password="StrongPass1",
@@ -2342,7 +2343,7 @@ class TestAuthSchemas:
 
     def test_change_password_mismatch(self):
         """ChangePasswordRequest should reject mismatched passwords."""
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             ChangePasswordRequest(
                 current_password="old123",
                 new_password="NewPass123",

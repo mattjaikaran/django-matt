@@ -355,7 +355,7 @@ class TestLazyModuleProxy:
 
         proxy = LazyModuleProxy("nonexistent_module_xyz")
         with pytest.raises(ModuleNotFoundError):
-            proxy.some_attr
+            proxy.some_attr  # noqa: B018
 
 
 class TestLazyImport:

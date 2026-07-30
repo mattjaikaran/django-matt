@@ -472,4 +472,4 @@ class TestExports:
         import django_matt.events as mod
 
         with pytest.raises(AttributeError):
-            mod.DoesNotExist
+            mod.DoesNotExist  # noqa: B018

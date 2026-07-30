@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from django_matt.modules.base import MattModule
 from django_matt.modules.decorators import module, optional_module, requires_module
@@ -108,7 +108,7 @@ class TestMattModuleBase:
             config_schema = MyConfig
 
         mod = ConfiguredModule()
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             mod.validate_config({})
 
 
@@ -660,5 +660,5 @@ class TestConfigValidation:
         registry.register(ConfigMod())
         registry.set_config("configmod", {})
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             await registry.load_all()

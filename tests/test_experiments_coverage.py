@@ -69,7 +69,7 @@ class TestExperimentLifecycle:
     def _make_experiment(self, **kwargs):
         from django_matt.experiments.models import Experiment
 
-        defaults = dict(key="test-exp", name="Test Experiment")
+        defaults = {"key": "test-exp", "name": "Test Experiment"}
         defaults.update(kwargs)
         return Experiment.objects.create(**defaults)
 

@@ -46,19 +46,19 @@ User = get_user_model()
 
 def _make_oauth_config(**overrides) -> OAuthConfig:
     """Build an OAuthConfig with sensible test defaults."""
-    defaults = dict(
-        redirect_uri_base="https://example.com",
-        google=OAuthProviderConfig(
+    defaults = {
+        "redirect_uri_base": "https://example.com",
+        "google": OAuthProviderConfig(
             client_id="google-id",
             client_secret="google-secret",
             scopes=["openid", "email", "profile"],
         ),
-        github=OAuthProviderConfig(
+        "github": OAuthProviderConfig(
             client_id="github-id",
             client_secret="github-secret",
             scopes=["user:email", "read:user"],
         ),
-        apple=OAuthProviderConfig(
+        "apple": OAuthProviderConfig(
             client_id="com.example.app",
             client_secret="apple-secret",
             scopes=["name", "email"],
@@ -68,13 +68,13 @@ def _make_oauth_config(**overrides) -> OAuthConfig:
                 "private_key": "-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----",
             },
         ),
-        microsoft=OAuthProviderConfig(
+        "microsoft": OAuthProviderConfig(
             client_id="ms-id",
             client_secret="ms-secret",
             scopes=["openid", "email", "profile", "User.Read"],
             extra={"tenant": "my-tenant-id"},
         ),
-    )
+    }
     defaults.update(overrides)
     return OAuthConfig(**defaults)
 

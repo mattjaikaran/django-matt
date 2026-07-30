@@ -287,7 +287,6 @@ def run_json_benchmarks(iterations: int = 5000) -> list[BenchmarkResult]:
     # --- Django Matt FastJSONRenderer ---
     try:
         # Configure Django settings if not already configured
-        import django
         from django.conf import settings
 
         if not settings.configured:

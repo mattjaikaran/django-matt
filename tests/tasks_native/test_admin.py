@@ -27,7 +27,7 @@ class TestFilters:
 
         # Should have all task states
         assert len(lookups) == 8
-        lookup_values = [l[0] for l in lookups]
+        lookup_values = [lookup[0] for lookup in lookups]
         assert "pending" in lookup_values
         assert "completed" in lookup_values
         assert "failed" in lookup_values
