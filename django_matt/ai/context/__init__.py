@@ -61,6 +61,10 @@ from django_matt.ai.context.mcp import (
     generate_mcp_server,
     write_mcp_server,
 )
+from django_matt.ai.context.patterns import (
+    DetectedPattern,
+    PatternDetector,
+)
 from django_matt.ai.context.templates import (
     CLAUDE_MD_TEMPLATE,
     COPILOT_INSTRUCTIONS_TEMPLATE,
@@ -90,6 +94,8 @@ __all__ = [
     "JsonIntrospectionGenerator",
     "LlmPromptGenerator",
     "ContextGenerator",
+    "DetectedPattern",
+    "PatternDetector",
     # Introspection
     "EnhancedIntrospector",
     "EndpointInfo",

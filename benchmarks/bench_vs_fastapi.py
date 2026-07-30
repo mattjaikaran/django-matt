@@ -10,7 +10,7 @@ from statistics import mean, median, stdev
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "django_matt.tests.test_settings")
 
-import django  # noqa: I001
+import django
 
 django.setup()
 

@@ -13,6 +13,7 @@ from typing import Any
 import orjson
 
 from django_matt.ai.context.introspection import EnhancedIntrospector, EnhancedProjectInfo
+from django_matt.ai.context.patterns import PatternDetector
 from django_matt.ai.context.templates import (
     CLAUDE_MD_TEMPLATE,
     COPILOT_INSTRUCTIONS_TEMPLATE,
@@ -28,6 +29,7 @@ from django_matt.ai.context.templates import (
     format_llm_prompt,
     format_models_rules,
     format_models_section,
+    format_patterns_section,
     format_schema_rules,
     format_schemas_section,
     format_service_layer_section,
@@ -121,7 +123,7 @@ class ClaudeMdGenerator:
                 if self.include_examples
                 else ""
             ),
-            "important_files": self._generate_important_files(project_info),
+            "detected_patterns_section": self._detect_conventions(),
         }
 
         return render_template(CLAUDE_MD_TEMPLATE, context)
@@ -177,6 +179,24 @@ class ClaudeMdGenerator:
         file_path = Path(path)
         file_path.write_text(content)
         return file_path
+
+    def _detect_conventions(self) -> str:
+        """Detect project conventions and return formatted markdown section."""
+        try:
+            detector = PatternDetector(self.introspector._project_root)
+            patterns = detector.detect()
+            pattern_dicts = [
+                {
+                    "category": p.category,
+                    "name": p.name,
+                    "rule": p.rule,
+                    "guidance": p.guidance,
+                }
+                for p in patterns
+            ]
+            return format_patterns_section(pattern_dicts)
+        except Exception:
+            return ""
 
 
 class CursorRulesGenerator:
@@ -579,6 +599,19 @@ class ContextGenerator:
         path = self.output_dir / filename
         path.write_text(content)
         return path
+
+    def detect_conventions(self) -> str:
+        """Detect project conventions and return Markdown section.
+
+        Returns:
+            Markdown-formatted string of detected conventions
+            suitable for appending to CONTEXT.md files.
+        """
+        try:
+            detector = PatternDetector(self.output_dir)
+            return detector.generate_markdown()
+        except Exception:
+            return ""
 
     def generate_all(self, formats: list[str] | None = None) -> dict[str, Path]:
         """

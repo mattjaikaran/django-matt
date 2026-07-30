@@ -44,6 +44,7 @@ CLAUDE_MD_TEMPLATE = """# {project_name} - AI Assistant Context
 
 {service_layer_section}
 
+{detected_patterns_section}
 {environment_section}
 
 {test_patterns_section}
@@ -710,6 +711,32 @@ def format_error_handling_section(project_info: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def format_patterns_section(patterns: list[dict[str, Any]] | None) -> str:
+    """Format auto-detected project conventions section."""
+    if not patterns:
+        return ""
+
+    lines = ["## Detected Project Conventions", ""]
+    lines.append(
+        "_Auto-detected from codebase analysis. "
+        "These rules reflect actual conventions found in this project._"
+    )
+    lines.append("")
+
+    for p in patterns:
+        name = p.get("name", "")
+        rule = p.get("rule", "")
+        guidance = p.get("guidance", "")
+        category = p.get("category", "general")
+
+        lines.append(f"- **[{category}] {name}**: {rule}")
+        if guidance:
+            lines.append(f"  {guidance}")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
 def format_service_layer_section(services: list[dict[str, Any]]) -> str:
     """Format service layer section for CLAUDE.md."""
     if not services:
@@ -873,6 +900,8 @@ import orjson
 
 {environment_section}
 
+{detected_patterns_section}
+
 {test_patterns_section}
 """
 
@@ -886,6 +915,7 @@ def format_llm_prompt(
     services: list[dict[str, Any]],
     environment: list[dict[str, Any]],
     test_patterns: dict[str, Any] | None = None,
+    patterns: list[dict[str, Any]] | None = None,
 ) -> str:
     """
     Render the LLM system prompt template with project-specific data.
@@ -906,6 +936,7 @@ def format_llm_prompt(
         "service_layer_section": format_service_layer_section(services),
         "environment_section": format_environment_section(environment),
         "test_patterns_section": format_test_patterns_section(test_patterns),
+        "detected_patterns_section": format_patterns_section(patterns or []),
     }
     return render_template(LLM_SYSTEM_PROMPT_TEMPLATE, context)
 
@@ -924,6 +955,7 @@ __all__ = [
     "format_environment_section",
     "format_error_handling_section",
     "format_llm_prompt",
+    "format_patterns_section",
     "format_models_rules",
     "format_models_section",
     "format_schema_rules",

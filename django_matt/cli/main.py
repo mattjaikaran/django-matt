@@ -14,6 +14,7 @@ Usage:
     matt --help             # Show all commands
 """
 
+from pathlib import Path
 from typing import Optional
 
 import typer
@@ -21,6 +22,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from django_matt.ai.refactor import analyze_file
 from django_matt.cli.utils import run_manage_command
 
 # Create the main Typer app
@@ -279,6 +281,33 @@ def explain(
     """Explain request flow for a URL path."""
     console.print(f"\n[bold magenta]Explaining request flow for {path}...[/]\n")
     run_manage_command(["matt_explain", path])
+
+
+@app.command(name="explain-ai")
+def explain_ai(
+    path: str = typer.Argument(..., help="URL path to explain (e.g., /api/orders/)"),
+    method: str = typer.Argument("GET", help="HTTP method (GET, POST, PUT, PATCH, DELETE)"),
+):
+    """Explain request lifecycle with AI-powered service-level tracing."""
+    console.print(f"\n[bold magenta]Tracing request lifecycle for {method} {path}...[/]\n")
+    run_manage_command(["matt_explain_ai", path, method])
+
+
+@app.command()
+def refactor(
+    file: str = typer.Argument(..., help="Python file to analyze"),
+    apply: bool = typer.Option(False, "--apply", help="Apply suggested fixes (coming soon)"),
+):
+    target = Path(file)
+    if not target.exists():
+        console.print(f"[red]File not found: {file}[/]")
+        raise typer.Exit(code=1)
+    if not target.suffix == ".py":
+        console.print(f"[red]Only Python files are supported: {file}[/]")
+        raise typer.Exit(code=1)
+
+    result = analyze_file(file)
+    console.print(result.format())
 
 
 @app.command()
