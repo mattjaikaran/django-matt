@@ -202,7 +202,7 @@ def _top_module(path: str) -> str | None:
     for i, p in enumerate(parts):
         if p == "django_matt" and i + 1 < len(parts):
             cand = parts[i + 1]
-            return cand[:-3] if cand.endswith(".py") else (cand if cand in _ALL_MODULES else cand)
+            return cand[:-3] if cand.endswith(".py") else cand
     return None
 
 

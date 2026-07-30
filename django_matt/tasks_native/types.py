@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
@@ -86,7 +86,7 @@ class TaskMeta:
 
 
 @dataclass
-class TaskResult(Generic[R]):
+class TaskResult[R]:
     """
     Result of a task execution.
 

@@ -11,7 +11,7 @@ import traceback
 import uuid
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from typing import Any, Generic, ParamSpec, TypeVar, get_type_hints, overload
+from typing import Any, ParamSpec, TypeVar, get_type_hints, overload
 
 from pydantic import BaseModel, ValidationError
 
@@ -31,7 +31,7 @@ R = TypeVar("R")
 PayloadT = TypeVar("PayloadT", bound=BaseModel)
 
 
-class NativeTask(Generic[P, R]):
+class NativeTask[**P, R]:
     """
     A type-safe background task with Pydantic validation.
 
@@ -333,7 +333,7 @@ class NativeTask(Generic[P, R]):
 
 
 @overload
-def task(func: Callable[P, R]) -> NativeTask[P, R]: ...
+def task[**P, R](func: Callable[P, R]) -> NativeTask[P, R]: ...
 
 
 @overload
@@ -353,7 +353,7 @@ def task(
 ) -> Callable[[Callable[P, R]], NativeTask[P, R]]: ...
 
 
-def task(
+def task[**P, R](
     func: Callable[P, R] | None = None,
     *,
     name: str | None = None,

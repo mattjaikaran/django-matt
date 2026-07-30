@@ -1,29 +1,26 @@
 """Site configuration endpoints."""
 
-from django.http import HttpRequest
-
-from django_matt.core.controller import APIController, api_controller
-from django_matt.core.router import get, patch, router
+from django_matt.auth import jwt_required
+from django_matt.core import APIController
+from django_matt.core.router import get, patch
 
 from .models import SiteConfig
 from .schemas import SiteConfigOut, SiteConfigUpdate
 
 
-@api_controller("site-config", tags=["Site Config"])
 class SiteConfigController(APIController):
-    """Public and admin endpoints for site configuration."""
+    prefix = "/site-config"
+    tags = ["Site Config"]
 
-    @get("/", response=SiteConfigOut)
-    def get_config(self, request: HttpRequest) -> SiteConfig:
-        """Get the public site configuration."""
-        return SiteConfig.load()
+    @get("/")
+    def get_config(self, request) -> SiteConfigOut:
+        return SiteConfigOut.model_validate(SiteConfig.load())
 
-    @patch("/", response=SiteConfigOut, auth=True)
-    def update_config(self, request: HttpRequest, data: SiteConfigUpdate) -> SiteConfig:
-        """Update site configuration (admin only)."""
+    @patch("/")
+    @jwt_required
+    def update_config(self, request, body: SiteConfigUpdate) -> SiteConfigOut:
         config = SiteConfig.load()
-        update_data = data.model_dump(exclude_unset=True)
-        for field, value in update_data.items():
+        for field, value in body.model_dump(exclude_unset=True).items():
             setattr(config, field, value)
         config.save()
-        return config
+        return SiteConfigOut.model_validate(config)

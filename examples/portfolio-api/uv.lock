@@ -280,7 +280,7 @@ wheels = [
 
 [[package]]
 name = "django-matt"
-version = "0.9.1"
+version = "0.10.0"
 source = { directory = "../../" }
 dependencies = [
     { name = "aiofiles" },

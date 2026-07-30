@@ -94,7 +94,7 @@ class ChatController(APIController):
     ) -> dict:
         """POST /{conversation_id}/messages — send message (non-streaming)."""
         # Save user message via command bus
-        user_msg = await self.command_bus.execute(
+        await self.command_bus.execute(
             SendMessageCommand(conversation_id=conversation_id, content=body.content)
         )
 

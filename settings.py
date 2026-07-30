@@ -69,4 +69,4 @@ SOME_CUSTOM_SETTING = "custom value"
 
 # For demonstration purposes, print the environment
 if DEBUG:
-    print(f"Running in {ENVIRONMENT} environment")
+    print(f"Running in {ENVIRONMENT} environment")  # noqa: T201

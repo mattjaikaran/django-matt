@@ -106,7 +106,7 @@ class AuthController(APIController):
         profile_fields = ["bio", "website", "twitter", "github", "linkedin", "location"]
         updated = []
         for field in profile_fields:
-            val = getattr(data, field, None)
+            val = getattr(body, field, None)
             if val is not None:
                 setattr(profile, field, val)
                 updated.append(field)

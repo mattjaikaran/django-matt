@@ -1,6 +1,7 @@
 """Django settings for blog API."""
 
 import os
+import re as _re
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -76,7 +77,6 @@ ASGI_APPLICATION = "config.asgi.application"
 # Database
 _db_url = os.environ.get("DATABASE_URL", "postgres://blog:blog_secret@localhost:5432/blog")
 # Parse DATABASE_URL manually for psycopg3 compatibility
-import re as _re
 
 _m = _re.match(r"postgres://([^:]+):([^@]+)@([^:/]+):?(\d+)?/(.+)", _db_url)
 if _m:

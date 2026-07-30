@@ -28,8 +28,8 @@ from .framework import (
     AuditReport,
     AuditResult,
     AuditSeverity,
-    FindingSeverity,
     BaseAuditor,
+    FindingSeverity,
 )
 
 __all__ = [

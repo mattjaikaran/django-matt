@@ -11,10 +11,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
 
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model  # noqa: E402
 
-from apps.catalog.models import Category, Product
-from apps.stores.models import Store
+from apps.catalog.models import Category, Product  # noqa: E402
+from apps.stores.models import Store  # noqa: E402
 
 User = get_user_model()
 

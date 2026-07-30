@@ -36,8 +36,6 @@ __version__ = "0.10.0"
 
 _LAZY_IMPORTS = {
     "DjangoMattAPI": "django_matt.api",
-    # Main API
-    "DjangoMattAPI": "django_matt.api",
     # Core components
     "APIRouter": "django_matt.core.router",
     "Controller": "django_matt.core.controller",

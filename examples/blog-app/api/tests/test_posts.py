@@ -39,8 +39,8 @@ class TestPostModel:
     def setup_method(self):
         from django.contrib.auth import get_user_model
 
-        User = get_user_model()
-        self.user = User.objects.create_user(
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
             username="author", email="author@example.com", password="pass"
         )
 
@@ -120,4 +120,4 @@ class TestPostAPI:
 
         if django.db.connections["default"].vendor == "sqlite":
             pytest.skip("Full-text search requires PostgreSQL")
-        response = client.get("/api/posts/search?q=django")
+        client.get("/api/posts/search?q=django")

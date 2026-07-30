@@ -2,9 +2,14 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useItems, useCreateItem, useDeleteItem } from '@/hooks/useItems';
 import { useAuth } from '@/hooks/useAuth';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 export const Route = createFileRoute('/items')({
-  component: ItemsPage,
+  component: () => (
+    <ProtectedRoute>
+      <ItemsPage />
+    </ProtectedRoute>
+  ),
 });
 
 function ItemsPage() {
