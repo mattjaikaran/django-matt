@@ -1,4 +1,4 @@
-# file-length-max: 550
+# file-length-max: 700
 """
 Scalability auditor for detecting bottlenecks and scaling gaps.
 

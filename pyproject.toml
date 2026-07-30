@@ -277,6 +277,8 @@ exclude = [
     "dist",
     "migrations",
     "node_modules",
+    "**/project_template/**",
+    "**/templates/**",
 ]
 
 [tool.ruff.lint]

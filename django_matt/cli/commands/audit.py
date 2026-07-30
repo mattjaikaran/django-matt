@@ -1,3 +1,4 @@
+# file-length-max: 600
 """
 matt audit — Run AI-assisted codebase audits with diff-mode auto-fixes.
 

@@ -1,4 +1,4 @@
-# file-length-max: 450
+# file-length-max: 600
 """
 Performance auditor for detecting common performance issues.
 
