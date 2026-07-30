@@ -1,289 +1,215 @@
+// Auto-generated TypeScript types from Pydantic schemas
+// Do not edit manually - regenerate with sync_types command
+
 /**
- * Generated Zod schemas for portfolio-api.
- *
- * Auto-generated from Pydantic schemas in apps/*/schemas.py.
- * DO NOT EDIT MANUALLY — regenerate with: uv run python manage.py sync_types
+ * Public site configuration response.
  */
+export interface SiteConfigOut {
+  site_name: string;
+  tagline: string;
+  description: string;
+  about_text: string;
+  email: string;
+  phone: string;
+  location: string;
+  github_url: string;
+  linkedin_url: string;
+  twitter_url: string;
+  resume_url: string;
+  meta_description: string;
+  meta_keywords: string;
+}
 
-import { z } from "zod";
+/**
+ * Fields that can be updated (admin only).
+ */
+export interface SiteConfigUpdate {
+  site_name?: string | null;
+  tagline?: string | null;
+  description?: string | null;
+  about_text?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  location?: string | null;
+  github_url?: string | null;
+  linkedin_url?: string | null;
+  twitter_url?: string | null;
+  resume_url?: string | null;
+  meta_description?: string | null;
+  meta_keywords?: string | null;
+}
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
+export interface ExperienceCreateSchema {
+  company: string;
+  role: string;
+  company_url?: string | null;
+  location?: string;
+  start_date: string;
+  end_date?: string | null;
+  is_current?: boolean;
+  description: string;
+  tech_used?: string[];
+  order?: number;
+}
 
-export const UserSchema = z.object({
-  id: z.string(),
-  email: z.string(),
-  name: z.string(),
-  bio: z.string(),
-  avatar_url: z.string().nullable(),
-  github_url: z.string().nullable(),
-  linkedin_url: z.string().nullable(),
-  website_url: z.string().nullable(),
-  date_joined: z.string(), // ISO 8601 datetime
-});
+export interface ExperienceSchema {
+  id: string;
+  company: string;
+  role: string;
+  company_url?: string | null;
+  location: string;
+  start_date: string;
+  end_date?: string | null;
+  is_current: boolean;
+  description: string;
+  tech_used: string[];
+  order: number;
+  created_at: string;
+  updated_at: string;
+}
 
-export const RegisterRequestSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  name: z.string().min(1).max(255),
-});
+export interface ExperienceUpdateSchema {
+  company?: string | null;
+  role?: string | null;
+  company_url?: string | null;
+  location?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  is_current?: boolean | null;
+  description?: string | null;
+  tech_used?: string[] | null;
+  order?: number | null;
+}
 
-export const LoginRequestSchema = z.object({
-  email: z.string().email(),
-  password: z.string(),
-});
+export interface ContactCreateSchema {
+  name: string;
+  email: string;
+  subject?: string;
+  message: string;
+}
 
-export const TokenPairSchema = z.object({
-  access_token: z.string(),
-  refresh_token: z.string(),
-});
+export interface ContactMessageSchema {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
-export const RegisterResponseSchema = z.object({
-  user: UserSchema,
-  access_token: z.string(),
-  refresh_token: z.string(),
-});
+export interface ProjectCreateSchema {
+  title: string;
+  slug: string;
+  description: string;
+  long_description?: string;
+  tech_stack?: string[];
+  image_url?: string | null;
+  live_url?: string | null;
+  github_url?: string | null;
+  featured?: boolean;
+  order?: number;
+  is_published?: boolean;
+}
 
-export const ProfileUpdateRequestSchema = z.object({
-  name: z.string().min(1).max(255).nullable().optional(),
-  bio: z.string().nullable().optional(),
-  avatar_url: z.string().nullable().optional(),
-  github_url: z.string().nullable().optional(),
-  linkedin_url: z.string().nullable().optional(),
-  website_url: z.string().nullable().optional(),
-});
+export interface ProjectSchema {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  long_description: string;
+  tech_stack: string[];
+  image_url?: string | null;
+  live_url?: string | null;
+  github_url?: string | null;
+  featured: boolean;
+  order: number;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
-// ── Projects ──────────────────────────────────────────────────────────────────
+export interface ProjectUpdateSchema {
+  title?: string | null;
+  slug?: string | null;
+  description?: string | null;
+  long_description?: string | null;
+  tech_stack?: string[] | null;
+  image_url?: string | null;
+  live_url?: string | null;
+  github_url?: string | null;
+  featured?: boolean | null;
+  order?: number | null;
+  is_published?: boolean | null;
+}
 
-export const ProjectSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  slug: z.string(),
-  description: z.string(),
-  long_description: z.string(),
-  tech_stack: z.array(z.string()),
-  image_url: z.string().nullable(),
-  live_url: z.string().nullable(),
-  github_url: z.string().nullable(),
-  featured: z.boolean(),
-  order: z.number().int(),
-  is_published: z.boolean(),
-  created_at: z.string(), // ISO 8601 datetime
-  updated_at: z.string(), // ISO 8601 datetime
-});
+export interface LoginSchema {
+  email: string;
+  password: string;
+}
 
-export const ProjectCreateRequestSchema = z.object({
-  title: z.string().min(1).max(255),
-  slug: z.string().regex(/^[a-z0-9-]+$/),
-  description: z.string(),
-  long_description: z.string().default(""),
-  tech_stack: z.array(z.string()).default([]),
-  image_url: z.string().nullable().optional(),
-  live_url: z.string().nullable().optional(),
-  github_url: z.string().nullable().optional(),
-  featured: z.boolean().default(false),
-  order: z.number().int().default(0),
-  is_published: z.boolean().default(true),
-});
+export interface ProfileUpdateSchema {
+  name?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  github_url?: string | null;
+  linkedin_url?: string | null;
+  website_url?: string | null;
+}
 
-export const ProjectUpdateRequestSchema = z.object({
-  title: z.string().min(1).max(255).nullable().optional(),
-  slug: z.string().regex(/^[a-z0-9-]+$/).nullable().optional(),
-  description: z.string().nullable().optional(),
-  long_description: z.string().nullable().optional(),
-  tech_stack: z.array(z.string()).nullable().optional(),
-  image_url: z.string().nullable().optional(),
-  live_url: z.string().nullable().optional(),
-  github_url: z.string().nullable().optional(),
-  featured: z.boolean().nullable().optional(),
-  order: z.number().int().nullable().optional(),
-  is_published: z.boolean().nullable().optional(),
-});
+export interface RegisterResponseSchema {
+  user: UserSchema;
+  access_token: string;
+  refresh_token: string;
+}
 
-// ── Skills ────────────────────────────────────────────────────────────────────
+export interface RegisterSchema {
+  email: string;
+  password: string;
+  name: string;
+}
 
-export const SkillCategorySchema = z.enum([
-  "frontend",
-  "backend",
-  "devops",
-  "database",
-  "mobile",
-  "other",
-]);
+export interface TokenSchema {
+  access_token: string;
+  refresh_token: string;
+}
 
-export const SkillSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  category: z.string(),
-  level: z.number().int(),
-  icon: z.string(),
-  order: z.number().int(),
-  created_at: z.string(), // ISO 8601 datetime
-  updated_at: z.string(), // ISO 8601 datetime
-});
+export interface UserSchema {
+  id: string;
+  email: string;
+  name: string;
+  bio: string;
+  avatar_url?: string | null;
+  github_url?: string | null;
+  linkedin_url?: string | null;
+  website_url?: string | null;
+  date_joined: string;
+}
 
-export const SkillCreateRequestSchema = z.object({
-  name: z.string().min(1).max(100),
-  category: SkillCategorySchema,
-  level: z.number().int().min(1).max(5).default(3),
-  icon: z.string().max(50).default(""),
-  order: z.number().int().default(0),
-});
+export interface SkillCreateSchema {
+  name: string;
+  category: "frontend" | "backend" | "devops" | "database" | "mobile" | "other";
+  level?: number;
+  icon?: string;
+  order?: number;
+}
 
-export const SkillUpdateRequestSchema = z.object({
-  name: z.string().min(1).max(100).nullable().optional(),
-  category: SkillCategorySchema.nullable().optional(),
-  level: z.number().int().min(1).max(5).nullable().optional(),
-  icon: z.string().nullable().optional(),
-  order: z.number().int().nullable().optional(),
-});
+export interface SkillSchema {
+  id: string;
+  name: string;
+  category: string;
+  level: number;
+  icon: string;
+  order: number;
+  created_at: string;
+  updated_at: string;
+}
 
-// ── Experience ────────────────────────────────────────────────────────────────
-
-export const ExperienceSchema = z.object({
-  id: z.string(),
-  company: z.string(),
-  role: z.string(),
-  company_url: z.string().nullable(),
-  location: z.string(),
-  start_date: z.string(), // ISO 8601 date
-  end_date: z.string().nullable(), // ISO 8601 date
-  is_current: z.boolean(),
-  description: z.string(),
-  tech_used: z.array(z.string()),
-  order: z.number().int(),
-  created_at: z.string(), // ISO 8601 datetime
-  updated_at: z.string(), // ISO 8601 datetime
-});
-
-export const ExperienceCreateRequestSchema = z.object({
-  company: z.string().min(1).max(255),
-  role: z.string().min(1).max(255),
-  company_url: z.string().nullable().optional(),
-  location: z.string().default(""),
-  start_date: z.string(), // ISO 8601 date
-  end_date: z.string().nullable().optional(),
-  is_current: z.boolean().default(false),
-  description: z.string(),
-  tech_used: z.array(z.string()).default([]),
-  order: z.number().int().default(0),
-});
-
-export const ExperienceUpdateRequestSchema = z.object({
-  company: z.string().min(1).max(255).nullable().optional(),
-  role: z.string().min(1).max(255).nullable().optional(),
-  company_url: z.string().nullable().optional(),
-  location: z.string().nullable().optional(),
-  start_date: z.string().nullable().optional(),
-  end_date: z.string().nullable().optional(),
-  is_current: z.boolean().nullable().optional(),
-  description: z.string().nullable().optional(),
-  tech_used: z.array(z.string()).nullable().optional(),
-  order: z.number().int().nullable().optional(),
-});
-
-// ── Contact ───────────────────────────────────────────────────────────────────
-
-export const ContactMessageSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  email: z.string(),
-  subject: z.string(),
-  message: z.string(),
-  is_read: z.boolean(),
-  created_at: z.string(), // ISO 8601 datetime
-  updated_at: z.string(), // ISO 8601 datetime
-});
-
-export const ContactCreateRequestSchema = z.object({
-  name: z.string().min(1).max(255),
-  email: z.string().email(),
-  subject: z.string().max(255).default(""),
-  message: z.string().min(1),
-});
-
-// ── Site Config ───────────────────────────────────────────────────────────────
-
-export const SiteConfigSchema = z.object({
-  site_name: z.string(),
-  tagline: z.string(),
-  description: z.string(),
-  about_text: z.string(),
-  email: z.string(),
-  phone: z.string(),
-  location: z.string(),
-  github_url: z.string(),
-  linkedin_url: z.string(),
-  twitter_url: z.string(),
-  resume_url: z.string(),
-  meta_description: z.string(),
-  meta_keywords: z.string(),
-});
-
-export const SiteConfigUpdateRequestSchema = z.object({
-  site_name: z.string().nullable().optional(),
-  tagline: z.string().nullable().optional(),
-  description: z.string().nullable().optional(),
-  about_text: z.string().nullable().optional(),
-  email: z.string().nullable().optional(),
-  phone: z.string().nullable().optional(),
-  location: z.string().nullable().optional(),
-  github_url: z.string().nullable().optional(),
-  linkedin_url: z.string().nullable().optional(),
-  twitter_url: z.string().nullable().optional(),
-  resume_url: z.string().nullable().optional(),
-  meta_description: z.string().nullable().optional(),
-  meta_keywords: z.string().nullable().optional(),
-});
-
-// ── Common ────────────────────────────────────────────────────────────────────
-
-export const PaginatedResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
-  z.object({
-    items: z.array(itemSchema),
-    total: z.number().int(),
-  });
-
-export const DeleteResponseSchema = z.object({
-  message: z.string(),
-});
-
-export const HealthResponseSchema = z.object({
-  status: z.string(),
-});
-
-export const ApiErrorSchema = z.object({
-  status_code: z.number().int(),
-  message: z.string(),
-  detail: z.unknown().optional(),
-});
-
-// ── Inferred types ────────────────────────────────────────────────────────────
-
-export type User = z.infer<typeof UserSchema>;
-export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;
-export type LoginRequest = z.infer<typeof LoginRequestSchema>;
-export type TokenPair = z.infer<typeof TokenPairSchema>;
-export type RegisterResponse = z.infer<typeof RegisterResponseSchema>;
-export type ProfileUpdateRequest = z.infer<typeof ProfileUpdateRequestSchema>;
-
-export type Project = z.infer<typeof ProjectSchema>;
-export type ProjectCreateRequest = z.infer<typeof ProjectCreateRequestSchema>;
-export type ProjectUpdateRequest = z.infer<typeof ProjectUpdateRequestSchema>;
-
-export type SkillCategory = z.infer<typeof SkillCategorySchema>;
-export type Skill = z.infer<typeof SkillSchema>;
-export type SkillCreateRequest = z.infer<typeof SkillCreateRequestSchema>;
-export type SkillUpdateRequest = z.infer<typeof SkillUpdateRequestSchema>;
-
-export type Experience = z.infer<typeof ExperienceSchema>;
-export type ExperienceCreateRequest = z.infer<typeof ExperienceCreateRequestSchema>;
-export type ExperienceUpdateRequest = z.infer<typeof ExperienceUpdateRequestSchema>;
-
-export type ContactMessage = z.infer<typeof ContactMessageSchema>;
-export type ContactCreateRequest = z.infer<typeof ContactCreateRequestSchema>;
-
-export type SiteConfig = z.infer<typeof SiteConfigSchema>;
-export type SiteConfigUpdateRequest = z.infer<typeof SiteConfigUpdateRequestSchema>;
-
-export type HealthResponse = z.infer<typeof HealthResponseSchema>;
-export type ApiError = z.infer<typeof ApiErrorSchema>;
+export interface SkillUpdateSchema {
+  name?: string | null;
+  category?: "frontend" | "backend" | "devops" | "database" | "mobile" | "other" | null;
+  level?: number | null;
+  icon?: string | null;
+  order?: number | null;
+}
