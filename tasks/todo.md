@@ -381,6 +381,59 @@
 - **Agent guardrails**: Architecture contracts are declarative (TOML) and enforced at CI/deploy time, not at import time (zero runtime overhead).
 - **Performance targets**: Benchmarked against FastAPI on identical hardware with identical payloads. All claims backed by reproducible benchmarks in `benchmarks/`.
 
+
+---
+
+## Stage 25: Agent-Native Design Patterns (v0.15.0)
+
+Inspired by Matt Pocock's Skills and Superpowers methodology.
+
+### Phase 25A: Shared Language / CONTEXT.md
+- [ ] Auto-generate `CONTEXT.md` from project models, routes, and conventions
+- [ ] Project-specific glossary: "materialization cascade" not "lesson file system update"
+- [ ] Agents use glossary to reduce verbosity and navigate codebase faster
+- [ ] `matt context generate --format glossary` command
+- [ ] Integrates with existing `generate_ai_context` management command
+
+### Phase 25B: Architecture Decision Records (ADR)
+- [ ] `matt adr "Use Redis for session storage"` generates structured ADR
+- [ ] Template: Title, Status, Context, Decision, Consequences
+- [ ] Stored in `docs/adr/` with sequential numbering
+- [ ] Linked to code via `@adr("0001-redis-sessions")` decorator references
+
+### Phase 25C: matt build --plan (Subagent-Driven Development)
+- [ ] `matt build --plan plan.md` dispatches `tasks_native` workers per plan item
+- [ ] Inspired by Superpowers SDD: spec → plan → parallel subagents → review
+- [ ] Each subagent gets scoped workspace, explicit acceptance criteria
+- [ ] Review gate between plan items: agent B can't start until agent A's output passes
+- [ ] Zero handoff — agents communicate via IRC-style message bus
+
+### Phase 25D: Codebase Design Check
+- [ ] `matt design-check` validates Ousterhout's "deep module" principle
+- [ ] Measures module interface complexity vs implementation depth
+- [ ] Detects shallow modules (many public methods, little implementation)
+- [ ] Cohesion/coupling scores per module
+- [ ] Suggests module splits or merges
+
+### Phase 25E: TDD Watch Mode
+- [ ] `matt test --tdd` runs tests in watch mode with coverage gap display
+- [ ] Red-green-refactor loop enforced: fail → pass → refactor
+- [ ] Auto-generates test stubs for uncovered code paths
+- [ ] Integrates with existing `testing/smart/` module
+
+### Phase 25F: Agent Alignment (Grilling)
+- [ ] `matt new` / `matt generate` incorporate grilling questions
+- [ ] "What problem does this endpoint solve? Who calls it? Expected load?"
+- [ ] Answers become docstrings, ADRs, and context for future agents
+- [ ] Stored in `.matt/decisions/` for persistent agent memory
+
+### Phase 25G: Autonomous Execution Loop
+- [ ] `matt execute --goal "Add user auth with JWT and OAuth"` runs autonomously
+- [ ] Spec → plan → execute → review → commit cycle without human intervention
+- [ ] Built on `tasks_native/` for scheduling and `audits/` for review gates
+- [ ] Progress dashboard via WebSocket (existing Unfold admin)
+- [ ] Inspired by Superpowers: agents run for hours without deviating from plan
+
 ---
 
 ## Future Technical Work (existing)
