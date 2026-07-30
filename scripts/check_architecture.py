@@ -22,6 +22,16 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import tomllib
+
+
+@dataclass
+class ContractConfig:
+    """Parsed architecture contract from TOML."""
+
+    raw: dict = field(default_factory=dict)
+    fail_on: set[str] = field(default_factory=set)
+
 # ── Layer definitions ────────────────────────────────────────────────────────
 
 FOUNDATION = {  # L0
@@ -185,6 +195,104 @@ SKIP_DIRS = {
 SKIP_MODULES = TOOLING | {"__pycache__", "tests", "test", "migrations"}
 
 
+
+
+def load_contract_rules(contract_path: str) -> ContractConfig | None:
+    """Load architecture rules from a TOML contract file.
+
+    On success, mutates module-level globals (FOUNDATION, _MODULE_LAYER, …)
+    and returns the parsed ContractConfig. On failure (file not found, parse
+    error), falls back to hardcoded defaults, prints a warning, and returns
+    None.
+    """
+    try:
+        with open(contract_path, "rb") as f:
+            data = tomllib.load(f)
+    except FileNotFoundError:
+        print(
+            f"Note: Architecture contract not found at {contract_path}. "
+            f"Using hardcoded defaults.",
+            file=sys.stderr,
+        )
+        return None
+    except tomllib.TOMLDecodeError as e:
+        print(
+            f"Warning: Could not parse architecture contract at {contract_path}: {e}. "
+            f"Falling back to hardcoded defaults.",
+            file=sys.stderr,
+        )
+        return None
+
+    # ── Layers ──────────────────────────────────────────────────────────
+    layers = data.get("layers", {})
+    if layers:
+        FOUNDATION.clear()
+        FOUNDATION.update(layers.get("foundation", ()))
+        INFRASTRUCTURE.clear()
+        INFRASTRUCTURE.update(layers.get("infrastructure", ()))
+        DOMAIN.clear()
+        DOMAIN.update(layers.get("domain", ()))
+        INTERFACE.clear()
+        INTERFACE.update(layers.get("interface", ()))
+
+    # ── Tooling modules ─────────────────────────────────────────────────
+    tooling = data.get("tooling", {})
+    if "modules" in tooling:
+        TOOLING.clear()
+        TOOLING.update(tooling["modules"])
+
+    # ── Rebuild derived layer lookups ────────────────────────────────────
+    _MODULE_LAYER.clear()
+    _MODULE_LAYER.update(dict.fromkeys(FOUNDATION, 0))
+    _MODULE_LAYER.update(dict.fromkeys(INFRASTRUCTURE, 1))
+    _MODULE_LAYER.update(dict.fromkeys(DOMAIN, 2))
+    _MODULE_LAYER.update(dict.fromkeys(INTERFACE, 3))
+    _ALL_MODULES.clear()
+    _ALL_MODULES.update(FOUNDATION | INFRASTRUCTURE | DOMAIN | INTERFACE | TOOLING)
+
+    # ── Exemption rules (cross-layer / cross-domain) ─────────────────────
+    rules = data.get("rules", {})
+    cross_layer_entries = rules.get("cross_layer", ())
+    if cross_layer_entries:
+        ALLOWED_CROSS_LAYER.clear()
+        ALLOWED_CROSS_LAYER.update(
+            (entry["source"], entry["target"]) for entry in cross_layer_entries
+        )
+    cross_domain_entries = rules.get("cross_domain", ())
+    if cross_domain_entries:
+        ALLOWED_CROSS_DOMAIN.clear()
+        ALLOWED_CROSS_DOMAIN.update(
+            (entry["source"], entry["target"]) for entry in cross_domain_entries
+        )
+
+    # ── External prefixes ────────────────────────────────────────────────
+    external = data.get("external", {})
+    if "prefixes" in external:
+        global _EXTERNAL_PREFIXES
+        _EXTERNAL_PREFIXES = frozenset(external["prefixes"])
+    skip_cfg = data.get("skip", {})
+    if "directories" in skip_cfg:
+        SKIP_DIRS.clear()
+        SKIP_DIRS.update(skip_cfg["directories"])
+    # SKIP_MODULES rebuild depends on updated TOOLING
+    SKIP_MODULES.clear()
+    SKIP_MODULES.update(TOOLING | {"__pycache__", "tests", "test", "migrations"})
+    if "modules" in skip_cfg:
+        SKIP_MODULES.update(skip_cfg["modules"])
+
+    # ── Testing / API facade special exemptions ──────────────────────────
+    exemptions = data.get("exemptions", {})
+    if "testing_exempt" in exemptions:
+        TESTING_EXEMPT.clear()
+        TESTING_EXEMPT.update(exemptions["testing_exempt"])
+    if "api_facade_file" in exemptions:
+        global API_FACADE_FILE
+        API_FACADE_FILE = exemptions["api_facade_file"]
+    ci = data.get("ci", {})
+    fail_on = set(ci.get("fail_on", ()))
+
+    return ContractConfig(raw=data, fail_on=fail_on)
+
 @dataclass
 class Violation:
     filepath: str
@@ -263,6 +371,17 @@ def _resolve_rel(path: str, node: ast.ImportFrom) -> str | None:
 class ArchChecker:
     violations: list[Violation] = field(default_factory=list)
     checked: int = 0
+    contract: ContractConfig | None = None
+
+    @classmethod
+    def from_contract(cls, contract_path: str) -> ArchChecker:
+        """Create an ArchChecker configured from a TOML contract file.
+
+        Calls load_contract_rules() which mutates module-level globals,
+        then returns a checker instance carrying the parsed contract.
+        """
+        contract = load_contract_rules(contract_path)
+        return cls(contract=contract)
 
     def check_file(self, fp: Path) -> None:
         rel = str(fp)
@@ -384,10 +503,25 @@ def main() -> int:
     p = argparse.ArgumentParser(description="Check django-matt architecture constraints")
     p.add_argument("files", nargs="*", help="Python files to check")
     p.add_argument("--all", action="store_true", help="Check all files under django_matt/")
+    p.add_argument(
+        "--contract",
+        "-c",
+        default=".matt/architecture.toml",
+        help="Path to architecture contract TOML (default: .matt/architecture.toml)",
+    )
+    p.add_argument(
+        "--no-contract",
+        action="store_true",
+        help="Skip contract loading; use hardcoded defaults only",
+    )
     args = p.parse_args()
 
+    contract = None
+    if not args.no_contract:
+        contract = load_contract_rules(args.contract)
+
     files = _collect(args.files, args.all)
-    checker = ArchChecker()
+    checker = ArchChecker(contract=contract)
     for f in files:
         if f.exists():
             checker.check_file(f)

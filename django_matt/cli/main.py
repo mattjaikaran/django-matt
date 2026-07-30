@@ -140,6 +140,8 @@ def main(
         other_table.add_column("Command", style="cyan", no_wrap=True)
         other_table.add_column("Description")
         other_table.add_row("analyze", "Analyze your Django project")
+        other_table.add_row("audit", "Run codebase quality audits")
+        other_table.add_row("convention-check", "Check project conventions")
         other_table.add_row("routes", "List all API routes")
         other_table.add_row("status", "Check project health")
         other_table.add_row("deploy", "Deploy to cloud platforms")
@@ -238,6 +240,21 @@ def crud(
     from django_matt.cli.commands.generate import crud as gen_crud
 
     gen_crud(model, None, None, None, False, False, False, False, full, dry_run, wizard)
+
+@app.command()
+def testgen(
+    module: str = typer.Argument(..., help="Python module path containing schemas"),
+    schema: str = typer.Option(None, "--schema", "-s", help="Specific schema class name"),
+    output: str = typer.Option(None, "--output", "-o", help="Output file path"),
+    smart: bool = typer.Option(False, "--smart", help="Register with smart testing"),
+    edge_cases: bool = typer.Option(
+        True, "--edge-cases/--no-edge-cases", help="Include edge case tests"
+    ),
+):
+    """Generate edge-case tests from schemas (alias for 'generate tests')."""
+    from django_matt.cli.commands.generate import tests as gen_tests
+
+    gen_tests(module, schema, output, smart, edge_cases)
 
 
 @app.command()
@@ -349,6 +366,29 @@ def migrate_from(
     if dry_run:
         command.append("--dry-run")
     run_manage_command(command)
+
+
+@app.command(name="convention-check")
+def convention_check(
+    path: str = typer.Option(".", "--path", "-p", help="Project path to check"),
+    categories: Optional[str] = typer.Option(
+        None, "--categories", "-c", help="Comma-separated categories to check"
+    ),
+    min_score: int = typer.Option(
+        70, "--min-score", "-m", help="Minimum passing score (0-100)"
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", "-j", help="Output as JSON"
+    ),
+    format: str = typer.Option(
+        "table", "--format", "-f", help="Output format: table, json, markdown"
+    ),
+):
+    """Check project against django-matt conventions."""
+    from django_matt.cli.commands.analyze import conventions as analyze_conventions
+
+    analyze_conventions(path, categories, min_score, json_output, format)
+
 
 
 if __name__ == "__main__":

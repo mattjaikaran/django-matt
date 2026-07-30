@@ -1,0 +1,256 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# django-matt Architecture Contract
+# ─────────────────────────────────────────────────────────────────────────────
+# This file declares the architecture rules for django-matt as code.
+# It mirrors the hardcoded data in scripts/check_architecture.py and is
+# the canonical source of truth when the --contract flag is used.
+#
+# Rules enforced:
+#   LAYER-DEP   – lower layers MUST NOT import from higher layers
+#   CROSS-DOMAIN – domain features MUST NOT import from each other
+#   NO-TEST-IMPORT – production code MUST NOT import from tests/
+#
+# Layer order: foundation (L0) → infrastructure (L1) → domain (L2) → interface (L3)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+# ── Layer definitions ──────────────────────────────────────────────────────────
+#
+# Each layer maps a set of top-level django_matt/ submodules to a layer level.
+# The layer ordering is implicit in the order they appear:
+#   L0 = foundation, L1 = infrastructure, L2 = domain, L3 = interface
+#
+# Layer ordering is enforced: a module in a lower layer MUST NOT import
+# from a module in a higher layer, unless an explicit exemption exists.
+
+[layers]
+foundation = [
+    "_accel",
+    "api",
+    "compat",
+    "conf",
+    "core",
+    "slim",
+]
+infrastructure = [
+    "audit",
+    "batch",
+    "config",
+    "cqrs",
+    "db",
+    "di",
+    "errors",
+    "events",
+    "exceptions",
+    "files",
+    "filtering",
+    "interceptors",
+    "introspection",
+    "loader",
+    "middleware",
+    "modules",
+    "negotiation",
+    "observability",
+    "pagination",
+    "permissions",
+    "plugins",
+    "prefetch",
+    "rpc",
+    "rules",
+    "secrets",
+    "serialization",
+    "servers",
+    "startup",
+    "streaming",
+    "tasks",
+    "tasks_native",
+    "testing",
+    "throttling",
+    "utils",
+    "versioning",
+    "wasm",
+    "websockets",
+]
+domain = [
+    "ai",
+    "analytics",
+    "auth",
+    "billing",
+    "email",
+    "experiments",
+    "flags",
+    "messaging",
+    "ml",
+    "multitenancy",
+    "notifications",
+]
+interface = [
+    "admin",
+    "components",
+    "dashboard",
+    "docs",
+    "forms",
+    "graphql",
+    "htmx",
+    "inertia",
+    "livewire",
+    "openapi",
+    "pages",
+    "resources",
+    "templates",
+    "tailwind",
+    "unpoly",
+    "views",
+    "vite",
+]
+
+
+# ── Tooling / exempt modules ───────────────────────────────────────────────────
+#
+# Tooling modules are exempt from ALL architecture checks.
+# Imports to/from these modules are never flagged.
+
+[tooling]
+modules = [
+    "advisor",
+    "benchmarks",
+    "changelog_gen",
+    "cli",
+    "codegen",
+    "codemods",
+    "deploy",
+    "deployment",
+    "dev",
+    "inspector",
+    "management",
+    "migration_tools",
+    "review",
+    "schema_designer",
+    "sdkgen",
+    "typegen",
+    "versioning_tool",
+]
+
+
+# ── Special exemptions ─────────────────────────────────────────────────────────
+#
+# Certain modules or files are exempt from all checks unconditionally.
+
+[exemptions]
+# Modules entirely exempt from all architecture checks.
+# Imports from anywhere into these modules are always allowed.
+testing_exempt = ["testing"]
+
+# The API facade file — the top-level public surface — may import from anywhere.
+api_facade_file = "django_matt/api.py"
+
+
+# ── Cross-layer exemption rules ─────────────────────────────────────────────────
+#
+# Each entry is a [source_module, target_module] pair that is allowed even
+# though it would otherwise violate LAYER-DEP (lower → higher layer import).
+
+[[rules.cross_layer]]
+source = "core"
+target = "di"
+reason = "core/router.py DI integration"
+
+[[rules.cross_layer]]
+source = "permissions"
+target = "multitenancy"
+reason = "org-scoped permissions need tenant models"
+
+[[rules.cross_layer]]
+source = "websockets"
+target = "auth"
+reason = "WebSocket auth needs JWT tokens"
+
+[[rules.cross_layer]]
+source = "tasks_native"
+target = "admin"
+reason = "intra-module: tasks_native/apps.py → tasks_native/admin/"
+
+
+# ── Cross-domain exemption rules ────────────────────────────────────────────────
+#
+# Each entry is a [source_module, target_module] pair that is allowed even
+# though it would otherwise violate CROSS-DOMAIN (domain → domain import).
+
+[[rules.cross_domain]]
+source = "ml"
+target = "ai"
+reason = "ML models use AI base classes"
+
+[[rules.cross_domain]]
+source = "notifications"
+target = "email"
+reason = "notifications deliver via email"
+
+[[rules.cross_domain]]
+source = "experiments"
+target = "flags"
+reason = "flags_integration is THE flags bridge"
+
+[[rules.cross_domain]]
+source = "experiments"
+target = "analytics"
+reason = "manager analytics bridge"
+
+
+# ── External package prefixes ──────────────────────────────────────────────────
+#
+# Imports from these namespaces are recognized as external and are NEVER
+# treated as django-matt internal module references.
+
+[external]
+prefixes = [
+    "django.",
+    "rest_framework.",
+    "celery.",
+    "pydantic.",
+    "sqlalchemy.",
+]
+
+
+# ── Skip configuration ─────────────────────────────────────────────────────────
+#
+# Directories and modules excluded from architecture checks.
+
+[skip]
+# Directories whose contents are never scanned.
+directories = [
+    ".venv",
+    "venv",
+    "env",
+    "node_modules",
+    ".git",
+    "__pycache__",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".pytest_cache",
+    "site-packages",
+    "dist",
+    "build",
+    ".tox",
+    "eggs",
+]
+
+# Modules excluded from checks (merged with tooling.modules at runtime).
+modules = [
+    "__pycache__",
+    "tests",
+    "test",
+    "migrations",
+]
+
+
+# ── CI configuration ───────────────────────────────────────────────────────────
+#
+# Controls CI pipeline behavior when architecture violations are detected.
+#   fail_on: list of rule codes that cause the CI step to fail (exit non-zero).
+#            Violations with codes NOT in this list are reported as warnings.
+#
+# Available rule codes: "LAYER-DEP", "CROSS-DOMAIN", "NO-TEST-IMPORT"
+
+[ci]
+fail_on = ["LAYER-DEP", "CROSS-DOMAIN", "NO-TEST-IMPORT"]

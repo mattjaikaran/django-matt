@@ -15,3 +15,16 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
+
+# Run django-matt's AI-powered code audit (security, performance, best practices)
+# Only triggers when Python files are staged. To skip: SKIP=matt-audit git commit
+  - repo: local
+    hooks:
+      - id: matt-audit
+        name: Django Matt AI Audit
+        entry: .pre-commit-hooks/matt-audit.sh
+        language: script
+        files: \.py$
+        stages: [commit]
+        pass_filenames: false
+        always_run: false

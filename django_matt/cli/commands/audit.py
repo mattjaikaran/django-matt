@@ -7,12 +7,14 @@ Commands:
     matt audit fix          Apply auto-fix suggestions (with --diff mode)
     matt audit diff         Generate fix diffs without applying
     matt audit list         List available auditors
+    matt audit precommit    Run audit optimized for pre-commit hooks
 
 Examples:
     matt audit run --category scalability --level strict
     matt audit fix --diff --rule SCAL001
     matt audit diff --output-dir patches/
     matt audit run --all --format sarif
+    matt audit precommit --level strict --fail-on critical,high
 """
 
 from __future__ import annotations
@@ -315,6 +317,97 @@ def list_command(
         table.add_row(a.name, a.category.value, a.description)
 
     console.print(table)
+
+
+@app.command()
+def precommit(
+    level: str = typer.Option(
+        "strict",
+        "--level",
+        "-l",
+        help="Audit strictness level (relaxed, standard, strict, paranoid)",
+    ),
+    fail_on: str = typer.Option(
+        "critical,high",
+        "--fail-on",
+        help="Comma-separated severities that cause failure (critical, high, medium, low, info)",
+    ),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        "-j",
+        help="Output findings as JSON",
+    ),
+):
+    """Run audit optimized for pre-commit hooks.
+
+    Fails the hook (exit code 1) when findings at or above the configured
+    severity threshold are detected.  Defaults match typical pre-commit
+    usage: --level strict, --fail-on critical,high.
+
+    Respects ``MATT_AUDIT_LEVEL`` and ``MATT_AUDIT_FAIL_ON`` environment
+    variables for per-project configuration.
+    """
+    try:
+        from django_matt.guardrails.precommit import run_precommit_audit
+    except ImportError as e:
+        console.print(f"[red]Error: Could not import precommit audit module: {e}[/]")
+        console.print("[dim]Ensure django-matt is installed with guardrails support.[/]")
+        raise typer.Exit(code=1) from e
+
+    # Convert fail_on string to set of uppercase severity names
+    fail_severities = {
+        s.strip().upper() for s in fail_on.split(",") if s.strip()
+    }
+
+    with console.status("[bold blue]Running pre-commit audit...[/]"):
+        passed, message = run_precommit_audit(
+            audit_level=level,
+            fail_on=fail_severities,
+        )
+
+    if json_output:
+        # Rerun directly through the audit framework for structured output
+        try:
+            from django_matt.audits.framework import AuditLevel, run_audit
+
+            audit_lvl = AuditLevel(level)
+            report = run_audit("all", level=audit_lvl)
+
+            findings_data = []
+            for f in report.all_findings:
+                findings_data.append({
+                    "id": f.id,
+                    "severity": f.severity.value,
+                    "category": f.category.value,
+                    "message": f.message,
+                    "file": f.file,
+                    "line": f.line,
+                    "column": f.column,
+                    "code": f.code,
+                    "suggestion": f.suggestion,
+                })
+
+            console.print_json(
+                data={
+                    "passed": passed,
+                    "total_findings": len(findings_data),
+                    "critical": sum(
+                        1 for f in report.all_findings
+                        if f.severity.value == "critical"
+                    ),
+                    "findings": findings_data,
+                }
+            )
+        except ValueError as exc:
+            console.print(f"[red]Invalid audit level: {level}[/]")
+            console.print("[dim]Valid: relaxed, standard, strict, paranoid[/]")
+            raise typer.Exit(code=1) from exc
+    else:
+        console.print(message)
+
+    if not passed:
+        raise typer.Exit(code=1)
 
 
 # ─── Rendering helpers ──────────────────────────────────────────

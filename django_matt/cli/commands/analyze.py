@@ -381,3 +381,59 @@ def validate_command(
     if json_output:
         command.append("--json")
     run_manage_command(command)
+
+
+@app.command()
+def conventions(
+    path: str = typer.Option(".", "--path", "-p", help="Project path to check"),
+    categories: Optional[str] = typer.Option(
+        None, "--categories", "-c", help="Comma-separated categories to check"
+    ),
+    min_score: int = typer.Option(
+        70, "--min-score", "-m", help="Minimum passing score (0-100)"
+    ),
+    json_output: bool = typer.Option(
+        False, "--json", "-j", help="Output as JSON"
+    ),
+    format: str = typer.Option(
+        "table", "--format", "-f", help="Output format: table, json, markdown"
+    ),
+):
+    """Check project against django-matt conventions."""
+    from pathlib import Path as _Path
+
+    from django_matt.guardrails.conventions import (
+        ConventionCategory,
+        ConventionChecker,
+    )
+
+    project_path = _Path(path).resolve()
+    if not project_path.exists():
+        console.print(f"[red]Error:[/] Path '{path}' does not exist")
+        raise typer.Exit(1)
+
+    # Parse categories filter
+    category_filter = None
+    if categories:
+        cat_names = [c.strip() for c in categories.split(",") if c.strip()]
+        category_filter = {ConventionCategory(c) for c in cat_names}
+
+    # Run the check
+    checker = ConventionChecker(project_path, categories=category_filter)
+    report = checker.check()
+
+    # Output
+    if format == "json" or json_output:
+        console.print(report.to_json())
+    elif format == "markdown":
+        console.print(report.formatted_report())
+    else:
+        console.print(report.formatted_report())
+
+    # Exit with failure if below threshold
+    if report.total_score < min_score:
+        console.print(
+            f"\n[red]Score {report.total_score} is below minimum {min_score}[/]"
+        )
+        raise typer.Exit(1)
+
