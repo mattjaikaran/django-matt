@@ -377,7 +377,7 @@ def _execute_generate_context(params: dict[str, Any]) -> AuditToolResult:
 
 
 def _execute_fix_finding(params: dict[str, Any]) -> AuditToolResult:
-    """Execute the fix finding tool."""
+    """Execute the fix finding tool using the fixer engine."""
     finding_id = params.get("finding_id")
     file_path = params.get("file_path")
     preview_only = params.get("preview_only", True)
@@ -388,18 +388,66 @@ def _execute_fix_finding(params: dict[str, Any]) -> AuditToolResult:
             error="finding_id and file_path are required",
         )
 
-    # For now, return a preview message
+    try:
+        from pathlib import Path as _Path
+
+        from django_matt.audits.fixers import get_fixer, has_fixer
+        from django_matt.audits.framework import (
+            AuditCategory,
+            AuditFinding,
+            AuditSeverity,
+        )
+    except ImportError as e:
+        return AuditToolResult(
+            success=False,
+            error=f"Fixer engine not available: {e}",
+        )
+
+    if not has_fixer(finding_id):
+        return AuditToolResult(
+            success=True,
+            summary=f"No specific fixer for {finding_id}. Manual review recommended.",
+            findings=[
+                {
+                    "finding_id": finding_id,
+                    "file": file_path,
+                    "status": "manual_review",
+                    "suggestion": "See audit report for fix guidance.",
+                }
+            ],
+        )
+
+    p = _Path(file_path)
+    finding = AuditFinding(
+        id=finding_id,
+        severity=AuditSeverity.MEDIUM,
+        category=AuditCategory.SCALABILITY,
+        message=f"Auto-fix for {finding_id}",
+        file=file_path,
+    )
+
+    fixer = get_fixer(finding_id)
+    result = fixer(finding, p.parent)
+
+    if result and result.applied:
+        return AuditToolResult(
+            success=True,
+            summary=result.message,
+            findings=[
+                {
+                    "finding_id": finding_id,
+                    "file": file_path,
+                    "preview_only": preview_only,
+                    "status": "preview" if preview_only else "applied",
+                    "patch": result.patch_lines if preview_only else [],
+                    "message": result.message,
+                }
+            ],
+        )
+
     return AuditToolResult(
-        success=True,
-        summary=f"{'Preview' if preview_only else 'Applied'} fix for {finding_id}",
-        findings=[
-            {
-                "finding_id": finding_id,
-                "file": file_path,
-                "preview_only": preview_only,
-                "status": "preview" if preview_only else "applied",
-            }
-        ],
+        success=False,
+        error=result.message if result else "Fix generation failed",
     )
 
 
