@@ -142,6 +142,39 @@ class Command(GeneratorCommand):
         ai_parser.add_argument("--output", "-o", default=".", help="Output directory")
         ai_parser.add_argument("--dry-run", action="store_true", help="Preview without writing")
 
+        # schema-design (delegates to matt_schema_design)
+        schema_design_parser = subparsers.add_parser(
+            "schema-design", help="Generate Django app from natural-language description using AI"
+        )
+        schema_design_parser.add_argument(
+            "description",
+            nargs="?",
+            help="Natural-language description of the desired models",
+        )
+        schema_design_parser.add_argument(
+            "--app", "-a", dest="app_name", help="App name (default: inferred by AI)"
+        )
+        schema_design_parser.add_argument(
+            "--output", "-o", dest="output_dir", default=".",
+            help="Output directory for generated files",
+        )
+        schema_design_parser.add_argument(
+            "--provider", "-p", default="openai",
+            help="LLM provider (openai, anthropic, gemini, groq, deepseek, etc.)",
+        )
+        schema_design_parser.add_argument(
+            "--model", "-m", default=None, help="Model override for the LLM provider"
+        )
+        schema_design_parser.add_argument(
+            "--dry-run", action="store_true", help="Preview generated code without writing files"
+        )
+        schema_design_parser.add_argument(
+            "--json", action="store_true", help="Output result as JSON instead of writing files"
+        )
+        schema_design_parser.add_argument(
+            "--verbose", "-v", action="store_true", help="Show detailed output"
+        )
+
     # Available subcommands for "did you mean" suggestions
     SUBCOMMANDS = [
         "info",
@@ -157,8 +190,8 @@ class Command(GeneratorCommand):
         "validate",
         "migrate-from",
         "ai",
+        "schema-design",
     ]
-
     def handle(self, *args, **options):
         subcommand = options.get("subcommand")
 
@@ -242,6 +275,7 @@ class Command(GeneratorCommand):
             [
                 ("migrate-from <fw>", "Migrate from another framework"),
                 ("ai", "Generate AI context files (CLAUDE.md, .cursorrules)"),
+                ("schema-design <desc>", "Generate app from description using AI"),
             ],
         )
 
@@ -652,6 +686,31 @@ class Command(GeneratorCommand):
         if options.get("dry_run"):
             kwargs["dry_run"] = True
         call_command("generate_ai_context", **kwargs)
+
+    def handle_schema_design(self, options):
+        """AI schema design (delegates to matt_schema_design)."""
+        from django.core.management import call_command
+
+        args = []
+        if options.get("description"):
+            args.append(options["description"])
+        kwargs = {}
+        if options.get("app_name"):
+            kwargs["app"] = options["app_name"]
+        if options.get("output_dir") and options.get("output_dir") != ".":
+            kwargs["output"] = options["output_dir"]
+        if options.get("provider"):
+            kwargs["provider"] = options["provider"]
+        if options.get("model"):
+            kwargs["model"] = options["model"]
+        if options.get("dry_run"):
+            kwargs["dry_run"] = True
+        if options.get("json"):
+            kwargs["json"] = True
+        if options.get("verbose"):
+            kwargs["verbose"] = True
+        call_command("matt_schema_design", *args, **kwargs)
+
 
     # =========================================================================
     # Helper Methods

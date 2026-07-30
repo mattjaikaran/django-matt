@@ -1,7 +1,7 @@
+import { ThemeToggle } from './ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { Link } from '@tanstack/react-router';
 import { Menu, X, Code2 } from 'lucide-react';
-import { useState } from 'react';
 
 const navLinks = [
   { to: '/', label: 'Home' },
@@ -34,6 +34,7 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
+            <ThemeToggle />
           </nav>
 
           {/* Mobile toggle */}

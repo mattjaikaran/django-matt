@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>django-matt — The Modern Django API Framework</title>
+<meta name="description" content="The Django meta-framework for production APIs. 54+ modules, async-first, Pydantic v2, optional Rust acceleration — one package replaces your entire Django API stack.">
+<meta name="color-scheme" content="light dark">
+<meta property="og:title" content="django-matt — The Modern Django API Framework">
+<meta property="og:description" content="Build production APIs faster. 54+ modules, async-first, Pydantic v2, Rust acceleration.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mattjaikaran.github.io/django-matt/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          50: '#eef2ff',
+          100: '#e0e7ff',
+          200: '#c7d2fe',
+          300: '#a5b4fc',
+          400: '#818cf8',
+          500: '#6366f1',
+          600: '#4f46e5',
+          700: '#4338ca',
+          800: '#3730a3',
+          900: '#312e81',
+          950: '#1e1b4b',
+        },
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+      },
+    },
+  },
+}
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  .gradient-text {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-glow {
+    background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(99,102,241,0.08) 0%, transparent 70%);
+  }
+
+  .code-block {
+    tab-size: 4;
+    -moz-tab-size: 4;
+  }
+
+  .feature-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .feature-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .stat-number {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 4px; }
+  .dark ::-webkit-scrollbar-thumb { background: #3730a3; }
+</style>
+</head>
+<body class="bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100 min-h-screen font-sans antialiased">
+
+<!-- Nav -->
+<nav class="sticky top-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-gray-950/80 border-b border-gray-200/50 dark:border-gray-800/50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+      <a href="#" class="flex items-center gap-2.5 font-bold text-xl text-gray-900 dark:text-white">
+        <span class="text-2xl">⚡</span>
+        <span>django-matt</span>
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-300">v0.10.0</span>
+      </a>
+      <div class="flex items-center gap-6">
+        <a href="https://mattjaikaran.github.io/django-matt/" class="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">Docs</a>
+        <a href="https://github.com/mattjaikaran/django-matt" class="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">GitHub</a>
+        <a href="https://github.com/mattjaikaran/django-matt/tree/main/examples" class="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors">Examples</a>
+        <button onclick="document.documentElement.classList.toggle('dark'); localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light'" class="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800 transition-colors" aria-label="Toggle dark mode">
+          <svg class="w-5 h-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <svg class="w-5 h-5 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="relative overflow-hidden hero-glow">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-32 sm:pt-28 sm:pb-40">
+    <div class="text-center max-w-4xl mx-auto">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300 text-sm font-medium mb-8 border border-brand-200/50 dark:border-brand-800/50">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
+        </span>
+        New: v0.10.0 — AI Codebase Audits, Ecommerce Starter
+      </div>
+
+      <h1 class="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6">
+        <span class="gradient-text">django-matt</span>
+      </h1>
+      <p class="text-xl sm:text-2xl text-gray-600 dark:text-gray-400 font-medium mb-4">
+        The Modern Django API Framework
+      </p>
+      <p class="text-lg text-gray-500 dark:text-gray-500 max-w-2xl mx-auto mb-10">
+        Build production APIs with <span class="text-gray-700 dark:text-gray-300 font-semibold">54+ integrated modules</span>.
+        Async-first, Pydantic v2, optional Rust acceleration.
+        One package replaces your entire Django API stack.
+      </p>
+
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="https://mattjaikaran.github.io/django-matt/getting-started/quickstart/" class="inline-flex items-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-7 py-3.5 text-base font-semibold text-white dark:text-gray-900 shadow-lg hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
+          Get Started
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        </a>
+        <a href="https://github.com/mattjaikaran/django-matt" class="inline-flex items-center gap-2 rounded-xl bg-gray-100 dark:bg-gray-800 px-7 py-3.5 text-base font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          Star on GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<section class="relative -mt-16 pb-8">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm p-6 text-center">
+        <div class="text-3xl sm:text-4xl font-extrabold text-brand-600 dark:text-brand-400 stat-number">54+</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Modules</div>
+      </div>
+      <div class="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm p-6 text-center">
+        <div class="text-3xl sm:text-4xl font-extrabold text-brand-600 dark:text-brand-400 stat-number">8,100+</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Tests</div>
+      </div>
+      <div class="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm p-6 text-center">
+        <div class="text-3xl sm:text-4xl font-extrabold text-brand-600 dark:text-brand-400 stat-number">1.9×</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Rust Speedup</div>
+      </div>
+      <div class="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm p-6 text-center">
+        <div class="text-3xl sm:text-4xl font-extrabold text-brand-600 dark:text-brand-400 stat-number">1</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Package</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="py-24 sm:py-32">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Everything you need,<br class="sm:hidden"><span class="gradient-text"> in one package</span></h2>
+      <p class="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+        Stop juggling a dozen packages. django-matt replaces DRF, django-ninja, and their entire ecosystems.
+      </p>
+    </div>
+
+    <!-- Primary feature grid -->
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Rust Performance -->
+      <div class="feature-card rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-200/50 dark:border-gray-800/50 p-8">
+        <div class="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-5">
+          <svg class="w-6 h-6 text-orange-600 dark:text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <h3 class="text-lg font-bold mb-2">Rust-Powered Performance</h3>
+        <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+          Optional PyO3 native extensions for router, JWT, serialization, and rate limiting.
+          Pure-Python by default with <strong>up to 1.9× speedup</strong> when Rust extensions are installed.
+          Beats FastAPI, DRF, and Django Ninja on route matching, serialization, and end-to-end throughput.
+        </p>
+      </div>
+
+      <!-- Auto-Generated Types -->
+      <div class="feature-card rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-200/50 dark:border-gray-800/50 p-8">
+        <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-5">
+          <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        </div>
+        <h3 class="text-lg font-bold mb-2">Auto-Generated Types</h3>
+        <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+          Generate <strong>TypeScript</strong>, <strong>Swift</strong>, and <strong>Python</strong> client types
+          from your Pydantic schemas. Watch mode, custom templates, and full OpenAPI 3.1 spec generation.
+          End-to-end type safety across your entire stack.
+        </p>
+      </div>
+
+      <!-- Batteries Included -->
+      <div class="feature-card rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-200/50 dark:border-gray-800/50 p-8">
+        <div class="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-5">
+          <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+        </div>
+        <h3 class="text-lg font-bold mb-2">Batteries Included</h3>
+        <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+          JWT, OAuth (Google/GitHub/Apple/Microsoft), Passkeys/WebAuthn, SSO, Stripe/PayPal/Polar billing,
+          WebSockets, SSE streaming, CQRS, event bus, multi-tenancy, secrets management, A/B experiments —
+          <strong>all built in</strong>.
+        </p>
+      </div>
+
+      <!-- Async-First -->
+      <div class="feature-card rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-200/50 dark:border-gray-800/50 p-8">
+        <div class="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-5">
+          <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </div>
+        <h3 class="text-lg font-bold mb-2">Async-First Architecture</h3>
+        <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+          Built for Python 3.12+ with native <code class="text-xs bg-gray-200 dark:bg-gray-800 px-1.5 py-0.5 rounded">async</code>/<code class="text-xs bg-gray-200 dark:bg-gray-800 px-1.5 py-0.5 rounded">await</code> throughout.
+          Async controllers, services, event handlers, and streaming responses.
+          Sync fallbacks where needed — you pick the paradigm.
+        </p>
+      </div>
+
+      <!-- Developer Experience -->
+      <div class="feature-card rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-200/50 dark:border-gray-800/50 p-8">
+        <div class="w-12 h-12 rounded-xl bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center mb-5">
+          <svg class="w-6 h-6 text-pink-600 dark:text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+        </div>
+        <h3 class="text-lg font-bold mb-2">Developer Experience</h3>
+        <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+          Hot reload, interactive Swagger UI, <code class="text-xs bg-gray-200 dark:bg-gray-800 px-1.5 py-0.5 rounded">matt audit</code> for code quality,
+          AI context generation for Claude/Cursor, error overlays, scaffold generators,
+          and first-class Vite, Inertia.js, and HTMX support.
+        </p>
+      </div>
+
+      <!-- Modular by Default -->
+      <div class="feature-card rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-200/50 dark:border-gray-800/50 p-8">
+        <div class="w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center mb-5">
+          <svg class="w-6 h-6 text-teal-600 dark:text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        </div>
+        <h3 class="text-lg font-bold mb-2">Modular by Default</h3>
+        <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+          Package-based app structure with one model per file. Services for business logic,
+          controllers as thin HTTP adapters. Scales from 1 model to 50 without maintenance pain.
+          Scaffold with <code class="text-xs bg-gray-200 dark:bg-gray-800 px-1.5 py-0.5 rounded">startapp</code>.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Quick Start -->
+<section class="py-24 sm:py-32 bg-gray-50 dark:bg-gray-900/50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Start building <span class="gradient-text">in seconds</span></h2>
+      <p class="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+        One command to install, three lines to your first endpoint.
+      </p>
+    </div>
+
+    <div class="max-w-3xl mx-auto space-y-6">
+      <!-- Step 1 -->
+      <div class="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+        <div class="flex items-center gap-4 px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+          <span class="flex-shrink-0 w-8 h-8 rounded-lg bg-brand-100 dark:bg-brand-900/50 flex items-center justify-center text-sm font-bold text-brand-700 dark:text-brand-300">1</span>
+          <span class="font-semibold text-gray-700 dark:text-gray-300">Install</span>
+        </div>
+        <div class="p-6">
+          <pre class="code-block bg-gray-950 dark:bg-black rounded-xl p-5 overflow-x-auto"><code class="text-sm font-mono text-gray-100"><span class="text-gray-500"># pip</span>
+pip install django-matt
+
+<span class="text-gray-500"># uv (recommended)</span>
+uv add django-matt</code></pre>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+        <div class="flex items-center gap-4 px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+          <span class="flex-shrink-0 w-8 h-8 rounded-lg bg-brand-100 dark:bg-brand-900/50 flex items-center justify-center text-sm font-bold text-brand-700 dark:text-brand-300">2</span>
+          <span class="font-semibold text-gray-700 dark:text-gray-300">Add to Django settings</span>
+        </div>
+        <div class="p-6">
+          <pre class="code-block bg-gray-950 dark:bg-black rounded-xl p-5 overflow-x-auto"><code class="text-sm font-mono text-gray-100"><span class="text-gray-500"># settings.py</span>
+<span class="text-purple-400">INSTALLED_APPS</span> = [
+    <span class="text-green-400">"django_matt"</span>,
+    <span class="text-gray-500"># ...</span>
+]</code></pre>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+        <div class="flex items-center gap-4 px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+          <span class="flex-shrink-0 w-8 h-8 rounded-lg bg-brand-100 dark:bg-brand-900/50 flex items-center justify-center text-sm font-bold text-brand-700 dark:text-brand-300">3</span>
+          <span class="font-semibold text-gray-700 dark:text-gray-300">Create your first endpoint</span>
+        </div>
+        <div class="p-6">
+          <pre class="code-block bg-gray-950 dark:bg-black rounded-xl p-5 overflow-x-auto"><code class="text-sm font-mono text-gray-100"><span class="text-blue-400">from</span> django_matt <span class="text-blue-400">import</span> DjangoMattAPI
+<span class="text-blue-400">from</span> pydantic <span class="text-blue-400">import</span> BaseModel
+
+api = DjangoMattAPI(title=<span class="text-green-400">"My API"</span>, version=<span class="text-green-400">"1.0.0"</span>)
+
+<span class="text-blue-400">class</span> <span class="text-yellow-400">HelloResponse</span>(BaseModel):
+    message: <span class="text-blue-400">str</span>
+
+<span class="text-purple-400">@api.get</span>(<span class="text-green-400">"/hello"</span>, response=HelloResponse)
+<span class="text-blue-400">async def</span> <span class="text-yellow-400">hello</span>(request):
+    <span class="text-blue-400">return</span> {<span class="text-green-400">"message"</span>: <span class="text-green-400">"Hello, World!"</span>}
+
+<span class="text-gray-500"># urls.py</span>
+<span class="text-blue-400">from</span> django.urls <span class="text-blue-400">import</span> path
+<span class="text-blue-400">from</span> .api <span class="text-blue-400">import</span> api
+
+urlpatterns = [
+    path(<span class="text-green-400">"api/"</span>, api.urls),
+]</code></pre>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+        <div class="flex items-center gap-4 px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+          <span class="flex-shrink-0 w-8 h-8 rounded-lg bg-brand-100 dark:bg-brand-900/50 flex items-center justify-center text-sm font-bold text-brand-700 dark:text-brand-300">4</span>
+          <span class="font-semibold text-gray-700 dark:text-gray-300">Run it</span>
+        </div>
+        <div class="p-6">
+          <pre class="code-block bg-gray-950 dark:bg-black rounded-xl p-5 overflow-x-auto"><code class="text-sm font-mono text-gray-100">python manage.py runserver
+<span class="text-gray-500"># Open http://localhost:8000/api/docs for Swagger UI</span>
+<span class="text-gray-500"># Open http://localhost:8000/api/hello for your endpoint</span></code></pre>
+        </div>
+      </div>
+
+      <div class="text-center pt-4">
+        <a href="https://mattjaikaran.github.io/django-matt/getting-started/quickstart/" class="inline-flex items-center gap-2 text-brand-600 dark:text-brand-400 font-semibold hover:text-brand-700 dark:hover:text-brand-300 transition-colors">
+          Full quickstart guide
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Module Categories -->
+<section class="py-24 sm:py-32">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">54+ modules, <span class="gradient-text">zero dependency hell</span></h2>
+      <p class="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+        Every module is designed to work together. Pick what you need — the rest stays out of your way.
+      </p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5">
+        <div class="font-semibold text-sm text-brand-600 dark:text-brand-400 mb-2">Core API</div>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Controllers, Pydantic v2 schemas, CRUD ViewSets, OpenAPI 3.1</p>
+      </div>
+      <div class="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5">
+        <div class="font-semibold text-sm text-brand-600 dark:text-brand-400 mb-2">Authentication</div>
+        <p class="text-sm text-gray-600 dark:text-gray-400">JWT, OAuth (Google/GitHub/Apple/Microsoft), Passkeys, SSO, API Keys, RBAC</p>
+      </div>
+      <div class="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5">
+        <div class="font-semibold text-sm text-brand-600 dark:text-brand-400 mb-2">Real-time</div>
+        <p class="text-sm text-gray-600 dark:text-gray-400">WebSockets, SSE Streaming, Notifications, Centrifugo</p>
+      </div>
+      <div class="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5">
+        <div class="font-semibold text-sm text-brand-600 dark:text-brand-400 mb-2">Billing</div>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Stripe, PayPal, Polar — subscriptions, invoices, checkout</p>
+      </div>
+      <div class="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5">
+        <div class="font-semibold text-sm text-brand-600 dark:text-brand-400 mb-2">Data Layer</div>
+        <p class="text-sm text-gray-600 dark:text-gray-400">CRUDService, CQRS, Pagination, Filtering, Full-text Search, Elasticsearch</p>
+      </div>
+      <div class="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5">
+        <div class="font-semibold text-sm text-brand-600 dark:text-brand-400 mb-2">Frontend Tooling</div>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Vite, Inertia.js, HTMX, LiveWire, Unpoly, Tailwind</p>
+      </div>
+      <div class="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5">
+        <div class="font-semibold text-sm text-brand-600 dark:text-brand-400 mb-2">Developer XP</div>
+        <p class="text-sm text-gray-600 dark:text-gray-400">CLI, Type/Swift codegen, Hot Reload, AI context, Error overlays</p>
+      </div>
+      <div class="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5">
+        <div class="font-semibold text-sm text-brand-600 dark:text-brand-400 mb-2">Operations</div>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Secrets, OTEL observability, Health checks, Feature Flags, A/B experiments</p>
+      </div>
+      <div class="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-5">
+        <div class="font-semibold text-sm text-brand-600 dark:text-brand-400 mb-2">Performance</div>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Rust extensions, orjson, connection pooling, N+1 detection, cache invalidation</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Comparison Table -->
+<section class="py-24 sm:py-32 bg-gray-50 dark:bg-gray-900/50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">One package <span class="gradient-text">replaces them all</span></h2>
+      <p class="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+        Stop patching together DRF, django-ninja, and a dozen extras. django-matt is the whole stack.
+      </p>
+    </div>
+
+    <div class="max-w-4xl mx-auto overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-200 dark:border-gray-800">
+            <th class="text-left py-3 px-4 font-semibold">Feature</th>
+            <th class="text-center py-3 px-4 font-semibold text-brand-600 dark:text-brand-400">django-matt</th>
+            <th class="text-center py-3 px-4 font-semibold text-gray-400">DRF</th>
+            <th class="text-center py-3 px-4 font-semibold text-gray-400">Django Ninja</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+          <tr>
+            <td class="py-3 px-4">Async-first</td>
+            <td class="text-center py-3 px-4 text-green-600 dark:text-green-400 font-bold">Yes</td>
+            <td class="text-center py-3 px-4 text-gray-400">Partial</td>
+            <td class="text-center py-3 px-4 text-gray-400">Yes</td>
+          </tr>
+          <tr>
+            <td class="py-3 px-4">Pydantic v2</td>
+            <td class="text-center py-3 px-4 text-green-600 dark:text-green-400 font-bold">Yes</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+            <td class="text-center py-3 px-4 text-gray-400">Yes</td>
+          </tr>
+          <tr>
+            <td class="py-3 px-4">JWT built-in</td>
+            <td class="text-center py-3 px-4 text-green-600 dark:text-green-400 font-bold">Yes</td>
+            <td class="text-center py-3 px-4 text-gray-400">Via package</td>
+            <td class="text-center py-3 px-4 text-gray-400">Via package</td>
+          </tr>
+          <tr>
+            <td class="py-3 px-4">OAuth providers</td>
+            <td class="text-center py-3 px-4 text-green-600 dark:text-green-400 font-bold">Yes</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+          </tr>
+          <tr>
+            <td class="py-3 px-4">Passkeys/WebAuthn</td>
+            <td class="text-center py-3 px-4 text-green-600 dark:text-green-400 font-bold">Yes</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+          </tr>
+          <tr>
+            <td class="py-3 px-4">Enterprise SSO</td>
+            <td class="text-center py-3 px-4 text-green-600 dark:text-green-400 font-bold">Yes</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+          </tr>
+          <tr>
+            <td class="py-3 px-4">Billing (Stripe/PayPal)</td>
+            <td class="text-center py-3 px-4 text-green-600 dark:text-green-400 font-bold">Yes</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+          </tr>
+          <tr>
+            <td class="py-3 px-4">Type generation (TS/Swift)</td>
+            <td class="text-center py-3 px-4 text-green-600 dark:text-green-400 font-bold">Yes</td>
+            <td class="text-center py-3 px-4 text-gray-400">Via package</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+          </tr>
+          <tr>
+            <td class="py-3 px-4">SSE Streaming</td>
+            <td class="text-center py-3 px-4 text-green-600 dark:text-green-400 font-bold">Yes</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+          </tr>
+          <tr>
+            <td class="py-3 px-4">CQRS + Event Bus</td>
+            <td class="text-center py-3 px-4 text-green-600 dark:text-green-400 font-bold">Yes</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+          </tr>
+          <tr>
+            <td class="py-3 px-4">Rust extensions</td>
+            <td class="text-center py-3 px-4 text-green-600 dark:text-green-400 font-bold">Yes</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+          </tr>
+          <tr>
+            <td class="py-3 px-4">Multi-tenancy</td>
+            <td class="text-center py-3 px-4 text-green-600 dark:text-green-400 font-bold">Yes</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+          </tr>
+          <tr>
+            <td class="py-3 px-4">Hot Reload</td>
+            <td class="text-center py-3 px-4 text-green-600 dark:text-green-400 font-bold">Yes</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+            <td class="text-center py-3 px-4 text-gray-400">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- Stack Replacement -->
+<section class="py-24 sm:py-32">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto">
+      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight mb-8 text-center">What you replace</h2>
+      <div class="space-y-4">
+        <div class="flex items-center justify-between p-4 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/30">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="px-2.5 py-1 rounded-md bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-medium font-mono">DRF</span>
+            <span class="px-2.5 py-1 rounded-md bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-medium font-mono">simplejwt</span>
+            <span class="px-2.5 py-1 rounded-md bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-medium font-mono">drf-spectacular</span>
+            <span class="px-2.5 py-1 rounded-md bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-medium font-mono">django-filter</span>
+            <span class="px-2.5 py-1 rounded-md bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-medium font-mono">celery</span>
+            <span class="text-sm text-red-600 dark:text-red-400">+ 5 more</span>
+          </div>
+          <span class="text-red-500 text-lg flex-shrink-0 ml-4">✕</span>
+        </div>
+        <div class="flex items-center justify-between p-4 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-100 dark:border-red-900/30">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="px-2.5 py-1 rounded-md bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-medium font-mono">django-ninja</span>
+            <span class="px-2.5 py-1 rounded-md bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-medium font-mono">ninja-extra</span>
+            <span class="px-2.5 py-1 rounded-md bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-medium font-mono">ninja-jwt</span>
+            <span class="px-2.5 py-1 rounded-md bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-medium font-mono">ninja-schema</span>
+            <span class="px-2.5 py-1 rounded-md bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-medium font-mono">ninja-crud</span>
+          </div>
+          <span class="text-red-500 text-lg flex-shrink-0 ml-4">✕</span>
+        </div>
+        <div class="flex items-center justify-between p-4 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-100 dark:border-green-900/30">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded-md bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 text-xs font-medium font-mono">django-matt</span>
+            <span class="text-sm text-green-600 dark:text-green-400 font-medium">One import. One API. Everything works together.</span>
+          </div>
+          <span class="text-green-500 text-lg flex-shrink-0 ml-4">✓</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="py-24 sm:py-32 bg-gray-50 dark:bg-gray-900/50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Ready to build <span class="gradient-text">faster</span>?</h2>
+    <p class="text-lg text-gray-500 dark:text-gray-400 max-w-xl mx-auto mb-10">
+      Install django-matt and ship your API today. Free and open source under Apache 2.0.
+    </p>
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+      <a href="https://mattjaikaran.github.io/django-matt/getting-started/quickstart/" class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-7 py-3.5 text-base font-semibold text-white shadow-lg hover:bg-brand-700 transition-colors">
+        Read the Docs
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+      </a>
+      <a href="https://github.com/mattjaikaran/django-matt/tree/main/examples" class="inline-flex items-center gap-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-7 py-3.5 text-base font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+        Browse Examples
+      </a>
+      <a href="https://pypi.org/project/django-matt/" class="inline-flex items-center gap-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-7 py-3.5 text-base font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+        PyPI
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M9.663 3.773c-.43.564-.726 1.33-.85 2.167-.012.082-.023.185-.034.291a.791.791 0 00.39.805c1.215.603 2.051 1.776 2.051 3.003 0 .302-.036.585-.093.836-.053.22-.144.44-.279.643-.408.486-1.071.673-1.813.494-.746-.172-1.402-.494-1.949-.894l.182.683c.262 1.287.75 2.401 1.375 3.276a.667.667 0 01-.081.943.679.679 0 01-.396.118 3.977 3.977 0 01-2.07-.604 3.547 3.547 0 01-1.413-1.979 9.046 9.046 0 01-.354-1.626c-.076-.507-.123-1.022-.123-1.547 0-1.83.76-3.495 2.012-4.647.127-.114.266-.226.412-.334.215-.16.451-.281.715-.345 1.004-.239 1.946-.043 2.764.505.122.088.241.18.354.274.202.168.38.365.527.59z"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="grid sm:grid-cols-3 gap-8">
+      <div>
+        <div class="flex items-center gap-2 font-bold text-lg text-gray-900 dark:text-white mb-3">
+          <span>⚡</span> django-matt
+        </div>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          The modern Django API framework.<br>
+          Built with love by <a href="https://github.com/mattjaikaran" class="text-brand-600 dark:text-brand-400 hover:underline">Matt Jaikaran</a>.
+        </p>
+      </div>
+      <div>
+        <h4 class="font-semibold text-sm text-gray-900 dark:text-white mb-3">Resources</h4>
+        <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+          <li><a href="https://mattjaikaran.github.io/django-matt/" class="hover:text-gray-900 dark:hover:text-white transition-colors">Documentation</a></li>
+          <li><a href="https://github.com/mattjaikaran/django-matt" class="hover:text-gray-900 dark:hover:text-white transition-colors">GitHub</a></li>
+          <li><a href="https://pypi.org/project/django-matt/" class="hover:text-gray-900 dark:hover:text-white transition-colors">PyPI</a></li>
+          <li><a href="https://github.com/mattjaikaran/django-matt/tree/main/examples" class="hover:text-gray-900 dark:hover:text-white transition-colors">Examples</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-semibold text-sm text-gray-900 dark:text-white mb-3">Community</h4>
+        <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+          <li><a href="https://github.com/mattjaikaran/django-matt/issues" class="hover:text-gray-900 dark:hover:text-white transition-colors">Issues</a></li>
+          <li><a href="https://github.com/mattjaikaran/django-matt/blob/main/CHANGELOG.md" class="hover:text-gray-900 dark:hover:text-white transition-colors">Changelog</a></li>
+          <li><a href="https://github.com/mattjaikaran/django-matt/blob/main/CONTRIBUTING.md" class="hover:text-gray-900 dark:hover:text-white transition-colors">Contributing</a></li>
+          <li><a href="https://github.com/mattjaikaran/django-matt/blob/main/LICENSE" class="hover:text-gray-900 dark:hover:text-white transition-colors">License (Apache 2.0)</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="mt-10 pt-6 border-t border-gray-100 dark:border-gray-800 text-center text-xs text-gray-400">
+      django-matt v0.10.0 &middot; Python 3.12+ &middot; Django 5.2+ &middot; Apache 2.0
+    </div>
+  </div>
+</footer>
+
+<!-- Dark mode persistence -->
+<script>
+(function() {
+  const theme = localStorage.theme;
+  if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    document.documentElement.classList.add('dark');
+  }
+})();
+</script>
+
+</body>
+</html>

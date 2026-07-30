@@ -81,6 +81,14 @@ function LoginPage() {
           {isRegister ? 'Already have an account? Login' : "Don't have an account? Register"}
         </button>
       </p>
+      {!isRegister && (
+        <p className="mt-2 text-sm text-slate-400 text-center">
+          OR{' '}
+          <a href="/register" className="text-indigo-600 hover:underline">
+            go to full registration page &rarr;
+          </a>
+        </p>
+      )}
     </div>
   );
 }

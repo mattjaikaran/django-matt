@@ -94,6 +94,11 @@ class DjangoMattConfig(AppConfig):
                     stacklevel=2,
                 )
 
+        # Pre-warm database connection pool if configured
+        from django_matt.db.pool_warmup import warmup_if_configured
+
+        warmup_if_configured()
+
     @staticmethod
     def _register_radix_middleware() -> None:
         """Auto-inject RadixRouterMiddleware into MIDDLEWARE when Rust is available."""

@@ -1,4 +1,5 @@
 use pyo3::prelude::*;
+mod cache;
 
 mod headers;
 mod jwt;
@@ -38,6 +39,7 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     permissions::register(m)?;
     validator::register(m)?;
     middleware_chain::register(m)?;
+    cache::register(m)?;
     query_builder::register(m)?;
 
     Ok(())

@@ -132,3 +132,82 @@ export interface ContactMessageSchema {
   created_at: string;
   updated_at: string;
 }
+
+// --- Auth schemas (from users schemas) ---
+
+export interface LoginSchema {
+  email: string;
+  password: string;
+}
+
+export interface RegisterSchema {
+  email: string;
+  password: string;
+  name: string;
+}
+
+export interface TokenSchema {
+  access_token: string;
+  refresh_token: string;
+}
+
+export interface UserSchema {
+  id: string;
+  email: string;
+  name: string;
+  bio: string;
+  avatar_url: string | null;
+  github_url: string | null;
+  linkedin_url: string | null;
+  website_url: string | null;
+  date_joined: string;
+}
+
+export interface RegisterResponseSchema {
+  user: UserSchema;
+  access_token: string;
+  refresh_token: string;
+}
+
+export interface ProfileUpdateSchema {
+  name?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  github_url?: string | null;
+  linkedin_url?: string | null;
+  website_url?: string | null;
+}
+
+// --- Site Config schemas ---
+
+export interface SiteConfigOut {
+  site_name: string;
+  tagline: string;
+  description: string;
+  about_text: string;
+  email: string;
+  phone: string;
+  location: string;
+  github_url: string;
+  linkedin_url: string;
+  twitter_url: string;
+  resume_url: string;
+  meta_description: string;
+  meta_keywords: string;
+}
+
+export interface SiteConfigUpdate {
+  site_name?: string | null;
+  tagline?: string | null;
+  description?: string | null;
+  about_text?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  location?: string | null;
+  github_url?: string | null;
+  linkedin_url?: string | null;
+  twitter_url?: string | null;
+  resume_url?: string | null;
+  meta_description?: string | null;
+  meta_keywords?: string | null;
+}

@@ -1,0 +1,24 @@
+# deps
+node_modules/
+
+# build
+dist/
+.rsbuild/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# test
+coverage/
+
+# misc
+*.tsbuildinfo

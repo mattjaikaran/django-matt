@@ -17,6 +17,11 @@ from django_matt.schema_designer.prompts import (
     generate_review_prompt,
     generate_schema_prompt,
 )
+from django_matt.schema_designer.ai_designer import (
+    DesignResult,
+    SchemaDesignerAI,
+    design_schema,
+)
 from django_matt.schema_designer.visualizer import (
     generate_dbml,
     generate_dot,
@@ -26,13 +31,16 @@ from django_matt.schema_designer.visualizer import (
 
 __all__ = [
     "DenormSuggestion",
+    "DesignResult",
     "FieldIssue",
     "IndexSuggestion",
     "ModelReport",
     "NPlusOneWarning",
     "SchemaAnalyzer",
+    "SchemaDesignerAI",
     "SchemaOptimizer",
     "SchemaReport",
+    "design_schema",
     "generate_dbml",
     "generate_dot",
     "generate_mermaid",

@@ -197,3 +197,75 @@ def prompt(
         raise typer.Exit(1)
 
     console.print(result)
+
+
+
+@app.command()
+def design(
+    description: str = typer.Argument(help="Natural-language description of desired models"),
+    app: Optional[str] = typer.Option(None, "--app", "-a", help="App name hint"),
+    output: str = typer.Option(".", "--output", "-o", help="Output directory"),
+    provider: str = typer.Option("openai", "--provider", "-p", help="LLM provider"),
+    model: Optional[str] = typer.Option(None, "--model", "-m", help="Model override"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Preview without writing files"),
+    json_output: bool = typer.Option(False, "--json", help="Output result as JSON"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output"),
+) -> None:
+    """Generate a complete Django app from a natural-language description using AI."""
+    _ensure_django()
+    from pathlib import Path
+
+    from django_matt.schema_designer.ai_designer import SchemaDesignerAI
+
+    console.print(f"\n[bold]AI Schema Designer[/]\n")
+    console.print(f"  Description: {description}")
+    if app:
+        console.print(f"  App name: {app}")
+    console.print(f"  Provider: {provider}")
+    if model:
+        console.print(f"  Model: {model}")
+    console.print()
+
+    try:
+        designer = SchemaDesignerAI(provider_name=provider, model=model)
+        result = designer.design(description, app_name=app)
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1)
+
+    if json_output:
+        import json as _json
+
+        payload = {
+            "app_name": result.app_name,
+            "entities": result.entities,
+            "files": {
+                k: v[:200] + "..." if len(v) > 200 else v
+                for k, v in result.files.items()
+            },
+            "warnings": result.warnings,
+        }
+        console.print(_json.dumps(payload, indent=2))
+    else:
+        console.print(f"  App name: [cyan]{result.app_name}[/cyan]")
+        console.print(f"  Entities: [green]{', '.join(result.entities)}[/green]")
+        console.print()
+        console.print("[bold]Generated files:[/]")
+        for filepath, content in sorted(result.files.items()):
+            lines = content.count("\n") + 1
+            size_kb = len(content) / 1024
+            console.print(f"  [cyan]{filepath}[/] — {lines} lines ({size_kb:.1f} KB)")
+
+    if not dry_run and result.files:
+        output_dir = Path(output)
+        from django_matt.schema_designer.ai_designer import _write_files
+
+        _write_files(result, output_dir)
+        console.print(f"\n[green]✓ Written {len(result.files)} files to {output_dir.resolve()}[/green]")
+    elif dry_run:
+        console.print(f"\n[yellow][dry-run] No files written.[/yellow]")
+
+    if result.warnings and verbose:
+        console.print()
+        for w in result.warnings:
+            console.print(f"  [yellow]⚠ {w}[/yellow]")

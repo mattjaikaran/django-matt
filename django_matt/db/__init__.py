@@ -80,6 +80,9 @@ from .soft_delete import (
     soft_delete_cascade,
 )
 
+# Import connection pool pre-warming
+from .pool_warmup import prewarm_connections, warmup_if_configured
+
 HAS_PLANETSCALE = True
 
 # Import PostgreSQL support if available
@@ -214,9 +217,6 @@ def execute_raw_sql(sql, params=None, database="default"):
         if cursor.description:
             columns = [col[0] for col in cursor.description]
             return [dict(zip(columns, row, strict=False)) for row in cursor.fetchall()]
-        return []
-
-
 __all__ = [
     # Database type checks
     "get_db_type",
@@ -229,6 +229,9 @@ __all__ = [
     "get_table_description",
     # SQL execution
     "execute_raw_sql",
+    # Connection pool pre-warming
+    "prewarm_connections",
+    "warmup_if_configured",
     # PostgreSQL support
     "HAS_POSTGRES",
     "HAS_PGVECTOR",

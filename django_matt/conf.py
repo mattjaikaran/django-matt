@@ -44,5 +44,19 @@ def reset_cache() -> None:
 __all__ = [
     "get_error_config",
     "get_matt_setting",
+    "get_pool_warmup",
     "reset_cache",
 ]
+
+
+def get_pool_warmup() -> int:
+    """Get configured connection pool pre-warming size (0 = disabled).
+
+    Reads ``MATT_DB_POOL_WARMUP`` from the ``DJANGO_MATT`` settings dict
+    or as a module-level Django setting.  Defaults to 0 (disabled).
+    """
+    n = get_matt_setting("MATT_DB_POOL_WARMUP", 0)
+    try:
+        return max(0, int(n))
+    except (TypeError, ValueError):
+        return 0

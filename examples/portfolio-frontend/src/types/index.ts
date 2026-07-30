@@ -1,51 +1,36 @@
-// --- API response types — match portfolio-api schemas ---
+// Re-export all generated types matching portfolio-api schemas
+export type {
+  ProjectSchema,
+  ProjectCreateSchema,
+  ProjectUpdateSchema,
+  SkillSchema,
+  SkillCreateSchema,
+  SkillUpdateSchema,
+  ExperienceSchema,
+  ExperienceCreateSchema,
+  ExperienceUpdateSchema,
+  ContactMessageSchema,
+  ContactCreateSchema,
+  UserSchema,
+  LoginSchema,
+  RegisterSchema,
+  TokenSchema,
+  RegisterResponseSchema,
+  ProfileUpdateSchema,
+  SiteConfigOut,
+  SiteConfigUpdate,
+} from './generated';
 
-export interface Project {
-  id: string;
-  title: string;
-  slug: string;
-  description: string;
-  long_description?: string;
-  tech_stack: string[];
-  image_url: string | null;
-  live_url: string | null;
-  github_url: string | null;
-  featured: boolean;
-  created_at: string;
-  updated_at?: string;
-}
+export type Project = ProjectSchema;
+export type Skill = SkillSchema;
+export type Experience = ExperienceSchema;
+export type User = UserSchema;
+export type SiteConfig = SiteConfigOut;
 
-export interface Skill {
-  id: string;
-  name: string;
-  category: string;
-  level: number;
-  icon: string | null;
-  order: number;
-}
-
-export interface Experience {
-  id: string;
-  company: string;
-  role: string;
-  company_url: string | null;
-  location: string | null;
-  start_date: string;
-  end_date: string | null;
-  is_current: boolean;
-  description: string;
-  tech_used: string[];
-}
-
+// Contact form type (public-facing, not the admin schema)
 export interface ContactForm {
   name: string;
   email: string;
   subject?: string;
   message: string;
 }
-
-// Portfolio API returns arrays directly, not paginated wrappers.
-// Use these hooks to access them:
-//   useProjects() → Project[]
-//   useSkills() → Skill[]
-//   useExperience() → Experience[]

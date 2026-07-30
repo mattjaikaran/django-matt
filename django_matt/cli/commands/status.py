@@ -1,21 +1,15 @@
-# file-length-max: 500
-"""
-Status command - Project health check and diagnostics.
-
-Usage:
-    matt status      # Show project status
-    matt doctor      # Run project diagnostics
-"""
-
+import json
 import os
 import sys
 from dataclasses import dataclass
 from importlib import import_module
-from typing import Literal
+from pathlib import Path
+from typing import Any, Literal
 
 import typer
 from rich.console import Console
 from rich.panel import Panel
+from rich.syntax import Syntax
 from rich.table import Table
 
 from django_matt.cli.utils import setup_django
@@ -248,6 +242,364 @@ def _collect_info() -> list[CheckResult]:
     return results
 
 
+
+# ── AI-powered suggestion engine ─────────────────────────────────────────
+
+_DOCTOR_SYSTEM_PROMPT = """\
+You are a senior Django infrastructure engineer.
+Your task: analyze project health check failures and provide concrete,
+actionable fixes. Return structured JSON with fix suggestions.
+
+For each issue, provide:
+- "check_name": the name of the failing check
+- "tier": "error" or "warning"
+- "analysis": 1-2 sentence root cause explanation
+- "fix_type": one of "config_patch", "file_edit", "cli_command", "manual"
+- "fix_target": the file path (for config_patch or file_edit), or command (for cli_command)
+- "fix_diff": unified diff or config snippet to apply
+- "rationale": brief explanation of why this fix helps
+- "risk": "low", "medium", or "high" — how risky is applying this automatically
+
+Return ONLY valid JSON: {"suggestions": [...]}"""
+
+
+_DOCTOR_USER_TEMPLATE = """\
+Project health check found the following issues.
+
+Project root: {project_root}
+Settings module: {settings_module}
+
+{issues_text}
+
+Provide fix suggestions for each issue. Focus on config changes that can
+be safely applied. For settings issues, provide exact lines to add or modify.
+For missing modules, suggest the exact CLI command.
+"""
+
+
+def _run_ai_suggestions(
+    errors: list[CheckResult],
+    warnings: list[CheckResult],
+    *,
+    apply: bool = False,
+) -> None:
+    """Feed doctor failures to an LLM and display AI-suggested fixes."""
+    from django_matt.ai import Message, get_provider
+
+    # ── Resolve AI provider ──────────────────────────────────────────
+    try:
+        from django.conf import settings
+
+        ai_config = getattr(settings, "DJANGO_MATT_AI", {})
+    except Exception:
+        ai_config = {}
+
+    provider_name = ai_config.get("DEFAULT_PROVIDER", os.environ.get("MATT_AI_PROVIDER", ""))
+    if not provider_name:
+        # Try common env vars to detect which provider is configured
+        for candidate in ("openai", "anthropic", "gemini", "groq", "deepseek", "ollama"):
+            env_key = f"{candidate.upper()}_API_KEY"
+            if os.environ.get(env_key) or ai_config.get(env_key):
+                provider_name = candidate
+                break
+
+    if not provider_name:
+        console.print(
+            Panel(
+                "[yellow]No AI provider configured.[/]\n"
+                "Set DJANGO_MATT_AI['DEFAULT_PROVIDER'] in settings or "
+                "set MATT_AI_PROVIDER env var.\n"
+                "Supported providers: openai, anthropic, gemini, groq, deepseek, ollama",
+                title="AI Unavailable",
+                border_style="yellow",
+            )
+        )
+        return
+
+    try:
+        llm = get_provider(provider_name)
+    except Exception as e:
+        console.print(
+            Panel(
+                f"[red]Failed to initialize AI provider '{provider_name}': {e}[/]",
+                title="AI Error",
+                border_style="red",
+            )
+        )
+        return
+
+    # ── Build prompt ─────────────────────────────────────────────────
+    project_root = Path.cwd()
+    settings_module = os.environ.get("DJANGO_SETTINGS_MODULE", "unknown")
+
+    issues_lines: list[str] = []
+    for tier_name, results in [("ERROR", errors), ("WARNING", warnings)]:
+        for r in results:
+            issues_lines.append(f"## [{tier_name}] {r.name}")
+            issues_lines.append(f"  Issue: {r.message}")
+            if r.fix:
+                issues_lines.append(f"  Current suggestion: {r.fix}")
+            issues_lines.append("")
+
+    issues_text = "\n".join(issues_lines)
+
+    messages = [
+        Message.system(_DOCTOR_SYSTEM_PROMPT),
+        Message.user(
+            _DOCTOR_USER_TEMPLATE.format(
+                project_root=project_root,
+                settings_module=settings_module,
+                issues_text=issues_text,
+            )
+        ),
+    ]
+
+    console.print("[bold cyan]🤖 Asking AI for fix suggestions...[/]\n")
+
+    # ── Call LLM ─────────────────────────────────────────────────────
+    try:
+        response = llm.complete_sync(
+            messages,
+            temperature=0.3,
+            max_tokens=4096,
+        )
+    except Exception as e:
+        console.print(f"[red]AI call failed: {e}[/]")
+        return
+
+    # ── Parse response ───────────────────────────────────────────────
+    suggestions = _parse_ai_response(response.content)
+    if not suggestions:
+        console.print("[yellow]AI returned no structured suggestions.[/]")
+        console.print(Panel(response.content[:2000], title="Raw AI Response"))
+        return
+
+    # ── Display suggestions ──────────────────────────────────────────
+    _display_ai_suggestions(suggestions)
+
+    # ── Apply if requested ───────────────────────────────────────────
+    if apply:
+        _apply_ai_suggestions(suggestions)
+
+
+def _parse_ai_response(content: str) -> list[dict[str, Any]]:
+    """Extract JSON suggestions from LLM response."""
+    # Try to find a JSON block
+    import re
+
+    json_match = re.search(r"\{[\s\S]*\"suggestions\"[\s\S]*\}", content)
+    if json_match:
+        try:
+            data = json.loads(json_match.group(0))
+            return data.get("suggestions", [])
+        except json.JSONDecodeError:
+            pass
+
+    # Fallback: try parsing the entire response
+    try:
+        data = json.loads(content)
+        return data.get("suggestions", [])
+    except json.JSONDecodeError:
+        pass
+
+    return []
+
+
+def _display_ai_suggestions(suggestions: list[dict[str, Any]]) -> None:
+    """Render AI fix suggestions as rich panels."""
+    if not suggestions:
+        return
+
+    console.print(
+        Panel(
+            f"AI analyzed {len(suggestions)} issue(s) and generated fix suggestions.",
+            title="[bold green]AI Fix Suggestions[/]",
+            border_style="green",
+        )
+    )
+
+    for i, s in enumerate(suggestions, 1):
+        check_name = s.get("check_name", f"Issue {i}")
+        tier = s.get("tier", "unknown")
+        analysis = s.get("analysis", "")
+        fix_type = s.get("fix_type", "manual")
+        fix_target = s.get("fix_target", "")
+        fix_diff = s.get("fix_diff", "")
+        rationale = s.get("rationale", "")
+        risk = s.get("risk", "medium")
+
+        tier_color = "red" if tier == "error" else "yellow"
+        risk_color = {"low": "green", "medium": "yellow", "high": "red"}.get(risk, "yellow")
+
+        content_parts: list[str] = []
+
+        if analysis:
+            content_parts.append(f"[bold]Analysis:[/] {analysis}")
+        if rationale:
+            content_parts.append(f"[bold]Rationale:[/] {rationale}")
+        if fix_target:
+            content_parts.append(f"[bold]Target:[/] [cyan]{fix_target}[/]")
+
+        content_parts.append(f"[bold]Risk:[/] [{risk_color}]{risk.upper()}[/]")
+        content_parts.append(f"[bold]Type:[/] [dim]{fix_type}[/]")
+
+        if fix_diff:
+            lexer = "python" if fix_target and fix_target.endswith(".py") else "text"
+            try:
+                syntax = Syntax(fix_diff, lexer, theme="monokai", line_numbers=False)
+                content_parts.append("[bold]Fix:[/]")
+                content_parts.append("")  # spacer before syntax block
+            except Exception:
+                syntax = None
+                content_parts.append(f"[bold]Fix:[/]\n[dim]{fix_diff}[/]")
+        else:
+            syntax = None
+
+        title = f"[{tier_color}]#{i} {check_name}[/]"
+
+        # Build body without the diff first, then append syntax separately
+        body = "\n".join(p for p in content_parts if p and p != "[bold]Fix:[/]")
+        if syntax:
+            body += "\n"
+
+        console.print(Panel(body, title=title, border_style=tier_color))
+        if syntax:
+            console.print(syntax)
+            console.print()
+
+
+def _apply_ai_suggestions(suggestions: list[dict[str, Any]]) -> None:
+    """Apply AI fix suggestions that are safe to auto-apply."""
+    applied_count = 0
+    skipped_count = 0
+    errors_list: list[str] = []
+
+    for s in suggestions:
+        fix_type = s.get("fix_type", "manual")
+        risk = s.get("risk", "medium")
+
+        if risk == "high":
+            skipped_count += 1
+            continue
+
+        if fix_type in ("config_patch", "file_edit"):
+            fix_target = s.get("fix_target", "")
+            fix_diff = s.get("fix_diff", "")
+            check_name = s.get("check_name", "unknown")
+
+            if not fix_target or not fix_diff:
+                skipped_count += 1
+                continue
+
+            target_path = Path(fix_target)
+            if not target_path.is_absolute():
+                target_path = Path.cwd() / target_path
+
+            if not target_path.exists():
+                skipped_count += 1
+                errors_list.append(f"  [{check_name}] Target file not found: {fix_target}")
+                continue
+
+            try:
+                if _apply_patch(target_path, fix_diff):
+                    applied_count += 1
+                    console.print(f"  [green]✓[/] Applied: {check_name} → {fix_target}")
+                else:
+                    skipped_count += 1
+                    errors_list.append(f"  [{check_name}] Could not apply patch to {fix_target}")
+            except Exception as e:
+                skipped_count += 1
+                errors_list.append(f"  [{check_name}] Error applying: {e}")
+
+        elif fix_type == "cli_command":
+            fix_diff = s.get("fix_diff", "")
+            if fix_diff:
+                console.print(
+                    Panel(
+                        f"[cyan]{fix_diff}[/]",
+                        title=f"Suggested command for: {s.get('check_name', '?')}",
+                        border_style="cyan",
+                    )
+                )
+            skipped_count += 1  # CLI commands are not auto-run
+
+        else:
+            skipped_count += 1
+
+    # Summary
+    status_color = "green" if applied_count > 0 else "yellow"
+    console.print(
+        Panel(
+            f"Applied: [green]{applied_count}[/]  |  "
+            f"Skipped: [yellow]{skipped_count}[/]",
+            title="[bold]Apply Summary[/]",
+            border_style=status_color,
+        )
+    )
+    if errors_list:
+        for err in errors_list:
+            console.print(f"[yellow]  ⚠ {err}[/]")
+        console.print()
+
+
+def _apply_patch(target_path: Path, diff_text: str) -> bool:
+    """Attempt to apply a unified diff or config snippet to a file.
+
+    Returns True if the patch was successfully applied.
+    """
+    content = target_path.read_text(encoding="utf-8")
+
+    # Try as unified diff first
+    if diff_text.strip().startswith("@@") or diff_text.strip().startswith("---"):
+        import subprocess
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".diff", delete=False, encoding="utf-8"
+        ) as f:
+            f.write(diff_text)
+            diff_path = f.name
+
+        try:
+            result = subprocess.run(
+                ["patch", "--dry-run", "-p0", str(target_path), diff_path],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode != 0:
+                # Try with -p1
+                result = subprocess.run(
+                    ["patch", "--dry-run", "-p1", str(target_path), diff_path],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+
+            if result.returncode != 0:
+                return False
+
+            # Apply for real
+            strip_level = "-p0" if "-p0" in str(result) else "-p1"
+            result = subprocess.run(
+                ["patch", strip_level, str(target_path), diff_path],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            return result.returncode == 0
+        finally:
+            Path(diff_path).unlink(missing_ok=True)
+
+    # Try as config snippet (add to file)
+    if diff_text.strip() not in content:
+        new_content = content.rstrip("\n") + "\n\n# Added by matt doctor --ai\n"
+        new_content += diff_text.strip() + "\n"
+        target_path.write_text(new_content, encoding="utf-8")
+        return True
+
+    return False
+
 @app.callback(invoke_without_command=True)
 def status(ctx: typer.Context):
     """
@@ -262,6 +614,12 @@ def status(ctx: typer.Context):
 @app.command()
 def doctor(
     fix: bool = typer.Option(False, "--fix", help="Attempt to fix issues"),
+    ai: bool = typer.Option(
+        False, "--ai", help="Use LLM to analyze failures and suggest fixes"
+    ),
+    apply: bool = typer.Option(
+        False, "--apply", help="Auto-apply AI-suggested fixes (implies --ai)"
+    ),
 ):
     """
     Run comprehensive project diagnostics with tiered output.
@@ -270,7 +628,13 @@ def doctor(
     - Errors (must fix): broken settings, missing modules
     - Warnings (should fix): suboptimal config, missing security
     - Info (suggestions): available but unused features
+
+    Use --ai to get LLM-powered fix suggestions for errors and warnings.
+    Use --apply to automatically apply those suggestions.
     """
+    if apply:
+        ai = True
+
     setup_django()
 
     console.print("\n[bold magenta]Project Health Check[/]\n")
@@ -330,6 +694,10 @@ def doctor(
             border_style=summary_color,
         )
     )
+
+    # ── AI-powered fix suggestions ──────────────────────────────────────
+    if ai and (errors or warnings):
+        _run_ai_suggestions(errors, warnings, apply=apply)
 
     if error_count:
         raise typer.Exit(1)

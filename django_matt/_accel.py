@@ -18,7 +18,9 @@ try:
     from django_matt._rust import PermissionEvaluator as PermissionEvaluatorRust
     from django_matt._rust import (
         RadixRouter,
+        ResponseCache,
         build_camel_case_map,
+        parse_json_bytes,
         serialize_dict_to_json,
         serialize_dicts_to_json,
     )
@@ -48,6 +50,8 @@ except ImportError:
     MiddlewareChainRust = None  # type: ignore[assignment, misc]
     build_select_rust: Callable | None = None  # type: ignore[assignment, no-redef]
     build_filter_clause_rust: Callable | None = None  # type: ignore[assignment, no-redef]
+    parse_json_bytes: Callable | None = None  # type: ignore[assignment, no-redef]
+    ResponseCache = None  # type: ignore[assignment, misc]
 
 __all__ = [
     "HAS_RUST",
@@ -66,4 +70,6 @@ __all__ = [
     "MiddlewareChainRust",
     "build_select_rust",
     "build_filter_clause_rust",
+    "parse_json_bytes",
+    "ResponseCache",
 ]

@@ -12,6 +12,7 @@ class ServerBackend(ABC):
 
     name: str
     supports_http2: bool = False
+    supports_http3: bool = False
     supports_websockets: bool = False
 
     @abstractmethod

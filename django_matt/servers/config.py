@@ -15,8 +15,10 @@ class ServerConfig:
     port: int = 8000
     workers: int | str = "auto"
     http2: bool = False
+    http3: bool = False
     ssl_cert: str | None = None
     ssl_key: str | None = None
+    threading_mode: str = "workers"
     access_log: bool = True
     graceful_timeout: int = 30
     extra: dict[str, Any] = field(default_factory=dict)
@@ -39,7 +41,8 @@ DEFAULTS: dict[str, Any] = {
     "http2": False,
     "ssl_cert": None,
     "ssl_key": None,
-    "access_log": True,
+    "http3": False,
+    "threading_mode": "workers",
     "graceful_timeout": 30,
 }
 

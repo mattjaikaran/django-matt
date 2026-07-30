@@ -30,3 +30,11 @@ lto = true
 codegen-units = 1
 strip = true
 opt-level = 3
+
+[features]
+default = []
+simd = ["simd-json"]
+
+[dependencies.simd-json]
+version = "0.13"
+optional = true
