@@ -8,7 +8,7 @@ exclude = ["site/", "examples/", "rust/", "benchmarks/", ".github/", ".planning/
 only-include = ["django_matt"]
 [project]
 name = "django-matt"
-version = "0.9.1"
+version = "0.10.0"
 description = "A modern Django API framework with class-based views, async support, and developer experience tools"
 readme = "README.md"
 requires-python = ">=3.12"

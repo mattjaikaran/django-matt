@@ -5,31 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.10.0] - 2026-07-29
 
 ### Added
-- **Gauntlet quality gate system** — 8-gate pipeline inspired by Uncle Bob's constraint philosophy
-  - FORMAT (ruff), LINT (ruff), TYPECHECK (pyright), SECURITY (bandit)
-  - ARCHITECTURE (layer dependency enforcement), FILELENGTH (per-file limits)
-  - TEST (pytest with coverage threshold), AUDIT (pip-audit)
-  - `make gauntlet`, `gauntlet-quick`, `gauntlet-ci`, `gauntlet-gate`
-- **Architecture enforcement** — 5-layer system (foundation/infrastructure/domain/interface/tooling)
-  - Catches layer violations, cross-domain coupling, and test imports
-  - 629 files checked, intentional exemptions for testing, facades, integration bridges
-- **Constraint tools documentation** (`docs/CONSTRAINT_TOOLS.md`) — philosophy, template, checklist
-- Example app CI smoke tests (7 apps verified with `manage.py check`)
-- CI security scanning (bandit + pip-audit)
-- `EmailOrUsernameBackend` now accepts optional `config` parameter for testability
 
-### Fixed
-- 12 test failures resolved: middleware stack assertions, password tamper race condition,
-  token bucket ZeroDivisionError, throttle login cross-test state leaks
-- Deprecated `class Config` in passkeys schemas → Pydantic v2 `model_config`
-- BillingController now protected with `IsAuthenticated` permission class
-- Experiments→Analytics bridge: `get_assignment()` emits analytics events
-- startapi templates include `TenantMiddlewareAsync` and `ObservabilityMiddleware`
-- `get_login_config()` caching removed — eliminates cross-test state contamination
+**Phase 17B — AI-Assisted Codebase Audits** (complete)
 
+- `matt audit` CLI with `run`, `fix`, `diff`, `list` subcommands
+- 6 built-in auditors: `SecurityAuditor`, `PerformanceAuditor`, `ScalabilityAuditor`, `BundleSizeAuditor`, `BestPracticesAuditor`, `MaintainabilityAuditor`
+- Per-rule fixer engine (`django_matt/audits/fixers.py`) with 9 fix generators (SCAL001-SCAL015, BUND001-BUND002)
+- SARIF output format for GitHub Code Scanning integration
+- CI workflow: 4-category audit SARIF upload to CodeQL dashboard
+- MCP tools: `fix_audit_finding` wired to fixer engine for AI agent integration
+- Bundle size analysis: unused module detection, slim mode recommendations, import time optimization
+- 4 strictness levels: RELAXED, STANDARD, STRICT, PARANOID
+
+**Scalability Auditor** (`django_matt/audits/auditors/scalability.py`)
+- SCAL001: Missing pagination on list endpoints
+- SCAL002: Single-row operations in loops (use bulk)
+- SCAL003: Heavy operations in request handlers (task offloading)
+- SCAL004: Missing rate limiting on endpoints
+- SCAL010-SCAL015: Connection pooling, session storage, cache config, static serving, throttle middleware
+
+**Performance Auditor** expanded (3 new rules)
+- PERF033: `count()` vs `exists()` optimization
+- PERF034: Missing `select_related()` on FK traversal in loops
+- PERF035: `first()` without `order_by()` (non-deterministic results)
+
+**Namespace disambiguation**: `django_matt.audit` (operational logging) vs `django_matt.audits` (code quality) — added `LogSeverity`/`FindingSeverity` aliases and cross-referencing docstrings
+
+### Changed
+- Exclude `.venv`, `node_modules`, `.git`, `dist`, `build` from audit scan defaults (cuts noise by ~80%)
+
+## [0.9.1] - 2026-06-15
 ## [0.9.0] - 2026-05-19
 
 ### Added
