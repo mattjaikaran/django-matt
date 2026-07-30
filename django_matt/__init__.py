@@ -48,6 +48,7 @@ _LAZY_IMPORTS = {
     "delete": "django_matt.core.router",
     # Schema
     "ModelSchema": "django_matt.core.schema",
+    "RustModelSchema": "django_matt.core.rust_schema",
     "Schema": "django_matt.core.schema",
     "create_schema_from_model": "django_matt.core.schema",
     "create_model_from_schema": "django_matt.core.schema",
@@ -306,6 +307,7 @@ __all__ = [
     "CRUDController",
     # Schema components
     "ModelSchema",
+    "RustModelSchema",
     "Schema",
     "create_schema_from_model",
     "create_model_from_schema",
