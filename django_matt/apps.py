@@ -75,13 +75,12 @@ class DjangoMattConfig(AppConfig):
 
         from django.conf import settings
 
+        # Auto-register Rust radix router middleware when available
+        self._register_radix_middleware()
+
         if getattr(settings, "MATT_API_MODE", False):
             from django_matt.config.components.performance import apply_api_mode
 
-            # Replace settings.MIDDLEWARE in-place with the filtered list.
-            # This must run in ready() — never at module import time — to avoid
-            # running during migrations, collectstatic, and other management commands
-            # that don't go through the full WSGI/ASGI startup path.
             settings.MIDDLEWARE = apply_api_mode(list(settings.MIDDLEWARE))
 
         # Warn in production when JWT blacklist is disabled
@@ -94,3 +93,26 @@ class DjangoMattConfig(AppConfig):
                     "Set DJANGO_MATT_JWT['BLACKLIST_BACKEND'] = 'cache' for production.",
                     stacklevel=2,
                 )
+
+    @staticmethod
+    def _register_radix_middleware() -> None:
+        """Auto-inject RadixRouterMiddleware into MIDDLEWARE when Rust is available."""
+        try:
+            from django.conf import settings
+
+            from django_matt._accel import HAS_RUST
+        except Exception:
+            return
+
+        if not HAS_RUST:
+            return
+
+        middleware_path = "django_matt.core.radix_middleware.RadixRouterMiddleware"
+        current = list(settings.MIDDLEWARE)
+
+        # Insert after SecurityMiddleware (first in chain), before Django's CommonMiddleware
+        if middleware_path not in current:
+            insert_at = 1  # after SecurityMiddleware
+            current.insert(insert_at, middleware_path)
+            settings.MIDDLEWARE = current
+            logger.info("Rust radix router middleware auto-registered")

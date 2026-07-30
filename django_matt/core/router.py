@@ -541,6 +541,10 @@ class APIRouter:
         # Build Rust radix tree alongside Django patterns for fast dispatch
         if HAS_RUST and RadixRouter is not None:
             self._build_radix_router(path_entries, csrf_exempt)
+            # Register with the radix middleware for primary dispatch
+            from django_matt.core.radix_middleware import register_radix_router
+
+            register_radix_router(self)
 
         return django_patterns
 
