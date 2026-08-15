@@ -948,6 +948,56 @@ class TestMattMigrateFromCommand:
         data = json.loads(out)
         assert data["framework"] == "drf"
 
+    def test_migrate_from_ninja_extra_json(self):
+        """matt_migrate_from --source ninja-extra outputs valid JSON."""
+        out = run_command("matt_migrate_from", source="ninja-extra", json=True)
+        data = json.loads(out)
+        assert data["framework"] == "ninja-extra"
+        assert "items" in data
+        assert "suggestions" in data
+
+    def test_ninja_extra_always_has_import_suggestion(self):
+        """Ninja Extra migration includes the import update suggestion."""
+        out = run_command("matt_migrate_from", source="ninja-extra", json=True)
+        data = json.loads(out)
+        titles = [s["title"] for s in data["suggestions"]]
+        assert "Update Import Statements" in titles
+
+    def test_ninja_extra_detection_beats_ninja(self):
+        """_detect_framework returns ninja-extra when ninja_extra is present."""
+        from django_matt.management.commands.matt_migrate_from import Command
+
+        cmd = Command()
+        assert cmd._detect_framework_from_source("from ninja_extra import api_controller") == (
+            "ninja-extra"
+        )
+
+    def test_ninja_extra_controller_template(self):
+        """Template generation emits APIController classes from controller analysis."""
+        from django_matt.migrate.ninja_extra import generate_ninja_extra_controller_template
+
+        controllers = [
+            {
+                "name": "BookController",
+                "prefix": "/books",
+                "tags": ["Books"],
+                "permissions": ["IsAuthenticated"],
+                "endpoints": [
+                    {
+                        "name": "list_books",
+                        "method": "GET",
+                        "path": "/",
+                        "controller": "BookController",
+                    }
+                ],
+            }
+        ]
+        content = generate_ninja_extra_controller_template(controllers)
+        assert "class BookController(APIController):" in content
+        assert "prefix = '/books'" in content
+        assert "permission_classes = [IsAuthenticated]" in content
+        assert "@api.get('/')" in content
+
     def _get_command(self):
         from django_matt.management.commands.matt_migrate_from import Command
 

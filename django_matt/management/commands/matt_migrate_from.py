@@ -1,13 +1,15 @@
-# file-length-max: 1150
+# file-length-max: 1250
 """
 Django Matt migration wizard command.
 
-Helps migrate from Django REST Framework, Django Ninja, or FastAPI to django-matt.
+Helps migrate from Django REST Framework, Django Ninja, Django Ninja Extra,
+or FastAPI to django-matt.
 Uses the codemod engine for AST-based automated source transformations.
 
 Usage:
     python manage.py matt_migrate_from --source drf               # Detect DRF code
     python manage.py matt_migrate_from --source ninja             # Detect Django Ninja code
+    python manage.py matt_migrate_from --source ninja-extra       # Detect Django Ninja Extra code
     python manage.py matt_migrate_from --source fastapi           # Detect FastAPI code
     python manage.py matt_migrate_from --source drf --app myapp   # Migrate specific app
     python manage.py matt_migrate_from --source drf --dry-run     # Preview changes
@@ -33,22 +35,22 @@ from django_matt.codemods.engine import CodemodEngine
 class Command(GeneratorCommand):
     """Migration wizard for DRF, Django Ninja, or FastAPI to django-matt."""
 
-    help = "Migrate from Django REST Framework, Django Ninja, or FastAPI to django-matt"
+    help = "Migrate from DRF, Django Ninja, Django Ninja Extra, or FastAPI to django-matt"
 
     def add_arguments(self, parser):
         super().add_arguments(parser)
         parser.add_argument(
             "--source",
             "-s",
-            choices=["drf", "ninja", "auto"],
+            choices=["drf", "ninja", "ninja-extra", "auto"],
             default="auto",
             help="Source framework to migrate from (default: auto-detect)",
         )
         parser.add_argument(
             "--framework",
-            choices=["drf", "ninja", "fastapi", "auto"],
+            choices=["drf", "ninja", "ninja-extra", "fastapi", "auto"],
             default=None,
-            help="Framework for codemod engine (drf, ninja, fastapi, auto)",
+            help="Framework for codemod engine (drf, ninja, ninja-extra, fastapi, auto)",
         )
         parser.add_argument(
             "--app",
@@ -103,13 +105,16 @@ class Command(GeneratorCommand):
             source = self._detect_framework()
             if not source:
                 self.error(
-                    "Could not detect source framework. Specify --source drf or --source ninja"
+                    "Could not detect source framework. Specify --source drf, "
+                    "--source ninja, or --source ninja-extra"
                 )
                 return None
 
         # Analyze codebase
         if source == "drf":
             analysis = self._analyze_drf(app_filter)
+        elif source == "ninja-extra":
+            analysis = self._analyze_ninja_extra(app_filter)
         else:
             analysis = self._analyze_ninja(app_filter)
 
@@ -126,11 +131,13 @@ class Command(GeneratorCommand):
 
     def _detect_framework(self) -> str | None:
         """Auto-detect the source framework."""
-        # Check installed apps
         installed_apps = settings.INSTALLED_APPS
 
+        # Check installed apps
         if "rest_framework" in installed_apps:
             return "drf"
+        if "ninja_extra" in installed_apps:
+            return "ninja-extra"
         if "ninja" in installed_apps:
             return "ninja"
 
@@ -139,6 +146,13 @@ class Command(GeneratorCommand):
             import rest_framework
 
             return "drf"
+        except ImportError:
+            pass
+
+        try:
+            import ninja_extra
+
+            return "ninja-extra"
         except ImportError:
             pass
 
@@ -156,13 +170,22 @@ class Command(GeneratorCommand):
                 continue
             try:
                 content = py_file.read_text()
-                if "from rest_framework" in content or "import rest_framework" in content:
-                    return "drf"
-                if "from ninja" in content or "import ninja" in content:
-                    return "ninja"
+                detected = self._detect_framework_from_source(content)
+                if detected:
+                    return detected
             except Exception:
                 pass
 
+        return None
+
+    def _detect_framework_from_source(self, content: str) -> str | None:
+        """Detect the source framework from a source file's text."""
+        if "from rest_framework" in content or "import rest_framework" in content:
+            return "drf"
+        if "from ninja_extra" in content or "import ninja_extra" in content:
+            return "ninja-extra"
+        if "from ninja" in content or "import ninja" in content:
+            return "ninja"
         return None
 
     def _analyze_drf(self, app_filter: str | None = None) -> dict[str, Any]:
@@ -535,6 +558,12 @@ class Command(GeneratorCommand):
 
         return routers
 
+    def _analyze_ninja_extra(self, app_filter: str | None = None) -> dict[str, Any]:
+        """Analyze Django Ninja Extra code for migration."""
+        from django_matt.migrate.ninja_extra import analyze_ninja_extra
+
+        return analyze_ninja_extra(app_filter)
+
     def _get_serializer_field_type(self, value) -> str:
         """Get the type of a serializer field."""
         if isinstance(value, ast.Call):
@@ -679,10 +708,23 @@ class Command(GeneratorCommand):
 
         return suggestions
 
+    def _generate_ninja_extra_suggestions(self, analysis: dict[str, Any]) -> list[dict[str, Any]]:
+        """Generate migration suggestions for Django Ninja Extra."""
+        from django_matt.migrate.ninja_extra import generate_ninja_extra_suggestions
+
+        return generate_ninja_extra_suggestions(analysis)
+
+
     def _display_analysis(self, analysis: dict[str, Any], source: str):
         """Display migration analysis."""
         self.console.banner()
-        framework_name = "Django REST Framework" if source == "drf" else "Django Ninja"
+        framework_name = (
+            "Django REST Framework"
+            if source == "drf"
+            else "Django Ninja Extra"
+            if source == "ninja-extra"
+            else "Django Ninja"
+        )
         self.header(f"Migration Analysis: {framework_name}", "Code to migrate to django-matt")
 
         items = analysis.get("items", [])
@@ -715,6 +757,26 @@ class Command(GeneratorCommand):
                 {"Item Type": "Routers/Endpoints", "Count": str(len(analysis["routers"]))}
             )
 
+        if analysis.get("controllers"):
+            summary_data.append(
+                {"Item Type": "Controllers", "Count": str(len(analysis["controllers"]))}
+            )
+
+        if analysis.get("endpoints"):
+            summary_data.append(
+                {"Item Type": "Endpoints", "Count": str(len(analysis["endpoints"]))}
+            )
+
+        if analysis.get("registrations"):
+            summary_data.append(
+                {"Item Type": "Registrations", "Count": str(len(analysis["registrations"]))}
+            )
+
+        if analysis.get("api_instances"):
+            summary_data.append(
+                {"Item Type": "API Instances", "Count": str(len(analysis["api_instances"]))}
+            )
+
         self.table(summary_data)
 
         # Items to migrate
@@ -740,6 +802,34 @@ class Command(GeneratorCommand):
                     self.console.print(f"    [dim]{v['file']}:{v['line']}[/]")
                     if v.get("methods"):
                         self.console.print(f"    [dim]Methods: {', '.join(v['methods'][:5])}[/]")
+
+        elif source == "ninja-extra":
+            if analysis.get("schemas"):
+                self.section("Schemas")
+                for s in analysis["schemas"][:10]:
+                    self.console.print(f"  [cyan]{s['name']}[/]")
+                    self.console.print(f"    [dim]{s['file']}:{s['line']}[/]")
+
+            if analysis.get("controllers"):
+                self.section("Controllers to Convert")
+                for c in analysis["controllers"][:10]:
+                    prefix = f" {c['prefix']!r}" if c.get("prefix") else ""
+                    self.console.print(f"  [yellow]{c['name']}[/] -> [green]APIController[/]")
+                    self.console.print(f"    [dim]{c['file']}:{c['line']} (prefix{prefix})[/]")
+                    if c.get("permissions"):
+                        self.console.print(
+                            f"    [dim]Permissions: {', '.join(c['permissions'])}[/]"
+                        )
+                    for ep in c.get("endpoints", [])[:5]:
+                        self.console.print(
+                            f"      [cyan]{ep['method']}[/] {ep['path'] or ep['name']}"
+                        )
+
+            if analysis.get("registrations"):
+                self.section("Controller Registration")
+                for r in analysis["registrations"][:10]:
+                    self.console.print("  [yellow]register_controllers[/] -> register_controller")
+                    self.console.print(f"    [dim]{r['file']}:{r['line']}[/]")
 
         else:
             if analysis.get("schemas"):
@@ -796,6 +886,12 @@ class Command(GeneratorCommand):
         views = analysis.get("views", [])
         if views:
             content = self._generate_controller_template(views)
+            self.write_file(output_path / "controllers.py", content)
+
+        # Generate ninja-extra controller conversions
+        controllers = analysis.get("controllers", [])
+        if controllers:
+            content = self._generate_ninja_extra_controller_template(controllers)
             self.write_file(output_path / "controllers.py", content)
 
         # Generate migration guide
@@ -940,10 +1036,23 @@ class Command(GeneratorCommand):
 
         return "\n".join(lines)
 
+    def _generate_ninja_extra_controller_template(
+        self, controllers: list[dict[str, Any]]
+    ) -> str:
+        """Generate APIController templates from ninja-extra ControllerBase classes."""
+        from django_matt.migrate.ninja_extra import generate_ninja_extra_controller_template
+
+        return generate_ninja_extra_controller_template(controllers)
+
+
     def _generate_migration_guide(self, analysis: dict[str, Any]) -> str:
         """Generate a markdown migration guide."""
         framework = analysis.get("framework", "unknown")
-        framework_name = "Django REST Framework" if framework == "drf" else "Django Ninja"
+        framework_name = {
+            "drf": "Django REST Framework",
+            "ninja-extra": "Django Ninja Extra",
+            "fastapi": "FastAPI",
+        }.get(framework, "Django Ninja")
 
         md = f"""# Migration Guide: {framework_name} to django-matt
 
@@ -956,6 +1065,10 @@ This guide was auto-generated to help you migrate your codebase.
             md += f"- **{len(analysis['serializers'])}** serializers to convert\n"
         if analysis.get("views"):
             md += f"- **{len(analysis['views'])}** views/viewsets to convert\n"
+        if analysis.get("controllers"):
+            md += f"- **{len(analysis['controllers'])}** controllers to convert\n"
+        if analysis.get("endpoints"):
+            md += f"- **{len(analysis['endpoints'])}** endpoints to convert\n"
         if analysis.get("schemas"):
             md += f"- **{len(analysis['schemas'])}** schemas (minor changes needed)\n"
 

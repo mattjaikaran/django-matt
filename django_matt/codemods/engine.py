@@ -12,6 +12,7 @@ from django_matt.codemods.base import Codemod, CodemodResult
 from django_matt.codemods.drf import DRFCodemods
 from django_matt.codemods.fastapi import FastAPICodemods
 from django_matt.codemods.ninja import NinjaCodemods
+from django_matt.codemods.ninja_extra import NinjaExtraCodemods
 
 
 class CodemodEngine:
@@ -21,6 +22,7 @@ class CodemodEngine:
         self._codemods: list[Codemod] = []
         self._codemods.extend(DRFCodemods.all())
         self._codemods.extend(NinjaCodemods.all())
+        self._codemods.extend(NinjaExtraCodemods.all())
         self._codemods.extend(FastAPICodemods.all())
         if extra_codemods:
             self._codemods.extend(extra_codemods)
@@ -32,10 +34,12 @@ class CodemodEngine:
     def detect_framework(self, source: str, filename: str = "") -> str | None:
         """Auto-detect the source framework from import statements.
 
-        Returns "drf", "ninja", "fastapi", or None.
+        Returns "drf", "ninja", "ninja-extra", "fastapi", or None.
         """
         if "rest_framework" in source:
             return "drf"
+        if "ninja_extra" in source:
+            return "ninja-extra"
         if "from ninja" in source or "import ninja" in source:
             return "ninja"
         if "from fastapi" in source or "import fastapi" in source:
@@ -45,7 +49,7 @@ class CodemodEngine:
     def detect_framework_directory(self, directory: str | Path) -> str | None:
         """Detect framework across an entire directory."""
         directory = Path(directory)
-        counts: dict[str, int] = {"drf": 0, "ninja": 0, "fastapi": 0}
+        counts: dict[str, int] = {"drf": 0, "ninja": 0, "ninja-extra": 0, "fastapi": 0}
 
         for py_file in directory.rglob("*.py"):
             if self._should_skip(py_file):

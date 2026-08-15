@@ -34,6 +34,12 @@ from django_matt.codemods.ninja import (
     NinjaRouterToController,
     NinjaSchemaToMattSchema,
 )
+from django_matt.codemods.ninja_extra import (
+    NinjaExtraCodemods,
+    NinjaExtraControllerToMattController,
+    NinjaExtraImportsToMatt,
+    NinjaExtraRegisterToMatt,
+)
 from django_matt.codemods.patterns import (
     add_import,
     has_base_class,
@@ -368,6 +374,98 @@ class TestNinjaRouterToController:
         _assert_in_output(result, "api")
 
 
+
+class TestNinjaExtraImportsToMatt:
+    def test_detect(self):
+        codemod = NinjaExtraImportsToMatt()
+        assert codemod.detect("from ninja_extra import api_controller", "api.py")
+        assert not codemod.detect("from ninja import NinjaAPI", "api.py")
+
+    def test_bare_import_split(self):
+        source = _dedent("""
+            from ninja_extra import NinjaExtraAPI, api_controller, ControllerBase, route
+        """)
+        codemod = NinjaExtraImportsToMatt()
+        result = codemod.transform(source, "api.py")
+
+        assert result.has_changes
+        _assert_in_output(result, "from django_matt import DjangoMattAPI")
+        _assert_in_output(result, "from ninja_extra import api_controller, ControllerBase, route")
+
+    def test_permissions_import_rewrite(self):
+        source = _dedent("""
+            from ninja_extra.permissions import IsAuthenticated, IsAdminUser
+        """)
+        codemod = NinjaExtraImportsToMatt()
+        result = codemod.transform(source, "api.py")
+
+        assert result.has_changes
+        _assert_in_output(result, "from django_matt.permissions import IsAuthenticated, IsAdmin")
+        _assert_not_in_output(result, "ninja_extra.permissions")
+        _assert_not_in_output(result, "IsAdminUser")
+
+
+class TestNinjaExtraControllerToMattController:
+    def test_detect(self):
+        codemod = NinjaExtraControllerToMattController()
+        assert codemod.detect("@api_controller('/books')\nclass BookController(ControllerBase):", "api.py")
+        assert not codemod.detect("import os", "api.py")
+
+    def test_controller_transform(self):
+        source = _dedent("""
+            from ninja_extra import api_controller, ControllerBase, route
+            from ninja_extra.permissions import IsAuthenticated
+
+            @api_controller("/books", tags=["Books"], permissions=[IsAuthenticated])
+            class BookController(ControllerBase):
+                @route.get("/")
+                def list_books(self, request):
+                    return []
+        """)
+        codemod = NinjaExtraControllerToMattController()
+        result = codemod.transform(source, "api.py")
+
+        assert result.has_changes
+        _assert_in_output(result, "class BookController(APIController):")
+        _assert_in_output(result, "prefix = '/books'")
+        _assert_in_output(result, "permission_classes = [IsAuthenticated]")
+        _assert_in_output(result, "@api.get")
+        _assert_not_in_output(result, "api_controller")
+        _assert_not_in_output(result, "ControllerBase")
+        _assert_not_in_output(result, "@route")
+
+    def test_inject_warning(self):
+        source = _dedent("""
+            from ninja_extra import api_controller, ControllerBase, route, Inject
+
+            @api_controller("/books")
+            class BookController(ControllerBase):
+                @route.get("/")
+                def list_books(self, request, service: object = Inject()):
+                    return []
+        """)
+        codemod = NinjaExtraControllerToMattController()
+        result = codemod.transform(source, "api.py")
+
+        assert any("Inject" in w for w in result.warnings)
+
+
+class TestNinjaExtraRegisterToMatt:
+    def test_detect(self):
+        codemod = NinjaExtraRegisterToMatt()
+        assert codemod.detect("api.register_controllers(BookController)", "api.py")
+
+    def test_register_transform(self):
+        source = _dedent("""
+            api.register_controllers(BookController)
+        """)
+        codemod = NinjaExtraRegisterToMatt()
+        result = codemod.transform(source, "api.py")
+
+        assert result.has_changes
+        _assert_in_output(result, "api.register_controller(BookController)")
+        _assert_not_in_output(result, "register_controllers")
+
 # ===========================================================================
 # FastAPI codemod tests
 # ===========================================================================
@@ -391,6 +489,7 @@ class TestFastAPIAppToMattAPI:
         assert result.has_changes
         _assert_in_output(result, "DjangoMattAPI")
         _assert_not_in_output(result, "FastAPI")
+
 
 
 class TestFastAPIRouterToController:
@@ -423,6 +522,7 @@ class TestFastAPIDependsToMattDI:
     def test_detect(self):
         codemod = FastAPIDependsToMattDI()
         assert codemod.detect("from fastapi import Depends", "deps.py")
+
 
     def test_depends_transform(self):
         source = _dedent("""
@@ -511,6 +611,31 @@ class TestCodemodEngine:
         result = engine.run(source, "api.py", framework="ninja")
         assert result.has_changes
         _assert_in_output(result, "DjangoMattAPI")
+
+    def test_run_ninja_extra(self):
+        engine = CodemodEngine()
+        source = _dedent("""
+            from ninja_extra import api_controller, ControllerBase, route, NinjaExtraAPI
+
+            api = NinjaExtraAPI()
+
+            @api_controller("/books")
+            class BookController(ControllerBase):
+                @route.get("/")
+                def list_books(self, request):
+                    return []
+
+            api.register_controllers(BookController)
+        """)
+        result = engine.run(source, "api.py", framework="ninja-extra")
+
+        assert result.has_changes
+        _assert_in_output(result, "api = DjangoMattAPI()")
+        _assert_in_output(result, "class BookController(APIController):")
+        _assert_in_output(result, "@api.get")
+        _assert_in_output(result, "api.register_controller(BookController)")
+        _assert_not_in_output(result, "NinjaExtraAPI")
+        _assert_not_in_output(result, "ControllerBase")
 
     def test_run_fastapi(self):
         engine = CodemodEngine()

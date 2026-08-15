@@ -567,6 +567,35 @@ rewriter = RenameRewriter(app="myapp", old_name="old_field", new_name="new_field
 rewriter.apply()
 ```
 
+### Migration wizard
+
+Run the migration wizard to analyze a ninja-extra project and generate the
+migration files:
+
+```bash
+python manage.py matt_migrate_from --source ninja-extra
+# Analysis: controllers, endpoints, schemas, registrations
+
+python manage.py matt_migrate_from --source ninja-extra --generate
+# Writes controllers.py + MIGRATION_GUIDE.md to ./matt_migration/
+
+python manage.py matt_migrate_from --source ninja-extra --app myapp --json
+# Machine-readable analysis for a single app
+```
+
+The wizard detects `ControllerBase`/`AsyncControllerBase` classes,
+`api_controller` decorators, `route.get/post/...` endpoints,
+`NinjaExtraAPI` instances, `register_controllers` calls, and
+`Inject()`-based DI. For whole-directory rewrites, use the codemod engine:
+
+```bash
+python manage.py matt_migrate_from --framework ninja-extra --directory ./myproject --diff
+# Preview rewrites: ninja_extra imports, ControllerBase -> APIController,
+# @route.* -> @api.*, register_controllers -> register_controller
+```
+
+Add `--dry-run` to preview before applying any changes.
+
 ### CRUD scaffolding
 
 Generate controllers, schemas, services, admin, and tests for any model in one command:

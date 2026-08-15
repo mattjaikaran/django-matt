@@ -137,15 +137,15 @@
 - [x] Conditional loading (zero overhead if not enabled)
 - [x] CLI commands (list, run, status, purge, retry)
 
-### Phase 17B: AI-Assisted Codebase Audits
-- [ ] Multi-perspective audit framework (security, performance, scalability, bundle_size)
-- [ ] Strictness levels (RELAXED, STANDARD, STRICT, PARANOID)
-- [ ] Bundle size analyzer with tree-shaking suggestions
-- [ ] LLM prompt helpers with project context
-- [ ] `matt_audit` CLI with JSON/Markdown/SARIF output
-- [ ] Auto-fix suggestions and diff mode
-- [ ] MCP tools for AI agents
-- [ ] GitHub Actions integration
+### Phase 17B: AI-Assisted Codebase Audits ✅ (shipped in 0.10.0)
+- [x] Multi-perspective audit framework (security, performance, scalability, bundle_size)
+- [x] Strictness levels (RELAXED, STANDARD, STRICT, PARANOID)
+- [x] Bundle size analyzer with tree-shaking suggestions
+- [x] LLM prompt helpers with project context
+- [x] `matt_audit` CLI with JSON/Markdown/SARIF output
+- [x] Auto-fix suggestions and diff mode
+- [x] MCP tools for AI agents
+- [x] GitHub Actions integration
 
 ## Future Technical Work
 
@@ -159,6 +159,15 @@
 - [ ] vLLM integration (Stage 10C.2) — vLLM server client, OpenAI-compatible API
 - [ ] llama.cpp integration (Stage 10C.3) — direct llama-cpp-python bindings
 - [ ] LocalAI integration (Stage 10C.4) — LocalAI client wrapper
+
+### Migration (2026-08-15)
+- [x] `matt_migrate_from --source ninja-extra` — ninja-extra as first-class migration source
+  - [x] Detection: `ninja_extra` beats the `ninja` substring match in both the wizard and codemod engine
+  - [x] Analyzer (`django_matt/migrate/ninja_extra.py`): ControllerBase classes, api_controller decorators, route.* endpoints, NinjaExtraAPI, register_controllers, Inject DI
+  - [x] Codemods (`django_matt/codemods/ninja_extra.py`): imports, controller conversion, registration
+  - [x] `--generate` emits APIController templates + MIGRATION_GUIDE.md
+  - [x] 13 new tests (codemod + wizard)
+- [ ] Live side-by-side DRF/ninja parity matrix (feature comparison, not just published-baseline benchmarks)
 
 ---
 
@@ -176,24 +185,24 @@
 
 **Goal**: django-matt faster than FastAPI+Starlette for 90th percentile use case.
 
-### Phase 18A: Rust Router as Default
-- [ ] Enable Rust request router as default for `@api.get()` / `@api.post()` decorators
-- [ ] Profile route matching: Python vs Rust (target: 2.3x speedup)
-- [ ] Graceful fallback to Python router when Rust wheel unavailable
-- [ ] Update `pyproject.toml` to include Rust wheel as default dependency
+### Phase 18A: Rust Router as Default ✅ (committed on main)
+- [x] Enable Rust request router as default for `@api.get()` / `@api.post()` decorators
+- [x] Profile route matching: Python vs Rust (target: 2.3x speedup)
+- [x] Graceful fallback to Python router when Rust wheel unavailable
+- [x] Update `pyproject.toml` to include Rust wheel as default dependency
 
-### Phase 18B: Rust Schema Validation (opt-in, Pydantic stays)
-- [ ] Create `django_matt.core.schema.RustModelSchema` as Pydantic alternative
-- [ ] Batch validation at Rust layer using `serde` / `jsonschema-rs`
-- [ ] Keep Pydantic as first-class option: `from django_matt.core.schema import ModelSchema` still works
-- [ ] Design: `RustModelSchema` mirrors Pydantic API (`.model_validate()`, `.model_dump()`) for drop-in swap
+### Phase 18B: Rust Schema Validation (opt-in, Pydantic stays) ✅ (committed on main)
+- [x] Create `django_matt.core.schema.RustModelSchema` as Pydantic alternative
+- [x] Batch validation at Rust layer using `serde` / `jsonschema-rs`
+- [x] Keep Pydantic as first-class option: `from django_matt.core.schema import ModelSchema` still works
+- [x] Design: `RustModelSchema` mirrors Pydantic API (`.model_validate()`, `.model_dump()`) for drop-in swap
 - [ ] Benchmarks: Rust vs Pydantic validation latency (target: 3-5x faster for large payloads)
 
-### Phase 18C: Benchmark Suite vs FastAPI
-- [ ] Create `benchmarks/bench_vs_fastapi.py` — identical payloads, both frameworks
-- [ ] Measure: route resolution, JSON serialization, schema validation, end-to-end
-- [ ] Auto-generate comparison charts (p50/p95/p99 latency, throughput)
-- [ ] Target: 15,000 req/s single Granian worker (FastAPI ~12,000 on M2 Pro)
+### Phase 18C: Benchmark Suite vs FastAPI ✅ (committed on main)
+- [x] Create `benchmarks/bench_vs_fastapi.py` — identical payloads, both frameworks
+- [x] Measure: route resolution, JSON serialization, schema validation, end-to-end
+- [x] Auto-generate comparison charts (p50/p95/p99 latency, throughput)
+- [ ] Target: 15,000 req/s single Granian worker (FastAPI ~12,000 on M2 Pro) — re-run on release hardware
 
 ### Phase 18D: Connection Pool Pre-Warming
 - [ ] On startup, open N database connections and hold (active pooling)
@@ -216,26 +225,26 @@
 
 ## Stage 19: LLM/AI Deep Integration (v0.12.0)
 
-### Phase 19A: AI-Native Context Generation
-- [ ] `matt ai context` auto-detects project patterns and emits rules
-- [ ] Scans git history for bug fixes → emits anti-pattern rules
-- [ ] Generates service-layer, soft-delete, error-handling conventions
-- [ ] Output: `.cursorrules` + `CLAUDE.md` tailored to this specific project
+### Phase 19A: AI-Native Context Generation ✅ (committed on main)
+- [x] `matt ai context` auto-detects project patterns and emits rules
+- [x] Scans git history for bug fixes → emits anti-pattern rules
+- [x] Generates service-layer, soft-delete, error-handling conventions
+- [x] Output: `.cursorrules` + `CLAUDE.md` tailored to this specific project
 
-### Phase 19B: matt explain --ai
-- [ ] `matt explain --ai /api/orders/` traces full request lifecycle
-- [ ] Natural language output: middleware chain, controller, service, DB query, response
-- [ ] Dependencies shown: "Uses StripeProvider → requires STRIPE_API_KEY"
+### Phase 19B: matt explain --ai ✅ (committed on main)
+- [x] `matt explain --ai /api/orders/` traces full request lifecycle
+- [x] Natural language output: middleware chain, controller, service, DB query, response
+- [x] Dependencies shown: "Uses StripeProvider → requires STRIPE_API_KEY"
 
-### Phase 19C: AI-Assisted Schema Design
-- [ ] Wire `schema_designer/` to LLM for conversational schema creation
-- [ ] "I need a User model with email auth" → Model + Schema + Controller + Service + Tests
-- [ ] Generates migrations, admin config, and OpenAPI docs
+### Phase 19C: AI-Assisted Schema Design ✅ (committed on main)
+- [x] Wire `schema_designer/` to LLM for conversational schema creation
+- [x] "I need a User model with email auth" → Model + Schema + Controller + Service + Tests
+- [x] Generates migrations, admin config, and OpenAPI docs
 
-### Phase 19D: AI-Assisted Refactoring
-- [ ] `matt refactor --ai <file>` suggests architectural improvements
-- [ ] Detects fat controllers, missing service layer, mixed concerns
-- [ ] Generates split suggestions with before/after diffs
+### Phase 19D: AI-Assisted Refactoring ✅ (committed on main)
+- [x] `matt refactor --ai <file>` suggests architectural improvements
+- [x] Detects fat controllers, missing service layer, mixed concerns
+- [x] Generates split suggestions with before/after diffs
 
 ### Phase 19E: Agent SDKs
 - [ ] Rust SDK: `matt_sdk::Client` for maximum performance
@@ -246,16 +255,16 @@
 
 ## Stage 20: Agent Guardrails (v0.12.0)
 
-### Phase 20A: Architecture Contracts as Code
-- [ ] Declarative `.matt/architecture.toml` format
-- [ ] Layer dependency rules: foundation → domain → interface → tooling
-- [ ] Runtime enforcement via `check_architecture.py` extension
-- [ ] Violations block CI/deploy
+### Phase 20A: Architecture Contracts as Code ✅ (committed on main)
+- [x] Declarative `.matt/architecture.toml` format
+- [x] Layer dependency rules: foundation → domain → interface → tooling
+- [x] Runtime enforcement via `check_architecture.py` extension
+- [x] Violations block CI/deploy
 
-### Phase 20B: Pre-Commit AI Audit
-- [ ] Hook `matt audit` into pre-commit flow
-- [ ] Block commits introducing CRITICAL/HIGH findings
-- [ ] Auto-generate fix diffs for review
+### Phase 20B: Pre-Commit AI Audit ✅ (committed on main)
+- [x] Hook `matt audit` into pre-commit flow
+- [x] Block commits introducing CRITICAL/HIGH findings
+- [x] Auto-generate fix diffs for review
 
 ### Phase 20C: Test Generation from Schemas
 - [ ] Given Pydantic schema, auto-generate edge-case tests

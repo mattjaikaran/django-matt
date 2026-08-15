@@ -20,6 +20,7 @@ from django_matt.codemods.drf import DRFCodemods
 from django_matt.codemods.engine import CodemodEngine
 from django_matt.codemods.fastapi import FastAPICodemods
 from django_matt.codemods.ninja import NinjaCodemods
+from django_matt.codemods.ninja_extra import NinjaExtraCodemods
 
 __all__ = [
     "Codemod",
@@ -27,5 +28,6 @@ __all__ = [
     "CodemodEngine",
     "DRFCodemods",
     "NinjaCodemods",
+    "NinjaExtraCodemods",
     "FastAPICodemods",
 ]
