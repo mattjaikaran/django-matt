@@ -2,14 +2,14 @@
 """
 Django Matt migration wizard command.
 
-Helps migrate from Django REST Framework, Django Ninja, Django Ninja Extra,
+Helps migrate from Django REST Framework, Django Ninja, django-ninja-extra,
 or FastAPI to django-matt.
 Uses the codemod engine for AST-based automated source transformations.
 
 Usage:
     python manage.py matt_migrate_from --source drf               # Detect DRF code
     python manage.py matt_migrate_from --source ninja             # Detect Django Ninja code
-    python manage.py matt_migrate_from --source ninja-extra       # Detect Django Ninja Extra code
+    python manage.py matt_migrate_from --source ninja-extra       # Detect django-ninja-extra code
     python manage.py matt_migrate_from --source fastapi           # Detect FastAPI code
     python manage.py matt_migrate_from --source drf --app myapp   # Migrate specific app
     python manage.py matt_migrate_from --source drf --dry-run     # Preview changes
@@ -721,7 +721,7 @@ class Command(GeneratorCommand):
         framework_name = (
             "Django REST Framework"
             if source == "drf"
-            else "Django Ninja Extra"
+            else "django-ninja-extra"
             if source == "ninja-extra"
             else "Django Ninja"
         )
@@ -1050,7 +1050,7 @@ class Command(GeneratorCommand):
         framework = analysis.get("framework", "unknown")
         framework_name = {
             "drf": "Django REST Framework",
-            "ninja-extra": "Django Ninja Extra",
+            "ninja-extra": "django-ninja-extra",
             "fastapi": "FastAPI",
         }.get(framework, "Django Ninja")
 
